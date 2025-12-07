@@ -128,7 +128,19 @@ export function RequestMeetingModal({
         throw new Error(data.error || 'Failed to create session');
       }
 
-      // Success
+      // Success - handle both immediate success and pending confirmation
+      if (data.pending) {
+        // Transaction submitted but confirmation pending
+        setError(''); // Clear any previous errors
+        alert(`Meeting request submitted! ${data.message || 'Confirmation is pending. Please check your sessions in a moment.'}`);
+      } else {
+        // Immediate success
+        if (data.txHash) {
+          const shortHash = data.txHash.slice(0, 10) + '...';
+          alert(`Meeting requested successfully! Transaction: ${shortHash}`);
+        }
+      }
+
       if (onSuccess) {
         onSuccess();
       }
@@ -136,7 +148,25 @@ export function RequestMeetingModal({
       setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
     } catch (err: any) {
       console.error('Error creating session:', err);
-      setError(err.message || 'Failed to request meeting');
+      const errorMessage = err.message || 'Failed to request meeting';
+      
+      // Check if this is a transaction receipt timeout (common on testnets)
+      if (errorMessage.includes('Transaction receipt') || 
+          errorMessage.includes('confirmation pending') ||
+          errorMessage.includes('Transaction submitted')) {
+        // This is actually a partial success - transaction was submitted
+        setError(''); // Clear error state
+        alert(`Meeting request submitted! The transaction is being processed. Please check your sessions in a few moments. If it doesn't appear, the transaction may still be confirming on the testnet.`);
+        // Close modal and reset form
+        if (onSuccess) {
+          onSuccess();
+        }
+        onClose();
+        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+      } else {
+        // Real error
+        setError(errorMessage);
+      }
     } finally {
       setSubmitting(false);
     }
