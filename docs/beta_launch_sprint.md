@@ -36,10 +36,10 @@
   - [x] "I am learning"
   - [x] "I am teaching"
   - [ ] Pricing logic (free/paid + payment receiving address) - Deferred to later
-- [ ] Network graph:
-  - [ ] View network
-  - [ ] Match asks ↔ offers ↔ skills
-  - [ ] Filtering
+- [x] Network graph:
+  - [x] View network
+  - [x] Match asks ↔ offers ↔ skills
+  - [x] Filtering (skill, type)
 
 ### P2 — Mentorship Session Flow
 
