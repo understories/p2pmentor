@@ -54,8 +54,10 @@ export default function SkillsPage() {
     const skill = newSkill.trim();
     const currentSkills = profile.skillsArray || [];
     
-    if (currentSkills.includes(skill)) {
-      setError('Skill already exists');
+    // Case-insensitive duplicate check
+    const skillLower = skill.toLowerCase();
+    if (currentSkills.some(s => s.toLowerCase() === skillLower)) {
+      setError('Skill already exists (case-insensitive)');
       return;
     }
 
