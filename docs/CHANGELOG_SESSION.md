@@ -294,6 +294,33 @@
   - `app/api/profile/route.ts` - Removed wallet type restrictions
   - `app/me/profile/page.tsx` - Always use API route (removed MetaMask-only path)
 
+### Asks & Offers Implementation
+- **Feature**: Implemented "I am learning" (asks) and "I am teaching" (offers) functionality
+- **Library Functions**:
+  - `lib/arkiv/asks.ts` - Ask CRUD operations (create, list, listForWallet)
+  - `lib/arkiv/offers.ts` - Offer CRUD operations (create, list, listForWallet)
+  - Both follow mentor-graph patterns with TTL (asks: 1hr, offers: 2hrs)
+  - Separate txhash entities for transaction tracking
+- **API Routes**:
+  - `app/api/asks/route.ts` - POST for creation, GET for listing (with filters)
+  - `app/api/offers/route.ts` - POST for creation, GET for listing (with filters)
+  - Both support server-side creation using `ARKIV_PRIVATE_KEY`
+- **UI Pages**:
+  - `app/asks/page.tsx` - Browse and create asks with form
+  - `app/offers/page.tsx` - Browse and create offers with form (includes availability window)
+  - Both pages include:
+    - Create form with validation
+    - List view with wallet addresses and Arkiv explorer links
+    - Status badges and formatted dates
+    - Beta warnings
+    - Error/success messaging
+- **Technical Notes**:
+  - Asks have `status: 'open'`, offers have `status: 'active'`
+  - Offers include `availabilityWindow` field
+  - Both use `expiresIn` parameter for TTL customization
+  - Filtering by skill and spaceId supported
+  - Matches mentor-graph entity structure exactly
+
 ---
 
 ## 📝 Notes for Technical PM
@@ -302,5 +329,6 @@
 - Profile creation works for both MetaMask and example wallet users
 - Security vulnerability has been patched
 - All explorer links verified and corrected
-- Project is ready for continued development on P1 features
+- Asks & Offers fully implemented (P1 feature)
+- Project is ready for continued development on remaining P1 features (Availability, Network graph)
 

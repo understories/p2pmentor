@@ -27,7 +27,69 @@ For every feature that uses Arkiv, document:
 
 ## Features
 
-### (Features will be added as they are implemented)
+### Profile Management
+- **Feature name**: User profile creation and updates
+- **Arkiv entities used**: `user_profile` (type attribute)
+- **Queries used**: `eq('type', 'user_profile')`, `eq('wallet', walletAddress)`
+- **SDK pain points**: None significant - straightforward entity creation
+- **Errors encountered**: None
+- **Developer friction level**: Low
+- **Proposed improvements**: None at this time
+- **UX team notes**: Profile updates create new entities (immutability), so we fetch the latest one
+
+### Skills Management
+- **Feature name**: Skills add/view/edit
+- **Arkiv entities used**: `user_profile` (skills stored in `skillsArray` field)
+- **Queries used**: Same as profile management
+- **SDK pain points**: None - skills are part of profile entity
+- **Errors encountered**: None
+- **Developer friction level**: Low
+- **Proposed improvements**: None at this time
+- **UX team notes**: Skills are stored as an array in the profile payload
+
+### Asks (I am learning)
+- **Feature name**: Create and browse learning requests
+- **Arkiv entities used**: 
+  - `ask` (type attribute) - main ask entity
+  - `ask_txhash` (type attribute) - separate entity for transaction hash tracking
+- **Queries used**: 
+  - `eq('type', 'ask')`, `eq('status', 'open')` for listing
+  - `eq('type', 'ask_txhash')` for txhash lookup
+  - Optional: `eq('skill', skillName)` for filtering
+- **SDK pain points**: 
+  - Need to create two entities (ask + ask_txhash) which feels redundant
+  - Querying txhashes separately and mapping them back is verbose
+- **Errors encountered**: None
+- **Developer friction level**: Medium
+- **Proposed improvements**: 
+  - Consider including txHash in the main entity attributes instead of separate entity
+  - Or provide a helper method to fetch entity with its txhash automatically
+- **UX team notes**: 
+  - Asks expire after 1 hour (TTL: 3600 seconds)
+  - Status is 'open' for active asks
+  - Skill filtering is done client-side after fetching (could be optimized server-side)
+
+### Offers (I am teaching)
+- **Feature name**: Create and browse teaching offers
+- **Arkiv entities used**: 
+  - `offer` (type attribute) - main offer entity
+  - `offer_txhash` (type attribute) - separate entity for transaction hash tracking
+- **Queries used**: 
+  - `eq('type', 'offer')`, `eq('status', 'active')` for listing
+  - `eq('type', 'offer_txhash')` for txhash lookup
+  - Optional: `eq('skill', skillName)` for filtering
+- **SDK pain points**: 
+  - Same as asks - two entities needed (offer + offer_txhash)
+  - Same verbose txhash mapping pattern
+- **Errors encountered**: None
+- **Developer friction level**: Medium
+- **Proposed improvements**: 
+  - Same as asks - consider simplifying txhash storage
+- **UX team notes**: 
+  - Offers expire after 2 hours (TTL: 7200 seconds)
+  - Status is 'active' for active offers
+  - Includes `availabilityWindow` field in payload
+  - Skill filtering is done client-side after fetching
 
 ---
 

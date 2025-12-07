@@ -32,10 +32,10 @@
 - [ ] Availability integration:
   - [ ] Calendar availability editor
   - [ ] Calendar connection (Google Cal or iCal export)
-- [ ] Asks & Offers:
-  - [ ] "I am learning"
-  - [ ] "I am teaching"
-  - [ ] Pricing logic (free/paid + payment receiving address)
+- [x] Asks & Offers:
+  - [x] "I am learning"
+  - [x] "I am teaching"
+  - [ ] Pricing logic (free/paid + payment receiving address) - Deferred to later
 - [ ] Network graph:
   - [ ] View network
   - [ ] Match asks ↔ offers ↔ skills
