@@ -421,6 +421,28 @@
   - Wallet addresses normalized to lowercase for consistency
 - **Time Investment**: ~3 hours (step-by-step with careful engineering)
 
+### Session Confirmation Implementation (P2)
+- **Feature**: Confirm/reject meeting requests and view sessions
+- **Implementation**:
+  - Created `/app/me/sessions/page.tsx` - Complete sessions management page
+  - Integrated with existing session API for confirm/reject actions
+  - Added Jitsi link display for scheduled sessions
+- **Features**:
+  - Sessions grouped by status (Pending, Scheduled, Completed, Cancelled)
+  - Confirm/Reject buttons for pending sessions
+  - Shows user confirmation status ("You confirmed", "Waiting for you", "Awaiting confirmation")
+  - Displays session details (skill, date, time, duration, notes, participant)
+  - Jitsi meeting link automatically shown when both parties confirm
+  - Profile names displayed when available
+  - Color-coded status badges
+- **Technical Notes**:
+  - Fetches sessions for current user (as mentor or learner)
+  - Loads profiles for all session participants
+  - Handles confirmation/rejection with proper error handling
+  - Auto-refreshes after confirmation/rejection
+  - Jitsi link generation happens automatically in `confirmSession` function
+- **Time Investment**: ~2 hours
+
 ---
 
 ## 📝 Notes for Technical PM

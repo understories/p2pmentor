@@ -53,9 +53,15 @@
   - [x] Session API route
   - [x] Request meeting modal component
   - [x] Request meeting button on profile pages
-- [ ] Confirm meeting time
+- [x] Confirm meeting time
+  - [x] Sessions list page with status grouping
+  - [x] Confirm/reject buttons for pending sessions
+  - [x] Session confirmation API integration
+  - [x] Jitsi link display when both parties confirm
 - [ ] Paid flow: requestor enters tx hash → confirmer validates → session confirmed
-- [ ] Jitsi link generation on confirmation
+- [x] Jitsi link generation on confirmation
+  - [x] Auto-generated when both parties confirm (implemented in confirmSession)
+  - [x] Displayed on scheduled sessions page
   - [ ] Optional add-on: Livepeer + LiveKit (x402 hook placeholder)
 
 ### P3 — Notifications + Feedback
