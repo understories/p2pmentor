@@ -89,11 +89,15 @@ export async function createSession({
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
   const sessionStartTime = new Date(sessionDate).getTime();
-  const sessionDurationMs = (duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+  const durationMinutes = typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10);
+  const sessionDurationMs = durationMinutes * 60 * 1000; // Convert minutes to milliseconds
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer after session ends
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
   const now = Date.now();
   const expiresInSeconds = Math.max(1, Math.floor((expirationTime - now) / 1000)); // Ensure at least 1 second
+  // Ensure it's a proper integer (not a float) for BigInt conversion
+  // Use parseInt to ensure it's definitely an integer, not a float
+  const expiresInSecondsInt = parseInt(String(Math.floor(expiresInSeconds)), 10);
 
   let entityKey: string;
   let txHash: string;
@@ -113,7 +117,7 @@ export async function createSession({
       { key: 'status', value: status },
       ...(paymentTxHash ? [{ key: 'paymentTxHash', value: paymentTxHash }] : []),
     ],
-    expiresIn: expiresInSeconds,
+    expiresIn: expiresInSecondsInt,
   });
     entityKey = result.entityKey;
     txHash = result.txHash;
@@ -153,7 +157,7 @@ export async function createSession({
       { key: 'learnerWallet', value: normalizedLearnerWallet },
       { key: 'spaceId', value: spaceId },
       ],
-      expiresIn: expiresInSeconds,
+      expiresIn: expiresInSecondsInt,
     });
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
@@ -854,15 +858,20 @@ export async function confirmSession({
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
       const sessionStartTime = new Date(session.sessionDate).getTime();
-      const sessionDurationMs = (session.duration || 60) * 60 * 1000;
+      const durationMinutes = typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10);
+      const sessionDurationMs = durationMinutes * 60 * 1000;
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      sessionExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      const calculatedExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      // Ensure it's a proper integer (not a float) for BigInt conversion
+      sessionExpiration = Number.isInteger(calculatedExpiration) ? calculatedExpiration : Math.floor(calculatedExpiration);
     }
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
+  // Final safety check: ensure sessionExpiration is always an integer
+  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
@@ -932,6 +941,8 @@ export async function confirmSession({
         const jitsiInfo = generateJitsiMeeting(sessionKey, JITSI_BASE_URL);
 
         // Use the same expiration as the session (calculated above)
+        // Ensure it's an integer for BigInt conversion
+        const jitsiExpiration = Math.floor(sessionExpiration);
         await walletClient.createEntity({
           payload: enc.encode(JSON.stringify({
             videoProvider: jitsiInfo.videoProvider,
@@ -948,7 +959,7 @@ export async function confirmSession({
             { key: 'spaceId', value: spaceId },
             { key: 'createdAt', value: createdAt },
           ],
-          expiresIn: sessionExpiration, // Same expiration as session
+          expiresIn: jitsiExpiration, // Same expiration as session, ensured to be integer
         });
       } catch (jitsiError: any) {
         // Handle transaction receipt timeout for Jitsi entity creation
@@ -1043,15 +1054,20 @@ export async function rejectSession({
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
       const sessionStartTime = new Date(session.sessionDate).getTime();
-      const sessionDurationMs = (session.duration || 60) * 60 * 1000;
+      const durationMinutes = typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10);
+      const sessionDurationMs = durationMinutes * 60 * 1000;
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      sessionExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      const calculatedExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      // Ensure it's a proper integer (not a float) for BigInt conversion
+      sessionExpiration = Number.isInteger(calculatedExpiration) ? calculatedExpiration : Math.floor(calculatedExpiration);
     }
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
+  // Final safety check: ensure sessionExpiration is always an integer
+  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
@@ -1143,15 +1159,20 @@ export async function validatePayment({
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
       const sessionStartTime = new Date(session.sessionDate).getTime();
-      const sessionDurationMs = (session.duration || 60) * 60 * 1000;
+      const durationMinutes = typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10);
+      const sessionDurationMs = durationMinutes * 60 * 1000;
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      sessionExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      const calculatedExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+      // Ensure it's a proper integer (not a float) for BigInt conversion
+      sessionExpiration = Number.isInteger(calculatedExpiration) ? calculatedExpiration : Math.floor(calculatedExpiration);
     }
   } catch (e) {
     console.warn('Could not fetch session for expiration calculation, using default:', e);
   }
+  // Final safety check: ensure sessionExpiration is always an integer
+  sessionExpiration = Math.floor(sessionExpiration);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
