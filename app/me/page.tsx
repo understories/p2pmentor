@@ -103,6 +103,18 @@ export default function MePage() {
             Availability
           </Link>
           <Link
+            href="/asks"
+            className="block p-3 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-center"
+          >
+            ❓ Asks (I am learning)
+          </Link>
+          <Link
+            href="/offers"
+            className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-center"
+          >
+            💎 Offers (I am teaching)
+          </Link>
+          <Link
             href="/me/sessions"
             className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
           >
@@ -121,12 +133,14 @@ export default function MePage() {
           </Link>
         </div>
 
-        <Link
-          href="/network"
-          className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-        >
-          Browse Network
-        </Link>
+        <div className="space-y-3">
+          <Link
+            href="/network"
+            className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-center font-medium"
+          >
+            🌐 Browse Network
+          </Link>
+        </div>
       </div>
     </div>
   );
