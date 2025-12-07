@@ -185,6 +185,34 @@ const result = await query
   - Shows TTL countdown for urgency
   - Profile names displayed when available
 
+### Sessions (Meeting Requests)
+- **Feature name**: Mentorship session creation and management
+- **Arkiv entities used**: 
+  - `session` (type attribute) - main session entity
+  - `session_txhash` (type attribute) - separate entity for transaction hash tracking
+  - `session_confirmation` (type attribute) - confirmation entities (one per party)
+  - `session_rejection` (type attribute) - rejection entities
+  - `session_jitsi` (type attribute) - Jitsi meeting info (generated when both confirm)
+- **Queries used**: 
+  - `eq('type', 'session')` for listing sessions
+  - `eq('mentorWallet', wallet)` or `eq('learnerWallet', wallet)` for filtering
+  - `eq('sessionKey', key)` for confirmations/rejections/Jitsi lookup
+- **SDK pain points**: 
+  - Need to create multiple entities (session + session_txhash) which feels redundant
+  - Complex querying to get full session state (session + confirmations + rejections + Jitsi)
+  - Status calculation requires checking multiple entity types
+- **Errors encountered**: None
+- **Developer friction level**: Medium-High
+- **Proposed improvements**: 
+  - Consider including txHash in main entity attributes instead of separate entity
+  - Could simplify status calculation with a helper function
+  - Consider a single "session_state" entity that aggregates all info
+- **UX team notes**: 
+  - Sessions expire based on sessionDate + duration + 1 hour buffer
+  - Status flow: pending → scheduled (when both confirm) or cancelled (if rejected)
+  - Jitsi meeting auto-generated when both parties confirm
+  - Mentor/learner roles auto-detected from profile.mentorRoles
+
 ### Known Issues / TODOs
 
 (Will be populated as issues are encountered)

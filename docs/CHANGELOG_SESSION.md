@@ -392,6 +392,35 @@
   - Individual profile pages fetch asks/offers for that wallet
 - **Time Investment**: ~2 hours (step-by-step with testing)
 
+### Request Meeting Implementation (P2)
+- **Feature**: Request a mentorship session with another user
+- **Implementation**:
+  - Created `lib/arkiv/sessions.ts` - Complete session CRUD library (based on mentor-graph)
+  - Created `/app/api/sessions/route.ts` - API endpoint for session operations
+  - Created `components/RequestMeetingModal.tsx` - Reusable modal component for requesting meetings
+  - Updated `/app/profiles/[wallet]/page.tsx` - Added "Request Meeting" button and modal integration
+- **Session Library Functions**:
+  - `createSession` - Create a new session (meeting request)
+  - `listSessions` - List sessions with filters
+  - `listSessionsForWallet` - Get all sessions for a wallet (as mentor or learner)
+  - `getSessionByKey` - Get a single session by key
+  - `confirmSession` - Confirm a session (auto-generates Jitsi when both confirm)
+  - `rejectSession` - Reject a session
+- **Features**:
+  - Request meeting modal with form (skill, date, time, duration, notes)
+  - Automatic mentor/learner detection based on mentorRoles
+  - Session status tracking (pending → scheduled when both confirm)
+  - Jitsi meeting auto-generation when both parties confirm
+  - Session expiration based on sessionDate + duration + buffer
+  - Separate txhash entities for verifiability
+- **Technical Notes**:
+  - Based on mentor-graph's complete session implementation
+  - Sessions start as 'pending', become 'scheduled' when both confirm
+  - Rejections mark session as 'cancelled'
+  - Jitsi meeting generated automatically on dual confirmation
+  - Wallet addresses normalized to lowercase for consistency
+- **Time Investment**: ~3 hours (step-by-step with careful engineering)
+
 ---
 
 ## 📝 Notes for Technical PM

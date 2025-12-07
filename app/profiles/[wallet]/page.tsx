@@ -12,6 +12,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
@@ -27,10 +28,21 @@ export default function ProfileDetailPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [userWallet, setUserWallet] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
 
   useEffect(() => {
     if (wallet) {
       loadProfileData(wallet);
+    }
+    // Get current user's wallet and profile
+    if (typeof window !== 'undefined') {
+      const address = localStorage.getItem('wallet_address');
+      if (address) {
+        setUserWallet(address);
+        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+      }
     }
   }, [wallet]);
 
@@ -152,12 +164,25 @@ export default function ProfileDetailPage() {
               />
             )}
             <div className="flex-1">
-              <h1 className="text-3xl font-semibold mb-2">
-                {profile.displayName || 'Anonymous'}
-              </h1>
-              {profile.username && (
-                <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
-              )}
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <h1 className="text-3xl font-semibold mb-2">
+                    {profile.displayName || 'Anonymous'}
+                  </h1>
+                  {profile.username && (
+                    <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
+                  )}
+                </div>
+                {/* Request Meeting Button - only show if viewing someone else's profile */}
+                {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
+                  <button
+                    onClick={() => setShowMeetingModal(true)}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Request Meeting
+                  </button>
+                )}
+              </div>
               {profile.bioShort && (
                 <p className="text-gray-700 dark:text-gray-300 mb-3">{profile.bioShort}</p>
               )}
@@ -353,6 +378,19 @@ export default function ProfileDetailPage() {
             </p>
           </div>
         )}
+
+        {/* Request Meeting Modal */}
+        <RequestMeetingModal
+          isOpen={showMeetingModal}
+          onClose={() => setShowMeetingModal(false)}
+          profile={profile}
+          userWallet={userWallet}
+          userProfile={userProfile}
+          onSuccess={() => {
+            // Optionally reload data or show success message
+            console.log('Meeting requested successfully');
+          }}
+        />
       </div>
     </div>
   );
