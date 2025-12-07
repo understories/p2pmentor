@@ -2,29 +2,102 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Base theme colors */
-:root {
+/* Light theme colors */
+:root,
+.light {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
+  --bg-tertiary: #f3f4f6;
   --text-primary: #111827;
   --text-secondary: #6b7280;
   --border-color: #e5e7eb;
+  --accent-color: #3b82f6;
+  --accent-hover: #2563eb;
 }
 
-/* Dark theme colors */
+/* Dark theme colors - Forest aesthetic matching landing page */
 .dark {
-  --bg-primary: #111827;
-  --bg-secondary: #1f2937;
-  --text-primary: #f9fafb;
-  --text-secondary: #d1d5db;
-  --border-color: #374151;
+  --bg-primary: #050708;
+  --bg-secondary: #0a0e0f;
+  --bg-tertiary: #0d1a0d;
+  --text-primary: #e8f5e9;
+  --text-secondary: rgba(200, 255, 200, 0.7);
+  --border-color: rgba(150, 255, 150, 0.2);
+  --accent-color: rgba(150, 255, 150, 0.8);
+  --accent-hover: rgba(200, 255, 200, 0.9);
+  
+  /* Forest glow effects for dark mode */
+  --glow-soft: rgba(100, 255, 100, 0.1);
+  --glow-medium: rgba(150, 255, 150, 0.2);
+  --glow-strong: rgba(200, 255, 200, 0.3);
 }
 
 /* Apply theme colors */
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+/* Dark mode forest background effects */
+.dark body {
+  background: 
+    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.1) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0e0f 0%, #050708 100%);
+  background-attachment: fixed;
+}
+
+/* Text shadows for dark mode (forest glow aesthetic) */
+.dark h1,
+.dark h2,
+.dark h3 {
+  text-shadow: 
+    0 0 10px var(--glow-soft),
+    0 0 20px var(--glow-medium);
+}
+
+/* Subtle glow on interactive elements in dark mode */
+.dark button,
+.dark a {
+  transition: all 0.2s ease;
+}
+
+.dark button:hover,
+.dark a:hover {
+  text-shadow: 
+    0 0 8px var(--glow-medium),
+    0 0 15px var(--glow-soft);
+}
+
+/* Card backgrounds in dark mode */
+.dark .bg-white {
+  background-color: rgba(5, 20, 5, 0.3) !important;
+  border-color: rgba(150, 255, 150, 0.2) !important;
+  backdrop-filter: blur(10px);
+}
+
+.dark .bg-gray-50,
+.dark .bg-gray-100 {
+  background-color: rgba(5, 20, 5, 0.2) !important;
+}
+
+.dark .bg-gray-800 {
+  background-color: rgba(8, 34, 8, 0.4) !important;
+}
+
+/* Border colors in dark mode */
+.dark .border-gray-200,
+.dark .border-gray-300 {
+  border-color: rgba(150, 255, 150, 0.2) !important;
+}
+
+.dark .border-gray-600,
+.dark .border-gray-700 {
+  border-color: rgba(150, 255, 150, 0.3) !important;
 }
 
 /* Respect user's motion preferences for accessibility */

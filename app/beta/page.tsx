@@ -32,6 +32,7 @@ export default function BetaPage() {
 
   return (
     <main style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+      <ThemeToggle />
       <div style={{ marginBottom: '1rem' }}>
         <BackButton href="/" />
       </div>

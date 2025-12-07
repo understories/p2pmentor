@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -88,6 +89,7 @@ export default function AuthPage() {
       backgroundColor: '#ffffff',
       color: '#333333',
     }}>
+      <ThemeToggle />
       <div style={{
         maxWidth: '600px',
         width: '100%',

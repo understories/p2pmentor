@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -71,6 +72,7 @@ export default function MePage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-4">
           <BackButton href="/auth" label="Back to Auth" />

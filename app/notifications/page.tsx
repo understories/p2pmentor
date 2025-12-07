@@ -9,6 +9,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Notification } from '@/lib/notifications';
 import {
   detectMeetingRequests,
@@ -231,6 +232,7 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
