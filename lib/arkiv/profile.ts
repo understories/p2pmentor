@@ -9,6 +9,7 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
 import { CURRENT_WALLET } from "../config"
+import { handleTransactionWithTimeout } from "./transaction-utils"
 
 export type UserProfile = {
   key: string;
@@ -167,14 +168,16 @@ export async function createUserProfileClient({
     });
   }
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes,
-    expiresIn: 31536000, // 1 year
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes,
+      expiresIn: 31536000, // 1 year
+    });
   });
 
-  return { key: entityKey, txHash };
+  return { key: result.entityKey, txHash: result.txHash };
 }
 
 /**
@@ -288,14 +291,16 @@ export async function createUserProfile({
     });
   }
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes,
-    expiresIn: 31536000, // 1 year
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes,
+      expiresIn: 31536000, // 1 year
+    });
   });
 
-  return { key: entityKey, txHash };
+  return { key: result.entityKey, txHash: result.txHash };
 }
 
 /**

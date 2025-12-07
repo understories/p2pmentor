@@ -10,6 +10,10 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PageHeader } from '@/components/PageHeader';
+import { BetaBanner } from '@/components/BetaBanner';
+import { Alert } from '@/components/Alert';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -94,13 +98,26 @@ export default function OffersPage() {
 
       const data = await res.json();
       if (data.ok) {
-        setSuccess('Offer created successfully!');
-        setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
-        setShowCreateForm(false);
-        // Reload offers
-        const offersRes = await fetch('/api/offers').then(r => r.json());
-        if (offersRes.ok) {
-          setOffers(offersRes.offers || []);
+        if (data.pending) {
+          setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
+          setShowCreateForm(false);
+          // Reload offers after a delay
+          setTimeout(async () => {
+            const offersRes = await fetch('/api/offers').then(r => r.json());
+            if (offersRes.ok) {
+              setOffers(offersRes.offers || []);
+            }
+          }, 2000);
+        } else {
+          setSuccess('Offer created successfully!');
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
+          setShowCreateForm(false);
+          // Reload offers
+          const offersRes = await fetch('/api/offers').then(r => r.json());
+          if (offersRes.ok) {
+            setOffers(offersRes.offers || []);
+          }
         }
       } else {
         setError(data.error || 'Failed to create offer');
@@ -134,9 +151,7 @@ export default function OffersPage() {
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-          </div>
+          <LoadingSpinner text="Loading offers..." className="py-12" />
         </div>
       </div>
     );
@@ -149,19 +164,12 @@ export default function OffersPage() {
           <BackButton href="/network" />
         </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2">Offers</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Browse what others are teaching, or post your own teaching offer.
-          </p>
-        </div>
+        <PageHeader
+          title="Offers"
+          description="Browse what others are teaching, or post your own teaching offer."
+        />
 
-        {/* Beta Warning */}
-        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
-          </p>
-        </div>
+        <BetaBanner />
 
         {/* Create Offer Button */}
         {!showCreateForm && (
@@ -294,14 +302,10 @@ export default function OffersPage() {
               </div>
             </form>
             {error && (
-              <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
-                {error}
-              </div>
+              <Alert type="error" message={error} onClose={() => setError('')} className="mt-4" />
             )}
             {success && (
-              <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
-                {success}
-              </div>
+              <Alert type="success" message={success} onClose={() => setSuccess('')} className="mt-4" />
             )}
           </div>
         )}

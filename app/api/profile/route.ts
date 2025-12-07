@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { createUserProfile, getProfileByWallet } from '@/lib/arkiv/profile';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
@@ -86,28 +87,42 @@ export async function POST(request: Request) {
 
       // Always allow server-side creation (like mentor-graph)
       // The frontend decides whether to use this API or MetaMask directly
-      const { key, txHash } = await createUserProfile({
-        wallet: targetWallet,
-        displayName: finalDisplayName,
-        username: finalUsername,
-        profileImage: finalProfileImage,
-        bio: finalBio,
-        bioShort: finalBioShort,
-        bioLong: finalBioLong,
-        skills: finalSkills,
-        skillsArray: finalSkillsArray,
-        timezone: finalTimezone,
-        languages: finalLanguages,
-        contactLinks: finalContactLinks,
-        seniority: finalSeniority,
-        domainsOfInterest: finalDomainsOfInterest,
-        mentorRoles: finalMentorRoles,
-        learnerRoles: finalLearnerRoles,
-        availabilityWindow: finalAvailabilityWindow,
-        privateKey: getPrivateKey(),
-      });
-      
-      return NextResponse.json({ ok: true, key, txHash });
+      try {
+        const { key, txHash } = await createUserProfile({
+          wallet: targetWallet,
+          displayName: finalDisplayName,
+          username: finalUsername,
+          profileImage: finalProfileImage,
+          bio: finalBio,
+          bioShort: finalBioShort,
+          bioLong: finalBioLong,
+          skills: finalSkills,
+          skillsArray: finalSkillsArray,
+          timezone: finalTimezone,
+          languages: finalLanguages,
+          contactLinks: finalContactLinks,
+          seniority: finalSeniority,
+          domainsOfInterest: finalDomainsOfInterest,
+          mentorRoles: finalMentorRoles,
+          learnerRoles: finalLearnerRoles,
+          availabilityWindow: finalAvailabilityWindow,
+          privateKey: getPrivateKey(),
+        });
+        
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle transaction receipt timeout gracefully
+        if (isTransactionTimeoutError(error)) {
+          return NextResponse.json({ 
+            ok: true, 
+            key: null,
+            txHash: null,
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error;
+      }
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action' },

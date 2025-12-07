@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { createOffer, listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
@@ -41,18 +42,32 @@ export async function POST(request: Request) {
         }
       }
 
-      const { key, txHash } = await createOffer({
-        wallet: targetWallet,
-        skill,
-        message,
-        availabilityWindow,
-        isPaid: isPaid === true || isPaid === 'true',
-        paymentAddress: paymentAddress || undefined,
-        privateKey: getPrivateKey(),
-        expiresIn: parsedExpiresIn,
-      });
+      try {
+        const { key, txHash } = await createOffer({
+          wallet: targetWallet,
+          skill,
+          message,
+          availabilityWindow,
+          isPaid: isPaid === true || isPaid === 'true',
+          paymentAddress: paymentAddress || undefined,
+          privateKey: getPrivateKey(),
+          expiresIn: parsedExpiresIn,
+        });
 
-      return NextResponse.json({ ok: true, key, txHash });
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle transaction receipt timeout gracefully
+        if (isTransactionTimeoutError(error)) {
+          return NextResponse.json({ 
+            ok: true, 
+            key: null,
+            txHash: null,
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error;
+      }
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action' },

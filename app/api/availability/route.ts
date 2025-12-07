@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { createAvailability, listAvailabilityForWallet } from '@/lib/arkiv/availability';
 import { getPrivateKey } from '@/lib/config';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
@@ -20,15 +21,29 @@ export async function POST(request: Request) {
       );
     }
 
-    const { key, txHash } = await createAvailability({
-      wallet,
-      timeBlocks,
-      timezone,
-      privateKey: getPrivateKey(),
-      spaceId: spaceId || 'local-dev',
-    });
+    try {
+      const { key, txHash } = await createAvailability({
+        wallet,
+        timeBlocks,
+        timezone,
+        privateKey: getPrivateKey(),
+        spaceId: spaceId || 'local-dev',
+      });
 
-    return NextResponse.json({ ok: true, key, txHash });
+      return NextResponse.json({ ok: true, key, txHash });
+    } catch (error: any) {
+      // Handle transaction receipt timeout gracefully
+      if (isTransactionTimeoutError(error)) {
+        return NextResponse.json({ 
+          ok: true, 
+          key: null,
+          txHash: null,
+          pending: true,
+          message: error.message || 'Transaction submitted, confirmation pending'
+        });
+      }
+      throw error;
+    }
   } catch (error: any) {
     console.error('Availability API error:', error);
     return NextResponse.json(

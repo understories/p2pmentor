@@ -10,6 +10,7 @@
 
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
+import { handleTransactionWithTimeout } from "./transaction-utils"
 
 export const OFFER_TTL_SECONDS = 7200; // 2 hours default
 
@@ -62,29 +63,34 @@ export async function createOffer({
   // Use expiresIn if provided and valid, otherwise use default
   const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      message,
-      availabilityWindow,
-      isPaid,
-      paymentAddress: paymentAddress || undefined,
-    })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'offer' },
-      { key: 'wallet', value: wallet },
-      { key: 'skill', value: skill },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      { key: 'status', value: status },
-      { key: 'isPaid', value: String(isPaid) },
-      ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
-    ],
-    expiresIn: ttl,
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        message,
+        availabilityWindow,
+        isPaid,
+        paymentAddress: paymentAddress || undefined,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'offer' },
+        { key: 'wallet', value: wallet },
+        { key: 'skill', value: skill },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+        { key: 'status', value: status },
+        { key: 'isPaid', value: String(isPaid) },
+        ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
+      ],
+      expiresIn: ttl,
+    });
   });
 
+  const { entityKey, txHash } = result;
+
   // Create separate txhash entity (like mentor-graph)
-  await walletClient.createEntity({
+  // Don't wait for this one - it's optional metadata
+  walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
       txHash,
     })),

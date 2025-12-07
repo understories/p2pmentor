@@ -10,6 +10,7 @@
 
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
+import { handleTransactionWithTimeout } from "./transaction-utils"
 
 export const ASK_TTL_SECONDS = 3600; // 1 hour default
 
@@ -53,24 +54,29 @@ export async function createAsk({
   // Use expiresIn if provided and valid, otherwise use default
   const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      message,
-    })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'ask' },
-      { key: 'wallet', value: wallet },
-      { key: 'skill', value: skill },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      { key: 'status', value: status },
-    ],
-    expiresIn: ttl,
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        message,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'ask' },
+        { key: 'wallet', value: wallet },
+        { key: 'skill', value: skill },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+        { key: 'status', value: status },
+      ],
+      expiresIn: ttl,
+    });
   });
 
+  const { entityKey, txHash } = result;
+
   // Create separate txhash entity (like mentor-graph)
-  await walletClient.createEntity({
+  // Don't wait for this one - it's optional metadata
+  walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
       txHash,
     })),
