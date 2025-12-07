@@ -1,0 +1,39 @@
+/**
+ * Configuration and environment variables
+ * 
+ * Based on mentor-graph implementation.
+ * 
+ * Reference: refs/mentor-graph/src/config.ts
+ */
+
+import { privateKeyToAccount } from "viem/accounts"
+
+export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` | undefined;
+
+/**
+ * Derive wallet address from the private key if available
+ * This is used as a fallback when no wallet is connected via MetaMask
+ */
+export const CURRENT_WALLET = ARKIV_PRIVATE_KEY 
+  ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address 
+  : undefined;
+
+export const SPACE_ID = "local-dev"; // Optionally configurable later
+
+// Jitsi configuration
+export const JITSI_BASE_URL = process.env.JITSI_BASE_URL || 'https://meet.jit.si';
+
+/**
+ * Get private key, throwing if not available
+ * 
+ * Used for API routes that need server-side entity creation
+ * 
+ * @throws Error if ARKIV_PRIVATE_KEY is not set
+ */
+export function getPrivateKey(): `0x${string}` {
+  if (!ARKIV_PRIVATE_KEY) {
+    throw new Error("ARKIV_PRIVATE_KEY missing in environment. Required for server-side entity creation.");
+  }
+  return ARKIV_PRIVATE_KEY;
+}
+
