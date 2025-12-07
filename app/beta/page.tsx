@@ -9,6 +9,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { BackButton } from '@/components/BackButton';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
@@ -31,6 +32,9 @@ export default function BetaPage() {
 
   return (
     <main style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '1rem' }}>
+        <BackButton href="/" />
+      </div>
       <h1>Welcome to p2pmentor Beta</h1>
       <p>Enter your invite code to continue:</p>
       

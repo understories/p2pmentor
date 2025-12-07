@@ -12,17 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body style={{
-        background: 'linear-gradient(180deg, #0a0e0f 0%, #050708 100%)',
-        color: '#ffffff',
-        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif",
-        minHeight: '100vh',
-        overflowX: 'hidden',
-        position: 'relative',
-        margin: 0,
-        padding: 0,
-      }}>
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors" suppressHydrationWarning>
         {children}
       </body>
     </html>

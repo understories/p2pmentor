@@ -9,6 +9,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { BackButton } from '@/components/BackButton';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -27,33 +28,60 @@ export default function MePage() {
   }, [router]);
 
   if (!walletAddress) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Your Dashboard</h1>
-      <p>Wallet: {walletAddress}</p>
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-4">
+          <BackButton href="/auth" label="Back to Auth" />
+        </div>
+        
+        <h1 className="text-2xl font-semibold mb-2">Your Dashboard</h1>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-mono break-all">
+          {walletAddress}
+        </p>
 
-      <nav style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <Link href="/me/profile" style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-          Profile
-        </Link>
-        <Link href="/me/skills" style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-          Skills
-        </Link>
-        <Link href="/me/availability" style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-          Availability
-        </Link>
-        <Link href="/me/sessions" style={{ padding: '1rem', border: '1px solid #ccc', borderRadius: '4px' }}>
-          Sessions
-        </Link>
-      </nav>
+        <div className="space-y-3 mb-6">
+          <Link
+            href="/me/profile"
+            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+          >
+            Profile
+          </Link>
+          <Link
+            href="/me/skills"
+            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+          >
+            Skills
+          </Link>
+          <Link
+            href="/me/availability"
+            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+          >
+            Availability
+          </Link>
+          <Link
+            href="/me/sessions"
+            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+          >
+            Sessions
+          </Link>
+        </div>
 
-      <div style={{ marginTop: '2rem' }}>
-        <Link href="/network">Browse Network</Link>
+        <Link
+          href="/network"
+          className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+        >
+          Browse Network
+        </Link>
       </div>
-    </main>
+    </div>
   );
 }
 

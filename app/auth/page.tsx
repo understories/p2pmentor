@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
+import { BackButton } from '@/components/BackButton';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -95,6 +96,9 @@ export default function AuthPage() {
         borderRadius: '12px',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
       }}>
+        <div style={{ marginBottom: '1rem' }}>
+          <BackButton href="/beta" />
+        </div>
         <h1 style={{
           fontSize: '2rem',
           fontWeight: 'bold',
@@ -252,7 +256,7 @@ export default function AuthPage() {
           }}>
             Blockchain data is immutable. All data inputted is viewable forever on the{' '}
             <a
-              href="https://explorer.arkiv.org"
+              href="https://explorer.mendoza.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
               style={{

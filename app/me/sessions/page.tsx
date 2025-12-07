@@ -6,13 +6,20 @@
 
 'use client';
 
+import { BackButton } from '@/components/BackButton';
+
 export default function SessionsPage() {
   return (
-    <main style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>Sessions</h1>
-      <p>Sessions history coming soon...</p>
-      <p>This will show your past and upcoming mentorship sessions.</p>
-    </main>
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <BackButton href="/me" />
+        </div>
+        <h1 className="text-3xl font-semibold mb-6">Sessions</h1>
+        <p>Sessions history coming soon...</p>
+        <p>This will show your past and upcoming mentorship sessions.</p>
+      </div>
+    </div>
   );
 }
 
