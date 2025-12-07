@@ -80,7 +80,8 @@ export default function SessionsPage() {
         throw new Error('Failed to fetch sessions');
       }
       const sessionsData = await sessionsRes.json();
-      setSessions(sessionsData.sessions || []);
+      const sessionsList = sessionsData.sessions || [];
+      setSessions(sessionsList);
 
       // Fetch user profile
       const profileRes = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
@@ -394,7 +395,7 @@ export default function SessionsPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
                           </div>
                         )}
-                        {session.videoJoinUrl && (
+                        {session.videoJoinUrl ? (
                           <div className="mt-4">
                             <a
                               href={session.videoJoinUrl}
@@ -404,6 +405,18 @@ export default function SessionsPage() {
                             >
                               🎥 Join Jitsi Meeting
                             </a>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                              Room: {session.videoRoomName || 'N/A'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                            ⏳ Jitsi link will appear once both parties confirm
+                            {session.mentorConfirmed && session.learnerConfirmed && (
+                              <span className="block mt-1 text-orange-600 dark:text-orange-400">
+                                (Both confirmed - link may be generating...)
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>

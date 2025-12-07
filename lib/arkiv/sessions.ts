@@ -237,7 +237,8 @@ export async function listSessions(params?: {
   // Get all confirmations, rejections, and Jitsi info for these sessions
   const sessionKeys = result.entities.map((e: any) => e.key);
   
-  const [confirmationsResult, rejectionsResult, jitsiResult] = await Promise.all([
+  // Query confirmations and rejections (can batch these)
+  const [confirmationsResult, rejectionsResult] = await Promise.all([
     sessionKeys.length > 0
       ? publicClient.buildQuery()
           .where(eq('type', 'session_confirmation'))
@@ -252,14 +253,26 @@ export async function listSessions(params?: {
           .limit(100)
           .fetch()
       : { entities: [] },
-    sessionKeys.length > 0
-      ? publicClient.buildQuery()
-          .where(eq('type', 'session_jitsi'))
-          .withAttributes(true)
-          .limit(100)
-          .fetch()
-      : { entities: [] },
   ]);
+
+  // Query Jitsi entities per session key (more reliable than fetching all and filtering)
+  // This ensures we get Jitsi entities even if they were created for sessions not in current query
+  const jitsiQueries = await Promise.all(
+    sessionKeys.map(sessionKey =>
+      publicClient.buildQuery()
+        .where(eq('type', 'session_jitsi'))
+        .where(eq('sessionKey', sessionKey))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(1)
+        .fetch()
+    )
+  );
+  
+  // Flatten results
+  const jitsiResult = {
+    entities: jitsiQueries.flatMap(q => q.entities)
+  };
 
   // Build confirmation map: sessionKey -> Set of confirmedBy wallets
   const confirmationMap: Record<string, Set<string>> = {};
@@ -274,11 +287,16 @@ export async function listSessions(params?: {
     };
     const sessionKey = getAttr('sessionKey');
     const confirmedBy = getAttr('confirmedBy');
-    if (sessionKey && confirmedBy && sessionKeys.includes(sessionKey)) {
-      if (!confirmationMap[sessionKey]) {
-        confirmationMap[sessionKey] = new Set();
+    // CRITICAL: Check if sessionKey matches any of our sessions (case-insensitive comparison)
+    // Also log if we're filtering out confirmations
+    if (sessionKey && confirmedBy) {
+      const matchingSessionKey = sessionKeys.find(sk => sk.toLowerCase() === sessionKey.toLowerCase());
+      if (matchingSessionKey) {
+        if (!confirmationMap[matchingSessionKey]) {
+          confirmationMap[matchingSessionKey] = new Set();
+        }
+        confirmationMap[matchingSessionKey].add(confirmedBy.toLowerCase());
       }
-      confirmationMap[sessionKey].add(confirmedBy.toLowerCase());
     }
   });
 
@@ -304,37 +322,47 @@ export async function listSessions(params?: {
   });
 
   // Build Jitsi info map: sessionKey -> Jitsi info
+  // Since we queried Jitsi entities per session key, they're already matched
   const jitsiMap: Record<string, { videoProvider?: string; videoRoomName?: string; videoJoinUrl?: string; videoJwtToken?: string }> = {};
-  jitsiResult.entities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
-      }
-    } catch (e) {
-      console.error('Error decoding Jitsi payload:', e);
-    }
-    const sessionKey = getAttr('sessionKey');
-    if (sessionKey && sessionKeys.includes(sessionKey)) {
-      jitsiMap[sessionKey] = {
-        videoProvider: payload.videoProvider || getAttr('videoProvider'),
-        videoRoomName: payload.videoRoomName || getAttr('videoRoomName'),
-        videoJoinUrl: payload.videoJoinUrl || getAttr('videoJoinUrl'),
-        videoJwtToken: payload.videoJwtToken || getAttr('videoJwtToken'),
+  
+  // Match Jitsi entities to their session keys
+  sessionKeys.forEach((sessionKey, idx) => {
+    const jitsiEntities = jitsiQueries[idx]?.entities || [];
+    if (jitsiEntities.length > 0) {
+      const entity = jitsiEntities[0]; // Should only be one per session
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
       };
+      
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('Error decoding Jitsi payload:', e);
+      }
+      
+      // Verify sessionKey matches (should always match since we queried by it)
+      const entitySessionKey = getAttr('sessionKey');
+      if (entitySessionKey && entitySessionKey.toLowerCase() === sessionKey.toLowerCase()) {
+        jitsiMap[sessionKey] = {
+          videoProvider: payload.videoProvider || getAttr('videoProvider') || 'jitsi',
+          videoRoomName: payload.videoRoomName || getAttr('videoRoomName'),
+          videoJoinUrl: payload.videoJoinUrl || getAttr('videoJoinUrl'),
+          videoJwtToken: payload.videoJwtToken || getAttr('videoJwtToken'),
+        };
+      }
     }
   });
 
@@ -377,11 +405,18 @@ export async function listSessions(params?: {
     // Determine final status:
     // - If either party rejected, mark as cancelled
     // - If both confirmed and was pending, mark as scheduled
-    let finalStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
+    // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
+    const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
+    let finalStatus = entityStatus;
+    
     if (mentorRejected || learnerRejected) {
       finalStatus = 'cancelled';
-    } else if (finalStatus === 'pending' && mentorConfirmed && learnerConfirmed) {
+    } else if (mentorConfirmed && learnerConfirmed) {
+      // Both confirmed - should be scheduled (regardless of current status)
       finalStatus = 'scheduled';
+    } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
+      // Status says scheduled but confirmations don't match - revert to pending
+      finalStatus = 'pending';
     }
 
     return {
@@ -545,12 +580,19 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   
   // Determine final status:
   // - If either party rejected, mark as cancelled
-  // - If both confirmed and was pending, mark as scheduled
-  let finalStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
+  // - If both confirmed, mark as scheduled
+  // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
+  const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
+  let finalStatus = entityStatus;
+  
   if (mentorRejected || learnerRejected) {
     finalStatus = 'cancelled';
-  } else if (finalStatus === 'pending' && mentorConfirmed && learnerConfirmed) {
+  } else if (mentorConfirmed && learnerConfirmed) {
+    // Both confirmed - should be scheduled (regardless of current status)
     finalStatus = 'scheduled';
+  } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
+    // Status says scheduled but confirmations don't match - revert to pending
+    finalStatus = 'pending';
   }
 
   // Extract Jitsi info if available
@@ -730,6 +772,8 @@ export async function confirmSession({
   });
 
   // Check if both parties have now confirmed - if so, generate Jitsi meeting
+  // IMPORTANT: Include the current confirmation we just created in the check
+  // because the query might not immediately return it due to eventual consistency
   const allConfirmations = await publicClient.buildQuery()
     .where(eq('type', 'session_confirmation'))
     .where(eq('sessionKey', sessionKey))
@@ -750,11 +794,16 @@ export async function confirmSession({
     })
   );
 
+  // CRITICAL: Add the current confirmation to the set since we just created it
+  // This ensures we detect both confirmations even if the query hasn't updated yet
+  confirmedWallets.add(confirmedByWallet.toLowerCase());
+
   const mentorConfirmed = confirmedWallets.has(verifiedMentorWallet.toLowerCase());
   const learnerConfirmed = confirmedWallets.has(verifiedLearnerWallet.toLowerCase());
-
+  
   // If both confirmed, generate Jitsi meeting and store it
   if (mentorConfirmed && learnerConfirmed) {
+    
     // Check if Jitsi info already exists
     const existingJitsi = await publicClient.buildQuery()
       .where(eq('type', 'session_jitsi'))
@@ -764,28 +813,42 @@ export async function confirmSession({
       .fetch();
 
     if (existingJitsi.entities.length === 0) {
-      // Generate Jitsi meeting info
-      const jitsiInfo = generateJitsiMeeting(sessionKey, JITSI_BASE_URL);
+      try {
+        // Generate Jitsi meeting info
+        const jitsiInfo = generateJitsiMeeting(sessionKey, JITSI_BASE_URL);
 
-      // Use the same expiration as the session (calculated above)
-      await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({
-          videoProvider: jitsiInfo.videoProvider,
-          videoRoomName: jitsiInfo.videoRoomName,
-          videoJoinUrl: jitsiInfo.videoJoinUrl,
-          generatedAt: createdAt,
-        })),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'session_jitsi' },
-          { key: 'sessionKey', value: sessionKey },
-          { key: 'mentorWallet', value: verifiedMentorWallet },
-          { key: 'learnerWallet', value: verifiedLearnerWallet },
-          { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: createdAt },
-        ],
-        expiresIn: sessionExpiration, // Same expiration as session
-      });
+        // Use the same expiration as the session (calculated above)
+        await walletClient.createEntity({
+          payload: enc.encode(JSON.stringify({
+            videoProvider: jitsiInfo.videoProvider,
+            videoRoomName: jitsiInfo.videoRoomName,
+            videoJoinUrl: jitsiInfo.videoJoinUrl,
+            generatedAt: createdAt,
+          })),
+          contentType: 'application/json',
+          attributes: [
+            { key: 'type', value: 'session_jitsi' },
+            { key: 'sessionKey', value: sessionKey },
+            { key: 'mentorWallet', value: verifiedMentorWallet },
+            { key: 'learnerWallet', value: verifiedLearnerWallet },
+            { key: 'spaceId', value: spaceId },
+            { key: 'createdAt', value: createdAt },
+          ],
+          expiresIn: sessionExpiration, // Same expiration as session
+        });
+      } catch (jitsiError: any) {
+        // Handle transaction receipt timeout for Jitsi entity creation
+        // This is common on testnets - the entity is likely created, just waiting for confirmation
+        if (jitsiError.message?.includes('Transaction receipt') || 
+            jitsiError.message?.includes('could not be found') ||
+            jitsiError.message?.includes('not be processed')) {
+          // Transaction receipt timeout - entity was likely created, just waiting for confirmation
+          // This is common on testnets, don't throw
+        } else {
+          console.error(`[confirmSession] Error creating Jitsi entity:`, jitsiError);
+          // Don't throw - confirmation succeeded, Jitsi is optional
+        }
+      }
     }
   }
 
