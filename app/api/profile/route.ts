@@ -16,7 +16,8 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { wallet, action, ...profileData } = body;
 
-    // Use wallet from request, fallback to CURRENT_WALLET for example wallet
+    // Use wallet from request body, fallback to CURRENT_WALLET for backward compatibility
+    // (like mentor-graph does)
     const targetWallet = wallet || CURRENT_WALLET || '';
     if (!targetWallet) {
       return NextResponse.json(
@@ -81,39 +82,29 @@ export async function POST(request: Request) {
         );
       }
 
-      // Check if this is the example wallet
-      const isExampleWallet = !wallet && CURRENT_WALLET && targetWallet.toLowerCase() === CURRENT_WALLET.toLowerCase();
+      // Always allow server-side creation (like mentor-graph)
+      // The frontend decides whether to use this API or MetaMask directly
+      const { key, txHash } = await createUserProfile({
+        wallet: targetWallet,
+        displayName: finalDisplayName,
+        username: finalUsername,
+        profileImage: finalProfileImage,
+        bio: finalBio,
+        bioShort: finalBioShort,
+        bioLong: finalBioLong,
+        skills: finalSkills,
+        skillsArray: finalSkillsArray,
+        timezone: finalTimezone,
+        languages: finalLanguages,
+        contactLinks: finalContactLinks,
+        seniority: finalSeniority,
+        domainsOfInterest: finalDomainsOfInterest,
+        mentorRoles: finalMentorRoles,
+        learnerRoles: finalLearnerRoles,
+        privateKey: getPrivateKey(),
+      });
       
-      if (isExampleWallet) {
-        // Use server-side creation with private key
-        const { key, txHash } = await createUserProfile({
-          wallet: targetWallet,
-          displayName: finalDisplayName,
-          username: finalUsername,
-          profileImage: finalProfileImage,
-          bio: finalBio,
-          bioShort: finalBioShort,
-          bioLong: finalBioLong,
-          skills: finalSkills,
-          skillsArray: finalSkillsArray,
-          timezone: finalTimezone,
-          languages: finalLanguages,
-          contactLinks: finalContactLinks,
-          seniority: finalSeniority,
-          domainsOfInterest: finalDomainsOfInterest,
-          mentorRoles: finalMentorRoles,
-          learnerRoles: finalLearnerRoles,
-          privateKey: getPrivateKey(),
-        });
-        
-        return NextResponse.json({ ok: true, key, txHash });
-      } else {
-        // For MetaMask wallets, client should use createUserProfileClient directly
-        return NextResponse.json(
-          { ok: false, error: 'Use MetaMask to sign transactions directly' },
-          { status: 400 }
-        );
-      }
+      return NextResponse.json({ ok: true, key, txHash });
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action' },
