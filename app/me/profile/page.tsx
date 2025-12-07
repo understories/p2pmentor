@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { createUserProfileClient, getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);

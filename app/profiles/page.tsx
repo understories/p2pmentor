@@ -17,6 +17,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {

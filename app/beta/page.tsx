@@ -10,6 +10,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
