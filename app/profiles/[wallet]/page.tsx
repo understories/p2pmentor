@@ -1,0 +1,360 @@
+/**
+ * Individual profile view page
+ * 
+ * Shows detailed profile information, skills, availability, and user's asks/offers.
+ * 
+ * Based on sprint spec: Show profile, skills, offers, availability
+ * Reference: docs/beta_launch_sprint.md line 331-334
+ */
+
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { BackButton } from '@/components/BackButton';
+import { getProfileByWallet } from '@/lib/arkiv/profile';
+import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Ask } from '@/lib/arkiv/asks';
+import type { Offer } from '@/lib/arkiv/offers';
+
+export default function ProfileDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const wallet = params.wallet as string;
+  
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [asks, setAsks] = useState<Ask[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (wallet) {
+      loadProfileData(wallet);
+    }
+  }, [wallet]);
+
+  const loadProfileData = async (walletAddress: string) => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Load profile, asks, and offers in parallel
+      const [profileData, asksRes, offersRes] = await Promise.all([
+        getProfileByWallet(walletAddress).catch(() => null),
+        fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
+        fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
+      ]);
+
+      setProfile(profileData);
+      if (asksRes.ok) {
+        setAsks(asksRes.asks || []);
+      }
+      if (offersRes.ok) {
+        setOffers(offersRes.offers || []);
+      }
+    } catch (err: any) {
+      console.error('Error loading profile data:', err);
+      setError(err.message || 'Failed to load profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const shortenWallet = (wallet: string) => {
+    if (!wallet || wallet.length < 10) return wallet;
+    return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    const now = Date.now();
+    const remaining = expires - now;
+
+    if (remaining <= 0) {
+      return 'Expired';
+    }
+
+    const hours = Math.floor(remaining / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m`;
+    } else {
+      return '<1m';
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <BackButton href="/profiles" />
+          </div>
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !profile) {
+    return (
+      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="mb-6">
+            <BackButton href="/profiles" />
+          </div>
+          <div className="text-center py-12">
+            <p className="text-red-600 dark:text-red-400">
+              {error || 'Profile not found'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <BackButton href="/profiles" />
+        </div>
+
+        {/* Profile Header */}
+        <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex items-start gap-6">
+            {profile.profileImage && (
+              <img
+                src={profile.profileImage}
+                alt={profile.displayName}
+                className="w-24 h-24 rounded-full object-cover"
+              />
+            )}
+            <div className="flex-1">
+              <h1 className="text-3xl font-semibold mb-2">
+                {profile.displayName || 'Anonymous'}
+              </h1>
+              {profile.username && (
+                <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
+              )}
+              {profile.bioShort && (
+                <p className="text-gray-700 dark:text-gray-300 mb-3">{profile.bioShort}</p>
+              )}
+              {profile.bioLong && (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{profile.bioLong}</p>
+              )}
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                <p><strong>Wallet:</strong> {shortenWallet(profile.wallet)}</p>
+                {profile.timezone && <p><strong>Timezone:</strong> {profile.timezone}</p>}
+                {profile.seniority && <p><strong>Level:</strong> {profile.seniority}</p>}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Beta Warning */}
+        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
+          </p>
+        </div>
+
+        {/* Skills */}
+        {profile.skillsArray && profile.skillsArray.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Skills</h2>
+            <div className="flex flex-wrap gap-2">
+              {profile.skillsArray.map((skill, idx) => (
+                <span
+                  key={idx}
+                  className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Availability */}
+        {profile.availabilityWindow && (
+          <div className="mb-8 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <h2 className="text-2xl font-semibold mb-3">Availability</h2>
+            <p className="text-gray-700 dark:text-gray-300">{profile.availabilityWindow}</p>
+          </div>
+        )}
+
+        {/* Contact Links */}
+        {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Contact</h2>
+            <div className="flex flex-wrap gap-4">
+              {profile.contactLinks.twitter && (
+                <a
+                  href={`https://twitter.com/${profile.contactLinks.twitter.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Twitter: {profile.contactLinks.twitter}
+                </a>
+              )}
+              {profile.contactLinks.github && (
+                <a
+                  href={`https://github.com/${profile.contactLinks.github}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  GitHub: {profile.contactLinks.github}
+                </a>
+              )}
+              {profile.contactLinks.telegram && (
+                <a
+                  href={`https://t.me/${profile.contactLinks.telegram.replace('@', '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Telegram: {profile.contactLinks.telegram}
+                </a>
+              )}
+              {profile.contactLinks.discord && (
+                <span className="text-gray-600 dark:text-gray-400">
+                  Discord: {profile.contactLinks.discord}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Offers (Teaching) */}
+        {offers.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+            <div className="space-y-4">
+              {offers.map((offer) => (
+                <div
+                  key={offer.key}
+                  className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
+                        {offer.skill}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {formatDate(offer.createdAt)}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                      {offer.status}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-3">{offer.message}</p>
+                  {offer.availabilityWindow && (
+                    <div className="mb-3 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                        Availability:
+                      </p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {offer.availabilityWindow}
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
+                    {offer.txHash && (
+                      <a
+                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-green-600 dark:text-green-400 hover:underline"
+                      >
+                        View on Arkiv
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Asks (Learning) */}
+        {asks.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+            <div className="space-y-4">
+              {asks.map((ask) => (
+                <div
+                  key={ask.key}
+                  className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                        {ask.skill}
+                      </h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {formatDate(ask.createdAt)}
+                      </p>
+                    </div>
+                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                      {ask.status}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 dark:text-gray-300 mb-3">{ask.message}</p>
+                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>⏰ {formatTimeRemaining(ask.createdAt, ask.ttlSeconds)} left</span>
+                    {ask.txHash && (
+                      <a
+                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        View on Arkiv
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Empty State for Asks/Offers */}
+        {asks.length === 0 && offers.length === 0 && (
+          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
+            <p className="text-gray-500 dark:text-gray-400">
+              No asks or offers yet.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

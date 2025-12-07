@@ -366,6 +366,32 @@
   - Simplified from mentor-graph's 4000+ line visual graph to functional list view
 - **Time Investment**: ~3 hours
 
+### Profile Browsing Implementation (P2)
+- **Feature**: Browse all profiles and view individual profile details
+- **Implementation**:
+  - Added `listUserProfiles` function to `lib/arkiv/profile.ts` (based on mentor-graph)
+  - Created `/app/api/profiles/route.ts` - API endpoint for listing profiles with filters
+  - Created `/app/profiles/page.tsx` - Browse all profiles with skill filtering
+  - Created `/app/profiles/[wallet]/page.tsx` - Individual profile detail view
+  - Updated `/app/network/page.tsx` - Added clickable profile links throughout
+- **Features**:
+  - Browse all profiles in a grid layout
+  - Filter profiles by skill
+  - Individual profile pages show:
+    - Profile details (name, bio, contact links)
+    - Skills list
+    - Availability window
+    - User's asks (learning requests)
+    - User's offers (teaching offers)
+  - Profile links from network page (matches, asks, offers)
+  - Responsive design with modern UI
+- **Technical Notes**:
+  - Based on mentor-graph's `listUserProfiles` implementation
+  - Profiles deduplicated by wallet (shows most recent)
+  - All profile data fetched from Arkiv entities
+  - Individual profile pages fetch asks/offers for that wallet
+- **Time Investment**: ~2 hours (step-by-step with testing)
+
 ---
 
 ## 📝 Notes for Technical PM
