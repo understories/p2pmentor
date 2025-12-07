@@ -26,6 +26,17 @@ export async function POST(request: Request) {
     }
 
     if (action === 'createProfile' || action === 'updateProfile') {
+      // For updateProfile, we need to get existing profile first to preserve other fields
+      let existingProfile = null;
+      if (action === 'updateProfile') {
+        existingProfile = await getProfileByWallet(targetWallet);
+        if (!existingProfile) {
+          return NextResponse.json(
+            { ok: false, error: 'Profile not found. Please create a profile first.' },
+            { status: 404 }
+          );
+        }
+      }
       const {
         displayName,
         username,
@@ -44,7 +55,26 @@ export async function POST(request: Request) {
         learnerRoles,
       } = profileData;
 
-      if (!displayName) {
+      // For updateProfile, use existing values if not provided
+      const finalDisplayName = displayName || existingProfile?.displayName || '';
+      const finalUsername = username !== undefined ? username : existingProfile?.username;
+      const finalProfileImage = profileImage !== undefined ? profileImage : existingProfile?.profileImage;
+      const finalBio = bio !== undefined ? bio : existingProfile?.bio;
+      const finalBioShort = bioShort !== undefined ? bioShort : existingProfile?.bioShort;
+      const finalBioLong = bioLong !== undefined ? bioLong : existingProfile?.bioLong;
+      const finalTimezone = timezone || existingProfile?.timezone || '';
+      const finalLanguages = languages !== undefined ? languages : existingProfile?.languages;
+      const finalContactLinks = contactLinks !== undefined ? contactLinks : existingProfile?.contactLinks;
+      const finalSeniority = seniority !== undefined ? seniority : existingProfile?.seniority;
+      const finalDomainsOfInterest = domainsOfInterest !== undefined ? domainsOfInterest : existingProfile?.domainsOfInterest;
+      const finalMentorRoles = mentorRoles !== undefined ? mentorRoles : existingProfile?.mentorRoles;
+      const finalLearnerRoles = learnerRoles !== undefined ? learnerRoles : existingProfile?.learnerRoles;
+      const finalSkills = skills || (existingProfile?.skills || '');
+      const finalSkillsArray = skillsArray !== undefined 
+        ? skillsArray 
+        : (existingProfile?.skillsArray || (finalSkills ? finalSkills.split(',').map((s: string) => s.trim()).filter(Boolean) : []));
+
+      if (!finalDisplayName) {
         return NextResponse.json(
           { ok: false, error: 'displayName is required' },
           { status: 400 }
@@ -58,21 +88,21 @@ export async function POST(request: Request) {
         // Use server-side creation with private key
         const { key, txHash } = await createUserProfile({
           wallet: targetWallet,
-          displayName,
-          username,
-          profileImage,
-          bio,
-          bioShort,
-          bioLong,
-          skills: skills || '',
-          skillsArray: skillsArray || (skills ? skills.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined),
-          timezone: timezone || '',
-          languages: languages || undefined,
-          contactLinks: contactLinks || undefined,
-          seniority: seniority || undefined,
-          domainsOfInterest: domainsOfInterest || undefined,
-          mentorRoles: mentorRoles || undefined,
-          learnerRoles: learnerRoles || undefined,
+          displayName: finalDisplayName,
+          username: finalUsername,
+          profileImage: finalProfileImage,
+          bio: finalBio,
+          bioShort: finalBioShort,
+          bioLong: finalBioLong,
+          skills: finalSkills,
+          skillsArray: finalSkillsArray,
+          timezone: finalTimezone,
+          languages: finalLanguages,
+          contactLinks: finalContactLinks,
+          seniority: finalSeniority,
+          domainsOfInterest: finalDomainsOfInterest,
+          mentorRoles: finalMentorRoles,
+          learnerRoles: finalLearnerRoles,
           privateKey: getPrivateKey(),
         });
         
