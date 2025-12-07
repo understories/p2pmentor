@@ -28,7 +28,7 @@
 ### P1 — Core Data Flows
 
 - [x] "Create Profile" flow using Arkiv entities - Profile form implemented with client-side Arkiv integration, Tailwind CSS styling
-- [ ] Skills: Add + view + edit (Arkiv entity)
+- [x] Skills: Add + view + edit (Arkiv entity) - Skills management page implemented, updates profile's skillsArray
 - [ ] Availability integration:
   - [ ] Calendar availability editor
   - [ ] Calendar connection (Google Cal or iCal export)

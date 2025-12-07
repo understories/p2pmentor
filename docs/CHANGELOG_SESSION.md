@@ -255,12 +255,32 @@
 
 ## 🚦 Next Steps
 
-1. Implement Skills management (P1)
+1. ✅ Implement Skills management (P1) - **IN PROGRESS**
 2. Implement Availability integration (P1)
 3. Implement Asks & Offers creation/browsing (P1)
 4. Build Network graph view with filtering (P1)
 5. Add mobile-first UI components
 6. Implement Passkey authentication (end of sprint)
+
+---
+
+## 📝 Session Updates (Live)
+
+### Skills Management Implementation
+- **Status**: In Progress
+- **Files Created/Modified**:
+  - `app/me/skills/page.tsx` - Skills management UI with add/remove functionality
+  - `app/api/profile/route.ts` - Updated to support profile updates (preserves existing fields)
+- **Features**:
+  - Add skills with real-time validation
+  - Remove skills from profile
+  - View all skills in a grid layout
+  - Works with example wallet (server-side updates)
+  - Shows seniority level if set
+- **Technical Notes**:
+  - Skills stored in profile's `skillsArray` field
+  - Each update creates a new profile entity (Arkiv immutability)
+  - Example wallet uses API route, MetaMask users need profile page (for now)
 
 ---
 
