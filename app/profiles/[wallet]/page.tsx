@@ -36,6 +36,7 @@ export default function ProfileDetailPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   useEffect(() => {
     if (wallet) {
@@ -190,7 +191,10 @@ export default function ProfileDetailPage() {
                 {/* Request Meeting Button - only show if viewing someone else's profile */}
                 {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
                   <button
-                    onClick={() => setShowMeetingModal(true)}
+                    onClick={() => {
+                      setSelectedOffer(null); // General request, not tied to specific offer
+                      setShowMeetingModal(true);
+                    }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                   >
                     Request Meeting
@@ -337,17 +341,31 @@ export default function ProfileDetailPage() {
                       </p>
                     </div>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
-                    {offer.txHash && (
-                      <a
-                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-600 dark:text-green-400 hover:underline"
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                      <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
+                      {offer.txHash && (
+                        <a
+                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-green-600 dark:text-green-400 hover:underline"
+                        >
+                          View on Arkiv
+                        </a>
+                      )}
+                    </div>
+                    {/* Request Meeting Button for this specific offer */}
+                    {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
+                      <button
+                        onClick={() => {
+                          setSelectedOffer(offer); // Set the specific offer
+                          setShowMeetingModal(true);
+                        }}
+                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                       >
-                        View on Arkiv
-                      </a>
+                        Request Meeting
+                      </button>
                     )}
                   </div>
                 </div>
@@ -608,14 +626,18 @@ export default function ProfileDetailPage() {
         {/* Request Meeting Modal */}
         <RequestMeetingModal
           isOpen={showMeetingModal}
-          onClose={() => setShowMeetingModal(false)}
+          onClose={() => {
+            setShowMeetingModal(false);
+            setSelectedOffer(null); // Clear selected offer when closing
+          }}
           profile={profile}
           userWallet={userWallet}
           userProfile={userProfile}
-          offer={offers.find(o => o.isPaid && o.status === 'active') || null}
+          offer={selectedOffer} // Pass the specific offer that was clicked, or null for general request
           onSuccess={() => {
             // Optionally reload data or show success message
             console.log('Meeting requested successfully');
+            setSelectedOffer(null); // Clear selected offer after success
           }}
         />
       </div>
