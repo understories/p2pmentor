@@ -70,6 +70,7 @@ export default function ProfilePage() {
     const bioShort = formData.get('bioShort') as string;
     const bioLong = formData.get('bioLong') as string;
     const timezone = formData.get('timezone') as string || 'UTC';
+    const availabilityWindow = formData.get('availabilityWindow') as string;
     
     // Languages
     const languagesStr = formData.get('languages') as string;
@@ -115,6 +116,7 @@ export default function ProfilePage() {
           languages,
           contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
           seniority: seniority || undefined,
+          availabilityWindow: availabilityWindow || undefined,
         }),
       });
 
@@ -249,6 +251,23 @@ export default function ProfilePage() {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="UTC"
               />
+            </div>
+
+            <div>
+              <label htmlFor="availabilityWindow" className="block text-sm font-medium mb-1">
+                Availability Window
+              </label>
+              <input
+                type="text"
+                id="availabilityWindow"
+                name="availabilityWindow"
+                defaultValue={profile?.availabilityWindow || ''}
+                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="e.g., Mon-Fri 9am-5pm EST, Weekends flexible"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Describe when you're generally available for mentorship
+              </p>
             </div>
           </div>
 

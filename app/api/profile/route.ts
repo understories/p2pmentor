@@ -54,6 +54,7 @@ export async function POST(request: Request) {
         domainsOfInterest,
         mentorRoles,
         learnerRoles,
+        availabilityWindow,
       } = profileData;
 
       // For updateProfile, use existing values if not provided
@@ -70,6 +71,7 @@ export async function POST(request: Request) {
       const finalDomainsOfInterest = domainsOfInterest !== undefined ? domainsOfInterest : existingProfile?.domainsOfInterest;
       const finalMentorRoles = mentorRoles !== undefined ? mentorRoles : existingProfile?.mentorRoles;
       const finalLearnerRoles = learnerRoles !== undefined ? learnerRoles : existingProfile?.learnerRoles;
+      const finalAvailabilityWindow = availabilityWindow !== undefined ? availabilityWindow : existingProfile?.availabilityWindow;
       const finalSkills = skills || (existingProfile?.skills || '');
       const finalSkillsArray = skillsArray !== undefined 
         ? skillsArray 
@@ -101,6 +103,7 @@ export async function POST(request: Request) {
         domainsOfInterest: finalDomainsOfInterest,
         mentorRoles: finalMentorRoles,
         learnerRoles: finalLearnerRoles,
+        availabilityWindow: finalAvailabilityWindow,
         privateKey: getPrivateKey(),
       });
       

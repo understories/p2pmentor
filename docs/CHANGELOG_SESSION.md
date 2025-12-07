@@ -321,6 +321,27 @@
   - Filtering by skill and spaceId supported
   - Matches mentor-graph entity structure exactly
 
+### Availability Implementation (Simple Text-Based)
+- **Feature**: Simple text-based availability management for beta launch
+- **Decision**: Chose simple text approach over calendar API integration for beta timeline
+- **Research**: Created `docs/availability_research.md` with full analysis of options
+- **Implementation**:
+  - Added `availabilityWindow` field to `UserProfile` type
+  - Updated profile form to include availability input
+  - Created dedicated `/me/availability` page for managing availability
+  - Updated API route to handle availability in profile updates
+  - Availability stored in profile entity payload
+- **UI Pages**:
+  - `app/me/availability/page.tsx` - Dedicated availability management page
+  - `app/me/profile/page.tsx` - Availability field added to profile form
+- **Technical Notes**:
+  - Simple text input (e.g., "Mon-Fri 9am-5pm EST", "Weekends flexible")
+  - Stored as string in profile entity
+  - Can be updated via profile form or dedicated availability page
+  - Matches mentor-graph's simple approach
+  - Calendar API integration deferred to post-beta based on user feedback
+- **Time Investment**: ~2 hours (as estimated in research)
+
 ---
 
 ## 📝 Notes for Technical PM
@@ -330,5 +351,6 @@
 - Security vulnerability has been patched
 - All explorer links verified and corrected
 - Asks & Offers fully implemented (P1 feature)
-- Project is ready for continued development on remaining P1 features (Availability, Network graph)
+- Availability implemented with simple text-based approach (P1 feature - beta-ready)
+- Project is ready for continued development on remaining P1 features (Network graph)
 

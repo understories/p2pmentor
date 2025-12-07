@@ -80,6 +80,7 @@ export async function createUserProfileClient({
   domainsOfInterest,
   mentorRoles,
   learnerRoles,
+  availabilityWindow,
   account,
 }: {
   wallet: string;
@@ -103,6 +104,7 @@ export async function createUserProfileClient({
   domainsOfInterest?: string[];
   mentorRoles?: string[];
   learnerRoles?: string[];
+  availabilityWindow?: string;
   account: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromMetaMask(account);
@@ -130,6 +132,7 @@ export async function createUserProfileClient({
     domainsOfInterest: domainsOfInterest || [],
     mentorRoles: mentorRoles || [],
     learnerRoles: learnerRoles || [],
+    availabilityWindow,
     spaceId,
     createdAt,
     lastActiveTimestamp,
@@ -198,6 +201,7 @@ export async function createUserProfile({
   domainsOfInterest,
   mentorRoles,
   learnerRoles,
+  availabilityWindow,
   privateKey,
 }: {
   wallet: string;
@@ -221,6 +225,7 @@ export async function createUserProfile({
   domainsOfInterest?: string[];
   mentorRoles?: string[];
   learnerRoles?: string[];
+  availabilityWindow?: string;
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -248,6 +253,7 @@ export async function createUserProfile({
     domainsOfInterest: domainsOfInterest || [],
     mentorRoles: mentorRoles || [],
     learnerRoles: learnerRoles || [],
+    availabilityWindow,
     spaceId,
     createdAt,
     lastActiveTimestamp,
