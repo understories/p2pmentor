@@ -12,6 +12,11 @@
 
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EmptyState } from '@/components/EmptyState';
+import { PageHeader } from '@/components/PageHeader';
+import { BetaBanner } from '@/components/BetaBanner';
+import { Alert } from '@/components/Alert';
 import { FeedbackModal } from '@/components/FeedbackModal';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -272,8 +277,8 @@ export default function SessionsPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <h1 className="text-3xl font-semibold mb-6">Sessions</h1>
-          <p>Loading sessions...</p>
+          <PageHeader title="Sessions" />
+          <LoadingSpinner text="Loading sessions..." className="py-12" />
         </div>
       </div>
     );
@@ -286,8 +291,8 @@ export default function SessionsPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <h1 className="text-3xl font-semibold mb-6">Sessions</h1>
-          <p className="text-red-500">{error}</p>
+          <PageHeader title="Sessions" />
+          <Alert type="error" message={error} />
         </div>
       </div>
     );
@@ -299,18 +304,24 @@ export default function SessionsPage() {
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const cancelledSessions = sessions.filter(s => s.status === 'cancelled');
 
+  const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0;
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
-        <h1 className="text-3xl font-semibold mb-6">Sessions</h1>
+        
+        <PageHeader
+          title="Sessions"
+          description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
+        />
+        
+        <BetaBanner />
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
-            {error}
-          </div>
+          <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
         )}
 
         {/* Pending Sessions */}
@@ -640,11 +651,16 @@ export default function SessionsPage() {
           </div>
         )}
 
-        {sessions.length === 0 && (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <p className="text-lg mb-2">No sessions yet</p>
-            <p className="text-sm">Request a meeting from a profile to get started!</p>
-          </div>
+        {!hasAnySessions && (
+          <EmptyState
+            title="No sessions yet"
+            description="Request a meeting from a profile to get started! Browse profiles and connect with mentors or learners."
+            icon={
+              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            }
+          />
         )}
 
         {/* Feedback Modal */}
