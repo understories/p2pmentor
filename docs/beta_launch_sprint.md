@@ -48,7 +48,11 @@
   - [x] Individual profile view (`/profiles/[wallet]`)
   - [x] Show profile, skills, offers, availability
   - [x] Profile links from network page
-- [ ] Request a meeting time
+- [x] Request a meeting time
+  - [x] Session library functions (create, list, get, confirm, reject)
+  - [x] Session API route
+  - [x] Request meeting modal component
+  - [x] Request meeting button on profile pages
 - [ ] Confirm meeting time
 - [ ] Paid flow: requestor enters tx hash → confirmer validates → session confirmed
 - [ ] Jitsi link generation on confirmation
