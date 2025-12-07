@@ -7,6 +7,7 @@
 
 # testing
 /coverage
+scripts/test-beta-ac.ts
 
 # next.js
 /.next/
@@ -37,3 +38,10 @@ next-env.d.ts
 
 # reference repos
 refs/
+
+# testing and issue tracking docs (temporary)
+docs/TESTING_*.md
+docs/MANUAL_TESTING_*.md
+docs/ISSUES_TO_FIX.md
+docs/CRITICAL_ISSUES_SUMMARY.md
+docs/TESTING_SUMMARY.md
