@@ -25,9 +25,13 @@ export type Session = {
   duration?: number; // Duration in minutes
   notes?: string;
   feedbackKey?: string; // Reference to feedback entity
-  txHash?: string;
+  txHash?: string; // Session creation transaction hash
   mentorConfirmed?: boolean;
   learnerConfirmed?: boolean;
+  // Payment flow fields
+  paymentTxHash?: string; // Transaction hash for payment (if paid session)
+  paymentValidated?: boolean; // Whether payment has been validated
+  paymentValidatedBy?: string; // Wallet that validated the payment
   // Jitsi video meeting fields
   videoProvider?: 'jitsi' | 'none' | 'custom';
   videoRoomName?: string;
@@ -49,6 +53,7 @@ export async function createSession({
   sessionDate,
   duration,
   notes,
+  paymentTxHash,
   privateKey,
 }: {
   mentorWallet: string;
@@ -57,6 +62,7 @@ export async function createSession({
   sessionDate: string; // ISO timestamp
   duration?: number;
   notes?: string;
+  paymentTxHash?: string; // Optional payment transaction hash
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   // Normalize wallet addresses to lowercase for consistency
@@ -78,6 +84,7 @@ export async function createSession({
     sessionDate,
     duration: duration || 60, // Default 60 minutes
     notes: notes || '',
+    paymentTxHash: paymentTxHash || undefined, // Include payment tx hash if provided
   };
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
@@ -102,11 +109,12 @@ export async function createSession({
         { key: 'skill', value: skill },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
-        { key: 'sessionDate', value: sessionDate },
-        { key: 'status', value: status },
-      ],
-      expiresIn: expiresInSeconds,
-    });
+      { key: 'sessionDate', value: sessionDate },
+      { key: 'status', value: status },
+      ...(paymentTxHash ? [{ key: 'paymentTxHash', value: paymentTxHash }] : []),
+    ],
+    expiresIn: expiresInSeconds,
+  });
     entityKey = result.entityKey;
     txHash = result.txHash;
   } catch (error: any) {
@@ -237,8 +245,8 @@ export async function listSessions(params?: {
   // Get all confirmations, rejections, and Jitsi info for these sessions
   const sessionKeys = result.entities.map((e: any) => e.key);
   
-  // Query confirmations and rejections (can batch these)
-  const [confirmationsResult, rejectionsResult] = await Promise.all([
+  // Query confirmations, rejections, and payment validations (can batch these)
+  const [confirmationsResult, rejectionsResult, paymentValidationsResult] = await Promise.all([
     sessionKeys.length > 0
       ? publicClient.buildQuery()
           .where(eq('type', 'session_confirmation'))
@@ -250,6 +258,14 @@ export async function listSessions(params?: {
       ? publicClient.buildQuery()
           .where(eq('type', 'session_rejection'))
           .withAttributes(true)
+          .limit(100)
+          .fetch()
+      : { entities: [] },
+    sessionKeys.length > 0
+      ? publicClient.buildQuery()
+          .where(eq('type', 'session_payment_validation'))
+          .withAttributes(true)
+          .withPayload(true)
           .limit(100)
           .fetch()
       : { entities: [] },
@@ -313,11 +329,52 @@ export async function listSessions(params?: {
     };
     const sessionKey = getAttr('sessionKey');
     const rejectedBy = getAttr('rejectedBy');
-    if (sessionKey && rejectedBy && sessionKeys.includes(sessionKey)) {
-      if (!rejectionMap[sessionKey]) {
-        rejectionMap[sessionKey] = new Set();
+    if (sessionKey && rejectedBy) {
+      const matchingSessionKey = sessionKeys.find(sk => sk.toLowerCase() === sessionKey.toLowerCase());
+      if (matchingSessionKey) {
+        if (!rejectionMap[matchingSessionKey]) {
+          rejectionMap[matchingSessionKey] = new Set();
+        }
+        rejectionMap[matchingSessionKey].add(rejectedBy.toLowerCase());
       }
-      rejectionMap[sessionKey].add(rejectedBy.toLowerCase());
+    }
+  });
+
+  // Build payment validation map: sessionKey -> payment validation info
+  const paymentValidationMap: Record<string, { paymentTxHash?: string; validatedBy?: string }> = {};
+  paymentValidationsResult.entities.forEach((entity: any) => {
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+    
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding payment validation payload:', e);
+    }
+    
+    const sessionKey = getAttr('sessionKey');
+    if (sessionKey) {
+      const matchingSessionKey = sessionKeys.find(sk => sk.toLowerCase() === sessionKey.toLowerCase());
+      if (matchingSessionKey) {
+        paymentValidationMap[matchingSessionKey] = {
+          paymentTxHash: payload.paymentTxHash || getAttr('paymentTxHash'),
+          validatedBy: payload.validatedBy || getAttr('validatedBy'),
+        };
+      }
     }
   });
 
@@ -396,11 +453,17 @@ export async function listSessions(params?: {
     const confirmations = confirmationMap[sessionKey] || new Set();
     const rejections = rejectionMap[sessionKey] || new Set();
     const jitsiInfo = jitsiMap[sessionKey] || {};
+    const paymentValidation = paymentValidationMap[sessionKey];
     
     const mentorConfirmed = confirmations.has(mentorWallet.toLowerCase());
     const learnerConfirmed = confirmations.has(learnerWallet.toLowerCase());
     const mentorRejected = rejections.has(mentorWallet.toLowerCase());
     const learnerRejected = rejections.has(learnerWallet.toLowerCase());
+    
+    // Extract payment info
+    const paymentTxHash = paymentValidation?.paymentTxHash || payload.paymentTxHash || getAttr('paymentTxHash') || undefined;
+    const paymentValidated = !!paymentValidation;
+    const paymentValidatedBy = paymentValidation?.validatedBy || undefined;
     
     // Determine final status:
     // - If either party rejected, mark as cancelled
@@ -434,6 +497,9 @@ export async function listSessions(params?: {
       txHash: txHashMap[sessionKey],
       mentorConfirmed,
       learnerConfirmed,
+      paymentTxHash,
+      paymentValidated,
+      paymentValidatedBy,
       videoProvider: jitsiInfo.videoProvider as 'jitsi' | 'none' | 'custom' | undefined,
       videoRoomName: jitsiInfo.videoRoomName,
       videoJoinUrl: jitsiInfo.videoJoinUrl,
@@ -535,8 +601,8 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     }
   }
 
-  // Check for confirmations, rejections, and Jitsi info
-  const [mentorConfirmations, learnerConfirmations, mentorRejections, learnerRejections, jitsiInfo] = await Promise.all([
+  // Check for confirmations, rejections, payment validation, and Jitsi info
+  const [mentorConfirmations, learnerConfirmations, mentorRejections, learnerRejections, paymentValidation, jitsiInfo] = await Promise.all([
     publicClient.buildQuery()
       .where(eq('type', 'session_confirmation'))
       .where(eq('sessionKey', entity.key))
@@ -566,6 +632,13 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       .limit(1)
       .fetch(),
     publicClient.buildQuery()
+      .where(eq('type', 'session_payment_validation'))
+      .where(eq('sessionKey', entity.key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch(),
+    publicClient.buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('sessionKey', entity.key))
       .withAttributes(true)
@@ -577,6 +650,44 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   const learnerConfirmed = learnerConfirmations.entities.length > 0;
   const mentorRejected = mentorRejections.entities.length > 0;
   const learnerRejected = learnerRejections.entities.length > 0;
+  
+  // Extract payment validation info
+  let paymentTxHash: string | undefined;
+  let paymentValidated = false;
+  let paymentValidatedBy: string | undefined;
+  
+  if (paymentValidation.entities.length > 0) {
+    const paymentEntity = paymentValidation.entities[0];
+    const paymentAttrs = paymentEntity.attributes || {};
+    const getPaymentAttr = (key: string): string => {
+      if (Array.isArray(paymentAttrs)) {
+        const attr = paymentAttrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(paymentAttrs[key] || '');
+    };
+    
+    let paymentPayload: any = {};
+    try {
+      if (paymentEntity.payload) {
+        const decoded = paymentEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(paymentEntity.payload)
+          : typeof paymentEntity.payload === 'string'
+          ? paymentEntity.payload
+          : JSON.stringify(paymentEntity.payload);
+        paymentPayload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding payment payload:', e);
+    }
+    
+    paymentTxHash = paymentPayload.paymentTxHash || getPaymentAttr('paymentTxHash') || undefined;
+    paymentValidated = true; // If entity exists, payment is validated
+    paymentValidatedBy = paymentPayload.validatedBy || getPaymentAttr('validatedBy') || undefined;
+  } else {
+    // Check if paymentTxHash is in session payload/attributes
+    paymentTxHash = payload.paymentTxHash || getAttr('paymentTxHash') || undefined;
+  }
   
   // Determine final status:
   // - If either party rejected, mark as cancelled
@@ -643,6 +754,9 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     txHash,
     mentorConfirmed,
     learnerConfirmed,
+    paymentTxHash,
+    paymentValidated,
+    paymentValidatedBy,
     videoProvider: jitsiData.videoProvider as 'jitsi' | 'none' | 'custom' | undefined,
     videoRoomName: jitsiData.videoRoomName,
     videoJoinUrl: jitsiData.videoJoinUrl,
@@ -952,6 +1066,109 @@ export async function rejectSession({
       { key: 'type', value: 'session_rejection' },
       { key: 'sessionKey', value: sessionKey },
       { key: 'rejectedBy', value: rejectedByWallet },
+      { key: 'mentorWallet', value: verifiedMentorWallet },
+      { key: 'learnerWallet', value: verifiedLearnerWallet },
+      { key: 'spaceId', value: spaceId },
+      { key: 'createdAt', value: createdAt },
+    ],
+    expiresIn: sessionExpiration,
+  });
+
+  return { key: entityKey, txHash };
+}
+
+/**
+ * Validate payment transaction and update session
+ * 
+ * For paid sessions, the confirmer validates the payment transaction hash.
+ * 
+ * @param data - Payment validation data
+ * @param privateKey - Private key for signing
+ * @returns Entity key and transaction hash
+ */
+export async function validatePayment({
+  sessionKey,
+  paymentTxHash,
+  validatedByWallet,
+  privateKey,
+  mentorWallet,
+  learnerWallet,
+  spaceId: providedSpaceId,
+}: {
+  sessionKey: string;
+  paymentTxHash: string;
+  validatedByWallet: string;
+  privateKey: `0x${string}`;
+  mentorWallet?: string;
+  learnerWallet?: string;
+  spaceId?: string;
+}): Promise<{ key: string; txHash: string }> {
+  // Get the session to verify it exists and get wallet info
+  let session: Session | null = null;
+  let spaceId = providedSpaceId || 'local-dev';
+  let verifiedMentorWallet = mentorWallet;
+  let verifiedLearnerWallet = learnerWallet;
+
+  try {
+    session = await getSessionByKey(sessionKey);
+    if (session) {
+      spaceId = session.spaceId;
+      verifiedMentorWallet = session.mentorWallet;
+      verifiedLearnerWallet = session.learnerWallet;
+      
+      // Verify payment tx hash matches
+      if (session.paymentTxHash && session.paymentTxHash.toLowerCase() !== paymentTxHash.toLowerCase()) {
+        throw new Error('Payment transaction hash does not match session');
+      }
+    }
+  } catch (e) {
+    console.warn('Could not fetch session by key, using provided info:', e);
+  }
+
+  if (!verifiedMentorWallet || !verifiedLearnerWallet) {
+    throw new Error('Could not determine session participants');
+  }
+
+  // Verify the wallet is part of the session (confirmer should be the one receiving payment)
+  const isMentor = verifiedMentorWallet.toLowerCase() === validatedByWallet.toLowerCase();
+  const isLearner = verifiedLearnerWallet.toLowerCase() === validatedByWallet.toLowerCase();
+  
+  if (!isMentor && !isLearner) {
+    throw new Error('Wallet is not part of this session');
+  }
+
+  // Get session expiration for the payment validation entity
+  let sessionExpiration = 31536000; // Default 1 year fallback
+  try {
+    const session = await getSessionByKey(sessionKey);
+    if (session && session.sessionDate) {
+      const sessionStartTime = new Date(session.sessionDate).getTime();
+      const sessionDurationMs = (session.duration || 60) * 60 * 1000;
+      const bufferMs = 60 * 60 * 1000; // 1 hour buffer
+      const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
+      const now = Date.now();
+      sessionExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
+    }
+  } catch (e) {
+    console.warn('Could not fetch session for expiration calculation, using default:', e);
+  }
+
+  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const enc = new TextEncoder();
+  const createdAt = new Date().toISOString();
+
+  // Create payment validation entity
+  const { entityKey, txHash } = await walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({
+      paymentTxHash,
+      validatedAt: createdAt,
+    })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'session_payment_validation' },
+      { key: 'sessionKey', value: sessionKey },
+      { key: 'paymentTxHash', value: paymentTxHash },
+      { key: 'validatedBy', value: validatedByWallet },
       { key: 'mentorWallet', value: verifiedMentorWallet },
       { key: 'learnerWallet', value: verifiedLearnerWallet },
       { key: 'spaceId', value: spaceId },

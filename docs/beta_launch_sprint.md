@@ -58,7 +58,12 @@
   - [x] Confirm/reject buttons for pending sessions
   - [x] Session confirmation API integration
   - [x] Jitsi link display when both parties confirm
-- [ ] Paid flow: requestor enters tx hash → confirmer validates → session confirmed
+- [x] Paid flow: requestor enters tx hash → confirmer validates → session confirmed
+  - [x] Payment tx hash field in request meeting modal
+  - [x] Transaction validation utility
+  - [x] Payment validation API endpoint
+  - [x] Payment status display in sessions page
+  - [x] Validate payment button for confirmer
 - [x] Jitsi link generation on confirmation
   - [x] Auto-generated when both parties confirm (implemented in confirmSession)
   - [x] Displayed on scheduled sessions page
