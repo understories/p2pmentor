@@ -43,7 +43,11 @@
 
 ### P2 — Mentorship Session Flow
 
-- [ ] Browse profiles
+- [x] Browse profiles
+  - [x] List all profiles with filtering (`/profiles`)
+  - [x] Individual profile view (`/profiles/[wallet]`)
+  - [x] Show profile, skills, offers, availability
+  - [x] Profile links from network page
 - [ ] Request a meeting time
 - [ ] Confirm meeting time
 - [ ] Paid flow: requestor enters tx hash → confirmer validates → session confirmed

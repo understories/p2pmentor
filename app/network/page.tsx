@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -288,9 +289,12 @@ export default function NetworkPage() {
                     {/* Ask */}
                     <div className="p-4 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Learning</div>
-                      <div className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                      <Link
+                        href={`/profiles/${match.ask.wallet}`}
+                        className="font-semibold text-blue-600 dark:text-blue-400 mb-2 hover:underline block"
+                      >
                         {match.askProfile?.displayName || shortenWallet(match.ask.wallet)}
-                      </div>
+                      </Link>
                       <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{match.ask.message}</p>
                       <div className="text-xs text-gray-500 dark:text-gray-400">
                         {formatDate(match.ask.createdAt)} • {formatTimeRemaining(match.ask.createdAt, match.ask.ttlSeconds)} left
@@ -299,9 +303,12 @@ export default function NetworkPage() {
                     {/* Offer */}
                     <div className="p-4 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Teaching</div>
-                      <div className="font-semibold text-green-600 dark:text-green-400 mb-2">
+                      <Link
+                        href={`/profiles/${match.offer.wallet}`}
+                        className="font-semibold text-green-600 dark:text-green-400 mb-2 hover:underline block"
+                      >
                         {match.offerProfile?.displayName || shortenWallet(match.offer.wallet)}
-                      </div>
+                      </Link>
                       <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{match.offer.message}</p>
                       {match.offer.availabilityWindow && (
                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
@@ -340,7 +347,14 @@ export default function NetworkPage() {
                           {ask.skill}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {profiles[ask.wallet]?.displayName || shortenWallet(ask.wallet)} • {formatDate(ask.createdAt)}
+                          <Link
+                            href={`/profiles/${ask.wallet}`}
+                            className="hover:underline text-blue-600 dark:text-blue-400"
+                          >
+                            {profiles[ask.wallet]?.displayName || shortenWallet(ask.wallet)}
+                          </Link>
+                          {' • '}
+                          {formatDate(ask.createdAt)}
                         </p>
                       </div>
                       <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
@@ -389,7 +403,14 @@ export default function NetworkPage() {
                           {offer.skill}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {profiles[offer.wallet]?.displayName || shortenWallet(offer.wallet)} • {formatDate(offer.createdAt)}
+                          <Link
+                            href={`/profiles/${offer.wallet}`}
+                            className="hover:underline text-green-600 dark:text-green-400"
+                          >
+                            {profiles[offer.wallet]?.displayName || shortenWallet(offer.wallet)}
+                          </Link>
+                          {' • '}
+                          {formatDate(offer.createdAt)}
                         </p>
                       </div>
                       <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
