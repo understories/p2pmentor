@@ -54,6 +54,7 @@ export default function SessionsPage() {
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
 
   useEffect(() => {
     // Get current user's wallet
@@ -211,6 +212,57 @@ export default function SessionsPage() {
     }
   };
 
+  const handleValidatePayment = async (session: Session) => {
+    if (!userWallet) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    if (!session.paymentTxHash) {
+      alert('No payment transaction hash found for this session');
+      return;
+    }
+
+    if (!confirm(`Validate payment transaction ${session.paymentTxHash.slice(0, 10)}...?`)) {
+      return;
+    }
+
+    setValidatingPayment(session.key);
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'validatePayment',
+          wallet: userWallet,
+          sessionKey: session.key,
+          paymentTxHash: session.paymentTxHash,
+          validatedByWallet: userWallet,
+          mentorWallet: session.mentorWallet,
+          learnerWallet: session.learnerWallet,
+          spaceId: session.spaceId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to validate payment');
+      }
+
+      alert('Payment validated successfully!');
+      // Reload sessions
+      if (userWallet) {
+        loadSessions(userWallet);
+      }
+    } catch (err: any) {
+      console.error('Error validating payment:', err);
+      alert(`Error: ${err.message || 'Failed to validate payment'}`);
+    } finally {
+      setValidatingPayment(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
@@ -311,6 +363,35 @@ export default function SessionsPage() {
                             <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
                           </div>
                         )}
+                        {session.paymentTxHash && (
+                          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              💰 Payment Transaction:
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
+                              </code>
+                              <a
+                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View
+                              </a>
+                            </div>
+                            {session.paymentValidated ? (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                                ⏳ Payment not yet validated
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                           {userConfirmed ? (
                             <span className="text-green-600 dark:text-green-400">✓ You confirmed</span>
@@ -324,21 +405,39 @@ export default function SessionsPage() {
                     </div>
 
                     {canConfirm && !userConfirmed && (
-                      <div className="flex gap-3 mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
-                        <button
-                          onClick={() => handleConfirm(session)}
-                          disabled={confirming === session.key}
-                          className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
-                        </button>
-                        <button
-                          onClick={() => handleReject(session)}
-                          disabled={rejecting === session.key}
-                          className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
-                        </button>
+                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
+                        {/* Payment validation button (if payment exists and not validated) */}
+                        {session.paymentTxHash && !session.paymentValidated && (
+                          <div className="mb-3">
+                            <button
+                              onClick={() => handleValidatePayment(session)}
+                              disabled={validatingPayment === session.key}
+                              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
+                            </button>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
+                              Validate the payment transaction before confirming
+                            </p>
+                          </div>
+                        )}
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => handleConfirm(session)}
+                            disabled={confirming === session.key || (session.paymentTxHash && !session.paymentValidated)}
+                            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={session.paymentTxHash && !session.paymentValidated ? 'Please validate payment first' : ''}
+                          >
+                            {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
+                          </button>
+                          <button
+                            onClick={() => handleReject(session)}
+                            disabled={rejecting === session.key}
+                            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -393,6 +492,35 @@ export default function SessionsPage() {
                           <div className="mt-3">
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</p>
                             <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
+                          </div>
+                        )}
+                        {session.paymentTxHash && (
+                          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                              💰 Payment Transaction:
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
+                              </code>
+                              <a
+                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                View
+                              </a>
+                            </div>
+                            {session.paymentValidated ? (
+                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
+                              </p>
+                            ) : (
+                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                                ⏳ Payment not yet validated
+                              </p>
+                            )}
                           </div>
                         )}
                         {session.videoJoinUrl ? (

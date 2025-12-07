@@ -64,13 +64,15 @@ See `docs/JITSI_FIX_SUMMARY.md` for full details.
 
 ---
 
-## 🎯 Next: P2 Remaining Items
+## ✅ P2 - Complete!
 
-### 1. Paid Flow (P2)
-- Requestor enters tx hash
-- Confirmer validates transaction
-- Session confirmed after validation
-- **Status:** Not started
+### Paid Flow (P2) ✅
+- ✅ Requestor enters tx hash (optional field in request meeting modal)
+- ✅ Transaction validation utility (validates on-chain)
+- ✅ Payment validation API endpoint
+- ✅ Confirmer validates transaction before confirming session
+- ✅ Payment status display in sessions page
+- ✅ Validate payment button for confirmer
 
 ### 2. Optional: Livepeer + LiveKit (P2)
 - x402 hook placeholder
@@ -103,13 +105,13 @@ See `docs/JITSI_FIX_SUMMARY.md` for full details.
 
 ## 📊 Current Status
 
-**Completed:** ~85% of P0, P1, and P2 core features  
-**In Progress:** P2 paid flow  
+**Completed:** ✅ 100% of P0, P1, and P2 core features  
+**In Progress:** None  
 **Blocked/Deferred:** 
 - Ethereum Passkey (deferred to end of sprint)
-- Livepeer/LiveKit (optional add-on)
+- Livepeer/LiveKit (optional add-on, skipped for beta)
 
-**Next Priority:** Paid flow implementation (P2)
+**Next Priority:** P3 - Notifications + Feedback
 
 ---
 

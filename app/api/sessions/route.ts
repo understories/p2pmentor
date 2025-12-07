@@ -9,13 +9,14 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession } from '@/lib/arkiv/sessions';
+import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, validatePayment } from '@/lib/arkiv/sessions';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { validateTransaction } from '@/lib/payments';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, paymentTxHash, validatedByWallet, spaceId } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
           sessionDate,
           duration: duration ? parseInt(duration, 10) : undefined,
           notes: notes || undefined,
+          paymentTxHash: paymentTxHash || undefined,
           privateKey: getPrivateKey(),
         });
 
@@ -96,6 +98,36 @@ export async function POST(request: Request) {
       });
 
       return NextResponse.json({ ok: true, key, txHash });
+    } else if (action === 'validatePayment') {
+      if (!sessionKey || !paymentTxHash || !validatedByWallet) {
+        return NextResponse.json(
+          { ok: false, error: 'sessionKey, paymentTxHash, and validatedByWallet are required' },
+          { status: 400 }
+        );
+      }
+
+      // First validate the transaction on-chain
+      const validationResult = await validateTransaction(paymentTxHash);
+      
+      if (!validationResult.valid) {
+        return NextResponse.json(
+          { ok: false, error: validationResult.error || 'Transaction validation failed' },
+          { status: 400 }
+        );
+      }
+
+      // If transaction is valid, create payment validation entity
+      const { key, txHash } = await validatePayment({
+        sessionKey,
+        paymentTxHash,
+        validatedByWallet,
+        privateKey: getPrivateKey(),
+        mentorWallet,
+        learnerWallet,
+        spaceId,
+      });
+
+      return NextResponse.json({ ok: true, key, txHash, validationResult });
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action' },
