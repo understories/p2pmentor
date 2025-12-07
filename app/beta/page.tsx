@@ -32,48 +32,71 @@ export default function BetaPage() {
   };
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '600px', margin: '0 auto' }}>
+    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
       <ThemeToggle />
-      <div style={{ marginBottom: '1rem' }}>
-        <BackButton href="/" />
-      </div>
-      <h1>Welcome to p2pmentor Beta</h1>
-      <p>Enter your invite code to continue:</p>
-      
-      <form onSubmit={handleSubmit} style={{ marginTop: '1rem' }}>
-        <input
-          type="text"
-          value={inviteCode}
-          onChange={(e) => {
-            setInviteCode(e.target.value);
-            setError('');
-          }}
-          placeholder="Invite code"
-          style={{
-            padding: '0.5rem',
-            fontSize: '1rem',
-            width: '100%',
-            marginBottom: '0.5rem',
-          }}
-        />
-        {error && <p style={{ color: 'red', marginBottom: '0.5rem' }}>{error}</p>}
-        <button
-          type="submit"
-          style={{
-            padding: '0.5rem 1rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-          }}
-        >
-          Unlock Beta
-        </button>
-      </form>
-
-      <div style={{ marginTop: '2rem', padding: '1rem', backgroundColor: '#fff3cd', borderRadius: '4px' }}>
-        <strong>⚠️ Beta Warning</strong>
-        <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>
-          Do not use a wallet containing real funds. This is a beta environment on testnet.
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-6">
+          <BackButton href="/" />
+        </div>
+        
+        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-50">
+          Welcome to p2pmentor Beta
+        </h1>
+        <p className="text-lg mb-6 text-gray-700 dark:text-gray-300">
+          Enter your invite code to continue:
         </p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              type="text"
+              value={inviteCode}
+              onChange={(e) => {
+                setInviteCode(e.target.value);
+                setError('');
+              }}
+              placeholder="Invite code"
+              className="w-full px-4 py-3 text-base border-2 rounded-lg 
+                       bg-white dark:bg-gray-800 
+                       text-gray-900 dark:text-gray-100
+                       border-gray-300 dark:border-gray-600
+                       focus:border-blue-500 dark:focus:border-emerald-500
+                       focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-emerald-500/20
+                       transition-colors"
+            />
+          </div>
+          
+          {error && (
+            <p className="text-red-600 dark:text-red-400 text-sm font-medium">
+              {error}
+            </p>
+          )}
+          
+          <button
+            type="submit"
+            className="w-full px-6 py-3 text-base font-semibold rounded-lg
+                     bg-blue-600 dark:bg-emerald-600
+                     text-white
+                     hover:bg-blue-700 dark:hover:bg-emerald-700
+                     focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-emerald-500 focus:ring-offset-2
+                     transition-colors
+                     disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Unlock Beta
+          </button>
+        </form>
+
+        <div className="mt-8 p-4 rounded-lg border-2
+                       bg-yellow-50 dark:bg-yellow-900/30
+                       border-yellow-200 dark:border-yellow-700/50
+                       text-yellow-900 dark:text-yellow-100">
+          <strong className="text-base font-semibold block mb-2">
+            ⚠️ Beta Warning
+          </strong>
+          <p className="text-sm leading-relaxed">
+            Do not use a wallet containing real funds. This is a beta environment on testnet.
+          </p>
+        </div>
       </div>
     </main>
   );
