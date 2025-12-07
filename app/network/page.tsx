@@ -216,6 +216,42 @@ export default function NetworkPage() {
 
         <BetaBanner />
 
+        {/* Quick Actions */}
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Link
+            href="/asks"
+            className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
+                  ❓ Create Ask
+                </h3>
+                <p className="text-xs text-red-700 dark:text-red-300">
+                  Post what you want to learn
+                </p>
+              </div>
+              <span className="text-red-600 dark:text-red-400">→</span>
+            </div>
+          </Link>
+          <Link
+            href="/offers"
+            className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">
+                  💎 Create Offer
+                </h3>
+                <p className="text-xs text-green-700 dark:text-green-300">
+                  Post what you can teach
+                </p>
+              </div>
+              <span className="text-green-600 dark:text-green-400">→</span>
+            </div>
+          </Link>
+        </div>
+
         {/* Forest View Entry Point */}
         <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
           <div className="flex items-center justify-between">
