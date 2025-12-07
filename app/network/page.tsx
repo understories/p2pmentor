@@ -13,6 +13,10 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EmptyState } from '@/components/EmptyState';
+import { PageHeader } from '@/components/PageHeader';
+import { BetaBanner } from '@/components/BetaBanner';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
@@ -190,9 +194,7 @@ export default function NetworkPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">Loading network...</p>
-          </div>
+          <LoadingSpinner text="Loading network..." className="py-12" />
         </div>
       </div>
     );
@@ -205,19 +207,12 @@ export default function NetworkPage() {
           <BackButton href="/me" />
         </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2">Network</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Browse asks, offers, and see matches based on skills.
-          </p>
-        </div>
+        <PageHeader
+          title="Network"
+          description="Browse asks, offers, and see matches based on skills."
+        />
 
-        {/* Beta Warning */}
-        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
-          </p>
-        </div>
+        <BetaBanner />
 
         {/* Filters */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -388,7 +383,15 @@ export default function NetworkPage() {
             <h2 className="text-2xl font-semibold mb-4">Offers ({filteredOffers.length})</h2>
             {filteredOffers.length === 0 ? (
               <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <p>No offers found.</p>
+                <EmptyState
+                  title="No offers found"
+                  description={skillFilter ? `No offers match "${skillFilter}". Try a different skill or clear the filter.` : 'No one has posted any teaching offers yet. Be the first to offer your expertise!'}
+                  icon={
+                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  }
+                />
               </div>
             ) : (
               <div className="space-y-4">
