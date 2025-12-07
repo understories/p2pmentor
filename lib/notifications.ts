@@ -8,7 +8,8 @@
  */
 
 import type { Session } from './arkiv/sessions';
-import type { Ask, Offer } from './arkiv/asks';
+import type { Ask } from './arkiv/asks';
+import type { Offer } from './arkiv/offers';
 import type { UserProfile } from './arkiv/profile';
 
 export type NotificationType = 

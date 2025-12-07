@@ -76,6 +76,7 @@ export async function POST() {
           skill: offer.skill,
           message: offer.message,
           availabilityWindow: offer.availabilityWindow,
+          isPaid: false,
           privateKey,
         });
         results.push(`✅ Offer: ${offer.skill}`);

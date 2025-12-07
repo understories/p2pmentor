@@ -216,6 +216,26 @@ export default function NetworkPage() {
 
         <BetaBanner />
 
+        {/* Forest View Entry Point */}
+        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-1">
+                🌲 Try Forest View (experimental)
+              </h3>
+              <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                Visualize the network as an interactive graph. Desktop only.
+              </p>
+            </div>
+            <Link
+              href="/network/forest"
+              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
+            >
+              Enter Forest →
+            </Link>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex flex-wrap gap-4 items-end">

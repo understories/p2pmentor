@@ -19,7 +19,8 @@ import {
   getUnreadCount,
 } from '@/lib/notifications';
 import type { Session } from '@/lib/arkiv/sessions';
-import type { Ask, Offer } from '@/lib/arkiv/asks';
+import type { Ask } from '@/lib/arkiv/asks';
+import type { Offer } from '@/lib/arkiv/offers';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 const POLL_INTERVAL = 30000; // 30 seconds
@@ -90,7 +91,7 @@ export default function NotificationsPage() {
       newNotifications.push(...meetingRequestNotifs);
       
       // Update seen session keys
-      sessions.forEach(s => previousSessionKeys.current.add(s.key));
+      sessions.forEach((s: Session) => previousSessionKeys.current.add(s.key));
       
       // Profile matches
       if (userProfile) {
@@ -134,7 +135,7 @@ export default function NotificationsPage() {
       newNotifications.push(...newOfferNotifs);
       
       // Update seen offer keys
-      allOffers.forEach(o => previousOfferKeys.current.add(o.key));
+      allOffers.forEach((o: Offer) => previousOfferKeys.current.add(o.key));
       
       // Merge with existing notifications (avoid duplicates)
       setNotifications(prev => {

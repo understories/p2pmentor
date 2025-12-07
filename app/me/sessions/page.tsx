@@ -439,7 +439,7 @@ export default function SessionsPage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleConfirm(session)}
-                            disabled={confirming === session.key || (session.paymentTxHash && !session.paymentValidated)}
+                            disabled={confirming === session.key || (session.paymentTxHash ? !session.paymentValidated : false)}
                             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             title={session.paymentTxHash && !session.paymentValidated ? 'Please validate payment first' : ''}
                           >
