@@ -33,6 +33,7 @@ export default function OffersPage() {
     message: '', 
     availabilityWindow: '',
     isPaid: false,
+    cost: '',
     paymentAddress: '',
   });
   const router = useRouter();
@@ -72,10 +73,16 @@ export default function OffersPage() {
     e.preventDefault();
     if (!newOffer.skill.trim() || !newOffer.message.trim() || !newOffer.availabilityWindow.trim() || !walletAddress) return;
     
-    // Validate payment address if paid
-    if (newOffer.isPaid && !newOffer.paymentAddress.trim()) {
-      setError('Payment address is required for paid offers');
-      return;
+    // Validate payment fields if paid
+    if (newOffer.isPaid) {
+      if (!newOffer.cost.trim()) {
+        setError('Cost is required for paid offers');
+        return;
+      }
+      if (!newOffer.paymentAddress.trim()) {
+        setError('Payment address is required for paid offers');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -86,22 +93,23 @@ export default function OffersPage() {
       const res = await fetch('/api/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'createOffer',
-          wallet: walletAddress,
-          skill: newOffer.skill.trim(),
-          message: newOffer.message.trim(),
-          availabilityWindow: newOffer.availabilityWindow.trim(),
-          isPaid: newOffer.isPaid,
-          paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
-        }),
+          body: JSON.stringify({
+            action: 'createOffer',
+            wallet: walletAddress,
+            skill: newOffer.skill.trim(),
+            message: newOffer.message.trim(),
+            availabilityWindow: newOffer.availabilityWindow.trim(),
+            isPaid: newOffer.isPaid,
+            cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
+            paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
+          }),
       });
 
       const data = await res.json();
       if (data.ok) {
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
           setShowCreateForm(false);
           // Reload offers after a delay
           setTimeout(async () => {
@@ -112,7 +120,7 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess('Offer created successfully!');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
           setShowCreateForm(false);
           // Reload offers
           const offersRes = await fetch('/api/offers').then(r => r.json());
@@ -243,7 +251,7 @@ export default function OffersPage() {
                       type="radio"
                       name="paymentType"
                       checked={!newOffer.isPaid}
-                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, paymentAddress: '' })}
+                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
                       className="mr-2"
                     />
                     <span>Free</span>
@@ -262,23 +270,42 @@ export default function OffersPage() {
               </div>
               
               {newOffer.isPaid && (
-                <div>
-                  <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
-                    Payment Address *
-                  </label>
-                  <input
-                    id="paymentAddress"
-                    type="text"
-                    value={newOffer.paymentAddress}
-                    onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
-                    placeholder="0x..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                    required={newOffer.isPaid}
-                  />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Wallet address where you'll receive payment for this offer
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                      Cost *
+                    </label>
+                    <input
+                      id="cost"
+                      type="text"
+                      value={newOffer.cost}
+                      onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
+                      placeholder="e.g., 0.1 ETH, $50, 100 USDC"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required={newOffer.isPaid}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      The cost for this mentorship session
+                    </p>
+                  </div>
+                  <div>
+                    <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                      Payment Address *
+                    </label>
+                    <input
+                      id="paymentAddress"
+                      type="text"
+                      value={newOffer.paymentAddress}
+                      onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                      placeholder="0x..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      required={newOffer.isPaid}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Wallet address where you'll receive payment for this offer
+                    </p>
+                  </div>
+                </>
               )}
               
               <div className="flex gap-3">
@@ -293,7 +320,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
+                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
                     setError('');
                     setSuccess('');
                   }}
@@ -357,10 +384,10 @@ export default function OffersPage() {
                   <p className="text-sm text-purple-800 dark:text-purple-300">
                     {offer.isPaid ? (
                       <>
-                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Paid</span>
-                        {offer.paymentAddress && (
-                          <span className="ml-2 text-xs font-mono text-gray-500 dark:text-gray-400">
-                            ({offer.paymentAddress.slice(0, 10)}...{offer.paymentAddress.slice(-8)})
+                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Requires payment</span>
+                        {offer.cost && (
+                          <span className="ml-2 text-purple-700 dark:text-purple-300">
+                            ({offer.cost})
                           </span>
                         )}
                       </>

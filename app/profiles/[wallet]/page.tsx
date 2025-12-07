@@ -322,6 +322,21 @@ export default function ProfileDetailPage() {
                       </p>
                     </div>
                   )}
+                  {offer.isPaid && (
+                    <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
+                      <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
+                        Payment:
+                      </p>
+                      <p className="text-sm text-purple-800 dark:text-purple-300">
+                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Requires payment</span>
+                        {offer.cost && (
+                          <span className="ml-2 text-purple-700 dark:text-purple-300">
+                            ({offer.cost})
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                     <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
                     {offer.txHash && (
@@ -597,6 +612,7 @@ export default function ProfileDetailPage() {
           profile={profile}
           userWallet={userWallet}
           userProfile={userProfile}
+          offer={offers.find(o => o.isPaid && o.status === 'active') || null}
           onSuccess={() => {
             // Optionally reload data or show success message
             console.log('Meeting requested successfully');

@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Offer } from '@/lib/arkiv/offers';
 
 interface RequestMeetingModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface RequestMeetingModalProps {
   profile: UserProfile | null;
   userWallet: string | null;
   userProfile: UserProfile | null;
+  offer?: Offer | null; // Optional offer - if provided, show payment info for paid offers
   onSuccess?: () => void;
 }
 
@@ -28,6 +30,7 @@ export function RequestMeetingModal({
   profile,
   userWallet,
   userProfile,
+  offer,
   onSuccess,
 }: RequestMeetingModalProps) {
   const [submitting, setSubmitting] = useState(false);
@@ -300,9 +303,34 @@ export function RequestMeetingModal({
               />
             </div>
 
+            {/* Payment Info for Paid Offers */}
+            {offer?.isPaid && offer.paymentAddress && (
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-2">
+                  💰 Payment Required
+                </p>
+                {offer.cost && (
+                  <p className="text-sm text-purple-800 dark:text-purple-300 mb-2">
+                    Cost: <strong>{offer.cost}</strong>
+                  </p>
+                )}
+                <p className="text-xs text-purple-700 dark:text-purple-400 mb-2">
+                  Send payment to:
+                </p>
+                <div className="p-2 bg-white dark:bg-gray-800 rounded border border-purple-300 dark:border-purple-700">
+                  <p className="text-xs font-mono text-purple-900 dark:text-purple-100 break-all">
+                    {offer.paymentAddress}
+                  </p>
+                </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                  After sending payment, enter the transaction hash below.
+                </p>
+              </div>
+            )}
+
             <div>
               <label htmlFor="paymentTxHash" className="block text-sm font-medium mb-1">
-                Payment Transaction Hash (optional)
+                Payment Transaction Hash {offer?.isPaid ? '(required)' : '(optional)'}
               </label>
               <input
                 id="paymentTxHash"
@@ -311,9 +339,12 @@ export function RequestMeetingModal({
                 onChange={(e) => setFormData({ ...formData, paymentTxHash: e.target.value })}
                 placeholder="0x..."
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                required={offer?.isPaid === true}
               />
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                For paid sessions: Enter the transaction hash of your payment
+                {offer?.isPaid 
+                  ? 'Enter the transaction hash of your payment to this offer'
+                  : 'For paid sessions: Enter the transaction hash of your payment'}
               </p>
             </div>
 
