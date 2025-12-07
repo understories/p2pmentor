@@ -8,6 +8,7 @@
 # testing
 /coverage
 scripts/test-beta-ac.ts
+scripts/test-fixes.ts
 
 # next.js
 /.next/
@@ -45,3 +46,4 @@ docs/MANUAL_TESTING_*.md
 docs/ISSUES_TO_FIX.md
 docs/CRITICAL_ISSUES_SUMMARY.md
 docs/TESTING_SUMMARY.md
+docs/TEST_RESULTS_FIXES.md
