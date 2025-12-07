@@ -71,15 +71,20 @@
 
 ### P3 — Notifications + Feedback
 
-- [ ] UI-only notifications:
-  - [ ] Meeting requests
-  - [ ] Profile matches
-  - [ ] Ask & offer matches
-  - [ ] New offers
-- [ ] Post-session:
-  - [ ] Technical DX feedback form
-  - [ ] Mentor/student rating + qualitative notes
-  - [ ] Session added to mentor & student profile history
+- [x] UI-only notifications:
+  - [x] Meeting requests
+  - [x] Profile matches
+  - [x] Ask & offer matches
+  - [x] New offers
+  - [x] Notification badge on dashboard
+  - [x] Notifications page with polling
+- [x] Post-session:
+  - [x] Technical DX feedback form
+  - [x] Mentor/student rating + qualitative notes
+  - [x] Feedback modal for completed sessions
+  - [x] Session added to mentor & student profile history
+    - [x] Session history display on profile pages
+    - [x] Session stats (completed, given, received)
 
 ### P4 — Polish
 

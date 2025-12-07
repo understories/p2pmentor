@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { BackButton } from '@/components/BackButton';
+import { FeedbackModal } from '@/components/FeedbackModal';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
@@ -55,6 +56,7 @@ export default function SessionsPage() {
   const [confirming, setConfirming] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
+  const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
 
   useEffect(() => {
     // Get current user's wallet
@@ -583,9 +585,17 @@ export default function SessionsPage() {
                     <p className="text-gray-700 dark:text-gray-300 mb-2">
                       <strong>With:</strong> {otherProfile?.displayName || shortenWallet(otherWallet)}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400">
+                    <p className="text-gray-600 dark:text-gray-400 mb-4">
                       {sessionTime.date} at {sessionTime.time}
                     </p>
+                    {userWallet && (
+                      <button
+                        onClick={() => setFeedbackSession(session)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                      >
+                        💬 Leave Feedback
+                      </button>
+                    )}
                   </div>
                 );
               })}
@@ -635,6 +645,21 @@ export default function SessionsPage() {
             <p className="text-lg mb-2">No sessions yet</p>
             <p className="text-sm">Request a meeting from a profile to get started!</p>
           </div>
+        )}
+
+        {/* Feedback Modal */}
+        {feedbackSession && userWallet && (
+          <FeedbackModal
+            isOpen={!!feedbackSession}
+            onClose={() => setFeedbackSession(null)}
+            session={feedbackSession}
+            userWallet={userWallet}
+            onSuccess={() => {
+              if (userWallet) {
+                loadSessions(userWallet);
+              }
+            }}
+          />
         )}
       </div>
     </div>
