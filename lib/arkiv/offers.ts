@@ -22,6 +22,8 @@ export type Offer = {
   status: string;
   message: string;
   availabilityWindow: string;
+  isPaid: boolean; // free/paid flag
+  paymentAddress?: string; // Payment receiving address (if paid)
   ttlSeconds: number;
   txHash?: string;
 }
@@ -38,6 +40,8 @@ export async function createOffer({
   skill,
   message,
   availabilityWindow,
+  isPaid,
+  paymentAddress,
   privateKey,
   expiresIn,
 }: {
@@ -45,6 +49,8 @@ export async function createOffer({
   skill: string;
   message: string;
   availabilityWindow: string;
+  isPaid: boolean;
+  paymentAddress?: string;
   privateKey: `0x${string}`;
   expiresIn?: number;
 }): Promise<{ key: string; txHash: string }> {
@@ -60,6 +66,8 @@ export async function createOffer({
     payload: enc.encode(JSON.stringify({
       message,
       availabilityWindow,
+      isPaid,
+      paymentAddress: paymentAddress || undefined,
     })),
     contentType: 'application/json',
     attributes: [
@@ -69,6 +77,8 @@ export async function createOffer({
       { key: 'spaceId', value: spaceId },
       { key: 'createdAt', value: createdAt },
       { key: 'status', value: status },
+      { key: 'isPaid', value: String(isPaid) },
+      ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
     ],
     expiresIn: ttl,
   });
@@ -180,6 +190,8 @@ export async function listOffers(params?: { skill?: string; spaceId?: string }):
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
+      isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+      paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
       ttlSeconds: OFFER_TTL_SECONDS,
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
