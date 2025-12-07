@@ -95,58 +95,14 @@ export default function ProfilePage() {
     const seniority = formData.get('seniority') as string || undefined;
 
     try {
-      // Check if MetaMask is available
-      const hasMetaMask = typeof window !== 'undefined' && window.ethereum;
-      
-      if (!hasMetaMask) {
-        // No MetaMask - use server-side API route (for example wallet)
-        const res = await fetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'createProfile',
-            wallet: walletAddress,
-            displayName,
-            username: username || undefined,
-            profileImage: profileImage || undefined,
-            bio: bio || undefined,
-            bioShort: bioShort || undefined,
-            bioLong: bioLong || undefined,
-            skills: skills || '',
-            skillsArray,
-            timezone,
-            languages,
-            contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
-            seniority: seniority || undefined,
-          }),
-        });
-
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to create profile');
-        }
-
-        const result = await res.json();
-        setSuccess(`Profile created! Entity key: ${result.key?.substring(0, 16)}...`);
-        // Reload profile
-        await loadProfile(walletAddress);
-      } else {
-        // Use MetaMask for regular wallets
-        let account = walletAddress as `0x${string}`;
-        // Ensure we're connected
-        try {
-          account = await connectWallet();
-          setWalletAddress(account);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('wallet_address', account);
-          }
-        } catch (e) {
-          // If connect fails, use the stored address
-          console.warn('Could not reconnect wallet, using stored address');
-        }
-
-        const { key, txHash } = await createUserProfileClient({
-          wallet: account,
+      // Always use API route for profile creation (like mentor-graph)
+      // The API route uses the server's private key to sign transactions
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createProfile',
+          wallet: walletAddress,
           displayName,
           username: username || undefined,
           profileImage: profileImage || undefined,
@@ -158,14 +114,19 @@ export default function ProfilePage() {
           timezone,
           languages,
           contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
-          seniority: seniority as 'beginner' | 'intermediate' | 'advanced' | 'expert' | undefined,
-          account,
-        });
+          seniority: seniority || undefined,
+        }),
+      });
 
-        setSuccess(`Profile created! Entity key: ${key.substring(0, 16)}...`);
-        // Reload profile
-        await loadProfile(account);
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to create profile');
       }
+
+      const result = await res.json();
+      setSuccess(`Profile created! Entity key: ${result.key?.substring(0, 16)}...`);
+      // Reload profile
+      await loadProfile(walletAddress);
     } catch (err: any) {
       console.error('Error creating profile:', err);
       setError(err.message || 'Failed to create profile');

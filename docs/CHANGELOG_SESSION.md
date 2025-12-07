@@ -267,12 +267,12 @@
 ## 📝 Session Updates (Live)
 
 ### Skills Management Implementation
-- **Status**: In Progress
+- **Status**: ✅ Completed
 - **Files Created/Modified**:
   - `app/me/skills/page.tsx` - Skills management UI with add/remove functionality
   - `app/api/profile/route.ts` - Updated to support profile updates (preserves existing fields)
 - **Features**:
-  - Add skills with real-time validation
+  - Add skills with real-time validation (no duplicates)
   - Remove skills from profile
   - View all skills in a grid layout
   - Works with example wallet (server-side updates)
@@ -280,7 +280,19 @@
 - **Technical Notes**:
   - Skills stored in profile's `skillsArray` field
   - Each update creates a new profile entity (Arkiv immutability)
-  - Example wallet uses API route, MetaMask users need profile page (for now)
+  - Uses API route for all profile updates (matches mentor-graph pattern)
+
+### Profile Creation Fix
+- **Issue**: Example wallet profile creation not working
+- **Root Cause**: API route was too restrictive, checking for example wallet instead of always allowing server-side creation
+- **Fix**: 
+  - Removed restrictive `isExampleWallet` check
+  - API route now always allows server-side creation (matches mentor-graph pattern)
+  - Profile page now always uses API route (like mentor-graph does)
+  - API route uses `wallet || CURRENT_WALLET` pattern for backward compatibility
+- **Files Modified**:
+  - `app/api/profile/route.ts` - Removed wallet type restrictions
+  - `app/me/profile/page.tsx` - Always use API route (removed MetaMask-only path)
 
 ---
 
