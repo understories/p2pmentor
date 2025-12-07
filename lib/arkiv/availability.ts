@@ -45,6 +45,8 @@ export async function createAvailability({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
+  // Use 30 days expiration (like mentor-graph example)
+  const expiresIn = 2592000; // 30 days in seconds
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
@@ -61,6 +63,7 @@ export async function createAvailability({
         { key: 'createdAt', value: createdAt },
         { key: 'timezone', value: timezone },
       ],
+      expiresIn: expiresIn,
     });
   });
 
@@ -79,6 +82,7 @@ export async function createAvailability({
       { key: 'wallet', value: wallet },
       { key: 'spaceId', value: spaceId },
     ],
+    expiresIn: expiresIn,
   });
 
   return { key: entityKey, txHash };
