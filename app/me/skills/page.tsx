@@ -94,14 +94,22 @@ export default function SkillsPage() {
           }),
         });
 
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to update profile');
+        const data = await res.json();
+        if (!data.ok) {
+          throw new Error(data.error || 'Failed to update profile');
         }
 
-        setSuccess('Skill added!');
-        setNewSkill('');
-        await loadProfile(walletAddress);
+        // Check if transaction is pending
+        if (data.pending) {
+          setSuccess('Skill update submitted! Transaction is being processed. Please refresh in a moment.');
+          setNewSkill('');
+          // Don't reload immediately - transaction is still confirming
+          setTimeout(() => loadProfile(walletAddress), 2000);
+        } else {
+          setSuccess('Skill added!');
+          setNewSkill('');
+          await loadProfile(walletAddress);
+        }
       } else {
         // For MetaMask, redirect to profile page with skills pre-filled
         // Or implement client-side update here
@@ -152,13 +160,20 @@ export default function SkillsPage() {
           }),
         });
 
-        if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || 'Failed to update profile');
+        const data = await res.json();
+        if (!data.ok) {
+          throw new Error(data.error || 'Failed to update profile');
         }
 
-        setSuccess('Skill removed!');
-        await loadProfile(walletAddress);
+        // Check if transaction is pending
+        if (data.pending) {
+          setSuccess('Skill removal submitted! Transaction is being processed. Please refresh in a moment.');
+          // Don't reload immediately - transaction is still confirming
+          setTimeout(() => loadProfile(walletAddress), 2000);
+        } else {
+          setSuccess('Skill removed!');
+          await loadProfile(walletAddress);
+        }
       } else {
         setError('Please update skills from the Profile page when using MetaMask');
       }

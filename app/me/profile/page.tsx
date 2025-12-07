@@ -120,15 +120,20 @@ export default function ProfilePage() {
         }),
       });
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.error || 'Failed to create profile');
+      const result = await res.json();
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to create profile');
       }
 
-      const result = await res.json();
-      setSuccess(`Profile created! Entity key: ${result.key?.substring(0, 16)}...`);
-      // Reload profile
-      await loadProfile(walletAddress);
+      // Check if transaction is pending
+      if (result.pending) {
+        setSuccess('Profile creation submitted! Transaction is being processed. Please refresh in a moment.');
+        setTimeout(() => loadProfile(walletAddress), 2000);
+      } else {
+        setSuccess(`Profile created! Entity key: ${result.key?.substring(0, 16)}...`);
+        // Reload profile
+        await loadProfile(walletAddress);
+      }
     } catch (err: any) {
       console.error('Error creating profile:', err);
       setError(err.message || 'Failed to create profile');

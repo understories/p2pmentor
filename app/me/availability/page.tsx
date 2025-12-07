@@ -10,6 +10,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { PageHeader } from '@/components/PageHeader';
+import { BetaBanner } from '@/components/BetaBanner';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Availability } from '@/lib/arkiv/availability';
@@ -88,9 +91,16 @@ export default function AvailabilityPage() {
 
       const data = await res.json();
       if (data.ok) {
-        setSuccess('Availability created successfully!');
-        setTimeBlocks('');
-        await loadData(walletAddress);
+        if (data.pending) {
+          setSuccess('Availability submitted! Transaction is being processed. Please refresh in a moment.');
+          setTimeBlocks('');
+          // Reload after a delay
+          setTimeout(() => loadData(walletAddress), 2000);
+        } else {
+          setSuccess('Availability created successfully!');
+          setTimeBlocks('');
+          await loadData(walletAddress);
+        }
       } else {
         setError(data.error || 'Failed to create availability');
       }
@@ -109,9 +119,7 @@ export default function AvailabilityPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">Loading...</p>
-          </div>
+          <LoadingSpinner text="Loading availability..." className="py-12" />
         </div>
       </div>
     );
@@ -124,19 +132,12 @@ export default function AvailabilityPage() {
           <BackButton href="/me" />
         </div>
 
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2">Availability</h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Set your general availability for mentorship sessions.
-          </p>
-        </div>
+        <PageHeader
+          title="Availability"
+          description="Set your general availability for mentorship sessions."
+        />
 
-        {/* Beta Warning */}
-        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
-          </p>
-        </div>
+        <BetaBanner />
 
         {/* Existing Availability Entities (Grouped Chronologically) */}
         {availabilities.length > 0 && (
@@ -281,7 +282,6 @@ export default function AvailabilityPage() {
             <strong>Note:</strong> Each availability block is stored as a separate Arkiv entity. You can create multiple blocks for different time periods. When creating offers, you can reference these availability blocks.
           </p>
         </div>
-          </form>
         </div>
       </div>
     </div>

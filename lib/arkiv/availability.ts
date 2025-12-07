@@ -10,6 +10,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type Availability = {
   key: string;
@@ -45,24 +46,29 @@ export async function createAvailability({
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      timeBlocks,
-      timezone,
-      createdAt,
-    })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'availability' },
-      { key: 'wallet', value: wallet },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      { key: 'timezone', value: timezone },
-    ],
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        timeBlocks,
+        timezone,
+        createdAt,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'availability' },
+        { key: 'wallet', value: wallet },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+        { key: 'timezone', value: timezone },
+      ],
+    });
   });
 
+  const { entityKey, txHash } = result;
+
   // Create separate txhash entity (like mentor-graph pattern)
-  await walletClient.createEntity({
+  // Don't wait for this one - it's optional metadata
+  walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
       txHash,
     })),

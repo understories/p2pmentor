@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { createAsk, listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
@@ -41,15 +42,29 @@ export async function POST(request: Request) {
         }
       }
 
-      const { key, txHash } = await createAsk({
-        wallet: targetWallet,
-        skill,
-        message,
-        privateKey: getPrivateKey(),
-        expiresIn: parsedExpiresIn,
-      });
+      try {
+        const { key, txHash } = await createAsk({
+          wallet: targetWallet,
+          skill,
+          message,
+          privateKey: getPrivateKey(),
+          expiresIn: parsedExpiresIn,
+        });
 
-      return NextResponse.json({ ok: true, key, txHash });
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle transaction receipt timeout gracefully
+        if (isTransactionTimeoutError(error)) {
+          return NextResponse.json({ 
+            ok: true, 
+            key: null,
+            txHash: null,
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error;
+      }
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action' },
