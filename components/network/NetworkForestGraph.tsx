@@ -14,10 +14,17 @@ import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function NetworkForestGraph() {
+  // All hooks must be called unconditionally at the top level
   const [data, setData] = useState<NetworkGraphData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // useMemo must be called unconditionally
+  const graphData = useMemo(
+    () => data ? { nodes: data.nodes, links: data.links } : { nodes: [], links: [] },
+    [data]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -57,42 +64,36 @@ export default function NetworkForestGraph() {
     };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="w-full h-full flex items-center justify-center">
-        <div className="text-center">
-          <LoadingSpinner size="large" className="mx-auto mb-4" />
-          <p className="text-sm text-gray-400 dark:text-gray-500">Loading forest view…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="w-full h-full flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <p className="text-sm text-red-400 dark:text-red-500 mb-4">
-            {error ?? 'Forest view unavailable.'}
-          </p>
-          <a
-            href="/network"
-            className="text-sm text-emerald-400 hover:text-emerald-300 underline"
-          >
-            Back to network list
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  const graphData = useMemo(
-    () => ({ nodes: data.nodes, links: data.links }),
-    [data]
-  );
-
+  // Render UI - all hooks have been called unconditionally above
+  // Always render ForceGraph2D to maintain consistent hook order
   return (
-    <div className="w-full h-[calc(100vh-4rem)] bg-black dark:bg-gray-900">
+    <div className="w-full h-[calc(100vh-4rem)] bg-black dark:bg-gray-900 relative">
+      {loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/80 dark:bg-gray-900/80">
+          <div className="text-center">
+            <LoadingSpinner size="large" className="mx-auto mb-4" />
+            <p className="text-sm text-gray-400 dark:text-gray-500">Loading forest view…</p>
+          </div>
+        </div>
+      )}
+
+      {error && !loading && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/80 dark:bg-gray-900/80">
+          <div className="text-center max-w-md px-4">
+            <p className="text-sm text-red-400 dark:text-red-500 mb-4">
+              {error}
+            </p>
+            <a
+              href="/network"
+              className="text-sm text-emerald-400 hover:text-emerald-300 underline"
+            >
+              Back to network list
+            </a>
+          </div>
+        </div>
+      )}
+
+      {/* Always render ForceGraph2D to maintain hook consistency */}
       <ForceGraph2D
         graphData={graphData}
         nodeRelSize={6}
