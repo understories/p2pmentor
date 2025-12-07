@@ -7,8 +7,20 @@
 'use client';
 
 import { useTheme } from '@/lib/theme';
+import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render until mounted to avoid hydration issues
+  if (!mounted) {
+    return null;
+  }
+
   const { theme, toggleTheme } = useTheme();
 
   return (

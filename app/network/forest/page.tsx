@@ -41,9 +41,9 @@ export default function NetworkForestPage() {
 
   if (!isDesktop) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
         <ThemeToggle />
-        <main className="min-h-screen flex items-center justify-center px-4">
+        <div className="min-h-screen flex items-center justify-center px-4">
           <div className="max-w-md w-full space-y-4 text-center">
             <h1 className="text-xl font-semibold">Skill Forest (beta)</h1>
             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -56,15 +56,15 @@ export default function NetworkForestPage() {
               Back to network list
             </Link>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <ThemeToggle />
-      <main className="min-h-screen flex flex-col">
+      <div className="min-h-screen flex flex-col">
         <header className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
           <div>
             <h1 className="text-xl font-semibold">Skill Forest (experimental)</h1>
@@ -82,8 +82,8 @@ export default function NetworkForestPage() {
         <section className="flex-1 relative">
           <NetworkForestGraph />
         </section>
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
 
