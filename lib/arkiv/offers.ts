@@ -295,6 +295,8 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
+      isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+      paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
       ttlSeconds: OFFER_TTL_SECONDS,
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
