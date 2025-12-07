@@ -162,6 +162,29 @@ const result = await query
   - Calendar API integration deferred to post-beta based on user feedback
   - Research document created: `docs/availability_research.md`
 
+### Network Graph
+- **Feature name**: Network view with matching and filtering
+- **Arkiv entities used**: 
+  - `ask` (type attribute) - for learning requests
+  - `offer` (type attribute) - for teaching offers
+  - `user_profile` (type attribute) - for displaying user information
+- **Queries used**: 
+  - `/api/asks` - GET to list all asks
+  - `/api/offers` - GET to list all offers
+  - `getProfileByWallet()` - to fetch profiles for matched users
+- **SDK pain points**: None - uses existing API routes
+- **Errors encountered**: None
+- **Developer friction level**: Low
+- **Proposed improvements**: 
+  - Could add server-side matching endpoint for better performance with large datasets
+  - Could add more sophisticated matching algorithm (fuzzy matching, skill synonyms)
+- **UX team notes**: 
+  - Simplified list view for beta (vs complex visual graph)
+  - Matching shows side-by-side ask/offer pairs
+  - Filtering by skill and view type
+  - Shows TTL countdown for urgency
+  - Profile names displayed when available
+
 ### Known Issues / TODOs
 
 (Will be populated as issues are encountered)
