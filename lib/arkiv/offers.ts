@@ -24,6 +24,7 @@ export type Offer = {
   message: string;
   availabilityWindow: string;
   isPaid: boolean; // free/paid flag
+  cost?: string; // Cost amount (required if isPaid is true)
   paymentAddress?: string; // Payment receiving address (if paid)
   ttlSeconds: number;
   txHash?: string;
@@ -42,6 +43,7 @@ export async function createOffer({
   message,
   availabilityWindow,
   isPaid,
+  cost,
   paymentAddress,
   privateKey,
   expiresIn,
@@ -51,6 +53,7 @@ export async function createOffer({
   message: string;
   availabilityWindow: string;
   isPaid: boolean;
+  cost?: string; // Required if isPaid is true
   paymentAddress?: string;
   privateKey: `0x${string}`;
   expiresIn?: number;
@@ -69,6 +72,7 @@ export async function createOffer({
         message,
         availabilityWindow,
         isPaid,
+        cost: cost || undefined,
         paymentAddress: paymentAddress || undefined,
       })),
       contentType: 'application/json',
@@ -80,6 +84,7 @@ export async function createOffer({
         { key: 'createdAt', value: createdAt },
         { key: 'status', value: status },
         { key: 'isPaid', value: String(isPaid) },
+        ...(cost ? [{ key: 'cost', value: cost }] : []),
         ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
       ],
       expiresIn: ttl,
@@ -197,6 +202,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string }):
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+      cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
       ttlSeconds: OFFER_TTL_SECONDS,
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
@@ -302,6 +308,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+      cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
       ttlSeconds: OFFER_TTL_SECONDS,
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,

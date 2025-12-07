@@ -14,7 +14,7 @@ import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, action, skill, message, availabilityWindow, isPaid, paymentAddress, expiresIn } = body;
+    const { wallet, action, skill, message, availabilityWindow, isPaid, cost, paymentAddress, expiresIn } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -49,6 +49,7 @@ export async function POST(request: Request) {
           message,
           availabilityWindow,
           isPaid: isPaid === true || isPaid === 'true',
+          cost: cost || undefined,
           paymentAddress: paymentAddress || undefined,
           privateKey: getPrivateKey(),
           expiresIn: parsedExpiresIn,
