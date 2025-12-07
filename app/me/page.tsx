@@ -13,6 +13,7 @@ import { BackButton } from '@/components/BackButton';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [notificationCount, setNotificationCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -24,8 +25,41 @@ export default function MePage() {
         return;
       }
       setWalletAddress(address);
+      
+      // Load notification count
+      loadNotificationCount(address);
+      
+      // Poll for notifications every 30 seconds
+      const interval = setInterval(() => {
+        loadNotificationCount(address);
+      }, 30000);
+      
+      return () => clearInterval(interval);
     }
   }, [router]);
+
+  const loadNotificationCount = async (wallet: string) => {
+    try {
+      const res = await fetch(`/api/notifications?wallet=${wallet}`);
+      const data = await res.json();
+      if (!data.ok) return;
+      
+      // Simple count: pending sessions where user hasn't confirmed
+      const { sessions } = data.data;
+      const pendingCount = sessions.filter((s: any) => {
+        if (s.status !== 'pending') return false;
+        const isMentor = s.mentorWallet.toLowerCase() === wallet.toLowerCase();
+        const isLearner = s.learnerWallet.toLowerCase() === wallet.toLowerCase();
+        if (!isMentor && !isLearner) return false;
+        const hasConfirmed = isMentor ? s.mentorConfirmed : s.learnerConfirmed;
+        return !hasConfirmed;
+      }).length;
+      
+      setNotificationCount(pendingCount);
+    } catch (err) {
+      console.error('Error loading notification count:', err);
+    }
+  };
 
   if (!walletAddress) {
     return (
@@ -71,6 +105,17 @@ export default function MePage() {
             className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
           >
             Sessions
+          </Link>
+          <Link
+            href="/notifications"
+            className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+          >
+            Notifications
+            {notificationCount > 0 && (
+              <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
+                {notificationCount}
+              </span>
+            )}
           </Link>
         </div>
 

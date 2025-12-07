@@ -17,6 +17,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
+import type { Session } from '@/lib/arkiv/sessions';
 
 export default function ProfileDetailPage() {
   const params = useParams();
@@ -26,6 +27,7 @@ export default function ProfileDetailPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asks, setAsks] = useState<Ask[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -48,14 +50,27 @@ export default function ProfileDetailPage() {
 
   const loadProfileData = async (walletAddress: string) => {
     try {
+      // Load sessions for this wallet
+      const sessionsRes = await fetch(`/api/sessions?wallet=${walletAddress}`);
+      if (sessionsRes.ok) {
+        const sessionsData = await sessionsRes.json();
+        if (sessionsData.ok) {
+          // Filter to completed and scheduled sessions for history
+          const historySessions = (sessionsData.sessions || []).filter(
+            (s: Session) => s.status === 'completed' || s.status === 'scheduled'
+          );
+          setSessions(historySessions);
+        }
+      }
       setLoading(true);
       setError('');
 
-      // Load profile, asks, and offers in parallel
-      const [profileData, asksRes, offersRes] = await Promise.all([
+      // Load profile, asks, offers, and sessions in parallel
+      const [profileData, asksRes, offersRes, sessionsRes] = await Promise.all([
         getProfileByWallet(walletAddress).catch(() => null),
         fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
         fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
+        fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
       ]);
 
       setProfile(profileData);
@@ -64,6 +79,9 @@ export default function ProfileDetailPage() {
       }
       if (offersRes.ok) {
         setOffers(offersRes.offers || []);
+      }
+      if (sessionsRes.ok) {
+        setSessions(sessionsRes.sessions || []);
       }
     } catch (err: any) {
       console.error('Error loading profile data:', err);
@@ -378,6 +396,117 @@ export default function ProfileDetailPage() {
             </p>
           </div>
         )}
+
+        {/* Session History */}
+        {(() => {
+          const completedSessions = sessions.filter(s => s.status === 'completed');
+          const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
+          const allHistorySessions = [...completedSessions, ...scheduledSessions].sort(
+            (a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
+          );
+          
+          // Calculate stats
+          const sessionsCompleted = completedSessions.length;
+          const sessionsGiven = sessions.filter(s => 
+            s.mentorWallet.toLowerCase() === wallet.toLowerCase()
+          ).length;
+          const sessionsReceived = sessions.filter(s => 
+            s.learnerWallet.toLowerCase() === wallet.toLowerCase()
+          ).length;
+
+          if (allHistorySessions.length === 0 && sessionsCompleted === 0 && sessionsGiven === 0 && sessionsReceived === 0) {
+            return null; // Don't show section if no sessions
+          }
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+              
+              {/* Stats */}
+              {(sessionsCompleted > 0 || sessionsGiven > 0 || sessionsReceived > 0) && (
+                <div className="mb-6 grid grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Session List */}
+              {allHistorySessions.length > 0 && (
+                <div className="space-y-4">
+                  {allHistorySessions.map((session) => {
+                    const isMentor = session.mentorWallet.toLowerCase() === wallet.toLowerCase();
+                    const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+                    const sessionDate = new Date(session.sessionDate);
+                    const isPast = sessionDate < new Date();
+
+                    return (
+                      <div
+                        key={session.key}
+                        className={`p-6 border rounded-lg ${
+                          session.status === 'completed'
+                            ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                            : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        }`}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h3 className="text-lg font-semibold">{session.skill}</h3>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                              {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {shortenWallet(otherWallet)}
+                            </p>
+                          </div>
+                          <span className={`px-2 py-1 text-xs font-medium rounded ${
+                            session.status === 'completed'
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                              : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                          }`}>
+                            {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                          <strong>Date:</strong> {sessionDate.toLocaleDateString('en-US', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                          })}
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                          <strong>Time:</strong> {sessionDate.toLocaleTimeString('en-US', {
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true,
+                          })}
+                        </p>
+                        {session.duration && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                            <strong>Duration:</strong> {session.duration} minutes
+                          </p>
+                        )}
+                        {session.notes && (
+                          <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
+                            <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Request Meeting Modal */}
         <RequestMeetingModal
