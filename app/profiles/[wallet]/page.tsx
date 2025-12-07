@@ -52,18 +52,6 @@ export default function ProfileDetailPage() {
 
   const loadProfileData = async (walletAddress: string) => {
     try {
-      // Load sessions for this wallet
-      const sessionsRes = await fetch(`/api/sessions?wallet=${walletAddress}`);
-      if (sessionsRes.ok) {
-        const sessionsData = await sessionsRes.json();
-        if (sessionsData.ok) {
-          // Filter to completed and scheduled sessions for history
-          const historySessions = (sessionsData.sessions || []).filter(
-            (s: Session) => s.status === 'completed' || s.status === 'scheduled'
-          );
-          setSessions(historySessions);
-        }
-      }
       setLoading(true);
       setError('');
 
