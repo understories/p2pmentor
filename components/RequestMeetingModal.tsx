@@ -44,20 +44,22 @@ export function RequestMeetingModal({
     paymentTxHash: '', // Optional payment transaction hash
   });
 
-  // Pre-fill skill from profile's first skill
+  // Pre-fill skill from offer or profile's first skill
   useEffect(() => {
     if (profile && isOpen) {
-      const firstSkill = profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
+      // If there's a specific offer, use its skill; otherwise use profile's first skill
+      const skill = offer?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
       setFormData(prev => ({
         ...prev,
-        skill: firstSkill,
+        skill: skill,
         date: '',
         time: '',
         duration: '60',
         notes: '',
+        paymentTxHash: '', // Reset payment hash when modal opens
       }));
     }
-  }, [profile, isOpen]);
+  }, [profile, offer, isOpen]);
 
   if (!isOpen || !profile) return null;
 
@@ -180,7 +182,7 @@ export function RequestMeetingModal({
   const handleClose = () => {
     if (!submitting) {
       setError('');
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', paymentTxHash: '' });
       onClose();
     }
   };
