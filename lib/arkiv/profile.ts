@@ -35,7 +35,8 @@ export type UserProfile = {
   domainsOfInterest?: string[];
   mentorRoles?: string[];
   learnerRoles?: string[];
-  // Availability (references to asks/offers - stored separately)
+  // Availability
+  availabilityWindow?: string; // Simple text-based availability (e.g., "Mon-Fri 9am-5pm EST")
   // Contribution / Reputation Metadata
   sessionsCompleted?: number;
   sessionsGiven?: number;
