@@ -23,7 +23,13 @@ export default function OffersPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newOffer, setNewOffer] = useState({ skill: '', message: '', availabilityWindow: '' });
+  const [newOffer, setNewOffer] = useState({ 
+    skill: '', 
+    message: '', 
+    availabilityWindow: '',
+    isPaid: false,
+    paymentAddress: '',
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -60,6 +66,12 @@ export default function OffersPage() {
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newOffer.skill.trim() || !newOffer.message.trim() || !newOffer.availabilityWindow.trim() || !walletAddress) return;
+    
+    // Validate payment address if paid
+    if (newOffer.isPaid && !newOffer.paymentAddress.trim()) {
+      setError('Payment address is required for paid offers');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -75,13 +87,15 @@ export default function OffersPage() {
           skill: newOffer.skill.trim(),
           message: newOffer.message.trim(),
           availabilityWindow: newOffer.availabilityWindow.trim(),
+          isPaid: newOffer.isPaid,
+          paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
         }),
       });
 
       const data = await res.json();
       if (data.ok) {
         setSuccess('Offer created successfully!');
-        setNewOffer({ skill: '', message: '', availabilityWindow: '' });
+        setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
         setShowCreateForm(false);
         // Reload offers
         const offersRes = await fetch('/api/offers').then(r => r.json());
@@ -208,6 +222,55 @@ export default function OffersPage() {
                   required
                 />
               </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Payment Type *
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={!newOffer.isPaid}
+                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, paymentAddress: '' })}
+                      className="mr-2"
+                    />
+                    <span>Free</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={newOffer.isPaid}
+                      onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
+                      className="mr-2"
+                    />
+                    <span>Paid</span>
+                  </label>
+                </div>
+              </div>
+              
+              {newOffer.isPaid && (
+                <div>
+                  <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                    Payment Address *
+                  </label>
+                  <input
+                    id="paymentAddress"
+                    type="text"
+                    value={newOffer.paymentAddress}
+                    onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                    placeholder="0x..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                    required={newOffer.isPaid}
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Wallet address where you'll receive payment for this offer
+                  </p>
+                </div>
+              )}
+              
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -220,7 +283,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '' });
+                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, paymentAddress: '' });
                     setError('');
                     setSuccess('');
                   }}
@@ -281,6 +344,25 @@ export default function OffersPage() {
                     </p>
                   </div>
                 )}
+                <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
+                  <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
+                    Payment:
+                  </p>
+                  <p className="text-sm text-purple-800 dark:text-purple-300">
+                    {offer.isPaid ? (
+                      <>
+                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Paid</span>
+                        {offer.paymentAddress && (
+                          <span className="ml-2 text-xs font-mono text-gray-500 dark:text-gray-400">
+                            ({offer.paymentAddress.slice(0, 10)}...{offer.paymentAddress.slice(-8)})
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-blue-600 dark:text-blue-400 font-medium">🆓 Free</span>
+                    )}
+                  </p>
+                </div>
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                   <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
                   {offer.txHash && (
