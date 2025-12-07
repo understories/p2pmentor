@@ -11,6 +11,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function SkillsPage() {
@@ -221,6 +222,7 @@ export default function SkillsPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
