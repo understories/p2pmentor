@@ -148,6 +148,20 @@ const result = await query
   .fetch();
 ```
 
+### Availability Management
+- **Feature name**: Simple text-based availability management
+- **Arkiv entities used**: `user_profile` (availabilityWindow stored in payload)
+- **Queries used**: Same as profile management (no separate queries)
+- **SDK pain points**: None - straightforward string storage
+- **Errors encountered**: None
+- **Developer friction level**: Low
+- **Proposed improvements**: None at this time
+- **UX team notes**: 
+  - Simple text input for beta launch
+  - Users can describe availability in natural language (e.g., "Mon-Fri 9am-5pm EST")
+  - Calendar API integration deferred to post-beta based on user feedback
+  - Research document created: `docs/availability_research.md`
+
 ### Known Issues / TODOs
 
 (Will be populated as issues are encountered)
