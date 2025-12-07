@@ -88,24 +88,52 @@ export async function createSession({
   const now = Date.now();
   const expiresInSeconds = Math.max(1, Math.floor((expirationTime - now) / 1000)); // Ensure at least 1 second
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session' },
-      { key: 'mentorWallet', value: normalizedMentorWallet },
-      { key: 'learnerWallet', value: normalizedLearnerWallet },
-      { key: 'skill', value: skill },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      { key: 'sessionDate', value: sessionDate },
-      { key: 'status', value: status },
-    ],
-    expiresIn: expiresInSeconds,
-  });
+  let entityKey: string;
+  let txHash: string;
+  
+  try {
+    const result = await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'session' },
+        { key: 'mentorWallet', value: normalizedMentorWallet },
+        { key: 'learnerWallet', value: normalizedLearnerWallet },
+        { key: 'skill', value: skill },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+        { key: 'sessionDate', value: sessionDate },
+        { key: 'status', value: status },
+      ],
+      expiresIn: expiresInSeconds,
+    });
+    entityKey = result.entityKey;
+    txHash = result.txHash;
+  } catch (error: any) {
+    // Handle transaction receipt timeout - common on testnets
+    // If error mentions receipt not found, the transaction was likely submitted
+    // Check if we can extract txHash from error message
+    const receiptError = error.message?.includes('Transaction receipt') && 
+                         error.message?.includes('could not be found');
+    
+    if (receiptError) {
+      // Try to extract txHash from error message (format: "hash 0x...")
+      const txHashMatch = error.message?.match(/0x[a-fA-F0-9]{40,64}/);
+      if (txHashMatch) {
+        // We have a txHash, transaction was submitted - treat as success
+        // Note: We can't get entityKey from a failed receipt wait, so we'll need to handle this differently
+        // For now, throw a more user-friendly error that indicates partial success
+        throw new Error(`Transaction submitted (${txHashMatch[0].slice(0, 10)}...) but confirmation pending. The session may appear shortly.`);
+      }
+      // No txHash found, throw generic error
+      throw new Error('Transaction submitted but confirmation pending. Please wait a moment and check your sessions.');
+    }
+    throw error;
+  }
 
   // Store txHash in a separate entity for verifiability (same expiration)
-  await walletClient.createEntity({
+  try {
+    await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
       txHash,
     })),
@@ -116,9 +144,14 @@ export async function createSession({
       { key: 'mentorWallet', value: normalizedMentorWallet },
       { key: 'learnerWallet', value: normalizedLearnerWallet },
       { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn: expiresInSeconds,
-  });
+      ],
+      expiresIn: expiresInSeconds,
+    });
+  } catch (error: any) {
+    // If txHash entity creation fails but we have the main entity, log and continue
+    // The main session entity is more important
+    console.warn('Failed to create session_txhash entity, but session was created:', error);
+  }
 
   return { key: entityKey, txHash };
 }

@@ -34,17 +34,34 @@ export async function POST(request: Request) {
         );
       }
 
-      const { key, txHash } = await createSession({
-        mentorWallet,
-        learnerWallet,
-        skill,
-        sessionDate,
-        duration: duration ? parseInt(duration, 10) : undefined,
-        notes: notes || undefined,
-        privateKey: getPrivateKey(),
-      });
+      try {
+        const { key, txHash } = await createSession({
+          mentorWallet,
+          learnerWallet,
+          skill,
+          sessionDate,
+          duration: duration ? parseInt(duration, 10) : undefined,
+          notes: notes || undefined,
+          privateKey: getPrivateKey(),
+        });
 
-      return NextResponse.json({ ok: true, key, txHash });
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle transaction receipt timeout gracefully
+        // If error mentions pending confirmation, return partial success
+        if (error.message?.includes('confirmation pending') || error.message?.includes('Transaction submitted')) {
+          // Transaction was submitted but receipt not available - this is OK for testnets
+          // Return success with a note that confirmation is pending
+          return NextResponse.json({ 
+            ok: true, 
+            key: null, // Entity key not available yet
+            txHash: null, // TxHash not available yet
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error; // Re-throw other errors
+      }
     } else if (action === 'confirmSession') {
       if (!sessionKey || !confirmedByWallet) {
         return NextResponse.json(
