@@ -299,6 +299,126 @@ export async function createUserProfile({
 }
 
 /**
+ * List all user profiles (with optional filters)
+ * 
+ * Based on mentor-graph implementation.
+ * 
+ * Reference: refs/mentor-graph/src/arkiv/profiles.ts (listUserProfiles)
+ * 
+ * @param params - Optional filters (skill, seniority, spaceId)
+ * @returns Array of user profiles
+ */
+export async function listUserProfiles(params?: { 
+  skill?: string; 
+  seniority?: string;
+  spaceId?: string;
+}): Promise<UserProfile[]> {
+  const publicClient = getPublicClient();
+  const query = publicClient.buildQuery();
+  let queryBuilder = query.where(eq('type', 'user_profile'));
+  
+  if (params?.skill) {
+    queryBuilder = queryBuilder.where(eq('skills', params.skill));
+  }
+  
+  if (params?.seniority) {
+    queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
+  }
+  
+  if (params?.spaceId) {
+    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+  }
+  
+  const result = await queryBuilder
+    .withAttributes(true)
+    .withPayload(true)
+    .limit(100)
+    .fetch();
+
+  return result.entities.map((entity: any) => {
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding payload:', e);
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    // Parse skills array from attributes or payload
+    const skillsArray: string[] = [];
+    if (Array.isArray(attrs)) {
+      attrs.forEach((attr: any) => {
+        if (attr.key?.startsWith('skill_')) {
+          skillsArray.push(attr.value);
+        }
+      });
+    }
+    const finalSkillsArray = payload.skillsArray || skillsArray.length > 0 ? skillsArray : (payload.skills ? payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+
+    // Handle trustEdges: convert legacy string[] to object[] if needed
+    let trustEdges = payload.trustEdges || [];
+    if (Array.isArray(trustEdges) && trustEdges.length > 0 && typeof trustEdges[0] === 'string') {
+      // Legacy format: convert string[] to object[]
+      trustEdges = trustEdges.map((wallet: string) => ({
+        toWallet: wallet,
+        strength: 1,
+        createdAt: new Date().toISOString(),
+      }));
+    }
+
+    return {
+      key: entity.key,
+      wallet: getAttr('wallet') || payload.wallet || '',
+      displayName: getAttr('displayName') || payload.displayName || '',
+      username: payload.username || getAttr('username') || undefined,
+      profileImage: payload.profileImage || undefined,
+      bio: payload.bio || getAttr('bio') || undefined,
+      bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
+      bioLong: payload.bioLong || undefined,
+      skills: getAttr('skills') || payload.skills || '',
+      skillsArray: finalSkillsArray,
+      timezone: getAttr('timezone') || payload.timezone || '',
+      languages: payload.languages || [],
+      contactLinks: payload.contactLinks || {},
+      seniority: payload.seniority || getAttr('seniority') || undefined,
+      domainsOfInterest: payload.domainsOfInterest || [],
+      mentorRoles: payload.mentorRoles || [],
+      learnerRoles: payload.learnerRoles || [],
+      availabilityWindow: payload.availabilityWindow || undefined,
+      sessionsCompleted: payload.sessionsCompleted || 0,
+      sessionsGiven: payload.sessionsGiven || 0,
+      sessionsReceived: payload.sessionsReceived || 0,
+      avgRating: payload.avgRating || 0,
+      npsScore: payload.npsScore || 0,
+      topSkillsUsage: payload.topSkillsUsage || [],
+      peerTestimonials: payload.peerTestimonials || [],
+      trustEdges: trustEdges as Array<{ toWallet: string; strength: number; createdAt: string }>,
+      lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
+      communityAffiliations: payload.communityAffiliations || [],
+      reputationScore: payload.reputationScore || 0,
+      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      createdAt: getAttr('createdAt') || payload.createdAt,
+      txHash: payload.txHash,
+    };
+  });
+}
+
+/**
  * Get profile by wallet address
  * 
  * @param wallet - Wallet address
