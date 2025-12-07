@@ -18,6 +18,7 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Session } from '@/lib/arkiv/sessions';
+import type { Feedback } from '@/lib/arkiv/feedback';
 
 export default function ProfileDetailPage() {
   const params = useParams();
@@ -28,6 +29,7 @@ export default function ProfileDetailPage() {
   const [asks, setAsks] = useState<Ask[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -65,12 +67,13 @@ export default function ProfileDetailPage() {
       setLoading(true);
       setError('');
 
-      // Load profile, asks, offers, and sessions in parallel
-      const [profileData, asksRes, offersRes, sessionsRes] = await Promise.all([
+      // Load profile, asks, offers, sessions, and feedback in parallel
+      const [profileData, asksRes, offersRes, sessionsRes, feedbackRes] = await Promise.all([
         getProfileByWallet(walletAddress).catch(() => null),
         fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
         fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
         fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
+        fetch(`/api/feedback?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, feedbacks: [] })),
       ]);
 
       setProfile(profileData);
@@ -82,6 +85,9 @@ export default function ProfileDetailPage() {
       }
       if (sessionsRes.ok) {
         setSessions(sessionsRes.sessions || []);
+      }
+      if (feedbackRes.ok) {
+        setFeedbacks(feedbackRes.feedbacks || []);
       }
     } catch (err: any) {
       console.error('Error loading profile data:', err);
@@ -504,6 +510,92 @@ export default function ProfileDetailPage() {
                   })}
                 </div>
               )}
+            </div>
+          );
+        })()}
+
+        {/* Feedback Section */}
+        {(() => {
+          // Filter feedback received (feedbackTo matches wallet)
+          const receivedFeedback = feedbacks.filter(f => 
+            f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+          );
+          
+          if (receivedFeedback.length === 0) {
+            return null;
+          }
+
+          // Calculate average rating
+          const ratings = receivedFeedback
+            .map(f => f.rating)
+            .filter((r): r is number => r !== undefined && r > 0);
+          const avgRating = ratings.length > 0
+            ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
+            : null;
+
+          return (
+            <div className="mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+              
+              {/* Stats */}
+              <div className="mb-6 grid grid-cols-2 gap-4">
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {receivedFeedback.length}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
+                </div>
+                {avgRating && (
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {avgRating} ⭐
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Feedback List */}
+              <div className="space-y-4">
+                {receivedFeedback.map((feedback) => (
+                  <div
+                    key={feedback.key}
+                    className="p-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          From {shortenWallet(feedback.feedbackFrom)}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">
+                          {formatDate(feedback.createdAt)}
+                        </p>
+                      </div>
+                      {feedback.rating && (
+                        <div className="text-lg">
+                          {'⭐'.repeat(feedback.rating)}
+                          <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                            ({feedback.rating}/5)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    {feedback.notes && (
+                      <p className="text-gray-700 dark:text-gray-300 mb-2">{feedback.notes}</p>
+                    )}
+                    {feedback.technicalDxFeedback && (
+                      <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Technical DX Feedback:
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {feedback.technicalDxFeedback}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })()}
