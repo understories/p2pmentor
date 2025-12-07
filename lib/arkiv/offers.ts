@@ -84,6 +84,7 @@ export async function createOffer({
         { key: 'createdAt', value: createdAt },
         { key: 'status', value: status },
         { key: 'isPaid', value: String(isPaid) },
+        { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
         ...(cost ? [{ key: 'cost', value: cost }] : []),
         ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
       ],
@@ -192,6 +193,10 @@ export async function listOffers(params?: { skill?: string; spaceId?: string }):
       return String(attrs[key] || '');
     };
     
+    // Get TTL from attributes (stored when created), fallback to default for backward compatibility
+    const ttlSecondsAttr = getAttr('ttlSeconds');
+    const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
+    
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
@@ -204,7 +209,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string }):
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
       cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
-      ttlSeconds: OFFER_TTL_SECONDS,
+      ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
   });
@@ -298,6 +303,10 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       return String(attrs[key] || '');
     };
     
+    // Get TTL from attributes (stored when created), fallback to default for backward compatibility
+    const ttlSecondsAttr = getAttr('ttlSeconds');
+    const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
+    
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
@@ -310,7 +319,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
       cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
-      ttlSeconds: OFFER_TTL_SECONDS,
+      ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
   });

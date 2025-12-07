@@ -39,6 +39,19 @@ export async function POST(request: Request) {
         const num = typeof expiresIn === 'number' ? expiresIn : Number(expiresIn);
         if (!isNaN(num) && num > 0 && isFinite(num)) {
           parsedExpiresIn = Math.floor(num);
+          // Validate TTL: minimum 60 seconds (1 minute), maximum 31536000 seconds (1 year)
+          if (parsedExpiresIn < 60) {
+            return NextResponse.json(
+              { ok: false, error: 'Expiration must be at least 60 seconds (1 minute)' },
+              { status: 400 }
+            );
+          }
+          if (parsedExpiresIn > 31536000) {
+            return NextResponse.json(
+              { ok: false, error: 'Expiration cannot exceed 31536000 seconds (1 year)' },
+              { status: 400 }
+            );
+          }
         }
       }
 

@@ -19,6 +19,47 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
+// Component for live countdown timer
+function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSeconds: number }) {
+  const [timeRemaining, setTimeRemaining] = useState('');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const created = new Date(createdAt).getTime();
+      const expires = created + (ttlSeconds * 1000);
+      const now = Date.now();
+      const remaining = expires - now;
+
+      if (remaining <= 0) {
+        setTimeRemaining('Expired');
+        return;
+      }
+
+      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+      } else if (minutes > 0) {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeRemaining(`${seconds}s`);
+      }
+    };
+
+    updateTimer(); // Initial update
+    const interval = setInterval(updateTimer, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [createdAt, ttlSeconds]);
+
+  return <span className="text-orange-600 dark:text-orange-400 font-medium">⏰ {timeRemaining} left</span>;
+}
+
 export default function AsksPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -28,7 +69,12 @@ export default function AsksPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newAsk, setNewAsk] = useState({ skill: '', message: '' });
+  const [newAsk, setNewAsk] = useState({ 
+    skill: '', 
+    message: '',
+    ttlHours: '1', // Default 1 hour
+    customTtlHours: '', // For custom input
+  });
   const router = useRouter();
 
   useEffect(() => {
@@ -71,6 +117,11 @@ export default function AsksPage() {
     setSuccess('');
 
     try {
+      // Convert hours to seconds for expiresIn
+      const ttlValue = newAsk.ttlHours === 'custom' ? newAsk.customTtlHours : newAsk.ttlHours;
+      const ttlHours = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 3600 : Math.floor(ttlHours * 3600); // Default to 1 hour if invalid
+
       const res = await fetch('/api/asks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -79,6 +130,7 @@ export default function AsksPage() {
           wallet: walletAddress,
           skill: newAsk.skill.trim(),
           message: newAsk.message.trim(),
+          expiresIn: expiresIn,
         }),
       });
 
@@ -86,7 +138,7 @@ export default function AsksPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewAsk({ skill: '', message: '' });
+          setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload asks after a delay
           setTimeout(async () => {
@@ -97,7 +149,7 @@ export default function AsksPage() {
           }, 2000);
         } else {
           setSuccess('Ask created successfully!');
-          setNewAsk({ skill: '', message: '' });
+          setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload asks
           const asksRes = await fetch('/api/asks').then(r => r.json());
@@ -127,6 +179,32 @@ export default function AsksPage() {
       });
     } catch {
       return dateString;
+    }
+  };
+
+  const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    const now = Date.now();
+    const remaining = expires - now;
+
+    if (remaining <= 0) {
+      return 'Expired';
+    }
+
+    const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
   };
 
@@ -203,6 +281,46 @@ export default function AsksPage() {
                   required
                 />
               </div>
+              <div>
+                <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                  Expiration Duration *
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    id="ttlHours"
+                    value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
+                    onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="0.5">30 minutes</option>
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours (1 day)</option>
+                    <option value="48">48 hours (2 days)</option>
+                    <option value="168">1 week</option>
+                    <option value="custom">Custom (hours)</option>
+                  </select>
+                  {newAsk.ttlHours === 'custom' && (
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="8760"
+                      step="0.5"
+                      placeholder="Hours"
+                      value={newAsk.customTtlHours}
+                      onChange={(e) => {
+                        setNewAsk({ ...newAsk, customTtlHours: e.target.value });
+                      }}
+                      className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  How long should this ask stay active? Default: 1 hour
+                </p>
+              </div>
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -215,7 +333,7 @@ export default function AsksPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewAsk({ skill: '', message: '' });
+                    setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
                     setError('');
                     setSuccess('');
                   }}
@@ -262,9 +380,10 @@ export default function AsksPage() {
                 <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
                   {ask.message}
                 </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
-                  {ask.txHash && (
+                  <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
+                  {ask.txHash ? (
                     <a
                       href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
                       target="_blank"
@@ -273,6 +392,8 @@ export default function AsksPage() {
                     >
                       View on Arkiv Explorer
                     </a>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
                   )}
                 </div>
               </div>

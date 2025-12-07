@@ -19,6 +19,47 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
+// Component for live countdown timer
+function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSeconds: number }) {
+  const [timeRemaining, setTimeRemaining] = useState('');
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const created = new Date(createdAt).getTime();
+      const expires = created + (ttlSeconds * 1000);
+      const now = Date.now();
+      const remaining = expires - now;
+
+      if (remaining <= 0) {
+        setTimeRemaining('Expired');
+        return;
+      }
+
+      const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      if (days > 0) {
+        setTimeRemaining(`${days}d ${hours}h ${minutes}m`);
+      } else if (hours > 0) {
+        setTimeRemaining(`${hours}h ${minutes}m ${seconds}s`);
+      } else if (minutes > 0) {
+        setTimeRemaining(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeRemaining(`${seconds}s`);
+      }
+    };
+
+    updateTimer(); // Initial update
+    const interval = setInterval(updateTimer, 1000); // Update every second
+
+    return () => clearInterval(interval);
+  }, [createdAt, ttlSeconds]);
+
+  return <span className="text-orange-600 dark:text-orange-400 font-medium">⏰ {timeRemaining} left</span>;
+}
+
 export default function OffersPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -35,6 +76,8 @@ export default function OffersPage() {
     isPaid: false,
     cost: '',
     paymentAddress: '',
+    ttlHours: '2', // Default 2 hours
+    customTtlHours: '', // For custom input
   });
   const router = useRouter();
 
@@ -90,26 +133,32 @@ export default function OffersPage() {
     setSuccess('');
 
     try {
+      // Convert hours to seconds for expiresIn
+      const ttlValue = newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
+      const ttlHours = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 7200 : Math.floor(ttlHours * 3600); // Default to 2 hours if invalid
+
       const res = await fetch('/api/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'createOffer',
-            wallet: walletAddress,
-            skill: newOffer.skill.trim(),
-            message: newOffer.message.trim(),
-            availabilityWindow: newOffer.availabilityWindow.trim(),
-            isPaid: newOffer.isPaid,
-            cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
-            paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
-          }),
+        body: JSON.stringify({
+          action: 'createOffer',
+          wallet: walletAddress,
+          skill: newOffer.skill.trim(),
+          message: newOffer.message.trim(),
+          availabilityWindow: newOffer.availabilityWindow.trim(),
+          isPaid: newOffer.isPaid,
+          cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
+          paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
+          expiresIn: expiresIn,
+        }),
       });
 
       const data = await res.json();
       if (data.ok) {
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers after a delay
           setTimeout(async () => {
@@ -120,7 +169,7 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess('Offer created successfully!');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers
           const offersRes = await fetch('/api/offers').then(r => r.json());
@@ -150,6 +199,32 @@ export default function OffersPage() {
       });
     } catch {
       return dateString;
+    }
+  };
+
+  const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    const now = Date.now();
+    const remaining = expires - now;
+
+    if (remaining <= 0) {
+      return 'Expired';
+    }
+
+    const days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+    if (days > 0) {
+      return `${days}d ${hours}h ${minutes}m`;
+    } else if (hours > 0) {
+      return `${hours}h ${minutes}m`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
     }
   };
 
@@ -307,6 +382,47 @@ export default function OffersPage() {
                   </div>
                 </>
               )}
+
+              <div>
+                <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                  Expiration Duration *
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    id="ttlHours"
+                    value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
+                    onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="12">12 hours</option>
+                    <option value="24">24 hours (1 day)</option>
+                    <option value="48">48 hours (2 days)</option>
+                    <option value="168">1 week</option>
+                    <option value="720">1 month (30 days)</option>
+                    <option value="custom">Custom (hours)</option>
+                  </select>
+                  {newOffer.ttlHours === 'custom' && (
+                    <input
+                      type="number"
+                      min="1"
+                      max="8760"
+                      step="1"
+                      placeholder="Hours"
+                      value={newOffer.customTtlHours}
+                      onChange={(e) => {
+                        setNewOffer({ ...newOffer, customTtlHours: e.target.value });
+                      }}
+                      className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  How long should this offer stay active? Default: 2 hours
+                </p>
+              </div>
               
               <div className="flex gap-3">
                 <button
@@ -320,7 +436,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '' });
+                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
                     setError('');
                     setSuccess('');
                   }}
@@ -396,9 +512,10 @@ export default function OffersPage() {
                     )}
                   </p>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
-                  {offer.txHash && (
+                  <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
+                  {offer.txHash ? (
                     <a
                       href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
                       target="_blank"
@@ -407,6 +524,8 @@ export default function OffersPage() {
                     >
                       View on Arkiv Explorer
                     </a>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
                   )}
                 </div>
               </div>
