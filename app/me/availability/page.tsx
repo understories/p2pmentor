@@ -12,15 +12,18 @@ import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Availability } from '@/lib/arkiv/availability';
 
 export default function AvailabilityPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [availabilityWindow, setAvailabilityWindow] = useState('');
+  const [timeBlocks, setTimeBlocks] = useState('');
+  const [timezone, setTimezone] = useState('UTC');
   const router = useRouter();
 
   useEffect(() => {
@@ -31,19 +34,30 @@ export default function AvailabilityPage() {
         return;
       }
       setWalletAddress(address);
-      loadProfile(address);
+      loadData(address);
     }
   }, [router]);
 
-  const loadProfile = async (wallet: string) => {
+  const loadData = async (wallet: string) => {
     try {
       setLoading(true);
-      const profileData = await getProfileByWallet(wallet);
+      const [profileData, availabilitiesRes] = await Promise.all([
+        getProfileByWallet(wallet).catch(() => null),
+        fetch(`/api/availability?wallet=${encodeURIComponent(wallet)}`).then(r => r.json()).catch(() => ({ ok: false, availabilities: [] })),
+      ]);
+      
       setProfile(profileData);
-      setAvailabilityWindow(profileData?.availabilityWindow || '');
+      if (availabilitiesRes.ok) {
+        setAvailabilities(availabilitiesRes.availabilities || []);
+      }
+      
+      // Pre-fill timezone from profile if available
+      if (profileData?.timezone) {
+        setTimezone(profileData.timezone);
+      }
     } catch (err) {
-      console.error('Error loading profile:', err);
-      setError('Failed to load profile');
+      console.error('Error loading data:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -51,47 +65,38 @@ export default function AvailabilityPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!walletAddress) return;
+    if (!walletAddress || !timeBlocks.trim()) {
+      setError('Time blocks are required');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
     setSuccess('');
 
     try {
-      // Update profile with new availability
-      const res = await fetch('/api/profile', {
+      // Create availability entity
+      const res = await fetch('/api/availability', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'updateProfile',
           wallet: walletAddress,
-          // Preserve existing profile data
-          displayName: profile?.displayName,
-          username: profile?.username,
-          profileImage: profile?.profileImage,
-          bio: profile?.bio,
-          bioShort: profile?.bioShort,
-          bioLong: profile?.bioLong,
-          skills: profile?.skills || '',
-          skillsArray: profile?.skillsArray,
-          timezone: profile?.timezone || 'UTC',
-          languages: profile?.languages,
-          contactLinks: profile?.contactLinks,
-          seniority: profile?.seniority,
-          availabilityWindow: availabilityWindow.trim() || undefined,
+          timeBlocks: timeBlocks.trim(),
+          timezone: timezone || 'UTC',
         }),
       });
 
       const data = await res.json();
       if (data.ok) {
-        setSuccess('Availability updated successfully!');
-        await loadProfile(walletAddress);
+        setSuccess('Availability created successfully!');
+        setTimeBlocks('');
+        await loadData(walletAddress);
       } else {
-        setError(data.error || 'Failed to update availability');
+        setError(data.error || 'Failed to create availability');
       }
     } catch (err: any) {
-      console.error('Error updating availability:', err);
-      setError(err.message || 'Failed to update availability');
+      console.error('Error creating availability:', err);
+      setError(err.message || 'Failed to create availability');
     } finally {
       setSubmitting(false);
     }
@@ -133,44 +138,107 @@ export default function AvailabilityPage() {
           </p>
         </div>
 
-        {/* Current Availability */}
-        {profile?.availabilityWindow && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-              Current Availability:
+        {/* Existing Availability Entities (Grouped Chronologically) */}
+        {availabilities.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Your Availability Blocks</h2>
+            <div className="space-y-3">
+              {availabilities.map((availability) => (
+                <div
+                  key={availability.key}
+                  className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                        {availability.timeBlocks}
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        Timezone: {availability.timezone}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Created: {new Date(availability.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    {availability.txHash && (
+                      <a
+                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        View on Arkiv
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Legacy Profile Availability (for backward compatibility) */}
+        {profile?.availabilityWindow && availabilities.length === 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <p className="text-sm font-medium text-yellow-900 dark:text-yellow-200 mb-1">
+              Legacy Availability (from profile):
             </p>
-            <p className="text-sm text-blue-800 dark:text-blue-300">
+            <p className="text-sm text-yellow-800 dark:text-yellow-300">
               {profile.availabilityWindow}
+            </p>
+            <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-2">
+              Create a new availability block below to use the new entity system.
             </p>
           </div>
         )}
 
-        {/* Availability Form */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div>
-              <label htmlFor="availabilityWindow" className="block text-sm font-medium mb-2">
-                Availability Window
-              </label>
-              <input
-                id="availabilityWindow"
-                type="text"
-                value={availabilityWindow}
-                onChange={(e) => setAvailabilityWindow(e.target.value)}
-                placeholder="e.g., Mon-Fri 9am-5pm EST, Weekends flexible"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Describe when you're generally available for mentorship. Examples:
-              </p>
-              <ul className="mt-2 text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
-                <li>"Mon-Fri 9am-5pm EST"</li>
-                <li>"Weekends 10am-2pm EST"</li>
-                <li>"Flexible, prefer evenings"</li>
-                <li>"Weekdays after 6pm PST"</li>
-              </ul>
+        {/* Create New Availability Form */}
+        <div className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">Add Availability Block</h2>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="mb-4">
+                <label htmlFor="timeBlocks" className="block text-sm font-medium mb-2">
+                  Time Blocks *
+                </label>
+                <input
+                  id="timeBlocks"
+                  type="text"
+                  value={timeBlocks}
+                  onChange={(e) => setTimeBlocks(e.target.value)}
+                  placeholder="e.g., Mon-Fri 9am-5pm EST, Weekends flexible"
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  Describe when you're available. Examples:
+                </p>
+                <ul className="mt-2 text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
+                  <li>"Mon-Fri 9am-5pm EST"</li>
+                  <li>"Weekends 10am-2pm EST"</li>
+                  <li>"Flexible, prefer evenings"</li>
+                  <li>"Weekdays after 6pm PST"</li>
+                </ul>
+              </div>
+              
+              <div>
+                <label htmlFor="timezone" className="block text-sm font-medium mb-2">
+                  Timezone *
+                </label>
+                <input
+                  id="timezone"
+                  type="text"
+                  value={timezone}
+                  onChange={(e) => setTimezone(e.target.value)}
+                  placeholder="UTC, EST, PST, etc."
+                  required
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                  Your timezone for this availability block.
+                </p>
+              </div>
             </div>
-          </div>
 
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
@@ -195,7 +263,8 @@ export default function AvailabilityPage() {
             <button
               type="button"
               onClick={() => {
-                setAvailabilityWindow(profile?.availabilityWindow || '');
+                setTimeBlocks('');
+                setTimezone(profile?.timezone || 'UTC');
                 setError('');
                 setSuccess('');
               }}
@@ -209,8 +278,10 @@ export default function AvailabilityPage() {
         {/* Info Box */}
         <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            <strong>Note:</strong> This is your general availability. When creating offers, you can specify more detailed availability windows for specific skills.
+            <strong>Note:</strong> Each availability block is stored as a separate Arkiv entity. You can create multiple blocks for different time periods. When creating offers, you can reference these availability blocks.
           </p>
+        </div>
+          </form>
         </div>
       </div>
     </div>
