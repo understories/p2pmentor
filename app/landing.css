@@ -1,0 +1,211 @@
+/**
+ * Landing page styles
+ * 
+ * Adapted from understories.github.io design with dark forest aesthetic.
+ * Reference: refs/understories.github.io/index.html
+ */
+
+.forest-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  background: 
+    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.1) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%),
+    linear-gradient(180deg, #0a0e0f 0%, #050708 100%);
+  animation: forestPulse 10s ease-in-out infinite;
+}
+
+@keyframes forestPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.95; }
+}
+
+.trees-back {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.tree {
+  position: absolute;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-bottom: 200px solid rgba(5, 20, 5, 0.3);
+}
+
+.tree::before {
+  content: '';
+  position: absolute;
+  bottom: -200px;
+  left: -20px;
+  width: 0;
+  height: 0;
+  border-left: 23px solid transparent;
+  border-right: 23px solid transparent;
+  border-bottom: 150px solid rgba(5, 20, 5, 0.25);
+}
+
+.tree::after {
+  content: '';
+  position: absolute;
+  bottom: -320px;
+  left: -15px;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 120px solid rgba(5, 20, 5, 0.2);
+}
+
+.fog-layer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.03;
+}
+
+.fog-1 {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.1) 80%,
+    transparent 100%
+  );
+  animation: fogDrift1 25s linear infinite;
+}
+
+.fog-2 {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.08) 30%,
+    rgba(255, 255, 255, 0.12) 60%,
+    rgba(255, 255, 255, 0.08) 90%,
+    transparent 100%
+  );
+  animation: fogDrift2 30s linear infinite reverse;
+}
+
+@keyframes fogDrift1 {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes fogDrift2 {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.landing-container {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.main-text {
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 300;
+  letter-spacing: 0.15em;
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #e8f5e9;
+  text-shadow: 
+    0 0 10px rgba(200, 255, 200, 0.3),
+    0 0 20px rgba(150, 255, 150, 0.2),
+    0 0 30px rgba(100, 255, 100, 0.1);
+  animation: textGlow 3s ease-in-out infinite;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+}
+
+.subtitle-text {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-align: center;
+  color: rgba(200, 255, 200, 0.7);
+  text-shadow: 
+    0 0 8px rgba(150, 255, 150, 0.3),
+    0 0 15px rgba(100, 255, 100, 0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+}
+
+@keyframes textGlow {
+  0%, 100% { 
+    text-shadow: 
+      0 0 10px rgba(200, 255, 200, 0.3),
+      0 0 20px rgba(150, 255, 150, 0.2),
+      0 0 30px rgba(100, 255, 100, 0.1);
+  }
+  50% { 
+    text-shadow: 
+      0 0 15px rgba(200, 255, 200, 0.5),
+      0 0 30px rgba(150, 255, 150, 0.4),
+      0 0 45px rgba(100, 255, 100, 0.3);
+  }
+}
+
+.enter-beta-container {
+  margin-top: 4rem;
+  text-align: center;
+}
+
+.enter-beta-link {
+  display: inline-block;
+  font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  color: rgba(200, 255, 200, 0.9);
+  text-decoration: none;
+  padding: 1rem 2rem;
+  border: 1px solid rgba(150, 255, 150, 0.3);
+  border-radius: 4px;
+  background: rgba(5, 20, 5, 0.2);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  text-shadow: 
+    0 0 8px rgba(150, 255, 150, 0.4),
+    0 0 15px rgba(100, 255, 100, 0.2);
+  box-shadow: 
+    0 0 20px rgba(100, 255, 100, 0.1),
+    inset 0 0 20px rgba(100, 255, 100, 0.05);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+}
+
+.enter-beta-link:hover {
+  color: rgba(255, 255, 255, 1);
+  border-color: rgba(150, 255, 150, 0.6);
+  background: rgba(5, 20, 5, 0.4);
+  text-shadow: 
+    0 0 12px rgba(150, 255, 150, 0.6),
+    0 0 20px rgba(100, 255, 100, 0.4);
+  box-shadow: 
+    0 0 30px rgba(100, 255, 100, 0.2),
+    inset 0 0 30px rgba(100, 255, 100, 0.1);
+  transform: translateY(-2px);
+}
+
