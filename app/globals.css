@@ -16,20 +16,21 @@
 }
 
 /* Dark theme colors - Forest aesthetic matching landing page */
+/* Following WCAG best practices: dark gray backgrounds, off-white text, sufficient contrast */
 .dark {
-  --bg-primary: #050708;
-  --bg-secondary: #0a0e0f;
-  --bg-tertiary: #0d1a0d;
-  --text-primary: #e8f5e9;
-  --text-secondary: rgba(200, 255, 200, 0.7);
-  --border-color: rgba(150, 255, 150, 0.2);
-  --accent-color: rgba(150, 255, 150, 0.8);
-  --accent-hover: rgba(200, 255, 200, 0.9);
+  --bg-primary: #121212; /* Dark gray instead of pure black for better readability */
+  --bg-secondary: #1e1e1e; /* Slightly lighter for depth */
+  --bg-tertiary: #2d2d2d;
+  --text-primary: #e0e0e0; /* Off-white for reduced glare (WCAG compliant) */
+  --text-secondary: #b0b0b0; /* Light gray for secondary text */
+  --border-color: rgba(150, 255, 150, 0.3); /* More visible borders */
+  --accent-color: rgba(150, 255, 150, 0.9); /* Brighter for better visibility */
+  --accent-hover: rgba(200, 255, 200, 1);
   
-  /* Forest glow effects for dark mode */
-  --glow-soft: rgba(100, 255, 100, 0.1);
-  --glow-medium: rgba(150, 255, 150, 0.2);
-  --glow-strong: rgba(200, 255, 200, 0.3);
+  /* Forest glow effects for dark mode - more subtle */
+  --glow-soft: rgba(100, 255, 100, 0.08);
+  --glow-medium: rgba(150, 255, 150, 0.15);
+  --glow-strong: rgba(200, 255, 200, 0.25);
 }
 
 /* Apply theme colors */
@@ -40,24 +41,25 @@ body {
   min-height: 100vh;
 }
 
-/* Dark mode forest background effects */
+/* Dark mode forest background effects - more subtle for readability */
 .dark body {
   background: 
-    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
-    radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.12) 0%, transparent 60%),
-    radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.1) 0%, transparent 70%),
-    linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0e0f 0%, #050708 100%);
+    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.1) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.06) 0%, transparent 70%),
+    linear-gradient(180deg, rgba(5, 20, 5, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #1e1e1e 0%, #121212 100%);
   background-attachment: fixed;
 }
 
-/* Text shadows for dark mode (forest glow aesthetic) */
+/* Text shadows for dark mode (forest glow aesthetic) - more subtle for readability */
 .dark h1,
 .dark h2,
 .dark h3 {
   text-shadow: 
-    0 0 10px var(--glow-soft),
-    0 0 20px var(--glow-medium);
+    0 0 5px var(--glow-soft),
+    0 0 10px var(--glow-medium);
+  color: #e0e0e0; /* Ensure sufficient contrast */
 }
 
 /* Subtle glow on interactive elements in dark mode */
