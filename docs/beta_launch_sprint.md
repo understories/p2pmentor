@@ -20,14 +20,14 @@
 - [x] Set up Arkiv SDK both client and server side with testnet - Client wrapper created in `lib/arkiv/client.ts`
 - [x] MetaMask authentication - Connection flow in `lib/auth/metamask.ts` and `/auth` page with improved styling
 - [x] Example wallet login - Implemented `/api/wallet` route and "Log in with Example Wallet" button (from mentor-graph)
-- [ ] Ethereum Passkey login - Placeholder created, implementation pending
+- [ ] Ethereum Passkey login - **Deferred to end of sprint** (brand new feature, will add after core functionality)
 - [ ] Mobile-first layout (global responsive scaffolding) - Basic structure, needs UI components
 - [x] DX tracking document creation: `/docs/dx_arkiv_runbook.md` - Created and ready for tracking
 - [x] Local dev server running without errors - Project structure ready, run `pnpm install && pnpm dev`
 
 ### P1 — Core Data Flows
 
-- [ ] "Create Profile" flow using Arkiv entities
+- [x] "Create Profile" flow using Arkiv entities - Profile form implemented with client-side Arkiv integration, Tailwind CSS styling
 - [ ] Skills: Add + view + edit (Arkiv entity)
 - [ ] Availability integration:
   - [ ] Calendar availability editor
@@ -261,7 +261,7 @@ In every Arkiv operation:
 * Upon log in, show banner:
   *“Do not use a wallet containing real funds. This is a beta environment.”*
 * For text input fields, show banner:
-  *“Blockchain data is immutable. All data inputted is viewable forever on the Arkiv explorer.”* linking to Arkiv's explorer.
+  *"Blockchain data is immutable. All data inputted is viewable forever on the [Arkiv explorer](https://explorer.mendoza.hoodi.arkiv.network)."*
 
 ---
 
@@ -451,4 +451,4 @@ See `.env.example` for the complete list. At minimum for local development:
 
 - This app uses Arkiv testnet (Mendoza chain)
 - Never use wallets with real funds in this beta environment
-- All data written to Arkiv is immutable and viewable on explorers
+- All data written to Arkiv is immutable and viewable on the [Mendoza testnet explorer](https://explorer.mendoza.hoodi.arkiv.network)
