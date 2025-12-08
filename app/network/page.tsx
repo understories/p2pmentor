@@ -253,22 +253,43 @@ export default function NetworkPage() {
         </div>
 
         {/* Forest View Entry Point */}
-        <div className="mb-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-1">
-                🌲 Try Forest View (experimental)
-              </h3>
-              <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                Visualize the network as an interactive graph. Desktop only.
-              </p>
+        <div className="mb-6 space-y-3">
+          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-1">
+                  🌲 Try Forest View (experimental)
+                </h3>
+                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                  Visualize the network as an interactive graph. Desktop only.
+                </p>
+              </div>
+              <Link
+                href="/network/forest"
+                className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
+              >
+                Enter Forest →
+              </Link>
             </div>
-            <Link
-              href="/network/forest"
-              className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
-            >
-              Enter Forest →
-            </Link>
+          </div>
+          
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                  🔄 GraphQL API Comparison
+                </h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Compare Arkiv JSON-RPC vs GraphQL API - See the tool in action!
+                </p>
+              </div>
+              <Link
+                href="/network/compare"
+                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+              >
+                Compare →
+              </Link>
+            </div>
           </div>
         </div>
 
