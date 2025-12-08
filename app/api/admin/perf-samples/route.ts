@@ -17,6 +17,7 @@ import { getPerfSamples, getPerfSamplesFiltered, getPerfSummary, clearPerfSample
  * - operation: string
  * - route: string
  * - since: ISO timestamp
+ * - limit: number (max samples to return)
  * 
  * Returns: Array of performance samples
  */
@@ -29,6 +30,8 @@ export async function GET(request: Request) {
   const operation = searchParams.get('operation') || undefined;
   const route = searchParams.get('route') || undefined;
   const since = searchParams.get('since') || undefined;
+  const limitParam = searchParams.get('limit');
+  const limit = limitParam ? parseInt(limitParam, 10) : undefined;
   const summary = searchParams.get('summary') === 'true';
   const summaryOperation = searchParams.get('summaryOperation') || undefined;
 
@@ -40,12 +43,17 @@ export async function GET(request: Request) {
     }
 
     // Return filtered samples
-    const samples = getPerfSamplesFiltered({
+    let samples = getPerfSamplesFiltered({
       source: source || undefined,
       operation,
       route,
       since,
     });
+
+    // Apply limit if provided
+    if (limit && limit > 0) {
+      samples = samples.slice(0, limit);
+    }
 
     return NextResponse.json({
       samples,
@@ -79,4 +87,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

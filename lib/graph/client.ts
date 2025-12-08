@@ -82,7 +82,7 @@ export async function graphRequest<T = any>(
     '/api/graphql';
 
   // Use performance.now() if available (browser), otherwise Date.now() (Node.js)
-  const perf = typeof performance !== 'undefined' && performance.now ? performance : { now: () => Date.now() };
+  const perf = typeof performance !== 'undefined' ? performance : { now: () => Date.now() };
   const startTime = perf.now();
 
   try {
