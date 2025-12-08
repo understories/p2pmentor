@@ -287,14 +287,14 @@ The forest and network list must be able to replicate **current behavior** first
 
 Used by `/network` and `/network/forest`:
 
+**Note:** GraphQL doesn't allow duplicate field names, so we always fetch asks/offers and let the adapter layer filter based on `includeExpired`. This matches current behavior where we fetch up to 500 items and filter client-side.
+
 ```graphql
 query NetworkOverview(
   $skill: String
   $limitSkills: Int!
   $limitAsks: Int!
   $limitOffers: Int!
-  $now: BigInt!
-  $includeExpired: Boolean!
 ) {
   skillRefs(
     where: { name_contains_nocase: $skill }
@@ -303,45 +303,23 @@ query NetworkOverview(
     id
     name
     asks(
-      where: {
-        status: "open"
-        expiresAt_gt: $now
-      }
-      first: $limitAsks
-    ) @skip(if: $includeExpired) {
-      id
-      wallet
-      createdAt
-      status
-    }
-    asks(
       where: { status: "open" }
       first: $limitAsks
-    ) @include(if: $includeExpired) {
+      orderBy: createdAt
+      orderDirection: desc
+    ) {
       id
       wallet
       createdAt
       status
-    }
-    offers(
-      where: {
-        status: "active"
-        expiresAt_gt: $now
-      }
-      first: $limitOffers
-    ) @skip(if: $includeExpired) {
-      id
-      wallet
-      isPaid
-      cost
-      paymentAddress
-      createdAt
-      status
+      expiresAt
     }
     offers(
       where: { status: "active" }
       first: $limitOffers
-    ) @include(if: $includeExpired) {
+      orderBy: createdAt
+      orderDirection: desc
+    ) {
       id
       wallet
       isPaid
@@ -349,6 +327,7 @@ query NetworkOverview(
       paymentAddress
       createdAt
       status
+      expiresAt
     }
   }
 }
@@ -359,6 +338,10 @@ query NetworkOverview(
 * Keep **per-query limits explicit**:
 
   * `$limitAsks`, `$limitOffers` capped (for example) at 500 to match current behavior.
+* The **adapter layer** (see 5.2) will filter based on `includeExpired`:
+
+  * If `includeExpired = false`: filter out items where `expiresAt <= now`.
+  * If `includeExpired = true`: include all items regardless of expiration.
 * `buildNetworkGraphData` will still enforce a **render cap**:
 
   * e.g. only use the newest 25 asks + 25 offers when constructing `{ nodes, links }`.
@@ -369,7 +352,9 @@ We must keep the existing client-side node/link format.
 
 Create an adapter in `lib/graph/networkAdapter.ts` that:
 
-* Takes raw GraphQL results (skillRefs + asks + offers).
+* Takes raw GraphQL results (skillRefs + asks + offers) and an `includeExpired` flag.
+* **Filters by expiration** if `includeExpired = false`:
+  * Remove asks/offers where `expiresAt <= now`.
 * Normalizes skills to **lowercase** (already ensured by `SkillRef.name`).
 * Builds node IDs:
 
