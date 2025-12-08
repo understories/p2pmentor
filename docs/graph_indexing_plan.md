@@ -409,11 +409,19 @@ Key PM checkpoints:
 ## 9. Status and Next Actions
 
 **Current reality:** All reads go directly to Arkiv with JSON-RPC helpers.
-**Subgraph work:** Not started; tracked as a net-new integration.
+**Subgraph work:** Graph client + query/adapter infrastructure complete (Commits 1-2), but not yet wired into app.
+
+**Completed:**
+- ✅ GraphQL client (`lib/graph/client.ts`) - minimal fetch wrapper with error handling
+- ✅ Feature flag utility (`lib/graph/featureFlags.ts`) - controls subgraph vs Arkiv path
+- ✅ Environment variables configured (`GRAPH_SUBGRAPH_URL`, `USE_SUBGRAPH_FOR_NETWORK`)
+- ✅ Network query helpers (`lib/graph/networkQueries.ts`) - GraphQL query for NetworkOverview
+- ✅ Network adapter (`lib/graph/networkAdapter.ts`) - converts GraphQL results to existing node/link format
+- ✅ Subgraph scaffold (`subgraph/`) - schema, manifest placeholder, mapping TODOs
 
 **Next actions:**
 
 1. Implement the subgraph schema and mappings aligned with this document.
-2. Add GraphQL client + adapter layer in the app.
+2. Add network query helpers + adapter layer (`lib/graph/networkQueries.ts`, `lib/graph/networkAdapter.ts`).
 3. Migrate `/network` and `/network/forest` to use subgraph queries while preserving behavior.
 4. Update this document and `docs/PROGRESS_SUMMARY.md` as phases complete.

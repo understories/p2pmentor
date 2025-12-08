@@ -23,6 +23,11 @@ export const SPACE_ID = "local-dev"; // Optionally configurable later
 // Jitsi configuration
 export const JITSI_BASE_URL = process.env.JITSI_BASE_URL || 'https://meet.jit.si';
 
+// The Graph subgraph configuration (optional, for future use)
+// See docs/graph_indexing_plan.md for details
+export const GRAPH_SUBGRAPH_URL = process.env.GRAPH_SUBGRAPH_URL;
+export const USE_SUBGRAPH_FOR_NETWORK = process.env.USE_SUBGRAPH_FOR_NETWORK === 'true';
+
 /**
  * Get private key, throwing if not available
  * 
