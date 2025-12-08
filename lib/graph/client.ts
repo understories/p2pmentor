@@ -39,10 +39,24 @@ export interface GraphQLResponse<T = any> {
 }
 
 /**
- * Execute a GraphQL query against the subgraph endpoint
+ * GraphQL request options
+ */
+export type GraphRequestOptions = {
+  endpoint?: string;
+  operationName?: string; // Useful for perf logging
+};
+
+/**
+ * Execute a GraphQL query against the GraphQL endpoint
+ * 
+ * Endpoint resolution (in order):
+ * 1. options.endpoint (explicit override)
+ * 2. GRAPH_SUBGRAPH_URL env var (external subgraph or local)
+ * 3. '/api/graphql' (default local Next.js route)
  * 
  * @param query - GraphQL query string
  * @param variables - Optional query variables
+ * @param options - Optional endpoint override and operation name
  * @returns Typed response data
  * @throws GraphRequestError if the request fails or GraphQL returns errors
  * 
@@ -51,23 +65,24 @@ export interface GraphQLResponse<T = any> {
  * const data = await graphRequest<{ profiles: Profile[] }>(
  *   `query { profiles { id wallet } }`
  * );
+ * 
+ * // With explicit endpoint
+ * const data = await graphRequest(query, vars, { endpoint: 'https://api.example.com/graphql' });
  * ```
  */
 export async function graphRequest<T = any>(
   query: string,
-  variables?: Record<string, any>
+  variables?: Record<string, any>,
+  options: GraphRequestOptions = {}
 ): Promise<T> {
-  const subgraphUrl = process.env.GRAPH_SUBGRAPH_URL;
-
-  if (!subgraphUrl) {
-    throw new GraphRequestError(
-      'GRAPH_SUBGRAPH_URL is not configured. Set it in your environment variables or disable subgraph usage.',
-      0
-    );
-  }
+  // Resolve endpoint: explicit override > env var > default local
+  const endpoint =
+    options.endpoint ||
+    process.env.GRAPH_SUBGRAPH_URL ||
+    '/api/graphql';
 
   try {
-    const response = await fetch(subgraphUrl, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
