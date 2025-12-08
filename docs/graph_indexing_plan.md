@@ -408,8 +408,8 @@ Key PM checkpoints:
 
 ## 9. Status and Next Actions
 
-**Current reality:** All reads go directly to Arkiv with JSON-RPC helpers.
-**Subgraph work:** Graph client + query/adapter infrastructure complete (Commits 1-2), but not yet wired into app.
+**Current reality:** All reads go directly to Arkiv with JSON-RPC helpers via `@arkiv-network/sdk`.
+**Subgraph work:** Graph client + query/adapter infrastructure complete (Commits 1-2), but **blocked on understanding Arkiv's architecture**.
 
 **Completed:**
 - ✅ GraphQL client (`lib/graph/client.ts`) - minimal fetch wrapper with error handling
@@ -419,9 +419,48 @@ Key PM checkpoints:
 - ✅ Network adapter (`lib/graph/networkAdapter.ts`) - converts GraphQL results to existing node/link format
 - ✅ Subgraph scaffold (`subgraph/`) - schema, manifest placeholder, mapping TODOs
 
-**Next actions:**
+**Status: Research Complete - Practical Solution Identified**
 
-1. Implement the subgraph schema and mappings aligned with this document.
-2. Add network query helpers + adapter layer (`lib/graph/networkQueries.ts`, `lib/graph/networkAdapter.ts`).
-3. Migrate `/network` and `/network/forest` to use subgraph queries while preserving behavior.
-4. Update this document and `docs/PROGRESS_SUMMARY.md` as phases complete.
+**What We Discovered:**
+- ✅ **Contract Address**: `0x00000000000000000000000000000061726b6976` (discovered via transaction inspection)
+- ✅ **Event Signatures**: Identified via transaction log analysis
+- ⚠️ **Key Challenge**: Entity attributes (type, wallet, skill) are NOT in blockchain events
+- ⚠️ **Reality**: Attributes stored separately, queried via Arkiv's indexer
+
+**Practical Solution: GraphQL Wrapper Around Arkiv Indexer**
+
+Since entity attributes aren't in events, building a full subgraph would require calling Arkiv's indexer API anyway. **Better approach**: Build a GraphQL API that wraps Arkiv's existing JSON-RPC indexer.
+
+**Benefits:**
+- ✅ No subgraph development needed (1-2 days vs 1-2 weeks)
+- ✅ Uses existing optimized Arkiv indexer
+- ✅ Full control over GraphQL schema
+- ✅ Can add caching/optimization
+- ✅ Works immediately with our existing code
+
+**Implementation:**
+1. Create `/app/api/graphql/route.ts` - GraphQL endpoint
+2. Define schema matching our subgraph schema
+3. Implement resolvers calling existing `listAsks()`, `listOffers()`, etc.
+4. Reuse `lib/graph/networkAdapter.ts` to transform data
+5. Point `GRAPH_SUBGRAPH_URL` to our own endpoint
+
+**Alternative: Full Subgraph** (for future if needed)
+- Contract address and events discovered
+- Subgraph scaffold ready (`subgraph/`)
+- Would need to call Arkiv indexer from mappings to enrich events
+- More complex but provides blockchain-level indexing
+
+**Next Actions:**
+
+1. ✅ **Research Complete** - Contract details discovered
+2. ⏸️ **Implement GraphQL Wrapper** - Build API route (recommended)
+3. ⏸️ **Wire Integration** - Connect to `/network` and `/network/forest`
+4. ⏸️ **Test** - Verify GraphQL queries work
+5. ⏸️ **Optional**: Build full subgraph later if blockchain-level indexing needed
+
+See:
+- `docs/arkiv_graph_integration_analysis.md` - Architecture analysis
+- `docs/arkiv_graph_research_findings.md` - Research findings
+- `docs/arkiv_subgraph_implementation_notes.md` - Subgraph approach details
+- `docs/arkiv_graphql_wrapper_approach.md` - **Recommended practical solution**
