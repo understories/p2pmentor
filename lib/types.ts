@@ -32,6 +32,9 @@ export interface NetworkGraphNode {
   wallet?: string;     // wallet address for ask/offer nodes
   skillName?: string;  // normalized skill name (lowercase)
   createdAt?: string;  // ISO string for sorting / tooltips
+  isPaid?: boolean;    // offers: whether paid
+  cost?: string;       // offers: cost text if paid
+  availabilityWindow?: string; // offers: availability hint
 }
 
 export type GraphLinkType = "ask-skill" | "offer-skill" | "match";

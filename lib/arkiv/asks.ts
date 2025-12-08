@@ -100,9 +100,10 @@ export async function createAsk({
  * @param params - Optional filters (skill, spaceId)
  * @returns Array of asks
  */
-export async function listAsks(params?: { skill?: string; spaceId?: string }): Promise<Ask[]> {
+export async function listAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
   let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
   
   if (params?.spaceId) {
@@ -110,12 +111,12 @@ export async function listAsks(params?: { skill?: string; spaceId?: string }): P
   }
   
   const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
+    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'ask_txhash'))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
+    .withAttributes(true)
+    .withPayload(true)
+    .limit(limit)
       .fetch(),
   ]);
 
