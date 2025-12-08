@@ -26,6 +26,7 @@ type NetworkGraphParams = {
  * Used as fallback when GraphQL is disabled or fails.
  */
 async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise<NetworkGraphData> {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const limitAsks = params.limitAsks ?? 25;
   const limitOffers = params.limitOffers ?? 25;
   const skillFilter = params.skillFilter?.toLowerCase().trim();
@@ -247,17 +248,59 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
         link => keptNodeIds.has(link.source) && keptNodeIds.has(link.target)
       );
       
-      return {
+      const result = {
         nodes: filteredNodes,
         links: filteredLinks,
       };
+      
+      // Record performance metrics
+      const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const payloadBytes = JSON.stringify(result).length;
+      
+      // Record performance sample (async, don't block)
+      import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'buildNetworkGraphData',
+          route: '/network',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
+          createdAt: new Date().toISOString(),
+        });
+      }).catch(() => {
+        // Silently fail if metrics module not available
+      });
+      
+      return result;
     }
   }
 
-  return {
+  const result = {
     nodes,
     links,
   };
+  
+  // Record performance metrics
+  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+  const payloadBytes = JSON.stringify(result).length;
+  
+  // Record performance sample (async, don't block)
+  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+    recordPerfSample({
+      source: 'arkiv',
+      operation: 'buildNetworkGraphData',
+      route: '/network',
+      durationMs: Math.round(durationMs),
+      payloadBytes,
+      httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {
+    // Silently fail if metrics module not available
+  });
+
+  return result;
 }
 
 /**
