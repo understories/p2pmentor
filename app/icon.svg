@@ -1,0 +1,18 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simple sprout - optimized for tiny sizes -->
+  <!-- Stem -->
+  <path
+    d="M 16 28 L 16 20"
+    stroke="#7dd87d"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    fill="none"
+  />
+  
+  <!-- Two simple leaves -->
+  <ellipse cx="12" cy="18" rx="4" ry="6" fill="#7dd87d" transform="rotate(-30 12 18)"/>
+  <ellipse cx="20" cy="18" rx="4" ry="6" fill="#7dd87d" transform="rotate(30 20 18)"/>
+  
+  <!-- Small top leaf -->
+  <ellipse cx="16" cy="16" rx="3" ry="5" fill="#7dd87d" transform="rotate(0 16 16)"/>
+</svg>
