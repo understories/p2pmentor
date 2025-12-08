@@ -56,7 +56,7 @@ export default function NetworkComparePage() {
   if (!mounted) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
-        <LoadingSpinner size="large" />
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
