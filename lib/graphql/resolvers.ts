@@ -200,9 +200,12 @@ export const resolvers = {
     },
 
     feedback: async (_: any, args: any) => {
-      const { sessionKey, wallet, limit = 100, since } = args;
+      // Always return an array, never null/undefined
+      let result: any[] = [];
       
       try {
+        const { sessionKey, wallet, limit = 100, since } = args || {};
+        
         // This is for SESSION feedback (peer-to-peer), not app feedback
         let feedbacks: Awaited<ReturnType<typeof listFeedbackForSession>> = [];
         if (sessionKey) {
@@ -220,22 +223,44 @@ export const resolvers = {
           feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
         }
 
-        // Apply limit
-        return feedbacks.slice(0, limit).map(transformFeedback);
-      } catch (error) {
+        // Apply limit and transform
+        if (Array.isArray(feedbacks)) {
+          result = feedbacks.slice(0, limit).map(transformFeedback);
+        }
+      } catch (error: any) {
         console.error('Error fetching feedback:', error);
-        return [];
+        console.error('Error message:', error?.message);
       }
+      
+      // Always return an array, never null/undefined
+      return Array.isArray(result) ? result : [];
     },
 
     appFeedback: async (_: any, args: any) => {
-      const { page, wallet, limit = 100, since } = args;
-      
+      // Always return an array, never null/undefined
+      // Using direct call to ensure it works
       try {
-        const feedbacks = await listAppFeedback({ page, wallet, limit, since });
-        return feedbacks.map(transformAppFeedback);
-      } catch (error) {
-        console.error('Error fetching app feedback:', error);
+        const { page, wallet, limit = 100, since } = args || {};
+        
+        const params: any = {};
+        if (page) params.page = page;
+        if (wallet) params.wallet = wallet;
+        if (limit) params.limit = limit;
+        if (since) params.since = since;
+        
+        // Call listAppFeedback directly
+        const feedbacks = await listAppFeedback(params);
+        
+        // Transform and return
+        if (Array.isArray(feedbacks)) {
+          return feedbacks.map(transformAppFeedback);
+        }
+        
+        // Fallback: return empty array
+        return [];
+      } catch (error: any) {
+        console.error('[GraphQL appFeedback] Error:', error?.message || error);
+        // Always return array, never null
         return [];
       }
     },
