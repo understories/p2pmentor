@@ -126,7 +126,7 @@
 - "Enter Beta" call-to-action
 
 ### 2. Beta Invite Gate
-- Simple invite code system ("growtogether")
+- Simple invite code system (configurable via NEXT_PUBLIC_BETA_INVITE_CODE)
 - Prevents unauthorized access
 - Stores invite code in localStorage
 

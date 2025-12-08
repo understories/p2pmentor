@@ -16,7 +16,7 @@
 
 ### P0 — Core Foundations
 
-- [x] Establish beta invite code system (anti-DDOS) - Basic invite gate at `/beta` with "growtogether" code
+- [x] Establish beta invite code system (anti-DDOS) - Basic invite gate at `/beta` with configurable invite code
 - [x] Set up Arkiv SDK both client and server side with testnet - Client wrapper created in `lib/arkiv/client.ts`
 - [x] MetaMask authentication - Connection flow in `lib/auth/metamask.ts` and `/auth` page with improved styling
 - [x] Example wallet login - Implemented `/api/wallet` route and "Log in with Example Wallet" button (from mentor-graph)
@@ -313,7 +313,7 @@ Below is the suggested step-by-step development sequence.
 ### **1. Invite Code Gate**
 
 * `/beta` page
-* input → to start, simply require "growtogether" as input to "unlock beta"
+* input → to start, require invite code (configured via NEXT_PUBLIC_BETA_INVITE_CODE environment variable)
 
 ### **2. Auth**
 
