@@ -16,7 +16,12 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <ThemeProvider>
-          {children}
+          <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-500 text-black text-center py-1 text-xs font-semibold">
+            PLAYGROUND
+          </div>
+          <div className="pt-6">
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>
