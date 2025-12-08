@@ -13,7 +13,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { graphRequest } from '@/lib/graph/client';
 
 interface AppFeedback {
   id: string;
@@ -51,7 +50,7 @@ export default function AdminFeedbackPage() {
     if (authenticated) {
       loadFeedback();
     }
-  }, [authenticated, filterSince]);
+  }, [authenticated, filterSince, filterPage]);
 
   const loadFeedback = async () => {
     try {
@@ -64,32 +63,27 @@ export default function AdminFeedbackPage() {
         variables.since = filterSince;
       }
 
-      const query = `
-        query AppFeedback($limit: Int, $since: String, $page: String) {
-          appFeedback(limit: $limit, since: $since, page: $page) {
-            id
-            key
-            wallet
-            page
-            message
-            rating
-            createdAt
-            txHash
-          }
-        }
-      `;
+      // Use REST API instead of GraphQL (GraphQL resolvers have compatibility issue)
+      const params = new URLSearchParams();
+      if (filterPage) params.set('page', filterPage);
+      if (filterSince) params.set('since', filterSince);
+      params.set('limit', String(variables.limit || 100));
 
-      if (filterPage) {
-        variables.page = filterPage;
+      const res = await fetch(`/api/app-feedback?${params.toString()}`);
+      if (!res.ok) {
+        throw new Error('Failed to fetch app feedback');
       }
-
-      const data = await graphRequest<{ appFeedback: AppFeedback[] }>(
-        query,
-        variables,
-        { operationName: 'AppFeedback' }
-      );
-
-      const feedbacks: AppFeedback[] = data.appFeedback || [];
+      const data = await res.json();
+      const feedbacks: AppFeedback[] = (data.feedbacks || []).map((f: any) => ({
+        id: `app_feedback:${f.key}`,
+        key: f.key,
+        wallet: f.wallet,
+        page: f.page,
+        message: f.message,
+        rating: f.rating || null,
+        createdAt: f.createdAt,
+        txHash: f.txHash || null,
+      }));
       setFeedbacks(feedbacks);
     } catch (err) {
       console.error('Failed to fetch feedback:', err);
