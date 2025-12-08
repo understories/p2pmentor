@@ -25,7 +25,25 @@ export type Feedback = {
 }
 
 /**
+ * Check if user has already given feedback for a session
+ */
+export async function hasUserGivenFeedbackForSession(
+  sessionKey: string,
+  feedbackFrom: string
+): Promise<boolean> {
+  const feedbacks = await listFeedbackForSession(sessionKey);
+  const normalizedFrom = feedbackFrom.toLowerCase();
+  return feedbacks.some(f => f.feedbackFrom.toLowerCase() === normalizedFrom);
+}
+
+/**
  * Create feedback for a session
+ * 
+ * Validates:
+ * - Session must be confirmed (both mentor and learner confirmed)
+ * - User must be a participant
+ * - User cannot give feedback to themselves
+ * - User cannot give duplicate feedback
  */
 export async function createFeedback({
   sessionKey,
@@ -38,6 +56,9 @@ export async function createFeedback({
   technicalDxFeedback,
   privateKey,
   spaceId = 'local-dev',
+  sessionStatus,
+  mentorConfirmed,
+  learnerConfirmed,
 }: {
   sessionKey: string;
   mentorWallet: string;
@@ -49,6 +70,9 @@ export async function createFeedback({
   technicalDxFeedback?: string;
   privateKey: `0x${string}`;
   spaceId?: string;
+  sessionStatus?: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  mentorConfirmed?: boolean;
+  learnerConfirmed?: boolean;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
@@ -76,6 +100,26 @@ export async function createFeedback({
 
   if (normalizedFrom === normalizedTo) {
     throw new Error('Cannot give feedback to yourself');
+  }
+
+  // CRITICAL: Validate session is confirmed (both sides)
+  if (mentorConfirmed !== undefined && learnerConfirmed !== undefined) {
+    if (!mentorConfirmed || !learnerConfirmed) {
+      throw new Error('Feedback can only be given for confirmed sessions (both mentor and learner must confirm)');
+    }
+  }
+
+  // CRITICAL: Validate session status
+  if (sessionStatus) {
+    if (sessionStatus === 'pending' || sessionStatus === 'cancelled') {
+      throw new Error('Feedback can only be given for scheduled or completed sessions');
+    }
+  }
+
+  // CRITICAL: Check for duplicate feedback
+  const hasGivenFeedback = await hasUserGivenFeedbackForSession(sessionKey, feedbackFrom);
+  if (hasGivenFeedback) {
+    throw new Error('You have already given feedback for this session');
   }
 
   const payload = {

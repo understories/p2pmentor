@@ -63,6 +63,7 @@ export default function SessionsPage() {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
+  const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
     // Get current user's wallet
@@ -584,6 +585,15 @@ export default function SessionsPage() {
                 const otherProfile = profiles[otherWallet.toLowerCase()];
                 const sessionTime = formatSessionDate(session.sessionDate);
 
+                // Check if user can give feedback
+                const isConfirmed = session.mentorConfirmed && session.learnerConfirmed;
+                const isValidStatus = session.status === 'completed' || session.status === 'scheduled';
+                const existingFeedbacks = sessionFeedbacks[session.key] || [];
+                const hasGivenFeedback = userWallet && existingFeedbacks.some(
+                  (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
+                );
+                const canGiveFeedback = userWallet && isConfirmed && isValidStatus && !hasGivenFeedback;
+
                 return (
                   <div
                     key={session.key}
@@ -601,14 +611,22 @@ export default function SessionsPage() {
                     <p className="text-gray-600 dark:text-gray-400 mb-4">
                       {sessionTime.date} at {sessionTime.time}
                     </p>
-                    {userWallet && (
+                    {canGiveFeedback ? (
                       <button
                         onClick={() => setFeedbackSession(session)}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
                       >
                         💬 Leave Feedback
                       </button>
-                    )}
+                    ) : hasGivenFeedback ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        ✓ Feedback submitted
+                      </p>
+                    ) : !isConfirmed ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Waiting for both participants to confirm
+                      </p>
+                    ) : null}
                   </div>
                 );
               })}
