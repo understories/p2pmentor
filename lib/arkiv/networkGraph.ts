@@ -7,68 +7,31 @@
 
 import { listAsks } from './asks';
 import { listOffers } from './offers';
-import { useSubgraphForNetwork } from '@/lib/graph/featureFlags';
+import { useGraphqlForNetwork } from '@/lib/graph/featureFlags';
 import type { Ask } from './asks';
 import type { Offer } from './offers';
 import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib/types';
 
-/**
- * Build graph data from asks and offers
- * 
- * @param options - Filtering and limiting options
- * @returns Graph data with nodes and links
- * 
- * TODO: Future subgraph integration
- * Once GRAPH_SUBGRAPH_URL is configured and USE_SUBGRAPH_FOR_NETWORK=true:
- * - Check useSubgraphForNetwork() from lib/graph/featureFlags
- * - If true, call fetchNetworkOverview() from lib/graph/networkQueries
- * - Use adaptNetworkOverviewToGraphData() from lib/graph/networkAdapter
- * - Fall back to this Arkiv path if subgraph fails or is disabled
- */
-export async function buildNetworkGraphData(options?: {
+type NetworkGraphParams = {
   skillFilter?: string;
   limitAsks?: number;
   limitOffers?: number;
   includeExpired?: boolean;
-}): Promise<NetworkGraphData> {
-  const limitAsks = options?.limitAsks ?? 25;
-  const limitOffers = options?.limitOffers ?? 25;
-  const skillFilter = options?.skillFilter?.toLowerCase().trim();
-  const includeExpired = options?.includeExpired ?? false;
+};
 
-  // GraphQL path (when enabled)
-  // Uses our GraphQL API wrapper at /api/graphql which wraps Arkiv's JSON-RPC indexer
-  // See: lib/graphql/README.md and docs/ARKIV_GRAPHQL_TOOL.md
-  if (useSubgraphForNetwork()) {
-    try {
-      console.log('[NetworkGraph] Using GraphQL API path');
-      const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
-      const { adaptNetworkOverviewToGraphData } = await import('@/lib/graph/networkAdapter');
-      
-      const raw = await fetchNetworkOverview({ 
-        skillFilter, 
-        limitAsks, 
-        limitOffers,
-        includeExpired 
-      });
-      const result = adaptNetworkOverviewToGraphData(raw, { 
-        skillFilter, 
-        limitAsks, 
-        limitOffers, 
-        includeExpired 
-      });
-      console.log('[NetworkGraph] GraphQL path returned:', result.nodes.length, 'nodes,', result.links.length, 'links');
-      return result;
-    } catch (error) {
-      console.warn('[NetworkGraph] GraphQL query failed, falling back to Arkiv:', error);
-      // Fall through to Arkiv path below
-    }
-  } else {
-    console.log('[NetworkGraph] Using Arkiv JSON-RPC path');
-  }
+/**
+ * Build graph data using Arkiv JSON-RPC (direct calls)
+ * 
+ * This is the original implementation that directly queries Arkiv entities.
+ * Used as fallback when GraphQL is disabled or fails.
+ */
+async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise<NetworkGraphData> {
+  const limitAsks = params.limitAsks ?? 25;
+  const limitOffers = params.limitOffers ?? 25;
+  const skillFilter = params.skillFilter?.toLowerCase().trim();
+  const includeExpired = params.includeExpired ?? false;
 
-  // Current Arkiv path (always used for now)
-  // Fetch asks and offers
+  // Fetch asks and offers via Arkiv JSON-RPC
   // Note: listAsks and listOffers don't support skill filtering in params yet
   // We'll filter client-side for now
   const [asks, offers] = await Promise.all([
@@ -295,5 +258,42 @@ export async function buildNetworkGraphData(options?: {
     nodes,
     links,
   };
+}
+
+/**
+ * Build graph data from asks and offers
+ * 
+ * Uses GraphQL API when enabled (via feature flag), falls back to JSON-RPC.
+ * 
+ * @param options - Filtering and limiting options
+ * @returns Graph data with nodes and links
+ */
+export async function buildNetworkGraphData(options?: NetworkGraphParams): Promise<NetworkGraphData> {
+  if (!useGraphqlForNetwork()) {
+    return buildNetworkGraphDataJsonRpc(options || {});
+  }
+
+  try {
+    const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
+    const { adaptNetworkOverviewToGraphData } = await import('@/lib/graph/networkAdapter');
+    
+    const overview = await fetchNetworkOverview({
+      skillFilter: options?.skillFilter,
+      limitAsks: options?.limitAsks,
+      limitOffers: options?.limitOffers,
+      includeExpired: options?.includeExpired,
+    });
+    
+    return adaptNetworkOverviewToGraphData(overview, {
+      skillFilter: options?.skillFilter,
+      limitAsks: options?.limitAsks,
+      limitOffers: options?.limitOffers,
+      includeExpired: options?.includeExpired,
+    });
+  } catch (err) {
+    // Log + fallback to JSON-RPC for safety
+    console.error('[networkGraph] GraphQL path failed, falling back to JSON-RPC', err);
+    return buildNetworkGraphDataJsonRpc(options || {});
+  }
 }
 
