@@ -1,0 +1,50 @@
+[
+  {
+    "type": "event",
+    "name": "EntityCreated",
+    "inputs": [
+      {
+        "name": "entityKey",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "spaceKey",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "creator",
+        "type": "address",
+        "indexed": true
+      },
+      {
+        "name": "expiresAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  },
+  {
+    "type": "event",
+    "name": "EntityStored",
+    "inputs": [
+      {
+        "name": "entityKey",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "spaceKey",
+        "type": "bytes32",
+        "indexed": true
+      },
+      {
+        "name": "expiresAt",
+        "type": "uint256",
+        "indexed": false
+      }
+    ]
+  }
+]
+

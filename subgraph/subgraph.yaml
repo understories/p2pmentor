@@ -1,51 +1,49 @@
 # Mentorship Subgraph Manifest
 # 
-# Placeholder manifest for The Graph subgraph indexing Arkiv entities.
+# Subgraph for indexing Arkiv mentorship entities on Mendoza testnet.
 # 
 # Reference: docs/graph_indexing_plan.md
 # 
-# TODO: This is a scaffold. Actual implementation requires:
-# 1. Arkiv event/call data source configuration
-# 2. Network configuration (OP Stack / Mendoza testnet)
-# 3. Event handlers in src/mappings/
-# 4. Deployment configuration (local Graph Node or hosted service)
+# Contract Details (Discovered via transaction inspection):
+# - Main Contract: 0x00000000000000000000000000000061726b6976 (spells "arkiv" in hex)
+# - Network: Mendoza testnet (OP Stack, Chain ID: 60138453056)
+# - RPC: https://mendoza.hoodi.arkiv.network/rpc
 #
-# For now, this file documents the intended structure but does not build or deploy.
+# Note: Event signatures discovered via transaction analysis.
+# ABI is minimal - may need refinement based on actual contract interface.
 
 specVersion: 0.0.5
 schema:
   file: ./schema.graphql
 
-# TODO: Configure data sources based on Arkiv contract events
-# Arkiv entities are created via contract calls, so we need to:
-# - Identify the Arkiv contract address on Mendoza testnet
-# - Map entity creation events/calls to subgraph entities
-# - Handle entity updates and expiration
-dataSources: []
-  # Example structure (not yet implemented):
-  # - kind: ethereum/contract
-  #   name: ArkivContract
-  #   network: mendoza  # or OP Stack network identifier
-  #   source:
-  #     address: "0x..."  # Arkiv contract address
-  #     abi: ArkivContract
-  #   mapping:
-  #     kind: ethereum/events
-  #     apiVersion: 0.0.7
-  #     language: wasm/assemblyscript
-  #     entities:
-  #       - Profile
-  #       - Ask
-  #       - Offer
-  #       - Session
-  #       - Feedback
-  #     abis:
-  #       - name: ArkivContract
-  #         file: ./abis/ArkivContract.json
-  #     eventHandlers:
-  #       - event: EntityCreated(indexed bytes32,indexed bytes32)
-  #         handler: handleEntityCreated
-  #     file: ./src/mappings/arkiv.ts
+dataSources:
+  - kind: ethereum
+    name: ArkivContract
+    network: mendoza
+    source:
+      address: "0x00000000000000000000000000000061726b6976"
+      abi: ArkivContract
+      startBlock: 0  # Start from genesis, or set to first block with entities
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Profile
+        - SkillRef
+        - Ask
+        - Offer
+        - Session
+        - Feedback
+      abis:
+        - name: ArkivContract
+          file: ./abis/Arkiv.json
+      eventHandlers:
+        - event: EntityCreated(indexed bytes32,indexed bytes32,indexed address,uint256)
+          handler: handleEntityCreated
+        - event: EntityStored(indexed bytes32,indexed bytes32,uint256)
+          handler: handleEntityStored
+      file: ./src/mappings/arkiv.ts
 
 templates: []
 
