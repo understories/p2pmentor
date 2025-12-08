@@ -19,7 +19,7 @@ Designed with the dark forest and hidden garden aesthetics from our earlier work
 
 Production ready.  
 A place to use wallets with real funds.  
-A full version of Mentor Garden.
+A full version of a mentorship platform.
 
 ## Development notes
 
