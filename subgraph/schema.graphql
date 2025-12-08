@@ -1,0 +1,88 @@
+# Mentorship Subgraph Schema
+# 
+# Phase 1: Minimal entities for network list and forest view
+# 
+# Reference: docs/graph_indexing_plan.md Section 4.1
+# 
+# This schema mirrors Arkiv entity structures to ensure compatibility
+# with existing p2pmentor behavior.
+
+type Profile @entity {
+  id: ID!                      # wallet address or Arkiv profile id
+  wallet: String!
+  displayName: String
+  username: String
+  bio: String
+  timezone: String
+  seniority: String
+  skills: [SkillRef!]!
+  availabilityWindow: String
+  createdAt: BigInt!
+  updatedAt: BigInt!
+  asks: [Ask!]! @derivedFrom(field: "profile")
+  offers: [Offer!]! @derivedFrom(field: "profile")
+  sessionsAsMentor: [Session!]! @derivedFrom(field: "mentor")
+  sessionsAsLearner: [Session!]! @derivedFrom(field: "learner")
+  feedbackGiven: [Feedback!]! @derivedFrom(field: "from")
+  feedbackReceived: [Feedback!]! @derivedFrom(field: "to")
+}
+
+type SkillRef @entity {
+  id: ID!                      # normalized skill name, lowercase
+  name: String!                # store as lowercase to match existing client logic
+  profiles: [Profile!]! @derivedFrom(field: "skills")
+  asks: [Ask!]! @derivedFrom(field: "skill")
+  offers: [Offer!]! @derivedFrom(field: "skill")
+}
+
+type Ask @entity {
+  id: ID!
+  profile: Profile!
+  wallet: String!
+  skill: SkillRef!
+  topic: String
+  status: String!              # open / matched / closed
+  createdAt: BigInt!
+  expiresAt: BigInt            # derived from TTL; nullable
+}
+
+type Offer @entity {
+  id: ID!
+  profile: Profile!
+  wallet: String!
+  skill: SkillRef!
+  topic: String
+  isPaid: Boolean!             # mirrors Arkiv
+  cost: BigInt                 # mirrors Arkiv `cost`
+  paymentAddress: String       # mirrors Arkiv `paymentAddress`
+  status: String!              # active / paused / closed
+  availabilityWindow: String
+  createdAt: BigInt!
+  expiresAt: BigInt            # derived from TTL; nullable
+}
+
+type Session @entity {
+  id: ID!
+  mentor: Profile!
+  learner: Profile!
+  ask: Ask
+  offer: Offer
+  skill: SkillRef
+  scheduledFor: BigInt
+  durationMinutes: Int
+  status: String!              # pending / scheduled / completed / cancelled
+  paymentTxHash: String
+  createdAt: BigInt!
+}
+
+type Feedback @entity {
+  id: ID!
+  session: Session!
+  from: Profile!
+  to: Profile!
+  rating: Int!
+  comment: String
+  technicalFeedback: String
+  createdAt: BigInt!
+}
+
