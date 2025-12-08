@@ -1,0 +1,51 @@
+# Mentorship Subgraph Manifest
+# 
+# Placeholder manifest for The Graph subgraph indexing Arkiv entities.
+# 
+# Reference: docs/graph_indexing_plan.md
+# 
+# TODO: This is a scaffold. Actual implementation requires:
+# 1. Arkiv event/call data source configuration
+# 2. Network configuration (OP Stack / Mendoza testnet)
+# 3. Event handlers in src/mappings/
+# 4. Deployment configuration (local Graph Node or hosted service)
+#
+# For now, this file documents the intended structure but does not build or deploy.
+
+specVersion: 0.0.5
+schema:
+  file: ./schema.graphql
+
+# TODO: Configure data sources based on Arkiv contract events
+# Arkiv entities are created via contract calls, so we need to:
+# - Identify the Arkiv contract address on Mendoza testnet
+# - Map entity creation events/calls to subgraph entities
+# - Handle entity updates and expiration
+dataSources: []
+  # Example structure (not yet implemented):
+  # - kind: ethereum/contract
+  #   name: ArkivContract
+  #   network: mendoza  # or OP Stack network identifier
+  #   source:
+  #     address: "0x..."  # Arkiv contract address
+  #     abi: ArkivContract
+  #   mapping:
+  #     kind: ethereum/events
+  #     apiVersion: 0.0.7
+  #     language: wasm/assemblyscript
+  #     entities:
+  #       - Profile
+  #       - Ask
+  #       - Offer
+  #       - Session
+  #       - Feedback
+  #     abis:
+  #       - name: ArkivContract
+  #         file: ./abis/ArkivContract.json
+  #     eventHandlers:
+  #       - event: EntityCreated(indexed bytes32,indexed bytes32)
+  #         handler: handleEntityCreated
+  #     file: ./src/mappings/arkiv.ts
+
+templates: []
+
