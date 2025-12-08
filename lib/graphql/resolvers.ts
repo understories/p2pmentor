@@ -8,7 +8,8 @@
 import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
-import { transformAsk, transformOffer, transformProfile, createSkillRef } from './transformers';
+import { listSessionsForWallet } from '@/lib/arkiv/sessions';
+import { transformAsk, transformOffer, transformProfile, transformSession, createSkillRef } from './transformers';
 
 /**
  * Build network overview with skills, asks, and offers
@@ -160,6 +161,40 @@ export const resolvers = {
       const overview = await buildNetworkOverview({ limitSkills: 1000 });
       const skillRef = overview.skillRefs.find(sr => sr.name === name.toLowerCase().trim());
       return skillRef || null;
+    },
+
+    meOverview: async (_: any, args: any) => {
+      const { 
+        wallet, 
+        limitAsks = 50, 
+        limitOffers = 50, 
+        limitSessions = 50 
+      } = args;
+
+      try {
+        // Fetch all data in parallel
+        const [profile, asks, offers, sessions] = await Promise.all([
+          getProfileByWallet(wallet).catch(() => null),
+          listAsksForWallet(wallet).catch(() => []),
+          listOffersForWallet(wallet).catch(() => []),
+          listSessionsForWallet(wallet).catch(() => []),
+        ]);
+
+        return {
+          profile: profile ? transformProfile(profile) : null,
+          asks: asks.slice(0, limitAsks).map(transformAsk),
+          offers: offers.slice(0, limitOffers).map(transformOffer),
+          sessions: sessions.slice(0, limitSessions).map(transformSession),
+        };
+      } catch (error) {
+        console.error('Error fetching meOverview:', error);
+        return {
+          profile: null,
+          asks: [],
+          offers: [],
+          sessions: [],
+        };
+      }
     },
   },
 

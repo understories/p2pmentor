@@ -49,6 +49,9 @@ export const graphQLSchema = `
     # Skill queries
     skills(search: String, limit: Int): [SkillRef!]!
     skill(name: String!): SkillRef
+    
+    # Dashboard overview
+    meOverview(wallet: String!, limitAsks: Int, limitOffers: Int, limitSessions: Int): MeOverview!
   }
 
   type NetworkOverview {
@@ -110,6 +113,30 @@ export const graphQLSchema = `
     ttlSeconds: Int!
     txHash: String
     profile: Profile
+  }
+
+  type Session {
+    id: ID!
+    key: String!
+    mentorWallet: String!
+    learnerWallet: String!
+    skill: String!
+    date: String!
+    time: String!
+    duration: String!
+    notes: String
+    status: String!
+    mentorConfirmed: Boolean!
+    learnerConfirmed: Boolean!
+    createdAt: String!
+    txHash: String
+  }
+
+  type MeOverview {
+    profile: Profile
+    asks: [Ask!]!
+    offers: [Offer!]!
+    sessions: [Session!]!
   }
 `;
 
