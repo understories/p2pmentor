@@ -17,11 +17,13 @@ export async function GET(request: Request) {
     const limitOffers = searchParams.get('limitOffers')
       ? parseInt(searchParams.get('limitOffers')!, 10)
       : undefined;
+    const includeExpired = searchParams.get('includeExpired') === 'true';
 
     const graphData = await buildNetworkGraphData({
       skillFilter,
       limitAsks,
       limitOffers,
+      includeExpired,
     });
 
     return NextResponse.json({
@@ -39,4 +41,5 @@ export async function GET(request: Request) {
     );
   }
 }
+
 

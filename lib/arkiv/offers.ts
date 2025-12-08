@@ -119,9 +119,10 @@ export async function createOffer({
  * @param params - Optional filters (skill, spaceId)
  * @returns Array of offers
  */
-export async function listOffers(params?: { skill?: string; spaceId?: string }): Promise<Offer[]> {
+export async function listOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
   let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
   
   if (params?.spaceId) {
@@ -129,12 +130,12 @@ export async function listOffers(params?: { skill?: string; spaceId?: string }):
   }
   
   const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
+    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'offer_txhash'))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
+    .withAttributes(true)
+    .withPayload(true)
+    .limit(limit)
       .fetch(),
   ]);
 

@@ -21,34 +21,36 @@ export async function buildNetworkGraphData(options?: {
   skillFilter?: string;
   limitAsks?: number;
   limitOffers?: number;
+  includeExpired?: boolean;
 }): Promise<NetworkGraphData> {
   const limitAsks = options?.limitAsks ?? 25;
   const limitOffers = options?.limitOffers ?? 25;
   const skillFilter = options?.skillFilter?.toLowerCase().trim();
+  const includeExpired = options?.includeExpired ?? false;
 
   // Fetch asks and offers
   // Note: listAsks and listOffers don't support skill filtering in params yet
   // We'll filter client-side for now
   const [asks, offers] = await Promise.all([
-    listAsks(),
-    listOffers(),
+    listAsks({ limit: limitAsks, includeExpired }),
+    listOffers({ limit: limitOffers, includeExpired }),
   ]);
 
-  // Filter active asks/offers (not expired) and apply skill filter if provided
+  // Filter asks/offers based on expiration unless explicitly including expired
   const now = Date.now();
   let activeAsks = asks
     .filter(ask => {
       const created = new Date(ask.createdAt).getTime();
       const expires = created + (ask.ttlSeconds * 1000);
       const isActive = expires > now;
-      
-      // Apply skill filter if provided
+
+      if (!includeExpired && !isActive) return false;
+
       if (skillFilter) {
         const askSkill = ask.skill?.toLowerCase().trim() || '';
-        return isActive && askSkill.includes(skillFilter);
+        return askSkill.includes(skillFilter);
       }
-      
-      return isActive;
+      return true;
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limitAsks);
@@ -58,14 +60,14 @@ export async function buildNetworkGraphData(options?: {
       const created = new Date(offer.createdAt).getTime();
       const expires = created + (offer.ttlSeconds * 1000);
       const isActive = expires > now;
-      
-      // Apply skill filter if provided
+
+      if (!includeExpired && !isActive) return false;
+
       if (skillFilter) {
         const offerSkill = offer.skill?.toLowerCase().trim() || '';
-        return isActive && offerSkill.includes(skillFilter);
+        return offerSkill.includes(skillFilter);
       }
-      
-      return isActive;
+      return true;
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limitOffers);
@@ -127,6 +129,9 @@ export async function buildNetworkGraphData(options?: {
       wallet: offer.wallet,
       skillName: skillName,
       createdAt: offer.createdAt,
+      isPaid: offer.isPaid,
+      cost: offer.cost,
+      availabilityWindow: offer.availabilityWindow,
     };
     nodes.push(node);
     nodeMap.set(nodeId, node);
@@ -195,6 +200,7 @@ export async function buildNetworkGraphData(options?: {
         
         if (!linkSet.has(linkKey1) && !linkSet.has(linkKey2)) {
           // Simple match score based on recency
+          const now = Date.now();
           const askAge = now - new Date(ask.createdAt).getTime();
           const offerAge = now - new Date(offer.createdAt).getTime();
           const maxAge = Math.max(askAge, offerAge);
