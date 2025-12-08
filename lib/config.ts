@@ -6,7 +6,7 @@
  * Reference: refs/mentor-graph/src/config.ts
  */
 
-import { privateKeyToAccount } from "viem/accounts"
+import { privateKeyToAccount } from "@arkiv-network/sdk/accounts"
 
 export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` | undefined;
 
