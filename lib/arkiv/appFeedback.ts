@@ -93,15 +93,21 @@ export async function listAppFeedback({
   limit?: number;
   since?: string;
 } = {}): Promise<AppFeedback[]> {
-  const publicClient = getPublicClient();
-  const result = await publicClient.buildQuery()
-    .where(eq('type', 'app_feedback'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit || 100)
-    .fetch();
+  try {
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'app_feedback'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(limit || 100)
+      .fetch();
 
-  let feedbacks = result.entities.map((entity: any) => {
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.error('Invalid result from Arkiv query:', result);
+      return [];
+    }
+
+    let feedbacks = result.entities.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -154,9 +160,16 @@ export async function listAppFeedback({
     feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
   }
 
-  // Sort by most recent first
-  return feedbacks.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+    // Sort by most recent first
+    return feedbacks.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch (error: any) {
+    console.error('Error in listAppFeedback:', error);
+    console.error('Error message:', error?.message);
+    console.error('Error stack:', error?.stack);
+    // Always return an array, never null/undefined
+    return [];
+  }
 }
 
