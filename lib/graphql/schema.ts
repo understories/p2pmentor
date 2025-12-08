@@ -52,6 +52,14 @@ export const graphQLSchema = `
     
     # Dashboard overview
     meOverview(wallet: String!, limitAsks: Int, limitOffers: Int, limitSessions: Int): MeOverview!
+    
+    # Feedback queries
+    feedback(
+      sessionKey: String
+      wallet: String
+      limit: Int
+      since: String
+    ): [Feedback!]!
   }
 
   type NetworkOverview {
@@ -137,6 +145,21 @@ export const graphQLSchema = `
     asks: [Ask!]!
     offers: [Offer!]!
     sessions: [Session!]!
+  }
+
+  type Feedback {
+    id: ID!
+    key: String!
+    sessionKey: String!
+    mentorWallet: String!
+    learnerWallet: String!
+    feedbackFrom: String!
+    feedbackTo: String!
+    rating: Int
+    notes: String
+    technicalDxFeedback: String
+    createdAt: String!
+    txHash: String
   }
 `;
 

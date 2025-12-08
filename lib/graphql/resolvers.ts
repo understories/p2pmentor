@@ -9,7 +9,8 @@ import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
-import { transformAsk, transformOffer, transformProfile, transformSession, createSkillRef } from './transformers';
+import { listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
+import { transformAsk, transformOffer, transformProfile, transformSession, transformFeedback, createSkillRef } from './transformers';
 
 /**
  * Build network overview with skills, asks, and offers
@@ -194,6 +195,35 @@ export const resolvers = {
           offers: [],
           sessions: [],
         };
+      }
+    },
+
+    feedback: async (_: any, args: any) => {
+      const { sessionKey, wallet, limit = 100, since } = args;
+      
+      try {
+        // This is for SESSION feedback (peer-to-peer), not app feedback
+        let feedbacks: Awaited<ReturnType<typeof listFeedbackForSession>> = [];
+        if (sessionKey) {
+          feedbacks = await listFeedbackForSession(sessionKey);
+        } else if (wallet) {
+          feedbacks = await listFeedbackForWallet(wallet);
+        } else {
+          // If no filters, return empty (admin can filter by wallet)
+          feedbacks = [];
+        }
+
+        // Filter by since date if provided
+        if (since) {
+          const sinceTime = new Date(since).getTime();
+          feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
+        }
+
+        // Apply limit
+        return feedbacks.slice(0, limit).map(transformFeedback);
+      } catch (error) {
+        console.error('Error fetching feedback:', error);
+        return [];
       }
     },
   },

@@ -196,7 +196,14 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-50">
             Quick Links
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <Link
+              href="/admin/feedback"
+              className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              <h3 className="font-medium mb-1">Feedback</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">View user feedback</p>
+            </Link>
             <Link
               href="/network"
               className="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
