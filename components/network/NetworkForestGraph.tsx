@@ -180,7 +180,7 @@ export default function NetworkForestGraph() {
       {loading && (
         <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/80 dark:bg-gray-900/80">
           <div className="text-center">
-            <LoadingSpinner size="large" className="mx-auto mb-4" />
+            <LoadingSpinner size="lg" className="mx-auto mb-4" />
             <p className="text-sm text-gray-400 dark:text-gray-500">Loading forest view…</p>
           </div>
         </div>
