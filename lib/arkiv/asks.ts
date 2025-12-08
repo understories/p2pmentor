@@ -101,6 +101,7 @@ export async function createAsk({
  * @returns Array of asks
  */
 export async function listAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
@@ -196,6 +197,24 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     const skillLower = params.skill.toLowerCase();
     asks = asks.filter(ask => ask.skill.toLowerCase().includes(skillLower));
   }
+
+  // Record performance metrics
+  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+  const payloadBytes = JSON.stringify(asks).length;
+  
+  // Record performance sample (async, don't block)
+  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+    recordPerfSample({
+      source: 'arkiv',
+      operation: 'listAsks',
+      durationMs: Math.round(durationMs),
+      payloadBytes,
+      httpRequests: 2, // Two parallel queries: asks + txhashes
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {
+    // Silently fail if metrics module not available
+  });
 
   return asks;
 }

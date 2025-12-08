@@ -120,6 +120,7 @@ export async function createOffer({
  * @returns Array of offers
  */
 export async function listOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
@@ -219,6 +220,24 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     const skillLower = params.skill.toLowerCase();
     offers = offers.filter(offer => offer.skill.toLowerCase().includes(skillLower));
   }
+
+  // Record performance metrics
+  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+  const payloadBytes = JSON.stringify(offers).length;
+  
+  // Record performance sample (async, don't block)
+  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+    recordPerfSample({
+      source: 'arkiv',
+      operation: 'listOffers',
+      durationMs: Math.round(durationMs),
+      payloadBytes,
+      httpRequests: 2, // Two parallel queries: offers + txhashes
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {
+    // Silently fail if metrics module not available
+  });
 
   return offers;
 }
