@@ -16,6 +16,13 @@ import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib
  * 
  * @param options - Filtering and limiting options
  * @returns Graph data with nodes and links
+ * 
+ * TODO: Future subgraph integration
+ * Once GRAPH_SUBGRAPH_URL is configured and USE_SUBGRAPH_FOR_NETWORK=true:
+ * - Check useSubgraphForNetwork() from lib/graph/featureFlags
+ * - If true, call fetchNetworkOverview() from lib/graph/networkQueries
+ * - Use adaptNetworkOverviewToGraphData() from lib/graph/networkAdapter
+ * - Fall back to this Arkiv path if subgraph fails or is disabled
  */
 export async function buildNetworkGraphData(options?: {
   skillFilter?: string;
@@ -28,6 +35,18 @@ export async function buildNetworkGraphData(options?: {
   const skillFilter = options?.skillFilter?.toLowerCase().trim();
   const includeExpired = options?.includeExpired ?? false;
 
+  // TODO: Subgraph path (when enabled)
+  // if (useSubgraphForNetwork()) {
+  //   try {
+  //     const raw = await fetchNetworkOverview({ skillFilter, limitAsks, limitOffers, includeExpired });
+  //     return adaptNetworkOverviewToGraphData(raw, { skillFilter, limitAsks, limitOffers, includeExpired });
+  //   } catch (error) {
+  //     console.warn('Subgraph query failed, falling back to Arkiv:', error);
+  //     // Fall through to Arkiv path below
+  //   }
+  // }
+
+  // Current Arkiv path (always used for now)
   // Fetch asks and offers
   // Note: listAsks and listOffers don't support skill filtering in params yet
   // We'll filter client-side for now
