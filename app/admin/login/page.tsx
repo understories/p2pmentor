@@ -31,19 +31,25 @@ export default function AdminLoginPage() {
         body: JSON.stringify({ password }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
       const data = await response.json();
 
-      if (data.valid) {
+      if (data.valid === true) {
         // Store admin session
         if (typeof window !== 'undefined') {
           sessionStorage.setItem('admin_authenticated', 'true');
         }
-        router.push('/admin');
+        // Use window.location for more reliable redirect
+        window.location.href = '/admin';
       } else {
-        setError('Invalid password');
+        setError(data.error || 'Invalid password');
       }
-    } catch (err) {
-      setError('Authentication failed. Please try again.');
+    } catch (err: any) {
+      console.error('[Admin Login] Error:', err);
+      setError(err.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
