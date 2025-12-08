@@ -85,6 +85,9 @@ export async function createFeedback({
     createdAt,
   };
 
+  // Feedback entities should persist long-term (1 year) since they're historical records
+  const expiresIn = 31536000; // 1 year in seconds
+
   const { entityKey, txHash } = await walletClient.createEntity({
     payload: enc.encode(JSON.stringify(payload)),
     contentType: 'application/json',
@@ -99,6 +102,7 @@ export async function createFeedback({
       { key: 'createdAt', value: createdAt },
       ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
     ],
+    expiresIn,
   });
 
   return { key: entityKey, txHash };

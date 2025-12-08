@@ -169,7 +169,7 @@ export function RequestMeetingModal({
           onSuccess();
         }
         onClose();
-        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', paymentTxHash: '' });
       } else {
         // Real error
         setError(errorMessage);

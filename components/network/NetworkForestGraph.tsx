@@ -227,9 +227,7 @@ export default function NetworkForestGraph() {
           }
           return isHoveredLink(link) ? 2.5 : 1.5;
         }}
-        linkOpacity={0.85}
-        linkHoverPrecision={8}
-        nodeCanvasObject={(node: NetworkGraphNode, ctx, globalScale) => {
+        nodeCanvasObject={(node: NetworkGraphNode & { x?: number; y?: number }, ctx, globalScale) => {
           const label = node.label;
           const fontSize = Math.max(8, 12 / globalScale);
           const nodeSize = Math.max(4, 6 / globalScale);
@@ -240,18 +238,21 @@ export default function NetworkForestGraph() {
           if (node.type === 'ask') color = '#f97373'; // soft red
           if (node.type === 'offer') color = '#4ade80'; // green
 
+          // Skip if position not available (shouldn't happen, but TypeScript safety)
+          if (node.x === undefined || node.y === undefined) return;
+
           // Draw glow effect (outer circle with blur)
           ctx.save();
           ctx.globalAlpha = isHovered ? 0.7 : 0.3;
           ctx.beginPath();
-          ctx.arc(node.x!, node.y!, nodeSize * (isHovered ? 2.8 : 2), 0, 2 * Math.PI, false);
+          ctx.arc(node.x, node.y, nodeSize * (isHovered ? 2.8 : 2), 0, 2 * Math.PI, false);
           ctx.fillStyle = color;
           ctx.fill();
           ctx.restore();
 
           // Draw main node circle
           ctx.beginPath();
-          ctx.arc(node.x!, node.y!, nodeSize * (isHovered ? 1.2 : 1), 0, 2 * Math.PI, false);
+          ctx.arc(node.x, node.y, nodeSize * (isHovered ? 1.2 : 1), 0, 2 * Math.PI, false);
           ctx.fillStyle = color;
           ctx.globalAlpha = 0.9;
           ctx.fill();
@@ -268,7 +269,7 @@ export default function NetworkForestGraph() {
             ctx.fillStyle = '#e5f9ff';
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillText(label, node.x! + nodeSize + 4, node.y!);
+            ctx.fillText(label, node.x + nodeSize + 4, node.y);
           }
 
           // Paid/free badge for offers

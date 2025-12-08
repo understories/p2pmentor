@@ -82,7 +82,11 @@ export async function connectWallet(): Promise<`0x${string}`> {
   // Then request accounts
   const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
-  });
+  }) as string[];
+
+  if (!accounts || accounts.length === 0) {
+    throw new Error("No accounts returned from MetaMask");
+  }
 
   return accounts[0] as `0x${string}`;
 }
