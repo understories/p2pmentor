@@ -10,7 +10,8 @@ import { listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import { listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
-import { transformAsk, transformOffer, transformProfile, transformSession, transformFeedback, createSkillRef } from './transformers';
+import { listAppFeedback } from '@/lib/arkiv/appFeedback';
+import { transformAsk, transformOffer, transformProfile, transformSession, transformFeedback, transformAppFeedback, createSkillRef } from './transformers';
 
 /**
  * Build network overview with skills, asks, and offers
@@ -223,6 +224,18 @@ export const resolvers = {
         return feedbacks.slice(0, limit).map(transformFeedback);
       } catch (error) {
         console.error('Error fetching feedback:', error);
+        return [];
+      }
+    },
+
+    appFeedback: async (_: any, args: any) => {
+      const { page, wallet, limit = 100, since } = args;
+      
+      try {
+        const feedbacks = await listAppFeedback({ page, wallet, limit, since });
+        return feedbacks.map(transformAppFeedback);
+      } catch (error) {
+        console.error('Error fetching app feedback:', error);
         return [];
       }
     },
