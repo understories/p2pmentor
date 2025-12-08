@@ -1,7 +1,10 @@
 /**
- * GraphQL queries for network data from The Graph subgraph
+ * GraphQL queries for network data
  * 
- * Queries the mentorship subgraph for asks, offers, and skills.
+ * Queries GraphQL endpoint (subgraph or Arkiv GraphQL API wrapper).
+ * Works with:
+ * - The Graph subgraph endpoints
+ * - Arkiv GraphQL API wrapper (see /app/api/graphql)
  * 
  * Reference: docs/graph_indexing_plan.md Section 5.1
  */
@@ -55,47 +58,48 @@ export interface NetworkOverviewParams {
 /**
  * GraphQL query string for network overview
  * 
- * Matches the query defined in docs/graph_indexing_plan.md Section 5.1
+ * Works with our Arkiv GraphQL API wrapper (see /app/api/graphql)
+ * Also compatible with The Graph subgraph syntax if needed
  */
 const NETWORK_OVERVIEW_QUERY = `
   query NetworkOverview(
     $skill: String
-    $limitSkills: Int!
-    $limitAsks: Int!
-    $limitOffers: Int!
+    $limitSkills: Int
+    $limitAsks: Int
+    $limitOffers: Int
+    $includeExpired: Boolean
   ) {
-    skillRefs(
-      where: { name_contains_nocase: $skill }
-      first: $limitSkills
+    networkOverview(
+      skill: $skill
+      limitSkills: $limitSkills
+      limitAsks: $limitAsks
+      limitOffers: $limitOffers
+      includeExpired: $includeExpired
     ) {
-      id
-      name
-      asks(
-        where: { status: "open" }
-        first: $limitAsks
-        orderBy: createdAt
-        orderDirection: desc
-      ) {
+      skillRefs {
         id
-        wallet
-        createdAt
-        status
-        expiresAt
-      }
-      offers(
-        where: { status: "active" }
-        first: $limitOffers
-        orderBy: createdAt
-        orderDirection: desc
-      ) {
-        id
-        wallet
-        isPaid
-        cost
-        paymentAddress
-        createdAt
-        status
-        expiresAt
+        name
+        asks(includeExpired: $includeExpired, limit: $limitAsks) {
+          id
+          key
+          wallet
+          skill
+          createdAt
+          status
+          expiresAt
+        }
+        offers(includeExpired: $includeExpired, limit: $limitOffers) {
+          id
+          key
+          wallet
+          skill
+          isPaid
+          cost
+          paymentAddress
+          createdAt
+          status
+          expiresAt
+        }
       }
     }
   }
@@ -118,32 +122,37 @@ const NETWORK_OVERVIEW_QUERY = `
  * ```
  */
 export async function fetchNetworkOverview(
-  params: NetworkOverviewParams
+  params: NetworkOverviewParams & { includeExpired?: boolean }
 ): Promise<GraphQLNetworkOverviewResponse> {
   const {
     skillFilter,
     limitSkills = 100, // Cap at reasonable number of skills
     limitAsks = 500, // Match current Arkiv behavior
     limitOffers = 500, // Match current Arkiv behavior
+    includeExpired = false,
   } = params;
 
   const variables: Record<string, any> = {
-    skill: skillFilter || null,
+    skill: skillFilter || undefined,
     limitSkills,
     limitAsks,
     limitOffers,
+    includeExpired,
   };
 
-  // Remove null values (GraphQL doesn't like them)
+  // Remove undefined values
   Object.keys(variables).forEach(key => {
-    if (variables[key] === null) {
+    if (variables[key] === undefined) {
       delete variables[key];
     }
   });
 
-  return graphRequest<GraphQLNetworkOverviewResponse>(
+  const response = await graphRequest<{ networkOverview: GraphQLNetworkOverviewResponse }>(
     NETWORK_OVERVIEW_QUERY,
     variables
   );
+
+  // Extract networkOverview from response
+  return response.networkOverview;
 }
 

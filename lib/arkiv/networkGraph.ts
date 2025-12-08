@@ -7,6 +7,7 @@
 
 import { listAsks } from './asks';
 import { listOffers } from './offers';
+import { useSubgraphForNetwork } from '@/lib/graph/featureFlags';
 import type { Ask } from './asks';
 import type { Offer } from './offers';
 import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib/types';
@@ -35,16 +36,36 @@ export async function buildNetworkGraphData(options?: {
   const skillFilter = options?.skillFilter?.toLowerCase().trim();
   const includeExpired = options?.includeExpired ?? false;
 
-  // TODO: Subgraph path (when enabled)
-  // if (useSubgraphForNetwork()) {
-  //   try {
-  //     const raw = await fetchNetworkOverview({ skillFilter, limitAsks, limitOffers, includeExpired });
-  //     return adaptNetworkOverviewToGraphData(raw, { skillFilter, limitAsks, limitOffers, includeExpired });
-  //   } catch (error) {
-  //     console.warn('Subgraph query failed, falling back to Arkiv:', error);
-  //     // Fall through to Arkiv path below
-  //   }
-  // }
+  // GraphQL path (when enabled)
+  // Uses our GraphQL API wrapper at /api/graphql which wraps Arkiv's JSON-RPC indexer
+  // See: lib/graphql/README.md and docs/ARKIV_GRAPHQL_TOOL.md
+  if (useSubgraphForNetwork()) {
+    try {
+      console.log('[NetworkGraph] Using GraphQL API path');
+      const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
+      const { adaptNetworkOverviewToGraphData } = await import('@/lib/graph/networkAdapter');
+      
+      const raw = await fetchNetworkOverview({ 
+        skillFilter, 
+        limitAsks, 
+        limitOffers,
+        includeExpired 
+      });
+      const result = adaptNetworkOverviewToGraphData(raw, { 
+        skillFilter, 
+        limitAsks, 
+        limitOffers, 
+        includeExpired 
+      });
+      console.log('[NetworkGraph] GraphQL path returned:', result.nodes.length, 'nodes,', result.links.length, 'links');
+      return result;
+    } catch (error) {
+      console.warn('[NetworkGraph] GraphQL query failed, falling back to Arkiv:', error);
+      // Fall through to Arkiv path below
+    }
+  } else {
+    console.log('[NetworkGraph] Using Arkiv JSON-RPC path');
+  }
 
   // Current Arkiv path (always used for now)
   // Fetch asks and offers
