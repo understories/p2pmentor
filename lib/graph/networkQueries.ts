@@ -24,6 +24,7 @@ export interface GraphQLSkillRef {
 
 export interface GraphQLAsk {
   id: string;
+  key?: string; // Entity key from Arkiv (optional, may not be in all responses)
   wallet: string;
   createdAt: string; // ISO string or BigInt string
   status: string;
@@ -32,6 +33,7 @@ export interface GraphQLAsk {
 
 export interface GraphQLOffer {
   id: string;
+  key?: string; // Entity key from Arkiv (optional, may not be in all responses)
   wallet: string;
   isPaid: boolean;
   cost: string | null; // BigInt string or null
