@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="16" cy="16" r="16" fill="#10b981"/>
+  
+  <!-- Two people connecting (mentorship symbol) -->
+  <!-- Left person -->
+  <circle cx="10" cy="12" r="3" fill="white"/>
+  <path d="M7 18 Q7 15 10 15 Q13 15 13 18" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Right person (slightly larger - mentor) -->
+  <circle cx="22" cy="11" r="3.5" fill="white"/>
+  <path d="M19 19 Q19 15.5 22 15.5 Q25 15.5 25 19" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Connection line between them -->
+  <path d="M13 16 L19 16" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>
+
