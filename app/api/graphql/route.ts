@@ -29,9 +29,12 @@ import { resolvers } from '@/lib/graphql/resolvers';
 const schema = buildSchema(graphQLSchema);
 
 // Create GraphQL handler
+// Note: rootValue should match the resolver structure
 const handler = createHandler({
   schema,
   rootValue: resolvers,
+  // Ensure context is passed correctly
+  context: () => ({}),
 });
 
 export async function POST(request: Request) {
