@@ -53,6 +53,24 @@ export default function Home() {
             Enter Beta
           </Link>
         </div>
+        
+        <div className="admin-link-container" style={{ marginTop: '1rem' }}>
+          <Link 
+            href="/admin/login"
+            className="admin-link"
+            style={{
+              fontSize: '0.875rem',
+              opacity: 0.7,
+              textDecoration: 'none',
+              color: 'inherit',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+          >
+            Admin Login
+          </Link>
+        </div>
       </main>
     </>
   );
