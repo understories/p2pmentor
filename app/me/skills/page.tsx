@@ -13,6 +13,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import 'viem/window'; // Adds window.ethereum type definition
 
 export default function SkillsPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
