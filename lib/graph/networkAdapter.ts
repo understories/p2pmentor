@@ -151,7 +151,7 @@ export function adaptNetworkOverviewToGraphData(
 
   // Create ask nodes
   for (const { ask, skillName } of limitedAsks) {
-    const nodeId = `ask:${ask.id}`;
+    const nodeId = `ask:${ask.key || ask.id}`;
     const node: NetworkGraphNode = {
       id: nodeId,
       type: 'ask',
@@ -166,7 +166,7 @@ export function adaptNetworkOverviewToGraphData(
 
   // Create offer nodes
   for (const { offer, skillName } of limitedOffers) {
-    const nodeId = `offer:${offer.id}`;
+    const nodeId = `offer:${offer.key || offer.id}`;
     const node: NetworkGraphNode = {
       id: nodeId,
       type: 'offer',
@@ -188,7 +188,7 @@ export function adaptNetworkOverviewToGraphData(
 
   // Ask-skill links
   for (const { ask, skillName } of limitedAsks) {
-    const askNodeId = `ask:${ask.id}`;
+    const askNodeId = `ask:${ask.key || ask.id}`;
     const skillNodeId = `skill:${skillName}`;
     const linkKey = `${askNodeId}-${skillNodeId}`;
     
@@ -204,7 +204,7 @@ export function adaptNetworkOverviewToGraphData(
 
   // Offer-skill links
   for (const { offer, skillName } of limitedOffers) {
-    const offerNodeId = `offer:${offer.id}`;
+    const offerNodeId = `offer:${offer.key || offer.id}`;
     const skillNodeId = `skill:${skillName}`;
     const linkKey = `${offerNodeId}-${skillNodeId}`;
     
@@ -225,8 +225,8 @@ export function adaptNetworkOverviewToGraphData(
         askSkill === offerSkill &&
         ask.wallet.toLowerCase() !== offer.wallet.toLowerCase()
       ) {
-        const askNodeId = `ask:${ask.id}`;
-        const offerNodeId = `offer:${offer.id}`;
+        const askNodeId = `ask:${ask.key || ask.id}`;
+        const offerNodeId = `offer:${offer.key || offer.id}`;
         
         if (!nodeMap.has(askNodeId) || !nodeMap.has(offerNodeId)) continue;
 

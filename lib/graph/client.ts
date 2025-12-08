@@ -1,7 +1,12 @@
 /**
- * GraphQL client for The Graph subgraph queries
+ * GraphQL client for GraphQL queries (subgraph or Arkiv GraphQL API)
  * 
- * Minimal wrapper around fetch for querying The Graph subgraph endpoint.
+ * Minimal wrapper around fetch for querying GraphQL endpoints.
+ * Works with:
+ * - The Graph subgraph endpoints
+ * - Arkiv GraphQL API wrapper (see /app/api/graphql)
+ * - Any GraphQL endpoint
+ * 
  * No heavy dependencies (no Apollo, no urql) - just typed fetch with error handling.
  * 
  * Reference: docs/graph_indexing_plan.md
