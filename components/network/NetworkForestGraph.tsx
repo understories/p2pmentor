@@ -13,6 +13,7 @@ import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib
 import type { UserProfile } from '@/lib/arkiv/profile';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { GraphQLIndicator } from './GraphQLIndicator';
 
 export default function NetworkForestGraph() {
   // All hooks must be called unconditionally at the top level
@@ -164,6 +165,7 @@ export default function NetworkForestGraph() {
   // Always render ForceGraph2D to maintain consistent hook order
   return (
     <div className="w-full h-[calc(100vh-4rem)] bg-black dark:bg-gray-900 relative">
+      <GraphQLIndicator />
       <div className="absolute top-4 left-4 z-20 flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-900/70 border border-emerald-700/40 text-sm text-emerald-100 backdrop-blur">
         <label className="flex items-center gap-2 cursor-pointer select-none">
           <input
