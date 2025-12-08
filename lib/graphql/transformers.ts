@@ -7,6 +7,7 @@
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Session } from '@/lib/arkiv/sessions';
 
 /**
  * Transform Arkiv Ask to GraphQL Ask
@@ -82,6 +83,34 @@ export function transformProfile(profile: UserProfile): any {
     skills: skills,
     availabilityWindow: profile.availabilityWindow || null,
     createdAt: createdAt ? BigInt(createdAt) : null,
+  };
+}
+
+/**
+ * Transform Arkiv Session to GraphQL Session
+ */
+export function transformSession(session: Session): any {
+  // Parse sessionDate to extract date and time
+  const sessionDate = new Date(session.sessionDate);
+  const date = sessionDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  const time = sessionDate.toTimeString().split(' ')[0].slice(0, 5); // HH:MM
+  const duration = session.duration ? `${session.duration} minutes` : '60 minutes';
+
+  return {
+    id: `session:${session.key}`,
+    key: session.key,
+    mentorWallet: session.mentorWallet,
+    learnerWallet: session.learnerWallet,
+    skill: session.skill,
+    date,
+    time,
+    duration,
+    notes: session.notes || null,
+    status: session.status,
+    mentorConfirmed: session.mentorConfirmed || false,
+    learnerConfirmed: session.learnerConfirmed || false,
+    createdAt: session.createdAt,
+    txHash: session.txHash || null,
   };
 }
 
