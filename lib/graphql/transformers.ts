@@ -9,6 +9,7 @@ import type { Offer } from '@/lib/arkiv/offers';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { Feedback } from '@/lib/arkiv/feedback';
+import type { AppFeedback } from '@/lib/arkiv/appFeedback';
 
 /**
  * Transform Arkiv Ask to GraphQL Ask
@@ -130,6 +131,22 @@ export function transformFeedback(feedback: Feedback): any {
     rating: feedback.rating || null,
     notes: feedback.notes || null,
     technicalDxFeedback: feedback.technicalDxFeedback || null,
+    createdAt: feedback.createdAt,
+    txHash: feedback.txHash || null,
+  };
+}
+
+/**
+ * Transform Arkiv AppFeedback to GraphQL AppFeedback
+ */
+export function transformAppFeedback(feedback: AppFeedback): any {
+  return {
+    id: `app_feedback:${feedback.key}`,
+    key: feedback.key,
+    wallet: feedback.wallet,
+    page: feedback.page,
+    message: feedback.message,
+    rating: feedback.rating || null,
     createdAt: feedback.createdAt,
     txHash: feedback.txHash || null,
   };

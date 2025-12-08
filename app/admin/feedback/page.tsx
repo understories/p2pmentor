@@ -1,13 +1,10 @@
 /**
  * Admin Feedback View
  * 
- * ⚠️ NOTE: This currently shows SESSION feedback (peer-to-peer).
- * 
- * TODO: Create separate APP feedback system for user feedback to builders/admin.
- * Session feedback should remain separate - this is for peer reviews.
+ * Displays app feedback from users (for builders/admin).
+ * Separate from session feedback (peer-to-peer).
  * 
  * Reference: refs/docs/sprint2.md Section 4.1
- * See: refs/docs/feedback_system_analysis.md for separation requirements
  */
 
 'use client';
@@ -18,17 +15,13 @@ import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { graphRequest } from '@/lib/graph/client';
 
-interface Feedback {
+interface AppFeedback {
   id: string;
   key: string;
-  sessionKey: string;
-  mentorWallet: string;
-  learnerWallet: string;
-  feedbackFrom: string;
-  feedbackTo: string;
+  wallet: string;
+  page: string;
+  message: string;
   rating: number | null;
-  notes: string | null;
-  technicalDxFeedback: string | null;
   createdAt: string;
   txHash: string | null;
 }
@@ -37,7 +30,7 @@ export default function AdminFeedbackPage() {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [feedbacks, setFeedbacks] = useState<AppFeedback[]>([]);
   const [filterPage, setFilterPage] = useState('');
   const [filterSince, setFilterSince] = useState('');
 
@@ -72,31 +65,31 @@ export default function AdminFeedbackPage() {
       }
 
       const query = `
-        query Feedback($limit: Int, $since: String) {
-          feedback(limit: $limit, since: $since) {
+        query AppFeedback($limit: Int, $since: String, $page: String) {
+          appFeedback(limit: $limit, since: $since, page: $page) {
             id
             key
-            sessionKey
-            mentorWallet
-            learnerWallet
-            feedbackFrom
-            feedbackTo
+            wallet
+            page
+            message
             rating
-            notes
-            technicalDxFeedback
             createdAt
             txHash
           }
         }
       `;
 
-      const data = await graphRequest<{ feedback: Feedback[] }>(
+      if (filterPage) {
+        variables.page = filterPage;
+      }
+
+      const data = await graphRequest<{ appFeedback: AppFeedback[] }>(
         query,
         variables,
-        { operationName: 'Feedback' }
+        { operationName: 'AppFeedback' }
       );
 
-      const feedbacks: Feedback[] = data.feedback || [];
+      const feedbacks: AppFeedback[] = data.appFeedback || [];
       setFeedbacks(feedbacks);
     } catch (err) {
       console.error('Failed to fetch feedback:', err);
@@ -133,14 +126,11 @@ export default function AdminFeedbackPage() {
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-              Session Feedback
+              App Feedback
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
-              Peer-to-peer feedback from sessions (for reference)
+              User feedback about the app (for builders/admin)
             </p>
-            <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-yellow-800 dark:text-yellow-200">
-              ⚠️ Note: This shows session feedback. App feedback system (for builders/admin) needs to be implemented separately.
-            </div>
           </div>
           <div className="flex gap-4">
             <Link
@@ -161,6 +151,16 @@ export default function AdminFeedbackPage() {
         {/* Filters */}
         <div className="mb-6 flex gap-4">
           <div className="flex-1">
+            <label className="block text-sm font-medium mb-2">Page</label>
+            <input
+              type="text"
+              value={filterPage}
+              onChange={(e) => setFilterPage(e.target.value)}
+              placeholder="e.g., /network, /me"
+              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+            />
+          </div>
+          <div className="flex-1">
             <label className="block text-sm font-medium mb-2">Since Date</label>
             <input
               type="date"
@@ -171,7 +171,10 @@ export default function AdminFeedbackPage() {
           </div>
           <div className="flex items-end">
             <button
-              onClick={() => setFilterSince('')}
+              onClick={() => {
+                setFilterPage('');
+                setFilterSince('');
+              }}
               className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
             >
               Clear
@@ -187,11 +190,10 @@ export default function AdminFeedbackPage() {
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-sm font-medium">Date</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">From</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">To</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Wallet</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Page</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Rating</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Notes</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Session</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Message</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -201,10 +203,10 @@ export default function AdminFeedbackPage() {
                         {new Date(feedback.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2 text-sm font-mono text-xs">
-                        {feedback.feedbackFrom.slice(0, 10)}...
+                        {feedback.wallet.slice(0, 10)}...
                       </td>
-                      <td className="px-4 py-2 text-sm font-mono text-xs">
-                        {feedback.feedbackTo.slice(0, 10)}...
+                      <td className="px-4 py-2 text-sm">
+                        {feedback.page}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.rating ? (
@@ -215,11 +217,10 @@ export default function AdminFeedbackPage() {
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm max-w-xs truncate">
-                        {feedback.notes || feedback.technicalDxFeedback || '—'}
-                      </td>
-                      <td className="px-4 py-2 text-sm font-mono text-xs">
-                        {feedback.sessionKey.slice(0, 10)}...
+                      <td className="px-4 py-2 text-sm max-w-md">
+                        <div className="truncate" title={feedback.message}>
+                          {feedback.message}
+                        </div>
                       </td>
                     </tr>
                   ))}

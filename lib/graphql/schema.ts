@@ -60,6 +60,14 @@ export const graphQLSchema = `
       limit: Int
       since: String
     ): [Feedback!]!
+    
+    # App feedback (for builders/admin, separate from session feedback)
+    appFeedback(
+      page: String
+      wallet: String
+      limit: Int
+      since: String
+    ): [AppFeedback!]!
   }
 
   type NetworkOverview {
@@ -158,6 +166,17 @@ export const graphQLSchema = `
     rating: Int
     notes: String
     technicalDxFeedback: String
+    createdAt: String!
+    txHash: String
+  }
+
+  type AppFeedback {
+    id: ID!
+    key: String!
+    wallet: String!
+    page: String!
+    message: String!
+    rating: Int
     createdAt: String!
     txHash: String
   }
