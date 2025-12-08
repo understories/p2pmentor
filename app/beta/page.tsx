@@ -2,7 +2,7 @@
  * Beta invite gate page
  * 
  * Simple invite code system to prevent DDOS.
- * For now, requires "growtogether" as the invite code.
+ * Beta code is configured via NEXT_PUBLIC_BETA_INVITE_CODE environment variable.
  */
 
 'use client';
@@ -17,10 +17,18 @@ export default function BetaPage() {
   const [error, setError] = useState('');
   const router = useRouter();
 
+  // Get beta code from environment variable (client-side accessible)
+  const expectedCode = process.env.NEXT_PUBLIC_BETA_INVITE_CODE?.toLowerCase().trim() || '';
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (inviteCode.toLowerCase() === 'growtogether') {
+    if (!expectedCode) {
+      setError('Beta access is not configured. Please contact the administrator.');
+      return;
+    }
+    
+    if (inviteCode.toLowerCase().trim() === expectedCode) {
       // Store invite code in session/localStorage for future checks
       if (typeof window !== 'undefined') {
         localStorage.setItem('beta_invite_code', inviteCode);

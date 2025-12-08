@@ -8,7 +8,7 @@
 ## ✅ Completed (P0, P1, P2 Partial)
 
 ### P0 - Core Foundations ✅
-- ✅ Beta invite code system (`/beta` with "growtogether")
+- ✅ Beta invite code system (`/beta` with configurable invite code via environment variable)
 - ✅ Arkiv SDK setup (client & server)
 - ✅ MetaMask authentication
 - ✅ Example wallet login

@@ -28,6 +28,10 @@ export const JITSI_BASE_URL = process.env.JITSI_BASE_URL || 'https://meet.jit.si
 export const GRAPH_SUBGRAPH_URL = process.env.GRAPH_SUBGRAPH_URL;
 export const USE_SUBGRAPH_FOR_NETWORK = process.env.USE_SUBGRAPH_FOR_NETWORK === 'true';
 
+// Beta invite code (configured via environment variable for security)
+// This should be set in Vercel environment variables, not in code
+export const BETA_INVITE_CODE = process.env.NEXT_PUBLIC_BETA_INVITE_CODE;
+
 /**
  * Get private key, throwing if not available
  * 
