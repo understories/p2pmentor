@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
   
   useEffect(() => {
     setMounted(true);
@@ -20,8 +21,6 @@ export function ThemeToggle() {
   if (!mounted) {
     return null;
   }
-
-  const { theme, toggleTheme } = useTheme();
 
   return (
     <button
