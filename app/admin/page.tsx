@@ -133,9 +133,9 @@ export default function AdminDashboard() {
               target="_blank"
               rel="noopener noreferrer"
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-              title="Generate real performance data from Arkiv queries"
+              title="Test query performance by making real Arkiv queries and recording metrics"
             >
-              Generate Real Data
+              Test Query Performance
             </a>
           </div>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
