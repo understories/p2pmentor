@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
+import { FeedbackButton } from "@/components/FeedbackButton";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -21,6 +22,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
+          <FeedbackButton />
         </ThemeProvider>
       </body>
     </html>
