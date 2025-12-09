@@ -37,11 +37,27 @@ export async function getWalletClientFromPasskey(
   userId: string,
   credentialID: string
 ) {
-  // Unlock passkey wallet (decrypts private key)
-  const { privateKeyHex } = await unlockPasskeyWallet(userId, credentialID);
+  console.log('[getWalletClientFromPasskey] Unlocking passkey wallet...', {
+    userId,
+    credentialIDLength: credentialID.length,
+  });
   
-  // Create wallet client from private key (reuse existing pattern)
+  // Unlock passkey wallet (decrypts private key)
+  const { privateKeyHex, address } = await unlockPasskeyWallet(userId, credentialID);
+  
+  console.log('[getWalletClientFromPasskey] ✅ Wallet unlocked:', {
+    address,
+    privateKeyLength: privateKeyHex.length,
+  });
+  
+  // Create wallet client from private key (reuse existing pattern - same as MetaMask)
+  console.log('[getWalletClientFromPasskey] Creating Arkiv wallet client (same pattern as MetaMask)...');
   const walletClient = getWalletClientFromPrivateKey(privateKeyHex);
+  
+  console.log('[getWalletClientFromPasskey] ✅ Arkiv wallet client created:', {
+    address,
+    chain: walletClient.chain?.name || 'mendoza',
+  });
   
   // Note: privateKeyHex is kept in memory only for the lifetime of this function call
   // The wallet client holds a reference, but we don't persist it elsewhere

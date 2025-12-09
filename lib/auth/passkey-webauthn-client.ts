@@ -48,9 +48,32 @@ export async function registerPasskey(
     const { options } = await optionsResponse.json();
     const challenge = options.challenge;
 
-    // Step 2: Call WebAuthn API to create credential
+    // Step 2: Transform options for WebAuthn API
+    // The server returns base64url strings, but WebAuthn requires ArrayBuffers
+    const publicKeyOptions: PublicKeyCredentialCreationOptions = {
+      ...options,
+      challenge: base64URLToArrayBuffer(options.challenge),
+      user: {
+        ...options.user,
+        id: base64URLToArrayBuffer(options.user.id),
+      },
+      // Transform allowCredentials if present (for login, not registration)
+      excludeCredentials: options.excludeCredentials?.map((cred: any) => ({
+        ...cred,
+        id: base64URLToArrayBuffer(cred.id),
+      })) || [],
+    };
+
+    console.log('[passkey-webauthn-client] Registering passkey with options:', {
+      challengeLength: publicKeyOptions.challenge.byteLength,
+      userIdLength: publicKeyOptions.user.id.byteLength,
+      rpId: publicKeyOptions.rp.id,
+      userName: publicKeyOptions.user.name,
+    });
+
+    // Step 3: Call WebAuthn API to create credential
     const credential = await navigator.credentials.create({
-      publicKey: options,
+      publicKey: publicKeyOptions,
     }) as PublicKeyCredential;
 
     if (!credential) {
@@ -143,9 +166,27 @@ export async function loginWithPasskey(
     const { options } = await optionsResponse.json();
     const challenge = options.challenge;
 
-    // Step 2: Call WebAuthn API to get credential
+    // Step 2: Transform options for WebAuthn API
+    // The server returns base64url strings, but WebAuthn requires ArrayBuffers
+    const publicKeyOptions: PublicKeyCredentialRequestOptions = {
+      ...options,
+      challenge: base64URLToArrayBuffer(options.challenge),
+      // Transform allowCredentials if present
+      allowCredentials: options.allowCredentials?.map((cred: any) => ({
+        ...cred,
+        id: base64URLToArrayBuffer(cred.id),
+      })) || undefined,
+    };
+
+    console.log('[passkey-webauthn-client] Authenticating with passkey:', {
+      challengeLength: publicKeyOptions.challenge.byteLength,
+      allowCredentialsCount: publicKeyOptions.allowCredentials?.length || 0,
+      rpId: publicKeyOptions.rpId,
+    });
+
+    // Step 3: Call WebAuthn API to get credential
     const credential = await navigator.credentials.get({
-      publicKey: options,
+      publicKey: publicKeyOptions,
     }) as PublicKeyCredential;
 
     if (!credential) {
@@ -246,5 +287,28 @@ function arrayBufferToBase64URL(buffer: ArrayBuffer): string {
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=/g, '');
+}
+
+/**
+ * Convert base64url string to ArrayBuffer
+ * 
+ * @param base64url - Base64url-encoded string
+ * @returns ArrayBuffer
+ */
+function base64URLToArrayBuffer(base64url: string): ArrayBuffer {
+  // Convert base64url to base64
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  // Add padding if needed
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  // Decode base64 to binary string
+  const binary = atob(base64);
+  // Convert binary string to ArrayBuffer
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
 }
 

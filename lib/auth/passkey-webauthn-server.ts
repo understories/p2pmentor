@@ -13,9 +13,6 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
-import type {
-  AuthenticatorTransportFuture,
-} from '@simplewebauthn/typescript-types';
 
 // Relying Party configuration from environment
 const rpID = process.env.PASSKEY_RP_ID || (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
@@ -32,7 +29,7 @@ interface StoredCredential {
   credentialID: Uint8Array;
   credentialPublicKey: Uint8Array;
   counter: number;
-  transports?: AuthenticatorTransportFuture[];
+  transports?: string[]; // e.g., ['usb', 'nfc', 'ble', 'internal']
 }
 
 const credentialStore = new Map<string, StoredCredential[]>();

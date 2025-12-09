@@ -34,12 +34,18 @@ const PAYLOAD_VERSION = '1.0';
  * @returns Object with privateKey (hex string) and address (0x...)
  */
 export function generateEvmKeypair(): { privateKey: `0x${string}`; address: `0x${string}` } {
+  console.log('[passkey-wallet] Generating new EVM keypair...');
   const privateKey = generatePrivateKey();
   const account = privateKeyToAccount(privateKey);
-  return {
+  const keypair = {
     privateKey,
     address: account.address,
   };
+  console.log('[passkey-wallet] ✅ Generated EVM keypair:', {
+    address: keypair.address,
+    privateKeyLength: keypair.privateKey.length,
+  });
+  return keypair;
 }
 
 /**
