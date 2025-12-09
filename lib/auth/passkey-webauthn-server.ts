@@ -31,7 +31,34 @@ function getRPID(): string {
 
 const rpID = getRPID();
 const rpName = process.env.PASSKEY_RP_NAME || 'p2pmentor';
-const origin = process.env.PASSKEY_ORIGIN || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+
+/**
+ * Get expected origin for WebAuthn verification
+ * 
+ * Priority:
+ * 1. PASSKEY_ORIGIN env var (explicit override)
+ * 2. Request origin (from headers, for server-side)
+ * 3. window.location.origin (client-side)
+ * 4. Default to localhost for development
+ * 
+ * @param requestOrigin - Origin from request headers (optional)
+ * @returns Expected origin string
+ */
+function getExpectedOrigin(requestOrigin?: string): string {
+  if (process.env.PASSKEY_ORIGIN) {
+    return process.env.PASSKEY_ORIGIN;
+  }
+  if (requestOrigin) {
+    return requestOrigin;
+  }
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  // Default for server-side when no request origin provided
+  return process.env.NODE_ENV === 'production' 
+    ? 'https://p2pmentor.com' 
+    : 'http://localhost:3000';
+}
 
 /**
  * In-memory storage for WebAuthn credentials (beta)
@@ -89,15 +116,18 @@ export async function getRegistrationOptions(
 export async function verifyRegistration(
   userId: string,
   response: any,
-  expectedChallenge: string
+  expectedChallenge: string,
+  requestOrigin?: string
 ): Promise<{ verified: boolean; credentialID?: string; error?: string }> {
   try {
+    const expectedOrigin = getExpectedOrigin(requestOrigin);
+    
     // Get stored registration options (in production, store in session/DB)
     // For beta, we'll reconstruct from the response
     const opts = {
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin,
       expectedRPID: rpID,
       requireUserVerification: false, // Optional for beta
     };
@@ -167,9 +197,12 @@ export async function getAuthenticationOptions(
 export async function verifyAuthentication(
   userId: string | undefined,
   response: any,
-  expectedChallenge: string
+  expectedChallenge: string,
+  requestOrigin?: string
 ): Promise<{ verified: boolean; userId?: string; error?: string }> {
   try {
+    const expectedOrigin = getExpectedOrigin(requestOrigin);
+    
     // Find credential by ID (from response)
     let storedCredential: StoredCredential | undefined;
     let foundUserId: string | undefined;
@@ -204,7 +237,7 @@ export async function verifyAuthentication(
     const opts = {
       response,
       expectedChallenge,
-      expectedOrigin: origin,
+      expectedOrigin,
       expectedRPID: rpID,
       authenticator: {
         credentialID: storedCredential.credentialID,

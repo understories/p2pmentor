@@ -22,7 +22,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const verification = await verifyAuthentication(userId, response, challenge);
+    // Extract origin from request headers for production compatibility
+    const origin = request.headers.get('origin') || 
+                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+                   undefined;
+
+    const verification = await verifyAuthentication(userId, response, challenge, origin);
 
     if (!verification.verified) {
       return NextResponse.json(
