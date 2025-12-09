@@ -27,6 +27,7 @@ export type PerfSnapshot = {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
   arkiv?: {
     avgDurationMs: number;
@@ -35,6 +36,7 @@ export type PerfSnapshot = {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
   pageLoadTimes?: {
     avgDurationMs: number;
