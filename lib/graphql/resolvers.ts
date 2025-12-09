@@ -109,9 +109,21 @@ export const resolvers = {
           return [];
         }
 
-        return asks.map(transformAsk);
+        // Safely transform asks, filtering out any that fail to transform
+        const transformed = asks
+          .map((ask) => {
+            try {
+              return transformAsk(ask);
+            } catch (transformError) {
+              console.error('[GraphQL] Error transforming ask:', transformError, ask);
+              return null;
+            }
+          })
+          .filter((ask) => ask !== null);
+
+        return transformed;
       } catch (error) {
-        console.error('Error fetching asks:', error);
+        console.error('[GraphQL] Error fetching asks:', error);
         return []; // Always return array, never null
       }
     },
