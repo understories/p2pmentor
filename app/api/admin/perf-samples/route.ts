@@ -299,22 +299,27 @@ export async function GET(request: Request) {
         );
       }
     }
-    if (summary && summaryOperation) {
+    if (summary) {
       // Return performance summary
-      // ALWAYS query Arkiv entities first (real, verifiable data)
-      // Then merge with in-memory samples if any
-      let perfSummary = getPerfSummary(summaryOperation, route);
+      // If summaryOperation is specified, filter by that operation
+      // Otherwise, aggregate across all operations (grouped by route)
+      let perfSummary: any;
       
-      try {
-        // Query Arkiv entities for the operation
+      if (summaryOperation) {
+        // Filter by specific operation (existing logic)
+        perfSummary = getPerfSummary(summaryOperation, route);
+        
+        try {
+        // Query Arkiv entities
+        // If summaryOperation is provided, filter by it; otherwise get all operations
         const arkivMetrics = await listDxMetrics({
-          operation: summaryOperation,
+          operation: summaryOperation || undefined,
           route,
-          limit: 100,
+          limit: 200, // Increased limit when aggregating all operations
         });
         
         // Soft fallback warning: if Arkiv returns empty, warn user
-        if (arkivMetrics.length === 0) {
+        if (arkivMetrics.length === 0 && summaryOperation) {
           console.warn('[admin/perf-samples] No Arkiv entities found for operation:', summaryOperation);
           // Continue with in-memory data, but note the limitation
         }
@@ -451,9 +456,93 @@ export async function GET(request: Request) {
             }
           }
         }
-      } catch (error) {
-        console.error('[admin/perf-samples] Failed to query Arkiv entities for summary:', error);
-        // Continue with in-memory data only if Arkiv query fails
+        } catch (error) {
+          console.error('[admin/perf-samples] Failed to query Arkiv entities for summary:', error);
+          // Continue with in-memory data only if Arkiv query fails
+        }
+      } else {
+        // No summaryOperation specified - aggregate across all operations by route
+        const allSamples = getPerfSamples();
+        const graphqlSamples = allSamples.filter(s => s.source === 'graphql');
+        const arkivSamples = allSamples.filter(s => s.source === 'arkiv');
+        
+        const aggregateByRoute = (samples: typeof allSamples) => {
+          if (samples.length === 0) return undefined;
+          
+          const durations = samples.map(s => s.durationMs);
+          const payloadSizes = samples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+          const httpCounts = samples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+          
+          // Count queries per page/route (aggregate across all operations)
+          const pageCounts: Record<string, number> = {};
+          samples.forEach(s => {
+            const page = s.route || '(no route)';
+            pageCounts[page] = (pageCounts[page] || 0) + 1;
+          });
+          
+          return {
+            avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+            minDurationMs: Math.min(...durations),
+            maxDurationMs: Math.max(...durations),
+            avgPayloadBytes: payloadSizes.length > 0
+              ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+              : undefined,
+            avgHttpRequests: httpCounts.length > 0
+              ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+              : undefined,
+            samples: samples.length,
+            pages: pageCounts,
+          };
+        };
+        
+        perfSummary = {
+          graphql: aggregateByRoute(graphqlSamples),
+          arkiv: aggregateByRoute(arkivSamples),
+        };
+        
+        // Also query Arkiv entities and merge
+        try {
+          const arkivMetrics = await listDxMetrics({
+            route,
+            limit: 200,
+          });
+          
+          if (arkivMetrics.length > 0) {
+            const arkivSamplesFromArkiv = arkivMetrics
+              .filter(m => m.source === 'arkiv')
+              .map(m => ({
+                source: m.source as 'arkiv',
+                operation: m.operation,
+                route: m.route,
+                durationMs: m.durationMs,
+                payloadBytes: m.payloadBytes,
+                httpRequests: m.httpRequests,
+                createdAt: m.createdAt,
+              }));
+            
+            const graphqlSamplesFromArkiv = arkivMetrics
+              .filter(m => m.source === 'graphql')
+              .map(m => ({
+                source: m.source as 'graphql',
+                operation: m.operation,
+                route: m.route,
+                durationMs: m.durationMs,
+                payloadBytes: m.payloadBytes,
+                httpRequests: m.httpRequests,
+                createdAt: m.createdAt,
+              }));
+            
+            // Merge Arkiv data with in-memory data
+            const allArkivSamples = [...arkivSamples, ...arkivSamplesFromArkiv];
+            const allGraphqlSamples = [...graphqlSamples, ...graphqlSamplesFromArkiv];
+            
+            perfSummary.arkiv = aggregateByRoute(allArkivSamples);
+            perfSummary.graphql = aggregateByRoute(allGraphqlSamples);
+          }
+        } catch (error) {
+          console.error('[admin/perf-samples] Failed to query Arkiv entities for all operations:', error);
+          // Continue with in-memory data only
+        }
       }
       
       return NextResponse.json(perfSummary);
