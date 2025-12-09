@@ -13,6 +13,7 @@
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
+import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
 
 interface RequestMeetingModalProps {
   isOpen: boolean;
@@ -73,6 +74,23 @@ export function RequestMeetingModal({
     if (!formData.date || !formData.time || !formData.skill) {
       setError('Please fill in date, time, and skill');
       return;
+    }
+
+    // Validate time is in 15-minute increments
+    const [hours, minutes] = formData.time.split(':').map(Number);
+    if (minutes % 15 !== 0) {
+      setError('Time must be in 15-minute intervals (e.g., 1:00 PM, 1:15 PM, 1:30 PM, 1:45 PM)');
+      return;
+    }
+
+    // Validate against offer availability if offer is provided
+    if (offer?.availabilityWindow) {
+      const sessionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
+      const validation = validateDateTimeAgainstAvailability(sessionDate, offer.availabilityWindow);
+      if (!validation.valid) {
+        setError(validation.error || 'Selected time does not match mentor availability');
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -238,8 +256,15 @@ export function RequestMeetingModal({
                 onChange={(e) => setFormData({ ...formData, skill: e.target.value })}
                 placeholder="e.g. solidity, react, design"
                 required
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                readOnly={!!offer}
+                disabled={!!offer}
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${offer ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
               />
+              {offer && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Skill is set by the offer and cannot be changed
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -260,16 +285,37 @@ export function RequestMeetingModal({
 
               <div>
                 <label htmlFor="time" className="block text-sm font-medium mb-1">
-                  Time *
+                  Time * (15-min intervals)
                 </label>
                 <input
                   id="time"
                   type="time"
                   value={formData.time}
-                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  onChange={(e) => {
+                    const time = e.target.value;
+                    if (!time) {
+                      setFormData({ ...formData, time: '' });
+                      return;
+                    }
+                    // Round to nearest 15 minutes
+                    const [hours, minutes] = time.split(':').map(Number);
+                    const roundedMinutes = Math.round(minutes / 15) * 15;
+                    let adjustedHours = hours;
+                    let finalMinutes = roundedMinutes;
+                    if (roundedMinutes >= 60) {
+                      adjustedHours = (hours + 1) % 24;
+                      finalMinutes = 0;
+                    }
+                    const roundedTime = `${String(adjustedHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+                    setFormData({ ...formData, time: roundedTime });
+                  }}
+                  step="900"
                   required
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Times are rounded to 15-minute intervals
+                </p>
               </div>
             </div>
 

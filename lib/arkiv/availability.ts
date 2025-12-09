@@ -320,6 +320,71 @@ export function formatAvailabilityForDisplay(availabilityString: string): string
 }
 
 /**
+ * Check if a date and time matches availability
+ * 
+ * Validates if a requested meeting time falls within the mentor's availability.
+ * 
+ * @param dateTime - ISO date-time string (e.g., "2025-12-18T13:07:00")
+ * @param availabilityString - Availability string (JSON or text)
+ * @returns Validation result with error message if invalid
+ */
+export function validateDateTimeAgainstAvailability(
+  dateTime: string,
+  availabilityString: string
+): { valid: boolean; error?: string } {
+  try {
+    const requestedDate = new Date(dateTime);
+    const dayOfWeek = requestedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const dayNames: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayName = dayNames[dayOfWeek];
+    
+    // Extract time in HH:mm format
+    const timeStr = dateTime.split('T')[1]?.split('.')[0]?.substring(0, 5) || '';
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const timeMinutes = hours * 60 + minutes;
+    
+    // Try to parse as structured format
+    const structured = deserializeWeeklyAvailability(availabilityString);
+    if (structured) {
+      const dayAvailability = structured.days[dayName];
+      
+      // Check if day is available
+      if (!dayAvailability.available) {
+        return { 
+          valid: false, 
+          error: `The selected date (${dayName}) is not available. ${formatAvailabilityForDisplay(availabilityString)}` 
+        };
+      }
+      
+      // Check if time falls within any time slot
+      const timeInSlot = dayAvailability.timeSlots.some(slot => {
+        const [startHours, startMinutes] = slot.start.split(':').map(Number);
+        const [endHours, endMinutes] = slot.end.split(':').map(Number);
+        const startTimeMinutes = startHours * 60 + startMinutes;
+        const endTimeMinutes = endHours * 60 + endMinutes;
+        
+        return timeMinutes >= startTimeMinutes && timeMinutes < endTimeMinutes;
+      });
+      
+      if (!timeInSlot) {
+        return { 
+          valid: false, 
+          error: `The selected time (${timeStr}) is not within available time slots. ${formatAvailabilityForDisplay(availabilityString)}` 
+        };
+      }
+      
+      return { valid: true };
+    }
+    
+    // For legacy text format, we can't validate precisely, so allow it
+    // (This is a limitation of text-based availability)
+    return { valid: true };
+  } catch (err) {
+    return { valid: false, error: 'Invalid date/time format' };
+  }
+}
+
+/**
  * Create an availability entity
  * 
  * Supports both legacy text format and new structured WeeklyAvailability format.
