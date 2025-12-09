@@ -96,7 +96,7 @@ export async function createOffer({
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'offer' },
-        { key: 'wallet', value: wallet },
+        { key: 'wallet', value: wallet.toLowerCase() },
         { key: 'skill', value: skill },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
@@ -120,11 +120,11 @@ export async function createOffer({
       txHash,
     })),
     contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'offer_txhash' },
-      { key: 'offerKey', value: entityKey },
-      { key: 'wallet', value: wallet },
-      { key: 'spaceId', value: spaceId },
+      attributes: [
+        { key: 'type', value: 'offer_txhash' },
+        { key: 'offerKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
     ],
     expiresIn: ttl,
   });
@@ -343,14 +343,14 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
   const [result, txHashResult] = await Promise.all([
     query
       .where(eq('type', 'offer'))
-      .where(eq('wallet', wallet))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'offer_txhash'))
-      .where(eq('wallet', wallet))
+        publicClient.buildQuery()
+          .where(eq('type', 'offer_txhash'))
+          .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)

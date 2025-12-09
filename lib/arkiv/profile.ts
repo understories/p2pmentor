@@ -153,7 +153,7 @@ export async function createUserProfileClient({
 
   const attributes: Array<{ key: string; value: string }> = [
     { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: wallet },
+    { key: 'wallet', value: wallet.toLowerCase() },
     { key: 'displayName', value: displayName },
     { key: 'timezone', value: timezone },
     { key: 'spaceId', value: spaceId },
@@ -276,7 +276,7 @@ export async function createUserProfile({
 
   const attributes: Array<{ key: string; value: string }> = [
     { key: 'type', value: 'user_profile' },
-    { key: 'wallet', value: wallet },
+    { key: 'wallet', value: wallet.toLowerCase() },
     { key: 'displayName', value: displayName },
     { key: 'timezone', value: timezone },
     { key: 'spaceId', value: spaceId },
@@ -477,7 +477,7 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
   const query = publicClient.buildQuery();
   const result = await query
     .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet))
+    .where(eq('wallet', wallet.toLowerCase()))
     .withAttributes(true)
     .withPayload(true)
     .limit(100)

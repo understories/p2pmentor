@@ -117,7 +117,7 @@ export default function AvailabilityPage() {
           setSuccess('Availability submitted! Transaction is being processed. Please refresh in a moment.');
           setTimeBlocks('');
           setWeeklyAvailability(null);
-          // Reload after a delay
+          // Reload after a delay to allow entity to be indexed
           setTimeout(() => loadData(walletAddress), 2000);
         } else {
           setSuccess('Availability created successfully!');

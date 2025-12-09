@@ -62,8 +62,8 @@ export async function createAdminResponse({
     attributes: [
       { key: 'type', value: 'admin_response' },
       { key: 'feedbackKey', value: feedbackKey },
-      { key: 'wallet', value: wallet },
-      { key: 'adminWallet', value: adminWallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'adminWallet', value: adminWallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
       { key: 'createdAt', value: createdAt },
     ],
@@ -77,7 +77,7 @@ export async function createAdminResponse({
     attributes: [
       { key: 'type', value: 'admin_response_txhash' },
       { key: 'responseKey', value: entityKey },
-      { key: 'wallet', value: wallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn,

@@ -375,7 +375,7 @@ export async function createAvailability({
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'availability' },
-        { key: 'wallet', value: wallet },
+        { key: 'wallet', value: wallet.toLowerCase() },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
         { key: 'timezone', value: timezone },
@@ -397,7 +397,7 @@ export async function createAvailability({
     attributes: [
       { key: 'type', value: 'availability_txhash' },
       { key: 'availabilityKey', value: entityKey },
-      { key: 'wallet', value: wallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn: expiresIn,

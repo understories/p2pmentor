@@ -68,7 +68,7 @@ export async function createAppFeedback({
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'app_feedback' },
-      { key: 'wallet', value: wallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
       { key: 'page', value: page },
       { key: 'feedbackType', value: feedbackType }, // 'feedback' or 'issue'
       { key: 'spaceId', value: spaceId },
@@ -85,7 +85,7 @@ export async function createAppFeedback({
     attributes: [
       { key: 'type', value: 'app_feedback_txhash' },
       { key: 'feedbackKey', value: entityKey },
-      { key: 'wallet', value: wallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn,

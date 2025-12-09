@@ -62,7 +62,7 @@ export async function createAsk({
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'ask' },
-        { key: 'wallet', value: wallet },
+        { key: 'wallet', value: wallet.toLowerCase() },
         { key: 'skill', value: skill },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
@@ -82,11 +82,11 @@ export async function createAsk({
       txHash,
     })),
     contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'ask_txhash' },
-      { key: 'askKey', value: entityKey },
-      { key: 'wallet', value: wallet },
-      { key: 'spaceId', value: spaceId },
+      attributes: [
+        { key: 'type', value: 'ask_txhash' },
+        { key: 'askKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
     ],
     expiresIn: ttl,
   });
@@ -264,14 +264,14 @@ export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
   const [result, txHashResult] = await Promise.all([
     query
       .where(eq('type', 'ask'))
-      .where(eq('wallet', wallet))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'ask_txhash'))
-      .where(eq('wallet', wallet))
+        publicClient.buildQuery()
+          .where(eq('type', 'ask_txhash'))
+          .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)

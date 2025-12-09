@@ -466,13 +466,251 @@ Is this documentation?
 - Document patterns
 
 
+## 14. Arkiv-Native Patterns
+
+### Core Principle
+
+**Think Arkiv-native:** We are building on Arkiv, not reinventing the wheel. Use Arkiv's query system properly, build composable tools that work together, and follow established patterns consistently.
+
+### Wallet Address Normalization
+
+**Rule:** Always normalize wallet addresses to lowercase when storing and querying.
+
+**Why:** Ethereum addresses are case-insensitive, but string comparisons are case-sensitive. Normalizing ensures consistent querying and prevents case-sensitivity bugs.
+
+**Implementation:**
+```typescript
+// ✅ Correct: Normalize when storing
+attributes: [
+  { key: 'wallet', value: wallet.toLowerCase() },
+  // ...
+]
+
+// ✅ Correct: Normalize when querying
+queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
+
+// ❌ Wrong: Mixed case storage/querying
+attributes: [{ key: 'wallet', value: wallet }]  // May be mixed case
+queryBuilder.where(eq('wallet', wallet))  // May not match!
+```
+
+**Checklist:**
+- [ ] All `create*` functions normalize wallet addresses with `.toLowerCase()`
+- [ ] All `list*ForWallet` functions normalize wallet addresses with `.toLowerCase()`
+- [ ] All queries using wallet addresses normalize them
+- [ ] Both main entities and `*_txhash` entities normalize wallet addresses
+
+### Query Patterns
+
+**Standard Query Structure:**
+```typescript
+const publicClient = getPublicClient();
+const query = publicClient.buildQuery();
+let queryBuilder = query
+  .where(eq('type', 'entity_type'))
+  .where(eq('wallet', wallet.toLowerCase())); // Normalize!
+
+if (spaceId) {
+  queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+}
+
+const result = await queryBuilder
+  .withAttributes(true)
+  .withPayload(true)
+  .limit(100)
+  .fetch();
+```
+
+**Parallel txHash Queries:**
+```typescript
+// Fetch main entities and txHash entities in parallel
+const [result, txHashResult] = await Promise.all([
+  queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
+  publicClient.buildQuery()
+    .where(eq('type', 'entity_type_txhash'))
+    .where(eq('wallet', wallet.toLowerCase())) // Normalize!
+    .withAttributes(true)
+    .withPayload(true)
+    .limit(100)
+    .fetch(),
+]);
+```
+
+**Defensive Checks:**
+```typescript
+// Always check result structure before processing
+if (!result || !result.entities || !Array.isArray(result.entities)) {
+  console.warn('[functionName] Invalid result structure, returning empty array', { result });
+  return [];
+}
+```
+
+### Entity Creation Patterns
+
+**Standard Create Structure:**
+```typescript
+export async function createEntity({
+  wallet,
+  // ... other fields
+  privateKey,
+  spaceId = 'local-dev',
+}: {
+  wallet: string;
+  // ... types
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}): Promise<{ key: string; txHash: string }> {
+  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const enc = new TextEncoder();
+  const createdAt = new Date().toISOString();
+  
+  // Wrap in handleTransactionWithTimeout for graceful timeout handling
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        // Payload data (user-facing content)
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'entity_type' },
+        { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+        // ... other queryable attributes
+      ],
+      expiresIn: ttl,
+    });
+  });
+
+  const { entityKey, txHash } = result;
+
+  // Create separate txhash entity (optional metadata, don't wait)
+  walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'entity_type_txhash' },
+      { key: 'entityKey', value: entityKey },
+      { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
+      { key: 'spaceId', value: spaceId },
+    ],
+    expiresIn: ttl,
+  });
+
+  return { key: entityKey, txHash };
+}
+```
+
+### Attribute vs Payload
+
+**Attributes:** Queryable fields, indexed by Arkiv
+- Use for: `type`, `wallet`, `spaceId`, `createdAt`, `status`, filterable fields
+- Keep minimal and normalized (lowercase wallet addresses, consistent formats)
+
+**Payload:** User-facing content, JSON-encoded
+- Use for: messages, descriptions, complex objects, large data
+- Not directly queryable, but accessible via `.withPayload(true)`
+
+**Example:**
+```typescript
+attributes: [
+  { key: 'type', value: 'offer' },
+  { key: 'wallet', value: wallet.toLowerCase() },
+  { key: 'skill', value: skill }, // Queryable
+  { key: 'status', value: 'active' }, // Queryable
+],
+payload: enc.encode(JSON.stringify({
+  message, // User-facing, not queryable
+  availabilityWindow, // Complex object, not queryable
+}))
+```
+
+### Error Handling
+
+**Query Errors:**
+```typescript
+try {
+  const result = await queryBuilder.fetch();
+} catch (fetchError: any) {
+  console.error('[functionName] Arkiv query failed:', {
+    message: fetchError?.message,
+    stack: fetchError?.stack,
+    error: fetchError
+  });
+  return []; // Return empty array on query failure
+}
+```
+
+**Transaction Timeouts:**
+```typescript
+// Use handleTransactionWithTimeout for all entity creation
+const result = await handleTransactionWithTimeout(async () => {
+  return await walletClient.createEntity({ /* ... */ });
+});
+
+// Handle timeout gracefully in API routes
+if (isTransactionTimeoutError(error)) {
+  return NextResponse.json({ 
+    ok: true, 
+    key: null,
+    txHash: null,
+    pending: true,
+    message: error.message || 'Transaction submitted, confirmation pending'
+  });
+}
+```
+
+### Consistency Checklist
+
+Before creating or modifying Arkiv entity functions:
+
+- [ ] **Wallet normalization:** All wallet addresses normalized with `.toLowerCase()` in both storage and queries
+- [ ] **Query structure:** Uses standard `buildQuery().where(eq(...))` pattern
+- [ ] **Defensive checks:** Validates result structure before processing
+- [ ] **Error handling:** Gracefully handles query failures and transaction timeouts
+- [ ] **txHash entities:** Creates parallel `*_txhash` entities for reliable querying
+- [ ] **Attribute vs payload:** Uses attributes for queryable fields, payload for content
+- [ ] **Space ID:** Includes `spaceId` attribute (defaults to `'local-dev'`)
+- [ ] **Created timestamp:** Includes `createdAt` attribute (ISO string)
+- [ ] **Type attribute:** Always includes `type` attribute matching entity type
+
+### Building Blocks, Not Reinventing
+
+**Principles:**
+1. **Use Arkiv's query system:** Don't build custom indexing or filtering
+2. **Compose, don't duplicate:** Reuse patterns across entity types
+3. **Queryable attributes:** Put filterable fields in attributes, not just payload
+4. **Standard patterns:** Follow established patterns (mentor-graph, existing code)
+5. **Web3-native:** Build on decentralized infrastructure, not centralized workarounds
+
+**Example of Good Composition:**
+```typescript
+// Reuse wallet normalization helper
+function normalizeWallet(wallet: string): string {
+  return wallet.toLowerCase();
+}
+
+// Reuse query builder pattern
+function buildWalletQuery(type: string, wallet: string, spaceId?: string) {
+  const query = getPublicClient().buildQuery();
+  let builder = query
+    .where(eq('type', type))
+    .where(eq('wallet', normalizeWallet(wallet)));
+  if (spaceId) {
+    builder = builder.where(eq('spaceId', spaceId));
+  }
+  return builder;
+}
+```
+
 ### Verify the build before pushing
 
 **What I'll do going forward:**
 1. Run `npm run build` and confirm it completes successfully
 2. Run `npx tsc --noEmit` to verify types
 3. Check linter errors
-4. Only then push to production
+4. Verify Arkiv-native patterns (wallet normalization, query structure)
+5. Only then push to production
 
 Follow this process for all future changes.
 ---
@@ -482,4 +720,5 @@ Follow this process for all future changes.
 - **Internal = `refs/docs/` (not committed)**
 - **Code = Clean, verifiable, transparent**
 - **Values = FLOSS + Ethereum principles**
+- **Arkiv-native = Use Arkiv properly, build composable tools**
 
