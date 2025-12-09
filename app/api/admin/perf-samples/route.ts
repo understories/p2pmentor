@@ -32,7 +32,8 @@ export async function GET(request: Request) {
   // TODO: Add authentication/authorization check
   // For now, this is internal-only (not exposed in production without auth)
   
-  const { searchParams } = new URL(request.url);
+  const requestUrl = new URL(request.url);
+  const { searchParams } = requestUrl;
   const source = searchParams.get('source') as 'graphql' | 'arkiv' | null;
   const operation = searchParams.get('operation') || undefined;
   const route = searchParams.get('route') || undefined;
