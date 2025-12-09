@@ -11,6 +11,7 @@ import { createPerfSnapshot, listPerfSnapshots, getLatestSnapshot, shouldCreateS
 import { getPerfSummary, getPerfSamplesFiltered } from '@/lib/metrics/perf';
 import { listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 /**
  * POST /api/admin/perf-snapshots
@@ -34,9 +35,58 @@ export async function POST(request: Request) {
     const operation = searchParams.get('operation') || 'buildNetworkGraphData';
     const method = (searchParams.get('method') as 'arkiv' | 'graphql' | 'both') || 'both';
     const includePageLoad = searchParams.get('includePageLoad') !== 'false';
+    const force = searchParams.get('force') === 'true'; // Allow manual override
+
+    // Idempotency check: skip if last snapshot < 5 minutes old (unless forced)
+    if (!force) {
+      try {
+        const lastSnapshot = await getLatestSnapshot({ operation });
+        if (lastSnapshot) {
+          const lastTimestamp = new Date(lastSnapshot.timestamp).getTime();
+          const now = Date.now();
+          const minutesSince = (now - lastTimestamp) / (1000 * 60);
+          
+          if (minutesSince < 5) {
+            return NextResponse.json({
+              ok: false,
+              error: 'Snapshot created too recently',
+              message: `Last snapshot was ${minutesSince.toFixed(1)} minutes ago. Wait 5 minutes or use ?force=true to override.`,
+              lastSnapshot: {
+                timestamp: lastSnapshot.timestamp,
+                minutesAgo: minutesSince.toFixed(1),
+              },
+            }, { status: 429 }); // 429 Too Many Requests
+          }
+        }
+      } catch (err) {
+        // If check fails, continue (don't block snapshot creation)
+        console.log('[perf-snapshots] Idempotency check failed, continuing:', err);
+      }
+    }
 
     const privateKey = getPrivateKey();
     const timestamp = new Date().toISOString();
+
+    // Capture Arkiv RPC metadata for snapshot context
+    let arkivMetadata: { blockHeight?: number; chainId?: number; timestamp: string } | undefined;
+    try {
+      const publicClient = getPublicClient();
+      // Get current block number (Arkiv block height)
+      const blockNumber = await publicClient.getBlockNumber();
+      const chainId = await publicClient.getChainId();
+      
+      arkivMetadata = {
+        blockHeight: Number(blockNumber),
+        chainId: Number(chainId),
+        timestamp: new Date().toISOString(),
+      };
+    } catch (err) {
+      console.log('[perf-snapshots] Failed to capture Arkiv metadata, continuing without it:', err);
+      // Continue without metadata - don't block snapshot creation
+      arkivMetadata = {
+        timestamp: new Date().toISOString(),
+      };
+    }
 
     // Get current performance summary
     // Note: GraphQL uses 'networkOverview' operation, Arkiv uses 'buildNetworkGraphData'

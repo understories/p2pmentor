@@ -272,6 +272,12 @@ export async function GET(request: Request) {
           limit: 100,
         });
         
+        // Soft fallback warning: if Arkiv returns empty, warn user
+        if (arkivMetrics.length === 0) {
+          console.warn('[admin/perf-samples] No Arkiv entities found for operation:', summaryOperation);
+          // Continue with in-memory data, but note the limitation
+        }
+        
         if (arkivMetrics.length > 0) {
           // Separate by source
           const arkivSamples = arkivMetrics
