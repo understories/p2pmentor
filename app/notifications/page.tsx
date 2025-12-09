@@ -47,18 +47,25 @@ export default function NotificationsPage() {
   const previousMatches = useRef<Set<string>>(new Set());
   const previousOfferKeys = useRef<Set<string>>(new Set());
   const previousResponseKeys = useRef<Set<string>>(new Set());
+  
+  // Store notification preferences to use during detection
+  const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
 
   useEffect(() => {
     // Get user wallet from localStorage
     const storedWallet = localStorage.getItem('wallet_address');
     if (storedWallet) {
       setUserWallet(storedWallet);
-      loadNotifications(storedWallet);
-      loadNotificationPreferences(storedWallet);
+      // Load preferences FIRST, then notifications
+      loadNotificationPreferences(storedWallet).then(() => {
+        loadNotifications(storedWallet);
+      });
       
       // Set up polling
       const interval = setInterval(() => {
-        loadNotifications(storedWallet);
+        loadNotificationPreferences(storedWallet).then(() => {
+          loadNotifications(storedWallet);
+        });
       }, POLL_INTERVAL);
       
       return () => clearInterval(interval);
@@ -68,28 +75,36 @@ export default function NotificationsPage() {
   }, []);
 
   // Load notification preferences from Arkiv
-  const loadNotificationPreferences = async (wallet: string) => {
+  const loadNotificationPreferences = async (wallet: string): Promise<void> => {
     try {
       const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
       const data = await res.json();
       
       if (data.ok && data.preferences) {
-        // Map preferences to notifications
-        const preferenceMap = new Map<string, boolean>();
+        // Store preferences in ref for use during notification detection
+        const prefMap = new Map<string, { read: boolean; archived: boolean }>();
         data.preferences.forEach((pref: any) => {
-          if (!pref.archived) {
-            preferenceMap.set(pref.notificationId, pref.read);
-          }
+          prefMap.set(pref.notificationId, {
+            read: pref.read,
+            archived: pref.archived,
+          });
         });
+        notificationPreferences.current = prefMap;
         
-        // Update notifications with persisted read state
-        setNotifications(prev => prev.map(n => {
-          const persistedRead = preferenceMap.get(n.id);
-          if (persistedRead !== undefined) {
-            return { ...n, read: persistedRead };
-          }
-          return n;
-        }));
+        // Also update existing notifications with persisted read/archived state
+        setNotifications(prev => {
+          return prev.map(n => {
+            const pref = notificationPreferences.current.get(n.id);
+            if (pref) {
+              return { ...n, read: pref.read };
+            }
+            return n;
+          }).filter(n => {
+            // Filter out archived notifications
+            const pref = notificationPreferences.current.get(n.id);
+            return !pref || !pref.archived;
+          });
+        });
       }
     } catch (err) {
       console.error('Error loading notification preferences:', err);
@@ -188,10 +203,25 @@ export default function NotificationsPage() {
 
       // Update seen response keys
       (adminResponses || []).forEach((r: any) => previousResponseKeys.current.add(r.key));
+      // Apply preferences to new notifications (read state and archived filter)
+      const notificationsWithPreferences = newNotifications.map(n => {
+        const pref = notificationPreferences.current.get(n.id);
+        if (pref) {
+          // If archived, don't include it
+          if (pref.archived) {
+            return null;
+          }
+          // Use persisted read state
+          return { ...n, read: pref.read };
+        }
+        // New notification, use default read: false
+        return n;
+      }).filter((n): n is Notification => n !== null);
+
       // Merge with existing notifications (avoid duplicates)
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
+        const uniqueNew = notificationsWithPreferences.filter(n => !existingIds.has(n.id));
         return [...uniqueNew, ...prev].sort((a, b) => 
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
@@ -213,6 +243,13 @@ export default function NotificationsPage() {
         n.id === notificationId ? { ...n, read: true } : n
       )
     );
+    
+    // Update preferences ref
+    const currentPref = notificationPreferences.current.get(notificationId);
+    notificationPreferences.current.set(notificationId, {
+      read: true,
+      archived: currentPref?.archived || false,
+    });
     
     // Persist to Arkiv
     try {
@@ -238,6 +275,12 @@ export default function NotificationsPage() {
           n.id === notificationId ? { ...n, read: false } : n
         )
       );
+      // Revert preferences ref
+      if (currentPref) {
+        notificationPreferences.current.set(notificationId, currentPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
     }
   };
 
@@ -250,6 +293,13 @@ export default function NotificationsPage() {
         n.id === notificationId ? { ...n, read: false } : n
       )
     );
+    
+    // Update preferences ref
+    const currentPref = notificationPreferences.current.get(notificationId);
+    notificationPreferences.current.set(notificationId, {
+      read: false,
+      archived: currentPref?.archived || false,
+    });
     
     // Persist to Arkiv
     try {
@@ -275,6 +325,12 @@ export default function NotificationsPage() {
           n.id === notificationId ? { ...n, read: true } : n
         )
       );
+      // Revert preferences ref
+      if (currentPref) {
+        notificationPreferences.current.set(notificationId, currentPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
     }
   };
 
@@ -284,8 +340,20 @@ export default function NotificationsPage() {
     const unreadNotifications = notifications.filter(n => !n.read);
     if (unreadNotifications.length === 0) return;
     
+    // Store previous state for revert
+    const previousPrefs = new Map(notificationPreferences.current);
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    
+    // Update preferences ref
+    unreadNotifications.forEach(n => {
+      const currentPref = notificationPreferences.current.get(n.id);
+      notificationPreferences.current.set(n.id, {
+        read: true,
+        archived: currentPref?.archived || false,
+      });
+    });
     
     // Persist to Arkiv
     try {
@@ -309,6 +377,8 @@ export default function NotificationsPage() {
         const wasUnread = unreadNotifications.some(un => un.id === n.id);
         return wasUnread ? { ...n, read: false } : n;
       }));
+      // Revert preferences ref
+      notificationPreferences.current = previousPrefs;
     }
   };
 
@@ -318,8 +388,20 @@ export default function NotificationsPage() {
     const readNotifications = notifications.filter(n => n.read);
     if (readNotifications.length === 0) return;
     
+    // Store previous state for revert
+    const previousPrefs = new Map(notificationPreferences.current);
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: false })));
+    
+    // Update preferences ref
+    readNotifications.forEach(n => {
+      const currentPref = notificationPreferences.current.get(n.id);
+      notificationPreferences.current.set(n.id, {
+        read: false,
+        archived: currentPref?.archived || false,
+      });
+    });
     
     // Persist to Arkiv
     try {
@@ -343,18 +425,31 @@ export default function NotificationsPage() {
         const wasRead = readNotifications.some(rn => rn.id === n.id);
         return wasRead ? { ...n, read: true } : n;
       }));
+      // Revert preferences ref
+      notificationPreferences.current = previousPrefs;
     }
   };
 
   const deleteNotification = async (notificationId: string) => {
     if (!userWallet) return;
     
+    // Store previous state for revert
+    const previousPref = notificationPreferences.current.get(notificationId);
+    
     // Optimistic update
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     
+    // Update preferences ref (mark as archived)
+    const notification = notifications.find(n => n.id === notificationId);
+    if (notification) {
+      notificationPreferences.current.set(notificationId, {
+        read: notification.read,
+        archived: true,
+      });
+    }
+    
     // Persist to Arkiv (mark as archived)
     try {
-      const notification = notifications.find(n => n.id === notificationId);
       if (notification) {
         await fetch('/api/notifications/preferences', {
           method: 'POST',
@@ -370,7 +465,13 @@ export default function NotificationsPage() {
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
-      // Revert on error - reload preferences
+      // Revert on error
+      if (previousPref) {
+        notificationPreferences.current.set(notificationId, previousPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
+      // Reload preferences to restore state
       loadNotificationPreferences(userWallet);
     }
   };
