@@ -407,6 +407,13 @@ export async function GET(request: Request) {
             const payloadSizes = networkOverviewMetrics.filter(m => m.payloadBytes !== undefined).map(m => m.payloadBytes!);
             const httpCounts = networkOverviewMetrics.filter(m => m.httpRequests !== undefined).map(m => m.httpRequests!);
             
+            // Count queries per page/route for networkOverview
+            const networkOverviewPageCounts: Record<string, number> = {};
+            networkOverviewMetrics.forEach(m => {
+              const page = m.route || '(no route)';
+              networkOverviewPageCounts[page] = (networkOverviewPageCounts[page] || 0) + 1;
+            });
+            
             // Merge with existing GraphQL data or create new
             if (perfSummary.graphql) {
               // Merge: combine samples and recalculate
@@ -416,6 +423,12 @@ export async function GET(request: Request) {
                 (durations.reduce((a, b) => a + b, 0) / durations.length) * networkOverviewMetrics.length
               ) / combinedSamples;
               
+              // Merge page counts
+              const mergedPages = { ...(perfSummary.graphql.pages || {}), ...networkOverviewPageCounts };
+              Object.keys(mergedPages).forEach(page => {
+                mergedPages[page] = (perfSummary.graphql?.pages?.[page] || 0) + (networkOverviewPageCounts[page] || 0);
+              });
+              
               perfSummary.graphql = {
                 avgDurationMs: combinedAvg,
                 minDurationMs: Math.min(perfSummary.graphql.minDurationMs, Math.min(...durations)),
@@ -423,6 +436,7 @@ export async function GET(request: Request) {
                 avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : perfSummary.graphql.avgPayloadBytes,
                 avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : perfSummary.graphql.avgHttpRequests,
                 samples: combinedSamples,
+                pages: mergedPages,
               };
             } else {
               perfSummary.graphql = {
@@ -432,6 +446,7 @@ export async function GET(request: Request) {
                 avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
                 avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
                 samples: networkOverviewMetrics.length,
+                pages: networkOverviewPageCounts,
               };
             }
           }
