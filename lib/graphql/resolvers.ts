@@ -103,10 +103,16 @@ export const resolvers = {
           asks = await listAsks({ skill, includeExpired, limit });
         }
 
+        // Ensure we always return an array, never null
+        if (!asks || !Array.isArray(asks)) {
+          console.warn('[GraphQL] asks resolver: received non-array result, returning empty array');
+          return [];
+        }
+
         return asks.map(transformAsk);
       } catch (error) {
         console.error('Error fetching asks:', error);
-        return [];
+        return []; // Always return array, never null
       }
     },
 
@@ -127,10 +133,16 @@ export const resolvers = {
           offers = await listOffers({ skill, includeExpired, limit });
         }
 
+        // Ensure we always return an array, never null
+        if (!offers || !Array.isArray(offers)) {
+          console.warn('[GraphQL] offers resolver: received non-array result, returning empty array');
+          return [];
+        }
+
         return offers.map(transformOffer);
       } catch (error) {
         console.error('Error fetching offers:', error);
-        return [];
+        return []; // Always return array, never null
       }
     },
 
