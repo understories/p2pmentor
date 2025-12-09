@@ -820,23 +820,33 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         {/* Show which method this page uses (if we have that data) */}
-                        {perfSummary && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
-                            {perfSummary.graphql?.pages?.[result.page] && (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                GraphQL: {perfSummary.graphql.pages[result.page]} queries
-                              </span>
-                            )}
-                            {perfSummary.arkiv?.pages?.[result.page] && (
-                              <span className="text-blue-600 dark:text-blue-400">
-                                JSON-RPC: {perfSummary.arkiv.pages[result.page]} queries
-                              </span>
-                            )}
-                            {(!perfSummary.graphql?.pages?.[result.page] && !perfSummary.arkiv?.pages?.[result.page]) && (
-                              <span>No query data for this page</span>
-                            )}
-                          </div>
-                        )}
+                        {perfSummary && (() => {
+                          // Normalize route for matching: profile pages use /profiles/[wallet] in summary
+                          const normalizedRoute = result.page.startsWith('/profiles/') && result.page !== '/profiles'
+                            ? '/profiles/[wallet]'
+                            : result.page;
+                          
+                          const graphqlCount = perfSummary.graphql?.pages?.[normalizedRoute] || perfSummary.graphql?.pages?.[result.page];
+                          const arkivCount = perfSummary.arkiv?.pages?.[normalizedRoute] || perfSummary.arkiv?.pages?.[result.page];
+                          
+                          return (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
+                              {graphqlCount && (
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  GraphQL: {graphqlCount} queries
+                                </span>
+                              )}
+                              {arkivCount && (
+                                <span className="text-blue-600 dark:text-blue-400">
+                                  JSON-RPC: {arkivCount} queries
+                                </span>
+                              )}
+                              {(!graphqlCount && !arkivCount) && (
+                                <span>No query data for this page</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
