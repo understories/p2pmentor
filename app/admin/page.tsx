@@ -683,11 +683,11 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
                           Method: {snapshot.method} • Operation: {snapshot.operation}
-                          {snapshot.arkivMetadata?.blockHeight && (
+                          {snapshot.arkivMetadata?.blockHeight ? (
                             <span className="ml-2 text-gray-500 dark:text-gray-500">
                               • Block: {snapshot.arkivMetadata.blockHeight}
                             </span>
-                          )}
+                          ) : null}
                           {(!snapshot.arkiv && !snapshot.graphql) && (
                             <span className="ml-2 text-amber-600 dark:text-amber-400">(No performance data captured)</span>
                           )}
