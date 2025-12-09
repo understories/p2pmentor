@@ -357,14 +357,17 @@ export async function POST(request: Request) {
       // Extract txHash if available
       const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
       if (txHashMatch) {
+        const { searchParams } = new URL(request.url);
+        const op = searchParams.get('operation') || 'buildNetworkGraphData';
+        const meth = (searchParams.get('method') as 'arkiv' | 'graphql' | 'both') || 'both';
         return NextResponse.json({
           ok: true,
           snapshot: {
             key: 'pending',
             txHash: txHashMatch[0],
             timestamp: new Date().toISOString(),
-            operation,
-            method,
+            operation: op,
+            method: meth,
             explorer: `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
             pending: true,
           },
