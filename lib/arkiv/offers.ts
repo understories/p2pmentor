@@ -140,8 +140,15 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
       .fetch(),
   ]);
 
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listOffers] Invalid result structure, returning empty array', { result });
+    return [];
+  }
+
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -171,7 +178,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     }
   });
 
-  let offers = result.entities.map((entity: any) => {
+  let offers = (result.entities || []).map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {

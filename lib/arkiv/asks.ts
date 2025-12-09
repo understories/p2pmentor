@@ -121,8 +121,15 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
       .fetch(),
   ]);
 
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listAsks] Invalid result structure, returning empty array', { result });
+    return [];
+  }
+
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -152,7 +159,7 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     }
   });
 
-  let asks = result.entities.map((entity: any) => {
+  let asks = (result.entities || []).map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
