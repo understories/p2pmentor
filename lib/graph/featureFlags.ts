@@ -75,6 +75,24 @@ export function useGraphqlForProfile(): boolean {
 }
 
 /**
+ * Check if GraphQL should be used for asks page
+ * 
+ * @returns true if USE_GRAPHQL_FOR_ASKS is set to "true"
+ */
+export function useGraphqlForAsks(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_ASKS');
+}
+
+/**
+ * Check if GraphQL should be used for offers page
+ * 
+ * @returns true if USE_GRAPHQL_FOR_OFFERS is set to "true"
+ */
+export function useGraphqlForOffers(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_OFFERS');
+}
+
+/**
  * @deprecated Use useGraphqlForNetwork() instead
  * Backwards-compatible alias for useGraphqlForNetwork()
  */
