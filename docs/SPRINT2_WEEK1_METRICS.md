@@ -260,6 +260,39 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 
 ---
 
+## Profile Page Migration (Week 2)
+
+### Migration Summary
+
+**Page:** `/profiles/[wallet]`  
+**Date:** December 9, 2025  
+**Status:** ✅ Complete
+
+**Before (JSON-RPC):**
+- 5 parallel API calls (profile, asks, offers, sessions, feedback)
+- Average duration: TBD ms
+- HTTP requests: 5 per page load
+- Samples: TBD
+
+**After (GraphQL):**
+- 1 GraphQL query + 1 API call (sessions not yet in GraphQL)
+- Average duration: TBD ms
+- HTTP requests: 2 per page load (60% reduction)
+- Samples: TBD
+
+**Improvements:**
+- ✅ 60% reduction in HTTP requests (5 → 2)
+- ✅ Single GraphQL query consolidates profile, asks, offers, feedback
+- ✅ Better type safety and developer experience
+- ✅ Performance metrics tracked automatically
+
+**Snapshot:**
+- Transaction Hash: TBD
+- Date: December 9, 2025
+- Method: Both (Arkiv baseline + GraphQL comparison)
+
+---
+
 ## Testing Execution Log
 
 ### Test Run: December 9, 2025
