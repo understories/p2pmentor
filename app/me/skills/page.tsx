@@ -123,7 +123,7 @@ export default function SkillsPage() {
         // Get connected account from MetaMask
         let account: `0x${string}`;
         try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
           if (!accounts || accounts.length === 0) {
             // Try to connect
             account = await connectWallet();
