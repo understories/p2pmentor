@@ -120,85 +120,63 @@ export async function GET(request: Request) {
         // 2. GraphQL path - networkOverview query
         if (testGraphQL) {
           try {
-            // Use absolute URL for server-side GraphQL requests
-            // In production (Vercel), we need to use the full URL
-            let graphqlEndpoint = process.env.GRAPH_SUBGRAPH_URL;
+            // For server-to-server calls, execute GraphQL directly (bypasses HTTP)
+            // This avoids Vercel deployment protection and is more efficient
+            const { executeGraphQL } = await import('@/lib/graphql/execute');
             
-            if (!graphqlEndpoint) {
-              // Try to construct absolute URL from environment
-              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
-                              process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
-              
-              if (baseUrl) {
-                graphqlEndpoint = `${baseUrl}/api/graphql`;
-              } else {
-                // Fallback: infer from request URL (works in both local and production)
-                graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+            const query = `
+              query NetworkOverview {
+                networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
+                  skillRefs {
+                    name
+                    asks {
+                      id
+                      key
+                      wallet
+                      skill
+                      createdAt
+                      status
+                      expiresAt
+                    }
+                    offers {
+                      id
+                      key
+                      wallet
+                      skill
+                      isPaid
+                      cost
+                      paymentAddress
+                      createdAt
+                      status
+                      expiresAt
+                    }
+                  }
+                }
               }
-            }
+            `;
             
-            console.log('[seed-perf] Using GraphQL endpoint:', graphqlEndpoint);
-            
-            // Warm up: Make a request first to avoid cold start skewing results
+            // Warm up: Execute query once to avoid cold start skewing results
             try {
-              await fetch(graphqlEndpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  query: 'query { networkOverview(limitAsks: 1, limitOffers: 1) { skillRefs { name } } }',
-                }),
-              });
+              await executeGraphQL(query);
               await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
             } catch (warmupErr) {
-              console.log('[seed-perf] Warmup request failed (non-fatal):', warmupErr);
+              console.log('[seed-perf] Warmup query failed (non-fatal):', warmupErr);
               // Ignore warmup errors
             }
             
             // Now measure the actual request
             const startTime4 = Date.now();
-            
-            // For server-to-server calls, use the GraphQL client helper
-            // which handles endpoint resolution and error handling better
-            const { graphRequest } = await import('@/lib/graph/client');
-            const graphqlData = await graphRequest<{ networkOverview: any }>(
-              `
-                query NetworkOverview {
-                  networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
-                    skillRefs {
-                      name
-                      asks {
-                        id
-                        key
-                        wallet
-                        skill
-                        createdAt
-                        status
-                        expiresAt
-                      }
-                      offers {
-                        id
-                        key
-                        wallet
-                        skill
-                        isPaid
-                        cost
-                        paymentAddress
-                        createdAt
-                        status
-                        expiresAt
-                      }
-                    }
-                  }
-                }
-              `,
-              {},
-              { endpoint: graphqlEndpoint, operationName: 'NetworkOverview' }
-            );
-            
+            const graphqlResult = await executeGraphQL<{ networkOverview: any }>(query);
             const duration4 = Date.now() - startTime4;
             
-            // Wrap in GraphQL response format for consistency with measurement
-            const graphqlResult = { data: graphqlData };
+            if (graphqlResult.errors && graphqlResult.errors.length > 0) {
+              throw new Error(`GraphQL execution errors: ${graphqlResult.errors.map(e => e.message).join('; ')}`);
+            }
+            
+            if (!graphqlResult.data) {
+              throw new Error('GraphQL execution returned no data');
+            }
+            
             // Measure actual GraphQL response payload (not transformed data)
             const payloadSize4 = JSON.stringify(graphqlResult).length;
 
