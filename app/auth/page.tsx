@@ -15,6 +15,7 @@ import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
+import { setWalletType } from '@/lib/wallet/getWalletClient';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -53,7 +54,6 @@ export default function AuthPage() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('wallet_address', address);
         // Store wallet type for unified wallet client getter
-        const { setWalletType } = await import('@/lib/wallet/getWalletClient');
         setWalletType(address, 'metamask');
       }
       
