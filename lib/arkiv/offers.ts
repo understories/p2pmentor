@@ -275,8 +275,15 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       .fetch(),
   ]);
 
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listOffersForWallet] Invalid result structure, returning empty array', { result });
+    return [];
+  }
+
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -306,7 +313,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
     }
   });
 
-  return result.entities.map((entity: any) => {
+  return (result.entities || []).map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
