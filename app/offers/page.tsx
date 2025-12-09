@@ -740,11 +740,18 @@ export default function OffersPage() {
               }
             />
           ) : (
-            offers.map((offer) => (
-              <div
-                key={offer.key}
-                className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-              >
+            offers.map((offer) => {
+              // Find similar offers (same skill, different wallet)
+              const similarOffers = offers.filter(
+                (o) =>
+                  o.key !== offer.key &&
+                  o.skill.toLowerCase() === offer.skill.toLowerCase() &&
+                  o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
+              ).slice(0, 3); // Limit to 3 similar offers
+
+              return (
+                <div key={offer.key}>
+                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
@@ -823,8 +830,36 @@ export default function OffersPage() {
                     </button>
                   </div>
                 )}
-              </div>
-            ))
+                  </div>
+
+                  {/* Similar Offers Section */}
+                  {similarOffers.length > 0 && (
+                    <div className="mt-3 ml-6 pl-4 border-l-2 border-green-200 dark:border-green-800">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        {offerEmojis.default} Others teaching {offer.skill}:
+                      </p>
+                      <div className="space-y-2">
+                        {similarOffers.map((similarOffer) => (
+                          <Link
+                            key={similarOffer.key}
+                            href={`/offers#${similarOffer.key}`}
+                            className="block p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                          >
+                            <span className="font-medium text-green-700 dark:text-green-300">
+                              {similarOffer.message.substring(0, 60)}
+                              {similarOffer.message.length > 60 ? '...' : ''}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              by {similarOffer.wallet.slice(0, 6)}...{similarOffer.wallet.slice(-4)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
 

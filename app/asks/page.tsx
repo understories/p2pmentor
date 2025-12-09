@@ -503,62 +503,97 @@ export default function AsksPage() {
               }
             />
           ) : (
-            asks.map((ask) => (
-              <div
-                key={ask.key}
-                className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                      {ask.skill}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {formatDate(ask.createdAt)}
+            asks.map((ask) => {
+              // Find similar asks (same skill, different wallet)
+              const similarAsks = asks.filter(
+                (a) =>
+                  a.key !== ask.key &&
+                  a.skill.toLowerCase() === ask.skill.toLowerCase() &&
+                  a.wallet.toLowerCase() !== ask.wallet.toLowerCase()
+              ).slice(0, 3); // Limit to 3 similar asks
+
+              return (
+                <div key={ask.key}>
+                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                          {ask.skill}
+                        </h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {formatDate(ask.createdAt)}
+                        </p>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
+                        {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
+                      </span>
+                    </div>
+                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                      {ask.message}
                     </p>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+                      <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
+                      <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
+                      {ask.txHash ? (
+                        <a
+                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          View on Arkiv Explorer
+                        </a>
+                      ) : (
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
+                      )}
+                    </div>
+                    {/* Offer to Help Button - only show if not own ask */}
+                    {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
+                      <div className="mt-4">
+                        <button
+                          onClick={async () => {
+                            // Load profile for the ask's wallet
+                            const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                            setSelectedAskProfile(askProfile);
+                            setSelectedAsk(ask);
+                            setShowMeetingModal(true);
+                          }}
+                          className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                        >
+                          Offer to Help
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
-                    {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
-                  </span>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
-                  {ask.message}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                  <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
-                  <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  {ask.txHash ? (
-                    <a
-                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      View on Arkiv Explorer
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
+
+                  {/* Similar Asks Section */}
+                  {similarAsks.length > 0 && (
+                    <div className="mt-3 ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        {askEmojis.default} Others learning {ask.skill}:
+                      </p>
+                      <div className="space-y-2">
+                        {similarAsks.map((similarAsk) => (
+                          <Link
+                            key={similarAsk.key}
+                            href={`/asks#${similarAsk.key}`}
+                            className="block p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          >
+                            <span className="font-medium text-blue-700 dark:text-blue-300">
+                              {similarAsk.message.substring(0, 60)}
+                              {similarAsk.message.length > 60 ? '...' : ''}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              by {similarAsk.wallet.slice(0, 6)}...{similarAsk.wallet.slice(-4)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
                   )}
                 </div>
-                {/* Offer to Help Button - only show if not own ask */}
-                {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
-                  <div className="mt-4">
-                    <button
-                      onClick={async () => {
-                        // Load profile for the ask's wallet
-                        const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                        setSelectedAskProfile(askProfile);
-                        setSelectedAsk(ask);
-                        setShowMeetingModal(true);
-                      }}
-                      className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
-                      >
-                      Offer to Help
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
