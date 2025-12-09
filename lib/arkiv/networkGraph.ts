@@ -316,6 +316,9 @@ export async function buildNetworkGraphData(options?: NetworkGraphParams): Promi
     return buildNetworkGraphDataJsonRpc(options || {});
   }
 
+  // Track performance for GraphQL path (same pattern as JSON-RPC path)
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
   try {
     const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
     const { adaptNetworkOverviewToGraphData } = await import('@/lib/graph/networkAdapter');
@@ -327,12 +330,33 @@ export async function buildNetworkGraphData(options?: NetworkGraphParams): Promi
       includeExpired: options?.includeExpired,
     });
     
-    return adaptNetworkOverviewToGraphData(overview, {
+    const result = adaptNetworkOverviewToGraphData(overview, {
       skillFilter: options?.skillFilter,
       limitAsks: options?.limitAsks,
       limitOffers: options?.limitOffers,
       includeExpired: options?.includeExpired,
     });
+
+    // Record performance metrics for GraphQL path (same pattern as JSON-RPC)
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(result).length;
+    
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'graphql',
+        operation: 'buildNetworkGraphData',
+        route: '/network',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 1, // Single GraphQL query
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
+    });
+
+    return result;
   } catch (err) {
     // Log + fallback to JSON-RPC for safety
     console.error('[networkGraph] GraphQL path failed, falling back to JSON-RPC', err);
