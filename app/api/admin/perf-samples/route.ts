@@ -281,13 +281,30 @@ export async function GET(request: Request) {
               await fetchAsks({ limit: 1 }, { endpoint: graphqlEndpoint });
               await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
             } catch (warmupErr) {
+              console.log('[seed-perf] Warmup asks query failed (non-fatal):', warmupErr);
               // Ignore warmup errors
             }
             
             const startTime = Date.now();
-            const asksData = await fetchAsks({ limit: 25 }, { endpoint: graphqlEndpoint });
+            let asksData;
+            try {
+              asksData = await fetchAsks({ limit: 25 }, { endpoint: graphqlEndpoint });
+            } catch (fetchError: any) {
+              console.error('[seed-perf] fetchAsks error:', {
+                message: fetchError?.message,
+                stack: fetchError?.stack,
+                error: fetchError,
+              });
+              throw new Error(`fetchAsks failed: ${fetchError?.message || 'Unknown error'}`);
+            }
             const duration = Date.now() - startTime;
             const payloadSize = JSON.stringify(asksData).length;
+            
+            console.log('[seed-perf] GraphQL asks query successful:', {
+              asksCount: asksData.length,
+              durationMs: duration,
+              payloadBytes: payloadSize,
+            });
             
             // Create DX metric for GraphQL asks
             try {
@@ -307,8 +324,12 @@ export async function GET(request: Request) {
             } catch (err) {
               console.error('[seed-perf] Failed to create GraphQL asks metric:', err);
             }
-          } catch (err) {
-            console.error('[seed-perf] GraphQL asks test failed:', err);
+          } catch (err: any) {
+            console.error('[seed-perf] GraphQL asks test failed:', {
+              message: err?.message,
+              stack: err?.stack,
+              error: err,
+            });
           }
         }
         
@@ -354,13 +375,30 @@ export async function GET(request: Request) {
               await fetchOffers({ limit: 1 }, { endpoint: graphqlEndpoint });
               await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
             } catch (warmupErr) {
+              console.log('[seed-perf] Warmup offers query failed (non-fatal):', warmupErr);
               // Ignore warmup errors
             }
             
             const startTime = Date.now();
-            const offersData = await fetchOffers({ limit: 25 }, { endpoint: graphqlEndpoint });
+            let offersData;
+            try {
+              offersData = await fetchOffers({ limit: 25 }, { endpoint: graphqlEndpoint });
+            } catch (fetchError: any) {
+              console.error('[seed-perf] fetchOffers error:', {
+                message: fetchError?.message,
+                stack: fetchError?.stack,
+                error: fetchError,
+              });
+              throw new Error(`fetchOffers failed: ${fetchError?.message || 'Unknown error'}`);
+            }
             const duration = Date.now() - startTime;
             const payloadSize = JSON.stringify(offersData).length;
+            
+            console.log('[seed-perf] GraphQL offers query successful:', {
+              offersCount: offersData.length,
+              durationMs: duration,
+              payloadBytes: payloadSize,
+            });
             
             // Create DX metric for GraphQL offers
             try {
@@ -380,8 +418,12 @@ export async function GET(request: Request) {
             } catch (err) {
               console.error('[seed-perf] Failed to create GraphQL offers metric:', err);
             }
-          } catch (err) {
-            console.error('[seed-perf] GraphQL offers test failed:', err);
+          } catch (err: any) {
+            console.error('[seed-perf] GraphQL offers test failed:', {
+              message: err?.message,
+              stack: err?.stack,
+              error: err,
+            });
           }
         }
         
@@ -428,13 +470,31 @@ export async function GET(request: Request) {
                 await fetchProfileDetail({ wallet: CURRENT_WALLET, limitAsks: 1, limitOffers: 1, limitFeedback: 1 }, { endpoint: graphqlEndpoint });
                 await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
               } catch (warmupErr) {
+                console.log('[seed-perf] Warmup profile query failed (non-fatal):', warmupErr);
                 // Ignore warmup errors
               }
               
               const startTime = Date.now();
-              const profileData = await fetchProfileDetail({ wallet: CURRENT_WALLET }, { endpoint: graphqlEndpoint });
+              let profileData;
+              try {
+                profileData = await fetchProfileDetail({ wallet: CURRENT_WALLET }, { endpoint: graphqlEndpoint });
+              } catch (fetchError: any) {
+                console.error('[seed-perf] fetchProfileDetail error:', {
+                  message: fetchError?.message,
+                  stack: fetchError?.stack,
+                  error: fetchError,
+                });
+                throw new Error(`fetchProfileDetail failed: ${fetchError?.message || 'Unknown error'}`);
+              }
               const duration = Date.now() - startTime;
               const payloadSize = JSON.stringify(profileData).length;
+              
+              console.log('[seed-perf] GraphQL profile query successful:', {
+                hasProfile: !!profileData.profile,
+                feedbackCount: profileData.feedback?.length || 0,
+                durationMs: duration,
+                payloadBytes: payloadSize,
+              });
               
               // Create DX metric for GraphQL profile
               try {
