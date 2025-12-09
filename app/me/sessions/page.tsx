@@ -529,6 +529,38 @@ export default function SessionsPage() {
                       </div>
                     </div>
 
+                    {/* Payment Flow Progress Indicator */}
+                    {session.requiresPayment && (
+                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Payment Progress:</p>
+                        <div className="flex items-center gap-2 mb-3">
+                          {/* Step 1: Mentor Confirms */}
+                          <div className={`flex items-center gap-2 ${session.mentorConfirmed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.mentorConfirmed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                              {session.mentorConfirmed ? '✓' : '1'}
+                            </span>
+                            <span className="text-xs">Mentor confirms</span>
+                          </div>
+                          <div className={`flex-1 h-0.5 ${session.mentorConfirmed ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                          {/* Step 2: Learner Submits Payment */}
+                          <div className={`flex items-center gap-2 ${session.paymentTxHash ? 'text-green-600 dark:text-green-400' : (session.mentorConfirmed ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentTxHash ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.mentorConfirmed ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
+                              {session.paymentTxHash ? '✓' : '2'}
+                            </span>
+                            <span className="text-xs">Payment submitted</span>
+                          </div>
+                          <div className={`flex-1 h-0.5 ${session.paymentValidated ? 'bg-green-300 dark:bg-green-700' : (session.paymentTxHash ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700')}`} />
+                          {/* Step 3: Mentor Validates Payment */}
+                          <div className={`flex items-center gap-2 ${session.paymentValidated ? 'text-green-600 dark:text-green-400' : (session.paymentTxHash ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentValidated ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.paymentTxHash ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
+                              {session.paymentValidated ? '✓' : '3'}
+                            </span>
+                            <span className="text-xs">Payment validated</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Payment submission UI (for learner after mentor confirms) */}
                     {session.requiresPayment && 
                      !session.paymentTxHash && 
@@ -536,7 +568,7 @@ export default function SessionsPage() {
                      isLearner && (
                       <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Session confirmed! Please submit your payment:
+                          Session confirmed! Please submit your payment (Step 2 of 3):
                         </p>
                         <div className="mb-3">
                           <input
