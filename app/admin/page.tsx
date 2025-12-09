@@ -77,6 +77,7 @@ interface PerfSnapshot {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
   arkiv?: {
     avgDurationMs: number;
@@ -85,6 +86,7 @@ interface PerfSnapshot {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
   pageLoadTimes?: {
     avgDurationMs: number;
