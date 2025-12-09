@@ -59,10 +59,15 @@ export default function AdminDashboard() {
         .then(data => setPerfSummary(data))
         .catch(err => console.error('Failed to fetch perf summary:', err));
 
-      // Fetch recent samples
+      // Fetch recent samples (from Arkiv entities if available)
       fetch('/api/admin/perf-samples?limit=20')
         .then(res => res.json())
-        .then(data => setPerfSamples(data.samples || []))
+        .then(data => {
+          setPerfSamples(data.samples || []);
+          if (data.note) {
+            console.log('[Admin]', data.note);
+          }
+        })
         .catch(err => console.error('Failed to fetch perf samples:', err));
     }
   }, [authenticated]);
@@ -119,9 +124,20 @@ export default function AdminDashboard() {
 
         {/* Performance Comparison */}
         <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-50">
-            Performance Comparison
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+              Performance Comparison
+            </h2>
+            <a
+              href={`/api/admin/perf-samples?seed=true`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+              title="Generate real performance data from Arkiv queries"
+            >
+              Generate Real Data
+            </a>
+          </div>
           <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
             {perfSummary ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -169,6 +185,7 @@ export default function AdminDashboard() {
                     <th className="px-4 py-2 text-left text-sm font-medium">Duration (ms)</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Payload (KB)</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">HTTP Req</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Verify</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -179,6 +196,21 @@ export default function AdminDashboard() {
                       <td className="px-4 py-2 text-sm">{sample.durationMs}</td>
                       <td className="px-4 py-2 text-sm">{sample.payloadBytes ? (sample.payloadBytes / 1024).toFixed(2) : 'N/A'}</td>
                       <td className="px-4 py-2 text-sm">{sample.httpRequests || 'N/A'}</td>
+                      <td className="px-4 py-2 text-sm">
+                        {sample.txHash ? (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${sample.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline"
+                            title="Verify on-chain"
+                          >
+                            🔗
+                          </a>
+                        ) : (
+                          <span className="text-gray-400" title="Not stored on-chain">—</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
