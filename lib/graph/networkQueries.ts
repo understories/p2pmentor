@@ -150,13 +150,19 @@ export async function fetchNetworkOverview(
     }
   });
 
-  const response = await graphRequest<{ networkOverview: GraphQLNetworkOverviewResponse }>(
+  const response = await graphRequest<{ networkOverview: GraphQLNetworkOverviewResponse | null }>(
     NETWORK_OVERVIEW_QUERY,
     variables,
     { endpoint: options?.endpoint }
   );
 
   // Extract networkOverview from response
+  // If networkOverview is null, return empty structure (resolver may return null on error)
+  if (!response.networkOverview) {
+    console.warn('[fetchNetworkOverview] networkOverview is null, returning empty structure');
+    return { skillRefs: [] };
+  }
+  
   return response.networkOverview;
 }
 
