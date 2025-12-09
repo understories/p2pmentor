@@ -228,7 +228,7 @@ export default function AsksPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess(`Ask created successfully! "${newAsk.skill}" is now live and visible to mentors.`);
+          setSuccess(`Ask created successfully! "${newAsk.skill}" is now live and visible to mentors. View it in Network →`);
           setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload asks using the same method as initial load (GraphQL if enabled)

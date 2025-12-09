@@ -253,10 +253,19 @@ export function RequestMeetingModal({
             </button>
           </div>
 
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-            Schedule a mentorship session with{' '}
-            <strong>{profile.displayName || 'this user'}</strong>
-          </p>
+          <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+              Requesting a session with
+            </p>
+            <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
+              {profile.displayName || profile.wallet.slice(0, 6) + '...' + profile.wallet.slice(-4)}
+            </p>
+            {profile.bioShort && (
+              <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 line-clamp-2">
+                {profile.bioShort}
+              </p>
+            )}
+          </div>
 
           {/* Confirmation Preview */}
           {showConfirmation ? (
@@ -387,9 +396,25 @@ export function RequestMeetingModal({
             </div>
 
             <div>
-              <label htmlFor="duration" className="block text-sm font-medium mb-1">
-                Duration (minutes)
+              <label htmlFor="duration" className="block text-sm font-medium mb-2">
+                Duration
               </label>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {['30', '60', '90', '120'].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, duration: mins })}
+                    className={`px-3 py-1.5 text-sm rounded-lg font-medium transition-colors ${
+                      formData.duration === mins
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {mins} min
+                  </button>
+                ))}
+              </div>
               <input
                 id="duration"
                 type="number"
@@ -398,6 +423,7 @@ export function RequestMeetingModal({
                 min="15"
                 max="240"
                 step="15"
+                placeholder="Custom (15-240 min)"
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>

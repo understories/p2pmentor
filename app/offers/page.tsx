@@ -313,7 +313,7 @@ export default function OffersPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners.`);
+          setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
           setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
