@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -311,18 +312,29 @@ export default function ProfileDetailPage() {
                     <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
                   )}
                 </div>
-                {/* Request Meeting Button - only show if viewing someone else's profile */}
-                {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-                  <button
-                    onClick={() => {
-                      setSelectedOffer(null); // General request, not tied to specific offer
-                      setShowMeetingModal(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Request Meeting
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {/* Edit Profile Button - only show if viewing own profile */}
+                  {userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && (
+                    <Link
+                      href="/me/profile"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Edit Profile
+                    </Link>
+                  )}
+                  {/* Request Meeting Button - only show if viewing someone else's profile */}
+                  {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
+                    <button
+                      onClick={() => {
+                        setSelectedOffer(null); // General request, not tied to specific offer
+                        setShowMeetingModal(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Request Meeting
+                    </button>
+                  )}
+                </div>
               </div>
               {profile.bioShort && (
                 <p className="text-gray-700 dark:text-gray-300 mb-3">{profile.bioShort}</p>

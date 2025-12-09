@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
@@ -18,6 +19,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -82,6 +84,10 @@ export default function AsksPage() {
     ttlHours: '1', // Default 1 hour
     customTtlHours: '', // For custom input
   });
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedAsk, setSelectedAsk] = useState<Ask | null>(null);
+  const [selectedAskProfile, setSelectedAskProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -93,6 +99,8 @@ export default function AsksPage() {
       }
       setWalletAddress(address);
       loadData(address);
+      // Load user profile for RequestMeetingModal
+      getProfileByWallet(address).then(setUserProfile).catch(() => null);
     }
   }, [router]);
 
@@ -113,7 +121,7 @@ export default function AsksPage() {
           // Only use GraphQL results if we got valid data
           if (graphqlAsks && Array.isArray(graphqlAsks) && graphqlAsks.length >= 0) {
             setProfile(profileData);
-            setAsks(graphqlAsks.map(ask => ({
+            const mappedAsks = graphqlAsks.map(ask => ({
               id: ask.id,
               key: ask.key,
               wallet: ask.wallet,
@@ -125,7 +133,12 @@ export default function AsksPage() {
               ttlSeconds: ask.ttlSeconds,
               txHash: ask.txHash || undefined,
               spaceId: 'local-dev', // Default space ID
-            })) as Ask[]);
+            })) as Ask[];
+            // Sort by newest first (invert order)
+            const sortedAsks = mappedAsks.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            setAsks(sortedAsks);
             return; // Success, exit early
           }
         } catch (graphqlError) {
@@ -162,7 +175,11 @@ export default function AsksPage() {
       
       setProfile(profileData);
       if (asksRes.ok) {
-        setAsks(asksRes.asks || []);
+        // Sort by newest first (invert order)
+        const sortedAsks = (asksRes.asks || []).sort((a: Ask, b: Ask) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setAsks(sortedAsks);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -297,10 +314,18 @@ export default function AsksPage() {
           <BackButton href="/network" />
         </div>
 
-        <PageHeader
-          title="Asks"
-          description="Browse what others are learning, or post your own learning request."
-        />
+        <div className="flex items-center justify-between mb-6">
+          <PageHeader
+            title="Asks"
+            description="Browse what others are learning, or post your own learning request."
+          />
+          <Link
+            href="/offers"
+            className="px-4 py-2 text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 border border-green-300 dark:border-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+          >
+            Offers &gt;
+          </Link>
+        </div>
 
         <BetaBanner />
 
@@ -464,10 +489,45 @@ export default function AsksPage() {
                     <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
                   )}
                 </div>
+                {/* Offer to Help Button - only show if not own ask */}
+                {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
+                  <div className="mt-4">
+                    <button
+                      onClick={async () => {
+                        // Load profile for the ask's wallet
+                        const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                        setSelectedAskProfile(askProfile);
+                        setSelectedAsk(ask);
+                        setShowMeetingModal(true);
+                      }}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Offer to Help
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
+
+        {/* Request Meeting Modal (for Offer to Help) */}
+        <RequestMeetingModal
+          isOpen={showMeetingModal}
+          onClose={() => {
+            setShowMeetingModal(false);
+            setSelectedAsk(null);
+            setSelectedAskProfile(null);
+          }}
+          profile={selectedAskProfile}
+          userWallet={walletAddress}
+          userProfile={userProfile}
+          onSuccess={() => {
+            console.log('Help offered successfully');
+            setSelectedAsk(null);
+            setSelectedAskProfile(null);
+          }}
+        />
       </div>
     </div>
   );

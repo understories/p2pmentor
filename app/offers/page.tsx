@@ -21,6 +21,7 @@ import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
 import { fetchOffers } from '@/lib/graph/offersQueries';
 import { formatAvailabilityForDisplay, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -94,6 +95,10 @@ export default function OffersPage() {
   });
   const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
   const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -105,6 +110,8 @@ export default function OffersPage() {
       }
       setWalletAddress(address);
       loadData(address);
+      // Load user profile for RequestMeetingModal
+      getProfileByWallet(address).then(setUserProfile).catch(() => null);
     }
   }, [router]);
 
@@ -150,7 +157,7 @@ export default function OffersPage() {
           // Only use GraphQL results if we got valid data
           if (graphqlOffers && Array.isArray(graphqlOffers) && graphqlOffers.length >= 0) {
             setProfile(profileData);
-            setOffers(graphqlOffers.map(offer => ({
+            const mappedOffers = graphqlOffers.map(offer => ({
               id: offer.id,
               key: offer.key,
               wallet: offer.wallet,
@@ -166,7 +173,12 @@ export default function OffersPage() {
               ttlSeconds: offer.ttlSeconds,
               txHash: offer.txHash || undefined,
               spaceId: 'local-dev', // Default space ID
-            })) as Offer[]);
+            })) as Offer[];
+            // Sort by newest first (invert order)
+            const sortedOffers = mappedOffers.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            setOffers(sortedOffers);
             return; // Success, exit early
           }
         } catch (graphqlError) {
@@ -203,7 +215,11 @@ export default function OffersPage() {
         
       setProfile(profileData);
       if (offersRes.ok) {
-        setOffers(offersRes.offers || []);
+        // Sort by newest first (invert order)
+        const sortedOffers = (offersRes.offers || []).sort((a: Offer, b: Offer) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setOffers(sortedOffers);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -383,10 +399,18 @@ export default function OffersPage() {
           <BackButton href="/network" />
         </div>
 
-        <PageHeader
-          title="Offers"
-          description="Browse what others are teaching, or post your own teaching offer."
-        />
+        <div className="flex items-center justify-between mb-6">
+          <PageHeader
+            title="Offers"
+            description="Browse what others are teaching, or post your own teaching offer."
+          />
+          <Link
+            href="/asks"
+            className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+          >
+            Asks &gt;
+          </Link>
+        </div>
 
         <BetaBanner />
 
@@ -733,10 +757,46 @@ export default function OffersPage() {
                     <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
                   )}
                 </div>
+                {/* Request Meeting Button - only show if not own offer */}
+                {walletAddress && walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (
+                  <div className="mt-4">
+                    <button
+                      onClick={async () => {
+                        // Load profile for the offer's wallet
+                        const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                        setSelectedOfferProfile(offerProfile);
+                        setSelectedOffer(offer);
+                        setShowMeetingModal(true);
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Request Meeting
+                    </button>
+                  </div>
+                )}
               </div>
             ))
           )}
         </div>
+
+        {/* Request Meeting Modal */}
+        <RequestMeetingModal
+          isOpen={showMeetingModal}
+          onClose={() => {
+            setShowMeetingModal(false);
+            setSelectedOffer(null);
+            setSelectedOfferProfile(null);
+          }}
+          profile={selectedOfferProfile}
+          userWallet={walletAddress}
+          userProfile={userProfile}
+          offer={selectedOffer}
+          onSuccess={() => {
+            console.log('Meeting requested successfully');
+            setSelectedOffer(null);
+            setSelectedOfferProfile(null);
+          }}
+        />
       </div>
     </div>
   );
