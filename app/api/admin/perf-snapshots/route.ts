@@ -335,8 +335,46 @@ export async function POST(request: Request) {
     });
   } catch (error: any) {
     console.error('[admin/perf-snapshots] Error:', error);
+    
+    // Handle transaction errors gracefully (same pattern as other entity creation)
+    const errorMessage = error.message || 'Failed to create snapshot';
+    
+    // Check for transaction-related errors
+    if (errorMessage.includes('replacement transaction') || errorMessage.includes('underpriced')) {
+      return NextResponse.json(
+        { 
+          ok: false, 
+          error: 'Transaction conflict. Please wait a moment and try again.',
+          details: 'A transaction is already pending. Wait for it to confirm before creating another snapshot.',
+        },
+        { status: 429 } // Too Many Requests
+      );
+    }
+    
+    // Check for transaction timeout (handled by handleTransactionWithTimeout)
+    if (errorMessage.includes('Transaction submitted') || errorMessage.includes('confirmation pending')) {
+      // Transaction was submitted but confirmation is pending - this is actually a success case
+      // Extract txHash if available
+      const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
+      if (txHashMatch) {
+        return NextResponse.json({
+          ok: true,
+          snapshot: {
+            key: 'pending',
+            txHash: txHashMatch[0],
+            timestamp: new Date().toISOString(),
+            operation,
+            method,
+            explorer: `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
+            pending: true,
+          },
+          message: 'Snapshot transaction submitted. It will appear once confirmed.',
+        });
+      }
+    }
+    
     return NextResponse.json(
-      { ok: false, error: error.message || 'Failed to create snapshot' },
+      { ok: false, error: errorMessage },
       { status: 500 }
     );
   }

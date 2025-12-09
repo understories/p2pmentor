@@ -280,8 +280,8 @@ export default function AdminDashboard() {
         })
         .catch(err => console.error('Failed to check snapshot status:', err));
 
-      // Fetch historical snapshots
-      fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10')
+      // Fetch historical snapshots (no operation filter to show all snapshots)
+      fetch('/api/admin/perf-snapshots?limit=20')
         .then(res => res.json())
         .then(data => {
           if (data.ok) {
@@ -333,14 +333,20 @@ export default function AdminDashboard() {
       
       if (data.ok) {
         // Success - refresh data
-        // Refresh snapshots (wait a moment for entity to be indexed)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
-        const snapshotsData = await snapshotsRes.json();
-        console.log('[Admin] Snapshots data after creation:', snapshotsData);
-        if (snapshotsData.ok) {
-          setSnapshots(snapshotsData.snapshots || []);
-          console.log('[Admin] Updated snapshots list, count:', snapshotsData.snapshots?.length || 0);
+        // Note: Transaction may be pending, so we show success but note it may take a moment to appear
+        // The handleTransactionWithTimeout wrapper handles receipt timeouts gracefully
+        const txHash = data.snapshot?.txHash;
+        if (txHash) {
+          // Wait a bit longer for entity to be indexed (same pattern as other entity creation)
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Fetch all snapshots (no operation filter) to show complete history
+          const snapshotsRes = await fetch('/api/admin/perf-snapshots?limit=20');
+          const snapshotsData = await snapshotsRes.json();
+          console.log('[Admin] Snapshots data after creation:', snapshotsData);
+          if (snapshotsData.ok) {
+            setSnapshots(snapshotsData.snapshots || []);
+            console.log('[Admin] Updated snapshots list, count:', snapshotsData.snapshots?.length || 0);
+          }
         }
         // Refresh snapshot check
         const checkRes = await fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
