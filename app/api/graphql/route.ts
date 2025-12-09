@@ -38,7 +38,29 @@ const handler = createHandler({
 });
 
 export async function POST(request: Request) {
-  return handler(request);
+  try {
+    // Log request details for debugging
+    const url = request.url;
+    const method = request.method;
+    const headers = Object.fromEntries(request.headers.entries());
+    console.log('[GraphQL] Request received:', { url, method, headers: Object.keys(headers) });
+    
+    // Clone the request to ensure it can be read multiple times
+    const clonedRequest = request.clone();
+    
+    return await handler(clonedRequest);
+  } catch (error) {
+    console.error('[GraphQL] Handler error:', error);
+    return new Response(
+      JSON.stringify({
+        errors: [{ message: error instanceof Error ? error.message : 'Unknown error' }],
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+  }
 }
 
 export async function GET(request: Request) {
