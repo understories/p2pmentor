@@ -138,8 +138,7 @@ export default function OffersPage() {
       }
       
       // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
-        // Fallback to JSON-RPC
-        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
         
         const [profileData, offersRes] = await Promise.all([
           getProfileByWallet(wallet).catch(() => null),
@@ -164,10 +163,9 @@ export default function OffersPage() {
           // Silently fail if metrics module not available
         });
         
-        setProfile(profileData);
-        if (offersRes.ok) {
-          setOffers(offersRes.offers || []);
-        }
+      setProfile(profileData);
+      if (offersRes.ok) {
+        setOffers(offersRes.offers || []);
       }
     } catch (err) {
       console.error('Error loading data:', err);
