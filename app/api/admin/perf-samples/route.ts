@@ -351,6 +351,13 @@ export async function GET(request: Request) {
             const payloadSizes = arkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
             const httpCounts = arkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
             
+            // Count queries per page/route
+            const pageCounts: Record<string, number> = {};
+            arkivSamples.forEach(s => {
+              const page = s.route || '(no route)';
+              pageCounts[page] = (pageCounts[page] || 0) + 1;
+            });
+            
             perfSummary.arkiv = {
               avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
               minDurationMs: Math.min(...durations),
@@ -358,6 +365,7 @@ export async function GET(request: Request) {
               avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
               avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
               samples: arkivSamples.length,
+              pages: pageCounts,
             };
           }
           
@@ -367,6 +375,13 @@ export async function GET(request: Request) {
             const payloadSizes = graphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
             const httpCounts = graphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
             
+            // Count queries per page/route
+            const pageCounts: Record<string, number> = {};
+            graphqlSamples.forEach(s => {
+              const page = s.route || '(no route)';
+              pageCounts[page] = (pageCounts[page] || 0) + 1;
+            });
+            
             perfSummary.graphql = {
               avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
               minDurationMs: Math.min(...durations),
@@ -374,6 +389,7 @@ export async function GET(request: Request) {
               avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
               avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
               samples: graphqlSamples.length,
+              pages: pageCounts,
             };
           }
         }
