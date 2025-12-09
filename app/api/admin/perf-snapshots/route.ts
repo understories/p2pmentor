@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     // Idempotency check: skip if last snapshot < 5 minutes old (unless forced)
     if (!force) {
       try {
-        const lastSnapshot = await getLatestSnapshot({ operation });
+        const lastSnapshot = await getLatestSnapshot(operation);
         if (lastSnapshot) {
           const lastTimestamp = new Date(lastSnapshot.timestamp).getTime();
           const now = Date.now();
