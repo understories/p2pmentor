@@ -260,7 +260,124 @@ export async function GET(request: Request) {
     }
     if (summary && summaryOperation) {
       // Return performance summary
-      const perfSummary = getPerfSummary(summaryOperation, route);
+      // ALWAYS query Arkiv entities first (real, verifiable data)
+      // Then merge with in-memory samples if any
+      let perfSummary = getPerfSummary(summaryOperation, route);
+      
+      try {
+        // Query Arkiv entities for the operation
+        const arkivMetrics = await listDxMetrics({
+          operation: summaryOperation,
+          route,
+          limit: 100,
+        });
+        
+        if (arkivMetrics.length > 0) {
+          // Separate by source
+          const arkivSamples = arkivMetrics
+            .filter(m => m.source === 'arkiv')
+            .map(m => ({
+              source: m.source as 'arkiv',
+              operation: m.operation,
+              route: m.route,
+              durationMs: m.durationMs,
+              payloadBytes: m.payloadBytes,
+              httpRequests: m.httpRequests,
+              createdAt: m.createdAt,
+            }));
+          
+          const graphqlSamples = arkivMetrics
+            .filter(m => m.source === 'graphql')
+            .map(m => ({
+              source: m.source as 'graphql',
+              operation: m.operation,
+              route: m.route,
+              durationMs: m.durationMs,
+              payloadBytes: m.payloadBytes,
+              httpRequests: m.httpRequests,
+              createdAt: m.createdAt,
+            }));
+          
+          // Aggregate Arkiv samples (real on-chain data)
+          if (arkivSamples.length > 0) {
+            const durations = arkivSamples.map(s => s.durationMs);
+            const payloadSizes = arkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+            const httpCounts = arkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+            
+            perfSummary.arkiv = {
+              avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+              minDurationMs: Math.min(...durations),
+              maxDurationMs: Math.max(...durations),
+              avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+              avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+              samples: arkivSamples.length,
+            };
+          }
+          
+          // Aggregate GraphQL samples (real on-chain data)
+          if (graphqlSamples.length > 0) {
+            const durations = graphqlSamples.map(s => s.durationMs);
+            const payloadSizes = graphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+            const httpCounts = graphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+            
+            perfSummary.graphql = {
+              avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+              minDurationMs: Math.min(...durations),
+              maxDurationMs: Math.max(...durations),
+              avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+              avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+              samples: graphqlSamples.length,
+            };
+          }
+        }
+        
+        // If operation is 'buildNetworkGraphData', also check 'networkOverview' for GraphQL
+        if (summaryOperation === 'buildNetworkGraphData') {
+          const networkOverviewMetrics = await listDxMetrics({
+            operation: 'networkOverview',
+            source: 'graphql',
+            limit: 100,
+          });
+          
+          if (networkOverviewMetrics.length > 0) {
+            const durations = networkOverviewMetrics.map(m => m.durationMs);
+            const payloadSizes = networkOverviewMetrics.filter(m => m.payloadBytes !== undefined).map(m => m.payloadBytes!);
+            const httpCounts = networkOverviewMetrics.filter(m => m.httpRequests !== undefined).map(m => m.httpRequests!);
+            
+            // Merge with existing GraphQL data or create new
+            if (perfSummary.graphql) {
+              // Merge: combine samples and recalculate
+              const combinedSamples = (perfSummary.graphql.samples || 0) + networkOverviewMetrics.length;
+              const combinedAvg = (
+                (perfSummary.graphql.avgDurationMs * (perfSummary.graphql.samples || 0)) +
+                (durations.reduce((a, b) => a + b, 0) / durations.length) * networkOverviewMetrics.length
+              ) / combinedSamples;
+              
+              perfSummary.graphql = {
+                avgDurationMs: combinedAvg,
+                minDurationMs: Math.min(perfSummary.graphql.minDurationMs, Math.min(...durations)),
+                maxDurationMs: Math.max(perfSummary.graphql.maxDurationMs, Math.max(...durations)),
+                avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : perfSummary.graphql.avgPayloadBytes,
+                avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : perfSummary.graphql.avgHttpRequests,
+                samples: combinedSamples,
+              };
+            } else {
+              perfSummary.graphql = {
+                avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+                minDurationMs: Math.min(...durations),
+                maxDurationMs: Math.max(...durations),
+                avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+                avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+                samples: networkOverviewMetrics.length,
+              };
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[admin/perf-samples] Failed to query Arkiv entities for summary:', error);
+        // Continue with in-memory data only if Arkiv query fails
+      }
+      
       return NextResponse.json(perfSummary);
     }
 
