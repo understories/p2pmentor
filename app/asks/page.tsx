@@ -321,10 +321,10 @@ export default function AsksPage() {
 
         <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
-            <PageHeader
-              title="Asks"
-              description="Browse what others are learning, or post your own learning request."
-            />
+        <PageHeader
+          title="Asks"
+          description="Browse what others are learning, or post your own learning request."
+        />
             {asks.length > 0 && (
               <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                 {asks.length} active {asks.length === 1 ? 'ask' : 'asks'}
@@ -409,46 +409,46 @@ export default function AsksPage() {
               {/* Advanced Options (Collapsed by Default) */}
               {showAdvancedOptions && (
                 <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div>
-                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+              <div>
+                <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
                       Expiration Duration (optional)
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        id="ttlHours"
-                        value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
-                        onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="0.5">30 minutes</option>
-                        <option value="1">1 hour</option>
-                        <option value="2">2 hours</option>
-                        <option value="6">6 hours</option>
-                        <option value="12">12 hours</option>
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    id="ttlHours"
+                    value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
+                    onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
+                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="0.5">30 minutes</option>
+                    <option value="1">1 hour</option>
+                    <option value="2">2 hours</option>
+                    <option value="6">6 hours</option>
+                    <option value="12">12 hours</option>
                         <option value="24">24 hours (1 day) - Recommended</option>
-                        <option value="48">48 hours (2 days)</option>
-                        <option value="168">1 week</option>
-                        <option value="custom">Custom (hours)</option>
-                      </select>
-                      {newAsk.ttlHours === 'custom' && (
-                        <input
-                          type="number"
-                          min="0.5"
-                          max="8760"
-                          step="0.5"
-                          placeholder="Hours"
-                          value={newAsk.customTtlHours}
-                          onChange={(e) => {
-                            setNewAsk({ ...newAsk, customTtlHours: e.target.value });
-                          }}
-                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      )}
-                    </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <option value="48">48 hours (2 days)</option>
+                    <option value="168">1 week</option>
+                    <option value="custom">Custom (hours)</option>
+                  </select>
+                  {newAsk.ttlHours === 'custom' && (
+                    <input
+                      type="number"
+                      min="0.5"
+                      max="8760"
+                      step="0.5"
+                      placeholder="Hours"
+                      value={newAsk.customTtlHours}
+                      onChange={(e) => {
+                        setNewAsk({ ...newAsk, customTtlHours: e.target.value });
+                      }}
+                      className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       How long should this ask remain active? Default: 24 hours
-                    </p>
-                  </div>
+                </p>
+              </div>
                 </div>
               )}
 
@@ -515,38 +515,38 @@ export default function AsksPage() {
               return (
                 <div key={ask.key}>
                   <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                          {ask.skill}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          {formatDate(ask.createdAt)}
-                        </p>
-                      </div>
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                      {ask.skill}
+                    </h3>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {formatDate(ask.createdAt)}
+                    </p>
+                  </div>
                       <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
                         {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
-                      {ask.message}
-                    </p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                      <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
-                      <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                      {ask.txHash ? (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          View on Arkiv Explorer
-                        </a>
-                      ) : (
-                        <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
-                      )}
-                    </div>
+                  </span>
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                  {ask.message}
+                </p>
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+                  <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
+                  <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
+                  {ask.txHash ? (
+                    <a
+                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View on Arkiv Explorer
+                    </a>
+                  ) : (
+                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
+                  )}
+                </div>
                     {/* Offer to Help Button - only show if not own ask */}
                     {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
                       <div className="mt-4">
@@ -591,7 +591,7 @@ export default function AsksPage() {
                       </div>
                     </div>
                   )}
-                </div>
+              </div>
               );
             })
           )}

@@ -452,8 +452,8 @@ export default function NetworkPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-lg font-semibold ${askColors.text}`}>
-                            {ask.skill}
-                          </h3>
+                          {ask.skill}
+                        </h3>
                           {userWallet && userOffers.some(o => {
                             const askSkill = ask.skill.toLowerCase();
                             const offerSkill = o.skill.toLowerCase();
@@ -530,8 +530,8 @@ export default function NetworkPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`text-lg font-semibold ${offerColors.text}`}>
-                            {offer.skill}
-                          </h3>
+                          {offer.skill}
+                        </h3>
                           {userWallet && userAsks.some(a => {
                             const askSkill = a.skill.toLowerCase();
                             const offerSkill = offer.skill.toLowerCase();
