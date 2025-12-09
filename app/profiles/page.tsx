@@ -88,13 +88,6 @@ export default function ProfilesPage() {
         
         <BetaBanner />
 
-        {/* Beta Warning */}
-        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
-          </p>
-        </div>
-
         {/* Filter */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <label htmlFor="skillFilter" className="block text-sm font-medium mb-2">
