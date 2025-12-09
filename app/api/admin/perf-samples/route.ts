@@ -109,12 +109,18 @@ export async function GET(request: Request) {
         // 2. GraphQL path - networkOverview query
         if (testGraphQL) {
           try {
+            // Use absolute URL for server-side GraphQL requests
+            const graphqlEndpoint = process.env.GRAPH_SUBGRAPH_URL || 
+              (process.env.NEXT_PUBLIC_APP_URL 
+                ? `${process.env.NEXT_PUBLIC_APP_URL}/api/graphql`
+                : 'http://localhost:3000/api/graphql');
+            
             const startTime4 = Date.now();
             const graphqlData = await fetchNetworkOverview({
               limitAsks: 25,
               limitOffers: 25,
               includeExpired: false,
-            });
+            }, { endpoint: graphqlEndpoint }); // Pass absolute URL
             const duration4 = Date.now() - startTime4;
             const payloadSize4 = JSON.stringify(graphqlData).length;
 
@@ -133,12 +139,21 @@ export async function GET(request: Request) {
                 privateKey,
               });
               createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash: tx2 });
+              console.log('[seed-perf] GraphQL test successful:', { durationMs: duration4, payloadBytes: payloadSize4 });
             } catch (err) {
               console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
             }
-          } catch (error) {
-            // GraphQL may not be enabled, that's ok
-            console.log('[seed-perf] GraphQL path not available (flag may be off)');
+          } catch (error: any) {
+            // GraphQL may not be enabled or may have failed
+            console.error('[seed-perf] GraphQL path failed:', error.message || error);
+            // Don't silently fail - return info about what happened
+            return NextResponse.json({
+              success: false,
+              error: `GraphQL test failed: ${error.message || 'Unknown error'}`,
+              note: 'Arkiv JSON-RPC test may have succeeded. Check entitiesCreated for details.',
+              entitiesCreated: createdEntities.length,
+              transactions: createdEntities,
+            }, { status: 500 });
           }
         }
 

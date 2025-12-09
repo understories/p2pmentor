@@ -124,7 +124,8 @@ const NETWORK_OVERVIEW_QUERY = `
  * ```
  */
 export async function fetchNetworkOverview(
-  params: NetworkOverviewParams & { includeExpired?: boolean }
+  params: NetworkOverviewParams & { includeExpired?: boolean },
+  options?: { endpoint?: string }
 ): Promise<GraphQLNetworkOverviewResponse> {
   const {
     skillFilter,
@@ -151,7 +152,8 @@ export async function fetchNetworkOverview(
 
   const response = await graphRequest<{ networkOverview: GraphQLNetworkOverviewResponse }>(
     NETWORK_OVERVIEW_QUERY,
-    variables
+    variables,
+    { endpoint: options?.endpoint }
   );
 
   // Extract networkOverview from response

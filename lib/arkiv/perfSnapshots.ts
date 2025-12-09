@@ -14,7 +14,7 @@ export type PerfSnapshot = {
   key: string;
   timestamp: string; // ISO timestamp
   operation: string; // e.g., 'buildNetworkGraphData'
-  method: 'arkiv' | 'graphql' | 'both'; // Which method was tested
+  method: 'arkiv' | 'graphql' | 'both'; // Which method was actually tested (may differ from requested)
   graphql?: {
     avgDurationMs: number;
     minDurationMs: number;

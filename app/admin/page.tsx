@@ -559,6 +559,14 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
                           Method: {snapshot.method} • Operation: {snapshot.operation}
+                          {(!snapshot.arkiv && !snapshot.graphql) && (
+                            <span className="ml-2 text-amber-600 dark:text-amber-400">(No performance data captured)</span>
+                          )}
+                          {snapshot.method === 'both' && (!snapshot.arkiv || !snapshot.graphql) && (
+                            <span className="ml-2 text-amber-600 dark:text-amber-400">
+                              ({snapshot.arkiv ? 'Only Arkiv' : snapshot.graphql ? 'Only GraphQL' : 'No data'} captured)
+                            </span>
+                          )}
                         </div>
                       </div>
                       {snapshot.txHash && (
