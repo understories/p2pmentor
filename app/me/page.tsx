@@ -12,11 +12,14 @@ import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
+import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
+import { calculateProfileCompleteness } from '@/lib/profile/completeness';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -68,12 +71,13 @@ export default function MePage() {
 
   const loadProfileStatus = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
-      const data = await res.json();
-      setHasProfile(data.ok && data.profile !== null);
+      const profileData = await getProfileByWallet(wallet).catch(() => null);
+      setHasProfile(profileData !== null);
+      setProfile(profileData);
     } catch (err) {
       console.error('Error loading profile status:', err);
       setHasProfile(null);
+      setProfile(null);
     }
   };
 
@@ -97,6 +101,40 @@ export default function MePage() {
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-mono break-all">
           {walletAddress}
         </p>
+
+        {/* Profile Completeness Indicator */}
+        {hasProfile && profile && (() => {
+          const completeness = calculateProfileCompleteness(profile);
+          if (completeness.percentage < 100) {
+            return (
+              <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">
+                    Profile {completeness.percentage}% Complete
+                  </span>
+                  <Link
+                    href="/me/profile"
+                    className="text-sm text-yellow-800 dark:text-yellow-300 hover:underline"
+                  >
+                    Complete →
+                  </Link>
+                </div>
+                <div className="w-full bg-yellow-200 dark:bg-yellow-800 rounded-full h-2 mb-2">
+                  <div
+                    className="bg-yellow-600 dark:bg-yellow-400 h-2 rounded-full transition-all"
+                    style={{ width: `${completeness.percentage}%` }}
+                  />
+                </div>
+                {completeness.missing.length > 0 && (
+                  <p className="text-xs text-yellow-800 dark:text-yellow-300">
+                    Missing: {completeness.missing.join(', ')}
+                  </p>
+                )}
+              </div>
+            );
+          }
+          return null;
+        })()}
 
         <div className="space-y-3 mb-6">
           <Link

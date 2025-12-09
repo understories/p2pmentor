@@ -402,10 +402,17 @@ export default function OffersPage() {
         </div>
 
         <div className="flex items-center justify-between mb-6">
-          <PageHeader
-            title="Offers"
-            description="Browse what others are teaching, or post your own teaching offer."
-          />
+          <div className="flex-1">
+            <PageHeader
+              title="Offers"
+              description="Browse what others are teaching, or post your own teaching offer."
+            />
+            {offers.length > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {offers.length} active {offers.length === 1 ? 'offer' : 'offers'}
+              </p>
+            )}
+          </div>
           <Link
             href="/asks"
             className={`px-4 py-2 text-sm font-medium ${askColors.buttonOutline} rounded-lg transition-colors`}

@@ -317,10 +317,17 @@ export default function AsksPage() {
         </div>
 
         <div className="flex items-center justify-between mb-6">
-          <PageHeader
-            title="Asks"
-            description="Browse what others are learning, or post your own learning request."
-          />
+          <div className="flex-1">
+            <PageHeader
+              title="Asks"
+              description="Browse what others are learning, or post your own learning request."
+            />
+            {asks.length > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {asks.length} active {asks.length === 1 ? 'ask' : 'asks'}
+              </p>
+            )}
+          </div>
           <Link
             href="/offers"
             className={`px-4 py-2 text-sm font-medium ${offerColors.buttonOutline} rounded-lg transition-colors`}
