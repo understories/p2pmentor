@@ -93,11 +93,13 @@ export const resolvers = {
     },
 
     asks: async (_: any, args: any) => {
-      const { skill, wallet, includeExpired = false, limit = 100 } = args;
-      
-      console.log('[GraphQL] asks resolver called with:', { skill, wallet, includeExpired, limit });
-      
+      // CRITICAL: Wrap entire resolver to ensure we NEVER return null/undefined
+      // GraphQL will throw "Cannot return null for non-nullable field" if we do
       try {
+        const { skill, wallet, includeExpired = false, limit = 100 } = args;
+        
+        console.log('[GraphQL] asks resolver called with:', { skill, wallet, includeExpired, limit });
+        
         let asks: any = null;
         try {
           console.log('[GraphQL] Calling listAsks...');
@@ -113,7 +115,8 @@ export const resolvers = {
             stack: fetchError?.stack,
             error: fetchError
           });
-          asks = null; // Explicitly set to null so we handle it below
+          // Return empty array immediately on fetch error
+          return [];
         }
 
         // Ensure we always return an array, never null
@@ -122,7 +125,7 @@ export const resolvers = {
             asks, 
             type: typeof asks,
             isArray: Array.isArray(asks),
-            asksValue: JSON.stringify(asks)
+            asksValue: asks ? JSON.stringify(asks).substring(0, 200) : 'null/undefined'
           });
           return [];
         }
@@ -137,7 +140,7 @@ export const resolvers = {
               } catch (transformError: any) {
                 console.error('[GraphQL] Error transforming ask:', {
                   error: transformError?.message,
-                  ask: JSON.stringify(ask)
+                  ask: ask ? JSON.stringify(ask).substring(0, 100) : 'null'
                 });
                 return null;
               }
@@ -154,10 +157,12 @@ export const resolvers = {
           return []; // Return empty array if transformation fails
         }
       } catch (error: any) {
-        console.error('[GraphQL] Unexpected error in asks resolver:', {
+        // CRITICAL: Catch ANY error and return empty array
+        // This ensures GraphQL never sees null/undefined
+        console.error('[GraphQL] Unexpected error in asks resolver (outer catch):', {
           message: error?.message,
           stack: error?.stack,
-          error
+          error: error?.toString()
         });
         return []; // Always return array, never null
       }
