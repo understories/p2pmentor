@@ -288,6 +288,16 @@ Before committing:
 - [ ] Commit message is clear
 - [ ] Changes are auditable
 
+Before pushing to production:
+- [ ] **Double-check all data for accuracy** (dates, numbers, metrics, references)
+- [ ] Verify all transaction hashes and explorer links
+- [ ] Confirm all dates and timestamps are correct
+- [ ] Review all metrics and calculations
+- [ ] Ensure no placeholder values (TBD, TODO) remain in public docs
+- [ ] Test all links and references
+- [ ] Verify build passes without errors
+- [ ] Confirm environment variables are set correctly
+
 ## 9. Agent and Human Collaboration
 
 ### For AI Agents
