@@ -42,6 +42,7 @@ export async function GET(request: Request) {
   const summary = searchParams.get('summary') === 'true';
   const summaryOperation = searchParams.get('summaryOperation') || undefined;
   const seed = searchParams.get('seed') === 'true';
+  const method = searchParams.get('method') as 'arkiv' | 'graphql' | 'both' | null;
 
   try {
     // Seed real performance data by making actual Arkiv/GraphQL calls
@@ -57,81 +58,88 @@ export async function GET(request: Request) {
 
         const privateKey = getPrivateKey();
         const createdEntities: Array<{ source: string; operation: string; txHash: string }> = [];
+        
+        // Determine which methods to test based on query parameter
+        const testArkiv = !method || method === 'arkiv' || method === 'both';
+        const testGraphQL = method === 'graphql' || method === 'both';
 
         // Make real calls that go through instrumented code paths
         // These will record actual performance metrics from Arkiv entities
         
         // 1. JSON-RPC path operations (direct Arkiv calls)
-        // These are already instrumented in lib/arkiv/* files
-        const startTime1 = Date.now();
-        await listAsks({ limit: 25, includeExpired: false });
-        const duration1 = Date.now() - startTime1;
-        
-        const startTime2 = Date.now();
-        await listOffers({ limit: 25, includeExpired: false });
-        const duration2 = Date.now() - startTime2;
-        
-        // 2. Network graph via JSON-RPC path (if flag is off)
-        const startTime3 = Date.now();
-        const graphData = await buildNetworkGraphData({ 
-          limitAsks: 25, 
-          limitOffers: 25, 
-          includeExpired: false 
-        });
-        const duration3 = Date.now() - startTime3;
-        const payloadSize3 = JSON.stringify(graphData).length;
-
-        // Create DX metric entity for JSON-RPC path (verifiable on-chain)
-        try {
-          const { txHash: tx1 } = await createDxMetric({
-            sample: {
-              source: 'arkiv',
-              operation: 'buildNetworkGraphData',
-              route: '/network',
-              durationMs: duration3,
-              payloadBytes: payloadSize3,
-              httpRequests: 4, // listAsks (2) + listOffers (2)
-              createdAt: new Date().toISOString(),
-            },
-            privateKey,
+        if (testArkiv) {
+          const startTime1 = Date.now();
+          await listAsks({ limit: 25, includeExpired: false });
+          const duration1 = Date.now() - startTime1;
+          
+          const startTime2 = Date.now();
+          await listOffers({ limit: 25, includeExpired: false });
+          const duration2 = Date.now() - startTime2;
+          
+          // Network graph via JSON-RPC path
+          const startTime3 = Date.now();
+          const graphData = await buildNetworkGraphData({ 
+            limitAsks: 25, 
+            limitOffers: 25, 
+            includeExpired: false 
           });
-          createdEntities.push({ source: 'arkiv', operation: 'buildNetworkGraphData', txHash: tx1 });
-        } catch (err) {
-          console.error('[seed-perf] Failed to create Arkiv metric entity:', err);
-        }
+          const duration3 = Date.now() - startTime3;
+          const payloadSize3 = JSON.stringify(graphData).length;
 
-        // 3. GraphQL path - networkOverview query (if flag is on)
-        try {
-          const startTime4 = Date.now();
-          const graphqlData = await fetchNetworkOverview({
-            limitAsks: 25,
-            limitOffers: 25,
-            includeExpired: false,
-          });
-          const duration4 = Date.now() - startTime4;
-          const payloadSize4 = JSON.stringify(graphqlData).length;
-
-          // Create DX metric entity for GraphQL path (verifiable on-chain)
+          // Create DX metric entity for JSON-RPC path (verifiable on-chain)
           try {
-            const { txHash: tx2 } = await createDxMetric({
+            const { txHash: tx1 } = await createDxMetric({
               sample: {
-                source: 'graphql',
-                operation: 'networkOverview',
+                source: 'arkiv',
+                operation: 'buildNetworkGraphData',
                 route: '/network',
-                durationMs: duration4,
-                payloadBytes: payloadSize4,
-                httpRequests: 1, // Single GraphQL request
+                durationMs: duration3,
+                payloadBytes: payloadSize3,
+                httpRequests: 4, // listAsks (2) + listOffers (2)
                 createdAt: new Date().toISOString(),
               },
               privateKey,
             });
-            createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash: tx2 });
+            createdEntities.push({ source: 'arkiv', operation: 'buildNetworkGraphData', txHash: tx1 });
           } catch (err) {
-            console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
+            console.error('[seed-perf] Failed to create Arkiv metric entity:', err);
           }
-        } catch (error) {
-          // GraphQL may not be enabled, that's ok
-          console.log('[seed-perf] GraphQL path not available (flag may be off)');
+        }
+
+        // 2. GraphQL path - networkOverview query
+        if (testGraphQL) {
+          try {
+            const startTime4 = Date.now();
+            const graphqlData = await fetchNetworkOverview({
+              limitAsks: 25,
+              limitOffers: 25,
+              includeExpired: false,
+            });
+            const duration4 = Date.now() - startTime4;
+            const payloadSize4 = JSON.stringify(graphqlData).length;
+
+            // Create DX metric entity for GraphQL path (verifiable on-chain)
+            try {
+              const { txHash: tx2 } = await createDxMetric({
+                sample: {
+                  source: 'graphql',
+                  operation: 'networkOverview',
+                  route: '/network',
+                  durationMs: duration4,
+                  payloadBytes: payloadSize4,
+                  httpRequests: 1, // Single GraphQL request
+                  createdAt: new Date().toISOString(),
+                },
+                privateKey,
+              });
+              createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash: tx2 });
+            } catch (err) {
+              console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
+            }
+          } catch (error) {
+            // GraphQL may not be enabled, that's ok
+            console.log('[seed-perf] GraphQL path not available (flag may be off)');
+          }
         }
 
         // 4. Profile operations using default wallet (real Arkiv entities)

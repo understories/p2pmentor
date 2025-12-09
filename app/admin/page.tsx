@@ -67,6 +67,7 @@ export default function AdminDashboard() {
   const [pageLoadTimes, setPageLoadTimes] = useState<PageLoadResult[]>([]);
   const [pageLoadSummary, setPageLoadSummary] = useState<PageLoadSummary | null>(null);
   const [recentFeedback, setRecentFeedback] = useState<AppFeedback[]>([]);
+  const [testMethod, setTestMethod] = useState<'arkiv' | 'graphql' | 'both'>('both');
 
   useEffect(() => {
     // Check authentication
@@ -83,6 +84,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (authenticated) {
+      // Load test method preference from localStorage
+      const savedMethod = localStorage.getItem('admin_test_method');
+      if (savedMethod && ['arkiv', 'graphql', 'both'].includes(savedMethod)) {
+        setTestMethod(savedMethod as 'arkiv' | 'graphql' | 'both');
+      }
+
       // Fetch performance summary
       fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData')
         .then(res => res.json())
@@ -180,15 +187,31 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
               Performance
             </h2>
-            <a
-              href={`/api/admin/perf-samples?seed=true`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-              title="Test query performance by making real Arkiv queries and recording metrics"
-            >
-              Test Query Performance
-            </a>
+            <div className="flex items-center gap-4">
+              {/* Test Method Toggle */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                <span className="text-xs text-gray-600 dark:text-gray-400">Test Method:</span>
+                <button
+                  onClick={() => {
+                    const newMethod = testMethod === 'arkiv' ? 'graphql' : testMethod === 'graphql' ? 'both' : 'arkiv';
+                    setTestMethod(newMethod);
+                    localStorage.setItem('admin_test_method', newMethod);
+                  }}
+                  className="px-3 py-1 text-xs font-medium rounded transition-colors bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                >
+                  {testMethod === 'arkiv' ? 'Arkiv' : testMethod === 'graphql' ? 'GraphQL' : 'Both'}
+                </button>
+              </div>
+              <a
+                href={`/api/admin/perf-samples?seed=true&method=${testMethod}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods`}
+              >
+                Test Query Performance
+              </a>
+            </div>
           </div>
 
           {/* Query Performance Comparison */}
