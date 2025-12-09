@@ -102,31 +102,42 @@ export default function OffersPage() {
       const useGraphQL = await useGraphqlForOffers();
       
       if (useGraphQL) {
-        // Use GraphQL: Single query for offers
-        const [profileData, graphqlOffers] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetchOffers({ includeExpired: false, limit: 100 }).catch(() => []),
-        ]);
-        
-        setProfile(profileData);
-        setOffers(graphqlOffers.map(offer => ({
-          id: offer.id,
-          key: offer.key,
-          wallet: offer.wallet,
-          skill: offer.skill,
-          message: offer.message || '',
-          availabilityWindow: offer.availabilityWindow || '',
-          isPaid: offer.isPaid,
-          cost: offer.cost || undefined,
-          paymentAddress: offer.paymentAddress || undefined,
-          status: offer.status,
-          createdAt: offer.createdAt,
-          expiresAt: offer.expiresAt ? Number(offer.expiresAt) : null,
-          ttlSeconds: offer.ttlSeconds,
-          txHash: offer.txHash || undefined,
-          spaceId: 'local-dev', // Default space ID
-        })) as Offer[]);
-      } else {
+        // Try GraphQL first
+        try {
+          const [profileData, graphqlOffers] = await Promise.all([
+            getProfileByWallet(wallet).catch(() => null),
+            fetchOffers({ includeExpired: false, limit: 100 }),
+          ]);
+          
+          // Only use GraphQL results if we got valid data
+          if (graphqlOffers && Array.isArray(graphqlOffers) && graphqlOffers.length >= 0) {
+            setProfile(profileData);
+            setOffers(graphqlOffers.map(offer => ({
+              id: offer.id,
+              key: offer.key,
+              wallet: offer.wallet,
+              skill: offer.skill,
+              message: offer.message || '',
+              availabilityWindow: offer.availabilityWindow || '',
+              isPaid: offer.isPaid,
+              cost: offer.cost || undefined,
+              paymentAddress: offer.paymentAddress || undefined,
+              status: offer.status,
+              createdAt: offer.createdAt,
+              expiresAt: offer.expiresAt ? Number(offer.expiresAt) : null,
+              ttlSeconds: offer.ttlSeconds,
+              txHash: offer.txHash || undefined,
+              spaceId: 'local-dev', // Default space ID
+            })) as Offer[]);
+            return; // Success, exit early
+          }
+        } catch (graphqlError) {
+          console.warn('[OffersPage] GraphQL query failed, falling back to JSON-RPC:', graphqlError);
+          // Fall through to JSON-RPC fallback
+        }
+      }
+      
+      // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
         // Fallback to JSON-RPC
         const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
         

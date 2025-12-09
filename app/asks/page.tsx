@@ -98,57 +98,66 @@ export default function AsksPage() {
       const useGraphQL = await useGraphqlForAsks();
       
       if (useGraphQL) {
-        // Use GraphQL: Single query for asks
-        const [profileData, graphqlAsks] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetchAsks({ includeExpired: false, limit: 100 }).catch(() => []),
-        ]);
-        
-        setProfile(profileData);
-        setAsks(graphqlAsks.map(ask => ({
-          id: ask.id,
-          key: ask.key,
-          wallet: ask.wallet,
-          skill: ask.skill,
-          message: ask.message || '',
-          status: ask.status,
-          createdAt: ask.createdAt,
-          expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
-          ttlSeconds: ask.ttlSeconds,
-          txHash: ask.txHash || undefined,
-          spaceId: 'local-dev', // Default space ID
-        })) as Ask[]);
-      } else {
-        // Fallback to JSON-RPC
-        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        
-        const [profileData, asksRes] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetch('/api/asks').then(r => r.json()),
-        ]);
-        
-        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-        const payloadBytes = JSON.stringify(asksRes).length;
-        
-        // Record performance sample (async, don't block)
-        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-          recordPerfSample({
-            source: 'arkiv',
-            operation: 'listAsks',
-            route: '/asks',
-            durationMs: Math.round(durationMs),
-            payloadBytes,
-            httpRequests: 1, // Single API call
-            createdAt: new Date().toISOString(),
-          });
-        }).catch(() => {
-          // Silently fail if metrics module not available
-        });
-        
-        setProfile(profileData);
-        if (asksRes.ok) {
-          setAsks(asksRes.asks || []);
+        // Try GraphQL first
+        try {
+          const [profileData, graphqlAsks] = await Promise.all([
+            getProfileByWallet(wallet).catch(() => null),
+            fetchAsks({ includeExpired: false, limit: 100 }),
+          ]);
+          
+          // Only use GraphQL results if we got valid data
+          if (graphqlAsks && Array.isArray(graphqlAsks) && graphqlAsks.length >= 0) {
+            setProfile(profileData);
+            setAsks(graphqlAsks.map(ask => ({
+              id: ask.id,
+              key: ask.key,
+              wallet: ask.wallet,
+              skill: ask.skill,
+              message: ask.message || '',
+              status: ask.status,
+              createdAt: ask.createdAt,
+              expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
+              ttlSeconds: ask.ttlSeconds,
+              txHash: ask.txHash || undefined,
+              spaceId: 'local-dev', // Default space ID
+            })) as Ask[]);
+            return; // Success, exit early
+          }
+        } catch (graphqlError) {
+          console.warn('[AsksPage] GraphQL query failed, falling back to JSON-RPC:', graphqlError);
+          // Fall through to JSON-RPC fallback
         }
+      }
+      
+      // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
+      const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      
+      const [profileData, asksRes] = await Promise.all([
+        getProfileByWallet(wallet).catch(() => null),
+        fetch('/api/asks').then(r => r.json()),
+      ]);
+      
+      const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const payloadBytes = JSON.stringify(asksRes).length;
+      
+      // Record performance sample (async, don't block)
+      import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'listAsks',
+          route: '/asks',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 1, // Single API call
+          createdAt: new Date().toISOString(),
+        });
+      }).catch(() => {
+        // Silently fail if metrics module not available
+      });
+      
+      setProfile(profileData);
+      if (asksRes.ok) {
+        setAsks(asksRes.asks || []);
       }
     } catch (err) {
       console.error('Error loading data:', err);
