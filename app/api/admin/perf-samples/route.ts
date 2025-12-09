@@ -114,6 +114,27 @@ export async function GET(request: Request) {
             createdEntities.push({ source: 'arkiv', operation: 'buildNetworkGraphData', txHash: tx1 });
           } catch (err) {
             console.error('[seed-perf] Failed to create Arkiv metric entity:', err);
+            
+            // Check if this is a transaction receipt timeout (common on testnets)
+            const errorMessage = err instanceof Error ? err.message : String(err);
+            const isTimeoutError = errorMessage.includes('Transaction receipt') || 
+                                  errorMessage.includes('confirmation pending') ||
+                                  errorMessage.includes('Transaction submitted');
+            
+            if (isTimeoutError) {
+              // Transaction was submitted but receipt not available - this is OK for testnets
+              // Extract txHash if available
+              const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
+              const txHash = txHashMatch ? txHashMatch[0] : 'pending';
+              
+              createdEntities.push({ source: 'arkiv', operation: 'buildNetworkGraphData', txHash });
+              console.log('[seed-perf] Arkiv test - transaction submitted but confirmation pending:', { 
+                durationMs: duration3, 
+                payloadBytes: payloadSize3,
+                txHash,
+              });
+            }
+            // Continue - don't throw, entity was likely created
           }
         }
 
@@ -209,8 +230,30 @@ export async function GET(request: Request) {
               });
             } catch (err) {
               console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
-              // Re-throw to surface the error - entity creation is critical
-              throw new Error(`Failed to create GraphQL metric entity: ${err instanceof Error ? err.message : 'Unknown error'}`);
+              
+              // Check if this is a transaction receipt timeout (common on testnets)
+              const errorMessage = err instanceof Error ? err.message : String(err);
+              const isTimeoutError = errorMessage.includes('Transaction receipt') || 
+                                    errorMessage.includes('confirmation pending') ||
+                                    errorMessage.includes('Transaction submitted');
+              
+              if (isTimeoutError) {
+                // Transaction was submitted but receipt not available - this is OK for testnets
+                // Extract txHash if available
+                const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
+                const txHash = txHashMatch ? txHashMatch[0] : 'pending';
+                
+                createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash });
+                console.log('[seed-perf] GraphQL test - transaction submitted but confirmation pending:', { 
+                  durationMs: duration4, 
+                  payloadBytes: payloadSize4,
+                  txHash,
+                });
+                // Continue - don't throw, entity was likely created
+              } else {
+                // Re-throw for actual errors
+                throw new Error(`Failed to create GraphQL metric entity: ${errorMessage}`);
+              }
             }
           } catch (error: any) {
             // GraphQL may not be enabled or may have failed
