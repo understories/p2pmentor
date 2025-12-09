@@ -13,6 +13,7 @@ import { createUserProfileClient, getProfileByWallet, type UserProfile } from '@
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { TimezoneSelector } from '@/components/availability/TimezoneSelector';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -21,6 +22,7 @@ export default function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [timezone, setTimezone] = useState<string>('');
   const router = useRouter();
 
   useEffect(() => {
@@ -41,6 +43,18 @@ export default function ProfilePage() {
       setLoading(true);
       const profileData = await getProfileByWallet(wallet);
       setProfile(profileData);
+      // Set timezone from profile or auto-detect
+      if (profileData?.timezone) {
+        setTimezone(profileData.timezone);
+      } else {
+        // Auto-detect timezone if not set
+        try {
+          const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          setTimezone(detected);
+        } catch {
+          setTimezone('UTC');
+        }
+      }
     } catch (err) {
       console.error('Error loading profile:', err);
       setError('Failed to load profile');
@@ -70,7 +84,8 @@ export default function ProfilePage() {
     const bio = formData.get('bio') as string;
     const bioShort = formData.get('bioShort') as string;
     const bioLong = formData.get('bioLong') as string;
-    const timezone = formData.get('timezone') as string || 'UTC';
+    // Use state timezone (from TimezoneSelector) or fallback to form data
+    const timezoneValue = timezone || (formData.get('timezone') as string) || 'UTC';
     const availabilityWindow = formData.get('availabilityWindow') as string;
     
     // Languages
@@ -113,7 +128,7 @@ export default function ProfilePage() {
           bioLong: bioLong || undefined,
           skills: skills || '',
           skillsArray,
-          timezone,
+          timezone: timezoneValue,
           languages,
           contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
           seniority: seniority || undefined,
@@ -175,11 +190,26 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {!profile && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">
+              Create Your Profile
+            </h3>
+            <p className="text-sm text-blue-800 dark:text-blue-300">
+              Create your profile to start connecting with mentors and learners in the network.
+              All fields marked with * are required.
+            </p>
+          </div>
+        )}
+
         {profile && (
           <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Existing profile found</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Editing existing profile</p>
             <p className="font-medium">{profile.displayName}</p>
             {profile.bioShort && <p className="text-sm mt-2">{profile.bioShort}</p>}
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+              Changes will create a new profile entity on Arkiv.
+            </p>
           </div>
         )}
 
@@ -248,17 +278,13 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <label htmlFor="timezone" className="block text-sm font-medium mb-1">
-                Timezone
-              </label>
-              <input
-                type="text"
-                id="timezone"
-                name="timezone"
-                defaultValue={profile?.timezone || 'UTC'}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="UTC"
+              <TimezoneSelector
+                value={timezone}
+                onChange={setTimezone}
+                className=""
               />
+              {/* Hidden input for form submission */}
+              <input type="hidden" name="timezone" value={timezone} />
             </div>
 
             <div>
@@ -361,7 +387,10 @@ export default function ProfilePage() {
               disabled={submitting}
               className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Creating Profile...' : profile ? 'Update Profile' : 'Create Profile'}
+              {submitting 
+                ? (profile ? 'Updating Profile...' : 'Creating Profile...')
+                : (profile ? 'Update Profile' : 'Create Profile')
+              }
             </button>
           </div>
 
