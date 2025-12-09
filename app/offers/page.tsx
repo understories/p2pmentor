@@ -214,22 +214,16 @@ export default function OffersPage() {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
           setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
-          // Reload offers after a delay
+          // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
           setTimeout(async () => {
-            const offersRes = await fetch('/api/offers').then(r => r.json());
-            if (offersRes.ok) {
-              setOffers(offersRes.offers || []);
-            }
+            await loadData(walletAddress!);
           }, 2000);
         } else {
           setSuccess('Offer created successfully!');
           setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
-          // Reload offers
-          const offersRes = await fetch('/api/offers').then(r => r.json());
-          if (offersRes.ok) {
-            setOffers(offersRes.offers || []);
-          }
+          // Reload offers using the same method as initial load (GraphQL if enabled)
+          await loadData(walletAddress!);
         }
       } else {
         setError(data.error || 'Failed to create offer');
