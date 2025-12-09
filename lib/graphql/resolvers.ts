@@ -126,22 +126,32 @@ export const resolvers = {
       const { skill, wallet, includeExpired = false, limit = 100 } = args;
       
       try {
-        let offers;
-        if (wallet) {
-          offers = await listOffersForWallet(wallet);
-        } else {
-          offers = await listOffers({ skill, includeExpired, limit });
+        let offers: any = null;
+        try {
+          if (wallet) {
+            offers = await listOffersForWallet(wallet);
+          } else {
+            offers = await listOffers({ skill, includeExpired, limit });
+          }
+        } catch (fetchError) {
+          console.error('[GraphQL] Error fetching offers data:', fetchError);
+          offers = null;
         }
 
         // Ensure we always return an array, never null
         if (!offers || !Array.isArray(offers)) {
-          console.warn('[GraphQL] offers resolver: received non-array result, returning empty array');
+          console.warn('[GraphQL] offers resolver: received non-array result, returning empty array', { offers, type: typeof offers });
           return [];
         }
 
-        return offers.map(transformOffer);
+        try {
+          return offers.map(transformOffer);
+        } catch (transformError) {
+          console.error('[GraphQL] Error transforming offers:', transformError);
+          return [];
+        }
       } catch (error) {
-        console.error('Error fetching offers:', error);
+        console.error('[GraphQL] Unexpected error in offers resolver:', error);
         return []; // Always return array, never null
       }
     },

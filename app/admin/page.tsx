@@ -333,12 +333,14 @@ export default function AdminDashboard() {
       
       if (data.ok) {
         // Success - refresh data
-        // Refresh snapshots
+        // Refresh snapshots (wait a moment for entity to be indexed)
+        await new Promise(resolve => setTimeout(resolve, 2000));
         const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
         const snapshotsData = await snapshotsRes.json();
-        console.log('[Admin] Snapshots data:', snapshotsData);
+        console.log('[Admin] Snapshots data after creation:', snapshotsData);
         if (snapshotsData.ok) {
           setSnapshots(snapshotsData.snapshots || []);
+          console.log('[Admin] Updated snapshots list, count:', snapshotsData.snapshots?.length || 0);
         }
         // Refresh snapshot check
         const checkRes = await fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
@@ -349,6 +351,11 @@ export default function AdminDashboard() {
             hoursAgo: checkData.lastSnapshot?.hoursAgo,
           });
         }
+        // Refresh performance summary to show updated data
+        fetch('/api/admin/perf-samples?summary=true')
+          .then(res => res.json())
+          .then(summaryData => setPerfSummary(summaryData))
+          .catch(err => console.error('Failed to refresh perf summary:', err));
         alert(`Snapshot created successfully! Transaction: ${data.snapshot?.txHash?.slice(0, 10)}...`);
       } else if (res.status === 429) {
         // Too many requests - idempotency check

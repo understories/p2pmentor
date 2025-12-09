@@ -89,18 +89,15 @@ export async function POST(request: Request) {
     }
 
     // Get current performance summary
-    // Note: GraphQL uses 'networkOverview' operation, Arkiv uses 'buildNetworkGraphData'
-    // We need to check both to get complete picture when operation is 'buildNetworkGraphData'
+    // For snapshots, we want to capture ALL operations (not just one specific operation)
+    // This gives us a complete picture of all pages using GraphQL/Arkiv
+    // Use the same aggregation logic as the summary endpoint (no operation filter)
+    let perfSummary: any = { graphql: undefined, arkiv: undefined };
     
-    // First, try to get from Arkiv entities (verifiable on-chain)
-    // Then fall back to in-memory samples
-    let perfSummary = getPerfSummary(operation);
-    
-    // Also query Arkiv entities for more complete data
+    // Query ALL Arkiv entities (not filtered by operation) to get complete picture
     try {
       const arkivMetrics = await listDxMetrics({
-        operation,
-        limit: 100,
+        limit: 500, // Get more samples for comprehensive snapshot
       });
       
       if (arkivMetrics.length > 0) {
@@ -129,13 +126,13 @@ export async function POST(request: Request) {
             createdAt: m.createdAt,
           }));
         
-        // Aggregate Arkiv samples
+        // Aggregate Arkiv samples across all operations
         if (arkivSamples.length > 0) {
           const durations = arkivSamples.map(s => s.durationMs);
           const payloadSizes = arkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
           const httpCounts = arkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
           
-          // Count queries per page/route
+          // Count queries per page/route (across all operations)
           const pageCounts: Record<string, number> = {};
           arkivSamples.forEach(s => {
             const page = s.route || '(no route)';
@@ -153,13 +150,13 @@ export async function POST(request: Request) {
           };
         }
         
-        // Aggregate GraphQL samples
+        // Aggregate GraphQL samples across all operations
         if (graphqlSamples.length > 0) {
           const durations = graphqlSamples.map(s => s.durationMs);
           const payloadSizes = graphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
           const httpCounts = graphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
           
-          // Count queries per page/route
+          // Count queries per page/route (across all operations)
           const pageCounts: Record<string, number> = {};
           graphqlSamples.forEach(s => {
             const page = s.route || '(no route)';
@@ -181,47 +178,77 @@ export async function POST(request: Request) {
       console.log('[perf-snapshots] Failed to query Arkiv metrics, using in-memory only:', error);
     }
     
-    // If operation is 'buildNetworkGraphData', also check 'networkOverview' for GraphQL data
-    if (operation === 'buildNetworkGraphData') {
-      // Check in-memory for networkOverview
-      const graphqlSummary = getPerfSummary('networkOverview');
-      if (graphqlSummary.graphql) {
-        perfSummary.graphql = graphqlSummary.graphql;
-      }
+    // Also check in-memory samples for any missing data
+    // This ensures we capture all performance data, not just what's on-chain
+    try {
+      const { getPerfSamples } = await import('@/lib/metrics/perf');
+      const allSamples = getPerfSamples();
       
-      // Also check Arkiv entities for networkOverview
-      try {
-        const networkOverviewMetrics = await listDxMetrics({
-          operation: 'networkOverview',
-          source: 'graphql',
-          limit: 100,
+      // Aggregate in-memory GraphQL samples (across all operations)
+      const inMemoryGraphqlSamples = allSamples.filter(s => s.source === 'graphql');
+      if (inMemoryGraphqlSamples.length > 0) {
+        const durations = inMemoryGraphqlSamples.map(s => s.durationMs);
+        const payloadSizes = inMemoryGraphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+        const httpCounts = inMemoryGraphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+        
+        const pageCounts: Record<string, number> = {};
+        inMemoryGraphqlSamples.forEach(s => {
+          const page = s.route || '(no route)';
+          pageCounts[page] = (pageCounts[page] || 0) + 1;
         });
         
-        if (networkOverviewMetrics.length > 0) {
-          const durations = networkOverviewMetrics.map(m => m.durationMs);
-          const payloadSizes = networkOverviewMetrics.filter(m => m.payloadBytes !== undefined).map(m => m.payloadBytes!);
-          const httpCounts = networkOverviewMetrics.filter(m => m.httpRequests !== undefined).map(m => m.httpRequests!);
-          
-          // Count queries per page/route
-          const pageCounts: Record<string, number> = {};
-          networkOverviewMetrics.forEach(m => {
-            const page = m.route || '(no route)';
-            pageCounts[page] = (pageCounts[page] || 0) + 1;
-          });
-          
+        // Merge with existing GraphQL data (prefer Arkiv entities, but include in-memory)
+        if (!perfSummary.graphql || perfSummary.graphql.samples === 0) {
           perfSummary.graphql = {
             avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
             minDurationMs: Math.min(...durations),
             maxDurationMs: Math.max(...durations),
             avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
             avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
-            samples: networkOverviewMetrics.length,
+            samples: inMemoryGraphqlSamples.length,
             pages: pageCounts,
           };
+        } else {
+          // Merge pages from in-memory with Arkiv
+          Object.entries(pageCounts).forEach(([page, count]) => {
+            perfSummary.graphql.pages[page] = (perfSummary.graphql.pages[page] || 0) + count;
+          });
         }
-      } catch (error) {
-        console.log('[perf-snapshots] Failed to query networkOverview metrics:', error);
       }
+      
+      // Aggregate in-memory Arkiv samples (across all operations)
+      const inMemoryArkivSamples = allSamples.filter(s => s.source === 'arkiv');
+      if (inMemoryArkivSamples.length > 0) {
+        const durations = inMemoryArkivSamples.map(s => s.durationMs);
+        const payloadSizes = inMemoryArkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+        const httpCounts = inMemoryArkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+        
+        const pageCounts: Record<string, number> = {};
+        inMemoryArkivSamples.forEach(s => {
+          const page = s.route || '(no route)';
+          pageCounts[page] = (pageCounts[page] || 0) + 1;
+        });
+        
+        // Merge with existing Arkiv data (prefer Arkiv entities, but include in-memory)
+        if (!perfSummary.arkiv || perfSummary.arkiv.samples === 0) {
+          perfSummary.arkiv = {
+            avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+            minDurationMs: Math.min(...durations),
+            maxDurationMs: Math.max(...durations),
+            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            samples: inMemoryArkivSamples.length,
+            pages: pageCounts,
+          };
+        } else {
+          // Merge pages from in-memory with Arkiv
+          Object.entries(pageCounts).forEach(([page, count]) => {
+            perfSummary.arkiv.pages[page] = (perfSummary.arkiv.pages[page] || 0) + count;
+          });
+        }
+      }
+    } catch (error) {
+      console.log('[perf-snapshots] Failed to query in-memory samples:', error);
     }
 
     // Determine what was actually tested (not just what was requested)
