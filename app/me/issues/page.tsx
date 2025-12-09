@@ -22,6 +22,8 @@ interface UserIssue {
   resolved: boolean;
   resolvedAt?: string;
   resolvedBy?: string;
+  hasResponse?: boolean;
+  responseAt?: string;
   txHash?: string;
 }
 
@@ -67,6 +69,8 @@ export default function UserIssuesPage() {
         resolved: f.resolved || false,
         resolvedAt: f.resolvedAt,
         resolvedBy: f.resolvedBy,
+        hasResponse: f.hasResponse || false,
+        responseAt: f.responseAt,
         txHash: f.txHash,
       }));
 
@@ -164,12 +168,14 @@ export default function UserIssuesPage() {
                 className={`p-6 rounded-lg border ${
                   issue.resolved
                     ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800'
+                    : issue.hasResponse
+                    ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-800'
                     : 'bg-yellow-50 dark:bg-yellow-900/10 border-yellow-200 dark:border-yellow-800'
                 }`}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {issue.page}
                       </span>
@@ -182,10 +188,20 @@ export default function UserIssuesPage() {
                           ⏳ Pending
                         </span>
                       )}
+                      {issue.hasResponse && (
+                        <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                          ✓ Responded
+                        </span>
+                      )}
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-2">{issue.message}</p>
                     <div className="text-xs text-gray-500 dark:text-gray-400">
                       Reported: {formatDate(issue.createdAt)}
+                      {issue.hasResponse && issue.responseAt && (
+                        <span className="ml-4">
+                          Responded: {formatDate(issue.responseAt)}
+                        </span>
+                      )}
                       {issue.resolved && issue.resolvedAt && (
                         <span className="ml-4">
                           Resolved: {formatDate(issue.resolvedAt)}

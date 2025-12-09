@@ -27,6 +27,8 @@ interface AppFeedback {
   resolved?: boolean;
   resolvedAt?: string;
   resolvedBy?: string;
+  hasResponse?: boolean;
+  responseAt?: string;
 }
 
 export default function AdminFeedbackPage() {
@@ -95,6 +97,8 @@ export default function AdminFeedbackPage() {
         resolved: f.resolved || false,
         resolvedAt: f.resolvedAt,
         resolvedBy: f.resolvedBy,
+        hasResponse: f.hasResponse || false,
+        responseAt: f.responseAt,
       }));
       setFeedbacks(feedbacks);
     } catch (err) {
@@ -336,19 +340,38 @@ export default function AdminFeedbackPage() {
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        {feedback.resolved ? (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                            ✓ Resolved
-                            {feedback.resolvedAt && (
-                              <span className="ml-1 text-xs opacity-75">
-                                {new Date(feedback.resolvedAt).toLocaleDateString()}
-                              </span>
-                            )}
-                          </span>
+                        {feedback.feedbackType === 'issue' ? (
+                          // Issues: Show resolved or pending
+                          feedback.resolved ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                              ✓ Resolved
+                              {feedback.resolvedAt && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  {new Date(feedback.resolvedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                              ⏳ Pending
+                            </span>
+                          )
                         ) : (
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
-                            ⏳ Pending
-                          </span>
+                          // Feedback: Show responded or waiting response
+                          feedback.hasResponse ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                              ✓ Responded
+                              {feedback.responseAt && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  {new Date(feedback.responseAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                              📬 Waiting Response
+                            </span>
+                          )
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
@@ -379,9 +402,13 @@ export default function AdminFeedbackPage() {
                           )}
                           <button
                             onClick={() => handleRespond(feedback)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                            className={`px-3 py-1 text-white text-xs rounded transition-colors ${
+                              feedback.hasResponse
+                                ? 'bg-gray-500 hover:bg-gray-600'
+                                : 'bg-blue-600 hover:bg-blue-700'
+                            }`}
                           >
-                            Respond
+                            {feedback.hasResponse ? 'View Response' : 'Respond'}
                           </button>
                         </div>
                       </td>

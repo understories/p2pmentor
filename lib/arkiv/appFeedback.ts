@@ -9,6 +9,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { listAdminResponses } from "./adminResponse";
 
 export type AppFeedback = {
   key: string;
@@ -24,6 +25,9 @@ export type AppFeedback = {
   resolved?: boolean; // Whether this issue/feedback has been resolved
   resolvedAt?: string; // When it was resolved (ISO timestamp)
   resolvedBy?: string; // Admin wallet that resolved it
+  // Response tracking (arkiv-native: query admin_response entities)
+  hasResponse?: boolean; // Whether admin has responded to this feedback/issue
+  responseAt?: string; // When the response was created (ISO timestamp)
 }
 
 /**
@@ -254,6 +258,23 @@ export async function listAppFeedback({
       });
     }
 
+    // Build response map: feedbackKey -> response info (arkiv-native: query admin responses)
+    // Query all admin responses and map by feedbackKey
+    let responseMap: Record<string, { responseAt: string }> = {};
+    try {
+      const allResponses = await listAdminResponses({ limit: 1000 }); // Get all responses
+      allResponses.forEach((response) => {
+        if (response.feedbackKey) {
+          responseMap[response.feedbackKey] = {
+            responseAt: response.createdAt,
+          };
+        }
+      });
+    } catch (error) {
+      console.error('[listAppFeedback] Error querying admin responses:', error);
+      // Continue without response data - don't fail the entire query
+    }
+
     let feedbacks = result.entities.map((entity: any) => {
     let payload: any = {};
     try {
@@ -280,6 +301,7 @@ export async function listAppFeedback({
 
     const feedbackKey = entity.key;
     const resolution = resolutionMap[feedbackKey];
+    const response = responseMap[feedbackKey];
 
     return {
       key: feedbackKey,
@@ -294,6 +316,8 @@ export async function listAppFeedback({
       resolved: !!resolution,
       resolvedAt: resolution?.resolvedAt,
       resolvedBy: resolution?.resolvedBy,
+      hasResponse: !!response,
+      responseAt: response?.responseAt,
     };
   });
 
