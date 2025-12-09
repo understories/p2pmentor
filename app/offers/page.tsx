@@ -82,6 +82,7 @@ export default function OffersPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newOffer, setNewOffer] = useState({ 
     skill: '', 
     message: '', 
@@ -92,7 +93,7 @@ export default function OffersPage() {
     isPaid: false,
     cost: '',
     paymentAddress: '',
-    ttlHours: '2', // Default 2 hours
+    ttlHours: '168', // Default 1 week (more reasonable for offers)
     customTtlHours: '', // For custom input
   });
   const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
@@ -306,7 +307,8 @@ export default function OffersPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
           setTimeout(async () => {
@@ -314,7 +316,8 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
           await loadData(walletAddress!);
@@ -621,47 +624,71 @@ export default function OffersPage() {
                 </>
               )}
 
-              <div>
-                <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
-                  Expiration Duration *
-                </label>
-                <div className="flex gap-2">
-                  <select
-                    id="ttlHours"
-                    value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
-                    onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              {/* Advanced Options Toggle */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <option value="1">1 hour</option>
-                    <option value="2">2 hours</option>
-                    <option value="6">6 hours</option>
-                    <option value="12">12 hours</option>
-                    <option value="24">24 hours (1 day)</option>
-                    <option value="48">48 hours (2 days)</option>
-                    <option value="168">1 week</option>
-                    <option value="720">1 month (30 days)</option>
-                    <option value="custom">Custom (hours)</option>
-                  </select>
-                  {newOffer.ttlHours === 'custom' && (
-                    <input
-                      type="number"
-                      min="1"
-                      max="8760"
-                      step="1"
-                      placeholder="Hours"
-                      value={newOffer.customTtlHours}
-                      onChange={(e) => {
-                        setNewOffer({ ...newOffer, customTtlHours: e.target.value });
-                      }}
-                      className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  )}
-                </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  How long should this offer stay active? Default: 2 hours
-                </p>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Options
+                </button>
               </div>
-              
+
+              {/* Advanced Options (Collapsed by Default) */}
+              {showAdvancedOptions && (
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                      Expiration Duration (optional)
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        id="ttlHours"
+                        value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
+                        onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="1">1 hour</option>
+                        <option value="2">2 hours</option>
+                        <option value="6">6 hours</option>
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours (1 day)</option>
+                        <option value="48">48 hours (2 days)</option>
+                        <option value="168">1 week - Recommended</option>
+                        <option value="720">1 month (30 days)</option>
+                        <option value="custom">Custom (hours)</option>
+                      </select>
+                      {newOffer.ttlHours === 'custom' && (
+                        <input
+                          type="number"
+                          min="1"
+                          max="8760"
+                          step="1"
+                          placeholder="Hours"
+                          value={newOffer.customTtlHours}
+                          onChange={(e) => {
+                            setNewOffer({ ...newOffer, customTtlHours: e.target.value });
+                          }}
+                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      How long should this offer remain active? Default: 1 week
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -674,7 +701,8 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+                    setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+                    setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');
                   }}
