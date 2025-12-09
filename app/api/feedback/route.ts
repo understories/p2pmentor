@@ -21,6 +21,9 @@ export async function POST(request: Request) {
       notes,
       technicalDxFeedback,
       spaceId,
+      sessionStatus,
+      mentorConfirmed,
+      learnerConfirmed,
     } = body;
 
     if (!sessionKey || !mentorWallet || !learnerWallet || !feedbackFrom || !feedbackTo) {
@@ -49,6 +52,9 @@ export async function POST(request: Request) {
       technicalDxFeedback,
       privateKey: getPrivateKey(),
       spaceId: spaceId || 'local-dev',
+      sessionStatus,
+      mentorConfirmed,
+      learnerConfirmed,
     });
 
     return NextResponse.json({ ok: true, key, txHash });

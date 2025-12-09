@@ -79,192 +79,66 @@ export default function AuthPage() {
   };
 
   return (
-    <main style={{
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '2rem',
-      backgroundColor: '#ffffff',
-      color: '#333333',
-    }}>
+    <main className="min-h-screen flex flex-col items-center justify-center p-8 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
       <ThemeToggle />
-      <div style={{
-        maxWidth: '600px',
-        width: '100%',
-        backgroundColor: '#ffffff',
-        padding: '2rem',
-        borderRadius: '12px',
-        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-      }}>
-        <div style={{ marginBottom: '1rem' }}>
+      <div className="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+        <div className="mb-4">
           <BackButton href="/beta" />
         </div>
-        <h1 style={{
-          fontSize: '2rem',
-          fontWeight: 'bold',
-          marginBottom: '0.5rem',
-          color: '#1a1a1a',
-        }}>
+        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
           Connect to p2pmentor
         </h1>
-        <p style={{
-          fontSize: '1rem',
-          color: '#666666',
-          marginBottom: '2rem',
-        }}>
+        <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
           Choose your authentication method:
         </p>
 
         {error && (
-          <div style={{
-            padding: '1rem',
-            marginBottom: '1.5rem',
-            backgroundColor: '#fee',
-            color: '#cc0000',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-          }}>
+          <div className="p-4 mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
             {error}
           </div>
         )}
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '1rem',
-          marginBottom: '1.5rem',
-        }}>
+        <div className="flex flex-col gap-4 mb-6">
           <button
             onClick={handleMetaMaskConnect}
             disabled={isConnecting || loadingExample}
-            style={{
-              padding: '1rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '500',
-              cursor: (isConnecting || loadingExample) ? 'not-allowed' : 'pointer',
-              backgroundColor: (isConnecting || loadingExample) ? '#888' : '#4caf50',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease',
-              opacity: (isConnecting || loadingExample) ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isConnecting && !loadingExample) {
-                e.currentTarget.style.backgroundColor = '#45a049';
-                e.currentTarget.style.transform = 'translateY(-1px)';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isConnecting && !loadingExample) {
-                e.currentTarget.style.backgroundColor = '#4caf50';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }
-            }}
+            className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
           >
             {isConnecting ? 'Connecting...' : 'Connect with MetaMask'}
           </button>
 
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            margin: '0.5rem 0',
-          }}>
-            <div style={{
-              flex: 1,
-              height: '1px',
-              backgroundColor: '#ddd',
-            }}></div>
-            <span style={{
-              color: '#999',
-              fontSize: '0.9rem',
-            }}>or</span>
-            <div style={{
-              flex: 1,
-              height: '1px',
-              backgroundColor: '#ddd',
-            }}></div>
+          <div className="flex items-center gap-3 my-2">
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
           </div>
 
           <button
             onClick={handleExampleWallet}
             disabled={isConnecting || loadingExample}
-            style={{
-              padding: '1rem 1.5rem',
-              fontSize: '1rem',
-              fontWeight: '500',
-              cursor: (isConnecting || loadingExample) ? 'not-allowed' : 'pointer',
-              backgroundColor: (isConnecting || loadingExample) ? '#888' : '#f0f0f0',
-              color: '#333333',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              transition: 'all 0.2s ease',
-              opacity: (isConnecting || loadingExample) ? 0.7 : 1,
-            }}
-            onMouseEnter={(e) => {
-              if (!isConnecting && !loadingExample) {
-                e.currentTarget.style.backgroundColor = '#e0e0e0';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!isConnecting && !loadingExample) {
-                e.currentTarget.style.backgroundColor = '#f0f0f0';
-              }
-            }}
+            className="w-full px-6 py-3 text-base font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700"
           >
             {loadingExample ? 'Loading...' : 'Log in with Example Wallet'}
           </button>
-          <p style={{
-            fontSize: '0.85rem',
-            color: '#999',
-            marginTop: '0.25rem',
-            textAlign: 'center',
-          }}>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 text-center">
             Try the demo without MetaMask
           </p>
         </div>
 
-        <div style={{
-          marginTop: '2rem',
-          padding: '1rem',
-          backgroundColor: '#fff3cd',
-          border: '1px solid #ffc107',
-          borderRadius: '8px',
-        }}>
-          <strong style={{
-            color: '#856404',
-            fontSize: '0.95rem',
-            display: 'block',
-            marginBottom: '0.5rem',
-          }}>
+        <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+          <strong className="text-yellow-800 dark:text-yellow-300 text-sm font-semibold block mb-2">
             ⚠️ Beta Warning
           </strong>
-          <p style={{
-            marginTop: '0.5rem',
-            fontSize: '0.9rem',
-            color: '#856404',
-            lineHeight: '1.5',
-          }}>
+          <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
             Do not use a wallet containing real funds. This is a beta environment on testnet.
           </p>
-          <p style={{
-            marginTop: '0.5rem',
-            fontSize: '0.9rem',
-            color: '#856404',
-            lineHeight: '1.5',
-          }}>
+          <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
             Blockchain data is immutable. All data inputted is viewable forever on the{' '}
             <a
               href="https://explorer.mendoza.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
-              style={{
-                color: '#856404',
-                textDecoration: 'underline',
-              }}
+              className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
             >
               Arkiv explorer
             </a>.

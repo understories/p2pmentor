@@ -430,6 +430,7 @@ export async function listUserProfiles(params?: {
  * @returns User profile or null if not found
  */
 export async function getProfileByWallet(wallet: string): Promise<UserProfile | null> {
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const profiles = await listUserProfilesForWallet(wallet);
   if (profiles.length === 0) return null;
   
@@ -440,7 +441,27 @@ export async function getProfileByWallet(wallet: string): Promise<UserProfile | 
     return bTime - aTime;
   });
   
-  return profiles[0];
+  const profile = profiles[0];
+  
+  // Record performance metrics
+  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+  const payloadBytes = JSON.stringify(profile).length;
+  
+  // Record performance sample (async, don't block)
+  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+    recordPerfSample({
+      source: 'arkiv',
+      operation: 'getProfileByWallet',
+      durationMs: Math.round(durationMs),
+      payloadBytes,
+      httpRequests: 1, // Single query
+      createdAt: new Date().toISOString(),
+    });
+  }).catch(() => {
+    // Silently fail if metrics module not available
+  });
+  
+  return profile;
 }
 
 /**

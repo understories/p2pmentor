@@ -7,6 +7,9 @@
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Session } from '@/lib/arkiv/sessions';
+import type { Feedback } from '@/lib/arkiv/feedback';
+import type { AppFeedback } from '@/lib/arkiv/appFeedback';
 
 /**
  * Transform Arkiv Ask to GraphQL Ask
@@ -82,6 +85,70 @@ export function transformProfile(profile: UserProfile): any {
     skills: skills,
     availabilityWindow: profile.availabilityWindow || null,
     createdAt: createdAt ? BigInt(createdAt) : null,
+  };
+}
+
+/**
+ * Transform Arkiv Session to GraphQL Session
+ */
+export function transformSession(session: Session): any {
+  // Parse sessionDate to extract date and time
+  const sessionDate = new Date(session.sessionDate);
+  const date = sessionDate.toISOString().split('T')[0]; // YYYY-MM-DD
+  const time = sessionDate.toTimeString().split(' ')[0].slice(0, 5); // HH:MM
+  const duration = session.duration ? `${session.duration} minutes` : '60 minutes';
+
+  return {
+    id: `session:${session.key}`,
+    key: session.key,
+    mentorWallet: session.mentorWallet,
+    learnerWallet: session.learnerWallet,
+    skill: session.skill,
+    date,
+    time,
+    duration,
+    notes: session.notes || null,
+    status: session.status,
+    mentorConfirmed: session.mentorConfirmed || false,
+    learnerConfirmed: session.learnerConfirmed || false,
+    createdAt: session.createdAt,
+    txHash: session.txHash || null,
+  };
+}
+
+/**
+ * Transform Arkiv Feedback to GraphQL Feedback
+ */
+export function transformFeedback(feedback: Feedback): any {
+  return {
+    id: `feedback:${feedback.key}`,
+    key: feedback.key,
+    sessionKey: feedback.sessionKey,
+    mentorWallet: feedback.mentorWallet,
+    learnerWallet: feedback.learnerWallet,
+    feedbackFrom: feedback.feedbackFrom,
+    feedbackTo: feedback.feedbackTo,
+    rating: feedback.rating || null,
+    notes: feedback.notes || null,
+    technicalDxFeedback: feedback.technicalDxFeedback || null,
+    createdAt: feedback.createdAt,
+    txHash: feedback.txHash || null,
+  };
+}
+
+/**
+ * Transform Arkiv AppFeedback to GraphQL AppFeedback
+ */
+export function transformAppFeedback(feedback: AppFeedback): any {
+  return {
+    id: `app_feedback:${feedback.key}`,
+    key: feedback.key,
+    wallet: feedback.wallet,
+    page: feedback.page,
+    message: feedback.message,
+    rating: feedback.rating || null,
+    createdAt: feedback.createdAt,
+    txHash: feedback.txHash || null,
   };
 }
 

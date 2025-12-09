@@ -8,7 +8,10 @@
 import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
-import { transformAsk, transformOffer, transformProfile, createSkillRef } from './transformers';
+import { listSessionsForWallet } from '@/lib/arkiv/sessions';
+import { listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
+import { listAppFeedback } from '@/lib/arkiv/appFeedback';
+import { transformAsk, transformOffer, transformProfile, transformSession, transformFeedback, transformAppFeedback, createSkillRef } from './transformers';
 
 /**
  * Build network overview with skills, asks, and offers
@@ -160,6 +163,106 @@ export const resolvers = {
       const overview = await buildNetworkOverview({ limitSkills: 1000 });
       const skillRef = overview.skillRefs.find(sr => sr.name === name.toLowerCase().trim());
       return skillRef || null;
+    },
+
+    meOverview: async (_: any, args: any) => {
+      const { 
+        wallet, 
+        limitAsks = 50, 
+        limitOffers = 50, 
+        limitSessions = 50 
+      } = args;
+
+      try {
+        // Fetch all data in parallel
+        const [profile, asks, offers, sessions] = await Promise.all([
+          getProfileByWallet(wallet).catch(() => null),
+          listAsksForWallet(wallet).catch(() => []),
+          listOffersForWallet(wallet).catch(() => []),
+          listSessionsForWallet(wallet).catch(() => []),
+        ]);
+
+        return {
+          profile: profile ? transformProfile(profile) : null,
+          asks: asks.slice(0, limitAsks).map(transformAsk),
+          offers: offers.slice(0, limitOffers).map(transformOffer),
+          sessions: sessions.slice(0, limitSessions).map(transformSession),
+        };
+      } catch (error) {
+        console.error('Error fetching meOverview:', error);
+        return {
+          profile: null,
+          asks: [],
+          offers: [],
+          sessions: [],
+        };
+      }
+    },
+
+    feedback: async (_: any, args: any) => {
+      // Always return an array, never null/undefined
+      let result: any[] = [];
+      
+      try {
+        const { sessionKey, wallet, limit = 100, since } = args || {};
+        
+        // This is for SESSION feedback (peer-to-peer), not app feedback
+        let feedbacks: Awaited<ReturnType<typeof listFeedbackForSession>> = [];
+        if (sessionKey) {
+          feedbacks = await listFeedbackForSession(sessionKey);
+        } else if (wallet) {
+          feedbacks = await listFeedbackForWallet(wallet);
+        } else {
+          // If no filters, return empty (admin can filter by wallet)
+          feedbacks = [];
+        }
+
+        // Filter by since date if provided
+        if (since) {
+          const sinceTime = new Date(since).getTime();
+          feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
+        }
+
+        // Apply limit and transform
+        if (Array.isArray(feedbacks)) {
+          result = feedbacks.slice(0, limit).map(transformFeedback);
+        }
+      } catch (error: any) {
+        console.error('Error fetching feedback:', error);
+        console.error('Error message:', error?.message);
+      }
+      
+      // Always return an array, never null/undefined
+      return Array.isArray(result) ? result : [];
+    },
+
+    appFeedback: async (_: any, args: any) => {
+      // Always return an array, never null/undefined
+      // Using direct call to ensure it works
+      try {
+        const { page, wallet, limit = 100, since } = args || {};
+        
+        const params: any = {};
+        if (page) params.page = page;
+        if (wallet) params.wallet = wallet;
+        if (limit) params.limit = limit;
+        if (since) params.since = since;
+        
+        // Call listAppFeedback directly
+        const feedbacks = await listAppFeedback(params);
+        
+        // Transform and return
+        if (Array.isArray(feedbacks)) {
+          return feedbacks.map(transformAppFeedback);
+        }
+        
+        // Fallback: return empty array
+        return [];
+      } catch (error: any) {
+        console.error('[GraphQL appFeedback] Error:', error?.message || error);
+        // Always return array, never null
+        return [];
+      }
     },
   },
 

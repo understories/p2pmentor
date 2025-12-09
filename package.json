@@ -7,7 +7,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "perf:network": "tsx scripts/perf/network_page.test.ts",
+    "seed:app-feedback": "tsx scripts/seed-app-feedback.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^0.4.4",
@@ -26,6 +28,7 @@
     "dotenv": "^17.2.3",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.14",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2"
   }
 }

@@ -60,6 +60,9 @@ export function FeedbackModal({
           notes: formData.notes.trim() || undefined,
           technicalDxFeedback: formData.technicalDxFeedback.trim() || undefined,
           spaceId: session.spaceId,
+          sessionStatus: session.status,
+          mentorConfirmed: session.mentorConfirmed,
+          learnerConfirmed: session.learnerConfirmed,
         }),
       });
 
