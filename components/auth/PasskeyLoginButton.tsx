@@ -62,20 +62,18 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null;
       const hasExistingWallet = storedUserId !== null;
 
-      if (hasExistingWallet && userId) {
+      if (hasExistingWallet && storedUserId) {
         // Login flow: authenticate and unlock existing wallet
-        const loginResult = await loginWithPasskey(userId);
-        credentialID = loginResult.userId; // Server returns userId, we need credentialID from storage
+        const loginResult = await loginWithPasskey(storedUserId);
         
-        // For now, we'll need to store credentialID during registration
-        // TODO: Store credentialID in IndexedDB or localStorage during registration
-        const storedCredentialID = localStorage.getItem(`passkey_credential_${userId}`);
+        // Get credentialID from storage (stored during registration)
+        const storedCredentialID = localStorage.getItem(`passkey_credential_${storedUserId}`);
         if (!storedCredentialID) {
           throw new Error('Passkey credential not found. Please register again.');
         }
         credentialID = storedCredentialID;
 
-        const unlockResult = await unlockPasskeyWallet(userId, credentialID);
+        const unlockResult = await unlockPasskeyWallet(storedUserId, credentialID);
         address = unlockResult.address;
       } else {
         // Registration flow: create new passkey and wallet
