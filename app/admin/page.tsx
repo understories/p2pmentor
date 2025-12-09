@@ -20,6 +20,7 @@ interface PerfSummary {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>; // Page -> count
   };
   arkiv?: {
     avgDurationMs: number;
@@ -28,6 +29,7 @@ interface PerfSummary {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>; // Page -> count
   };
 }
 
@@ -482,29 +484,63 @@ export default function AdminDashboard() {
             </h3>
             <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
             {perfSummary ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {perfSummary.graphql && (
-                  <div>
-                    <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">GraphQL</h3>
-                    <div className="space-y-1 text-sm">
-                      <div>Avg Duration: {perfSummary.graphql.avgDurationMs.toFixed(2)}ms</div>
-                      <div>Avg Payload: {perfSummary.graphql.avgPayloadBytes ? (perfSummary.graphql.avgPayloadBytes / 1024).toFixed(2) : 'N/A'} KB</div>
-                      <div>HTTP Requests: {perfSummary.graphql.avgHttpRequests?.toFixed(1) || '1'}</div>
-                      <div>Samples: {perfSummary.graphql.samples}</div>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {perfSummary.graphql && (
+                    <div>
+                      <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                        GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={perfSummary.graphql.samples})</span>
+                      </h3>
+                      <div className="space-y-1 text-sm">
+                        <div>Avg Duration: {perfSummary.graphql.avgDurationMs.toFixed(2)}ms</div>
+                        <div>Avg Payload: {perfSummary.graphql.avgPayloadBytes ? (perfSummary.graphql.avgPayloadBytes / 1024).toFixed(2) : 'N/A'} KB</div>
+                        <div>HTTP Requests: {perfSummary.graphql.avgHttpRequests?.toFixed(1) || '1'}</div>
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+                          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages Using GraphQL:</div>
+                          {perfSummary.graphql.pages && Object.keys(perfSummary.graphql.pages).length > 0 ? (
+                            <div className="space-y-1">
+                              {Object.entries(perfSummary.graphql.pages).map(([page, count]) => (
+                                <div key={page} className="flex justify-between text-xs">
+                                  <span className="text-gray-700 dark:text-gray-300">{page || '(no route)'}</span>
+                                  <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">No page-level data</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
-                {perfSummary.arkiv && (
-                  <div>
-                    <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">JSON-RPC</h3>
-                    <div className="space-y-1 text-sm">
-                      <div>Avg Duration: {perfSummary.arkiv.avgDurationMs.toFixed(2)}ms</div>
-                      <div>Avg Payload: {perfSummary.arkiv.avgPayloadBytes ? (perfSummary.arkiv.avgPayloadBytes / 1024).toFixed(2) : 'N/A'} KB</div>
-                      <div>HTTP Requests: {perfSummary.arkiv.avgHttpRequests?.toFixed(1) || 'N/A'}</div>
-                      <div>Samples: {perfSummary.arkiv.samples}</div>
+                  )}
+                  {perfSummary.arkiv && (
+                    <div>
+                      <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                        JSON-RPC <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={perfSummary.arkiv.samples})</span>
+                      </h3>
+                      <div className="space-y-1 text-sm">
+                        <div>Avg Duration: {perfSummary.arkiv.avgDurationMs.toFixed(2)}ms</div>
+                        <div>Avg Payload: {perfSummary.arkiv.avgPayloadBytes ? (perfSummary.arkiv.avgPayloadBytes / 1024).toFixed(2) : 'N/A'} KB</div>
+                        <div>HTTP Requests: {perfSummary.arkiv.avgHttpRequests?.toFixed(1) || 'N/A'}</div>
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-700 mt-2">
+                          <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages Using JSON-RPC:</div>
+                          {perfSummary.arkiv.pages && Object.keys(perfSummary.arkiv.pages).length > 0 ? (
+                            <div className="space-y-1">
+                              {Object.entries(perfSummary.arkiv.pages).map(([page, count]) => (
+                                <div key={page} className="flex justify-between text-xs">
+                                  <span className="text-gray-700 dark:text-gray-300">{page || '(no route)'}</span>
+                                  <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">No page-level data</div>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             ) : (
               <p className="text-gray-600 dark:text-gray-400">No performance data yet. Metrics will appear as requests are made.</p>
@@ -542,13 +578,33 @@ export default function AdminDashboard() {
                   </div>
                   <div className="space-y-2">
                     {pageLoadTimes.map((result, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-sm py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
-                        <span className="text-gray-700 dark:text-gray-300">{result.page}</span>
-                        <div className="flex items-center gap-4">
-                          <span className={result.status === 200 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                            {result.status === 200 ? `${result.durationMs}ms` : 'Failed'}
-                          </span>
+                      <div key={idx} className="py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <div className="flex items-center justify-between text-sm mb-1">
+                          <span className="text-gray-700 dark:text-gray-300 font-medium">{result.page}</span>
+                          <div className="flex items-center gap-4">
+                            <span className={result.status === 200 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                              {result.status === 200 ? `${result.durationMs}ms` : 'Failed'}
+                            </span>
+                          </div>
                         </div>
+                        {/* Show which method this page uses (if we have that data) */}
+                        {perfSummary && (
+                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
+                            {perfSummary.graphql?.pages?.[result.page] && (
+                              <span className="text-emerald-600 dark:text-emerald-400">
+                                GraphQL: {perfSummary.graphql.pages[result.page]} queries
+                              </span>
+                            )}
+                            {perfSummary.arkiv?.pages?.[result.page] && (
+                              <span className="text-blue-600 dark:text-blue-400">
+                                JSON-RPC: {perfSummary.arkiv.pages[result.page]} queries
+                              </span>
+                            )}
+                            {(!perfSummary.graphql?.pages?.[result.page] && !perfSummary.arkiv?.pages?.[result.page]) && (
+                              <span>No query data for this page</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
