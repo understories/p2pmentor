@@ -8,6 +8,13 @@
 
 import { NextResponse } from 'next/server';
 import { getPerfSamples, getPerfSamplesFiltered, getPerfSummary, clearPerfSamples } from '@/lib/metrics/perf';
+import { buildNetworkGraphData } from '@/lib/arkiv/networkGraph';
+import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
+import { listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
+import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
+import { fetchNetworkOverview } from '@/lib/graph/networkQueries';
+import { createDxMetric, listDxMetrics } from '@/lib/arkiv/dxMetrics';
+import { CURRENT_WALLET, getPrivateKey } from '@/lib/config';
 
 /**
  * GET /api/admin/perf-samples
@@ -34,21 +41,176 @@ export async function GET(request: Request) {
   const limit = limitParam ? parseInt(limitParam, 10) : undefined;
   const summary = searchParams.get('summary') === 'true';
   const summaryOperation = searchParams.get('summaryOperation') || undefined;
+  const seed = searchParams.get('seed') === 'true';
 
   try {
+    // Seed real performance data by making actual Arkiv/GraphQL calls
+    // This generates REAL perf samples AND creates Arkiv entities for verification
+    if (seed) {
+      try {
+        if (!CURRENT_WALLET) {
+          return NextResponse.json(
+            { success: false, error: 'ARKIV_PRIVATE_KEY not configured' },
+            { status: 500 }
+          );
+        }
+
+        const privateKey = getPrivateKey();
+        const createdEntities: Array<{ source: string; operation: string; txHash: string }> = [];
+
+        // Make real calls that go through instrumented code paths
+        // These will record actual performance metrics from Arkiv entities
+        
+        // 1. JSON-RPC path operations (direct Arkiv calls)
+        // These are already instrumented in lib/arkiv/* files
+        const startTime1 = Date.now();
+        await listAsks({ limit: 25, includeExpired: false });
+        const duration1 = Date.now() - startTime1;
+        
+        const startTime2 = Date.now();
+        await listOffers({ limit: 25, includeExpired: false });
+        const duration2 = Date.now() - startTime2;
+        
+        // 2. Network graph via JSON-RPC path (if flag is off)
+        const startTime3 = Date.now();
+        const graphData = await buildNetworkGraphData({ 
+          limitAsks: 25, 
+          limitOffers: 25, 
+          includeExpired: false 
+        });
+        const duration3 = Date.now() - startTime3;
+        const payloadSize3 = JSON.stringify(graphData).length;
+
+        // Create DX metric entity for JSON-RPC path (verifiable on-chain)
+        try {
+          const { txHash: tx1 } = await createDxMetric({
+            sample: {
+              source: 'arkiv',
+              operation: 'buildNetworkGraphData',
+              route: '/network',
+              durationMs: duration3,
+              payloadBytes: payloadSize3,
+              httpRequests: 4, // listAsks (2) + listOffers (2)
+              createdAt: new Date().toISOString(),
+            },
+            privateKey,
+          });
+          createdEntities.push({ source: 'arkiv', operation: 'buildNetworkGraphData', txHash: tx1 });
+        } catch (err) {
+          console.error('[seed-perf] Failed to create Arkiv metric entity:', err);
+        }
+
+        // 3. GraphQL path - networkOverview query (if flag is on)
+        try {
+          const startTime4 = Date.now();
+          const graphqlData = await fetchNetworkOverview({
+            limitAsks: 25,
+            limitOffers: 25,
+            includeExpired: false,
+          });
+          const duration4 = Date.now() - startTime4;
+          const payloadSize4 = JSON.stringify(graphqlData).length;
+
+          // Create DX metric entity for GraphQL path (verifiable on-chain)
+          try {
+            const { txHash: tx2 } = await createDxMetric({
+              sample: {
+                source: 'graphql',
+                operation: 'networkOverview',
+                route: '/network',
+                durationMs: duration4,
+                payloadBytes: payloadSize4,
+                httpRequests: 1, // Single GraphQL request
+                createdAt: new Date().toISOString(),
+              },
+              privateKey,
+            });
+            createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash: tx2 });
+          } catch (err) {
+            console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
+          }
+        } catch (error) {
+          // GraphQL may not be enabled, that's ok
+          console.log('[seed-perf] GraphQL path not available (flag may be off)');
+        }
+
+        // 4. Profile operations using default wallet (real Arkiv entities)
+        if (CURRENT_WALLET) {
+          await getProfileByWallet(CURRENT_WALLET).catch(() => null);
+          await listAsksForWallet(CURRENT_WALLET).catch(() => []);
+          await listOffersForWallet(CURRENT_WALLET).catch(() => []);
+        }
+        
+        // 5. List all profiles (instrumented)
+        await listUserProfiles().catch(() => []);
+
+        return NextResponse.json({ 
+          success: true, 
+          message: 'Real performance data generated and stored as Arkiv entities',
+          entitiesCreated: createdEntities.length,
+          transactions: createdEntities.map(e => ({
+            source: e.source,
+            operation: e.operation,
+            txHash: e.txHash,
+            explorer: `https://explorer.mendoza.hoodi.arkiv.network/tx/${e.txHash}`,
+          })),
+          note: 'Check Mendoza explorer to verify on-chain. In-memory samples also available at /api/admin/perf-samples'
+        });
+      } catch (error: any) {
+        console.error('[seed-perf] Error generating samples:', error);
+        return NextResponse.json(
+          { success: false, error: error.message || 'Failed to generate samples' },
+          { status: 500 }
+        );
+      }
+    }
     if (summary && summaryOperation) {
       // Return performance summary
       const perfSummary = getPerfSummary(summaryOperation, route);
       return NextResponse.json(perfSummary);
     }
 
-    // Return filtered samples
-    let samples = getPerfSamplesFiltered({
-      source: source || undefined,
-      operation,
-      route,
-      since,
-    });
+    // Try to fetch from Arkiv entities first (verifiable on-chain)
+    // Fall back to in-memory samples if Arkiv query fails
+    let samples: any[] = [];
+    let fromArkiv = false;
+    
+    try {
+      const arkivMetrics = await listDxMetrics({
+        source: source || undefined,
+        operation,
+        route,
+        limit: limit || 100,
+        since,
+      });
+      
+      if (arkivMetrics.length > 0) {
+        // Convert DxMetric to PerfSample format for compatibility
+        samples = arkivMetrics.map(m => ({
+          source: m.source,
+          operation: m.operation,
+          route: m.route,
+          durationMs: m.durationMs,
+          payloadBytes: m.payloadBytes,
+          httpRequests: m.httpRequests,
+          createdAt: m.createdAt,
+          txHash: m.txHash, // Include txHash for verification
+        }));
+        fromArkiv = true;
+      }
+    } catch (error) {
+      console.log('[admin/perf-samples] Arkiv query failed, using in-memory samples:', error);
+    }
+    
+    // Fall back to in-memory samples if no Arkiv data
+    if (samples.length === 0) {
+      samples = getPerfSamplesFiltered({
+        source: source || undefined,
+        operation,
+        route,
+        since,
+      });
+    }
 
     // Apply limit if provided
     if (limit && limit > 0) {
@@ -58,6 +220,10 @@ export async function GET(request: Request) {
     return NextResponse.json({
       samples,
       count: samples.length,
+      source: fromArkiv ? 'arkiv' : 'memory',
+      note: fromArkiv 
+        ? 'Data from verifiable Arkiv entities (on-chain)' 
+        : 'Data from in-memory samples (not persisted)',
     });
   } catch (error) {
     console.error('[admin/perf-samples] Error:', error);
