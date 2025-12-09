@@ -53,7 +53,7 @@ export async function createPerfSnapshot({
   privateKey,
   spaceId = 'local-dev',
 }: {
-  snapshot: Omit<PerfSnapshot, 'key' | 'txHash'>;
+  snapshot: Omit<PerfSnapshot, 'key' | 'txHash'> & { arkivMetadata?: PerfSnapshot['arkivMetadata'] };
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
