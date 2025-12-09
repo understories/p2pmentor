@@ -465,6 +465,16 @@ Is this documentation?
 - Share best practices
 - Document patterns
 
+
+### Verify the build before pushing
+
+**What I'll do going forward:**
+1. Run `npm run build` and confirm it completes successfully
+2. Run `npx tsc --noEmit` to verify types
+3. Check linter errors
+4. Only then push to production
+
+Follow this process for all future changes.
 ---
 
 **Remember:** 
