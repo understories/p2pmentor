@@ -395,8 +395,8 @@ export default function SessionsPage() {
             </h2>
             <div className="space-y-4">
               {pendingSessions.map((session) => {
-                const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
-                const isLearner = userWallet?.toLowerCase() === session.learnerWallet.toLowerCase();
+                const isMentor = Boolean(userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase());
+                const isLearner = Boolean(userWallet && userWallet.toLowerCase() === session.learnerWallet.toLowerCase());
                 const canConfirm = isMentor || isLearner;
                 const userConfirmed = isMentor ? session.mentorConfirmed : (isLearner ? session.learnerConfirmed : false);
                 const otherConfirmed = isMentor ? session.learnerConfirmed : (isLearner ? session.mentorConfirmed : false);
@@ -531,9 +531,9 @@ export default function SessionsPage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleConfirm(session)}
-                            disabled={confirming === session.key || (session.paymentTxHash && !session.paymentValidated && !!isMentor)}
+                            disabled={confirming === session.key || (session.paymentTxHash && !session.paymentValidated && isMentor)}
                             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={session.paymentTxHash && !session.paymentValidated && !!isMentor ? 'Please validate payment first' : ''}
+                            title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
                           >
                             {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
                           </button>
