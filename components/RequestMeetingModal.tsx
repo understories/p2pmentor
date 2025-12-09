@@ -432,6 +432,29 @@ export function RequestMeetingModal({
               <label htmlFor="notes" className="block text-sm font-medium mb-1">
                 Notes (optional)
               </label>
+              <div className="mb-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'First session - introduction and overview' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  First session
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'Follow-up session - continuing from previous' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  Follow-up
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'Quick question - need help with specific issue' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  Quick question
+                </button>
+              </div>
               <textarea
                 id="notes"
                 value={formData.notes}

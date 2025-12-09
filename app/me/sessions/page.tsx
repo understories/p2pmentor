@@ -366,6 +366,15 @@ export default function SessionsPage() {
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const cancelledSessions = sessions.filter(s => s.status === 'cancelled');
 
+  // Find upcoming session (next scheduled session)
+  const now = Date.now();
+  const upcomingSession = scheduledSessions
+    .filter(s => {
+      const sessionTime = new Date(s.sessionDate).getTime();
+      return sessionTime > now;
+    })
+    .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
+
   const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0;
 
   return (
@@ -386,6 +395,46 @@ export default function SessionsPage() {
         {error && (
           <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
         )}
+
+        {/* Upcoming Session Highlight */}
+        {upcomingSession && (() => {
+          const isMentor = userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
+          const otherWallet = isMentor ? upcomingSession.learnerWallet : upcomingSession.mentorWallet;
+          const otherProfile = profiles[otherWallet.toLowerCase()];
+          const sessionTime = formatSessionDate(upcomingSession.sessionDate);
+          const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
+          const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
+          const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+          return (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                  📅 Next Session
+                </h3>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                </span>
+              </div>
+              <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
+                <strong>{upcomingSession.skill}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {sessionTime.date} at {sessionTime.time}
+              </p>
+              {upcomingSession.videoJoinUrl && (
+                <a
+                  href={upcomingSession.videoJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  🎥 Join Meeting
+                </a>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Pending Sessions */}
         {pendingSessions.length > 0 && (
