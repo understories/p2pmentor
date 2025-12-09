@@ -66,8 +66,104 @@ No asks yet. Be the first to create one!
 
 - **Enhanced Success Feedback**
   - Success messages now include context (skill name)
-  - More informative: "Ask created successfully! '[Skill]' is now live and visible to mentors."
+  - More informative: "Ask created successfully! '[Skill]' is now live and visible to mentors. View it in Network →"
+  - Guides users to see their created content in context
   - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
+
+### 5. Social Proof Counters
+
+**Status:** ✅ Complete
+
+- **Active Counters on Pages**
+  - Shows "X active asks" / "X active offers" below page titles
+  - Provides immediate context about platform activity
+  - Updates dynamically as data loads
+  - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
+
+### 6. Profile Completeness Indicator
+
+**Status:** ✅ Complete
+
+- **Profile Completeness Tracking**
+  - Created `lib/profile/completeness.ts` utility
+  - Calculates completeness based on required (displayName, timezone) and recommended (bio, skills, availability) fields
+  - Shows progress bar and missing fields on dashboard when < 100% complete
+  - Links to profile page for completion
+  - **Files:** `app/me/page.tsx`, `lib/profile/completeness.ts`
+
+### 7. Status Color Coding
+
+**Status:** ✅ Complete
+
+- **Improved Visual Feedback**
+  - Completed sessions now use blue theme (was gray) for better distinction
+  - Consistent color scheme: orange (pending), green (scheduled), blue (completed)
+  - **File:** `app/me/sessions/page.tsx`
+
+### 8. Confirmation Previews
+
+**Status:** ✅ Complete
+
+- **Pre-Submit Confirmation in RequestMeetingModal**
+  - Added confirmation step before submitting meeting request
+  - Shows formatted date, time, duration, notes, and payment info
+  - Allows user to review before final submission
+  - "Back to Edit" option to make changes
+  - **File:** `components/RequestMeetingModal.tsx`
+
+### 9. Template Suggestions
+
+**Status:** ✅ Complete
+
+- **Quick Templates for Feedback and Meeting Notes**
+  - Feedback modal: "Great session", "Clear communication", "Learned a lot"
+  - Meeting modal: "First session", "Follow-up", "Quick question"
+  - One-click fill for common patterns
+  - Reduces cognitive load
+  - **Files:** `components/FeedbackModal.tsx`, `components/RequestMeetingModal.tsx`
+
+### 10. Duration Presets
+
+**Status:** ✅ Complete
+
+- **Quick-Select Duration Buttons**
+  - Added buttons: 30 min, 60 min, 90 min, 120 min
+  - Visual selection state (blue when selected)
+  - Custom input still available
+  - Reduces clicks and cognitive load
+  - **File:** `components/RequestMeetingModal.tsx`
+
+### 11. Mentor Context in Modal
+
+**Status:** ✅ Complete
+
+- **Prominent Mentor Info Card**
+  - Shows mentor name and bio (if available) at top of meeting modal
+  - Provides context about who the session is with
+  - Uses blue theme for consistency
+  - **File:** `components/RequestMeetingModal.tsx`
+
+### 12. Match Explanation Badges
+
+**Status:** ✅ Complete
+
+- **Match Indicators on Network Page**
+  - Shows "Matches your offer" badge on asks that match user's offers
+  - Shows "Matches your ask" badge on offers that match user's asks
+  - Helps users quickly identify relevant connections
+  - Uses green badge color for positive match indication
+  - **File:** `app/network/page.tsx`
+
+### 13. Upcoming Session Highlight
+
+**Status:** ✅ Complete
+
+- **Next Session Prominent Display**
+  - Shows next scheduled session at top of sessions page
+  - Displays countdown: "In Xh Ym" or "In Ym"
+  - Shows session details: skill, participant, date/time
+  - Prominent "Join Meeting" button if Jitsi URL available
+  - **File:** `app/me/sessions/page.tsx`
 
 ---
 
