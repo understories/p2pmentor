@@ -13,11 +13,14 @@ import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
+import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
   const [loadingExample, setLoadingExample] = useState(false);
   const [error, setError] = useState('');
+  const [passkeyEnabled, setPasskeyEnabled] = useState(false);
   const router = useRouter();
 
   // Check if user has already passed invite gate
@@ -29,6 +32,15 @@ export default function AuthPage() {
       }
     }
   }, [router]);
+
+  // Check if passkey login is enabled
+  useEffect(() => {
+    const checkPasskeyEnabled = async () => {
+      const enabled = await usePasskeyLogin();
+      setPasskeyEnabled(enabled);
+    };
+    checkPasskeyEnabled();
+  }, []);
 
   const handleMetaMaskConnect = async () => {
     setIsConnecting(true);
@@ -107,6 +119,25 @@ export default function AuthPage() {
             {isConnecting ? 'Connecting...' : 'Connect with MetaMask'}
           </button>
 
+          {passkeyEnabled && (
+            <>
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+              </div>
+
+              <PasskeyLoginButton
+                onSuccess={(address) => {
+                  router.push('/me');
+                }}
+                onError={(err) => {
+                  setError(err.message);
+                }}
+              />
+            </>
+          )}
+
           <div className="flex items-center gap-3 my-2">
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
             <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
@@ -143,6 +174,12 @@ export default function AuthPage() {
               Arkiv explorer
             </a>.
           </p>
+          {passkeyEnabled && (
+            <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
+              <strong>Passkey Wallet (Beta):</strong> This is experimental. You can reset your passkey wallet at any time. 
+              All passkey data is stored locally and can be cleared. MetaMask and Example Wallet remain available as alternatives.
+            </p>
+          )}
         </div>
       </div>
     </main>

@@ -57,9 +57,10 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       let address: `0x${string}`;
       let credentialID: string;
 
-      // Check if wallet already exists (by trying to load it)
-      const hasExistingWallet = userId && typeof window !== 'undefined' && 
-        localStorage.getItem(`passkey_wallet_${userId}`) !== null;
+      // Check if wallet already exists (by checking localStorage)
+      // Note: We check localStorage for userId, but actual wallet is in IndexedDB
+      const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null;
+      const hasExistingWallet = storedUserId !== null;
 
       if (hasExistingWallet && userId) {
         // Login flow: authenticate and unlock existing wallet
