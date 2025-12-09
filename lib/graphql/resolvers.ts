@@ -156,8 +156,8 @@ export const resolvers = {
             offers = await listOffers({ skill, includeExpired, limit });
           }
         } catch (fetchError) {
-          console.error('[GraphQL] Error fetching offers data:', fetchError);
-          offers = null;
+          console.error('[GraphQL] Error fetching offers from Arkiv:', fetchError);
+          offers = null; // Explicitly set to null so we handle it below
         }
 
         // Ensure we always return an array, never null
@@ -166,11 +166,23 @@ export const resolvers = {
           return [];
         }
 
+        // Safely transform offers, filtering out any that fail to transform
         try {
-          return offers.map(transformOffer);
+          const transformed = offers
+            .map((offer) => {
+              try {
+                return transformOffer(offer);
+              } catch (transformError) {
+                console.error('[GraphQL] Error transforming offer:', transformError, offer);
+                return null;
+              }
+            })
+            .filter((offer) => offer !== null);
+
+          return transformed;
         } catch (transformError) {
-          console.error('[GraphQL] Error transforming offers:', transformError);
-          return [];
+          console.error('[GraphQL] Error during transformation:', transformError);
+          return []; // Return empty array if transformation fails
         }
       } catch (error) {
         console.error('[GraphQL] Unexpected error in offers resolver:', error);
