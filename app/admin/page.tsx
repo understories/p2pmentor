@@ -332,9 +332,22 @@ export default function AdminDashboard() {
         {/* Performance Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
-              Performance
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+                Performance
+              </h2>
+              <button
+                onClick={() => {
+                  const newState = !performanceExpanded;
+                  setPerformanceExpanded(newState);
+                  localStorage.setItem('admin_performance_expanded', String(newState));
+                }}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                title={performanceExpanded ? 'Hide performance section' : 'Show performance section'}
+              >
+                {performanceExpanded ? '▼ Hide' : '▶ Show'}
+              </button>
+            </div>
             {performanceExpanded && (
               <div className="flex items-center gap-4">
                 {/* Test Method Toggle */}
