@@ -519,6 +519,8 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+            </>
+          )}
         </section>
 
         {/* Feedback Section */}
