@@ -17,6 +17,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
 import { fetchProfileDetail } from '@/lib/graph/profileQueries';
+import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -434,7 +435,7 @@ export default function ProfileDetailPage() {
                         Availability:
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {offer.availabilityWindow}
+                        {formatAvailabilityForDisplay(offer.availabilityWindow)}
                       </p>
                     </div>
                   )}

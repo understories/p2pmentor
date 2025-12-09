@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {
@@ -195,7 +196,7 @@ export default function ProfilesPage() {
                   )}
                   {profile.availabilityWindow && (
                     <div>
-                      <strong>Available:</strong> {profile.availabilityWindow}
+                      <strong>Available:</strong> {formatAvailabilityForDisplay(profile.availabilityWindow)}
                     </div>
                   )}
                   <div>

@@ -295,6 +295,31 @@ export function formatWeeklyAvailabilityForDisplay(availability: WeeklyAvailabil
 }
 
 /**
+ * Format any availability (structured or legacy) for display
+ * 
+ * This is a convenience function that handles both structured WeeklyAvailability
+ * and legacy text format, automatically detecting and formatting appropriately.
+ * Use this when displaying availability from offers, profiles, or availability entities.
+ * 
+ * @param availabilityString - Availability string (JSON or plain text)
+ * @returns Human-readable formatted string
+ */
+export function formatAvailabilityForDisplay(availabilityString: string): string {
+  if (!availabilityString || availabilityString.trim() === '') {
+    return 'No availability set';
+  }
+
+  // Try to parse as structured format
+  const structured = deserializeWeeklyAvailability(availabilityString);
+  if (structured) {
+    return formatWeeklyAvailabilityForDisplay(structured);
+  }
+
+  // Fallback to plain text (legacy format)
+  return availabilityString;
+}
+
+/**
  * Create an availability entity
  * 
  * Supports both legacy text format and new structured WeeklyAvailability format.

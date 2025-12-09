@@ -21,6 +21,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 type Match = {
@@ -386,7 +387,7 @@ export default function NetworkPage() {
                       <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{match.offer.message}</p>
                       {match.offer.availabilityWindow && (
                         <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          Available: {match.offer.availabilityWindow}
+                          Available: {formatAvailabilityForDisplay(match.offer.availabilityWindow)}
                         </div>
                       )}
                       <div className="text-xs text-gray-500 dark:text-gray-400">
