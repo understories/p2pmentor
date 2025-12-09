@@ -118,67 +118,52 @@ export async function GET(request: Request) {
         }
 
         // 2. GraphQL path - networkOverview query
+        // Use the SAME logic as /network/compare page: fetchNetworkOverview
         if (testGraphQL) {
           try {
-            // For server-to-server calls, execute GraphQL directly (bypasses HTTP)
-            // This avoids Vercel deployment protection and is more efficient
-            const { executeGraphQL } = await import('@/lib/graphql/execute');
+            // Use the exact same function that the app uses
+            // This ensures we're testing the real GraphQL path, not a different implementation
+            const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
             
-            const query = `
-              query NetworkOverview {
-                networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
-                  skillRefs {
-                    name
-                    asks {
-                      id
-                      key
-                      wallet
-                      skill
-                      createdAt
-                      status
-                      expiresAt
-                    }
-                    offers {
-                      id
-                      key
-                      wallet
-                      skill
-                      isPaid
-                      cost
-                      paymentAddress
-                      createdAt
-                      status
-                      expiresAt
-                    }
-                  }
-                }
-              }
-            `;
+            // For server-side calls, we need an absolute URL
+            // Construct from request URL (works in both local and production)
+            const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
             
             // Warm up: Execute query once to avoid cold start skewing results
             try {
-              await executeGraphQL(query);
+              await fetchNetworkOverview({
+                limitAsks: 1,
+                limitOffers: 1,
+                includeExpired: false,
+              }, { endpoint: graphqlEndpoint });
               await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
             } catch (warmupErr) {
               console.log('[seed-perf] Warmup query failed (non-fatal):', warmupErr);
               // Ignore warmup errors
             }
             
-            // Now measure the actual request
+            // Now measure the actual request (same params as JSON-RPC test)
             const startTime4 = Date.now();
-            const graphqlResult = await executeGraphQL<{ networkOverview: any }>(query);
+            const graphqlData = await fetchNetworkOverview({
+              limitAsks: 25,
+              limitOffers: 25,
+              includeExpired: false,
+            }, { endpoint: graphqlEndpoint });
             const duration4 = Date.now() - startTime4;
             
-            if (graphqlResult.errors && graphqlResult.errors.length > 0) {
-              throw new Error(`GraphQL execution errors: ${graphqlResult.errors.map(e => e.message).join('; ')}`);
+            // Measure actual GraphQL response payload
+            const payloadSize4 = JSON.stringify(graphqlData).length;
+            
+            // Verify we got real data (same validation as network/compare)
+            if (!graphqlData || !graphqlData.skillRefs) {
+              throw new Error('GraphQL query returned invalid data structure');
             }
             
-            if (!graphqlResult.data) {
-              throw new Error('GraphQL execution returned no data');
-            }
-            
-            // Measure actual GraphQL response payload (not transformed data)
-            const payloadSize4 = JSON.stringify(graphqlResult).length;
+            console.log('[seed-perf] GraphQL query successful:', {
+              skillRefsCount: graphqlData.skillRefs.length,
+              totalAsks: graphqlData.skillRefs.reduce((sum, s) => sum + s.asks.length, 0),
+              totalOffers: graphqlData.skillRefs.reduce((sum, s) => sum + s.offers.length, 0),
+            });
 
             // Create DX metric entity for GraphQL path (verifiable on-chain)
             try {
@@ -195,9 +180,15 @@ export async function GET(request: Request) {
                 privateKey,
               });
               createdEntities.push({ source: 'graphql', operation: 'networkOverview', txHash: tx2 });
-              console.log('[seed-perf] GraphQL test successful:', { durationMs: duration4, payloadBytes: payloadSize4 });
+              console.log('[seed-perf] GraphQL test successful:', { 
+                durationMs: duration4, 
+                payloadBytes: payloadSize4,
+                txHash: tx2,
+              });
             } catch (err) {
               console.error('[seed-perf] Failed to create GraphQL metric entity:', err);
+              // Re-throw to surface the error - entity creation is critical
+              throw new Error(`Failed to create GraphQL metric entity: ${err instanceof Error ? err.message : 'Unknown error'}`);
             }
           } catch (error: any) {
             // GraphQL may not be enabled or may have failed
