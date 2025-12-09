@@ -76,24 +76,83 @@ export function FloatingButtonCluster() {
       id: 'understories',
       href: 'https://understories.github.io',
       icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          viewBox="0 0 24 24"
-        >
-          <path d="M12 2v8"/>
-          <path d="M8 6c-2 2-2 4 0 6"/>
-          <path d="M16 6c2 2 2 4 0 6"/>
-          <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
-        </svg>
+        <div className="relative w-5 h-5">
+          {/* Glowing background */}
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(150, 255, 150, 0.6) 0%, rgba(50, 200, 50, 0.3) 40%, transparent 70%)',
+              boxShadow: `
+                0 0 20px rgba(150, 255, 150, 0.6),
+                0 0 40px rgba(100, 255, 100, 0.4),
+                0 0 60px rgba(50, 255, 50, 0.2),
+                inset 0 0 20px rgba(200, 255, 200, 0.3)
+              `,
+              animation: 'glowPulse 2s ease-in-out infinite',
+            }}
+          />
+          {/* Stem */}
+          <div
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-sm"
+            style={{
+              width: '2px',
+              height: '40%',
+              background: 'linear-gradient(180deg, rgba(100, 200, 100, 0.8) 0%, rgba(50, 150, 50, 0.6) 100%)',
+              boxShadow: '0 0 10px rgba(100, 255, 100, 0.4)',
+            }}
+          />
+          {/* Leaves container */}
+          <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[60%] h-[60%]">
+            {/* Leaf 1 - Top */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 -rotate-45"
+              style={{
+                width: '40%',
+                height: '40%',
+                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                borderRadius: '50% 0',
+                boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
+              }}
+            />
+            {/* Leaf 2 - Left */}
+            <div
+              className="absolute top-[33%] left-0 rotate-45"
+              style={{
+                width: '40%',
+                height: '40%',
+                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                borderRadius: '50% 0',
+                boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
+              }}
+            />
+            {/* Leaf 3 - Right */}
+            <div
+              className="absolute top-[33%] right-0 -rotate-45"
+              style={{
+                width: '40%',
+                height: '40%',
+                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                borderRadius: '50% 0',
+                boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
+              }}
+            />
+            {/* Leaf 4 - Bottom */}
+            <div
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 rotate-45"
+              style={{
+                width: '40%',
+                height: '40%',
+                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                borderRadius: '50% 0',
+                boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
+              }}
+            />
+          </div>
+        </div>
       ),
       tooltip: 'Grown by Understories',
       ariaLabel: 'Grown by Understories',
-      className: 'bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500',
+      className: 'bg-transparent',
     },
     {
       id: 'arkiv',
