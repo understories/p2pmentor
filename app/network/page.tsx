@@ -42,10 +42,31 @@ export default function NetworkPage() {
   const [skillFilter, setSkillFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState<'all' | 'asks' | 'offers' | 'matches'>('all');
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [userWallet, setUserWallet] = useState<string | null>(null);
+  const [userAsks, setUserAsks] = useState<Ask[]>([]);
+  const [userOffers, setUserOffers] = useState<Offer[]>([]);
 
   useEffect(() => {
+    // Get user wallet
+    if (typeof window !== 'undefined') {
+      const address = localStorage.getItem('wallet_address');
+      setUserWallet(address);
+    }
     loadNetwork();
   }, []);
+
+  useEffect(() => {
+    // Load user's asks and offers for match detection
+    if (userWallet) {
+      Promise.all([
+        fetch(`/api/asks?wallet=${encodeURIComponent(userWallet)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
+        fetch(`/api/offers?wallet=${encodeURIComponent(userWallet)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
+      ]).then(([asksRes, offersRes]) => {
+        if (asksRes.ok) setUserAsks(asksRes.asks || []);
+        if (offersRes.ok) setUserOffers(offersRes.offers || []);
+      });
+    }
+  }, [userWallet]);
 
   useEffect(() => {
     if (asks.length > 0 && offers.length > 0) {
@@ -428,10 +449,21 @@ export default function NetworkPage() {
                     className={`p-6 ${askColors.card} border ${askColors.border} rounded-lg`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className={`text-lg font-semibold ${askColors.text}`}>
-                          {ask.skill}
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-lg font-semibold ${askColors.text}`}>
+                            {ask.skill}
+                          </h3>
+                          {userWallet && userOffers.some(o => {
+                            const askSkill = ask.skill.toLowerCase();
+                            const offerSkill = o.skill.toLowerCase();
+                            return askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill);
+                          }) && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                              Matches your offer
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <Link
                             href={`/profiles/${ask.wallet}`}
@@ -495,10 +527,21 @@ export default function NetworkPage() {
                     className={`p-6 ${offerColors.card} border ${offerColors.border} rounded-lg`}
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className={`text-lg font-semibold ${offerColors.text}`}>
-                          {offer.skill}
-                        </h3>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className={`text-lg font-semibold ${offerColors.text}`}>
+                            {offer.skill}
+                          </h3>
+                          {userWallet && userAsks.some(a => {
+                            const askSkill = a.skill.toLowerCase();
+                            const offerSkill = offer.skill.toLowerCase();
+                            return askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill);
+                          }) && (
+                            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                              Matches your ask
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <Link
                             href={`/profiles/${offer.wallet}`}
