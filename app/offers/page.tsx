@@ -99,7 +99,7 @@ export default function OffersPage() {
     try {
       setLoading(true);
       
-      const useGraphQL = useGraphqlForOffers();
+      const useGraphQL = await useGraphqlForOffers();
       
       if (useGraphQL) {
         // Use GraphQL: Single query for offers

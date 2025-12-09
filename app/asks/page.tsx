@@ -95,7 +95,7 @@ export default function AsksPage() {
     try {
       setLoading(true);
       
-      const useGraphQL = useGraphqlForAsks();
+      const useGraphQL = await useGraphqlForAsks();
       
       if (useGraphQL) {
         // Use GraphQL: Single query for asks

@@ -59,7 +59,7 @@ export default function ProfileDetailPage() {
       setLoading(true);
       setError('');
 
-      const useGraphQL = useGraphqlForProfile();
+      const useGraphQL = await useGraphqlForProfile();
 
       if (useGraphQL) {
         // Use GraphQL: Single query for profile, asks, offers, feedback
