@@ -12,7 +12,6 @@
 
 import { getWalletClientFromPrivateKey } from '@/lib/arkiv/client';
 import { unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
-import type { WalletClient } from '@arkiv-network/sdk';
 
 /**
  * Get Arkiv wallet client from passkey
@@ -37,7 +36,7 @@ import type { WalletClient } from '@arkiv-network/sdk';
 export async function getWalletClientFromPasskey(
   userId: string,
   credentialID: string
-): Promise<WalletClient> {
+) {
   // Unlock passkey wallet (decrypts private key)
   const { privateKeyHex } = await unlockPasskeyWallet(userId, credentialID);
   
