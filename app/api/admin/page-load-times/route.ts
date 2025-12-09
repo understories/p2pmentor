@@ -71,7 +71,16 @@ export async function GET(request: Request) {
       ...(CURRENT_WALLET ? [`/profiles/${CURRENT_WALLET}`] : []),
     ];
     
-    // Measure all pages in parallel
+    // Warm up: Make a request to each page first to avoid cold start skewing results
+    // This ensures we're measuring actual page load time, not compilation time
+    await Promise.all(
+      pages.map(page => measurePageLoad(baseUrl, page))
+    );
+    
+    // Wait a moment for server to stabilize
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Now measure for real (warm measurements)
     const results = await Promise.all(
       pages.map(page => measurePageLoad(baseUrl, page))
     );
