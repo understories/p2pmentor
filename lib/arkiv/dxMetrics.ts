@@ -9,6 +9,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { handleTransactionWithTimeout } from "./transaction-utils";
 import type { PerfSample } from "@/lib/metrics/perf";
 
 export type DxMetric = {
@@ -52,36 +53,46 @@ export async function createDxMetric({
   // DX metrics should persist for analysis (90 days)
   const expiresIn = 7776000; // 90 days in seconds
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'dx_metric' },
-      { key: 'source', value: sample.source },
-      { key: 'operation', value: sample.operation },
-      { key: 'route', value: sample.route || '' },
-      { key: 'durationMs', value: String(sample.durationMs) },
-      ...(sample.payloadBytes ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }] : []),
-      ...(sample.httpRequests ? [{ key: 'httpRequests', value: String(sample.httpRequests) }] : []),
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn,
+  // Wrap in handleTransactionWithTimeout to handle receipt timeouts gracefully
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'dx_metric' },
+        { key: 'source', value: sample.source },
+        { key: 'operation', value: sample.operation },
+        { key: 'route', value: sample.route || '' },
+        { key: 'durationMs', value: String(sample.durationMs) },
+        ...(sample.payloadBytes ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }] : []),
+        ...(sample.httpRequests ? [{ key: 'httpRequests', value: String(sample.httpRequests) }] : []),
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+      ],
+      expiresIn,
+    });
   });
 
   // Store txHash in a separate entity for reliable querying
-  await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'dx_metric_txhash' },
-      { key: 'metricKey', value: entityKey },
-      { key: 'source', value: sample.source },
-      { key: 'operation', value: sample.operation },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  });
+  // This can fail gracefully - the main entity is more important
+  try {
+    await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'dx_metric_txhash' },
+        { key: 'metricKey', value: entityKey },
+        { key: 'source', value: sample.source },
+        { key: 'operation', value: sample.operation },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    });
+  } catch (error: any) {
+    // If txHash entity creation fails but we have the main entity, log and continue
+    // The main dx_metric entity is more important
+    console.warn('Failed to create dx_metric_txhash entity, but metric was created:', error);
+  }
 
   return { key: entityKey, txHash };
 }
