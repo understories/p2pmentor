@@ -58,6 +58,37 @@ interface AppFeedback {
   txHash?: string;
 }
 
+interface PerfSnapshot {
+  key: string;
+  timestamp: string;
+  operation: string;
+  method: 'arkiv' | 'graphql' | 'both';
+  graphql?: {
+    avgDurationMs: number;
+    minDurationMs: number;
+    maxDurationMs: number;
+    avgPayloadBytes?: number;
+    avgHttpRequests?: number;
+    samples: number;
+  };
+  arkiv?: {
+    avgDurationMs: number;
+    minDurationMs: number;
+    maxDurationMs: number;
+    avgPayloadBytes?: number;
+    avgHttpRequests?: number;
+    samples: number;
+  };
+  pageLoadTimes?: {
+    avgDurationMs: number;
+    minDurationMs: number;
+    maxDurationMs: number;
+    total: number;
+    successful: number;
+  };
+  txHash?: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
@@ -68,6 +99,9 @@ export default function AdminDashboard() {
   const [pageLoadSummary, setPageLoadSummary] = useState<PageLoadSummary | null>(null);
   const [recentFeedback, setRecentFeedback] = useState<AppFeedback[]>([]);
   const [testMethod, setTestMethod] = useState<'arkiv' | 'graphql' | 'both'>('both');
+  const [snapshots, setSnapshots] = useState<PerfSnapshot[]>([]);
+  const [creatingSnapshot, setCreatingSnapshot] = useState(false);
+  const [lastSnapshotCheck, setLastSnapshotCheck] = useState<{ shouldCreate: boolean; hoursAgo?: number } | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -128,8 +162,95 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch feedback:', err));
+
+      // Check if auto-snapshot should be created
+      fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setLastSnapshotCheck({
+              shouldCreate: data.shouldCreateSnapshot,
+              hoursAgo: data.lastSnapshot?.hoursAgo,
+            });
+            
+            // Auto-create snapshot if > 12 hours since last one
+            if (data.shouldCreateSnapshot) {
+              // Use 'both' method for auto-snapshots to capture comprehensive data
+              fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=both`)
+                .then(snapRes => snapRes.json())
+                .then(snapData => {
+                  if (snapData.ok) {
+                    console.log('[Admin] Auto-created performance snapshot');
+                    // Refresh snapshots list
+                    return fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
+                  }
+                })
+                .then(snapshotsRes => snapshotsRes?.json())
+                .then(snapshotsData => {
+                  if (snapshotsData?.ok) {
+                    setSnapshots(snapshotsData.snapshots || []);
+                  }
+                  // Update check status
+                  return fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
+                })
+                .then(checkRes => checkRes?.json())
+                .then(checkData => {
+                  if (checkData?.ok) {
+                    setLastSnapshotCheck({
+                      shouldCreate: checkData.shouldCreateSnapshot,
+                      hoursAgo: checkData.lastSnapshot?.hoursAgo,
+                    });
+                  }
+                })
+                .catch(err => console.error('Failed to auto-create snapshot:', err));
+            }
+          }
+        })
+        .catch(err => console.error('Failed to check snapshot status:', err));
+
+      // Fetch historical snapshots
+      fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setSnapshots(data.snapshots || []);
+          }
+        })
+        .catch(err => console.error('Failed to fetch snapshots:', err));
     }
   }, [authenticated]);
+
+  const handleCreateSnapshot = async () => {
+    setCreatingSnapshot(true);
+    try {
+      const res = await fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=${testMethod}`);
+      const data = await res.json();
+      if (data.ok) {
+        // Refresh snapshots
+        const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
+        const snapshotsData = await snapshotsRes.json();
+        if (snapshotsData.ok) {
+          setSnapshots(snapshotsData.snapshots || []);
+        }
+        // Refresh snapshot check
+        const checkRes = await fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
+        const checkData = await checkRes.json();
+        if (checkData.ok) {
+          setLastSnapshotCheck({
+            shouldCreate: checkData.shouldCreateSnapshot,
+            hoursAgo: checkData.lastSnapshot?.hoursAgo,
+          });
+        }
+      } else {
+        alert(`Failed to create snapshot: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('Error creating snapshot:', err);
+      alert('Failed to create snapshot');
+    } finally {
+      setCreatingSnapshot(false);
+    }
+  };
 
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
@@ -211,6 +332,19 @@ export default function AdminDashboard() {
               >
                 Test Query Performance
               </a>
+              <button
+                onClick={handleCreateSnapshot}
+                disabled={creatingSnapshot}
+                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg text-sm transition-colors"
+                title="Create a snapshot of current performance data for historical comparison"
+              >
+                {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
+              </button>
+              {lastSnapshotCheck && lastSnapshotCheck.shouldCreate && (
+                <span className="text-xs text-amber-600 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded">
+                  Auto-snapshot due (last: {lastSnapshotCheck.hoursAgo?.toFixed(1)}h ago)
+                </span>
+              )}
             </div>
           </div>
 
@@ -404,6 +538,72 @@ export default function AdminDashboard() {
               <div className="p-6 text-gray-600 dark:text-gray-400">
                 No performance samples yet. Metrics will appear as requests are made.
               </div>
+            )}
+          </div>
+        </section>
+
+        {/* Historical Performance Snapshots */}
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-50">
+            Historical Performance Data
+          </h2>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+            {snapshots.length > 0 ? (
+              <div className="space-y-4">
+                {snapshots.map((snapshot, idx) => (
+                  <div key={snapshot.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <div className="font-medium text-gray-900 dark:text-gray-50">
+                          {new Date(snapshot.timestamp).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400">
+                          Method: {snapshot.method} • Operation: {snapshot.operation}
+                        </div>
+                      </div>
+                      {snapshot.txHash && (
+                        <a
+                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${snapshot.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                        >
+                          🔗 Verify
+                        </a>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                      {snapshot.arkiv && (
+                        <div className="bg-white dark:bg-gray-700 rounded p-3">
+                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">JSON-RPC</div>
+                          <div className="space-y-1 text-xs">
+                            <div>Avg: {snapshot.arkiv.avgDurationMs.toFixed(0)}ms</div>
+                            <div>Range: {snapshot.arkiv.minDurationMs}ms - {snapshot.arkiv.maxDurationMs}ms</div>
+                            <div>Samples: {snapshot.arkiv.samples}</div>
+                          </div>
+                        </div>
+                      )}
+                      {snapshot.graphql && (
+                        <div className="bg-white dark:bg-gray-700 rounded p-3">
+                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">GraphQL</div>
+                          <div className="space-y-1 text-xs">
+                            <div>Avg: {snapshot.graphql.avgDurationMs.toFixed(0)}ms</div>
+                            <div>Range: {snapshot.graphql.minDurationMs}ms - {snapshot.graphql.maxDurationMs}ms</div>
+                            <div>Samples: {snapshot.graphql.samples}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {snapshot.pageLoadTimes && (
+                      <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                        Page Load: Avg {snapshot.pageLoadTimes.avgDurationMs}ms ({snapshot.pageLoadTimes.successful}/{snapshot.pageLoadTimes.total} successful)
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400">No snapshots yet. Create one to start tracking performance over time.</p>
             )}
           </div>
         </section>
