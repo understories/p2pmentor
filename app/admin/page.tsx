@@ -101,6 +101,7 @@ export default function AdminDashboard() {
   const [testMethod, setTestMethod] = useState<'arkiv' | 'graphql' | 'both'>('both');
   const [snapshots, setSnapshots] = useState<PerfSnapshot[]>([]);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
+  const [testingPerformance, setTestingPerformance] = useState(false);
   const [lastSnapshotCheck, setLastSnapshotCheck] = useState<{ shouldCreate: boolean; hoursAgo?: number } | null>(null);
 
   useEffect(() => {
@@ -220,15 +221,39 @@ export default function AdminDashboard() {
     }
   }, [authenticated]);
 
-  const handleCreateSnapshot = async () => {
+  const handleCreateSnapshot = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    if (creatingSnapshot) {
+      console.log('[Admin] Snapshot creation already in progress');
+      return;
+    }
+    
     setCreatingSnapshot(true);
+    console.log('[Admin] Creating snapshot with method:', testMethod);
+    
     try {
-      const res = await fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=${testMethod}`);
+      const res = await fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=${testMethod}`, {
+        method: 'POST',
+      });
+      console.log('[Admin] Snapshot creation response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+      
       const data = await res.json();
+      console.log('[Admin] Snapshot creation data:', data);
+      
       if (data.ok) {
         // Refresh snapshots
         const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
         const snapshotsData = await snapshotsRes.json();
+        console.log('[Admin] Snapshots data:', snapshotsData);
         if (snapshotsData.ok) {
           setSnapshots(snapshotsData.snapshots || []);
         }
@@ -241,12 +266,13 @@ export default function AdminDashboard() {
             hoursAgo: checkData.lastSnapshot?.hoursAgo,
           });
         }
+        alert(`Snapshot created successfully! Transaction: ${data.snapshot?.txHash?.slice(0, 10)}...`);
       } else {
-        alert(`Failed to create snapshot: ${data.error}`);
+        alert(`Failed to create snapshot: ${data.error || 'Unknown error'}`);
       }
-    } catch (err) {
-      console.error('Error creating snapshot:', err);
-      alert('Failed to create snapshot');
+    } catch (err: any) {
+      console.error('[Admin] Error creating snapshot:', err);
+      alert(`Failed to create snapshot: ${err.message || 'Unknown error'}`);
     } finally {
       setCreatingSnapshot(false);
     }
@@ -324,20 +350,42 @@ export default function AdminDashboard() {
                 </button>
               </div>
               <button
-                onClick={async () => {
+                onClick={async (e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  
+                  if (testingPerformance) {
+                    console.log('[Admin] Test already in progress');
+                    return;
+                  }
+                  
+                  setTestingPerformance(true);
+                  console.log('[Admin] Starting performance test with method:', testMethod);
+                  
                   try {
                     const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
+                    console.log('[Admin] Performance test response status:', res.status);
+                    
+                    if (!res.ok) {
+                      const errorText = await res.text();
+                      throw new Error(`HTTP ${res.status}: ${errorText}`);
+                    }
+                    
                     const data = await res.json();
+                    console.log('[Admin] Performance test data:', data);
+                    
                     if (data.success) {
                       // Refresh performance data after test
                       const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
                       const summaryData = await summaryRes.json();
+                      console.log('[Admin] Summary data:', summaryData);
                       if (summaryData) {
                         setPerfSummary(summaryData);
                       }
                       // Also refresh samples list
                       const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
                       const samplesData = await samplesRes.json();
+                      console.log('[Admin] Samples data:', samplesData);
                       if (samplesData.samples) {
                         setPerfSamples(samplesData.samples);
                       }
@@ -345,20 +393,31 @@ export default function AdminDashboard() {
                     } else {
                       alert(`Test failed: ${data.error || 'Unknown error'}`);
                     }
-                  } catch (err) {
-                    console.error('Error running performance test:', err);
-                    alert('Failed to run performance test');
+                  } catch (err: any) {
+                    console.error('[Admin] Error running performance test:', err);
+                    alert(`Failed to run performance test: ${err.message || 'Unknown error'}`);
+                  } finally {
+                    setTestingPerformance(false);
                   }
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                disabled={testingPerformance}
+                className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                  testingPerformance 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
                 title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
               >
-                Test Query Performance
+                {testingPerformance ? 'Testing...' : 'Test Query Performance'}
               </button>
               <button
-                onClick={handleCreateSnapshot}
+                onClick={(e) => handleCreateSnapshot(e)}
                 disabled={creatingSnapshot}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white rounded-lg text-sm transition-colors"
+                className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                  creatingSnapshot 
+                    ? 'bg-gray-400 cursor-not-allowed' 
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
                 title="Create a snapshot of current performance data for historical comparison"
               >
                 {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
