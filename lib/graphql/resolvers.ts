@@ -95,45 +95,70 @@ export const resolvers = {
     asks: async (_: any, args: any) => {
       const { skill, wallet, includeExpired = false, limit = 100 } = args;
       
+      console.log('[GraphQL] asks resolver called with:', { skill, wallet, includeExpired, limit });
+      
       try {
         let asks: any = null;
         try {
+          console.log('[GraphQL] Calling listAsks...');
           if (wallet) {
             asks = await listAsksForWallet(wallet);
           } else {
             asks = await listAsks({ skill, includeExpired, limit });
           }
-        } catch (fetchError) {
-          console.error('[GraphQL] Error fetching asks from Arkiv:', fetchError);
+          console.log('[GraphQL] listAsks returned:', { count: asks?.length, type: typeof asks, isArray: Array.isArray(asks) });
+        } catch (fetchError: any) {
+          console.error('[GraphQL] Error fetching asks from Arkiv:', {
+            message: fetchError?.message,
+            stack: fetchError?.stack,
+            error: fetchError
+          });
           asks = null; // Explicitly set to null so we handle it below
         }
 
         // Ensure we always return an array, never null
         if (!asks || !Array.isArray(asks)) {
-          console.warn('[GraphQL] asks resolver: received non-array result, returning empty array', { asks, type: typeof asks });
+          console.warn('[GraphQL] asks resolver: received non-array result, returning empty array', { 
+            asks, 
+            type: typeof asks,
+            isArray: Array.isArray(asks),
+            asksValue: JSON.stringify(asks)
+          });
           return [];
         }
 
         // Safely transform asks, filtering out any that fail to transform
         try {
+          console.log('[GraphQL] Transforming asks...', { count: asks.length });
           const transformed = asks
             .map((ask) => {
               try {
                 return transformAsk(ask);
-              } catch (transformError) {
-                console.error('[GraphQL] Error transforming ask:', transformError, ask);
+              } catch (transformError: any) {
+                console.error('[GraphQL] Error transforming ask:', {
+                  error: transformError?.message,
+                  ask: JSON.stringify(ask)
+                });
                 return null;
               }
             })
             .filter((ask) => ask !== null);
 
+          console.log('[GraphQL] Transformation complete:', { transformedCount: transformed.length });
           return transformed;
-        } catch (transformError) {
-          console.error('[GraphQL] Error during transformation:', transformError);
+        } catch (transformError: any) {
+          console.error('[GraphQL] Error during transformation:', {
+            message: transformError?.message,
+            stack: transformError?.stack
+          });
           return []; // Return empty array if transformation fails
         }
-      } catch (error) {
-        console.error('[GraphQL] Unexpected error in asks resolver:', error);
+      } catch (error: any) {
+        console.error('[GraphQL] Unexpected error in asks resolver:', {
+          message: error?.message,
+          stack: error?.stack,
+          error
+        });
         return []; // Always return array, never null
       }
     },
