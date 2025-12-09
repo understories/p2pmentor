@@ -19,7 +19,17 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+      <body suppressHydrationWarning className="relative min-h-screen">
+        {/* Background Image */}
+        <div 
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-20 dark:opacity-10"
+          style={{
+            backgroundImage: 'url(/understory.jpeg)',
+          }}
+        />
+        {/* Overlay for better text readability */}
+        <div className="fixed inset-0 -z-10 bg-white/50 dark:bg-gray-900/70" />
+        
         <ThemeProvider>
           {children}
           <FloatingButtonCluster />
