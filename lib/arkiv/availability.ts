@@ -509,3 +509,60 @@ export async function listAvailabilityForWallet(
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
+
+/**
+ * Get a single availability entity by key
+ *
+ * @param key - Availability entity key
+ * @returns Availability or null if not found
+ */
+export async function getAvailabilityByKey(key: string): Promise<Availability | null> {
+  const publicClient = getPublicClient();
+  const query = publicClient.buildQuery();
+  const result = await query
+    .where(eq('type', 'availability'))
+    .where(eq('key', key))
+    .withAttributes(true)
+    .withPayload(true)
+    .limit(1)
+    .fetch();
+
+  if (result.entities.length === 0) return null;
+
+  const entity = result.entities[0];
+  let payload: any = {};
+  try {
+    if (entity.payload) {
+      const decoded = entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+        ? entity.payload
+        : JSON.stringify(entity.payload);
+      payload = JSON.parse(decoded);
+    }
+  } catch (e) {
+    console.error('Error decoding payload:', e);
+  }
+
+  const attrs = entity.attributes || {};
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
+    }
+    return String(attrs[key] || '');
+  };
+
+  const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
+
+  return {
+    key: entity.key,
+    wallet: getAttr('wallet'),
+    spaceId: getAttr('spaceId') || 'local-dev',
+    createdAt: getAttr('createdAt'),
+    timeBlocks: payload.timeBlocks || '',
+    timezone: payload.timezone || getAttr('timezone') || '',
+    availabilityVersion: (availabilityVersion === '1.0' ? '1.0' : 'legacy') as '1.0' | 'legacy',
+    txHash: undefined, // txHash lookup can be added if needed
+  };
+}

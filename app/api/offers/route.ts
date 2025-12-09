@@ -10,11 +10,12 @@ import { NextResponse } from 'next/server';
 import { createOffer, listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import type { WeeklyAvailability } from '@/lib/arkiv/availability';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, action, skill, message, availabilityWindow, isPaid, cost, paymentAddress, expiresIn } = body;
+    const { wallet, action, skill, message, availabilityWindow, availabilityKey, isPaid, cost, paymentAddress, expiresIn } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -26,9 +27,17 @@ export async function POST(request: Request) {
     }
 
     if (action === 'createOffer') {
-      if (!skill || !message || !availabilityWindow) {
+      if (!skill || !message) {
         return NextResponse.json(
-          { ok: false, error: 'skill, message, and availabilityWindow are required' },
+          { ok: false, error: 'skill and message are required' },
+          { status: 400 }
+        );
+      }
+
+      // Validate availability: either availabilityWindow or availabilityKey must be provided
+      if (!availabilityWindow && !availabilityKey) {
+        return NextResponse.json(
+          { ok: false, error: 'Either availabilityWindow or availabilityKey is required' },
           { status: 400 }
         );
       }
@@ -61,6 +70,7 @@ export async function POST(request: Request) {
           skill,
           message,
           availabilityWindow,
+          availabilityKey: availabilityKey || undefined,
           isPaid: isPaid === true || isPaid === 'true',
           cost: cost || undefined,
           paymentAddress: paymentAddress || undefined,

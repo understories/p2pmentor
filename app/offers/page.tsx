@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
@@ -18,7 +19,8 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
 import { fetchOffers } from '@/lib/graph/offersQueries';
-import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { formatAvailabilityForDisplay, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -76,12 +78,17 @@ export default function OffersPage() {
     skill: '', 
     message: '', 
     availabilityWindow: '',
+    availabilityKey: '', // Reference to Availability entity
+    availabilityType: 'custom' as 'saved' | 'custom' | 'structured', // Type of availability input
+    structuredAvailability: null as WeeklyAvailability | null, // Structured availability object
     isPaid: false,
     cost: '',
     paymentAddress: '',
     ttlHours: '2', // Default 2 hours
     customTtlHours: '', // For custom input
   });
+  const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
+  const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -96,10 +103,35 @@ export default function OffersPage() {
     }
   }, [router]);
 
+  const loadAvailabilities = async (wallet: string) => {
+    try {
+      setLoadingAvailabilities(true);
+      const res = await fetch(`/api/availability?wallet=${encodeURIComponent(wallet)}`);
+      const data = await res.json();
+      if (data.ok && data.availabilities) {
+        // Format availabilities for dropdown
+        const formatted = data.availabilities.map((avail: any) => {
+          return {
+            key: avail.key,
+            displayText: formatAvailabilityForDisplay(avail.timeBlocks),
+          };
+        });
+        setSavedAvailabilities(formatted);
+      }
+    } catch (err) {
+      console.error('Error loading availabilities:', err);
+    } finally {
+      setLoadingAvailabilities(false);
+    }
+  };
+
   const loadData = async (wallet: string) => {
     try {
       setLoading(true);
       
+      // Load availabilities in parallel
+      loadAvailabilities(wallet);
+
       const useGraphQL = await useGraphqlForOffers();
       
       if (useGraphQL) {
@@ -178,7 +210,25 @@ export default function OffersPage() {
 
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOffer.skill.trim() || !newOffer.message.trim() || !newOffer.availabilityWindow.trim() || !walletAddress) return;
+    if (!newOffer.skill.trim() || !newOffer.message.trim() || !walletAddress) return;
+
+    // Validate availability based on type
+    if (newOffer.availabilityType === 'saved') {
+      if (!newOffer.availabilityKey.trim()) {
+        setError('Please select a saved availability');
+        return;
+      }
+    } else if (newOffer.availabilityType === 'structured') {
+      if (!newOffer.structuredAvailability) {
+        setError('Please configure your structured availability');
+        return;
+      }
+    } else {
+      if (!newOffer.availabilityWindow.trim()) {
+        setError('Please enter availability text');
+        return;
+      }
+    }
     
     // Validate payment fields if paid
     if (newOffer.isPaid) {
@@ -202,6 +252,16 @@ export default function OffersPage() {
       const ttlHours = parseFloat(ttlValue);
       const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 7200 : Math.floor(ttlHours * 3600); // Default to 2 hours if invalid
 
+      // Prepare availabilityWindow based on type
+      let availabilityWindowValue: string | WeeklyAvailability = '';
+      if (newOffer.availabilityType === 'saved') {
+        availabilityWindowValue = ''; // Will use availabilityKey
+      } else if (newOffer.availabilityType === 'structured') {
+        availabilityWindowValue = newOffer.structuredAvailability!; // Send WeeklyAvailability object
+      } else {
+        availabilityWindowValue = newOffer.availabilityWindow.trim(); // Send text string
+      }
+
       const res = await fetch('/api/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -210,7 +270,8 @@ export default function OffersPage() {
           wallet: walletAddress,
           skill: newOffer.skill.trim(),
           message: newOffer.message.trim(),
-          availabilityWindow: newOffer.availabilityWindow.trim(),
+          availabilityWindow: availabilityWindowValue,
+          availabilityKey: newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
           isPaid: newOffer.isPaid,
           cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
           paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
@@ -222,7 +283,7 @@ export default function OffersPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
           setTimeout(async () => {
@@ -230,7 +291,7 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess('Offer created successfully!');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
           await loadData(walletAddress!);
@@ -360,18 +421,89 @@ export default function OffersPage() {
                 />
               </div>
               <div>
-                <label htmlFor="availabilityWindow" className="block text-sm font-medium mb-2">
-                  Availability Window *
+                <label className="block text-sm font-medium mb-2">
+                  Availability *
                 </label>
-                <input
-                  id="availabilityWindow"
-                  type="text"
-                  value={newOffer.availabilityWindow}
-                  onChange={(e) => setNewOffer({ ...newOffer, availabilityWindow: e.target.value })}
-                  placeholder="e.g., Weekdays 6-8 PM EST, Weekends flexible"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
+                <div className="mb-3">
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="availabilityType"
+                        checked={newOffer.availabilityType === 'custom'}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'custom', availabilityKey: '', structuredAvailability: null })}
+                        className="mr-2"
+                      />
+                      <span>Enter custom text</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="availabilityType"
+                        checked={newOffer.availabilityType === 'saved'}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', availabilityWindow: '', structuredAvailability: null })}
+                        className="mr-2"
+                      />
+                      <span>Use saved availability</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="availabilityType"
+                        checked={newOffer.availabilityType === 'structured'}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityWindow: '', availabilityKey: '' })}
+                        className="mr-2"
+                      />
+                      <span>Create structured availability</span>
+                    </label>
+                  </div>
+                </div>
+                {newOffer.availabilityType === 'saved' ? (
+                  <div>
+                    {loadingAvailabilities ? (
+                      <div className="text-sm text-gray-500 dark:text-gray-400">Loading availabilities...</div>
+                    ) : savedAvailabilities.length === 0 ? (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or use custom availability above.
+                        </p>
+                      </div>
+                    ) : (
+                      <select
+                        id="availabilityKey"
+                        value={newOffer.availabilityKey}
+                        onChange={(e) => setNewOffer({ ...newOffer, availabilityKey: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required={newOffer.availabilityType === 'saved'}
+                      >
+                        <option value="">Select saved availability...</option>
+                        {savedAvailabilities.map((avail) => (
+                          <option key={avail.key} value={avail.key}>
+                            {avail.displayText}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ) : newOffer.availabilityType === 'structured' ? (
+                  <div>
+                    <WeeklyAvailabilityEditor
+                      value={newOffer.structuredAvailability}
+                      onChange={(availability) => setNewOffer({ ...newOffer, structuredAvailability: availability })}
+                      className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                ) : (
+                  <input
+                    id="availabilityWindow"
+                    type="text"
+                    value={newOffer.availabilityWindow}
+                    onChange={(e) => setNewOffer({ ...newOffer, availabilityWindow: e.target.value })}
+                    placeholder="e.g., Weekdays 6-8 PM EST, Weekends flexible"
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required={newOffer.availabilityType === 'custom'}
+                  />
+                )}
               </div>
               
               <div>
@@ -494,7 +626,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '', isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
+                    setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
                     setError('');
                     setSuccess('');
                   }}
