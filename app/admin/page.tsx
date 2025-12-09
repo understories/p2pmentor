@@ -237,6 +237,7 @@ export default function AdminDashboard() {
     console.log('[Admin] Creating snapshot with method:', testMethod);
     
     try {
+      // Check if snapshot was created recently (idempotency)
       const res = await fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=${testMethod}`, {
         method: 'POST',
       });
@@ -251,6 +252,7 @@ export default function AdminDashboard() {
       console.log('[Admin] Snapshot creation data:', data);
       
       if (data.ok) {
+        // Success - refresh data
         // Refresh snapshots
         const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
         const snapshotsData = await snapshotsRes.json();
@@ -268,6 +270,9 @@ export default function AdminDashboard() {
           });
         }
         alert(`Snapshot created successfully! Transaction: ${data.snapshot?.txHash?.slice(0, 10)}...`);
+      } else if (res.status === 429) {
+        // Too many requests - idempotency check
+        alert(`Snapshot created too recently. ${data.message || 'Please wait 5 minutes between snapshots.'}`);
       } else {
         alert(`Failed to create snapshot: ${data.error || 'Unknown error'}`);
       }
@@ -304,6 +309,22 @@ export default function AdminDashboard() {
     <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
       <ThemeToggle />
       <div className="max-w-6xl mx-auto">
+        {/* Security Warning Banner */}
+        <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <div className="flex items-start gap-2">
+            <span className="text-amber-600 dark:text-amber-400 text-lg">⚠️</span>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                Internal Access Only — Not Production-Ready Authentication
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                This admin panel uses simple password authentication. Do not expose publicly. 
+                Proper authentication (passkey/wallet allowlist) required before public release.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
@@ -662,6 +683,11 @@ export default function AdminDashboard() {
                         </div>
                         <div className="text-xs text-gray-600 dark:text-gray-400">
                           Method: {snapshot.method} • Operation: {snapshot.operation}
+                          {snapshot.arkivMetadata?.blockHeight && (
+                            <span className="ml-2 text-gray-500 dark:text-gray-500">
+                              • Block: {snapshot.arkivMetadata.blockHeight}
+                            </span>
+                          )}
                           {(!snapshot.arkiv && !snapshot.graphql) && (
                             <span className="ml-2 text-amber-600 dark:text-amber-400">(No performance data captured)</span>
                           )}
