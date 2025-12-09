@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createAvailability, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import { createAvailability, listAvailabilityForWallet, deleteAvailability, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { getPrivateKey } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
@@ -78,6 +78,48 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, availabilities });
   } catch (error: any) {
     console.error('Availability API GET error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    const { availabilityKey, wallet } = body;
+
+    if (!availabilityKey || !wallet) {
+      return NextResponse.json(
+        { ok: false, error: 'availabilityKey and wallet are required' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const { key, txHash } = await deleteAvailability({
+        availabilityKey,
+        wallet,
+        privateKey: getPrivateKey(),
+      });
+
+      return NextResponse.json({ ok: true, key, txHash });
+    } catch (error: any) {
+      // Handle transaction receipt timeout gracefully
+      if (isTransactionTimeoutError(error)) {
+        return NextResponse.json({ 
+          ok: true, 
+          key: null,
+          txHash: null,
+          pending: true,
+          message: error.message || 'Transaction submitted, confirmation pending'
+        });
+      }
+      throw error;
+    }
+  } catch (error: any) {
+    console.error('Availability API DELETE error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }

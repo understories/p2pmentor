@@ -36,6 +36,8 @@ export default function AvailabilityPage() {
   const [timezone, setTimezone] = useState('UTC');
   const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability | null>(null);
   const [useStructuredFormat, setUseStructuredFormat] = useState(true); // Default to structured format
+  const [editingKey, setEditingKey] = useState<string | null>(null); // Track which availability is being edited
+  const [deletingKey, setDeletingKey] = useState<string | null>(null); // Track which availability is being deleted
   const router = useRouter();
 
   useEffect(() => {
@@ -120,9 +122,10 @@ export default function AvailabilityPage() {
           // Reload after a delay to allow entity to be indexed
           setTimeout(() => loadData(walletAddress), 2000);
         } else {
-          setSuccess('Availability created successfully!');
+          setSuccess(editingKey ? 'Availability updated successfully!' : 'Availability created successfully!');
           setTimeBlocks('');
           setWeeklyAvailability(null);
+          setEditingKey(null);
           await loadData(walletAddress);
         }
       } else {
@@ -134,6 +137,85 @@ export default function AvailabilityPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEdit = (availability: Availability) => {
+    // Load availability into form for editing
+    const isStructured = isStructuredAvailability(availability.timeBlocks);
+    
+    if (isStructured) {
+      const structured = deserializeWeeklyAvailability(availability.timeBlocks);
+      if (structured) {
+        setWeeklyAvailability(structured);
+        setUseStructuredFormat(true);
+        setTimezone(structured.timezone);
+      }
+    } else {
+      setTimeBlocks(availability.timeBlocks);
+      setUseStructuredFormat(false);
+      setTimezone(availability.timezone);
+    }
+    
+    setEditingKey(availability.key);
+    setError('');
+    setSuccess('');
+    
+    // Scroll to form
+    window.scrollTo({ top: document.getElementById('availability-form')?.offsetTop || 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (availabilityKey: string) => {
+    if (!walletAddress) {
+      setError('Wallet address is required');
+      return;
+    }
+
+    if (!confirm('Are you sure you want to delete this availability block? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeletingKey(availabilityKey);
+    setError('');
+    setSuccess('');
+
+    try {
+      const res = await fetch('/api/availability', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          availabilityKey,
+          wallet: walletAddress,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        if (data.pending) {
+          setSuccess('Deletion submitted! Transaction is being processed. Please refresh in a moment.');
+          setTimeout(() => loadData(walletAddress), 2000);
+        } else {
+          setSuccess('Availability deleted successfully!');
+          await loadData(walletAddress);
+        }
+      } else {
+        setError(data.error || 'Failed to delete availability');
+      }
+    } catch (err: any) {
+      console.error('Error deleting availability:', err);
+      setError(err.message || 'Failed to delete availability');
+    } finally {
+      setDeletingKey(null);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingKey(null);
+    setTimeBlocks('');
+    setWeeklyAvailability(null);
+    setTimezone(profile?.timezone || 'UTC');
+    setUseStructuredFormat(true);
+    setError('');
+    setSuccess('');
   };
 
   if (loading) {
@@ -177,14 +259,25 @@ export default function AvailabilityPage() {
                 const displayText = structuredAvail 
                   ? formatWeeklyAvailabilityForDisplay(structuredAvail)
                   : availability.timeBlocks;
+                const isEditing = editingKey === availability.key;
+                const isDeleting = deletingKey === availability.key;
 
                 return (
                   <div
                     key={availability.key}
-                    className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    className={`p-4 border rounded-lg ${
+                      isEditing
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    }`}
                   >
                     <div className="flex justify-between items-start mb-2">
                       <div className="flex-1">
+                        {isEditing && (
+                          <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">
+                            ✏️ Editing this block
+                          </p>
+                        )}
                         <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
                           {displayText}
                         </p>
@@ -200,16 +293,32 @@ export default function AvailabilityPage() {
                           Created: {new Date(availability.createdAt).toLocaleDateString()}
                         </p>
                       </div>
-                      {availability.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                      <div className="flex items-center gap-2 ml-4">
+                        {availability.txHash && (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View on Arkiv
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleEdit(availability)}
+                          disabled={isEditing || isDeleting}
+                          className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          View on Arkiv
-                        </a>
-                      )}
+                          {isEditing ? 'Editing...' : 'Edit'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(availability.key)}
+                          disabled={isEditing || isDeleting}
+                          className="px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800 rounded hover:bg-red-200 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -234,8 +343,17 @@ export default function AvailabilityPage() {
         )}
 
         {/* Create New Availability Form */}
-        <div className="mb-8">
-          <h2 className="text-xl font-semibold mb-4">Add Availability Block</h2>
+        <div id="availability-form" className="mb-8">
+          <h2 className="text-xl font-semibold mb-4">
+            {editingKey ? 'Edit Availability Block' : 'Add Availability Block'}
+          </h2>
+          {editingKey && (
+            <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                <strong>Editing mode:</strong> Modifying an availability block will create a new entity. The original will remain on Arkiv until it expires.
+              </p>
+            </div>
+          )}
           
           {/* Format Toggle */}
           <div className="mb-4 flex gap-2">
@@ -345,21 +463,32 @@ export default function AvailabilityPage() {
               disabled={submitting}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {submitting ? 'Saving...' : 'Save Availability'}
+              {submitting ? 'Saving...' : editingKey ? 'Update Availability' : 'Save Availability'}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTimeBlocks('');
-                setWeeklyAvailability(null);
-                setTimezone(profile?.timezone || 'UTC');
-                setError('');
-                setSuccess('');
-              }}
-              className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              Reset
-            </button>
+            {editingKey ? (
+              <button
+                type="button"
+                onClick={handleCancelEdit}
+                disabled={submitting}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+              >
+                Cancel Edit
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setTimeBlocks('');
+                  setWeeklyAvailability(null);
+                  setTimezone(profile?.timezone || 'UTC');
+                  setError('');
+                  setSuccess('');
+                }}
+                className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                Reset
+              </button>
+            )}
           </div>
         </form>
 
@@ -368,7 +497,90 @@ export default function AvailabilityPage() {
           <p className="text-sm text-gray-600 dark:text-gray-400">
             <strong>Note:</strong> Each availability block is stored as a separate Arkiv entity. You can create multiple blocks for different time periods. When creating offers, you can reference these availability blocks.
           </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            <strong>Arkiv-native editing:</strong> Editing creates a new entity (original remains immutable). Deleting creates a deletion marker entity that filters out the original.
+          </p>
         </div>
+
+        {/* Display Availability Blocks Below Form (for better UX) */}
+        {availabilities.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4">All Availability Blocks</h2>
+            <div className="space-y-3">
+              {availabilities.map((availability) => {
+                // Check if structured format and format accordingly
+                const isStructured = isStructuredAvailability(availability.timeBlocks);
+                const structuredAvail = isStructured ? deserializeWeeklyAvailability(availability.timeBlocks) : null;
+                const displayText = structuredAvail 
+                  ? formatWeeklyAvailabilityForDisplay(structuredAvail)
+                  : availability.timeBlocks;
+                const isEditing = editingKey === availability.key;
+                const isDeleting = deletingKey === availability.key;
+
+                return (
+                  <div
+                    key={availability.key}
+                    className={`p-4 border rounded-lg ${
+                      isEditing
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                        : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <div className="flex-1">
+                        {isEditing && (
+                          <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">
+                            ✏️ Editing this block
+                          </p>
+                        )}
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                          {displayText}
+                        </p>
+                        <p className="text-xs text-blue-700 dark:text-blue-300">
+                          Timezone: {availability.timezone}
+                          {isStructured && (
+                            <span className="ml-2 px-2 py-0.5 bg-blue-200 dark:bg-blue-800 rounded text-xs">
+                              Structured
+                            </span>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Created: {new Date(availability.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 ml-4">
+                        {availability.txHash && (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                          >
+                            View on Arkiv
+                          </a>
+                        )}
+                        <button
+                          onClick={() => handleEdit(availability)}
+                          disabled={isEditing || isDeleting}
+                          className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isEditing ? 'Editing...' : 'Edit'}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(availability.key)}
+                          disabled={isEditing || isDeleting}
+                          className="px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800 rounded hover:bg-red-200 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isDeleting ? 'Deleting...' : 'Delete'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
         </div>
       </div>
     </div>

@@ -472,6 +472,56 @@ export async function createAvailability({
 }
 
 /**
+ * Mark an availability entity as deleted (arkiv-native)
+ * 
+ * Since Arkiv entities are immutable, we create a deletion marker entity
+ * that references the original availability. The list function will filter these out.
+ * 
+ * @param availabilityKey - Key of the availability entity to delete
+ * @param wallet - Wallet address of the owner
+ * @param privateKey - Private key for signing
+ * @param spaceId - Optional space ID
+ * @returns Entity key and transaction hash of the deletion marker
+ */
+export async function deleteAvailability({
+  availabilityKey,
+  wallet,
+  privateKey,
+  spaceId = 'local-dev',
+}: {
+  availabilityKey: string;
+  wallet: string;
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}): Promise<{ key: string; txHash: string }> {
+  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const enc = new TextEncoder();
+  const createdAt = new Date().toISOString();
+  // Deletion markers should persist as long as the original entity (30 days)
+  const expiresIn = 2592000; // 30 days in seconds
+
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        deletedAt: createdAt,
+        availabilityKey,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'availability_deletion' },
+        { key: 'availabilityKey', value: availabilityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+      ],
+      expiresIn: expiresIn,
+    });
+  });
+
+  return { key: result.entityKey, txHash: result.txHash };
+}
+
+/**
  * List all availability entities for a wallet
  * 
  * @param wallet - Wallet address
@@ -492,10 +542,17 @@ export async function listAvailabilityForWallet(
     queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
   }
 
-  const [result, txHashResult] = await Promise.all([
+  const [result, txHashResult, deletionResult] = await Promise.all([
     queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'availability_txhash'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch(),
+    publicClient.buildQuery()
+      .where(eq('type', 'availability_deletion'))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -534,45 +591,70 @@ export async function listAvailabilityForWallet(
     }
   });
 
-  return result.entities.map((entity: any) => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
+  // Build deleted availability keys set (arkiv-native deletion pattern)
+  const deletedKeys = new Set<string>();
+  if (deletionResult?.entities && Array.isArray(deletionResult.entities)) {
+    deletionResult.entities.forEach((entity: any) => {
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      const availabilityKey = getAttr('availabilityKey');
+      if (availabilityKey) {
+        deletedKeys.add(availabilityKey);
       }
-    } catch (e) {
-      console.error('Error decoding payload:', e);
-    }
+    });
+  }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
+  return result.entities
+    .filter((entity: any) => {
+      // Filter out deleted availability blocks (arkiv-native deletion pattern)
+      return !deletedKeys.has(entity.key);
+    })
+    .map((entity: any) => {
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('Error decoding payload:', e);
       }
-      return String(attrs[key] || '');
-    };
 
-    const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
-    
-    return {
-      key: entity.key,
-      wallet: getAttr('wallet'),
-      spaceId: getAttr('spaceId') || 'local-dev',
-      createdAt: getAttr('createdAt'),
-      timeBlocks: payload.timeBlocks || '',
-      timezone: payload.timezone || getAttr('timezone') || '',
-      availabilityVersion: (availabilityVersion === '1.0' ? '1.0' : 'legacy') as '1.0' | 'legacy',
-      txHash: txHashMap[entity.key],
-    };
-  }).sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
+      
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet'),
+        spaceId: getAttr('spaceId') || 'local-dev',
+        createdAt: getAttr('createdAt'),
+        timeBlocks: payload.timeBlocks || '',
+        timezone: payload.timezone || getAttr('timezone') || '',
+        availabilityVersion: (availabilityVersion === '1.0' ? '1.0' : 'legacy') as '1.0' | 'legacy',
+        txHash: txHashMap[entity.key],
+      };
+    })
+    .sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
 }
 
 /**
