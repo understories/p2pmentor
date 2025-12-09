@@ -134,6 +134,10 @@ export default function AdminDashboard() {
   const [lastSnapshotCheck, setLastSnapshotCheck] = useState<{ shouldCreate: boolean; hoursAgo?: number } | null>(null);
   const [graphqlFlags, setGraphqlFlags] = useState<GraphQLFlagsResponse | null>(null);
   const [graphqlMigrationExpanded, setGraphqlMigrationExpanded] = useState(false); // Default collapsed
+  const [queryPerformanceExpanded, setQueryPerformanceExpanded] = useState(false); // Default collapsed
+  const [pageLoadTimesExpanded, setPageLoadTimesExpanded] = useState(false); // Default collapsed
+  const [recentSamplesExpanded, setRecentSamplesExpanded] = useState(false); // Default collapsed
+  const [snapshotsExpanded, setSnapshotsExpanded] = useState(false); // Default collapsed
 
   useEffect(() => {
     // Check authentication
@@ -171,9 +175,29 @@ export default function AdminDashboard() {
       if (savedGraphqlMigrationExpanded !== null) {
         setGraphqlMigrationExpanded(savedGraphqlMigrationExpanded === 'true');
       }
+      
+      const savedQueryPerformanceExpanded = localStorage.getItem('admin_query_performance_expanded');
+      if (savedQueryPerformanceExpanded !== null) {
+        setQueryPerformanceExpanded(savedQueryPerformanceExpanded === 'true');
+      }
+      
+      const savedPageLoadTimesExpanded = localStorage.getItem('admin_page_load_times_expanded');
+      if (savedPageLoadTimesExpanded !== null) {
+        setPageLoadTimesExpanded(savedPageLoadTimesExpanded === 'true');
+      }
+      
+      const savedRecentSamplesExpanded = localStorage.getItem('admin_recent_samples_expanded');
+      if (savedRecentSamplesExpanded !== null) {
+        setRecentSamplesExpanded(savedRecentSamplesExpanded === 'true');
+      }
+      
+      const savedSnapshotsExpanded = localStorage.getItem('admin_snapshots_expanded');
+      if (savedSnapshotsExpanded !== null) {
+        setSnapshotsExpanded(savedSnapshotsExpanded === 'true');
+      }
 
-      // Fetch performance summary
-      fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData')
+      // Fetch performance summary - get all operations aggregated by route for page-level view
+      fetch('/api/admin/perf-samples?summary=true')
         .then(res => res.json())
         .then(data => setPerfSummary(data))
         .catch(err => console.error('Failed to fetch perf summary:', err));
@@ -657,11 +681,25 @@ export default function AdminDashboard() {
           </div>
 
           {/* Query Performance Comparison */}
-          <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
-              Query Performance (JSON-RPC vs GraphQL)
-            </h3>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Query Performance (JSON-RPC vs GraphQL)
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !queryPerformanceExpanded;
+                  setQueryPerformanceExpanded(newState);
+                  localStorage.setItem('admin_query_performance_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={queryPerformanceExpanded ? 'Collapse query performance' : 'Expand query performance'}
+              >
+                {queryPerformanceExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {queryPerformanceExpanded && (
+            <div className="p-6">
             {perfSummary ? (
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -725,14 +763,29 @@ export default function AdminDashboard() {
               <p className="text-gray-600 dark:text-gray-400">No performance data yet. Metrics will appear as requests are made.</p>
             )}
             </div>
+            )}
           </div>
 
           {/* Page Load Times */}
-          <div className="mt-6">
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
-              Page Load Times
-            </h3>
-            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+          <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Page Load Times
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !pageLoadTimesExpanded;
+                  setPageLoadTimesExpanded(newState);
+                  localStorage.setItem('admin_page_load_times_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={pageLoadTimesExpanded ? 'Collapse page load times' : 'Expand page load times'}
+              >
+                {pageLoadTimesExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {pageLoadTimesExpanded && (
+            <div className="p-6">
               {pageLoadSummary ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
@@ -792,13 +845,29 @@ export default function AdminDashboard() {
                 <p className="text-gray-600 dark:text-gray-400">Loading page load times...</p>
               )}
             </div>
+            )}
           </div>
 
           {/* Recent Performance Samples */}
-          <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
-              Recent Performance Samples
-            </h3>
+          <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Recent Performance Samples
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !recentSamplesExpanded;
+                  setRecentSamplesExpanded(newState);
+                  localStorage.setItem('admin_recent_samples_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={recentSamplesExpanded ? 'Collapse recent samples' : 'Expand recent samples'}
+              >
+                {recentSamplesExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {recentSamplesExpanded && (
+            <div className="p-6">
             <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
               {perfSamples.length > 0 ? (
                 <table className="w-full">
@@ -845,13 +914,30 @@ export default function AdminDashboard() {
                 </div>
               )}
             </div>
+            </div>
+            )}
           </div>
 
           {/* Historical Performance Snapshots */}
-          <div>
-            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
-              Historical Performance Snapshots
-            </h3>
+          <div className="mt-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Historical Performance Snapshots
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !snapshotsExpanded;
+                  setSnapshotsExpanded(newState);
+                  localStorage.setItem('admin_snapshots_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={snapshotsExpanded ? 'Collapse snapshots' : 'Expand snapshots'}
+              >
+                {snapshotsExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {snapshotsExpanded && (
+            <div className="p-6">
             <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
               {snapshots.length > 0 ? (
                 <div className="space-y-4">
@@ -950,6 +1036,8 @@ export default function AdminDashboard() {
                 <p className="text-gray-600 dark:text-gray-400 text-sm">No snapshots yet. Create one to start tracking performance over time.</p>
               )}
             </div>
+            </div>
+            )}
           </div>
             </div>
           )}

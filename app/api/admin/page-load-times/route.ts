@@ -68,6 +68,9 @@ export async function GET(request: Request) {
       '/me',
       '/me/sessions',
       '/me/skills',
+      '/asks',
+      '/offers',
+      '/profiles',
       ...(CURRENT_WALLET ? [`/profiles/${CURRENT_WALLET}`] : []),
     ];
     
