@@ -241,7 +241,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
 
     if (params?.skill) {
       const skillLower = params.skill.toLowerCase();
-      offers = offers.filter(offer => offer.skill.toLowerCase().includes(skillLower));
+      offers = offers.filter((offer: Offer) => offer.skill.toLowerCase().includes(skillLower));
     }
 
     // Record performance metrics
