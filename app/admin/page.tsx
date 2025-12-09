@@ -102,6 +102,7 @@ export default function AdminDashboard() {
   const [snapshots, setSnapshots] = useState<PerfSnapshot[]>([]);
   const [creatingSnapshot, setCreatingSnapshot] = useState(false);
   const [testingPerformance, setTestingPerformance] = useState(false);
+  const [performanceExpanded, setPerformanceExpanded] = useState(true);
   const [lastSnapshotCheck, setLastSnapshotCheck] = useState<{ shouldCreate: boolean; hoursAgo?: number } | null>(null);
 
   useEffect(() => {
@@ -334,101 +335,106 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
               Performance
             </h2>
-            <div className="flex items-center gap-4">
-              {/* Test Method Toggle */}
-              <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <span className="text-xs text-gray-600 dark:text-gray-400">Test Method:</span>
+            {performanceExpanded && (
+              <div className="flex items-center gap-4">
+                {/* Test Method Toggle */}
+                <div className="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">Test Method:</span>
+                  <button
+                    onClick={() => {
+                      const newMethod = testMethod === 'arkiv' ? 'graphql' : testMethod === 'graphql' ? 'both' : 'arkiv';
+                      setTestMethod(newMethod);
+                      localStorage.setItem('admin_test_method', newMethod);
+                    }}
+                    className="px-3 py-1 text-xs font-medium rounded transition-colors bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  >
+                    {testMethod === 'arkiv' ? 'Arkiv' : testMethod === 'graphql' ? 'GraphQL' : 'Both'}
+                  </button>
+                </div>
                 <button
-                  onClick={() => {
-                    const newMethod = testMethod === 'arkiv' ? 'graphql' : testMethod === 'graphql' ? 'both' : 'arkiv';
-                    setTestMethod(newMethod);
-                    localStorage.setItem('admin_test_method', newMethod);
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    if (testingPerformance) {
+                      console.log('[Admin] Test already in progress');
+                      return;
+                    }
+                    
+                    setTestingPerformance(true);
+                    console.log('[Admin] Starting performance test with method:', testMethod);
+                    
+                    try {
+                      const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
+                      console.log('[Admin] Performance test response status:', res.status);
+                      
+                      if (!res.ok) {
+                        const errorText = await res.text();
+                        throw new Error(`HTTP ${res.status}: ${errorText}`);
+                      }
+                      
+                      const data = await res.json();
+                      console.log('[Admin] Performance test data:', data);
+                      
+                      if (data.success) {
+                        // Refresh performance data after test
+                        const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
+                        const summaryData = await summaryRes.json();
+                        console.log('[Admin] Summary data:', summaryData);
+                        if (summaryData) {
+                          setPerfSummary(summaryData);
+                        }
+                        // Also refresh samples list
+                        const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
+                        const samplesData = await samplesRes.json();
+                        console.log('[Admin] Samples data:', samplesData);
+                        if (samplesData.samples) {
+                          setPerfSamples(samplesData.samples);
+                        }
+                        alert(`Performance test completed! ${data.entitiesCreated} entities created. Check Mendoza explorer to verify.`);
+                      } else {
+                        alert(`Test failed: ${data.error || 'Unknown error'}`);
+                      }
+                    } catch (err: any) {
+                      console.error('[Admin] Error running performance test:', err);
+                      alert(`Failed to run performance test: ${err.message || 'Unknown error'}`);
+                    } finally {
+                      setTestingPerformance(false);
+                    }
                   }}
-                  className="px-3 py-1 text-xs font-medium rounded transition-colors bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
+                  disabled={testingPerformance}
+                  className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                    testingPerformance 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
+                  title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
                 >
-                  {testMethod === 'arkiv' ? 'Arkiv' : testMethod === 'graphql' ? 'GraphQL' : 'Both'}
+                  {testingPerformance ? 'Testing...' : 'Test Query Performance'}
                 </button>
+                <button
+                  onClick={(e) => handleCreateSnapshot(e)}
+                  disabled={creatingSnapshot}
+                  className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                    creatingSnapshot 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                  title="Create a snapshot of current performance data for historical comparison"
+                >
+                  {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
+                </button>
+                {lastSnapshotCheck && lastSnapshotCheck.shouldCreate && (
+                  <span className="text-xs text-amber-600 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded">
+                    Auto-snapshot due (last: {lastSnapshotCheck.hoursAgo?.toFixed(1)}h ago)
+                  </span>
+                )}
               </div>
-              <button
-                onClick={async (e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  
-                  if (testingPerformance) {
-                    console.log('[Admin] Test already in progress');
-                    return;
-                  }
-                  
-                  setTestingPerformance(true);
-                  console.log('[Admin] Starting performance test with method:', testMethod);
-                  
-                  try {
-                    const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
-                    console.log('[Admin] Performance test response status:', res.status);
-                    
-                    if (!res.ok) {
-                      const errorText = await res.text();
-                      throw new Error(`HTTP ${res.status}: ${errorText}`);
-                    }
-                    
-                    const data = await res.json();
-                    console.log('[Admin] Performance test data:', data);
-                    
-                    if (data.success) {
-                      // Refresh performance data after test
-                      const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
-                      const summaryData = await summaryRes.json();
-                      console.log('[Admin] Summary data:', summaryData);
-                      if (summaryData) {
-                        setPerfSummary(summaryData);
-                      }
-                      // Also refresh samples list
-                      const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
-                      const samplesData = await samplesRes.json();
-                      console.log('[Admin] Samples data:', samplesData);
-                      if (samplesData.samples) {
-                        setPerfSamples(samplesData.samples);
-                      }
-                      alert(`Performance test completed! ${data.entitiesCreated} entities created. Check Mendoza explorer to verify.`);
-                    } else {
-                      alert(`Test failed: ${data.error || 'Unknown error'}`);
-                    }
-                  } catch (err: any) {
-                    console.error('[Admin] Error running performance test:', err);
-                    alert(`Failed to run performance test: ${err.message || 'Unknown error'}`);
-                  } finally {
-                    setTestingPerformance(false);
-                  }
-                }}
-                disabled={testingPerformance}
-                className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
-                  testingPerformance 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-                title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
-              >
-                {testingPerformance ? 'Testing...' : 'Test Query Performance'}
-              </button>
-              <button
-                onClick={(e) => handleCreateSnapshot(e)}
-                disabled={creatingSnapshot}
-                className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
-                  creatingSnapshot 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-green-600 hover:bg-green-700'
-                }`}
-                title="Create a snapshot of current performance data for historical comparison"
-              >
-                {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
-              </button>
-              {lastSnapshotCheck && lastSnapshotCheck.shouldCreate && (
-                <span className="text-xs text-amber-600 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded">
-                  Auto-snapshot due (last: {lastSnapshotCheck.hoursAgo?.toFixed(1)}h ago)
-                </span>
-              )}
-            </div>
+            )}
           </div>
+          
+          {performanceExpanded && (
+            <>
 
           {/* Query Performance Comparison */}
           <div className="mb-6">
