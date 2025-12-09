@@ -59,7 +59,12 @@ function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSecon
     return () => clearInterval(interval);
   }, [createdAt, ttlSeconds]);
 
-  return <span className="text-orange-600 dark:text-orange-400 font-medium">⏰ {timeRemaining} left</span>;
+  const isExpired = timeRemaining === 'Expired';
+  return (
+    <span className="text-orange-600 dark:text-orange-400 font-medium">
+      ⏰ {timeRemaining}{isExpired ? '' : ' left'}
+    </span>
+  );
 }
 
 export default function AsksPage() {
@@ -261,6 +266,16 @@ export default function AsksPage() {
     }
   };
 
+  const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    return Date.now() >= expires;
+  };
+
+  const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
+    return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
@@ -427,7 +442,7 @@ export default function AsksPage() {
                     </p>
                   </div>
                   <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                    {ask.status}
+                    {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                   </span>
                 </div>
                 <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">

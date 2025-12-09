@@ -162,6 +162,16 @@ export default function NetworkPage() {
     }
   };
 
+  const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    return Date.now() >= expires;
+  };
+
+  const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
+    return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
   const shortenWallet = (wallet: string) => {
     if (!wallet || wallet.length < 10) return wallet;
     return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
@@ -433,12 +443,15 @@ export default function NetworkPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                        {ask.status}
+                        {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                       </span>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-3">{ask.message}</p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {formatTimeRemaining(ask.createdAt, ask.ttlSeconds)} left</span>
+                      <span>⏰ {(() => {
+                        const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
+                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
+                      })()}</span>
                       {ask.txHash && (
                         <a
                           href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
@@ -497,7 +510,7 @@ export default function NetworkPage() {
                         </p>
                       </div>
                       <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                        {offer.status}
+                        {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
                       </span>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-3">{offer.message}</p>
@@ -527,7 +540,10 @@ export default function NetworkPage() {
                       </div>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
+                      <span>⏰ {(() => {
+                        const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
+                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
+                      })()}</span>
                       {offer.txHash && (
                         <a
                           href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
