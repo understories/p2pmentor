@@ -65,6 +65,7 @@ export async function createPerfSnapshot({
     timestamp: snapshot.timestamp,
     operation: snapshot.operation,
     method: snapshot.method,
+    arkivMetadata: snapshot.arkivMetadata, // Include Arkiv RPC metadata
     graphql: snapshot.graphql,
     arkiv: snapshot.arkiv,
     pageLoadTimes: snapshot.pageLoadTimes,
