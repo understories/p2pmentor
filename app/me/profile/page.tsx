@@ -34,6 +34,13 @@ export default function ProfilePage() {
         return;
       }
       setWalletAddress(address);
+      // Initialize timezone with auto-detection (will be overridden if profile has timezone)
+      try {
+        const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        setTimezone(detected);
+      } catch {
+        setTimezone('UTC');
+      }
       loadProfile(address);
     }
   }, [router]);
@@ -43,18 +50,11 @@ export default function ProfilePage() {
       setLoading(true);
       const profileData = await getProfileByWallet(wallet);
       setProfile(profileData);
-      // Set timezone from profile or auto-detect
+      // Set timezone from profile if available, otherwise keep auto-detected value
       if (profileData?.timezone) {
         setTimezone(profileData.timezone);
-      } else {
-        // Auto-detect timezone if not set
-        try {
-          const detected = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          setTimezone(detected);
-        } catch {
-          setTimezone('UTC');
-        }
       }
+      // If no profile timezone, timezone state already has auto-detected value from useEffect
     } catch (err) {
       console.error('Error loading profile:', err);
       setError('Failed to load profile');
