@@ -15,6 +15,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
+import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
@@ -227,7 +228,7 @@ export default function AsksPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess('Ask created successfully!');
+          setSuccess(`Ask created successfully! "${newAsk.skill}" is now live and visible to mentors.`);
           setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload asks using the same method as initial load (GraphQL if enabled)
@@ -335,9 +336,9 @@ export default function AsksPage() {
           <div className="mb-6">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
             >
-              + Create Ask
+              {askEmojis.default} Create Ask
             </button>
           </div>
         )}
@@ -449,9 +450,21 @@ export default function AsksPage() {
         {/* Asks List */}
         <div className="space-y-4">
           {asks.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <p>No asks yet. Be the first to create one!</p>
-            </div>
+            <EmptyState
+              title="No asks yet"
+              description="Be the first to share what you're learning! Create an ask to connect with mentors who can help."
+              icon={<span className="text-4xl">{askEmojis.default}</span>}
+              action={
+                !showCreateForm && (
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                  >
+                    {askEmojis.default} Create Your First Ask
+                  </button>
+                )
+              }
+            />
           ) : (
             asks.map((ask) => (
               <div

@@ -15,6 +15,7 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
+import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
@@ -312,7 +313,7 @@ export default function OffersPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess('Offer created successfully!');
+          setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners.`);
           setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '2', customTtlHours: '' });
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
@@ -420,9 +421,9 @@ export default function OffersPage() {
           <div className="mb-6">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
             >
-              + Create Offer
+              {offerEmojis.default} Create Offer
             </button>
           </div>
         )}
@@ -688,9 +689,21 @@ export default function OffersPage() {
         {/* Offers List */}
         <div className="space-y-4">
           {offers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <p>No offers yet. Be the first to create one!</p>
-            </div>
+            <EmptyState
+              title="No offers yet"
+              description="Be the first to share what you can teach! Create an offer to connect with learners who need your expertise."
+              icon={<span className="text-4xl">{offerEmojis.default}</span>}
+              action={
+                !showCreateForm && (
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                  >
+                    {offerEmojis.default} Create Your First Offer
+                  </button>
+                )
+              }
+            />
           ) : (
             offers.map((offer) => (
               <div
