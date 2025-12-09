@@ -9,9 +9,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { getProfileByWallet, createUserProfileClient } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { connectWallet } from '@/lib/auth/metamask';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import 'viem/window'; // Adds window.ethereum type definition
 
@@ -113,9 +114,54 @@ export default function SkillsPage() {
           await loadProfile(walletAddress);
         }
       } else {
-        // For MetaMask, redirect to profile page with skills pre-filled
-        // Or implement client-side update here
-        setError('Please update skills from the Profile page when using MetaMask');
+        // Use MetaMask directly to create profile entity (Arkiv-native)
+        if (!window.ethereum) {
+          setError('MetaMask not available');
+          return;
+        }
+
+        // Get connected account from MetaMask
+        let account: `0x${string}`;
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+          if (!accounts || accounts.length === 0) {
+            // Try to connect
+            account = await connectWallet();
+          } else {
+            account = accounts[0] as `0x${string}`;
+          }
+        } catch (connectError: any) {
+          setError(connectError.message || 'Failed to connect MetaMask');
+          return;
+        }
+        
+        if (account.toLowerCase() !== walletAddress.toLowerCase()) {
+          setError('Connected MetaMask account does not match your profile wallet');
+          return;
+        }
+
+        // Create updated profile with new skills using MetaMask
+        const { key, txHash } = await createUserProfileClient({
+          wallet: walletAddress,
+          displayName: profile.displayName,
+          username: profile.username,
+          profileImage: profile.profileImage,
+          bio: profile.bio,
+          bioShort: profile.bioShort,
+          bioLong: profile.bioLong,
+          skills: updatedSkills.join(', '),
+          skillsArray: updatedSkills,
+          timezone: profile.timezone,
+          languages: profile.languages,
+          contactLinks: profile.contactLinks,
+          seniority: profile.seniority,
+          account,
+        });
+
+        setSuccess('Skill added! Transaction submitted.');
+        setNewSkill('');
+        // Reload profile after a short delay to allow transaction to be indexed
+        setTimeout(() => loadProfile(walletAddress), 2000);
       }
     } catch (err: any) {
       console.error('Error adding skill:', err);
@@ -177,7 +223,53 @@ export default function SkillsPage() {
           await loadProfile(walletAddress);
         }
       } else {
-        setError('Please update skills from the Profile page when using MetaMask');
+        // Use MetaMask directly to create profile entity (Arkiv-native)
+        if (!window.ethereum) {
+          setError('MetaMask not available');
+          return;
+        }
+
+        // Get connected account from MetaMask
+        let account: `0x${string}`;
+        try {
+          const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
+          if (!accounts || accounts.length === 0) {
+            // Try to connect
+            account = await connectWallet();
+          } else {
+            account = accounts[0] as `0x${string}`;
+          }
+        } catch (connectError: any) {
+          setError(connectError.message || 'Failed to connect MetaMask');
+          return;
+        }
+        
+        if (account.toLowerCase() !== walletAddress.toLowerCase()) {
+          setError('Connected MetaMask account does not match your profile wallet');
+          return;
+        }
+
+        // Create updated profile with removed skill using MetaMask
+        const { key, txHash } = await createUserProfileClient({
+          wallet: walletAddress,
+          displayName: profile.displayName,
+          username: profile.username,
+          profileImage: profile.profileImage,
+          bio: profile.bio,
+          bioShort: profile.bioShort,
+          bioLong: profile.bioLong,
+          skills: updatedSkills.join(', '),
+          skillsArray: updatedSkills,
+          timezone: profile.timezone,
+          languages: profile.languages,
+          contactLinks: profile.contactLinks,
+          seniority: profile.seniority,
+          account,
+        });
+
+        setSuccess('Skill removed! Transaction submitted.');
+        // Reload profile after a short delay to allow transaction to be indexed
+        setTimeout(() => loadProfile(walletAddress), 2000);
       }
     } catch (err: any) {
       console.error('Error removing skill:', err);
