@@ -31,12 +31,42 @@ interface PerfSummary {
   };
 }
 
+interface PageLoadResult {
+  page: string;
+  durationMs: number;
+  status: number;
+  error?: string;
+}
+
+interface PageLoadSummary {
+  total: number;
+  successful: number;
+  failed: number;
+  avgDurationMs: number;
+  minDurationMs: number;
+  maxDurationMs: number;
+}
+
+interface AppFeedback {
+  key: string;
+  wallet: string;
+  page: string;
+  message: string;
+  rating?: number;
+  feedbackType: 'feedback' | 'issue';
+  createdAt: string;
+  txHash?: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [perfSummary, setPerfSummary] = useState<PerfSummary | null>(null);
   const [perfSamples, setPerfSamples] = useState<any[]>([]);
+  const [pageLoadTimes, setPageLoadTimes] = useState<PageLoadResult[]>([]);
+  const [pageLoadSummary, setPageLoadSummary] = useState<PageLoadSummary | null>(null);
+  const [recentFeedback, setRecentFeedback] = useState<AppFeedback[]>([]);
 
   useEffect(() => {
     // Check authentication
@@ -69,6 +99,28 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch perf samples:', err));
+
+      // Fetch page load times
+      const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      fetch(`/api/admin/page-load-times?baseUrl=${encodeURIComponent(baseUrl)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setPageLoadTimes(data.results || []);
+            setPageLoadSummary(data.summary || null);
+          }
+        })
+        .catch(err => console.error('Failed to fetch page load times:', err));
+
+      // Fetch recent feedback
+      fetch('/api/app-feedback?limit=5')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setRecentFeedback(data.feedbacks || []);
+          }
+        })
+        .catch(err => console.error('Failed to fetch feedback:', err));
     }
   }, [authenticated]);
 
@@ -122,11 +174,11 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* Performance Comparison */}
+        {/* Performance Section */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
-              Performance Comparison
+              Performance
             </h2>
             <a
               href={`/api/admin/perf-samples?seed=true`}
@@ -138,7 +190,13 @@ export default function AdminDashboard() {
               Test Query Performance
             </a>
           </div>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+
+          {/* Query Performance Comparison */}
+          <div className="mb-6">
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
+              Query Performance (JSON-RPC vs GraphQL)
+            </h3>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
             {perfSummary ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {perfSummary.graphql && (
@@ -166,6 +224,110 @@ export default function AdminDashboard() {
               </div>
             ) : (
               <p className="text-gray-600 dark:text-gray-400">No performance data yet. Metrics will appear as requests are made.</p>
+            )}
+            </div>
+          </div>
+
+          {/* Page Load Times */}
+          <div className="mt-6">
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
+              Page Load Times
+            </h3>
+            <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+              {pageLoadSummary ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-600 dark:text-gray-400">Avg Load Time</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-50">{pageLoadSummary.avgDurationMs}ms</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600 dark:text-gray-400">Fastest</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-50">{pageLoadSummary.minDurationMs}ms</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600 dark:text-gray-400">Slowest</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-50">{pageLoadSummary.maxDurationMs}ms</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-600 dark:text-gray-400">Success Rate</div>
+                      <div className="font-semibold text-gray-900 dark:text-gray-50">
+                        {pageLoadSummary.successful}/{pageLoadSummary.total}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {pageLoadTimes.map((result, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm py-2 border-b border-gray-200 dark:border-gray-700 last:border-0">
+                        <span className="text-gray-700 dark:text-gray-300">{result.page}</span>
+                        <div className="flex items-center gap-4">
+                          <span className={result.status === 200 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                            {result.status === 200 ? `${result.durationMs}ms` : 'Failed'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400">Loading page load times...</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        {/* Feedback Section */}
+        <section className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">
+              Recent Feedback
+            </h2>
+            <Link
+              href="/admin/feedback"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+            >
+              View All Feedback
+            </Link>
+          </div>
+          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
+            {recentFeedback.length > 0 ? (
+              <div className="space-y-4">
+                {recentFeedback.map((feedback) => (
+                  <div key={feedback.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                            {feedback.page}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            feedback.feedbackType === 'issue' 
+                              ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                              : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                          }`}>
+                            {feedback.feedbackType}
+                          </span>
+                          {feedback.rating && (
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {Array.from({ length: feedback.rating }, (_, i) => (
+                                <span key={i}>★</span>
+                              ))}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                          {feedback.message}
+                        </p>
+                      </div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400 ml-4">
+                        {new Date(feedback.createdAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-600 dark:text-gray-400">No feedback yet.</p>
             )}
           </div>
         </section>
