@@ -273,8 +273,19 @@ export async function GET(request: Request) {
         if (testGraphQL) {
           try {
             const { fetchAsks } = await import('@/lib/graph/asksQueries');
+            // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+            const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+            
+            // Warm up: Execute query once to avoid cold start skewing results
+            try {
+              await fetchAsks({ limit: 1 }, { endpoint: graphqlEndpoint });
+              await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+            } catch (warmupErr) {
+              // Ignore warmup errors
+            }
+            
             const startTime = Date.now();
-            const asksData = await fetchAsks({ limit: 25 });
+            const asksData = await fetchAsks({ limit: 25 }, { endpoint: graphqlEndpoint });
             const duration = Date.now() - startTime;
             const payloadSize = JSON.stringify(asksData).length;
             
@@ -335,8 +346,19 @@ export async function GET(request: Request) {
         if (testGraphQL) {
           try {
             const { fetchOffers } = await import('@/lib/graph/offersQueries');
+            // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+            const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+            
+            // Warm up: Execute query once to avoid cold start skewing results
+            try {
+              await fetchOffers({ limit: 1 }, { endpoint: graphqlEndpoint });
+              await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+            } catch (warmupErr) {
+              // Ignore warmup errors
+            }
+            
             const startTime = Date.now();
-            const offersData = await fetchOffers({ limit: 25 });
+            const offersData = await fetchOffers({ limit: 25 }, { endpoint: graphqlEndpoint });
             const duration = Date.now() - startTime;
             const payloadSize = JSON.stringify(offersData).length;
             
@@ -398,8 +420,19 @@ export async function GET(request: Request) {
           if (testGraphQL) {
             try {
               const { fetchProfileDetail } = await import('@/lib/graph/profileQueries');
+              // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+              const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+              
+              // Warm up: Execute query once to avoid cold start skewing results
+              try {
+                await fetchProfileDetail({ wallet: CURRENT_WALLET, limitAsks: 1, limitOffers: 1, limitFeedback: 1 }, { endpoint: graphqlEndpoint });
+                await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+              } catch (warmupErr) {
+                // Ignore warmup errors
+              }
+              
               const startTime = Date.now();
-              const profileData = await fetchProfileDetail({ wallet: CURRENT_WALLET });
+              const profileData = await fetchProfileDetail({ wallet: CURRENT_WALLET }, { endpoint: graphqlEndpoint });
               const duration = Date.now() - startTime;
               const payloadSize = JSON.stringify(profileData).length;
               

@@ -70,10 +70,12 @@ export interface AsksParams {
  * Fetch asks via GraphQL
  * 
  * @param params - Query parameters
+ * @param options - Optional endpoint override (for server-side calls)
  * @returns Array of asks
  */
 export async function fetchAsks(
-  params: AsksParams = {}
+  params: AsksParams = {},
+  options?: { endpoint?: string }
 ): Promise<AsksResponse['asks']> {
   const {
     skill,
@@ -94,7 +96,7 @@ export async function fetchAsks(
   const response = await graphRequest<AsksResponse>(
     ASKS_QUERY,
     variables,
-    { operationName: 'Asks' }
+    { operationName: 'Asks', endpoint: options?.endpoint }
   );
   
   const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
