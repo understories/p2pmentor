@@ -239,30 +239,40 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     };
   });
 
-  if (params?.skill) {
-    const skillLower = params.skill.toLowerCase();
-    offers = offers.filter(offer => offer.skill.toLowerCase().includes(skillLower));
-  }
+    if (params?.skill) {
+      const skillLower = params.skill.toLowerCase();
+      offers = offers.filter(offer => offer.skill.toLowerCase().includes(skillLower));
+    }
 
-  // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-  const payloadBytes = JSON.stringify(offers).length;
-  
-  // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'listOffers',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 2, // Two parallel queries: offers + txhashes
-      createdAt: new Date().toISOString(),
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(offers).length;
+    
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'listOffers',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 2, // Two parallel queries: offers + txhashes
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
 
-  return offers;
+    return offers;
+  } catch (error: any) {
+    // CRITICAL: Catch ANY error and return empty array
+    // This ensures the function NEVER throws, making it safe for GraphQL resolvers
+    console.error('[listOffers] Unexpected error, returning empty array:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error?.toString()
+    });
+    return [];
+  }
 }
 
 /**
