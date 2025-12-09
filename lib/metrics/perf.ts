@@ -32,7 +32,10 @@ const samples: PerfSample[] = [];
  */
 function isPerfLoggingEnabled(): boolean {
   if (typeof process !== 'undefined' && process.env) {
-    // Disabled by default, enable with ENABLE_PERF_LOGGING=true
+    // Enable in development by default, or if explicitly set
+    if (process.env.NODE_ENV === 'development') {
+      return true;
+    }
     return process.env.ENABLE_PERF_LOGGING === 'true';
   }
   // Client-side: enabled by default for development
@@ -174,4 +177,5 @@ export function getPerfSummary(operation: string, route?: string): {
     arkiv: summarize(arkivSamples),
   };
 }
+
 
