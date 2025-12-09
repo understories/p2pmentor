@@ -13,7 +13,7 @@ import { getPrivateKey } from '@/lib/config';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, page, message, rating } = body;
+    const { wallet, page, message, rating, feedbackType } = body;
 
     if (!wallet || !page || !message) {
       return NextResponse.json(
@@ -35,6 +35,7 @@ export async function POST(request: Request) {
       page,
       message,
       rating,
+      feedbackType: feedbackType || 'feedback',
       privateKey: getPrivateKey(),
       spaceId: 'local-dev',
     });
@@ -56,8 +57,9 @@ export async function GET(request: Request) {
     const wallet = searchParams.get('wallet') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
     const since = searchParams.get('since') || undefined;
+    const feedbackType = searchParams.get('feedbackType') as 'feedback' | 'issue' | undefined;
 
-    const feedbacks = await listAppFeedback({ page, wallet, limit, since });
+    const feedbacks = await listAppFeedback({ page, wallet, limit, since, feedbackType });
     return NextResponse.json({ ok: true, feedbacks });
   } catch (error: any) {
     console.error('App feedback API GET error:', error);

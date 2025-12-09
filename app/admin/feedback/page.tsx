@@ -21,6 +21,7 @@ interface AppFeedback {
   page: string;
   message: string;
   rating: number | null;
+  feedbackType: 'feedback' | 'issue';
   createdAt: string;
   txHash: string | null;
 }
@@ -32,6 +33,9 @@ export default function AdminFeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<AppFeedback[]>([]);
   const [filterPage, setFilterPage] = useState('');
   const [filterSince, setFilterSince] = useState('');
+  const [respondingTo, setRespondingTo] = useState<AppFeedback | null>(null);
+  const [responseMessage, setResponseMessage] = useState('');
+  const [submittingResponse, setSubmittingResponse] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -81,6 +85,7 @@ export default function AdminFeedbackPage() {
         page: f.page,
         message: f.message,
         rating: f.rating || null,
+        feedbackType: f.feedbackType || 'feedback',
         createdAt: f.createdAt,
         txHash: f.txHash || null,
       }));
@@ -97,6 +102,51 @@ export default function AdminFeedbackPage() {
       sessionStorage.removeItem('admin_authenticated');
     }
     router.push('/admin/login');
+  };
+
+  const handleRespond = (feedback: AppFeedback) => {
+    setRespondingTo(feedback);
+    setResponseMessage('');
+  };
+
+  const handleSubmitResponse = async () => {
+    if (!respondingTo || !responseMessage.trim()) {
+      return;
+    }
+
+    setSubmittingResponse(true);
+    try {
+      // Get admin wallet from localStorage or use a default
+      const adminWallet = typeof window !== 'undefined'
+        ? localStorage.getItem('wallet_address') || 'admin'
+        : 'admin';
+
+      const res = await fetch('/api/admin/response', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackKey: respondingTo.key,
+          wallet: respondingTo.wallet,
+          message: responseMessage.trim(),
+          adminWallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit response');
+      }
+
+      // Close modal and refresh feedback list
+      setRespondingTo(null);
+      setResponseMessage('');
+      loadFeedback();
+    } catch (err: any) {
+      console.error('Error submitting response:', err);
+      alert(err.message || 'Failed to submit response');
+    } finally {
+      setSubmittingResponse(false);
+    }
   };
 
   if (loading && !authenticated) {
@@ -184,10 +234,13 @@ export default function AdminFeedbackPage() {
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
                     <th className="px-4 py-2 text-left text-sm font-medium">Date</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Type</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Wallet</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Page</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Rating</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Message</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Transaction</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -196,8 +249,25 @@ export default function AdminFeedbackPage() {
                       <td className="px-4 py-2 text-sm">
                         {new Date(feedback.createdAt).toLocaleDateString()}
                       </td>
+                      <td className="px-4 py-2 text-sm">
+                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
+                          feedback.feedbackType === 'issue'
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                        }`}>
+                          {feedback.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}
+                        </span>
+                      </td>
                       <td className="px-4 py-2 text-sm font-mono text-xs">
-                        {feedback.wallet.slice(0, 10)}...
+                        <a
+                          href={`https://explorer.mendoza.hoodi.arkiv.network/address/${feedback.wallet}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          title={feedback.wallet}
+                        >
+                          {feedback.wallet.slice(0, 10)}...{feedback.wallet.slice(-4)}
+                        </a>
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.page}
@@ -216,6 +286,29 @@ export default function AdminFeedbackPage() {
                           {feedback.message}
                         </div>
                       </td>
+                      <td className="px-4 py-2 text-sm">
+                        {feedback.txHash ? (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${feedback.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs"
+                            title={feedback.txHash}
+                          >
+                            {feedback.txHash.slice(0, 8)}...{feedback.txHash.slice(-6)}
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        <button
+                          onClick={() => handleRespond(feedback)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                        >
+                          Respond
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -232,6 +325,79 @@ export default function AdminFeedbackPage() {
           Showing {feedbacks.length} feedback entries
         </div>
       </div>
+
+      {/* Response Modal */}
+      {respondingTo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Respond to Feedback
+              </h2>
+              <button
+                onClick={() => {
+                  setRespondingTo(null);
+                  setResponseMessage('');
+                }}
+                disabled={submittingResponse}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <strong>Original Feedback:</strong>
+              </p>
+              <p className="text-gray-900 dark:text-gray-100">{respondingTo.message}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)} |
+                Page: {respondingTo.page} |
+                {respondingTo.feedbackType === 'issue' ? ' 🐛 Issue' : ' 💬 Feedback'}
+              </p>
+            </div>
+
+            <div className="mb-4">
+              <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Your Response <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                id="response"
+                value={responseMessage}
+                onChange={(e) => setResponseMessage(e.target.value)}
+                rows={6}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                placeholder="Type your response to the user here..."
+                required
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setRespondingTo(null);
+                  setResponseMessage('');
+                }}
+                disabled={submittingResponse}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitResponse}
+                disabled={submittingResponse || !responseMessage.trim()}
+                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submittingResponse ? 'Submitting...' : 'Send Response'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -16,6 +16,7 @@ export type AppFeedback = {
   page: string; // Page where feedback was given (e.g., "/network", "/me")
   message: string;
   rating?: number; // Optional 1-5 stars for app experience
+  feedbackType?: 'feedback' | 'issue'; // Type of feedback: 'feedback' or 'issue'
   spaceId: string;
   createdAt: string;
   txHash?: string;
@@ -29,6 +30,7 @@ export async function createAppFeedback({
   page,
   message,
   rating,
+  feedbackType = 'feedback',
   privateKey,
   spaceId = 'local-dev',
 }: {
@@ -36,6 +38,7 @@ export async function createAppFeedback({
   page: string;
   message: string;
   rating?: number;
+  feedbackType?: 'feedback' | 'issue';
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
@@ -53,25 +56,37 @@ export async function createAppFeedback({
     throw new Error('Feedback message is required');
   }
 
-  const payload = {
-    message: message.trim(),
-    rating: rating || undefined,
-    createdAt,
-  };
-
   // App feedback should persist (1 year) for admin review
   const expiresIn = 31536000; // 1 year in seconds
 
   const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
+    payload: enc.encode(JSON.stringify({
+      message: message.trim(),
+      rating: rating || undefined,
+      createdAt,
+    })),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'app_feedback' },
       { key: 'wallet', value: wallet },
       { key: 'page', value: page },
+      { key: 'feedbackType', value: feedbackType }, // 'feedback' or 'issue'
       { key: 'spaceId', value: spaceId },
       { key: 'createdAt', value: createdAt },
       ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
+    ],
+    expiresIn,
+  });
+
+  // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
+  await walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'app_feedback_txhash' },
+      { key: 'feedbackKey', value: entityKey },
+      { key: 'wallet', value: wallet },
+      { key: 'spaceId', value: spaceId },
     ],
     expiresIn,
   });
@@ -87,24 +102,66 @@ export async function listAppFeedback({
   wallet,
   limit = 100,
   since,
+  feedbackType,
 }: {
   page?: string;
   wallet?: string;
   limit?: number;
   since?: string;
+  feedbackType?: 'feedback' | 'issue';
 } = {}): Promise<AppFeedback[]> {
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
-      .where(eq('type', 'app_feedback'))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(limit || 100)
-      .fetch();
+
+    // Fetch feedback entities and txHash entities in parallel
+    const [result, txHashResult] = await Promise.all([
+      publicClient.buildQuery()
+        .where(eq('type', 'app_feedback'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit || 100)
+        .fetch(),
+      publicClient.buildQuery()
+        .where(eq('type', 'app_feedback_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .fetch(),
+    ]);
 
     if (!result || !result.entities || !Array.isArray(result.entities)) {
       console.error('Invalid result from Arkiv query:', result);
       return [];
+    }
+
+    // Build txHash map
+    const txHashMap: Record<string, string> = {};
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
+      txHashResult.entities.forEach((entity: any) => {
+        const attrs = entity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const feedbackKey = getAttr('feedbackKey');
+        try {
+          if (entity.payload) {
+            const decoded = entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
+            const payload = JSON.parse(decoded);
+            if (payload.txHash && feedbackKey) {
+              txHashMap[feedbackKey] = payload.txHash;
+            }
+          }
+        } catch (e) {
+          // Ignore decode errors
+        }
+      });
     }
 
     let feedbacks = result.entities.map((entity: any) => {
@@ -137,9 +194,10 @@ export async function listAppFeedback({
       page: getAttr('page'),
       message: payload.message || '',
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
+      feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
       spaceId: getAttr('spaceId') || 'local-dev',
       createdAt: getAttr('createdAt'),
-      txHash: entity.txHash || undefined,
+      txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
     };
   });
 
@@ -152,6 +210,11 @@ export async function listAppFeedback({
   if (wallet) {
     const normalizedWallet = wallet.toLowerCase();
     feedbacks = feedbacks.filter(f => f.wallet.toLowerCase() === normalizedWallet);
+  }
+
+  // Filter by feedbackType if provided
+  if (feedbackType) {
+    feedbacks = feedbacks.filter(f => f.feedbackType === feedbackType);
   }
 
   // Filter by since date if provided
