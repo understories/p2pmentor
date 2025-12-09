@@ -16,6 +16,7 @@ import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -28,12 +29,14 @@ export default function MePage() {
       }
       setWalletAddress(address);
       
-      // Load notification count
+      // Load notification count and profile status
       loadNotificationCount(address);
+      loadProfileStatus(address);
       
-      // Poll for notifications every 30 seconds
+      // Poll for notifications and profile status every 30 seconds
       const interval = setInterval(() => {
         loadNotificationCount(address);
+        loadProfileStatus(address);
       }, 30000);
       
       return () => clearInterval(interval);
@@ -63,6 +66,17 @@ export default function MePage() {
     }
   };
 
+  const loadProfileStatus = async (wallet: string) => {
+    try {
+      const res = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
+      const data = await res.json();
+      setHasProfile(data.ok && data.profile !== null);
+    } catch (err) {
+      console.error('Error loading profile status:', err);
+      setHasProfile(null);
+    }
+  };
+
   if (!walletAddress) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 flex items-center justify-center">
@@ -87,9 +101,14 @@ export default function MePage() {
         <div className="space-y-3 mb-6">
           <Link
             href="/me/profile"
-            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
           >
             Profile
+            {hasProfile === false && (
+              <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-yellow-500 text-white rounded-full animate-pulse" title="Create your profile">
+                ⭐
+              </span>
+            )}
           </Link>
           <Link
             href="/me/skills"
