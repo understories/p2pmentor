@@ -10,7 +10,7 @@
 'use client';
 
 import { useState } from 'react';
-import { resetPasskeyWallet } from '@/lib/auth/passkey-wallet';
+import { resetPasskeyWallet, clearAllPasskeyWallets } from '@/lib/auth/passkey-wallet';
 
 interface PasskeyResetButtonProps {
   userId?: string;
@@ -66,14 +66,47 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
     }
   };
 
+  const handleClearAll = async () => {
+    if (!confirm('Clear ALL passkey wallets on this device? This will remove both localhost and production passkeys. You will need to re-register everywhere.')) {
+      return;
+    }
+
+    setIsResetting(true);
+    setError(null);
+    setSuccess(false);
+
+    try {
+      await clearAllPasskeyWallets();
+      setSuccess(true);
+      if (onReset) {
+        onReset();
+      }
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to clear all passkey wallets');
+      setError(error.message);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full space-y-2">
       <button
         onClick={handleReset}
         disabled={isResetting}
         className="w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
       >
-        {isResetting ? 'Resetting...' : 'Reset Passkey Wallet (Beta Testing)'}
+        {isResetting ? 'Resetting...' : 'Reset Current Passkey Wallet'}
+      </button>
+      
+      <button
+        onClick={handleClearAll}
+        disabled={isResetting}
+        className="w-full px-4 py-2 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        title="Clear all passkey wallets (localhost + production) from this device"
+      >
+        {isResetting ? 'Clearing...' : 'Clear ALL Passkey Wallets (Localhost + Production)'}
       </button>
 
       {error && (
