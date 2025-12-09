@@ -68,6 +68,15 @@ export async function GET(request: Request) {
         
         // 1. JSON-RPC path operations (direct Arkiv calls)
         if (testArkiv) {
+          // Warm up: Make initial requests to avoid cold start
+          try {
+            await listAsks({ limit: 1, includeExpired: false });
+            await listOffers({ limit: 1, includeExpired: false });
+            await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+          } catch (warmupErr) {
+            // Ignore warmup errors
+          }
+          
           const startTime1 = Date.now();
           await listAsks({ limit: 25, includeExpired: false });
           const duration1 = Date.now() - startTime1;
@@ -76,7 +85,7 @@ export async function GET(request: Request) {
           await listOffers({ limit: 25, includeExpired: false });
           const duration2 = Date.now() - startTime2;
           
-          // Network graph via JSON-RPC path
+          // Network graph via JSON-RPC path (warm measurement)
           const startTime3 = Date.now();
           const graphData = await buildNetworkGraphData({ 
             limitAsks: 25, 
@@ -84,6 +93,7 @@ export async function GET(request: Request) {
             includeExpired: false 
           });
           const duration3 = Date.now() - startTime3;
+          // Measure actual response payload (what client receives)
           const payloadSize3 = JSON.stringify(graphData).length;
 
           // Create DX metric entity for JSON-RPC path (verifiable on-chain)
@@ -115,14 +125,75 @@ export async function GET(request: Request) {
                 ? `${process.env.NEXT_PUBLIC_APP_URL}/api/graphql`
                 : 'http://localhost:3000/api/graphql');
             
+            // Warm up: Make a request first to avoid cold start skewing results
+            try {
+              await fetch(graphqlEndpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  query: 'query { networkOverview(limitAsks: 1, limitOffers: 1) { skillRefs { name } } }',
+                }),
+              });
+              await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+            } catch (warmupErr) {
+              // Ignore warmup errors
+            }
+            
+            // Now measure the actual request
             const startTime4 = Date.now();
+            const graphqlResponse = await fetch(graphqlEndpoint, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                query: `
+                  query NetworkOverview {
+                    networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
+                      skillRefs {
+                        name
+                        asks {
+                          id
+                          key
+                          wallet
+                          skill
+                          createdAt
+                          status
+                          expiresAt
+                        }
+                        offers {
+                          id
+                          key
+                          wallet
+                          skill
+                          isPaid
+                          cost
+                          paymentAddress
+                          createdAt
+                          status
+                          expiresAt
+                        }
+                      }
+                    }
+                  }
+                `,
+              }),
+            });
+            const duration4 = Date.now() - startTime4;
+            
+            if (!graphqlResponse.ok) {
+              throw new Error(`GraphQL request failed: ${graphqlResponse.status}`);
+            }
+            
+            const graphqlResult = await graphqlResponse.json();
+            // Measure actual GraphQL response payload (not transformed data)
+            const payloadSize4 = JSON.stringify(graphqlResult).length;
+            
+            // Transform to match expected format (for verification)
+            const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
             const graphqlData = await fetchNetworkOverview({
               limitAsks: 25,
               limitOffers: 25,
               includeExpired: false,
-            }, { endpoint: graphqlEndpoint }); // Pass absolute URL
-            const duration4 = Date.now() - startTime4;
-            const payloadSize4 = JSON.stringify(graphqlData).length;
+            }, { endpoint: graphqlEndpoint });
 
             // Create DX metric entity for GraphQL path (verifiable on-chain)
             try {

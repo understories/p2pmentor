@@ -38,7 +38,18 @@ export async function POST(request: Request) {
     const timestamp = new Date().toISOString();
 
     // Get current performance summary
+    // Note: GraphQL uses 'networkOverview' operation, Arkiv uses 'buildNetworkGraphData'
+    // We need to check both to get complete picture when operation is 'buildNetworkGraphData'
     const perfSummary = getPerfSummary(operation);
+    
+    // If operation is 'buildNetworkGraphData', also check 'networkOverview' for GraphQL data
+    if (operation === 'buildNetworkGraphData') {
+      const graphqlSummary = getPerfSummary('networkOverview');
+      // Merge GraphQL data if found (GraphQL uses 'networkOverview' operation name)
+      if (graphqlSummary.graphql) {
+        perfSummary.graphql = graphqlSummary.graphql;
+      }
+    }
 
     // Determine what was actually tested (not just what was requested)
     // If method=both but only one has data, update method to reflect reality

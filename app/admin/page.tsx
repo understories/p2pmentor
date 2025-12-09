@@ -323,15 +323,38 @@ export default function AdminDashboard() {
                   {testMethod === 'arkiv' ? 'Arkiv' : testMethod === 'graphql' ? 'GraphQL' : 'Both'}
                 </button>
               </div>
-              <a
-                href={`/api/admin/perf-samples?seed=true&method=${testMethod}`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
+                    const data = await res.json();
+                    if (data.success) {
+                      // Refresh performance data after test
+                      const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
+                      const summaryData = await summaryRes.json();
+                      if (summaryData) {
+                        setPerfSummary(summaryData);
+                      }
+                      // Also refresh samples list
+                      const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
+                      const samplesData = await samplesRes.json();
+                      if (samplesData.samples) {
+                        setPerfSamples(samplesData.samples);
+                      }
+                      alert(`Performance test completed! ${data.entitiesCreated} entities created. Check Mendoza explorer to verify.`);
+                    } else {
+                      alert(`Test failed: ${data.error || 'Unknown error'}`);
+                    }
+                  } catch (err) {
+                    console.error('Error running performance test:', err);
+                    alert('Failed to run performance test');
+                  }
+                }}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
-                title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods`}
+                title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
               >
                 Test Query Performance
-              </a>
+              </button>
               <button
                 onClick={handleCreateSnapshot}
                 disabled={creatingSnapshot}
