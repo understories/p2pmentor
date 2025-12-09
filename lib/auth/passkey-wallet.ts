@@ -301,6 +301,7 @@ export async function resetPasskeyWallet(userId: string): Promise<void> {
  * 
  * This clears all passkey data from IndexedDB and localStorage,
  * regardless of domain (localhost vs production).
+ * Also clears server-side credentials via API.
  * 
  * Use case: Clearing local test data when moving to production.
  * 
@@ -329,10 +330,27 @@ export async function clearAllPasskeyWallets(): Promise<void> {
     localStorage.removeItem(key);
   });
 
+  // Also clear server-side credentials
+  try {
+    await fetch('/api/passkey/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}), // Clear all credentials
+    });
+    console.log('[passkey-wallet] Cleared server-side credentials');
+  } catch (err) {
+    console.warn('[passkey-wallet] Failed to clear server-side credentials:', err);
+    // Continue anyway - client-side cleanup is more important
+  }
+
   // Note: IndexedDB entries are keyed by userId, but we can't easily enumerate them
   // without the userId. The localStorage cleanup above prevents access to them.
   // In practice, orphaned IndexedDB entries are harmless (just take up space).
   // For a complete cleanup, user would need to clear browser data manually.
+  // 
+  // Note: Browser WebAuthn credentials cannot be cleared programmatically.
+  // They will remain in the browser's credential store but will fail to authenticate
+  // since server-side credentials are cleared. User can register a new passkey.
   
   console.log('[passkey-wallet] Cleared all passkey wallets from this device');
 }

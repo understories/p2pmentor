@@ -67,7 +67,7 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
   };
 
   const handleClearAll = async () => {
-    if (!confirm('Clear ALL passkey wallets on this device? This will remove both localhost and production passkeys. You will need to re-register everywhere.')) {
+    if (!confirm('Clear ALL passkey wallets on this device? This will remove both localhost and production passkeys from client storage AND server. You will need to re-register everywhere. Browser WebAuthn credentials will remain but will not work.')) {
       return;
     }
 

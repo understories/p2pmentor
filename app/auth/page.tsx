@@ -14,6 +14,7 @@ import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
+import { PasskeyResetButton } from '@/components/auth/PasskeyResetButton';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 
@@ -138,6 +139,24 @@ export default function AuthPage() {
                   setError(err.message);
                 }}
               />
+              
+              {/* Reset button for troubleshooting */}
+              <div className="mt-3">
+                <details className="text-sm">
+                  <summary className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                    Having issues? Reset passkeys
+                  </summary>
+                  <div className="mt-2">
+                    <PasskeyResetButton
+                      onReset={() => {
+                        setError('');
+                        // Reload page to refresh state
+                        window.location.reload();
+                      }}
+                    />
+                  </div>
+                </details>
+              </div>
             </>
           )}
 

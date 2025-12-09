@@ -304,3 +304,25 @@ export function getUserCredentials(userId: string): string[] {
   return credentials.map((cred) => Buffer.from(cred.credentialID).toString('base64url'));
 }
 
+/**
+ * Clear all credentials for a user
+ * 
+ * @param userId - User identifier
+ * @returns True if credentials were cleared, false if none existed
+ */
+export function clearUserCredentials(userId: string): boolean {
+  const hadCredentials = credentialStore.has(userId);
+  credentialStore.delete(userId);
+  return hadCredentials;
+}
+
+/**
+ * Clear ALL credentials from the server (for reset/testing)
+ * 
+ * WARNING: This clears all passkey credentials from the in-memory store.
+ * Use with caution - all users will need to re-register.
+ */
+export function clearAllCredentials(): void {
+  credentialStore.clear();
+}
+
