@@ -9,7 +9,7 @@
  * 
  * No heavy dependencies (no Apollo, no urql) - just typed fetch with error handling.
  * 
- * Reference: docs/graph_indexing_plan.md
+ * Reference: refs/docs/sprint2.md
  */
 
 /**
@@ -39,10 +39,24 @@ export interface GraphQLResponse<T = any> {
 }
 
 /**
- * Execute a GraphQL query against the subgraph endpoint
+ * GraphQL request options
+ */
+export type GraphRequestOptions = {
+  endpoint?: string;
+  operationName?: string; // Useful for perf logging
+};
+
+/**
+ * Execute a GraphQL query against the GraphQL endpoint
+ * 
+ * Endpoint resolution (in order):
+ * 1. options.endpoint (explicit override)
+ * 2. GRAPH_SUBGRAPH_URL env var (external subgraph or local)
+ * 3. '/api/graphql' (default local Next.js route)
  * 
  * @param query - GraphQL query string
  * @param variables - Optional query variables
+ * @param options - Optional endpoint override and operation name
  * @returns Typed response data
  * @throws GraphRequestError if the request fails or GraphQL returns errors
  * 
@@ -51,23 +65,28 @@ export interface GraphQLResponse<T = any> {
  * const data = await graphRequest<{ profiles: Profile[] }>(
  *   `query { profiles { id wallet } }`
  * );
+ * 
+ * // With explicit endpoint
+ * const data = await graphRequest(query, vars, { endpoint: 'https://api.example.com/graphql' });
  * ```
  */
 export async function graphRequest<T = any>(
   query: string,
-  variables?: Record<string, any>
+  variables?: Record<string, any>,
+  options: GraphRequestOptions = {}
 ): Promise<T> {
-  const subgraphUrl = process.env.GRAPH_SUBGRAPH_URL;
+  // Resolve endpoint: explicit override > env var > default local
+  const endpoint =
+    options.endpoint ||
+    process.env.GRAPH_SUBGRAPH_URL ||
+    '/api/graphql';
 
-  if (!subgraphUrl) {
-    throw new GraphRequestError(
-      'GRAPH_SUBGRAPH_URL is not configured. Set it in your environment variables or disable subgraph usage.',
-      0
-    );
-  }
+  // Use performance.now() if available (browser), otherwise Date.now() (Node.js)
+  const perf = typeof performance !== 'undefined' ? performance : { now: () => Date.now() };
+  const startTime = perf.now();
 
   try {
-    const response = await fetch(subgraphUrl, {
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -104,6 +123,38 @@ export async function graphRequest<T = any>(
         response.status
       );
     }
+
+    // Record performance metrics
+    const durationMs = perf.now() - startTime;
+    const payloadBytes = JSON.stringify(result.data).length;
+    
+    // Extract operation name from query or use provided one
+    let operationName = options.operationName;
+    if (!operationName) {
+      // Try to parse operation name from query (simple regex)
+      const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
+      if (match) {
+        operationName = match[1];
+      } else {
+        // Fallback: use first field name
+        const fieldMatch = query.match(/\{\s*(\w+)/);
+        operationName = fieldMatch ? fieldMatch[1] : 'unknown';
+      }
+    }
+
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'graphql',
+        operation: operationName || 'unknown',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 1, // GraphQL is always 1 HTTP request
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
+    });
 
     return result.data;
   } catch (error) {

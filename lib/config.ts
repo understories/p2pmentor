@@ -32,6 +32,11 @@ export const USE_SUBGRAPH_FOR_NETWORK = process.env.USE_SUBGRAPH_FOR_NETWORK ===
 // This should be set in Vercel environment variables, not in code
 export const BETA_INVITE_CODE = process.env.NEXT_PUBLIC_BETA_INVITE_CODE;
 
+// Admin password (configured via environment variable for security)
+// This should be set in Vercel environment variables, not in code
+// Server-side only (not NEXT_PUBLIC_) for security
+export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+
 /**
  * Get private key, throwing if not available
  * 

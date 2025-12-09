@@ -49,6 +49,25 @@ export const graphQLSchema = `
     # Skill queries
     skills(search: String, limit: Int): [SkillRef!]!
     skill(name: String!): SkillRef
+    
+    # Dashboard overview
+    meOverview(wallet: String!, limitAsks: Int, limitOffers: Int, limitSessions: Int): MeOverview!
+    
+    # Feedback queries
+    feedback(
+      sessionKey: String
+      wallet: String
+      limit: Int
+      since: String
+    ): [Feedback!]!
+    
+    # App feedback (for builders/admin, separate from session feedback)
+    appFeedback(
+      page: String
+      wallet: String
+      limit: Int
+      since: String
+    ): [AppFeedback!]!
   }
 
   type NetworkOverview {
@@ -110,6 +129,56 @@ export const graphQLSchema = `
     ttlSeconds: Int!
     txHash: String
     profile: Profile
+  }
+
+  type Session {
+    id: ID!
+    key: String!
+    mentorWallet: String!
+    learnerWallet: String!
+    skill: String!
+    date: String!
+    time: String!
+    duration: String!
+    notes: String
+    status: String!
+    mentorConfirmed: Boolean!
+    learnerConfirmed: Boolean!
+    createdAt: String!
+    txHash: String
+  }
+
+  type MeOverview {
+    profile: Profile
+    asks: [Ask!]!
+    offers: [Offer!]!
+    sessions: [Session!]!
+  }
+
+  type Feedback {
+    id: ID!
+    key: String!
+    sessionKey: String!
+    mentorWallet: String!
+    learnerWallet: String!
+    feedbackFrom: String!
+    feedbackTo: String!
+    rating: Int
+    notes: String
+    technicalDxFeedback: String
+    createdAt: String!
+    txHash: String
+  }
+
+  type AppFeedback {
+    id: ID!
+    key: String!
+    wallet: String!
+    page: String!
+    message: String!
+    rating: Int
+    createdAt: String!
+    txHash: String
   }
 `;
 

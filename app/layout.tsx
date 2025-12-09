@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
+import { FloatingButtonCluster } from "@/components/FloatingButtonCluster";
 
 export const metadata: Metadata = {
-  title: "p2pmentor - Peer to Peer Mentorship",
+  title: "p2pmentor",
   description: "Teach, learn, and mentor without intermediaries. Own your data.",
   icons: {
     icon: '/icon.svg',
@@ -26,9 +27,9 @@ export default function RootLayout({
           <div className="pt-6">
             {children}
           </div>
+          <FloatingButtonCluster />
         </ThemeProvider>
       </body>
     </html>
   );
 }
-

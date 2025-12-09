@@ -1,23 +1,35 @@
 /**
- * Feature flags for Graph subgraph integration
+ * Feature flags for GraphQL integration
  * 
- * Controls whether to use The Graph subgraph vs direct Arkiv queries.
+ * Controls whether to use GraphQL API vs direct Arkiv JSON-RPC queries.
+ * Standardized on USE_GRAPHQL_FOR_* pattern with backwards compatibility.
  * 
- * Reference: docs/graph_indexing_plan.md
+ * Reference: refs/docs/sprint2.md
  */
 
 /**
- * Check if subgraph should be used for network queries
+ * Read boolean environment variable
+ */
+function readBoolEnv(name: string | undefined): boolean {
+  if (!name) return false;
+  const value = typeof window !== 'undefined'
+    ? process.env[`NEXT_PUBLIC_${name}`]
+    : process.env[name];
+  return value === 'true' || value === '1';
+}
+
+/**
+ * Check if GraphQL should be used for network queries
  * 
- * Returns true only if:
- * - USE_SUBGRAPH_FOR_NETWORK is explicitly set to "true"
- * - GRAPH_SUBGRAPH_URL is configured
+ * Returns true if:
+ * - USE_GRAPHQL_FOR_NETWORK is set to "true" (preferred), OR
+ * - USE_SUBGRAPH_FOR_NETWORK is set to "true" (backwards-compat alias)
  * 
  * For client-side demo: checks localStorage for 'USE_GRAPHQL' override
  * 
- * @returns true if subgraph should be used, false otherwise
+ * @returns true if GraphQL should be used, false otherwise
  */
-export function useSubgraphForNetwork(): boolean {
+export function useGraphqlForNetwork(): boolean {
   // Client-side: check localStorage for demo override
   if (typeof window !== 'undefined') {
     const localStorageOverride = localStorage.getItem('USE_GRAPHQL');
@@ -25,19 +37,66 @@ export function useSubgraphForNetwork(): boolean {
       return localStorageOverride === 'true';
     }
     
-    // Check public env vars (available client-side in Next.js)
-    const useSubgraph = process.env.NEXT_PUBLIC_USE_SUBGRAPH_FOR_NETWORK === 'true';
-    const hasSubgraphUrl = !!process.env.NEXT_PUBLIC_GRAPH_SUBGRAPH_URL;
-    return useSubgraph && hasSubgraphUrl;
+    // Check new flag name (preferred)
+    if (readBoolEnv('USE_GRAPHQL_FOR_NETWORK')) return true;
+    // Backwards-compat alias
+    if (readBoolEnv('USE_SUBGRAPH_FOR_NETWORK')) return true;
+    
+    return false;
   }
   
   // Server-side: check process.env
   if (typeof process !== 'undefined' && process.env) {
-    const useSubgraph = process.env.USE_SUBGRAPH_FOR_NETWORK === 'true';
-    const hasSubgraphUrl = !!process.env.GRAPH_SUBGRAPH_URL;
-    return useSubgraph && hasSubgraphUrl;
+    // Check new flag name (preferred)
+    if (readBoolEnv('USE_GRAPHQL_FOR_NETWORK')) return true;
+    // Backwards-compat alias
+    if (readBoolEnv('USE_SUBGRAPH_FOR_NETWORK')) return true;
   }
   
   return false;
+}
+
+/**
+ * Check if GraphQL should be used for /me dashboard
+ * 
+ * @returns true if USE_GRAPHQL_FOR_ME is set to "true"
+ */
+export function useGraphqlForMe(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_ME');
+}
+
+/**
+ * Check if GraphQL should be used for profile pages
+ * 
+ * @returns true if USE_GRAPHQL_FOR_PROFILE is set to "true"
+ */
+export function useGraphqlForProfile(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_PROFILE');
+}
+
+/**
+ * Check if GraphQL should be used for asks page
+ * 
+ * @returns true if USE_GRAPHQL_FOR_ASKS is set to "true"
+ */
+export function useGraphqlForAsks(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_ASKS');
+}
+
+/**
+ * Check if GraphQL should be used for offers page
+ * 
+ * @returns true if USE_GRAPHQL_FOR_OFFERS is set to "true"
+ */
+export function useGraphqlForOffers(): boolean {
+  return readBoolEnv('USE_GRAPHQL_FOR_OFFERS');
+}
+
+/**
+ * @deprecated Use useGraphqlForNetwork() instead
+ * Backwards-compatible alias for useGraphqlForNetwork()
+ */
+export function useSubgraphForNetwork(): boolean {
+  return useGraphqlForNetwork();
 }
 
