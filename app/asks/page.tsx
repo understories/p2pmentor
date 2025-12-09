@@ -190,22 +190,16 @@ export default function AsksPage() {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
           setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
-          // Reload asks after a delay
+          // Reload asks after a delay using the same method as initial load (GraphQL if enabled)
           setTimeout(async () => {
-            const asksRes = await fetch('/api/asks').then(r => r.json());
-            if (asksRes.ok) {
-              setAsks(asksRes.asks || []);
-            }
+            await loadData(walletAddress!);
           }, 2000);
         } else {
           setSuccess('Ask created successfully!');
           setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
           setShowCreateForm(false);
-          // Reload asks
-          const asksRes = await fetch('/api/asks').then(r => r.json());
-          if (asksRes.ok) {
-            setAsks(asksRes.asks || []);
-          }
+          // Reload asks using the same method as initial load (GraphQL if enabled)
+          await loadData(walletAddress!);
         }
       } else {
         setError(data.error || 'Failed to create ask');
