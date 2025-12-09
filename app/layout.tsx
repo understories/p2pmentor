@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { FeedbackButton } from "@/components/FeedbackButton";
+import { GitHubButton } from "@/components/GitHubButton";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
