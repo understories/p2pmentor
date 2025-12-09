@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
-import { FeedbackButton } from "@/components/FeedbackButton";
-import { GitHubButton } from "@/components/GitHubButton";
-import { ArkivButton } from "@/components/ArkivButton";
-import { UnderstoriesButton } from "@/components/UnderstoriesButton";
+import { FloatingButtonCluster } from "@/components/FloatingButtonCluster";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -25,10 +22,7 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
-          <UnderstoriesButton />
-          <ArkivButton />
-          <GitHubButton />
-          <FeedbackButton />
+          <FloatingButtonCluster />
         </ThemeProvider>
       </body>
     </html>
