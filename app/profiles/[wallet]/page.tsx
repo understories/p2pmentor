@@ -15,6 +15,8 @@ import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
+import { fetchProfileDetail } from '@/lib/graph/profileQueries';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -57,27 +59,137 @@ export default function ProfileDetailPage() {
       setLoading(true);
       setError('');
 
-      // Load profile, asks, offers, sessions, and feedback in parallel
-      const [profileData, asksRes, offersRes, sessionsRes, feedbackRes] = await Promise.all([
-        getProfileByWallet(walletAddress).catch(() => null),
-        fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
-        fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
-        fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
-        fetch(`/api/feedback?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, feedbacks: [] })),
-      ]);
+      const useGraphQL = useGraphqlForProfile();
 
-      setProfile(profileData);
-      if (asksRes.ok) {
-        setAsks(asksRes.asks || []);
-      }
-      if (offersRes.ok) {
-        setOffers(offersRes.offers || []);
-      }
-      if (sessionsRes.ok) {
-        setSessions(sessionsRes.sessions || []);
-      }
-      if (feedbackRes.ok) {
-        setFeedbacks(feedbackRes.feedbacks || []);
+      if (useGraphQL) {
+        // Use GraphQL: Single query for profile, asks, offers, feedback
+        // Sessions still via API (not yet in GraphQL schema)
+        const [graphqlData, sessionsRes] = await Promise.all([
+          fetchProfileDetail({ wallet: walletAddress }).catch(() => ({ profile: null, feedback: [] })),
+          fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
+        ]);
+
+        // Transform GraphQL response to match existing state structure
+        if (graphqlData.profile) {
+          const profileData: UserProfile = {
+            wallet: graphqlData.profile.wallet,
+            displayName: graphqlData.profile.displayName || 'Anonymous',
+            username: graphqlData.profile.username ? graphqlData.profile.username : undefined,
+            bio: graphqlData.profile.bio ? graphqlData.profile.bio : undefined,
+            bioShort: graphqlData.profile.bioShort ? graphqlData.profile.bioShort : undefined,
+            bioLong: graphqlData.profile.bioLong ? graphqlData.profile.bioLong : undefined,
+            timezone: graphqlData.profile.timezone,
+            seniority: (graphqlData.profile.seniority && ['beginner', 'intermediate', 'advanced', 'expert'].includes(graphqlData.profile.seniority)) 
+              ? graphqlData.profile.seniority as 'beginner' | 'intermediate' | 'advanced' | 'expert'
+              : undefined,
+            skills: Array.isArray(graphqlData.profile.skills) ? graphqlData.profile.skills.join(', ') : '',
+            skillsArray: Array.isArray(graphqlData.profile.skills) ? graphqlData.profile.skills : undefined,
+            availabilityWindow: graphqlData.profile.availabilityWindow ? graphqlData.profile.availabilityWindow : undefined,
+            createdAt: graphqlData.profile.createdAt ? new Date(Number(graphqlData.profile.createdAt)).toISOString() : undefined,
+            profileImage: undefined, // Not in GraphQL schema yet
+            key: graphqlData.profile.id,
+            txHash: undefined,
+            spaceId: 'local-dev', // Default space ID
+          };
+          setProfile(profileData);
+          setAsks(graphqlData.profile.asks.map(ask => ({
+            id: ask.id,
+            key: ask.key,
+            wallet: ask.wallet,
+            skill: ask.skill,
+            message: ask.message,
+            status: ask.status,
+            createdAt: ask.createdAt,
+            expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
+            ttlSeconds: ask.ttlSeconds,
+            txHash: ask.txHash,
+            spaceId: 'local-dev', // Default space ID
+          })) as Ask[]);
+          setOffers(graphqlData.profile.offers.map(offer => ({
+            id: offer.id,
+            key: offer.key,
+            wallet: offer.wallet,
+            skill: offer.skill,
+            message: offer.message,
+            availabilityWindow: offer.availabilityWindow,
+            isPaid: offer.isPaid,
+            cost: offer.cost,
+            paymentAddress: offer.paymentAddress,
+            status: offer.status,
+            createdAt: offer.createdAt,
+            expiresAt: offer.expiresAt ? Number(offer.expiresAt) : null,
+            ttlSeconds: offer.ttlSeconds,
+            txHash: offer.txHash,
+            spaceId: 'local-dev', // Default space ID
+          })) as Offer[]);
+        }
+        setFeedbacks(graphqlData.feedback.map(fb => ({
+          key: fb.key,
+          sessionKey: fb.sessionKey,
+          mentorWallet: fb.mentorWallet,
+          learnerWallet: fb.learnerWallet,
+          feedbackFrom: fb.feedbackFrom,
+          feedbackTo: fb.feedbackTo,
+          rating: fb.rating ?? undefined,
+          notes: fb.notes ?? undefined,
+          technicalDxFeedback: fb.technicalDxFeedback ?? undefined,
+          spaceId: 'local-dev', // Default space ID
+          createdAt: fb.createdAt,
+          txHash: fb.txHash ?? undefined,
+        })) as Feedback[]);
+        if (sessionsRes.ok) {
+          setSessions(sessionsRes.sessions || []);
+        }
+      } else {
+        // Fallback to JSON-RPC: Load profile, asks, offers, sessions, and feedback in parallel
+        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        
+        const [profileData, asksRes, offersRes, sessionsRes, feedbackRes] = await Promise.all([
+          getProfileByWallet(walletAddress).catch(() => null),
+          fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
+          fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
+          fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
+          fetch(`/api/feedback?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, feedbacks: [] })),
+        ]);
+        
+        // Record performance metrics for JSON-RPC path
+        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+        const payloadBytes = JSON.stringify({
+          profile: profileData,
+          asks: asksRes.ok ? asksRes.asks : [],
+          offers: offersRes.ok ? offersRes.offers : [],
+          sessions: sessionsRes.ok ? sessionsRes.sessions : [],
+          feedback: feedbackRes.ok ? feedbackRes.feedbacks : [],
+        }).length;
+        
+        // Record performance sample (async, don't block)
+        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+          recordPerfSample({
+            source: 'arkiv',
+            operation: 'loadProfileData',
+            route: '/profiles/[wallet]',
+            durationMs: Math.round(durationMs),
+            payloadBytes,
+            httpRequests: 5, // 5 parallel API calls
+            createdAt: new Date().toISOString(),
+          });
+        }).catch(() => {
+          // Silently fail if metrics module not available
+        });
+
+        setProfile(profileData);
+        if (asksRes.ok) {
+          setAsks(asksRes.asks || []);
+        }
+        if (offersRes.ok) {
+          setOffers(offersRes.offers || []);
+        }
+        if (sessionsRes.ok) {
+          setSessions(sessionsRes.sessions || []);
+        }
+        if (feedbackRes.ok) {
+          setFeedbacks(feedbackRes.feedbacks || []);
+        }
       }
     } catch (err: any) {
       console.error('Error loading profile data:', err);
