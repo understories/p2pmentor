@@ -42,6 +42,8 @@ export default function AdminFeedbackPage() {
   const [responseMessage, setResponseMessage] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [resolvingFeedback, setResolvingFeedback] = useState<string | null>(null);
+  const [viewingResponse, setViewingResponse] = useState<{ message: string; createdAt: string; adminWallet: string } | null>(null);
+  const [loadingResponse, setLoadingResponse] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -115,9 +117,43 @@ export default function AdminFeedbackPage() {
     router.push('/admin/login');
   };
 
-  const handleRespond = (feedback: AppFeedback) => {
-    setRespondingTo(feedback);
-    setResponseMessage('');
+  const handleRespond = async (feedback: AppFeedback) => {
+    // If there's already a response, fetch and display it
+    if (feedback.hasResponse) {
+      setLoadingResponse(true);
+      try {
+        const res = await fetch(`/api/admin/response?feedbackKey=${encodeURIComponent(feedback.key)}`);
+        const data = await res.json();
+        if (data.ok && data.responses && data.responses.length > 0) {
+          // Get the most recent response
+          const latestResponse = data.responses[0];
+          setViewingResponse({
+            message: latestResponse.message,
+            createdAt: latestResponse.createdAt,
+            adminWallet: latestResponse.adminWallet,
+          });
+          setRespondingTo(feedback);
+        } else {
+          // Response not found, allow creating new one
+          setViewingResponse(null);
+          setRespondingTo(feedback);
+          setResponseMessage('');
+        }
+      } catch (err) {
+        console.error('Error loading response:', err);
+        // On error, allow creating new response
+        setViewingResponse(null);
+        setRespondingTo(feedback);
+        setResponseMessage('');
+      } finally {
+        setLoadingResponse(false);
+      }
+    } else {
+      // No response yet, open form to create one
+      setViewingResponse(null);
+      setRespondingTo(feedback);
+      setResponseMessage('');
+    }
   };
 
   const handleSubmitResponse = async () => {
@@ -151,6 +187,7 @@ export default function AdminFeedbackPage() {
       // Close modal and refresh feedback list
       setRespondingTo(null);
       setResponseMessage('');
+      setViewingResponse(null);
       loadFeedback();
     } catch (err: any) {
       console.error('Error submitting response:', err);
@@ -435,14 +472,15 @@ export default function AdminFeedbackPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Respond to Feedback
+                {viewingResponse ? 'View Response' : 'Respond to Feedback'}
               </h2>
               <button
                 onClick={() => {
                   setRespondingTo(null);
                   setResponseMessage('');
+                  setViewingResponse(null);
                 }}
-                disabled={submittingResponse}
+                disabled={submittingResponse || loadingResponse}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -463,20 +501,38 @@ export default function AdminFeedbackPage() {
               </p>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Your Response <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="response"
-                value={responseMessage}
-                onChange={(e) => setResponseMessage(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Type your response to the user here..."
-                required
-              />
-            </div>
+            {loadingResponse ? (
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
+                <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading response...</p>
+              </div>
+            ) : viewingResponse ? (
+              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                  <strong>Admin Response:</strong>
+                </p>
+                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
+                  By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
+                </p>
+              </div>
+            ) : (
+              <div className="mb-4">
+                <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Your Response <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="response"
+                  value={responseMessage}
+                  onChange={(e) => setResponseMessage(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Type your response to the user here..."
+                  required
+                />
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -484,19 +540,22 @@ export default function AdminFeedbackPage() {
                 onClick={() => {
                   setRespondingTo(null);
                   setResponseMessage('');
+                  setViewingResponse(null);
                 }}
-                disabled={submittingResponse}
+                disabled={submittingResponse || loadingResponse}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
               >
-                Cancel
+                {viewingResponse ? 'Close' : 'Cancel'}
               </button>
-              <button
-                onClick={handleSubmitResponse}
-                disabled={submittingResponse || !responseMessage.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submittingResponse ? 'Submitting...' : 'Send Response'}
-              </button>
+              {!viewingResponse && (
+                <button
+                  onClick={handleSubmitResponse}
+                  disabled={submittingResponse || !responseMessage.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingResponse ? 'Submitting...' : 'Send Response'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -1,14 +1,37 @@
 /**
  * Admin Response API route
  * 
- * Handles creation of admin responses to user feedback.
+ * Handles creation and retrieval of admin responses to user feedback.
  * 
  * Reference: Admin feedback response system
  */
 
 import { NextResponse } from 'next/server';
-import { createAdminResponse } from '@/lib/arkiv/adminResponse';
+import { createAdminResponse, listAdminResponses } from '@/lib/arkiv/adminResponse';
 import { getPrivateKey } from '@/lib/config';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const feedbackKey = searchParams.get('feedbackKey') || undefined;
+
+    if (!feedbackKey) {
+      return NextResponse.json(
+        { ok: false, error: 'feedbackKey parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    const responses = await listAdminResponses({ feedbackKey });
+    return NextResponse.json({ ok: true, responses });
+  } catch (error: any) {
+    console.error('Admin response API GET error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
