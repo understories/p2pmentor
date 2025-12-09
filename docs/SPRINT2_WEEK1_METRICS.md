@@ -294,6 +294,62 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 
 ---
 
+## Asks Page Migration (Week 2)
+
+### Migration Summary
+
+**Page:** `/asks`  
+**Date:** December 9, 2025  
+**Status:** ✅ Complete
+
+**Before (JSON-RPC):**
+- 1 API call to `/api/asks`
+- Average duration: TBD ms (testing in progress)
+- HTTP requests: 1 per page load
+- Samples: TBD
+
+**After (GraphQL):**
+- 1 GraphQL query
+- Average duration: TBD ms (testing in progress)
+- HTTP requests: 1 per page load (same, but with GraphQL benefits)
+- Samples: TBD
+
+**Improvements:**
+- ✅ Type-safe queries
+- ✅ Better developer experience
+- ✅ Performance metrics tracked automatically
+- ✅ Consistent with other migrated pages
+
+---
+
+## Offers Page Migration (Week 2)
+
+### Migration Summary
+
+**Page:** `/offers`  
+**Date:** December 9, 2025  
+**Status:** ✅ Complete
+
+**Before (JSON-RPC):**
+- 1 API call to `/api/offers`
+- Average duration: TBD ms (testing in progress)
+- HTTP requests: 1 per page load
+- Samples: TBD
+
+**After (GraphQL):**
+- 1 GraphQL query
+- Average duration: TBD ms (testing in progress)
+- HTTP requests: 1 per page load (same, but with GraphQL benefits)
+- Samples: TBD
+
+**Improvements:**
+- ✅ Type-safe queries
+- ✅ Better developer experience
+- ✅ Performance metrics tracked automatically
+- ✅ Consistent with other migrated pages
+
+---
+
 ## Testing Execution Log
 
 ### Test Run: December 9, 2025
