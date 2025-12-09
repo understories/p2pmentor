@@ -102,30 +102,46 @@ export async function createAsk({
  */
 export async function listAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-  let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
-  }
-  
-  const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'ask_txhash'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit)
-      .fetch(),
-  ]);
+  try {
+    const publicClient = getPublicClient();
+    const query = publicClient.buildQuery();
+    const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
+    let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
+    
+    if (params?.spaceId) {
+      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    }
+    
+    let result: any = null;
+    let txHashResult: any = null;
+    
+    try {
+      [result, txHashResult] = await Promise.all([
+        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
+        publicClient.buildQuery()
+          .where(eq('type', 'ask_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+          .fetch(),
+      ]);
+    } catch (fetchError: any) {
+      console.error('[listAsks] Arkiv query failed:', {
+        message: fetchError?.message,
+        stack: fetchError?.stack,
+        error: fetchError
+      });
+      return []; // Return empty array on query failure
+    }
 
-  // Defensive check: ensure result and entities exist
-  if (!result || !result.entities || !Array.isArray(result.entities)) {
-    console.warn('[listAsks] Invalid result structure, returning empty array', { result });
-    return [];
-  }
+    // Defensive check: ensure result and entities exist
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.warn('[listAsks] Invalid result structure, returning empty array', { 
+        result: result ? { hasEntities: !!result.entities, entitiesType: typeof result.entities, entitiesIsArray: Array.isArray(result.entities) } : 'null/undefined'
+      });
+      return [];
+    }
 
   const txHashMap: Record<string, string> = {};
   const txHashEntities = txHashResult?.entities || [];
@@ -205,25 +221,35 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     asks = asks.filter(ask => ask.skill.toLowerCase().includes(skillLower));
   }
 
-  // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-  const payloadBytes = JSON.stringify(asks).length;
-  
-  // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'listAsks',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 2, // Two parallel queries: asks + txhashes
-      createdAt: new Date().toISOString(),
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(asks).length;
+    
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'listAsks',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 2, // Two parallel queries: asks + txhashes
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
 
-  return asks;
+    return asks;
+  } catch (error: any) {
+    // CRITICAL: Catch ANY error and return empty array
+    // This ensures the function NEVER throws, making it safe for GraphQL resolvers
+    console.error('[listAsks] Unexpected error, returning empty array:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error?.toString()
+    });
+    return [];
+  }
 }
 
 /**

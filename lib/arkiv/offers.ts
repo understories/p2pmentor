@@ -121,30 +121,46 @@ export async function createOffer({
  */
 export async function listOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-  let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
-  }
-  
-  const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'offer_txhash'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit)
-      .fetch(),
-  ]);
+  try {
+    const publicClient = getPublicClient();
+    const query = publicClient.buildQuery();
+    const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
+    let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
+    
+    if (params?.spaceId) {
+      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    }
+    
+    let result: any = null;
+    let txHashResult: any = null;
+    
+    try {
+      [result, txHashResult] = await Promise.all([
+        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
+        publicClient.buildQuery()
+          .where(eq('type', 'offer_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+          .fetch(),
+      ]);
+    } catch (fetchError: any) {
+      console.error('[listOffers] Arkiv query failed:', {
+        message: fetchError?.message,
+        stack: fetchError?.stack,
+        error: fetchError
+      });
+      return []; // Return empty array on query failure
+    }
 
-  // Defensive check: ensure result and entities exist
-  if (!result || !result.entities || !Array.isArray(result.entities)) {
-    console.warn('[listOffers] Invalid result structure, returning empty array', { result });
-    return [];
-  }
+    // Defensive check: ensure result and entities exist
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.warn('[listOffers] Invalid result structure, returning empty array', { 
+        result: result ? { hasEntities: !!result.entities, entitiesType: typeof result.entities, entitiesIsArray: Array.isArray(result.entities) } : 'null/undefined'
+      });
+      return [];
+    }
 
   const txHashMap: Record<string, string> = {};
   const txHashEntities = txHashResult?.entities || [];
