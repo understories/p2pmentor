@@ -162,13 +162,13 @@ export default function MePage() {
           </Link>
           <Link
             href="/asks"
-            className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center`}
+            className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center font-medium`}
           >
             {askEmojis.default} Asks (I am learning)
           </Link>
           <Link
             href="/offers"
-            className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center`}
+            className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center font-medium`}
           >
             {offerEmojis.default} Offers (I am teaching)
           </Link>
@@ -188,21 +188,6 @@ export default function MePage() {
                 {notificationCount}
               </span>
             )}
-          </Link>
-        </div>
-
-        <div className="space-y-3 mb-6">
-          <Link
-            href="/asks"
-            className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center font-medium`}
-          >
-            {askEmojis.default} Create Ask
-          </Link>
-          <Link
-            href="/offers"
-            className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center font-medium`}
-          >
-            {offerEmojis.default} Create Offer
           </Link>
         </div>
 
