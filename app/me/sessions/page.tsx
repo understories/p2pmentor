@@ -596,7 +596,10 @@ export default function SessionsPage() {
                       <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
                         {/* Payment validation button (if payment exists and not validated) */}
                         {session.paymentTxHash && !session.paymentValidated && isMentor && (
-                          <div className="mb-3">
+                          <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Payment submitted! Please validate (Step 3 of 3):
+                            </p>
                             <button
                               onClick={() => handleValidatePayment(session)}
                               disabled={validatingPayment === session.key}
