@@ -16,7 +16,8 @@ export type NotificationType =
   | 'meeting_request'
   | 'profile_match'
   | 'ask_offer_match'
-  | 'new_offer';
+  | 'new_offer'
+  | 'admin_response';
 
 export interface Notification {
   id: string;
@@ -197,6 +198,40 @@ export function detectNewOffers(
     }
   });
   
+  return notifications;
+}
+
+/**
+ * Detect admin responses to user feedback
+ */
+export function detectAdminResponses(
+  adminResponses: Array<{ key: string; feedbackKey: string; message: string; createdAt: string }>,
+  userWallet: string,
+  previousResponseKeys: Set<string>
+): Notification[] {
+  const notifications: Notification[] = [];
+
+  adminResponses.forEach((response) => {
+    // Only notify if this is a new response (not seen before)
+    if (!previousResponseKeys.has(response.key)) {
+      notifications.push({
+        id: `admin_response_${response.key}`,
+        type: 'admin_response',
+        title: 'Response to Your Feedback',
+        message: response.message.length > 100
+          ? `${response.message.substring(0, 100)}...`
+          : response.message,
+        timestamp: response.createdAt,
+        read: false,
+        link: `/notifications`,
+        metadata: {
+          responseKey: response.key,
+          feedbackKey: response.feedbackKey,
+        },
+      });
+    }
+  });
+
   return notifications;
 }
 

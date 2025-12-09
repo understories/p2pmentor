@@ -10,6 +10,7 @@ import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffers } from '@/lib/arkiv/offers';
 import { listUserProfiles } from '@/lib/arkiv/profile';
+import { listAdminResponses } from '@/lib/arkiv/adminResponse';
 
 export async function GET(request: Request) {
   try {
@@ -24,12 +25,13 @@ export async function GET(request: Request) {
     }
 
     // Fetch all data needed for notification detection
-    const [sessions, userAsks, allAsks, allOffers, allProfiles] = await Promise.all([
+    const [sessions, userAsks, allAsks, allOffers, allProfiles, adminResponses] = await Promise.all([
       listSessionsForWallet(wallet),
       listAsksForWallet(wallet),
       listAsks(),
       listOffers(),
       listUserProfiles(),
+      listAdminResponses({ wallet }), // Admin responses for this user
     ]);
 
     return NextResponse.json({
@@ -40,6 +42,7 @@ export async function GET(request: Request) {
         allAsks,
         allOffers,
         allProfiles,
+        adminResponses,
       },
     });
   } catch (error: any) {

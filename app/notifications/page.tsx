@@ -16,6 +16,7 @@ import {
   detectProfileMatches,
   detectAskOfferMatches,
   detectNewOffers,
+  detectAdminResponses,
   getUnreadCount,
 } from '@/lib/notifications';
 import type { Session } from '@/lib/arkiv/sessions';
@@ -36,6 +37,7 @@ export default function NotificationsPage() {
   const previousMatchedWallets = useRef<Set<string>>(new Set());
   const previousMatches = useRef<Set<string>>(new Set());
   const previousOfferKeys = useRef<Set<string>>(new Set());
+  const previousResponseKeys = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     // Get user wallet from localStorage
@@ -64,7 +66,7 @@ export default function NotificationsPage() {
         throw new Error(data.error || 'Failed to load notifications');
       }
 
-      const { sessions, userAsks, allOffers, allProfiles } = data.data;
+      const { sessions, userAsks, allOffers, allProfiles, adminResponses } = data.data;
       
       // Load user profile
       if (!userProfile) {
@@ -137,6 +139,16 @@ export default function NotificationsPage() {
       // Update seen offer keys
       allOffers.forEach((o: Offer) => previousOfferKeys.current.add(o.key));
       
+      // Admin responses
+      const adminResponseNotifs = detectAdminResponses(
+        adminResponses || [],
+        wallet,
+        previousResponseKeys.current
+      );
+      newNotifications.push(...adminResponseNotifs);
+
+      // Update seen response keys
+      (adminResponses || []).forEach((r: any) => previousResponseKeys.current.add(r.key));
       // Merge with existing notifications (avoid duplicates)
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
@@ -194,6 +206,8 @@ export default function NotificationsPage() {
         return '🔗';
       case 'new_offer':
         return '💡';
+      case 'admin_response':
+        return '💬';
       default:
         return '🔔';
     }
