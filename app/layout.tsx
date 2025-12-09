@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { FeedbackButton } from "@/components/FeedbackButton";
 import { GitHubButton } from "@/components/GitHubButton";
+import { ArkivButton } from "@/components/ArkivButton";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -23,8 +24,9 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
+          <ArkivButton />
           <GitHubButton />
-        <FeedbackButton />
+          <FeedbackButton />
         </ThemeProvider>
       </body>
     </html>
