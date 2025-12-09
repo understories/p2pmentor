@@ -216,10 +216,10 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     };
   });
 
-  if (params?.skill) {
-    const skillLower = params.skill.toLowerCase();
-    asks = asks.filter(ask => ask.skill.toLowerCase().includes(skillLower));
-  }
+    if (params?.skill) {
+      const skillLower = params.skill.toLowerCase();
+      asks = asks.filter((ask: Ask) => ask.skill.toLowerCase().includes(skillLower));
+    }
 
     // Record performance metrics
     const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
