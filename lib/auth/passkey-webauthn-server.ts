@@ -15,7 +15,21 @@ import {
 } from '@simplewebauthn/server';
 
 // Relying Party configuration from environment
-const rpID = process.env.PASSKEY_RP_ID || (typeof window !== 'undefined' ? window.location.hostname : 'localhost');
+// RP ID must match the current domain or be a valid parent domain
+// Best practice: Use root domain (without www) to work across all subdomains
+function getRPID(): string {
+  if (process.env.PASSKEY_RP_ID) {
+    // If explicitly set, use it (but strip www. if present for cross-subdomain compatibility)
+    return process.env.PASSKEY_RP_ID.replace(/^www\./, '');
+  }
+  // Default: use hostname and strip www. for cross-subdomain compatibility
+  if (typeof window !== 'undefined') {
+    return window.location.hostname.replace(/^www\./, '');
+  }
+  return 'localhost';
+}
+
+const rpID = getRPID();
 const rpName = process.env.PASSKEY_RP_NAME || 'p2pmentor';
 const origin = process.env.PASSKEY_ORIGIN || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
 
