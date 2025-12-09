@@ -98,6 +98,24 @@ interface PerfSnapshot {
   txHash?: string;
 }
 
+interface GraphQLFlags {
+  network: boolean;
+  me: boolean;
+  profile: boolean;
+  asks: boolean;
+  offers: boolean;
+}
+
+interface GraphQLFlagsResponse {
+  ok: boolean;
+  flags: GraphQLFlags;
+  summary: {
+    enabled: number;
+    total: number;
+    percentage: number;
+  };
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const [authenticated, setAuthenticated] = useState(false);
@@ -114,6 +132,8 @@ export default function AdminDashboard() {
   const [performanceExpanded, setPerformanceExpanded] = useState(false); // Default closed - engineering focused
   const [feedbackExpanded, setFeedbackExpanded] = useState(true); // Default open - customer focused
   const [lastSnapshotCheck, setLastSnapshotCheck] = useState<{ shouldCreate: boolean; hoursAgo?: number } | null>(null);
+  const [graphqlFlags, setGraphqlFlags] = useState<GraphQLFlagsResponse | null>(null);
+  const [graphqlMigrationExpanded, setGraphqlMigrationExpanded] = useState(false); // Default collapsed
 
   useEffect(() => {
     // Check authentication
@@ -145,6 +165,11 @@ export default function AdminDashboard() {
       const savedFeedbackExpanded = localStorage.getItem('admin_feedback_expanded');
       if (savedFeedbackExpanded !== null) {
         setFeedbackExpanded(savedFeedbackExpanded === 'true');
+      }
+      
+      const savedGraphqlMigrationExpanded = localStorage.getItem('admin_graphql_migration_expanded');
+      if (savedGraphqlMigrationExpanded !== null) {
+        setGraphqlMigrationExpanded(savedGraphqlMigrationExpanded === 'true');
       }
 
       // Fetch performance summary
@@ -240,6 +265,16 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch snapshots:', err));
+
+      // Fetch GraphQL feature flags
+      fetch('/api/admin/graphql-flags')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setGraphqlFlags(data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch GraphQL flags:', err));
     }
   }, [authenticated]);
 
@@ -496,6 +531,131 @@ export default function AdminDashboard() {
           
           {performanceExpanded && (
             <div className="p-6 space-y-6">
+          {/* GraphQL Migration Status - Collapsible Subsection */}
+          <div className="border border-emerald-200 dark:border-emerald-800 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
+            <div className="flex items-center justify-between p-4 border-b border-emerald-200 dark:border-emerald-800">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🚀</span>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                  GraphQL Migration Status
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  const newState = !graphqlMigrationExpanded;
+                  setGraphqlMigrationExpanded(newState);
+                  localStorage.setItem('admin_graphql_migration_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-white dark:bg-emerald-900/30 rounded border border-emerald-300 dark:border-emerald-700 transition-colors"
+                title={graphqlMigrationExpanded ? 'Collapse migration status' : 'Expand migration status'}
+              >
+                {graphqlMigrationExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {graphqlMigrationExpanded && (
+              <div className="p-6">
+                {graphqlFlags ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <div className="text-sm text-gray-600 dark:text-gray-400">Migration Progress</div>
+                        <div className="text-2xl font-bold text-gray-900 dark:text-gray-50">
+                          {graphqlFlags.summary.enabled} / {graphqlFlags.summary.total} pages
+                        </div>
+                        <div className="text-sm text-emerald-600 dark:text-emerald-400 mt-1">
+                          {graphqlFlags.summary.percentage}% migrated
+                        </div>
+                      </div>
+                      <div className="w-32 h-32 relative">
+                        <svg className="transform -rotate-90 w-32 h-32">
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="56"
+                            stroke="currentColor"
+                            strokeWidth="8"
+                            fill="none"
+                            className="text-gray-200 dark:text-gray-700"
+                          />
+                          <circle
+                            cx="64"
+                            cy="64"
+                            r="56"
+                            stroke="currentColor"
+                            strokeWidth="8"
+                            fill="none"
+                            strokeDasharray={`${2 * Math.PI * 56}`}
+                            strokeDashoffset={`${2 * Math.PI * 56 * (1 - graphqlFlags.summary.percentage / 100)}`}
+                            className="text-emerald-600 dark:text-emerald-400"
+                            strokeLinecap="round"
+                          />
+                        </svg>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="text-lg font-bold text-gray-900 dark:text-gray-50">
+                            {graphqlFlags.summary.percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                      {Object.entries(graphqlFlags.flags).map(([page, enabled]) => (
+                        <div
+                          key={page}
+                          className={`p-4 rounded-lg border-2 ${
+                            enabled
+                              ? 'bg-emerald-100 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700'
+                              : 'bg-gray-100 dark:bg-gray-800 border-gray-300 dark:border-gray-600'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-gray-900 dark:text-gray-50 capitalize">
+                              {page === 'me' ? '/me' : `/${page}`}
+                            </span>
+                            {enabled ? (
+                              <span className="text-emerald-600 dark:text-emerald-400 text-lg">✓</span>
+                            ) : (
+                              <span className="text-gray-400 text-lg">○</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400">
+                            {enabled ? (
+                              <span className="text-emerald-700 dark:text-emerald-300 font-medium">Using GraphQL</span>
+                            ) : (
+                              <span className="text-gray-500 dark:text-gray-400">Using JSON-RPC</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-emerald-200 dark:border-emerald-800">
+                      <div className="text-xs text-gray-600 dark:text-gray-400">
+                        <strong>Note:</strong> This shows configured feature flags. Actual usage is tracked in Performance Metrics below.
+                        {perfSummary && (
+                          <div className="mt-2 space-y-1">
+                            {perfSummary.graphql?.pages && Object.keys(perfSummary.graphql.pages).length > 0 && (
+                              <div>
+                                <span className="font-medium">Pages with GraphQL queries:</span>{' '}
+                                {Object.keys(perfSummary.graphql.pages).join(', ') || 'None'}
+                              </div>
+                            )}
+                            {perfSummary.arkiv?.pages && Object.keys(perfSummary.arkiv.pages).length > 0 && (
+                              <div>
+                                <span className="font-medium">Pages with JSON-RPC queries:</span>{' '}
+                                {Object.keys(perfSummary.arkiv.pages).join(', ') || 'None'}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-gray-600 dark:text-gray-400">Loading GraphQL migration status...</div>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Query Performance Comparison */}
           <div>
             <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
