@@ -91,7 +91,7 @@ export function FloatingButtonCluster() {
           <circle cx="12" cy="4" r="1.5" fill="currentColor"/>
         </svg>
       ),
-      tooltip: 'Grown by Understories - Tech and social innovations',
+      tooltip: 'Grown by Understories',
       ariaLabel: 'Grown by Understories',
       className: 'bg-gradient-to-br from-green-500 to-emerald-600 dark:from-green-400 dark:to-emerald-500',
     },
@@ -101,7 +101,7 @@ export function FloatingButtonCluster() {
       icon: (
         <span className="font-bold text-sm leading-none">[A]</span>
       ),
-      tooltip: 'Powered by Arkiv - Universal data layer for Ethereum',
+      tooltip: 'Powered by Arkiv',
       ariaLabel: 'Powered by Arkiv',
       className: 'bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-500 dark:to-indigo-600',
     },
@@ -121,9 +121,9 @@ export function FloatingButtonCluster() {
           />
         </svg>
       ),
-      tooltip: 'View on GitHub - FLOSS',
+      tooltip: 'View on GitHub',
       ariaLabel: 'View source code on GitHub',
-      className: 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900',
+      className: 'bg-gray-900 dark:bg-gray-100',
     },
     {
       id: 'feedback',
@@ -143,7 +143,7 @@ export function FloatingButtonCluster() {
           />
         </svg>
       ),
-      tooltip: 'Share your feedback about p2pmentor',
+      tooltip: 'Share feedback',
       ariaLabel: 'Share feedback',
       className: 'bg-blue-600 hover:bg-blue-700',
     },
@@ -185,7 +185,7 @@ export function FloatingButtonCluster() {
               aria-label={button.ariaLabel}
               title={button.tooltip}
             >
-              <div className="text-white">
+              <div className={button.id === 'github' ? 'text-white dark:text-gray-900' : 'text-white'}>
                 {button.icon}
               </div>
               
