@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -104,15 +105,15 @@ export default function MePage() {
           </Link>
           <Link
             href="/asks"
-            className="block p-3 rounded-lg border border-red-300 dark:border-red-600 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-center"
+            className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center`}
           >
-            ❓ Asks (I am learning)
+            {askEmojis.default} Asks (I am learning)
           </Link>
           <Link
             href="/offers"
-            className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-center"
+            className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center`}
           >
-            💎 Offers (I am teaching)
+            {offerEmojis.default} Offers (I am teaching)
           </Link>
           <Link
             href="/me/sessions"

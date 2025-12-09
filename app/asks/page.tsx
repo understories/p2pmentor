@@ -20,6 +20,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { askColors, askEmojis, offerColors } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -321,7 +322,7 @@ export default function AsksPage() {
           />
           <Link
             href="/offers"
-            className="px-4 py-2 text-sm font-medium text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 border border-green-300 dark:border-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors"
+            className={`px-4 py-2 text-sm font-medium ${offerColors.buttonOutline} rounded-lg transition-colors`}
           >
             Offers &gt;
           </Link>
@@ -466,7 +467,7 @@ export default function AsksPage() {
                       {formatDate(ask.createdAt)}
                     </p>
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                  <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
                     {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                   </span>
                 </div>
@@ -500,8 +501,8 @@ export default function AsksPage() {
                         setSelectedAsk(ask);
                         setShowMeetingModal(true);
                       }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                    >
+                      className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                      >
                       Offer to Help
                     </button>
                   </div>

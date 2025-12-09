@@ -22,6 +22,7 @@ import { fetchOffers } from '@/lib/graph/offersQueries';
 import { formatAvailabilityForDisplay, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { offerColors, offerEmojis, askColors } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -406,7 +407,7 @@ export default function OffersPage() {
           />
           <Link
             href="/asks"
-            className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            className={`px-4 py-2 text-sm font-medium ${askColors.buttonOutline} rounded-lg transition-colors`}
           >
             Asks &gt;
           </Link>
@@ -705,7 +706,7 @@ export default function OffersPage() {
                       {formatDate(offer.createdAt)}
                     </p>
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                  <span className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}>
                     {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
                   </span>
                 </div>
@@ -729,7 +730,7 @@ export default function OffersPage() {
                   <p className="text-sm text-purple-800 dark:text-purple-300">
                     {offer.isPaid ? (
                       <>
-                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Requires payment</span>
+                        <span className={`${offerColors.text} font-medium`}>💰 Requires payment</span>
                         {offer.cost && (
                           <span className="ml-2 text-purple-700 dark:text-purple-300">
                             ({offer.cost})

@@ -22,6 +22,7 @@ import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 type Match = {
@@ -231,34 +232,34 @@ export default function NetworkPage() {
         <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link
             href="/asks"
-            className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+            className={`p-4 ${askColors.card} border ${askColors.border} ${askColors.cardHover} rounded-lg transition-colors`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
-                  ❓ Create Ask
+                <h3 className={`text-sm font-semibold ${askColors.text} mb-1`}>
+                  {askEmojis.default} Create Ask
                 </h3>
-                <p className="text-xs text-red-700 dark:text-red-300">
+                <p className={`text-xs ${askColors.textMuted}`}>
                   Post what you want to learn
                 </p>
               </div>
-              <span className="text-red-600 dark:text-red-400">→</span>
+              <span className={askColors.text}>→</span>
             </div>
           </Link>
           <Link
             href="/offers"
-            className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+            className={`p-4 ${offerColors.card} border ${offerColors.border} ${offerColors.cardHover} rounded-lg transition-colors`}
           >
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-sm font-semibold text-green-800 dark:text-green-200 mb-1">
-                  💎 Create Offer
+                <h3 className={`text-sm font-semibold ${offerColors.text} mb-1`}>
+                  {offerEmojis.default} Create Offer
                 </h3>
-                <p className="text-xs text-green-700 dark:text-green-300">
+                <p className={`text-xs ${offerColors.textMuted}`}>
                   Post what you can teach
                 </p>
               </div>
-              <span className="text-green-600 dark:text-green-400">→</span>
+              <span className={offerColors.text}>→</span>
             </div>
           </Link>
         </div>
@@ -341,13 +342,13 @@ export default function NetworkPage() {
 
         {/* Stats */}
         <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-200">{asks.length}</div>
-            <div className="text-sm text-blue-700 dark:text-blue-300">Asks</div>
+          <div className={`p-4 ${askColors.card} border ${askColors.border} rounded-lg`}>
+            <div className={`text-2xl font-bold ${askColors.text}`}>{asks.length}</div>
+            <div className={`text-sm ${askColors.textMuted}`}>Asks</div>
           </div>
-          <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="text-2xl font-bold text-green-900 dark:text-green-200">{offers.length}</div>
-            <div className="text-sm text-green-700 dark:text-green-300">Offers</div>
+          <div className={`p-4 ${offerColors.card} border ${offerColors.border} rounded-lg`}>
+            <div className={`text-2xl font-bold ${offerColors.text}`}>{offers.length}</div>
+            <div className={`text-sm ${offerColors.textMuted}`}>Offers</div>
           </div>
           <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
             <div className="text-2xl font-bold text-purple-900 dark:text-purple-200">{matches.length}</div>
@@ -390,7 +391,7 @@ export default function NetworkPage() {
                       <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Teaching</div>
                       <Link
                         href={`/profiles/${match.offer.wallet}`}
-                        className="font-semibold text-green-600 dark:text-green-400 mb-2 hover:underline block"
+                        className={`font-semibold ${offerColors.text} mb-2 hover:underline block`}
                       >
                         {match.offerProfile?.displayName || shortenWallet(match.offer.wallet)}
                       </Link>
@@ -424,17 +425,17 @@ export default function NetworkPage() {
                 {filteredAsks.map((ask) => (
                   <div
                     key={ask.key}
-                    className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    className={`p-6 ${askColors.card} border ${askColors.border} rounded-lg`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                        <h3 className={`text-lg font-semibold ${askColors.text}`}>
                           {ask.skill}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <Link
                             href={`/profiles/${ask.wallet}`}
-                            className="hover:underline text-blue-600 dark:text-blue-400"
+                            className={`hover:underline ${askColors.link}`}
                           >
                             {profiles[ask.wallet]?.displayName || shortenWallet(ask.wallet)}
                           </Link>
@@ -442,7 +443,7 @@ export default function NetworkPage() {
                           {formatDate(ask.createdAt)}
                         </p>
                       </div>
-                      <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                      <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
                         {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                       </span>
                     </div>
@@ -457,7 +458,7 @@ export default function NetworkPage() {
                           href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className={`${askColors.link} hover:underline`}
                         >
                           View on Arkiv
                         </a>
@@ -491,17 +492,17 @@ export default function NetworkPage() {
                 {filteredOffers.map((offer) => (
                   <div
                     key={offer.key}
-                    className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                    className={`p-6 ${offerColors.card} border ${offerColors.border} rounded-lg`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div>
-                        <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
+                        <h3 className={`text-lg font-semibold ${offerColors.text}`}>
                           {offer.skill}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                           <Link
                             href={`/profiles/${offer.wallet}`}
-                            className="hover:underline text-green-600 dark:text-green-400"
+                            className={`hover:underline ${offerColors.link}`}
                           >
                             {profiles[offer.wallet]?.displayName || shortenWallet(offer.wallet)}
                           </Link>
@@ -509,7 +510,7 @@ export default function NetworkPage() {
                           {formatDate(offer.createdAt)}
                         </p>
                       </div>
-                      <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                      <span className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}>
                         {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
                       </span>
                     </div>
@@ -530,7 +531,7 @@ export default function NetworkPage() {
                           Payment:
                         </p>
                         <p className="text-sm text-purple-800 dark:text-purple-300">
-                          <span className="text-green-600 dark:text-green-400 font-medium">💰 Requires payment</span>
+                          <span className={`${offerColors.text} font-medium`}>💰 Requires payment</span>
                           {offer.cost && (
                             <span className="ml-2 text-purple-700 dark:text-purple-300">
                               ({offer.cost})
@@ -549,7 +550,7 @@ export default function NetworkPage() {
                           href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-green-600 dark:text-green-400 hover:underline"
+                          className={`${offerColors.link} hover:underline`}
                         >
                           View on Arkiv
                         </a>
