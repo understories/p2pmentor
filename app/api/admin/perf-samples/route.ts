@@ -156,59 +156,51 @@ export async function GET(request: Request) {
             
             // Now measure the actual request
             const startTime4 = Date.now();
-            const graphqlResponse = await fetch(graphqlEndpoint, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                query: `
-                  query NetworkOverview {
-                    networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
-                      skillRefs {
-                        name
-                        asks {
-                          id
-                          key
-                          wallet
-                          skill
-                          createdAt
-                          status
-                          expiresAt
-                        }
-                        offers {
-                          id
-                          key
-                          wallet
-                          skill
-                          isPaid
-                          cost
-                          paymentAddress
-                          createdAt
-                          status
-                          expiresAt
-                        }
+            
+            // For server-to-server calls, use the GraphQL client helper
+            // which handles endpoint resolution and error handling better
+            const { graphRequest } = await import('@/lib/graph/client');
+            const graphqlData = await graphRequest<{ networkOverview: any }>(
+              `
+                query NetworkOverview {
+                  networkOverview(limitAsks: 25, limitOffers: 25, includeExpired: false) {
+                    skillRefs {
+                      name
+                      asks {
+                        id
+                        key
+                        wallet
+                        skill
+                        createdAt
+                        status
+                        expiresAt
+                      }
+                      offers {
+                        id
+                        key
+                        wallet
+                        skill
+                        isPaid
+                        cost
+                        paymentAddress
+                        createdAt
+                        status
+                        expiresAt
                       }
                     }
                   }
-                `,
-              }),
-            });
+                }
+              `,
+              {},
+              { endpoint: graphqlEndpoint, operationName: 'NetworkOverview' }
+            );
+            
             const duration4 = Date.now() - startTime4;
             
-            if (!graphqlResponse.ok) {
-              throw new Error(`GraphQL request failed: ${graphqlResponse.status}`);
-            }
-            
-            const graphqlResult = await graphqlResponse.json();
+            // Wrap in GraphQL response format for consistency with measurement
+            const graphqlResult = { data: graphqlData };
             // Measure actual GraphQL response payload (not transformed data)
             const payloadSize4 = JSON.stringify(graphqlResult).length;
-            
-            // Transform to match expected format (for verification)
-            const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
-            const graphqlData = await fetchNetworkOverview({
-              limitAsks: 25,
-              limitOffers: 25,
-              includeExpired: false,
-            }, { endpoint: graphqlEndpoint });
 
             // Create DX metric entity for GraphQL path (verifiable on-chain)
             try {
