@@ -144,25 +144,47 @@ export async function GET(request: Request) {
             
             // Now measure the actual request (same params as JSON-RPC test)
             const startTime4 = Date.now();
-            const graphqlData = await fetchNetworkOverview({
-              limitAsks: 25,
-              limitOffers: 25,
-              includeExpired: false,
-            }, { endpoint: graphqlEndpoint });
+            let graphqlData;
+            try {
+              graphqlData = await fetchNetworkOverview({
+                limitAsks: 25,
+                limitOffers: 25,
+                includeExpired: false,
+              }, { endpoint: graphqlEndpoint });
+            } catch (fetchError: any) {
+              console.error('[seed-perf] fetchNetworkOverview error:', {
+                message: fetchError?.message,
+                stack: fetchError?.stack,
+                error: fetchError,
+              });
+              throw new Error(`fetchNetworkOverview failed: ${fetchError?.message || 'Unknown error'}`);
+            }
             const duration4 = Date.now() - startTime4;
             
             // Measure actual GraphQL response payload
             const payloadSize4 = JSON.stringify(graphqlData).length;
             
             // Verify we got real data (same validation as network/compare)
-            if (!graphqlData || !graphqlData.skillRefs) {
-              throw new Error('GraphQL query returned invalid data structure');
+            // fetchNetworkOverview returns GraphQLNetworkOverviewResponse which has skillRefs
+            if (!graphqlData) {
+              throw new Error('GraphQL query returned null or undefined');
+            }
+            
+            if (!graphqlData.skillRefs || !Array.isArray(graphqlData.skillRefs)) {
+              console.error('[seed-perf] Invalid GraphQL response structure:', {
+                hasData: !!graphqlData,
+                dataKeys: graphqlData ? Object.keys(graphqlData) : [],
+                dataType: typeof graphqlData,
+                dataSample: JSON.stringify(graphqlData).substring(0, 500),
+                fullData: graphqlData,
+              });
+              throw new Error(`GraphQL query returned invalid data structure. Expected skillRefs array, got: ${JSON.stringify(graphqlData).substring(0, 500)}`);
             }
             
             console.log('[seed-perf] GraphQL query successful:', {
               skillRefsCount: graphqlData.skillRefs.length,
-              totalAsks: graphqlData.skillRefs.reduce((sum, s) => sum + s.asks.length, 0),
-              totalOffers: graphqlData.skillRefs.reduce((sum, s) => sum + s.offers.length, 0),
+              totalAsks: graphqlData.skillRefs.reduce((sum, s) => sum + (s.asks?.length || 0), 0),
+              totalOffers: graphqlData.skillRefs.reduce((sum, s) => sum + (s.offers?.length || 0), 0),
             });
 
             // Create DX metric entity for GraphQL path (verifiable on-chain)
