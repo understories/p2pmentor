@@ -287,9 +287,10 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 - ✅ Performance metrics tracked automatically
 
 **Snapshot:**
-- Transaction Hash: TBD
-- Date: December 9, 2025
+- Transaction Hash: [`0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b`](https://explorer.mendoza.hoodi.arkiv.network/tx/0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b)
+- Date: December 9, 2025 (13:01 UTC)
 - Method: Both (Arkiv baseline + GraphQL comparison)
+- Status: ✅ Created and verified on-chain
 
 ---
 

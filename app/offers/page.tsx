@@ -16,6 +16,8 @@ import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
+import { fetchOffers } from '@/lib/graph/offersQueries';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -96,13 +98,65 @@ export default function OffersPage() {
   const loadData = async (wallet: string) => {
     try {
       setLoading(true);
-      const [profileData, offersRes] = await Promise.all([
-        getProfileByWallet(wallet).catch(() => null),
-        fetch('/api/offers').then(r => r.json()),
-      ]);
-      setProfile(profileData);
-      if (offersRes.ok) {
-        setOffers(offersRes.offers || []);
+      
+      const useGraphQL = useGraphqlForOffers();
+      
+      if (useGraphQL) {
+        // Use GraphQL: Single query for offers
+        const [profileData, graphqlOffers] = await Promise.all([
+          getProfileByWallet(wallet).catch(() => null),
+          fetchOffers({ includeExpired: false, limit: 100 }).catch(() => []),
+        ]);
+        
+        setProfile(profileData);
+        setOffers(graphqlOffers.map(offer => ({
+          id: offer.id,
+          key: offer.key,
+          wallet: offer.wallet,
+          skill: offer.skill,
+          message: offer.message || '',
+          availabilityWindow: offer.availabilityWindow || '',
+          isPaid: offer.isPaid,
+          cost: offer.cost || undefined,
+          paymentAddress: offer.paymentAddress || undefined,
+          status: offer.status,
+          createdAt: offer.createdAt,
+          expiresAt: offer.expiresAt ? Number(offer.expiresAt) : null,
+          ttlSeconds: offer.ttlSeconds,
+          txHash: offer.txHash || undefined,
+          spaceId: 'local-dev', // Default space ID
+        })) as Offer[]);
+      } else {
+        // Fallback to JSON-RPC
+        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+        
+        const [profileData, offersRes] = await Promise.all([
+          getProfileByWallet(wallet).catch(() => null),
+          fetch('/api/offers').then(r => r.json()),
+        ]);
+        
+        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+        const payloadBytes = JSON.stringify(offersRes).length;
+        
+        // Record performance sample (async, don't block)
+        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+          recordPerfSample({
+            source: 'arkiv',
+            operation: 'listOffers',
+            route: '/offers',
+            durationMs: Math.round(durationMs),
+            payloadBytes,
+            httpRequests: 1, // Single API call
+            createdAt: new Date().toISOString(),
+          });
+        }).catch(() => {
+          // Silently fail if metrics module not available
+        });
+        
+        setProfile(profileData);
+        if (offersRes.ok) {
+          setOffers(offersRes.offers || []);
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err);
