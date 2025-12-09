@@ -8,7 +8,8 @@
 
 import { NextResponse } from 'next/server';
 import { createPerfSnapshot, listPerfSnapshots, getLatestSnapshot, shouldCreateSnapshot } from '@/lib/arkiv/perfSnapshots';
-import { getPerfSummary } from '@/lib/metrics/perf';
+import { getPerfSummary, getPerfSamplesFiltered } from '@/lib/metrics/perf';
+import { listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 
 /**
@@ -40,14 +41,112 @@ export async function POST(request: Request) {
     // Get current performance summary
     // Note: GraphQL uses 'networkOverview' operation, Arkiv uses 'buildNetworkGraphData'
     // We need to check both to get complete picture when operation is 'buildNetworkGraphData'
-    const perfSummary = getPerfSummary(operation);
+    
+    // First, try to get from Arkiv entities (verifiable on-chain)
+    // Then fall back to in-memory samples
+    let perfSummary = getPerfSummary(operation);
+    
+    // Also query Arkiv entities for more complete data
+    try {
+      const arkivMetrics = await listDxMetrics({
+        operation,
+        limit: 100,
+      });
+      
+      if (arkivMetrics.length > 0) {
+        // Convert DxMetric to PerfSample format and aggregate
+        const arkivSamples = arkivMetrics
+          .filter(m => m.source === 'arkiv')
+          .map(m => ({
+            source: m.source as 'arkiv',
+            operation: m.operation,
+            route: m.route,
+            durationMs: m.durationMs,
+            payloadBytes: m.payloadBytes,
+            httpRequests: m.httpRequests,
+            createdAt: m.createdAt,
+          }));
+        
+        const graphqlSamples = arkivMetrics
+          .filter(m => m.source === 'graphql')
+          .map(m => ({
+            source: m.source as 'graphql',
+            operation: m.operation,
+            route: m.route,
+            durationMs: m.durationMs,
+            payloadBytes: m.payloadBytes,
+            httpRequests: m.httpRequests,
+            createdAt: m.createdAt,
+          }));
+        
+        // Aggregate Arkiv samples
+        if (arkivSamples.length > 0) {
+          const durations = arkivSamples.map(s => s.durationMs);
+          const payloadSizes = arkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+          const httpCounts = arkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+          
+          perfSummary.arkiv = {
+            avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+            minDurationMs: Math.min(...durations),
+            maxDurationMs: Math.max(...durations),
+            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            samples: arkivSamples.length,
+          };
+        }
+        
+        // Aggregate GraphQL samples
+        if (graphqlSamples.length > 0) {
+          const durations = graphqlSamples.map(s => s.durationMs);
+          const payloadSizes = graphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
+          const httpCounts = graphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+          
+          perfSummary.graphql = {
+            avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+            minDurationMs: Math.min(...durations),
+            maxDurationMs: Math.max(...durations),
+            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            samples: graphqlSamples.length,
+          };
+        }
+      }
+    } catch (error) {
+      console.log('[perf-snapshots] Failed to query Arkiv metrics, using in-memory only:', error);
+    }
     
     // If operation is 'buildNetworkGraphData', also check 'networkOverview' for GraphQL data
     if (operation === 'buildNetworkGraphData') {
+      // Check in-memory for networkOverview
       const graphqlSummary = getPerfSummary('networkOverview');
-      // Merge GraphQL data if found (GraphQL uses 'networkOverview' operation name)
       if (graphqlSummary.graphql) {
         perfSummary.graphql = graphqlSummary.graphql;
+      }
+      
+      // Also check Arkiv entities for networkOverview
+      try {
+        const networkOverviewMetrics = await listDxMetrics({
+          operation: 'networkOverview',
+          source: 'graphql',
+          limit: 100,
+        });
+        
+        if (networkOverviewMetrics.length > 0) {
+          const durations = networkOverviewMetrics.map(m => m.durationMs);
+          const payloadSizes = networkOverviewMetrics.filter(m => m.payloadBytes !== undefined).map(m => m.payloadBytes!);
+          const httpCounts = networkOverviewMetrics.filter(m => m.httpRequests !== undefined).map(m => m.httpRequests!);
+          
+          perfSummary.graphql = {
+            avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
+            minDurationMs: Math.min(...durations),
+            maxDurationMs: Math.max(...durations),
+            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
+            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            samples: networkOverviewMetrics.length,
+          };
+        }
+      } catch (error) {
+        console.log('[perf-snapshots] Failed to query networkOverview metrics:', error);
       }
     }
 
