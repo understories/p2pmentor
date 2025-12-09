@@ -42,7 +42,6 @@ export function RequestMeetingModal({
     time: '',
     duration: '60',
     notes: '',
-    paymentTxHash: '', // Optional payment transaction hash
   });
 
   // Pre-fill skill from offer or profile's first skill
@@ -57,7 +56,6 @@ export function RequestMeetingModal({
         time: '',
         duration: '60',
         notes: '',
-        paymentTxHash: '', // Reset payment hash when modal opens
       }));
     }
   }, [profile, offer, isOpen]);
@@ -144,7 +142,9 @@ export function RequestMeetingModal({
             sessionDate,
             duration: formData.duration || '60',
             notes: formData.notes.trim() || '',
-            paymentTxHash: formData.paymentTxHash.trim() || undefined,
+            requiresPayment: offer?.isPaid || false,
+            paymentAddress: offer?.paymentAddress || undefined,
+            cost: offer?.cost || undefined,
           }),
       });
 
@@ -170,7 +170,7 @@ export function RequestMeetingModal({
         onSuccess();
       }
       onClose();
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', paymentTxHash: '' });
+      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
     } catch (err: any) {
       console.error('Error creating session:', err);
       const errorMessage = err.message || 'Failed to request meeting';
@@ -187,7 +187,7 @@ export function RequestMeetingModal({
           onSuccess();
         }
         onClose();
-        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', paymentTxHash: '' });
+        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
       } else {
         // Real error
         setError(errorMessage);
@@ -200,7 +200,7 @@ export function RequestMeetingModal({
   const handleClose = () => {
     if (!submitting) {
       setError('');
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', paymentTxHash: '' });
+      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
       onClose();
     }
   };
@@ -361,38 +361,13 @@ export function RequestMeetingModal({
                   </p>
                 )}
                 <p className="text-xs text-purple-700 dark:text-purple-400 mb-2">
-                  Send payment to:
+                  Payment address: <span className="font-mono">{offer.paymentAddress}</span>
                 </p>
-                <div className="p-2 bg-white dark:bg-gray-800 rounded border border-purple-300 dark:border-purple-700">
-                  <p className="text-xs font-mono text-purple-900 dark:text-purple-100 break-all">
-                    {offer.paymentAddress}
-                  </p>
-                </div>
                 <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-                  After sending payment, enter the transaction hash below.
+                  <strong>Note:</strong> After the mentor confirms your session request, you will be able to submit your payment transaction hash.
                 </p>
               </div>
             )}
-
-            <div>
-              <label htmlFor="paymentTxHash" className="block text-sm font-medium mb-1">
-                Payment Transaction Hash {offer?.isPaid ? '(required)' : '(optional)'}
-              </label>
-              <input
-                id="paymentTxHash"
-                type="text"
-                value={formData.paymentTxHash}
-                onChange={(e) => setFormData({ ...formData, paymentTxHash: e.target.value })}
-                placeholder="0x..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                required={offer?.isPaid === true}
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {offer?.isPaid 
-                  ? 'Enter the transaction hash of your payment to this offer'
-                  : 'For paid sessions: Enter the transaction hash of your payment'}
-              </p>
-            </div>
 
             {error && (
               <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">

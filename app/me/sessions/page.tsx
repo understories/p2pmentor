@@ -61,6 +61,8 @@ export default function SessionsPage() {
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [submittingPayment, setSubmittingPayment] = useState<string | null>(null);
+  const [paymentTxHashInput, setPaymentTxHashInput] = useState<Record<string, string>>({});
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
   const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
@@ -218,6 +220,64 @@ export default function SessionsPage() {
       alert(`Error: ${err.message || 'Failed to reject session'}`);
     } finally {
       setRejecting(null);
+    }
+  };
+
+  const handleSubmitPayment = async (session: Session) => {
+    if (!userWallet) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    const paymentTxHash = paymentTxHashInput[session.key]?.trim();
+    if (!paymentTxHash) {
+      alert('Please enter a payment transaction hash');
+      return;
+    }
+
+    if (!confirm(`Submit payment transaction ${paymentTxHash.slice(0, 10)}...?`)) {
+      return;
+    }
+
+    setSubmittingPayment(session.key);
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submitPayment',
+          wallet: userWallet,
+          sessionKey: session.key,
+          paymentTxHash,
+          submittedByWallet: userWallet,
+          mentorWallet: session.mentorWallet,
+          learnerWallet: session.learnerWallet,
+          spaceId: session.spaceId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit payment');
+      }
+
+      alert('Payment submitted successfully! The mentor will validate it.');
+      // Clear input
+      setPaymentTxHashInput(prev => {
+        const next = { ...prev };
+        delete next[session.key];
+        return next;
+      });
+      // Reload sessions
+      if (userWallet) {
+        loadSessions(userWallet);
+      }
+    } catch (err: any) {
+      console.error('Error submitting payment:', err);
+      alert(`Error: ${err.message || 'Failed to submit payment'}`);
+    } finally {
+      setSubmittingPayment(null);
     }
   };
 
@@ -420,10 +480,41 @@ export default function SessionsPage() {
                       </div>
                     </div>
 
+                    {/* Payment submission UI (for learner after mentor confirms) */}
+                    {session.requiresPayment && 
+                     !session.paymentTxHash && 
+                     session.mentorConfirmed && 
+                     isLearner && (
+                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Session confirmed! Please submit your payment:
+                        </p>
+                        <div className="mb-3">
+                          <input
+                            type="text"
+                            value={paymentTxHashInput[session.key] || ''}
+                            onChange={(e) => setPaymentTxHashInput(prev => ({
+                              ...prev,
+                              [session.key]: e.target.value
+                            }))}
+                            placeholder="Enter payment transaction hash (0x...)"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleSubmitPayment(session)}
+                          disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
+                          className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
+                        </button>
+                      </div>
+                    )}
+
                     {canConfirm && !userConfirmed && (
                       <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
                         {/* Payment validation button (if payment exists and not validated) */}
-                        {session.paymentTxHash && !session.paymentValidated && (
+                        {session.paymentTxHash && !session.paymentValidated && isMentor && (
                           <div className="mb-3">
                             <button
                               onClick={() => handleValidatePayment(session)}
@@ -440,9 +531,9 @@ export default function SessionsPage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleConfirm(session)}
-                            disabled={confirming === session.key || (session.paymentTxHash ? !session.paymentValidated : false)}
+                            disabled={confirming === session.key || (session.paymentTxHash && !session.paymentValidated && !!isMentor)}
                             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={session.paymentTxHash && !session.paymentValidated ? 'Please validate payment first' : ''}
+                            title={session.paymentTxHash && !session.paymentValidated && !!isMentor ? 'Please validate payment first' : ''}
                           >
                             {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
                           </button>
