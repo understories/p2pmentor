@@ -120,10 +120,23 @@ export async function GET(request: Request) {
         if (testGraphQL) {
           try {
             // Use absolute URL for server-side GraphQL requests
-            const graphqlEndpoint = process.env.GRAPH_SUBGRAPH_URL || 
-              (process.env.NEXT_PUBLIC_APP_URL 
-                ? `${process.env.NEXT_PUBLIC_APP_URL}/api/graphql`
-                : 'http://localhost:3000/api/graphql');
+            // In production (Vercel), we need to use the full URL
+            let graphqlEndpoint = process.env.GRAPH_SUBGRAPH_URL;
+            
+            if (!graphqlEndpoint) {
+              // Try to construct absolute URL from environment
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                              process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null;
+              
+              if (baseUrl) {
+                graphqlEndpoint = `${baseUrl}/api/graphql`;
+              } else {
+                // Fallback: infer from request URL (works in both local and production)
+                graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+              }
+            }
+            
+            console.log('[seed-perf] Using GraphQL endpoint:', graphqlEndpoint);
             
             // Warm up: Make a request first to avoid cold start skewing results
             try {
@@ -136,6 +149,7 @@ export async function GET(request: Request) {
               });
               await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
             } catch (warmupErr) {
+              console.log('[seed-perf] Warmup request failed (non-fatal):', warmupErr);
               // Ignore warmup errors
             }
             
