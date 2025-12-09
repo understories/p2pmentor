@@ -25,6 +25,7 @@ export function FloatingButtonCluster() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [wallet, setWallet] = useState<string | null>(null);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
 
   // Track wallet from localStorage
@@ -49,6 +50,30 @@ export function FloatingButtonCluster() {
     }
   }, []);
 
+  // Check if profile exists
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!wallet) {
+        setHasProfile(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
+        const data = await res.json();
+        setHasProfile(data.ok && data.profile !== null);
+      } catch (err) {
+        console.error('Error checking profile:', err);
+        setHasProfile(null);
+      }
+    };
+
+    checkProfile();
+    // Poll every 30 seconds to check for profile creation
+    const interval = setInterval(checkProfile, 30000);
+    return () => clearInterval(interval);
+  }, [wallet]);
+
   // Track mouse position for proximity-based scaling
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -72,6 +97,23 @@ export function FloatingButtonCluster() {
   const proximityScale = Math.max(1, 1.1 - distance / 1000); // Scale up when mouse is close
 
   const buttons: FloatingButton[] = [
+    // Show profile creation button only if profile doesn't exist
+    ...(hasProfile === false && wallet ? [{
+      id: 'create-profile',
+      href: '/me/profile',
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+        </svg>
+      ),
+      tooltip: 'Create your profile',
+      ariaLabel: 'Create your profile',
+      className: 'bg-yellow-500 hover:bg-yellow-600 animate-pulse',
+    }] : []),
     {
       id: 'understories',
       href: 'https://understories.github.io',
