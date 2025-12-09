@@ -282,7 +282,7 @@ export default function SkillsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
           <p>Loading skills...</p>
         </div>
@@ -292,7 +292,7 @@ export default function SkillsPage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />

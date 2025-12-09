@@ -33,7 +33,7 @@ export default function NetworkForestPage() {
 
   if (isDesktop === null) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-sm text-gray-600 dark:text-gray-400">Loading...</p>
       </div>
     );
@@ -41,7 +41,7 @@ export default function NetworkForestPage() {
 
   if (!isDesktop) {
     return (
-      <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <ThemeToggle />
         <div className="min-h-screen flex items-center justify-center px-4">
           <div className="max-w-md w-full space-y-4 text-center">
@@ -62,7 +62,7 @@ export default function NetworkForestPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <main className="min-h-screen text-gray-900 dark:text-gray-100">
       <ThemeToggle />
       <div className="min-h-screen flex flex-col">
         <header className="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">

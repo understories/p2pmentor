@@ -22,13 +22,13 @@ export default function RootLayout({
       <body suppressHydrationWarning className="relative min-h-screen">
         {/* Background Image */}
         <div 
-          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-15"
+          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 dark:opacity-25"
           style={{
             backgroundImage: 'url(/understory.jpeg)',
           }}
         />
-        {/* Overlay for better text readability */}
-        <div className="fixed inset-0 -z-10 bg-white/40 dark:bg-gray-900/60" />
+        {/* Overlay for better text readability - stronger in light mode for accessibility */}
+        <div className="fixed inset-0 -z-10 bg-white/60 dark:bg-gray-900/50" />
         
         <ThemeProvider>
           {children}

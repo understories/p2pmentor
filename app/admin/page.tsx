@@ -386,7 +386,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
         </div>

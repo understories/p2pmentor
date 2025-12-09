@@ -55,14 +55,14 @@ export default function NetworkComparePage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <LoadingSpinner size="lg" />
       </div>
     );
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <main className="min-h-screen text-gray-900 dark:text-gray-100">
       <ThemeToggle />
       <div className="min-h-screen flex flex-col">
         <header className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">

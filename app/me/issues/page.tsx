@@ -107,7 +107,7 @@ export default function UserIssuesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <ThemeToggle />
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
@@ -122,7 +122,7 @@ export default function UserIssuesPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <ThemeToggle />
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
