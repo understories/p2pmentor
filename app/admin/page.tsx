@@ -631,6 +631,164 @@ export default function AdminDashboard() {
               )}
             </div>
           </div>
+
+          {/* Recent Performance Samples */}
+          <div>
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
+              Recent Performance Samples
+            </h3>
+            <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+              {perfSamples.length > 0 ? (
+                <table className="w-full">
+                  <thead className="bg-gray-100 dark:bg-gray-800">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Source</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Operation</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Duration (ms)</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Payload (KB)</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">HTTP Req</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Verify</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {perfSamples.slice(0, 10).map((sample, idx) => (
+                      <tr key={idx} className="border-t border-gray-200 dark:border-gray-700">
+                        <td className="px-4 py-2 text-sm font-mono text-xs">{sample.source}</td>
+                        <td className="px-4 py-2 text-sm font-mono text-xs">{sample.operation}</td>
+                        <td className="px-4 py-2 text-sm">{sample.durationMs}</td>
+                        <td className="px-4 py-2 text-sm">{sample.payloadBytes ? (sample.payloadBytes / 1024).toFixed(2) : 'N/A'}</td>
+                        <td className="px-4 py-2 text-sm">{sample.httpRequests || 'N/A'}</td>
+                        <td className="px-4 py-2 text-sm">
+                          {sample.txHash ? (
+                            <a
+                              href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${sample.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 dark:text-blue-400 hover:underline"
+                              title="Verify on-chain"
+                            >
+                              🔗
+                            </a>
+                          ) : (
+                            <span className="text-gray-400" title="Not stored on-chain">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="p-6 text-gray-600 dark:text-gray-400 text-sm">
+                  No performance samples yet. Metrics will appear as requests are made.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Historical Performance Snapshots */}
+          <div>
+            <h3 className="text-lg font-medium mb-3 text-gray-900 dark:text-gray-50">
+              Historical Performance Snapshots
+            </h3>
+            <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
+              {snapshots.length > 0 ? (
+                <div className="space-y-4">
+                  {snapshots.map((snapshot, idx) => (
+                    <div key={snapshot.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <div className="font-medium text-gray-900 dark:text-gray-50">
+                            {new Date(snapshot.timestamp).toLocaleString()}
+                          </div>
+                          <div className="text-xs text-gray-600 dark:text-gray-400 font-mono">
+                            Method: {snapshot.method} • Operation: {snapshot.operation}
+                            {snapshot.arkivMetadata?.blockHeight !== undefined && (
+                              <span className="ml-2 text-gray-500 dark:text-gray-500">
+                                • Block: {snapshot.arkivMetadata.blockHeight}
+                              </span>
+                            )}
+                            {(!snapshot.arkiv && !snapshot.graphql) && (
+                              <span className="ml-2 text-amber-600 dark:text-amber-400">(No performance data captured)</span>
+                            )}
+                            {snapshot.method === 'both' && (!snapshot.arkiv || !snapshot.graphql) && (
+                              <span className="ml-2 text-amber-600 dark:text-amber-400">
+                                ({snapshot.arkiv ? 'Only Arkiv' : snapshot.graphql ? 'Only GraphQL' : 'No data'} captured)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {snapshot.txHash && (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${snapshot.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                          >
+                            🔗 Verify
+                          </a>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        {snapshot.arkiv && (
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded p-3">
+                            <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                              JSON-RPC <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.arkiv.samples})</span>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div>Avg: {snapshot.arkiv.avgDurationMs.toFixed(0)}ms</div>
+                              <div>Range: {snapshot.arkiv.minDurationMs}ms - {snapshot.arkiv.maxDurationMs}ms</div>
+                              <div>Samples: {snapshot.arkiv.samples}</div>
+                              {snapshot.arkiv.pages && Object.keys(snapshot.arkiv.pages).length > 0 && (
+                                <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
+                                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
+                                  {Object.entries(snapshot.arkiv.pages).map(([page, count]) => (
+                                    <div key={page} className="flex justify-between text-xs">
+                                      <span className="text-gray-700 dark:text-gray-300">{page}</span>
+                                      <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                        {snapshot.graphql && (
+                          <div className="bg-gray-50 dark:bg-gray-800 rounded p-3">
+                            <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                              GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.graphql.samples})</span>
+                            </div>
+                            <div className="space-y-1 text-xs">
+                              <div>Avg: {snapshot.graphql.avgDurationMs.toFixed(0)}ms</div>
+                              <div>Range: {snapshot.graphql.minDurationMs}ms - {snapshot.graphql.maxDurationMs}ms</div>
+                              <div>Samples: {snapshot.graphql.samples}</div>
+                              {snapshot.graphql.pages && Object.keys(snapshot.graphql.pages).length > 0 && (
+                                <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
+                                  <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
+                                  {Object.entries(snapshot.graphql.pages).map(([page, count]) => (
+                                    <div key={page} className="flex justify-between text-xs">
+                                      <span className="text-gray-700 dark:text-gray-300">{page}</span>
+                                      <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      {snapshot.pageLoadTimes && (
+                        <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
+                          Page Load: Avg {snapshot.pageLoadTimes.avgDurationMs}ms ({snapshot.pageLoadTimes.successful}/{snapshot.pageLoadTimes.total} successful)
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-400 text-sm">No snapshots yet. Create one to start tracking performance over time.</p>
+              )}
+            </div>
+          </div>
             </div>
           )}
         </section>
@@ -714,163 +872,6 @@ export default function AdminDashboard() {
           )}
         </section>
 
-        {/* Recent Performance Samples */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-50">
-            Recent Performance Samples
-          </h2>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
-            {perfSamples.length > 0 ? (
-              <table className="w-full">
-                <thead className="bg-gray-100 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Source</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Operation</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Duration (ms)</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Payload (KB)</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">HTTP Req</th>
-                    <th className="px-4 py-2 text-left text-sm font-medium">Verify</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {perfSamples.slice(0, 10).map((sample, idx) => (
-                    <tr key={idx} className="border-t border-gray-200 dark:border-gray-700">
-                      <td className="px-4 py-2 text-sm">{sample.source}</td>
-                      <td className="px-4 py-2 text-sm">{sample.operation}</td>
-                      <td className="px-4 py-2 text-sm">{sample.durationMs}</td>
-                      <td className="px-4 py-2 text-sm">{sample.payloadBytes ? (sample.payloadBytes / 1024).toFixed(2) : 'N/A'}</td>
-                      <td className="px-4 py-2 text-sm">{sample.httpRequests || 'N/A'}</td>
-                      <td className="px-4 py-2 text-sm">
-                        {sample.txHash ? (
-                          <a
-                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${sample.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline"
-                            title="Verify on-chain"
-                          >
-                            🔗
-                          </a>
-                        ) : (
-                          <span className="text-gray-400" title="Not stored on-chain">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ) : (
-              <div className="p-6 text-gray-600 dark:text-gray-400">
-                No performance samples yet. Metrics will appear as requests are made.
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Historical Performance Snapshots */}
-        <section className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-50">
-            Historical Performance Data
-          </h2>
-          <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-6">
-            {snapshots.length > 0 ? (
-              <div className="space-y-4">
-                {snapshots.map((snapshot, idx) => (
-                  <div key={snapshot.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-gray-50">
-                          {new Date(snapshot.timestamp).toLocaleString()}
-                        </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400">
-                          Method: {snapshot.method} • Operation: {snapshot.operation}
-                          {snapshot.arkivMetadata?.blockHeight !== undefined && (
-                            <span className="ml-2 text-gray-500 dark:text-gray-500">
-                              • Block: {snapshot.arkivMetadata.blockHeight}
-                            </span>
-                          )}
-                          {(!snapshot.arkiv && !snapshot.graphql) && (
-                            <span className="ml-2 text-amber-600 dark:text-amber-400">(No performance data captured)</span>
-                          )}
-                          {snapshot.method === 'both' && (!snapshot.arkiv || !snapshot.graphql) && (
-                            <span className="ml-2 text-amber-600 dark:text-amber-400">
-                              ({snapshot.arkiv ? 'Only Arkiv' : snapshot.graphql ? 'Only GraphQL' : 'No data'} captured)
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      {snapshot.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${snapshot.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                        >
-                          🔗 Verify
-                        </a>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                      {snapshot.arkiv && (
-                        <div className="bg-white dark:bg-gray-700 rounded p-3">
-                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
-                            JSON-RPC <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.arkiv.samples})</span>
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <div>Avg: {snapshot.arkiv.avgDurationMs.toFixed(0)}ms</div>
-                            <div>Range: {snapshot.arkiv.minDurationMs}ms - {snapshot.arkiv.maxDurationMs}ms</div>
-                            <div>Samples: {snapshot.arkiv.samples}</div>
-                            {snapshot.arkiv.pages && Object.keys(snapshot.arkiv.pages).length > 0 && (
-                              <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
-                                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
-                                {Object.entries(snapshot.arkiv.pages).map(([page, count]) => (
-                                  <div key={page} className="flex justify-between text-xs">
-                                    <span className="text-gray-700 dark:text-gray-300">{page}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      {snapshot.graphql && (
-                        <div className="bg-white dark:bg-gray-700 rounded p-3">
-                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
-                            GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.graphql.samples})</span>
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <div>Avg: {snapshot.graphql.avgDurationMs.toFixed(0)}ms</div>
-                            <div>Range: {snapshot.graphql.minDurationMs}ms - {snapshot.graphql.maxDurationMs}ms</div>
-                            <div>Samples: {snapshot.graphql.samples}</div>
-                            {snapshot.graphql.pages && Object.keys(snapshot.graphql.pages).length > 0 && (
-                              <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
-                                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
-                                {Object.entries(snapshot.graphql.pages).map(([page, count]) => (
-                                  <div key={page} className="flex justify-between text-xs">
-                                    <span className="text-gray-700 dark:text-gray-300">{page}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    {snapshot.pageLoadTimes && (
-                      <div className="mt-3 text-xs text-gray-600 dark:text-gray-400">
-                        Page Load: Avg {snapshot.pageLoadTimes.avgDurationMs}ms ({snapshot.pageLoadTimes.successful}/{snapshot.pageLoadTimes.total} successful)
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-600 dark:text-gray-400">No snapshots yet. Create one to start tracking performance over time.</p>
-            )}
-          </div>
-        </section>
 
         {/* Quick Links */}
         <section>
