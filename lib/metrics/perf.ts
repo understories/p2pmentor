@@ -137,6 +137,7 @@ export function getPerfSummary(operation: string, route?: string): {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
   arkiv?: {
     avgDurationMs: number;
@@ -145,6 +146,7 @@ export function getPerfSummary(operation: string, route?: string): {
     avgPayloadBytes?: number;
     avgHttpRequests?: number;
     samples: number;
+    pages?: Record<string, number>;
   };
 } {
   const filters = { operation, route };
@@ -158,6 +160,13 @@ export function getPerfSummary(operation: string, route?: string): {
     const payloadSizes = samples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
     const httpCounts = samples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
 
+    // Count queries per page/route
+    const pageCounts: Record<string, number> = {};
+    samples.forEach(s => {
+      const page = s.route || '(no route)';
+      pageCounts[page] = (pageCounts[page] || 0) + 1;
+    });
+
     return {
       avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
       minDurationMs: Math.min(...durations),
@@ -169,6 +178,7 @@ export function getPerfSummary(operation: string, route?: string): {
         ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
         : undefined,
       samples: samples.length,
+      pages: pageCounts,
     };
   };
 

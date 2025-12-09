@@ -773,21 +773,47 @@ export default function AdminDashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       {snapshot.arkiv && (
                         <div className="bg-white dark:bg-gray-700 rounded p-3">
-                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">JSON-RPC</div>
+                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                            JSON-RPC <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.arkiv.samples})</span>
+                          </div>
                           <div className="space-y-1 text-xs">
                             <div>Avg: {snapshot.arkiv.avgDurationMs.toFixed(0)}ms</div>
                             <div>Range: {snapshot.arkiv.minDurationMs}ms - {snapshot.arkiv.maxDurationMs}ms</div>
                             <div>Samples: {snapshot.arkiv.samples}</div>
+                            {snapshot.arkiv.pages && Object.keys(snapshot.arkiv.pages).length > 0 && (
+                              <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
+                                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
+                                {Object.entries(snapshot.arkiv.pages).map(([page, count]) => (
+                                  <div key={page} className="flex justify-between text-xs">
+                                    <span className="text-gray-700 dark:text-gray-300">{page}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
                       {snapshot.graphql && (
                         <div className="bg-white dark:bg-gray-700 rounded p-3">
-                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">GraphQL</div>
+                          <div className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                            GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={snapshot.graphql.samples})</span>
+                          </div>
                           <div className="space-y-1 text-xs">
                             <div>Avg: {snapshot.graphql.avgDurationMs.toFixed(0)}ms</div>
                             <div>Range: {snapshot.graphql.minDurationMs}ms - {snapshot.graphql.maxDurationMs}ms</div>
                             <div>Samples: {snapshot.graphql.samples}</div>
+                            {snapshot.graphql.pages && Object.keys(snapshot.graphql.pages).length > 0 && (
+                              <div className="pt-2 mt-2 border-t border-gray-200 dark:border-gray-600">
+                                <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Pages:</div>
+                                {Object.entries(snapshot.graphql.pages).map(([page, count]) => (
+                                  <div key={page} className="flex justify-between text-xs">
+                                    <span className="text-gray-700 dark:text-gray-300">{page}</span>
+                                    <span className="text-gray-500 dark:text-gray-400">{count} queries</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                         </div>
                       )}
