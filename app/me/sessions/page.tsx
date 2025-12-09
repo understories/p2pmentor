@@ -666,7 +666,7 @@ export default function SessionsPage() {
         {/* Completed Sessions */}
         {completedSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">
+            <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
               ✓ Completed ({completedSessions.length})
             </h2>
             <div className="space-y-4">
@@ -688,11 +688,11 @@ export default function SessionsPage() {
                 return (
                   <div
                     key={session.key}
-                    className="p-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded">
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
                         Completed
                       </span>
                     </div>

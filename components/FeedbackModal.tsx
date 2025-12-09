@@ -148,6 +148,29 @@ export function FeedbackModal({
               <label htmlFor="notes" className="block text-sm font-medium mb-1">
                 Feedback Notes (optional)
               </label>
+              <div className="mb-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'Great session! Very helpful explanations.' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  Great session
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'Clear communication and well-structured content.' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  Clear communication
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, notes: 'Learned a lot! Would love to continue learning.' })}
+                  className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                >
+                  Learned a lot
+                </button>
+              </div>
               <textarea
                 id="notes"
                 value={formData.notes}

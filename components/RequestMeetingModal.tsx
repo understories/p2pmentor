@@ -36,6 +36,7 @@ export function RequestMeetingModal({
 }: RequestMeetingModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState({
     skill: '',
     date: '',
@@ -89,6 +90,18 @@ export function RequestMeetingModal({
         setError(validation.error || 'Selected time does not match mentor availability');
         return;
       }
+    }
+
+    // Show confirmation preview before submitting
+    setShowConfirmation(true);
+    setError('');
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!userWallet) {
+      setError('Please connect your wallet first');
+      setShowConfirmation(false);
+      return;
     }
 
     setSubmitting(true);
@@ -154,6 +167,7 @@ export function RequestMeetingModal({
       }
 
       // Success - handle both immediate success and pending confirmation
+      setShowConfirmation(false);
       if (data.pending) {
         // Transaction submitted but confirmation pending
         setError(''); // Clear any previous errors
@@ -200,6 +214,7 @@ export function RequestMeetingModal({
   const handleClose = () => {
     if (!submitting) {
       setError('');
+      setShowConfirmation(false);
       setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
       onClose();
     }
@@ -243,8 +258,60 @@ export function RequestMeetingModal({
             <strong>{profile.displayName || 'this user'}</strong>
           </p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Confirmation Preview */}
+          {showConfirmation ? (
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3 text-blue-900 dark:text-blue-200">
+                  Confirm Meeting Request
+                </h3>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <strong>Skill:</strong> {formData.skill}
+                  </p>
+                  <p>
+                    <strong>Date:</strong> {new Date(formData.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {new Date(`2000-01-01T${formData.time}`).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </p>
+                  <p>
+                    <strong>Duration:</strong> {formData.duration} minutes
+                  </p>
+                  {formData.notes && (
+                    <p>
+                      <strong>Notes:</strong> {formData.notes}
+                    </p>
+                  )}
+                  {offer?.isPaid && (
+                    <p className="text-purple-700 dark:text-purple-300">
+                      <strong>Payment Required:</strong> {offer.cost || 'Amount TBD'}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmation(false)}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                >
+                  Back to Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSubmit}
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Requesting...' : 'Confirm & Request'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Form */
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="skill" className="block text-sm font-medium mb-1">
                 Skill *
@@ -393,6 +460,7 @@ export function RequestMeetingModal({
               </button>
             </div>
           </form>
+          )}
         </div>
       </div>
     </div>
