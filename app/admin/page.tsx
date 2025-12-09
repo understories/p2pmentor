@@ -63,6 +63,11 @@ interface PerfSnapshot {
   timestamp: string;
   operation: string;
   method: 'arkiv' | 'graphql' | 'both';
+  arkivMetadata?: {
+    blockHeight?: number;
+    chainId?: number;
+    timestamp: string;
+  };
   graphql?: {
     avgDurationMs: number;
     minDurationMs: number;
