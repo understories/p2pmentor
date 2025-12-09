@@ -15,6 +15,11 @@ export type PerfSnapshot = {
   timestamp: string; // ISO timestamp
   operation: string; // e.g., 'buildNetworkGraphData'
   method: 'arkiv' | 'graphql' | 'both'; // Which method was actually tested (may differ from requested)
+  arkivMetadata?: {
+    blockHeight?: number; // Arkiv block height at snapshot time
+    chainId?: number; // Chain ID (Mendoza testnet)
+    timestamp: string; // ISO timestamp when metadata was captured
+  };
   graphql?: {
     avgDurationMs: number;
     minDurationMs: number;
