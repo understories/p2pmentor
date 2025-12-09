@@ -253,8 +253,8 @@ export default function AdminDashboard() {
                 .then(snapData => {
                   if (snapData.ok) {
                     console.log('[Admin] Auto-created performance snapshot');
-                    // Refresh snapshots list
-                    return fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
+                    // Refresh snapshots list (fetch all snapshots, no operation filter)
+                    return fetch('/api/admin/perf-snapshots?limit=20');
                   }
                 })
                 .then(snapshotsRes => snapshotsRes?.json())
