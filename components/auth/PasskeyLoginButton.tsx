@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { registerPasskey, loginWithPasskey, isWebAuthnSupported, isPlatformAuthenticatorAvailable } from '@/lib/auth/passkey-webauthn-client';
 import { createPasskeyWallet, unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
+import { setWalletType } from '@/lib/wallet/getWalletClient';
 
 interface PasskeyLoginButtonProps {
   userId?: string; // Optional: if provided, will check for existing wallet
@@ -93,6 +94,8 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           localStorage.setItem(`passkey_wallet_${userIdToUse}`, address);
           localStorage.setItem('wallet_address', address);
           localStorage.setItem('passkey_user_id', userIdToUse);
+          // Store wallet type for unified wallet client getter
+          setWalletType(address, 'passkey');
         }
       }
 

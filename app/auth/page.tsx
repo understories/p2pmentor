@@ -52,6 +52,9 @@ export default function AuthPage() {
       // Store wallet address in localStorage for session persistence
       if (typeof window !== 'undefined') {
         localStorage.setItem('wallet_address', address);
+        // Store wallet type for unified wallet client getter
+        const { setWalletType } = await import('@/lib/wallet/getWalletClient');
+        setWalletType(address, 'metamask');
       }
       
       router.push('/me');

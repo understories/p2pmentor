@@ -8,6 +8,7 @@
 
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
+import { getWalletClient } from "@/lib/wallet/getWalletClient"
 import { CURRENT_WALLET } from "../config"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 
@@ -108,7 +109,8 @@ export async function createUserProfileClient({
   availabilityWindow?: string;
   account: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
-  const walletClient = getWalletClientFromMetaMask(account);
+  // Use unified wallet client getter (supports both MetaMask and Passkey)
+  const walletClient = await getWalletClient(account);
   const enc = new TextEncoder();
   const spaceId = 'local-dev';
   const createdAt = new Date().toISOString();
