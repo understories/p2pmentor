@@ -22,7 +22,8 @@ export default function RootLayout({
       <body suppressHydrationWarning>
         <ThemeProvider>
           {children}
-          <FeedbackButton />
+          <GitHubButton />
+        <FeedbackButton />
         </ThemeProvider>
       </body>
     </html>
