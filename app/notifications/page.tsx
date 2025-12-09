@@ -18,6 +18,7 @@ import {
   detectAskOfferMatches,
   detectNewOffers,
   detectAdminResponses,
+  detectIssueResolutions,
   getUnreadCount,
 } from '@/lib/notifications';
 import type { Session } from '@/lib/arkiv/sessions';
@@ -47,6 +48,7 @@ export default function NotificationsPage() {
   const previousMatches = useRef<Set<string>>(new Set());
   const previousOfferKeys = useRef<Set<string>>(new Set());
   const previousResponseKeys = useRef<Set<string>>(new Set());
+  const previousResolvedKeys = useRef<Set<string>>(new Set());
   
   // Store notification preferences to use during detection
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
@@ -120,7 +122,7 @@ export default function NotificationsPage() {
         throw new Error(data.error || 'Failed to load notifications');
       }
 
-      const { sessions, userAsks, allOffers, allProfiles, adminResponses } = data.data;
+      const { sessions, userAsks, allOffers, allProfiles, adminResponses, resolvedIssues } = data.data;
       
       // Load user profile
       if (!userProfile) {
@@ -203,6 +205,22 @@ export default function NotificationsPage() {
 
       // Update seen response keys
       (adminResponses || []).forEach((r: any) => previousResponseKeys.current.add(r.key));
+
+      // Issue resolutions
+      const issueResolutionNotifs = detectIssueResolutions(
+        (resolvedIssues || []).map((f: any) => ({
+          key: f.key,
+          message: f.message,
+          resolvedAt: f.resolvedAt || f.createdAt,
+          page: f.page,
+        })),
+        wallet,
+        previousResolvedKeys.current
+      );
+      newNotifications.push(...issueResolutionNotifs);
+
+      // Update seen resolved keys
+      (resolvedIssues || []).forEach((f: any) => previousResolvedKeys.current.add(f.key));
       // Apply preferences to new notifications (read state and archived filter)
       const notificationsWithPreferences = newNotifications.map(n => {
         const pref = notificationPreferences.current.get(n.id);

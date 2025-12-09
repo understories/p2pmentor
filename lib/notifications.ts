@@ -17,7 +17,8 @@ export type NotificationType =
   | 'profile_match'
   | 'ask_offer_match'
   | 'new_offer'
-  | 'admin_response';
+  | 'admin_response'
+  | 'issue_resolved';
 
 export interface Notification {
   id: string;
@@ -227,6 +228,38 @@ export function detectAdminResponses(
         metadata: {
           responseKey: response.key,
           feedbackKey: response.feedbackKey,
+        },
+      });
+    }
+  });
+
+  return notifications;
+}
+
+/**
+ * Detect issue resolutions (arkiv-native: from resolution entities)
+ */
+export function detectIssueResolutions(
+  resolvedFeedbacks: Array<{ key: string; message: string; resolvedAt: string; page: string }>,
+  userWallet: string,
+  previousResolvedKeys: Set<string>
+): Notification[] {
+  const notifications: Notification[] = [];
+
+  resolvedFeedbacks.forEach((feedback) => {
+    // Only notify if this is a new resolution (not seen before)
+    if (!previousResolvedKeys.has(feedback.key)) {
+      notifications.push({
+        id: `issue_resolved_${feedback.key}`,
+        type: 'issue_resolved',
+        title: 'Issue Resolved',
+        message: `Your issue reported on ${feedback.page} has been resolved`,
+        timestamp: feedback.resolvedAt,
+        read: false,
+        link: `/me/issues`,
+        metadata: {
+          feedbackKey: feedback.key,
+          page: feedback.page,
         },
       });
     }

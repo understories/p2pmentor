@@ -24,6 +24,9 @@ interface AppFeedback {
   feedbackType: 'feedback' | 'issue';
   createdAt: string;
   txHash: string | null;
+  resolved?: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
 }
 
 export default function AdminFeedbackPage() {
@@ -36,6 +39,7 @@ export default function AdminFeedbackPage() {
   const [respondingTo, setRespondingTo] = useState<AppFeedback | null>(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [resolvingFeedback, setResolvingFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -88,6 +92,9 @@ export default function AdminFeedbackPage() {
         feedbackType: f.feedbackType || 'feedback',
         createdAt: f.createdAt,
         txHash: f.txHash || null,
+        resolved: f.resolved || false,
+        resolvedAt: f.resolvedAt,
+        resolvedBy: f.resolvedBy,
       }));
       setFeedbacks(feedbacks);
     } catch (err) {
@@ -146,6 +153,47 @@ export default function AdminFeedbackPage() {
       alert(err.message || 'Failed to submit response');
     } finally {
       setSubmittingResponse(false);
+    }
+  };
+
+  const handleResolveFeedback = async (feedback: AppFeedback) => {
+    if (feedback.resolved) {
+      alert('This issue is already resolved');
+      return;
+    }
+
+    if (!confirm(`Mark this ${feedback.feedbackType} as resolved?`)) {
+      return;
+    }
+
+    setResolvingFeedback(feedback.key);
+    try {
+      const adminWallet = typeof window !== 'undefined'
+        ? localStorage.getItem('wallet_address') || 'admin'
+        : 'admin';
+
+      const res = await fetch('/api/app-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resolveFeedback',
+          feedbackKey: feedback.key,
+          resolvedByWallet: adminWallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to resolve feedback');
+      }
+
+      alert('Issue marked as resolved!');
+      loadFeedback();
+    } catch (err: any) {
+      console.error('Error resolving feedback:', err);
+      alert(err.message || 'Failed to resolve feedback');
+    } finally {
+      setResolvingFeedback(null);
     }
   };
 
@@ -239,6 +287,7 @@ export default function AdminFeedbackPage() {
                     <th className="px-4 py-2 text-left text-sm font-medium">Page</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Rating</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Message</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Status</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Transaction</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Actions</th>
                   </tr>
@@ -287,6 +336,22 @@ export default function AdminFeedbackPage() {
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm">
+                        {feedback.resolved ? (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            ✓ Resolved
+                            {feedback.resolvedAt && (
+                              <span className="ml-1 text-xs opacity-75">
+                                {new Date(feedback.resolvedAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            ⏳ Pending
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-2 text-sm">
                         {feedback.txHash ? (
                           <a
                             href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${feedback.txHash}`}
@@ -302,12 +367,23 @@ export default function AdminFeedbackPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        <button
-                          onClick={() => handleRespond(feedback)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-                        >
-                          Respond
-                        </button>
+                        <div className="flex gap-2">
+                          {feedback.feedbackType === 'issue' && !feedback.resolved && (
+                            <button
+                              onClick={() => handleResolveFeedback(feedback)}
+                              disabled={resolvingFeedback === feedback.key}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                            >
+                              {resolvingFeedback === feedback.key ? 'Resolving...' : 'Mark Resolved'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRespond(feedback)}
+                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                          >
+                            Respond
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}

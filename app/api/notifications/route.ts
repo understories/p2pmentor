@@ -11,6 +11,7 @@ import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffers } from '@/lib/arkiv/offers';
 import { listUserProfiles } from '@/lib/arkiv/profile';
 import { listAdminResponses } from '@/lib/arkiv/adminResponse';
+import { listAppFeedback } from '@/lib/arkiv/appFeedback';
 
 export async function GET(request: Request) {
   try {
@@ -25,14 +26,18 @@ export async function GET(request: Request) {
     }
 
     // Fetch all data needed for notification detection
-    const [sessions, userAsks, allAsks, allOffers, allProfiles, adminResponses] = await Promise.all([
+    const [sessions, userAsks, allAsks, allOffers, allProfiles, adminResponses, userFeedback] = await Promise.all([
       listSessionsForWallet(wallet),
       listAsksForWallet(wallet),
       listAsks(),
       listOffers(),
       listUserProfiles(),
       listAdminResponses({ wallet }), // Admin responses for this user
+      listAppFeedback({ wallet }), // User's feedback/issues
     ]);
+
+    // Filter for resolved issues only
+    const resolvedIssues = userFeedback.filter(f => f.feedbackType === 'issue' && f.resolved);
 
     return NextResponse.json({
       ok: true,
@@ -43,6 +48,7 @@ export async function GET(request: Request) {
         allOffers,
         allProfiles,
         adminResponses,
+        resolvedIssues, // Resolved issues for notification detection
       },
     });
   } catch (error: any) {
