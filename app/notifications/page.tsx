@@ -1,8 +1,8 @@
 /**
  * Notifications page
  * 
- * UI-only notifications for meeting requests, matches, etc.
- * Uses client-side polling to detect new items.
+ * Enhanced notifications with Arkiv-native persistence, filtering, and customization.
+ * Uses client-side polling to detect new items and stores read/unread state on-chain.
  */
 
 'use client';
@@ -11,6 +11,7 @@ import { useState, useEffect, useRef } from 'react';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Notification } from '@/lib/notifications';
+import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import {
   detectMeetingRequests,
   detectProfileMatches,
@@ -26,11 +27,19 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 
 const POLL_INTERVAL = 30000; // 30 seconds
 
+type FilterType = 'all' | 'unread' | 'read';
+type FilterNotificationType = 'all' | NotificationPreferenceType;
+
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  
+  // Filtering state
+  const [filterType, setFilterType] = useState<FilterType>('all');
+  const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Track previously seen items to detect new ones
   const previousSessionKeys = useRef<Set<string>>(new Set());
@@ -45,6 +54,7 @@ export default function NotificationsPage() {
     if (storedWallet) {
       setUserWallet(storedWallet);
       loadNotifications(storedWallet);
+      loadNotificationPreferences(storedWallet);
       
       // Set up polling
       const interval = setInterval(() => {
@@ -56,6 +66,35 @@ export default function NotificationsPage() {
       setLoading(false);
     }
   }, []);
+
+  // Load notification preferences from Arkiv
+  const loadNotificationPreferences = async (wallet: string) => {
+    try {
+      const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
+      const data = await res.json();
+      
+      if (data.ok && data.preferences) {
+        // Map preferences to notifications
+        const preferenceMap = new Map<string, boolean>();
+        data.preferences.forEach((pref: any) => {
+          if (!pref.archived) {
+            preferenceMap.set(pref.notificationId, pref.read);
+          }
+        });
+        
+        // Update notifications with persisted read state
+        setNotifications(prev => prev.map(n => {
+          const persistedRead = preferenceMap.get(n.id);
+          if (persistedRead !== undefined) {
+            return { ...n, read: persistedRead };
+          }
+          return n;
+        }));
+      }
+    } catch (err) {
+      console.error('Error loading notification preferences:', err);
+    }
+  };
 
   const loadNotifications = async (wallet: string) => {
     try {
@@ -165,20 +204,175 @@ export default function NotificationsPage() {
     }
   };
 
-  const markAsRead = (notificationId: string) => {
+  const markAsRead = async (notificationId: string) => {
+    if (!userWallet) return;
+    
+    // Optimistic update
     setNotifications(prev =>
       prev.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       )
     );
+    
+    // Persist to Arkiv
+    try {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (notification) {
+        await fetch('/api/notifications/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: userWallet,
+            notificationId,
+            notificationType: notification.type,
+            read: true,
+            archived: false,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Error marking notification as read:', err);
+      // Revert on error
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId ? { ...n, read: false } : n
+        )
+      );
+    }
   };
 
-  const markAllAsRead = () => {
+  const markAsUnread = async (notificationId: string) => {
+    if (!userWallet) return;
+    
+    // Optimistic update
+    setNotifications(prev =>
+      prev.map(n =>
+        n.id === notificationId ? { ...n, read: false } : n
+      )
+    );
+    
+    // Persist to Arkiv
+    try {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (notification) {
+        await fetch('/api/notifications/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: userWallet,
+            notificationId,
+            notificationType: notification.type,
+            read: false,
+            archived: false,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Error marking notification as unread:', err);
+      // Revert on error
+      setNotifications(prev =>
+        prev.map(n =>
+          n.id === notificationId ? { ...n, read: true } : n
+        )
+      );
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!userWallet) return;
+    
+    const unreadNotifications = notifications.filter(n => !n.read);
+    if (unreadNotifications.length === 0) return;
+    
+    // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    
+    // Persist to Arkiv
+    try {
+      await fetch('/api/notifications/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: userWallet,
+          preferences: unreadNotifications.map(n => ({
+            notificationId: n.id,
+            notificationType: n.type,
+            read: true,
+            archived: false,
+          })),
+        }),
+      });
+    } catch (err) {
+      console.error('Error marking all as read:', err);
+      // Revert on error
+      setNotifications(prev => prev.map(n => {
+        const wasUnread = unreadNotifications.some(un => un.id === n.id);
+        return wasUnread ? { ...n, read: false } : n;
+      }));
+    }
   };
 
-  const deleteNotification = (notificationId: string) => {
+  const markAllAsUnread = async () => {
+    if (!userWallet) return;
+    
+    const readNotifications = notifications.filter(n => n.read);
+    if (readNotifications.length === 0) return;
+    
+    // Optimistic update
+    setNotifications(prev => prev.map(n => ({ ...n, read: false })));
+    
+    // Persist to Arkiv
+    try {
+      await fetch('/api/notifications/preferences', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: userWallet,
+          preferences: readNotifications.map(n => ({
+            notificationId: n.id,
+            notificationType: n.type,
+            read: false,
+            archived: false,
+          })),
+        }),
+      });
+    } catch (err) {
+      console.error('Error marking all as unread:', err);
+      // Revert on error
+      setNotifications(prev => prev.map(n => {
+        const wasRead = readNotifications.some(rn => rn.id === n.id);
+        return wasRead ? { ...n, read: true } : n;
+      }));
+    }
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    if (!userWallet) return;
+    
+    // Optimistic update
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    
+    // Persist to Arkiv (mark as archived)
+    try {
+      const notification = notifications.find(n => n.id === notificationId);
+      if (notification) {
+        await fetch('/api/notifications/preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet: userWallet,
+            notificationId,
+            notificationType: notification.type,
+            read: notification.read,
+            archived: true,
+          }),
+        });
+      }
+    } catch (err) {
+      console.error('Error deleting notification:', err);
+      // Revert on error - reload preferences
+      loadNotificationPreferences(userWallet);
+    }
   };
 
   const formatTime = (timestamp: string) => {
@@ -214,6 +408,18 @@ export default function NotificationsPage() {
   };
 
   const unreadCount = getUnreadCount(notifications);
+
+  // Filter notifications
+  const filteredNotifications = notifications.filter(n => {
+    // Filter by read/unread status
+    if (filterType === 'unread' && n.read) return false;
+    if (filterType === 'read' && !n.read) return false;
+    
+    // Filter by notification type
+    if (filterNotificationType !== 'all' && n.type !== filterNotificationType) return false;
+    
+    return true;
+  });
 
   if (loading) {
     return (
@@ -253,37 +459,105 @@ export default function NotificationsPage() {
           <BackButton href="/me" />
         </div>
         
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-semibold">
-            Notifications
-            {unreadCount > 0 && (
-              <span className="ml-3 px-2 py-1 text-sm font-medium bg-blue-600 text-white rounded-full">
-                {unreadCount}
-              </span>
-            )}
-          </h1>
-          {unreadCount > 0 && (
-            <button
-              onClick={markAllAsRead}
-              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              Mark all as read
-            </button>
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-3xl font-semibold">
+              Notifications
+              {unreadCount > 0 && (
+                <span className="ml-3 px-2 py-1 text-sm font-medium bg-blue-600 text-white rounded-full">
+                  {unreadCount}
+                </span>
+              )}
+            </h1>
+            <div className="flex gap-3 items-center">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                {showFilters ? 'Hide' : 'Show'} Filters
+              </button>
+              {notifications.length > 0 && (
+                <div className="flex gap-2">
+                  {unreadCount > 0 && (
+                    <button
+                      onClick={markAllAsRead}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Mark all as read
+                    </button>
+                  )}
+                  {notifications.filter(n => n.read).length > 0 && (
+                    <button
+                      onClick={markAllAsUnread}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Mark all as unread
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Filters */}
+          {showFilters && (
+            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={filterType}
+                    onChange={(e) => setFilterType(e.target.value as FilterType)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="all">All</option>
+                    <option value="unread">Unread</option>
+                    <option value="read">Read</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Type
+                  </label>
+                  <select
+                    value={filterNotificationType}
+                    onChange={(e) => setFilterNotificationType(e.target.value as FilterNotificationType)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  >
+                    <option value="all">All Types</option>
+                    <option value="meeting_request">📅 Meeting Requests</option>
+                    <option value="profile_match">👤 Profile Matches</option>
+                    <option value="ask_offer_match">🔗 Ask & Offer Matches</option>
+                    <option value="new_offer">💡 New Offers</option>
+                    <option value="admin_response">💬 Admin Responses</option>
+                  </select>
+                </div>
+              </div>
+              <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                Showing {filteredNotifications.length} of {notifications.length} notifications
+              </div>
+            </div>
           )}
         </div>
 
-        {notifications.length === 0 ? (
+        {filteredNotifications.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400 text-lg">
-              No notifications yet
+              {notifications.length === 0 
+                ? 'No notifications yet'
+                : 'No notifications match your filters'}
             </p>
             <p className="text-gray-500 dark:text-gray-500 text-sm mt-2">
-              You'll see meeting requests, matches, and new offers here
+              {notifications.length === 0
+                ? "You'll see meeting requests, matches, and new offers here"
+                : 'Try adjusting your filters'}
             </p>
           </div>
         ) : (
           <div className="space-y-3">
-            {notifications.map((notification) => (
+            {filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
                 className={`p-4 rounded-lg border ${
@@ -311,10 +585,18 @@ export default function NotificationsPage() {
                     </p>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    {!notification.read && (
+                    {notification.read ? (
+                      <button
+                        onClick={() => markAsUnread(notification.id)}
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Mark as unread"
+                      >
+                        ↶
+                      </button>
+                    ) : (
                       <button
                         onClick={() => markAsRead(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                         title="Mark as read"
                       >
                         ✓
@@ -322,7 +604,7 @@ export default function NotificationsPage() {
                     )}
                     <button
                       onClick={() => deleteNotification(notification.id)}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
                       title="Delete"
                     >
                       ×
