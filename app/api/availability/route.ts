@@ -5,7 +5,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createAvailability, listAvailabilityForWallet } from '@/lib/arkiv/availability';
+import { createAvailability, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { getPrivateKey } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
@@ -14,9 +14,17 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { wallet, timeBlocks, timezone, spaceId } = body;
 
-    if (!wallet || !timeBlocks || !timezone) {
+    if (!wallet || !timezone) {
       return NextResponse.json(
-        { ok: false, error: 'wallet, timeBlocks, and timezone are required' },
+        { ok: false, error: 'wallet and timezone are required' },
+        { status: 400 }
+      );
+    }
+
+    // timeBlocks can be either a string (legacy) or WeeklyAvailability object (structured)
+    if (!timeBlocks || (typeof timeBlocks === 'string' && !timeBlocks.trim())) {
+      return NextResponse.json(
+        { ok: false, error: 'timeBlocks is required' },
         { status: 400 }
       );
     }
@@ -24,7 +32,7 @@ export async function POST(request: Request) {
     try {
       const { key, txHash } = await createAvailability({
         wallet,
-        timeBlocks,
+        timeBlocks: timeBlocks as string | WeeklyAvailability, // Support both formats
         timezone,
         privateKey: getPrivateKey(),
         spaceId: spaceId || 'local-dev',
