@@ -16,15 +16,23 @@ export async function POST(request: Request) {
     const { action, wallet, page, message, rating, feedbackType, feedbackKey, resolvedByWallet } = body;
 
     if (action === 'createFeedback') {
-      if (!wallet || !page || !message) {
+      if (!wallet || !page) {
         return NextResponse.json(
-          { ok: false, error: 'wallet, page, and message are required' },
+          { ok: false, error: 'wallet and page are required' },
+          { status: 400 }
+        );
+      }
+
+      // Either message OR rating must be provided (at least one)
+      if ((!message || message.trim().length === 0) && (!rating || rating < 1 || rating > 5)) {
+        return NextResponse.json(
+          { ok: false, error: 'Either a rating or feedback message is required' },
           { status: 400 }
         );
       }
 
       // Validate rating if provided
-      if (rating !== undefined && (rating < 1 || rating > 5)) {
+      if (rating !== undefined && rating > 0 && (rating < 1 || rating > 5)) {
         return NextResponse.json(
           { ok: false, error: 'Rating must be between 1 and 5' },
           { status: 400 }

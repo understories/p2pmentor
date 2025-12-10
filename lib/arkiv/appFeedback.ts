@@ -59,9 +59,11 @@ export async function createAppFeedback({
     throw new Error('Rating must be between 1 and 5');
   }
 
-  // Validate message is not empty
-  if (!message || message.trim().length === 0) {
-    throw new Error('Feedback message is required');
+  // Validate: either message OR rating must be provided (at least one)
+  const hasMessage = message && message.trim().length > 0;
+  const hasRating = rating !== undefined && rating >= 1 && rating <= 5;
+  if (!hasMessage && !hasRating) {
+    throw new Error('Either a rating or feedback message is required');
   }
 
   // App feedback should persist (1 year) for admin review
@@ -69,8 +71,8 @@ export async function createAppFeedback({
 
   const { entityKey, txHash } = await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
-      message: message.trim(),
-      rating: rating || undefined,
+      message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
+      rating: hasRating ? rating : undefined,
       createdAt,
     })),
     contentType: 'application/json',
