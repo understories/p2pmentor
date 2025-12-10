@@ -260,6 +260,48 @@ fix stuff
 
 ## 8. Testing and Verification
 
+### Build Testing (CRITICAL - MANDATORY BEFORE EVERY PUSH)
+
+**⚠️ NEVER PUSH CODE THAT FAILS TO BUILD ⚠️**
+
+**MANDATORY PROCESS BEFORE EVERY COMMIT AND PUSH:**
+
+1. **Always run `npm run build` (or `pnpm run build`) before committing**
+   - The build MUST succeed with no errors
+   - Fix all TypeScript errors, linting errors, and build failures locally
+   - Never commit code that fails to build
+   - Never push code that fails to build
+
+2. **Build verification checklist (MANDATORY):**
+   - ✅ Build completes successfully (`✓ Compiled successfully`)
+   - ✅ No TypeScript errors
+   - ✅ No linting errors
+   - ✅ No missing dependencies
+   - ✅ No duplicate JSX attributes or other syntax errors
+   - ✅ No runtime errors in build output
+
+3. **If build fails:**
+   - ❌ DO NOT commit
+   - ❌ DO NOT push
+   - ✅ Fix the error locally
+   - ✅ Re-run build until it passes
+   - ✅ Only then commit and push
+
+4. **This is non-negotiable** - broken builds break production for all users
+
+**Example workflow:**
+```bash
+# 1. Make changes
+# 2. Test build
+npm run build
+
+# 3. If build fails, fix errors and repeat step 2
+# 4. Only when build passes:
+git add .
+git commit -m "descriptive message"
+git push
+```
+
 ### Testing Standards
 
 1. **Real Data:**
@@ -280,6 +322,7 @@ fix stuff
 ### Verification Checklist
 
 Before committing:
+- [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
 - [ ] No secrets in code
 - [ ] No hardcoded test data
 - [ ] All data sources are real
@@ -289,13 +332,13 @@ Before committing:
 - [ ] Changes are auditable
 
 Before pushing to production:
+- [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
 - [ ] **Double-check all data for accuracy** (dates, numbers, metrics, references)
 - [ ] Verify all transaction hashes and explorer links
 - [ ] Confirm all dates and timestamps are correct
 - [ ] Review all metrics and calculations
 - [ ] Ensure no placeholder values (TBD, TODO) remain in public docs
 - [ ] Test all links and references
-- [ ] Verify build passes without errors
 - [ ] Confirm environment variables are set correctly
 
 ## 9. Agent and Human Collaboration
