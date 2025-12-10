@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Subtle card glow animation for dashboard */
+@keyframes subtleGlow {
+  0%, 100% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  }
+}
+
 @keyframes glowPulse {
   0%, 100% {
     opacity: 0.8;

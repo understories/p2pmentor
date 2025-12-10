@@ -14,6 +14,7 @@ import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Ask } from '@/lib/arkiv/asks';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
 
 type MeetingMode = 'request' | 'offer' | 'peer';
@@ -325,16 +326,23 @@ export function RequestMeetingModal({
           </div>
 
           <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-              {mode === 'offer' 
-                ? 'Offering to help' 
-                : mode === 'peer'
-                ? 'Starting peer learning session with'
-                : 'Requesting a session with'}
-            </p>
-            <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
-              {profile.displayName || profile.wallet.slice(0, 6) + '...' + profile.wallet.slice(-4)}
-            </p>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border border-green-300/30 dark:border-green-500/20 flex-shrink-0">
+                <EmojiIdentitySeed profile={profile} size="md" showGlow={true} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                  {mode === 'offer' 
+                    ? '🌿 Offering to help' 
+                    : mode === 'peer'
+                    ? '🌱 Starting peer learning session with'
+                    : '🌱 Requesting a session with'}
+                </p>
+                <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
+                  {profile.displayName || profile.wallet.slice(0, 6) + '...' + profile.wallet.slice(-4)}
+                </p>
+              </div>
+            </div>
             {profile.bioShort && (
               <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 line-clamp-2">
                 {profile.bioShort}

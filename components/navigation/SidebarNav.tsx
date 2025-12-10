@@ -9,9 +9,11 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useState } from 'react';
 import { askEmojis, offerEmojis } from '@/lib/colors';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
+import { ConstellationLines } from '@/components/navigation/ConstellationLines';
 
 interface NavItem {
   href: string;
@@ -23,6 +25,7 @@ interface NavItem {
 export function SidebarNav() {
   const pathname = usePathname();
   const notificationCount = useNotificationCount();
+  const [hoveredIndex, setHoveredIndex] = useState<number | undefined>();
 
   // Primary navigation items
   const navItems: NavItem[] = [
@@ -77,10 +80,26 @@ export function SidebarNav() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
+  const activeIndex = navItems.findIndex(item => {
+    if (item.href === '/me') {
+      return pathname === '/me' || pathname.startsWith('/me/');
+    }
+    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+  });
+
   return (
     <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-20 z-30 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-700/50">
-      <div className="flex flex-col items-center py-4 space-y-2 w-full">
-        {navItems.map((item) => {
+      <div className="relative flex flex-col items-center py-4 space-y-2 w-full">
+        {/* Constellation Lines */}
+        <ConstellationLines
+          itemCount={navItems.length}
+          itemHeight={72} // Approximate height per item (py-3 + space-y-2)
+          containerHeight={navItems.length * 72}
+          activeIndex={activeIndex >= 0 ? activeIndex : undefined}
+          hoveredIndex={hoveredIndex}
+        />
+        
+        {navItems.map((item, index) => {
           const active = isActive(item.href);
           return (
             <Link
@@ -104,12 +123,14 @@ export function SidebarNav() {
                 transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
               }}
               onMouseEnter={(e) => {
+                setHoveredIndex(index);
                 if (!active) {
                   e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
                   e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
                 }
               }}
               onMouseLeave={(e) => {
+                setHoveredIndex(undefined);
                 if (!active) {
                   e.currentTarget.style.boxShadow = '';
                   e.currentTarget.style.transform = '';

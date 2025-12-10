@@ -137,14 +137,21 @@ export default function MePage() {
         })()}
 
         {/* Your Profile Section */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
+          {/* Subtle radial gradient hint */}
+          <div 
+            className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
+            }}
+          />
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Your Profile
           </h2>
           <div className="space-y-3">
             <Link
               href="/me/profile"
-              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
             >
               Profile
               {hasProfile === false && (
@@ -155,13 +162,13 @@ export default function MePage() {
             </Link>
             <Link
               href="/me/skills"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
             >
               Skills
             </Link>
             <Link
               href="/me/availability"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
             >
               Availability
             </Link>
@@ -169,32 +176,39 @@ export default function MePage() {
         </div>
 
         {/* Your Activity Section */}
-        <div className="mb-8">
+        <div className="mb-8 relative">
+          {/* Subtle radial gradient hint */}
+          <div 
+            className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 70%)',
+            }}
+          />
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Your Activity
           </h2>
           <div className="space-y-3">
             <Link
               href="/asks"
-              className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center font-medium`}
+              className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium`}
             >
               {askEmojis.default} Asks (I am learning)
             </Link>
             <Link
               href="/offers"
-              className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center font-medium`}
+              className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium`}
             >
               {offerEmojis.default} Offers (I am teaching)
             </Link>
             <Link
               href="/me/sessions"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
             >
               Sessions
             </Link>
             <Link
               href="/notifications"
-              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
             >
               Notifications
               {notificationCount > 0 && (
@@ -207,26 +221,33 @@ export default function MePage() {
         </div>
 
         {/* Community Section */}
-        <div>
+        <div className="relative">
+          {/* Subtle radial gradient hint */}
+          <div 
+            className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
+            style={{
+              background: 'radial-gradient(circle at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%)',
+            }}
+          />
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Community
           </h2>
           <div className="space-y-3">
             <Link
               href="/profiles"
-              className="block p-3 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-center font-medium"
+              className="block p-3 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
             >
               👥 Browse Profiles
             </Link>
             <Link
               href="/network"
-              className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-center font-medium"
+              className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
             >
               🌐 Browse Network
             </Link>
             <Link
               href="/garden/public-board"
-              className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-center font-medium"
+              className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
             >
               🌱 Public Garden Board
             </Link>
