@@ -22,6 +22,7 @@ import { BackgroundImage } from '@/components/BackgroundImage';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -274,8 +275,8 @@ function PublicGardenBoardContent() {
                   {/* Header */}
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400 to-blue-500 flex items-center justify-center text-white font-semibold">
-                        {authorName.charAt(0).toUpperCase()}
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border border-green-300/30 dark:border-green-500/20">
+                        <EmojiIdentitySeed profile={authorProfile} size="lg" showGlow={true} />
                       </div>
                       <div>
                         <div className="flex items-center gap-2">

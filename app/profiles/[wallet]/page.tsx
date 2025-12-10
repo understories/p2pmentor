@@ -15,6 +15,7 @@ import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
@@ -298,13 +299,9 @@ export default function ProfileDetailPage() {
         {/* Profile Header */}
         <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-start gap-6">
-            {profile.profileImage && (
-              <img
-                src={profile.profileImage}
-                alt={profile.displayName}
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            )}
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border-2 border-green-300/30 dark:border-green-500/20 flex-shrink-0">
+              <EmojiIdentitySeed profile={profile} size="xl" showGlow={true} />
+            </div>
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <div>
