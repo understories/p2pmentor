@@ -382,6 +382,7 @@ export default function AsksPage() {
                   value={newAsk.skill_id}
                   onChange={(skillId, skillName) => setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })}
                   placeholder="Search for a skill..."
+                  allowCreate={true}
                   required
                 />
               </div>

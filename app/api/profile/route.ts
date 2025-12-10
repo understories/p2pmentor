@@ -10,7 +10,7 @@
 import { NextResponse } from 'next/server';
 import { createUserProfile, getProfileByWallet } from '@/lib/arkiv/profile';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
-import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import { isTransactionTimeoutError, isRateLimitError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
@@ -111,6 +111,15 @@ export async function POST(request: Request) {
         
         return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {
+        // Handle rate limit errors with user-friendly message
+        if (isRateLimitError(error)) {
+          return NextResponse.json({ 
+            ok: false, 
+            error: 'Rate limit exceeded. The Arkiv network is temporarily limiting requests. Please wait a moment and try again.',
+            rateLimited: true,
+          }, { status: 429 });
+        }
+        
         // Handle transaction receipt timeout gracefully
         if (isTransactionTimeoutError(error)) {
           return NextResponse.json({ 

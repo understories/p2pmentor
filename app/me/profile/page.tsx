@@ -138,6 +138,10 @@ export default function ProfilePage() {
 
       const createResult = await createRes.json();
       if (!createResult.ok) {
+        // Handle rate limit errors with specific message
+        if (createResult.rateLimited || createRes.status === 429) {
+          throw new Error('Rate limit exceeded. The Arkiv network is temporarily limiting requests. Please wait 30-60 seconds and try again.');
+        }
         throw new Error(createResult.error || 'Failed to clone profile');
       }
 

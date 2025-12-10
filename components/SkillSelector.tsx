@@ -41,10 +41,17 @@ export function SkillSelector({
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Load skills on mount
+  // Load skills on mount and when dropdown opens (to get latest from Arkiv)
   useEffect(() => {
     loadSkills();
   }, []);
+
+  // Reload skills when dropdown opens to ensure we have latest from Arkiv
+  useEffect(() => {
+    if (isOpen && !loading) {
+      loadSkills();
+    }
+  }, [isOpen]);
 
   // Load selected skill if value provided
   useEffect(() => {
@@ -90,12 +97,21 @@ export function SkillSelector({
   const loadSkills = async () => {
     try {
       setLoading(true);
-      const { listSkills } = await import('@/lib/arkiv/skill');
-      const allSkills = await listSkills({ status: 'active' });
-      setSkills(allSkills);
-      setFilteredSkills(allSkills);
+      // Use API route (Arkiv-native: queries actual Arkiv entities)
+      const res = await fetch('/api/skills?status=active&limit=100');
+      if (!res.ok) {
+        throw new Error(`Failed to load skills: ${res.status}`);
+      }
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to load skills');
+      }
+      setSkills(data.skills || []);
+      setFilteredSkills(data.skills || []);
     } catch (error) {
       console.error('Error loading skills:', error);
+      setSkills([]);
+      setFilteredSkills([]);
     } finally {
       setLoading(false);
     }
@@ -129,9 +145,42 @@ export function SkillSelector({
       return;
     }
 
-    // TODO: Implement create new skill flow
-    // For now, just show a message
-    alert('Creating new skills is not yet enabled in beta. Please select from the curated list.');
+    try {
+      setLoading(true);
+      // Create new skill entity on Arkiv
+      const res = await fetch('/api/skills', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name_canonical: searchTerm.trim(),
+          description: undefined, // Can be added later
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to create skill');
+      }
+
+      // If skill already exists, use it
+      if (data.alreadyExists && data.skill) {
+        handleSelect(data.skill);
+        return;
+      }
+
+      // Reload skills to include the new one
+      await loadSkills();
+      
+      // Select the newly created skill
+      if (data.skill) {
+        handleSelect(data.skill);
+      }
+    } catch (error: any) {
+      console.error('Error creating skill:', error);
+      alert(`Failed to create skill: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -193,9 +242,10 @@ export function SkillSelector({
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 font-medium"
+                  disabled={loading}
+                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  + Create "{searchTerm}"
+                  {loading ? 'Creating...' : `+ Create "${searchTerm}"`}
                 </button>
               )}
             </>

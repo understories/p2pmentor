@@ -467,6 +467,7 @@ export default function OffersPage() {
                   value={newOffer.skill_id}
                   onChange={(skillId, skillName) => setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })}
                   placeholder="Search for a skill..."
+                  allowCreate={true}
                   required
                 />
               </div>
