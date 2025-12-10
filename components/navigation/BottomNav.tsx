@@ -11,6 +11,8 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTheme } from '@/lib/theme';
 import { askEmojis, offerEmojis } from '@/lib/colors';
+import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
+import { navTokens } from '@/lib/design/navTokens';
 
 interface NavItem {
   href: string;
@@ -22,8 +24,9 @@ interface NavItem {
 export function BottomNav() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const notificationCount = useNotificationCount();
 
-  // Primary navigation items (4-5 max)
+  // Primary navigation items
   const navItems: NavItem[] = [
     {
       href: '/me',
@@ -49,6 +52,17 @@ export function BottomNav() {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
+    },
+    {
+      href: '/garden/public-board',
+      label: 'Garden',
+      icon: '🌱',
+    },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      icon: '🔔',
+      badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
     },
   ];
 
@@ -82,22 +96,43 @@ export function BottomNav() {
               className={`
                 relative flex flex-col items-center justify-center
                 flex-1 h-full
-                transition-opacity duration-150 ease-out
+                transition-all duration-150 ease-out
                 ${active 
                   ? 'opacity-100' 
                   : 'opacity-60 hover:opacity-80'
                 }
               `}
+              style={{
+                boxShadow: active
+                  ? `0 0 8px ${navTokens.node.active.glow}`
+                  : undefined,
+              }}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.boxShadow = `0 0 6px ${navTokens.node.hover.glow}`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.boxShadow = '';
+                }
+              }}
             >
               <span className="text-lg mb-0.5">{item.icon}</span>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {item.label}
               </span>
+              {item.badge !== undefined && item.badge > 0 && (
+                <span className="absolute top-0 right-1/2 translate-x-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  {item.badge > 99 ? '99+' : item.badge}
+                </span>
+              )}
               {active && (
                 <div 
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-t"
+                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-t"
                   style={{
                     transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
                   }}
                 />
               )}

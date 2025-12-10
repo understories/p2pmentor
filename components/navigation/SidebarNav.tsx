@@ -10,6 +10,8 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { askEmojis, offerEmojis } from '@/lib/colors';
+import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
+import { navTokens } from '@/lib/design/navTokens';
 
 interface NavItem {
   href: string;
@@ -20,8 +22,9 @@ interface NavItem {
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const notificationCount = useNotificationCount();
 
-  // Primary navigation items (same as bottom nav)
+  // Primary navigation items
   const navItems: NavItem[] = [
     {
       href: '/me',
@@ -48,6 +51,17 @@ export function SidebarNav() {
       label: 'Sessions',
       icon: '📅',
     },
+    {
+      href: '/garden/public-board',
+      label: 'Garden',
+      icon: '🌱',
+    },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      icon: '🔔',
+      badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
+    },
   ];
 
   // Don't show on landing, auth, beta, or admin pages
@@ -73,7 +87,7 @@ export function SidebarNav() {
               key={item.href}
               href={item.href}
               className={`
-                flex flex-col items-center justify-center
+                relative flex flex-col items-center justify-center
                 w-full py-3 px-2
                 rounded-lg
                 transition-all duration-150 ease-out
@@ -83,16 +97,42 @@ export function SidebarNav() {
                 }
               `}
               title={item.label}
+              style={{
+                boxShadow: active
+                  ? `0 0 12px ${navTokens.node.active.glow}`
+                  : undefined,
+                transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
+              }}
+              onMouseEnter={(e) => {
+                if (!active) {
+                  e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
+                  e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!active) {
+                  e.currentTarget.style.boxShadow = '';
+                  e.currentTarget.style.transform = '';
+                }
+              }}
             >
-              <span className="text-2xl mb-1">{item.icon}</span>
+              <span className="relative text-2xl mb-1">
+                {item.icon}
+                {item.badge !== undefined && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </span>
               <span className="text-xs font-medium text-center leading-tight">
                 {item.label}
               </span>
               {active && (
                 <div 
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-blue-600 dark:bg-blue-400 rounded-r"
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
                   style={{
                     transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
                   }}
                 />
               )}

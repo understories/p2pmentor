@@ -35,6 +35,13 @@ export function FloatingActionButton() {
       icon: offerEmojis.default,
       color: offerColors.button,
     },
+    {
+      href: '/garden/public-board',
+      label: 'Leave Garden Note',
+      icon: '🌱',
+      color: 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600',
+      queryParam: 'create=true',
+    },
   ];
 
   return (
@@ -66,6 +73,8 @@ export function FloatingActionButton() {
                 ? '/asks?create=true'
                 : action.href === '/offers'
                 ? '/offers?create=true'
+                : action.queryParam
+                ? `${action.href}?${action.queryParam}`
                 : action.href;
               
               return (
