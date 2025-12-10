@@ -224,6 +224,12 @@ export default function MePage() {
             >
               🌐 Browse Network
             </Link>
+            <Link
+              href="/garden/public-board"
+              className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-center font-medium"
+            >
+              🌱 Public Garden Board
+            </Link>
           </div>
         </div>
       </div>
