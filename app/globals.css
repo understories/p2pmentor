@@ -148,16 +148,13 @@ body {
   background-color: var(--bg-tertiary) !important;
 }
 
-/* Light mode page backgrounds - semi-transparent to show painting */
+/* Page backgrounds - NO overlays, pure background image only */
 .light .min-h-screen.bg-white {
-  background-color: rgba(255, 255, 255, 0.75) !important;
-  backdrop-filter: blur(0.5px);
+  background-color: transparent !important;
 }
 
-/* Dark mode page backgrounds - semi-transparent to show painting */
 .dark .min-h-screen.bg-gray-900 {
-  background-color: rgba(17, 24, 39, 0.85) !important;
-  backdrop-filter: blur(0.5px);
+  background-color: transparent !important;
 }
 
 /* Dark mode forest background effects - more subtle for readability */

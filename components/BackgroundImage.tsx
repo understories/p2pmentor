@@ -9,12 +9,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 
 export function BackgroundImage() {
   const [imageLoaded, setImageLoaded] = useState(false);
-  const pathname = usePathname();
-  const isLandingPage = pathname === '/';
   
   // Use different images for light and dark mode
   const lightImage = '/understorylight.png';
@@ -43,7 +40,7 @@ export function BackgroundImage() {
 
   return (
     <>
-      {/* Light Mode Background */}
+      {/* Light Mode Background - NO OVERLAYS */}
       <div 
         className={`fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat dark:hidden transition-opacity duration-1000 ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -52,14 +49,8 @@ export function BackgroundImage() {
           backgroundImage: `url(${lightImage})`,
         }}
       />
-      {/* Light Mode Overlay - only on non-landing pages */}
-      {!isLandingPage && (
-        <div 
-          className="fixed inset-0 -z-10 dark:hidden bg-white/75 backdrop-blur-[0.5px]"
-        />
-      )}
       
-      {/* Dark Mode Background */}
+      {/* Dark Mode Background - NO OVERLAYS */}
       <div 
         className={`hidden dark:block fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -68,12 +59,6 @@ export function BackgroundImage() {
           backgroundImage: `url(${darkImage})`,
         }}
       />
-      {/* Dark Mode Overlay - only on non-landing pages */}
-      {!isLandingPage && (
-        <div 
-          className="hidden dark:block fixed inset-0 -z-10 bg-gray-900/75 backdrop-blur-[0.5px]"
-        />
-      )}
     </>
   );
 }
