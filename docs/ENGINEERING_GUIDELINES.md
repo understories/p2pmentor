@@ -11,11 +11,13 @@ This document establishes engineering principles for p2pmentor development, ensu
 ```
 /                    # Public-facing code and documentation
 ├── app/             # Next.js application code
-├── components/       # React components
+├── components/      # React components
 ├── lib/             # Core libraries and utilities
+├── scripts/         # Public utility scripts (committed)
 ├── docs/            # Public documentation (committed, visible to all)
 └── refs/            # Internal documentation (not committed, team-only)
-    └── docs/        # Internal engineering docs, research, planning
+    ├── docs/        # Internal engineering docs, research, planning
+    └── scripts/     # Internal test scripts (not committed)
 ```
 
 **Rule:** 
@@ -42,9 +44,16 @@ This document establishes engineering principles for p2pmentor development, ensu
 - API documentation for public interfaces
 
 **Examples:**
-- `PERFORMANCE_TESTING.md` - How to test performance
 - `ARKIV_GRAPHQL_TOOL.md` - Public API documentation
 - `README.md` - Project overview
+- Architecture documentation
+- User-facing guides
+
+**⚠️ NOT Public (must be in `refs/docs/`):**
+- Performance testing procedures (internal)
+- Test scripts documentation (internal)
+- Sprint planning (internal)
+- Security incident reports (internal)
 
 ### Internal Documentation (`refs/docs/`)
 
@@ -60,7 +69,10 @@ This document establishes engineering principles for p2pmentor development, ensu
 **Examples:**
 - `sprint2.md` - Sprint planning
 - `SPRINT2_READINESS_REVIEW.md` - Internal readiness review
-- `performance_data_verification.md` - Internal verification procedures
+- `PERFORMANCE_TESTING.md` - Internal testing procedures
+- `SECURITY_INCIDENT_*.md` - Security incident documentation
+- `FORCE_PUSH_*.md` - History rewrite procedures
+- Any documentation mentioning passwords or internal processes
 
 ### Code Documentation
 
@@ -258,9 +270,15 @@ fix stuff
   1. **IMMEDIATELY** remove it from code
   2. **DO NOT** mention the secret in commit messages
   3. **DO NOT** create revert commits that mention the secret
-  4. If not yet pushed: Reset to before the commit
-  5. If already pushed: Use `git filter-repo` or contact security team
-  6. **Rotate/change the secret immediately** (it's compromised)
+  4. **DO NOT** put the secret value in any commit message, even in revert commits
+  5. If not yet pushed: 
+     - `git reset --hard HEAD~N` (where N = commits to undo)
+     - Or use `git rebase -i` to remove the commit
+  6. If already pushed:
+     - **Use `git filter-repo` to remove from ALL history** (see procedure below)
+     - **Force push required** - coordinate with team first
+     - **Rotate/change the secret immediately** (it's compromised)
+  7. **Document incident in `refs/docs/`** (internal only, never commit)
 
 - **Commit message security:**
   - Use generic descriptions: "Remove hardcoded credentials"
@@ -277,6 +295,54 @@ fix stuff
 - **Admin routes:** Password-protected (TODO: proper auth)
 - **API routes:** Internal-only or properly authenticated
 - **User data:** Wallet-based authentication (no centralized auth)
+
+### History Rewrite Procedures (Security Incidents)
+
+**When to use:** Only when secrets have been committed and pushed to remote.
+
+**⚠️ WARNING: History rewrite affects all collaborators. Coordinate first.**
+
+**Procedure:**
+
+1. **Identify affected commits:**
+   ```bash
+   git log --all -S "secret_value" --oneline
+   git log --all --grep="secret_value" --oneline
+   ```
+
+2. **Install git-filter-repo:**
+   ```bash
+   pip3 install git-filter-repo
+   ```
+
+3. **Remove files containing secrets:**
+   ```bash
+   git filter-repo --path path/to/file --invert-paths --force
+   ```
+
+4. **Verify removal:**
+   ```bash
+   git log --all -S "secret_value" --oneline  # Should return nothing
+   ```
+
+5. **Force push (coordinate with team first):**
+   ```bash
+   git push --force origin main
+   ```
+
+6. **Notify collaborators:**
+   - They must re-clone or: `git fetch origin && git reset --hard origin/main`
+   - Any open PRs referencing old commits will break
+
+7. **Rotate compromised secrets immediately**
+
+**Alternative (if git-filter-repo unavailable):**
+- Use `git filter-branch` (deprecated but works)
+- Or contact security team for assistance
+
+**Documentation:**
+- Document incident in `refs/docs/SECURITY_INCIDENT_*.md` (never commit)
+- Update engineering guidelines if new patterns discovered
 
 ## 8. Testing and Verification
 
@@ -343,13 +409,23 @@ git push
 
 Before committing:
 - [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
-- [ ] No secrets in code
+- [ ] **No secrets in code** - grep for passwords, keys, tokens
+- [ ] **No hardcoded credentials as fallbacks** (e.g., `|| 'password'`)
+- [ ] **No secrets in commit messages** - check commit message before committing
+- [ ] **No secrets in documentation** - check all docs being committed
 - [ ] No hardcoded test data
 - [ ] All data sources are real
-- [ ] Documentation is appropriate (public vs internal)
+- [ ] **Documentation is appropriate (public vs internal)** - test scripts and internal docs in `refs/`
 - [ ] Code is clean (no noise)
-- [ ] Commit message is clear
+- [ ] Commit message is clear and doesn't mention secrets
 - [ ] Changes are auditable
+
+**Pre-commit secret check:**
+```bash
+# Quick check before committing
+grep -r "password.*=.*['\"]" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=refs
+grep -r "ADMIN_PASSWORD.*||" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=refs
+```
 
 Before pushing to production:
 - [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
@@ -415,17 +491,30 @@ Before pushing to production:
 
 ### Internal (Team Only)
 
-**What to Keep Internal:**
+**What to Keep Internal (MUST be in `refs/docs/` or `refs/scripts/`):**
 - Sprint planning and reviews
 - Internal research and findings
 - Decision-making processes
 - Performance analysis details
 - Team coordination notes
+- **Performance testing guides and procedures**
+- **Test scripts with credentials or internal processes**
+- **Security incident reports**
+- **Any documentation mentioning passwords, secrets, or internal processes**
+- **Internal testing procedures and results**
 
 **Where:**
-- `refs/docs/` directory (gitignored)
+- `refs/docs/` directory (gitignored) - for documentation
+- `refs/scripts/` directory (gitignored) - for test/utility scripts that shouldn't be committed
 - Not committed to repository
 - Shared via other channels if needed
+
+**Enforcement:**
+- All performance testing docs → `refs/docs/`
+- All test scripts that use credentials → `refs/scripts/` or ensure they only use env vars
+- All sprint planning → `refs/docs/`
+- All internal metrics/reports → `refs/docs/`
+- If unsure, put it in `refs/` (can always move to public later)
 
 ## 11. Best Practices Summary
 
@@ -498,11 +587,43 @@ Is this documentation?
 ├─ Is it for external users/contributors?
 │  └─ YES → docs/ (commit)
 │  └─ NO → Continue
+├─ Does it mention passwords, secrets, or credentials?
+│  └─ YES → refs/docs/ (NEVER commit)
+│  └─ NO → Continue
+├─ Is it a test script or testing procedure?
+│  └─ YES → refs/docs/ or refs/scripts/ (NEVER commit)
+│  └─ NO → Continue
 ├─ Is it internal engineering notes?
 │  └─ YES → refs/docs/ (don't commit)
 │  └─ NO → Continue
 └─ Is it code comments?
-   └─ YES → Inline comments (explain why)
+   └─ YES → Inline comments (explain why, no secrets)
+```
+
+### Test Scripts and Utilities
+
+**Location:**
+- Public utility scripts: `scripts/` (committed)
+- Internal test scripts: `refs/scripts/` (gitignored, not committed)
+- Or ensure scripts in `scripts/` only use environment variables (no hardcoded values)
+
+**Rules:**
+- ✅ Scripts that use credentials MUST only use environment variables
+- ✅ Scripts MUST fail if required env vars are missing (no fallbacks)
+- ❌ NEVER hardcode passwords, keys, or secrets in scripts
+- ❌ NEVER commit test scripts that contain internal procedures or credentials
+
+**Example:**
+```typescript
+// ✅ Correct: Fail if env var missing
+if (!process.env.ADMIN_PASSWORD) {
+  console.error('ERROR: ADMIN_PASSWORD required');
+  process.exit(1);
+}
+const password = process.env.ADMIN_PASSWORD;
+
+// ❌ Wrong: Hardcoded fallback
+const password = process.env.ADMIN_PASSWORD || 'hardcoded_password';
 ```
 
 ## 13. Enforcement
