@@ -480,27 +480,59 @@ export default function SkillsPage() {
               No skills added yet. Add your first skill above!
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-3">
               {userSkills.map((skill) => (
                 <div
                   key={skill.key}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                  className="p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                 >
-                  <div className="flex-1">
-                    <span className="font-medium">{skill.name_canonical}</span>
-                    {skill.description && (
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        {skill.description}
-                      </p>
-                    )}
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-medium text-gray-900 dark:text-gray-100">
+                          {skill.name_canonical}
+                        </span>
+                        {skill.txHash && (
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                            title="View Skill entity on Arkiv Explorer"
+                          >
+                            🔗 View on Arkiv
+                          </a>
+                        )}
+                      </div>
+                      {skill.description && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+                          {skill.description}
+                        </p>
+                      )}
+                      {skill.txHash && (
+                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                            Skill Entity Transaction:
+                          </p>
+                          <a
+                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-mono break-all"
+                          >
+                            {skill.txHash.slice(0, 20)}...
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleRemoveSkill(skill.key)}
+                      disabled={submitting}
+                      className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
                   </div>
-                  <button
-                    onClick={() => handleRemoveSkill(skill.key)}
-                    disabled={submitting}
-                    className="ml-3 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                  >
-                    Remove
-                  </button>
                 </div>
               ))}
             </div>
