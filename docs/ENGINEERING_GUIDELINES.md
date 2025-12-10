@@ -236,19 +236,39 @@ fix stuff
 
 ### Secrets Management
 
+**⚠️ CRITICAL: NEVER COMMIT SECRETS IN ANY FORM ⚠️**
+
 - **Never commit secrets:**
   - API keys
   - Private keys
   - Passwords
   - Access tokens
+  - **NEVER hardcode passwords as fallback values** (e.g., `|| 'password'`)
+  - **NEVER mention passwords in commit messages**
+  - **NEVER mention passwords in code comments**
+  - **NEVER mention passwords in documentation**
 
 - **Use environment variables:**
-  - `.env` for local development
-  - `.env.example` for documentation
+  - `.env` for local development (gitignored)
+  - `.env.example` for documentation (NO real values)
   - Vercel environment variables for production
+  - **Scripts MUST fail if required env vars are missing** - no fallbacks
+
+- **If a secret is accidentally committed:**
+  1. **IMMEDIATELY** remove it from code
+  2. **DO NOT** mention the secret in commit messages
+  3. **DO NOT** create revert commits that mention the secret
+  4. If not yet pushed: Reset to before the commit
+  5. If already pushed: Use `git filter-repo` or contact security team
+  6. **Rotate/change the secret immediately** (it's compromised)
+
+- **Commit message security:**
+  - Use generic descriptions: "Remove hardcoded credentials"
+  - Use: "Security fix: require environment variable"
+  - **NEVER**: "Remove password 'xyz'" or "Fix 'xyz' password issue"
 
 - **Document required variables:**
-  - List in `.env.example`
+  - List in `.env.example` (with placeholder values like `YOUR_PASSWORD_HERE`)
   - Document in README or setup guide
   - No secrets in example files
 
