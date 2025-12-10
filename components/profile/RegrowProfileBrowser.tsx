@@ -197,7 +197,7 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
     setError('');
     
     // Longer delay to show the loading state clearly and ensure it doesn't look like a failure
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 3500));
     
     // Call the parent handler which will create the profile
     onSelectProfile(selectedProfile);
