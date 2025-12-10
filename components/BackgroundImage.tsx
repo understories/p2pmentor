@@ -12,9 +12,9 @@ export function BackgroundImage() {
 
   return (
     <>
-      {/* Light Mode Background */}
+      {/* Light Mode Background - no overlay, show image directly */}
       <div 
-        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 dark:hidden"
+        className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat dark:hidden"
         style={{
           backgroundImage: `url(${lightImage})`,
         }}
@@ -26,8 +26,8 @@ export function BackgroundImage() {
           backgroundImage: `url(${darkImage})`,
         }}
       />
-      {/* Overlay for better text readability - stronger in light mode for accessibility */}
-      <div className="fixed inset-0 -z-10 bg-white/60 dark:bg-gray-900/50" />
+      {/* Overlay for dark mode only - for text readability */}
+      <div className="hidden dark:block fixed inset-0 -z-10 bg-gray-900/50" />
     </>
   );
 }

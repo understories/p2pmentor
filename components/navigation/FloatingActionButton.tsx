@@ -51,7 +51,7 @@ export function FloatingActionButton() {
       )}
 
       {/* FAB Container */}
-      <div className="fixed bottom-20 right-6 z-50 md:bottom-6 md:left-24">
+      <div className="fixed bottom-6 right-6 z-50 md:left-24">
         {/* Action Buttons */}
         {isOpen && (
           <div

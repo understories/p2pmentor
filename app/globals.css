@@ -24,17 +24,17 @@
   }
 }
 
-/* Light theme colors */
+/* Light theme colors - Green painting aesthetic */
 :root,
 .light {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
+  --text-primary: #2d5016; /* Deep forest green for readability */
+  --text-secondary: #4a7c2a; /* Medium green for secondary text */
+  --border-color: #c8e6c9; /* Light green border */
+  --accent-color: #2e7d32; /* Forest green accent */
+  --accent-hover: #1b5e20; /* Darker green on hover */
 }
 
 /* Dark theme colors - Forest aesthetic matching landing page */
@@ -61,6 +61,45 @@ body {
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
   min-height: 100vh;
+}
+
+/* Light mode text colors - green painting aesthetic */
+:root,
+.light {
+  color: var(--text-primary);
+}
+
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6 {
+  color: var(--text-primary);
+}
+
+.light p,
+.light span,
+.light div,
+.light a {
+  color: var(--text-primary);
+}
+
+.light .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.light .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+.light .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+.light .text-gray-500 {
+  color: var(--text-secondary) !important;
+  opacity: 0.8;
 }
 
 /* Dark mode forest background effects - more subtle for readability */

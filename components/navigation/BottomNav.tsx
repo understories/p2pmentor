@@ -1,7 +1,7 @@
 /**
- * Bottom Navigation Component (Mobile)
+ * Top Navigation Bar (Mobile)
  * 
- * Phase 0: Simple bottom nav with 4-5 primary sections.
+ * Phase 0: Simple top nav bar with 4-5 primary sections.
  * Minimal motion (120-200ms, ease-out).
  */
 
@@ -9,6 +9,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useTheme } from '@/lib/theme';
 import { askEmojis, offerEmojis } from '@/lib/colors';
 
 interface NavItem {
@@ -20,6 +21,7 @@ interface NavItem {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
 
   // Primary navigation items (4-5 max)
   const navItems: NavItem[] = [
@@ -65,12 +67,12 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-t border-gray-200 dark:border-gray-700 safe-area-inset-bottom"
+      className="md:hidden fixed top-0 left-0 right-0 z-40 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm border-b border-gray-200 dark:border-gray-700 safe-area-inset-top"
       style={{
-        paddingBottom: 'env(safe-area-inset-bottom, 0)',
+        paddingTop: 'env(safe-area-inset-top, 0)',
       }}
     >
-      <div className="flex items-center justify-around h-16 max-w-2xl mx-auto">
+      <div className="flex items-center justify-around h-14 max-w-2xl mx-auto px-2">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
@@ -87,7 +89,7 @@ export function BottomNav() {
                 }
               `}
             >
-              <span className="text-xl mb-0.5">{item.icon}</span>
+              <span className="text-lg mb-0.5">{item.icon}</span>
               <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                 {item.label}
               </span>
@@ -102,6 +104,16 @@ export function BottomNav() {
             </Link>
           );
         })}
+        {/* Theme Toggle */}
+        <button
+          onClick={toggleTheme}
+          className="flex flex-col items-center justify-center h-full px-2 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span className="text-lg mb-0.5">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Theme</span>
+        </button>
       </div>
     </nav>
   );

@@ -21,13 +21,13 @@ export function AppShell({ children }: AppShellProps) {
       {/* Desktop Sidebar */}
       <SidebarNav />
 
+      {/* Mobile Top Nav */}
+      <BottomNav />
+
       {/* Main Content Area */}
-      <main className="md:ml-20 pb-20 md:pb-4">
+      <main className="md:ml-20 pt-14 md:pt-0 pb-4">
         {children}
       </main>
-
-      {/* Mobile Bottom Nav */}
-      <BottomNav />
 
       {/* Floating Action Button */}
       <FloatingActionButton />
