@@ -15,6 +15,7 @@ import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { TimezoneSelector } from '@/components/availability/TimezoneSelector';
+import { RegrowProfileBrowser } from '@/components/profile/RegrowProfileBrowser';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -24,6 +25,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [timezone, setTimezone] = useState<string>('');
+  const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
   const router = useRouter();
 
   useEffect(() => {
@@ -56,11 +58,100 @@ export default function ProfilePage() {
         setTimezone(profileData.timezone);
       }
       // If no profile timezone, timezone state already has auto-detected value from useEffect
+      
+      // Day 2: For profile-less wallets, show selection mode (two buttons)
+      if (!profileData) {
+        setMode('select');
+      } else {
+        // If profile exists, show edit mode (form is visible)
+        setMode('create');
+      }
     } catch (err) {
       console.error('Error loading profile:', err);
       setError('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+
+  const handleRegrowSelect = async (selectedProfile: any) => {
+    try {
+      setSubmitting(true);
+      setError('');
+      setSuccess('');
+      setMode('select'); // Return to select mode after regrow
+
+      if (!walletAddress) {
+        setError('No wallet connected');
+        return;
+      }
+
+      // Beta: Clone the selected profile's data into a new profile for the current wallet
+      // We use the selected profile's data directly, not via the regrow API
+      // (since the profile might be from a different wallet)
+      const candidate = {
+        displayName: selectedProfile.displayName,
+        username: selectedProfile.username,
+        profileImage: selectedProfile.profileImage,
+        bio: selectedProfile.bio,
+        bioShort: selectedProfile.bioShort,
+        bioLong: selectedProfile.bioLong,
+        skills: selectedProfile.skills || '',
+        skillsArray: selectedProfile.skillsArray,
+        timezone: selectedProfile.timezone || timezone || 'UTC',
+        languages: selectedProfile.languages,
+        contactLinks: selectedProfile.contactLinks,
+        seniority: selectedProfile.seniority,
+        domainsOfInterest: selectedProfile.domainsOfInterest,
+        mentorRoles: selectedProfile.mentorRoles,
+        learnerRoles: selectedProfile.learnerRoles,
+        availabilityWindow: selectedProfile.availabilityWindow,
+      };
+
+      // Beta: Create a new profile for the current wallet using the selected profile's data
+      // This clones any historical profile into a new profile for the user's wallet
+      const createRes = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createProfile',
+          wallet: walletAddress, // Use current wallet, not the original profile's wallet
+          displayName: candidate.displayName,
+          username: candidate.username,
+          profileImage: candidate.profileImage,
+          bio: candidate.bio,
+          bioShort: candidate.bioShort,
+          bioLong: candidate.bioLong,
+          skills: candidate.skills || '',
+          skillsArray: candidate.skillsArray,
+          timezone: candidate.timezone || timezone || 'UTC',
+          languages: candidate.languages,
+          contactLinks: candidate.contactLinks,
+          seniority: candidate.seniority,
+          domainsOfInterest: candidate.domainsOfInterest,
+          mentorRoles: candidate.mentorRoles,
+          learnerRoles: candidate.learnerRoles,
+          availabilityWindow: candidate.availabilityWindow,
+        }),
+      });
+
+      const createResult = await createRes.json();
+      if (!createResult.ok) {
+        throw new Error(createResult.error || 'Failed to clone profile');
+      }
+
+      setSuccess(`Profile regrown from history! Entity key: ${createResult.key?.substring(0, 16)}...`);
+      
+      // Wait a moment to show success message clearly before reloading
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      await loadProfile(walletAddress);
+    } catch (err: any) {
+      console.error('Error regrowing profile:', err);
+      setError(err.message || 'Failed to regrow profile');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -173,7 +264,7 @@ export default function ProfilePage() {
   return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
-      <div className="max-w-2xl mx-auto">
+      <div className={`${!profile && mode === 'regrow' ? 'max-w-full' : 'max-w-2xl'} mx-auto`}>
         <div className="mb-6 flex items-center justify-between">
           <BackButton href="/me" />
           <Link
@@ -185,29 +276,60 @@ export default function ProfilePage() {
         </div>
         <h1 className="text-3xl font-semibold mb-6">Profile</h1>
 
-        {/* Integral Profile View - Tab Navigation */}
-        <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex gap-4" aria-label="Profile sections">
-            <Link
-              href="/me/profile"
-              className="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 transition-colors"
-            >
-              Core Identity
-            </Link>
-            <Link
-              href="/me/skills"
-              className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-            >
-              Skills
-            </Link>
-            <Link
-              href="/me/availability"
-              className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
-            >
-              Availability
-            </Link>
-          </nav>
-        </div>
+        {/* Day 2: For profile-less wallets, show two buttons at top */}
+        {!profile && mode === 'select' && (
+          <div className="mb-6 flex gap-4">
+            <div className="relative group">
+              <button
+                onClick={() => setMode('regrow')}
+                className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center gap-2"
+              >
+                <span>🌱</span>
+                <span>Regrow Profile</span>
+              </button>
+              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-80 p-3 bg-white/95 dark:bg-gray-800 backdrop-blur-sm text-gray-900 dark:text-white text-sm rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                Growing a beta in the dark forest can be unstable, and we have no central database! In case of data loss, you can regrow your profile here.
+              </div>
+            </div>
+            <div className="relative group">
+              <button
+                onClick={() => setMode('create')}
+                className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+              >
+                Create Profile
+              </button>
+              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-white/95 dark:bg-gray-800 backdrop-blur-sm text-gray-900 dark:text-white text-sm rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
+                Create a new profile from scratch.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Integral Profile View - Tab Navigation (only show when profile exists or in create mode) */}
+        {(profile || mode === 'create') && (
+          <div className="mb-6 border-b border-gray-200 dark:border-gray-700">
+            <nav className="flex gap-4" aria-label="Profile sections">
+              <Link
+                href="/me/profile"
+                className="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 transition-colors"
+              >
+                Core Identity
+              </Link>
+              <Link
+                href="/me/skills"
+                className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                Skills
+              </Link>
+              <Link
+                href="/me/availability"
+                className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+              >
+                Availability
+              </Link>
+            </nav>
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
@@ -221,11 +343,42 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {!profile && (
+        {/* Day 2: Show regrow browser when regrow mode is selected */}
+        {!profile && mode === 'regrow' && walletAddress && (
+          <div className="mb-6" style={{
+            padding: 'clamp(1.5rem, 5vw, 4rem)',
+            marginLeft: 'clamp(-2rem, -4vw, -1rem)',
+            marginRight: 'clamp(-2rem, -4vw, -1rem)',
+            marginTop: 'clamp(1rem, 3vw, 2rem)'
+          }}>
+            <button
+              onClick={() => setMode('select')}
+              className="mb-6 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+            >
+              ← Back to options
+            </button>
+            <RegrowProfileBrowser
+              wallet={walletAddress}
+              onSelectProfile={handleRegrowSelect}
+              onCancel={() => setMode('select')}
+            />
+          </div>
+        )}
+
+        {/* Show create profile intro only in create mode */}
+        {!profile && mode === 'create' && (
           <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">
-              Create Your Profile
-            </h3>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                Create Your Profile
+              </h3>
+              <button
+                onClick={() => setMode('select')}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                ← Back to options
+              </button>
+            </div>
             <p className="text-sm text-blue-800 dark:text-blue-300">
               Create your profile to start connecting with mentors and learners in the network.
               All fields marked with * are required.
@@ -244,6 +397,8 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Only show form when profile exists or in create mode */}
+        {(profile || mode === 'create') && (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Core Identity */}
           <div className="space-y-4">
@@ -434,6 +589,7 @@ export default function ProfilePage() {
             </p>
           </div>
         </form>
+        )}
       </div>
     </div>
   );

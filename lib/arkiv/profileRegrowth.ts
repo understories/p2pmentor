@@ -15,6 +15,7 @@ import { normalizeIdentity } from '../identity/rootIdentity';
  */
 export interface HistoricalProfileData {
   latestProfile: UserProfile;
+  allProfiles: UserProfile[]; // Day 2: All historical profiles for browsing
   profileIds: string[];
   firstSeenAt: string;
   lastSeenAt: string;
@@ -47,7 +48,19 @@ export async function fetchHistoricalProfileData(
     const normalizedIdentity = normalizeIdentity(identity);
     
     // Query all profiles for this wallet
-    const profiles = await listUserProfilesForWallet(normalizedIdentity);
+    // Note: This should find all profiles regardless of when they were created
+    let profiles = await listUserProfilesForWallet(normalizedIdentity);
+    
+    // Fallback: If no profiles found via wallet attribute query, try fetching all profiles
+    // and filtering by wallet (in case older profiles have wallet only in payload, not in attributes)
+    // This ensures we can regrow from all historical profiles regardless of how they were stored
+    if (!profiles || profiles.length === 0) {
+      const { listUserProfiles } = await import('./profile');
+      const allProfiles = await listUserProfiles();
+      profiles = allProfiles.filter(p => 
+        p.wallet?.toLowerCase() === normalizedIdentity
+      );
+    }
     
     if (!profiles || profiles.length === 0) {
       return null;
@@ -78,6 +91,7 @@ export async function fetchHistoricalProfileData(
     
     return {
       latestProfile,
+      allProfiles: sortedProfiles, // Day 2: Return all profiles for browsing
       profileIds,
       firstSeenAt,
       lastSeenAt,
@@ -90,15 +104,14 @@ export async function fetchHistoricalProfileData(
 }
 
 /**
- * Build candidate profile from historical data
+ * Build candidate profile from a specific historical profile
  * 
- * For v1, simply use latestProfile data as-is.
- * Later we can do merging, heuristics, or combine across multiple partial profiles.
+ * Day 2: Can build from any profile, not just latest.
  * 
- * @param history - Historical profile data
+ * @param profile - Historical profile to build from
  * @returns Candidate profile data for creation
  */
-function buildProfileFromHistory(history: HistoricalProfileData): Partial<{
+export function buildProfileFromHistory(profile: UserProfile): Partial<{
   displayName: string;
   username?: string;
   profileImage?: string;
@@ -121,42 +134,41 @@ function buildProfileFromHistory(history: HistoricalProfileData): Partial<{
   learnerRoles?: string[];
   availabilityWindow?: string;
 }> {
-  const latest = history.latestProfile;
-  
-  // Extract all profile fields from latest profile
+  // Extract all profile fields from the provided profile
   return {
-    displayName: latest.displayName,
-    username: latest.username,
-    profileImage: latest.profileImage,
-    bio: latest.bio,
-    bioShort: latest.bioShort,
-    bioLong: latest.bioLong,
-    skills: latest.skills,
-    skillsArray: latest.skillsArray,
-    timezone: latest.timezone,
-    languages: latest.languages,
-    contactLinks: latest.contactLinks,
-    seniority: latest.seniority,
-    domainsOfInterest: latest.domainsOfInterest,
-    mentorRoles: latest.mentorRoles,
-    learnerRoles: latest.learnerRoles,
-    availabilityWindow: latest.availabilityWindow,
+    displayName: profile.displayName,
+    username: profile.username,
+    profileImage: profile.profileImage,
+    bio: profile.bio,
+    bioShort: profile.bioShort,
+    bioLong: profile.bioLong,
+    skills: profile.skills,
+    skillsArray: profile.skillsArray,
+    timezone: profile.timezone,
+    languages: profile.languages,
+    contactLinks: profile.contactLinks,
+    seniority: profile.seniority,
+    domainsOfInterest: profile.domainsOfInterest,
+    mentorRoles: profile.mentorRoles,
+    learnerRoles: profile.learnerRoles,
+    availabilityWindow: profile.availabilityWindow,
   };
 }
 
 /**
- * Regrow profile from Arkiv history
+ * Regrow profile from a specific historical profile ID
  * 
- * Queries historical profile data and creates a new Profile entity
- * with that data. Stores metadata about the regrowth source.
+ * Day 2: Allows regrowing from any historical profile, not just latest.
  * 
  * @param identity - Normalized wallet address or Arkiv identity
+ * @param profileId - Specific profile ID to regrow from (optional, defaults to latest)
  * @param privateKey - Private key for creating new profile entity
  * @returns Regrow result with status and new profile
  */
 export async function regrowProfileFromArkiv(
   identity: string,
-  privateKey: `0x${string}`
+  privateKey: `0x${string}`,
+  profileId?: string
 ): Promise<RegrowResult> {
   try {
     const normalizedIdentity = normalizeIdentity(identity);
@@ -168,8 +180,23 @@ export async function regrowProfileFromArkiv(
       return { status: 'no-history' };
     }
     
-    // Build candidate profile from latest historical data
-    const candidateData = buildProfileFromHistory(history);
+    // Day 2: Select specific profile if provided, otherwise use latest
+    let selectedProfile: UserProfile;
+    if (profileId) {
+      const foundProfile = history.allProfiles.find(p => p.key === profileId);
+      if (!foundProfile) {
+        return {
+          status: 'error',
+          error: `Profile with ID ${profileId} not found in history`,
+        };
+      }
+      selectedProfile = foundProfile;
+    } else {
+      selectedProfile = history.latestProfile;
+    }
+    
+    // Build candidate profile from selected historical profile
+    const candidateData = buildProfileFromHistory(selectedProfile);
     
     // Ensure required fields are present
     if (!candidateData.displayName) {
@@ -217,7 +244,7 @@ export async function regrowProfileFromArkiv(
     return {
       status: 'regrown',
       newProfile,
-      sourceProfiles: history.profileIds,
+      sourceProfiles: [selectedProfile.key], // Day 2: Track which specific profile was regrown
     };
   } catch (error: any) {
     console.error('[regrowProfileFromArkiv] Error:', error);

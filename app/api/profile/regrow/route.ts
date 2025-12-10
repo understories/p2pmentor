@@ -38,12 +38,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Return preview data (without creating new profile)
+    // Day 2: Return all historical profiles for browsing
     return NextResponse.json({
       ok: true,
       hasHistory: true,
       history: {
         latestProfile: {
+          key: history.latestProfile.key,
           displayName: history.latestProfile.displayName,
           username: history.latestProfile.username,
           bio: history.latestProfile.bio,
@@ -51,7 +52,21 @@ export async function GET(request: NextRequest) {
           skills: history.latestProfile.skills,
           skillsArray: history.latestProfile.skillsArray,
           timezone: history.latestProfile.timezone,
+          createdAt: history.latestProfile.createdAt,
         },
+        // Day 2: Return all profiles for browsing
+        allProfiles: history.allProfiles.map(p => ({
+          key: p.key,
+          displayName: p.displayName,
+          username: p.username,
+          bio: p.bio,
+          bioShort: p.bioShort,
+          skills: p.skills,
+          skillsArray: p.skillsArray,
+          timezone: p.timezone,
+          createdAt: p.createdAt,
+          profileImage: p.profileImage,
+        })),
         profileCount: history.profileCount,
         firstSeenAt: history.firstSeenAt,
         lastSeenAt: history.lastSeenAt,
@@ -70,15 +85,19 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/profile/regrow
  * 
+ * Day 2: Returns candidate profile data for a specific historical profile.
+ * 
  * NOTE: For beta, regrowth happens client-side.
  * This endpoint returns the candidate profile data for client-side creation.
  * 
- * Body: { wallet: string }
+ * Body: { wallet: string, profileId?: string }
+ *   - profileId: Optional. If provided, regrow from that specific profile.
+ *                If not provided, uses the latest profile.
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { wallet } = body;
+    const { wallet, profileId } = body;
 
     if (!wallet) {
       return NextResponse.json(
@@ -98,33 +117,50 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Day 2: Select specific profile if provided, otherwise use latest
+    let selectedProfile: typeof history.latestProfile;
+    if (profileId) {
+      const foundProfile = history.allProfiles.find(p => p.key === profileId);
+      if (!foundProfile) {
+        return NextResponse.json({
+          ok: false,
+          error: `Profile with ID ${profileId} not found in history`,
+          status: 'profile-not-found',
+        });
+      }
+      selectedProfile = foundProfile;
+    } else {
+      selectedProfile = history.latestProfile;
+    }
+
     // Return candidate profile data for client-side creation
     // Client will use createUserProfileClient() to create the new profile
     const candidate = {
-      displayName: history.latestProfile.displayName,
-      username: history.latestProfile.username,
-      profileImage: history.latestProfile.profileImage,
-      bio: history.latestProfile.bio,
-      bioShort: history.latestProfile.bioShort,
-      bioLong: history.latestProfile.bioLong,
-      skills: history.latestProfile.skills,
-      skillsArray: history.latestProfile.skillsArray,
-      timezone: history.latestProfile.timezone || 'UTC',
-      languages: history.latestProfile.languages,
-      contactLinks: history.latestProfile.contactLinks,
-      seniority: history.latestProfile.seniority,
-      domainsOfInterest: history.latestProfile.domainsOfInterest,
-      mentorRoles: history.latestProfile.mentorRoles,
-      learnerRoles: history.latestProfile.learnerRoles,
-      availabilityWindow: history.latestProfile.availabilityWindow,
+      displayName: selectedProfile.displayName,
+      username: selectedProfile.username,
+      profileImage: selectedProfile.profileImage,
+      bio: selectedProfile.bio,
+      bioShort: selectedProfile.bioShort,
+      bioLong: selectedProfile.bioLong,
+      skills: selectedProfile.skills,
+      skillsArray: selectedProfile.skillsArray,
+      timezone: selectedProfile.timezone || 'UTC',
+      languages: selectedProfile.languages,
+      contactLinks: selectedProfile.contactLinks,
+      seniority: selectedProfile.seniority,
+      domainsOfInterest: selectedProfile.domainsOfInterest,
+      mentorRoles: selectedProfile.mentorRoles,
+      learnerRoles: selectedProfile.learnerRoles,
+      availabilityWindow: selectedProfile.availabilityWindow,
     };
 
     return NextResponse.json({
       ok: true,
       status: 'candidate-ready',
       candidateProfile: candidate,
+      sourceProfileId: selectedProfile.key, // Day 2: Track which profile was selected
       sourceProfiles: history.profileIds,
-      lastSeenAt: history.lastSeenAt,
+      lastSeenAt: selectedProfile.createdAt || history.lastSeenAt,
       message: 'Candidate profile data ready for client-side creation',
     });
   } catch (error: any) {
