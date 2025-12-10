@@ -65,9 +65,9 @@ export default function BetaPage() {
               className="w-full px-4 py-3 text-base border-2 rounded-lg 
                        bg-white dark:bg-gray-800 
                        text-gray-900 dark:text-gray-100
-                       border-gray-300 dark:border-gray-600
-                       focus:border-blue-500 dark:focus:border-emerald-500
-                       focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-emerald-500/20
+                       border-[var(--border-color)] dark:border-gray-600
+                       focus:border-[var(--accent-color)] dark:focus:border-emerald-500
+                       focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]/20 dark:focus:ring-emerald-500/20
                        transition-colors"
             />
           </div>
@@ -81,10 +81,10 @@ export default function BetaPage() {
           <button
             type="submit"
             className="w-full px-6 py-3 text-base font-semibold rounded-lg
-                     bg-blue-600 dark:bg-emerald-600
+                     bg-[var(--accent-color)] dark:bg-emerald-600
                      text-white
-                     hover:bg-blue-700 dark:hover:bg-emerald-700
-                     focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-emerald-500 focus:ring-offset-2
+                     hover:bg-[var(--accent-hover)] dark:hover:bg-emerald-700
+                     focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] dark:focus:ring-emerald-500 focus:ring-offset-2
                      transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed"
           >

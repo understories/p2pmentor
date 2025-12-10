@@ -117,6 +117,27 @@ body {
   opacity: 0.8;
 }
 
+/* Light mode border colors - green painting aesthetic */
+.light .border-gray-200,
+.light .border-gray-300 {
+  border-color: var(--border-color) !important;
+}
+
+.light .border-gray-600,
+.light .border-gray-700 {
+  border-color: var(--accent-color) !important;
+  opacity: 0.6;
+}
+
+/* Light mode background colors - subtle green tints */
+.light .bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.light .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
 /* Dark mode forest background effects - more subtle for readability */
 .dark body {
   background: 
