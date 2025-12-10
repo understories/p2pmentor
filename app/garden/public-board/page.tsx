@@ -13,7 +13,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -28,6 +28,7 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function PublicGardenBoardPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [notes, setNotes] = useState<GardenNote[]>([]);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
@@ -50,6 +51,15 @@ export default function PublicGardenBoardPage() {
   useEffect(() => {
     loadNotes();
   }, []);
+
+  // Open modal if create=true in URL (from FAB)
+  useEffect(() => {
+    if (searchParams.get('create') === 'true') {
+      setShowComposeModal(true);
+      // Remove query param from URL
+      router.replace('/garden/public-board');
+    }
+  }, [searchParams, router]);
 
   const loadNotes = async () => {
     try {
