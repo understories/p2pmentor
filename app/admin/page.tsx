@@ -141,6 +141,12 @@ export default function AdminDashboard() {
   const [clientPerfExpanded, setClientPerfExpanded] = useState(false); // Default collapsed - engineering
   const [retentionExpanded, setRetentionExpanded] = useState(false); // Default collapsed - engineering
   const [aggregatesExpanded, setAggregatesExpanded] = useState(false); // Default collapsed - engineering
+  const [clientPerfData, setClientPerfData] = useState<any[]>([]);
+  const [clientPerfLoading, setClientPerfLoading] = useState(false);
+  const [retentionData, setRetentionData] = useState<any[]>([]);
+  const [retentionLoading, setRetentionLoading] = useState(false);
+  const [aggregatesData, setAggregatesData] = useState<any[]>([]);
+  const [aggregatesLoading, setAggregatesLoading] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -1096,6 +1102,19 @@ export default function AdminDashboard() {
                   const newState = !clientPerfExpanded;
                   setClientPerfExpanded(newState);
                   localStorage.setItem('admin_client_perf_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && clientPerfData.length === 0 && !clientPerfLoading) {
+                    setClientPerfLoading(true);
+                    fetch('/api/client-perf?limit=50')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setClientPerfData(data.metrics || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch client perf:', err))
+                      .finally(() => setClientPerfLoading(false));
+                  }
                 }}
                 className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
               >
@@ -1108,10 +1127,97 @@ export default function AdminDashboard() {
                   Privacy-preserving client-side performance metrics (TTFB, FCP, LCP, FID, CLS, TTI).
                   All metrics stored as Arkiv entities for transparency.
                 </p>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <p>Client performance tracking is active. Metrics are collected automatically and stored on Arkiv.</p>
-                  <p className="mt-2 text-xs">View metrics via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/client-perf</code></p>
-                </div>
+                {clientPerfLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading metrics...</p>
+                  </div>
+                ) : clientPerfData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Samples</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{clientPerfData.length}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg TTFB</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withTtfb = clientPerfData.filter(m => m.ttfb);
+                            return withTtfb.length > 0 
+                              ? `${Math.round(withTtfb.reduce((sum, m) => sum + (m.ttfb || 0), 0) / withTtfb.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg LCP</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withLcp = clientPerfData.filter(m => m.lcp);
+                            return withLcp.length > 0 
+                              ? `${Math.round(withLcp.reduce((sum, m) => sum + (m.lcp || 0), 0) / withLcp.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg FCP</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withFcp = clientPerfData.filter(m => m.fcp);
+                            return withFcp.length > 0 
+                              ? `${Math.round(withFcp.reduce((sum, m) => sum + (m.fcp || 0), 0) / withFcp.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Data Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Page</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">TTFB (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">FCP (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">LCP (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">FID (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">CLS</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientPerfData.slice(0, 20).map((metric, idx) => (
+                            <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="px-3 py-2 font-mono text-xs">{metric.page || '-'}</td>
+                              <td className="px-3 py-2">{metric.ttfb || '-'}</td>
+                              <td className="px-3 py-2">{metric.fcp || '-'}</td>
+                              <td className="px-3 py-2">{metric.lcp || '-'}</td>
+                              <td className="px-3 py-2">{metric.fid || '-'}</td>
+                              <td className="px-3 py-2">{metric.cls !== undefined ? metric.cls.toFixed(3) : '-'}</td>
+                              <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(metric.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data (Machine Readable) */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(clientPerfData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No client performance metrics available yet.</p>
+                )}
               </div>
             )}
           </div>
@@ -1127,6 +1233,19 @@ export default function AdminDashboard() {
                   const newState = !retentionExpanded;
                   setRetentionExpanded(newState);
                   localStorage.setItem('admin_retention_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && retentionData.length === 0 && !retentionLoading) {
+                    setRetentionLoading(true);
+                    fetch('/api/admin/retention-cohorts?limit=20&period=weekly')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setRetentionData(data.cohorts || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch retention:', err))
+                      .finally(() => setRetentionLoading(false));
+                  }
                 }}
                 className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
               >
@@ -1139,9 +1258,60 @@ export default function AdminDashboard() {
                   Privacy-preserving retention analysis using one-way hashed wallets.
                   Weekly cohorts computed via Vercel Cron.
                 </p>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <p>Retention cohorts are computed weekly. View via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/cron/weekly-retention</code></p>
-                </div>
+                {retentionLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading retention data...</p>
+                  </div>
+                ) : retentionData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Cohort Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Cohort Date</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 0</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 1</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 7</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 14</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 30</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Retention Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {retentionData.map((cohort, idx) => {
+                            const day0 = cohort.day0 || 0;
+                            const day7 = cohort.day7 || 0;
+                            const retention7d = day0 > 0 ? ((day7 / day0) * 100).toFixed(1) : '0.0';
+                            return (
+                              <tr key={cohort.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td className="px-3 py-2 font-mono text-xs">{cohort.cohortDate || '-'}</td>
+                                <td className="px-3 py-2">{day0}</td>
+                                <td className="px-3 py-2">{cohort.day1 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day7 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day14 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day30 || '-'}</td>
+                                <td className="px-3 py-2 font-semibold">{retention7d}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(retentionData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No retention cohorts available yet. Cohorts are computed weekly.</p>
+                )}
               </div>
             )}
           </div>
@@ -1157,6 +1327,20 @@ export default function AdminDashboard() {
                   const newState = !aggregatesExpanded;
                   setAggregatesExpanded(newState);
                   localStorage.setItem('admin_aggregates_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && aggregatesData.length === 0 && !aggregatesLoading) {
+                    setAggregatesLoading(true);
+                    // Get recent aggregates (last 7 days)
+                    fetch('/api/admin/metric-aggregates?limit=50&period=daily')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setAggregatesData(data.aggregates || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch aggregates:', err))
+                      .finally(() => setAggregatesLoading(false));
+                  }
                 }}
                 className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
               >
@@ -1169,9 +1353,61 @@ export default function AdminDashboard() {
                   Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, and fallback rates.
                   Computed daily via Vercel Cron.
                 </p>
-                <div className="text-sm text-gray-600 dark:text-gray-400">
-                  <p>Daily aggregates computed automatically. View via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/cron/daily-aggregates</code></p>
-                </div>
+                {aggregatesLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading aggregates...</p>
+                  </div>
+                ) : aggregatesData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Aggregates Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Date</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Operation</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Source</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p50</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p90</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p95</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p99</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Avg</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Samples</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Error Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {aggregatesData.map((agg, idx) => (
+                            <tr key={agg.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="px-3 py-2 font-mono text-xs">{agg.date || '-'}</td>
+                              <td className="px-3 py-2 text-xs">{agg.operation || '-'}</td>
+                              <td className="px-3 py-2 text-xs">{agg.source || '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p50 ? `${Math.round(agg.percentiles.p50)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p90 ? `${Math.round(agg.percentiles.p90)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p95 ? `${Math.round(agg.percentiles.p95)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p99 ? `${Math.round(agg.percentiles.p99)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.avg ? `${Math.round(agg.percentiles.avg)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.sampleCount || '-'}</td>
+                              <td className="px-3 py-2">{agg.errorRate !== undefined ? `${(agg.errorRate * 100).toFixed(1)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(aggregatesData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No daily aggregates available yet. Aggregates are computed daily.</p>
+                )}
               </div>
             )}
           </div>
