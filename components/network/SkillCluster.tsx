@@ -93,7 +93,7 @@ export function SkillCluster({
         />
         <div className="flex items-center gap-3 pl-10">
           <h3
-            className="text-xl font-semibold flex items-center gap-2"
+            className="text-xl font-bold flex items-center gap-2"
             style={{
               color: theme === 'dark' ? 'rgba(200, 255, 200, 0.9)' : 'rgba(22, 163, 74, 0.9)',
               textShadow: theme === 'dark' ? '0 0 8px rgba(34, 197, 94, 0.3)' : 'none',
@@ -146,7 +146,7 @@ export function SkillCluster({
           >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">✨</span>
-              <span className="text-xs font-medium opacity-75">Match made at: {formatDate(match.ask.createdAt)}</span>
+              <span className="text-xs font-medium opacity-50 text-gray-500 dark:text-gray-400">Match made at: {formatDate(match.ask.createdAt)}</span>
             </div>
             <div className="grid md:grid-cols-2 gap-3 text-sm">
               <div>
@@ -209,17 +209,19 @@ export function SkillCluster({
           return (
             <div
               key={ask.key}
-              className="p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+              className="p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] cursor-pointer"
               onClick={() => onAskClick?.(ask)}
               style={{
-                backgroundColor: 'transparent',
+                backgroundColor: theme === 'dark'
+                  ? 'rgba(34, 197, 94, 0.05)'
+                  : 'rgba(34, 197, 94, 0.03)',
                 borderColor: theme === 'dark'
-                  ? 'rgba(34, 197, 94, 0.4)'
-                  : 'rgba(34, 197, 94, 0.3)',
-                borderStyle: 'dashed',
+                  ? 'rgba(34, 197, 94, 0.2)'
+                  : 'rgba(34, 197, 94, 0.15)',
+                borderStyle: 'solid',
                 boxShadow: theme === 'dark'
-                  ? '0 0 8px rgba(34, 197, 94, 0.2)'
-                  : '0 2px 4px rgba(34, 197, 94, 0.1)',
+                  ? '0 0 8px rgba(34, 197, 94, 0.1)'
+                  : '0 2px 4px rgba(34, 197, 94, 0.08)',
               }}
             >
               <div className="flex items-start gap-3">
@@ -265,19 +267,19 @@ export function SkillCluster({
           return (
             <div
               key={offer.key}
-              className="p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+              className="p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] cursor-pointer"
               onClick={() => onOfferClick?.(offer)}
               style={{
                 backgroundColor: theme === 'dark'
-                  ? 'rgba(34, 197, 94, 0.15)'
-                  : 'rgba(34, 197, 94, 0.1)',
+                  ? 'rgba(34, 197, 94, 0.12)'
+                  : 'rgba(34, 197, 94, 0.08)',
                 borderColor: theme === 'dark'
-                  ? 'rgba(34, 197, 94, 0.5)'
-                  : 'rgba(34, 197, 94, 0.4)',
+                  ? 'rgba(34, 197, 94, 0.3)'
+                  : 'rgba(34, 197, 94, 0.25)',
                 borderStyle: 'solid',
                 boxShadow: theme === 'dark'
-                  ? '0 0 12px rgba(34, 197, 94, 0.3)'
-                  : '0 2px 8px rgba(34, 197, 94, 0.2)',
+                  ? '0 0 10px rgba(34, 197, 94, 0.2)'
+                  : '0 2px 6px rgba(34, 197, 94, 0.15)',
               }}
             >
               <div className="flex items-start gap-3">

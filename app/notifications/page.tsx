@@ -583,7 +583,7 @@ export default function NotificationsPage() {
             <h1 className="text-3xl font-semibold">
               Notifications
               {unreadCount > 0 && (
-                <span className="ml-3 px-2 py-1 text-sm font-medium bg-blue-600 text-white rounded-full">
+                <span className="ml-3 px-2 py-1 text-sm font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -591,7 +591,7 @@ export default function NotificationsPage() {
             <div className="flex gap-3 items-center">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-colors"
               >
                 {showFilters ? 'Hide' : 'Show'} Filters
               </button>
@@ -600,7 +600,7 @@ export default function NotificationsPage() {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
                     >
                       Mark all as read
                     </button>
@@ -608,7 +608,7 @@ export default function NotificationsPage() {
                   {notifications.filter(n => n.read).length > 0 && (
                     <button
                       onClick={markAllAsUnread}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
                     >
                       Mark all as unread
                     </button>
@@ -682,7 +682,7 @@ export default function NotificationsPage() {
                 className={`p-4 rounded-lg border ${
                   notification.read
                     ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    : 'bg-emerald-50/30 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50'
                 }`}
               >
                 <div className="flex items-start justify-between">
@@ -693,7 +693,7 @@ export default function NotificationsPage() {
                         {notification.title}
                       </h3>
                       {!notification.read && (
-                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                        <span className="text-xs opacity-75">✨</span>
                       )}
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
@@ -733,7 +733,7 @@ export default function NotificationsPage() {
                 {notification.link && (
                   <a
                     href={notification.link}
-                    className="mt-3 inline-block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
                     onClick={() => markAsRead(notification.id)}
                   >
                     View →

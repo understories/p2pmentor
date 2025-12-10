@@ -137,8 +137,8 @@ export default function MePage() {
         })()}
 
         {/* Your Profile Section */}
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Your Profile
           </h2>
           <div className="space-y-3">
@@ -169,8 +169,8 @@ export default function MePage() {
         </div>
 
         {/* Your Activity Section */}
-        <div className="mb-6">
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+        <div className="mb-8">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Your Activity
           </h2>
           <div className="space-y-3">
@@ -198,7 +198,7 @@ export default function MePage() {
             >
               Notifications
               {notificationCount > 0 && (
-                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
+                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
                   {notificationCount}
                 </span>
               )}
@@ -208,7 +208,7 @@ export default function MePage() {
 
         {/* Community Section */}
         <div>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
             Community
           </h2>
           <div className="space-y-3">

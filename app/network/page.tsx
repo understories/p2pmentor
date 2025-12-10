@@ -302,6 +302,9 @@ export default function NetworkPage() {
           title="Network"
           description="A living map of learning + teaching connections"
         />
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 -mt-4">
+          Explore skills, find matches, and connect with mentors and learners
+        </p>
 
         {/* Section A: The Canopy */}
         <CanopySection

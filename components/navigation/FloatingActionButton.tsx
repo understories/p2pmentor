@@ -77,25 +77,33 @@ export function FloatingActionButton() {
                 ? `${action.href}?${action.queryParam}`
                 : action.href;
               
+              // Special styling for Garden Note (desaturated green)
+              const isGardenNote = action.href === '/garden/public-board';
+              const gardenNoteColor = isGardenNote
+                ? 'bg-emerald-500/90 hover:bg-emerald-600/90 dark:bg-emerald-500/80 dark:hover:bg-emerald-600/80'
+                : action.color;
+              
               return (
                 <Link
                   key={action.href}
                   href={hrefWithCreate}
                   onClick={() => setIsOpen(false)}
                   className={`
-                    flex items-center gap-3
-                    px-4 py-3
+                    flex items-center gap-2
+                    px-3 py-2
                     rounded-full
-                    ${action.color}
+                    ${gardenNoteColor}
                     shadow-lg
-                    transition-transform duration-150 ease-out
+                    transition-all duration-150 ease-out
                     hover:scale-105
+                    ml-4
+                    mb-1
                   `}
                   style={{
                     animationDelay: `${index * 50}ms`,
                   }}
                 >
-                  <span className="text-xl">{action.icon}</span>
+                  <span className="text-lg">{action.icon}</span>
                   <span className="text-sm font-medium text-white whitespace-nowrap">
                     {action.label}
                   </span>

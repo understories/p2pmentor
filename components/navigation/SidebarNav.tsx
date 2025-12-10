@@ -78,7 +78,7 @@ export function SidebarNav() {
   };
 
   return (
-    <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-20 z-30 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-r border-gray-200 dark:border-gray-700">
+    <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-20 z-30 bg-white/60 dark:bg-gray-900/60 backdrop-blur-md border-r border-gray-200/50 dark:border-gray-700/50">
       <div className="flex flex-col items-center py-4 space-y-2 w-full">
         {navItems.map((item) => {
           const active = isActive(item.href);
