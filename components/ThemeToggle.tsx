@@ -43,8 +43,6 @@ export function ThemeToggle() {
       className={`${mobileClass} fixed top-4 z-50 p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2`}
       style={{
         right: 'clamp(2rem, calc(50% - 32rem), 4rem)', // Responsive: more space on right, stays near center on large screens
-      }}
-      style={{
         backgroundColor: theme === 'dark' 
           ? 'rgba(5, 20, 5, 0.3)' 
           : 'rgba(240, 240, 240, 0.9)',
