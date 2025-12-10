@@ -366,8 +366,10 @@ export default function NetworkPage() {
       const skillName = skill ? skill.name_canonical : skillKey;
       return {
         skill: skillName,
-        skillKey,
-        ...data,
+        skillKey: skillKey, // Explicitly set skillKey
+        asks: data.asks,
+        offers: data.offers,
+        matches: data.matches,
         totalCount: data.matches.length + data.asks.length + data.offers.length,
       };
     })
