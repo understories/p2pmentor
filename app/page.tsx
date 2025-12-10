@@ -8,16 +8,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import './landing.css';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
-import { useTheme } from '@/lib/theme';
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
-  const [showTimer, setShowTimer] = useState(true);
-  const { theme } = useTheme();
 
   useEffect(() => {
     // Create tree silhouettes
@@ -56,11 +53,8 @@ export default function Home() {
       <div className="fog-layer fog-1"></div>
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
-      {showTimer ? (
-        <SunriseSunsetTimer onComplete={() => setShowTimer(false)} />
-      ) : (
-        <ThemeToggle />
-      )}
+      <SunriseSunsetTimer />
+      <ThemeToggle />
       
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>

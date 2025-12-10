@@ -59,8 +59,13 @@
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 2s ease, color 2s ease;
   min-height: 100vh;
+}
+
+/* Smooth theme transitions for all elements */
+* {
+  transition: background-color 2s ease, color 2s ease, border-color 2s ease;
 }
 
 /* Light mode text colors - green painting aesthetic */
