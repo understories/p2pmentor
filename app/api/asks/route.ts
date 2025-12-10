@@ -14,7 +14,7 @@ import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, action, skill, message, expiresIn } = body;
+    const { wallet, action, skill, skill_id, skill_label, message, expiresIn } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -26,9 +26,11 @@ export async function POST(request: Request) {
     }
 
     if (action === 'createAsk') {
-      if (!skill || !message) {
+      // For beta: require skill_id (new Skill entity system)
+      // Legacy: fallback to skill string if skill_id not provided
+      if ((!skill_id && !skill) || !message) {
         return NextResponse.json(
-          { ok: false, error: 'skill and message are required' },
+          { ok: false, error: 'skill_id (or skill) and message are required' },
           { status: 400 }
         );
       }
@@ -58,7 +60,9 @@ export async function POST(request: Request) {
       try {
         const { key, txHash } = await createAsk({
           wallet: targetWallet,
-          skill,
+          skill: skill || undefined, // Legacy: optional if skill_id provided
+          skill_id: skill_id || undefined, // New: preferred for beta
+          skill_label: skill_label || skill || undefined, // Derived from Skill entity
           message,
           privateKey: getPrivateKey(),
           expiresIn: parsedExpiresIn,

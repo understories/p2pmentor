@@ -21,6 +21,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
@@ -82,7 +83,8 @@ export default function AsksPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newAsk, setNewAsk] = useState({ 
-    skill: '', 
+    skill: '', // Legacy: kept for backward compatibility
+    skill_id: '', // New: Skill entity ID (preferred for beta)
     message: '',
     ttlHours: '24', // Default 24 hours (more reasonable)
     customTtlHours: '', // For custom input
@@ -202,7 +204,11 @@ export default function AsksPage() {
 
   const handleCreateAsk = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAsk.skill.trim() || !newAsk.message.trim() || !walletAddress) return;
+    // Require skill_id for beta (new Skill entity system)
+    if (!newAsk.skill_id || !newAsk.message.trim() || !walletAddress) {
+      setError('Please select a skill and enter a message');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -220,7 +226,9 @@ export default function AsksPage() {
         body: JSON.stringify({
           action: 'createAsk',
           wallet: walletAddress,
-          skill: newAsk.skill.trim(),
+          skill: newAsk.skill.trim(), // Legacy: kept for backward compatibility
+          skill_id: newAsk.skill_id, // New: preferred for beta
+          skill_label: newAsk.skill.trim(), // Derived from Skill entity
           message: newAsk.message.trim(),
           expiresIn: expiresIn,
         }),
@@ -230,7 +238,7 @@ export default function AsksPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewAsk({ skill: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload asks after a delay using the same method as initial load (GraphQL if enabled)
@@ -238,8 +246,8 @@ export default function AsksPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess(`Ask created successfully! "${newAsk.skill}" is now live and visible to mentors. View it in Network →`);
-          setNewAsk({ skill: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setSuccess(`Ask created successfully! "${newAsk.skill || 'Your ask'}" is now live and visible to mentors. View it in Network →`);
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload asks using the same method as initial load (GraphQL if enabled)
@@ -370,13 +378,10 @@ export default function AsksPage() {
                 <label htmlFor="skill" className="block text-sm font-medium mb-2">
                   Skill you want to learn *
                 </label>
-                <input
-                  id="skill"
-                  type="text"
-                  value={newAsk.skill}
-                  onChange={(e) => setNewAsk({ ...newAsk, skill: e.target.value })}
-                  placeholder="e.g., React, TypeScript, Solidity"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <SkillSelector
+                  value={newAsk.skill_id}
+                  onChange={(skillId, skillName) => setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })}
+                  placeholder="Search for a skill..."
                   required
                 />
               </div>
@@ -472,7 +477,7 @@ export default function AsksPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewAsk({ skill: '', message: '', ttlHours: '24', customTtlHours: '' });
+                    setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
                     setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');

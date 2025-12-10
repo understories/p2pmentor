@@ -23,6 +23,7 @@ import { fetchOffers } from '@/lib/graph/offersQueries';
 import { formatAvailabilityForDisplay, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { SkillSelector } from '@/components/SkillSelector';
 import { offerColors, offerEmojis, askColors } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -84,7 +85,8 @@ export default function OffersPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newOffer, setNewOffer] = useState({ 
-    skill: '', 
+    skill: '', // Legacy: kept for backward compatibility
+    skill_id: '', // New: Skill entity ID (preferred for beta)
     message: '', 
     availabilityWindow: '',
     availabilityKey: '', // Reference to Availability entity
@@ -242,7 +244,11 @@ export default function OffersPage() {
 
   const handleCreateOffer = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newOffer.skill.trim() || !newOffer.message.trim() || !walletAddress) return;
+    // Require skill_id for beta (new Skill entity system)
+    if (!newOffer.skill_id || !newOffer.message.trim() || !walletAddress) {
+      setError('Please select a skill and enter a message');
+      return;
+    }
 
     // Validate availability based on type
     if (newOffer.availabilityType === 'saved') {
@@ -300,7 +306,9 @@ export default function OffersPage() {
         body: JSON.stringify({
           action: 'createOffer',
           wallet: walletAddress,
-          skill: newOffer.skill.trim(),
+          skill: newOffer.skill.trim(), // Legacy: kept for backward compatibility
+          skill_id: newOffer.skill_id, // New: preferred for beta
+          skill_label: newOffer.skill.trim(), // Derived from Skill entity
           message: newOffer.message.trim(),
           availabilityWindow: availabilityWindowValue,
           availabilityKey: newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
@@ -315,7 +323,7 @@ export default function OffersPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
@@ -324,7 +332,7 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
-          setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
@@ -455,13 +463,10 @@ export default function OffersPage() {
                 <label htmlFor="skill" className="block text-sm font-medium mb-2">
                   Skill you can teach *
                 </label>
-                <input
-                  id="skill"
-                  type="text"
-                  value={newOffer.skill}
-                  onChange={(e) => setNewOffer({ ...newOffer, skill: e.target.value })}
-                  placeholder="e.g., React, TypeScript, Solidity"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <SkillSelector
+                  value={newOffer.skill_id}
+                  onChange={(skillId, skillName) => setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })}
+                  placeholder="Search for a skill..."
                   required
                 />
               </div>
@@ -709,7 +714,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+                    setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
                     setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');
