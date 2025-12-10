@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useParams, usePathname } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import rehypeSlug from 'rehype-slug';
+import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import Link from 'next/link';
 
 interface GitHistory {
@@ -30,6 +32,7 @@ export default function DocsPage() {
   const [gitHistory, setGitHistory] = useState<GitHistory | null>(null);
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     const loadDocs = async () => {
@@ -81,14 +84,41 @@ export default function DocsPage() {
           <li key={file.path}>
             {file.isDirectory ? (
               <>
-                <div className={`${forTOC ? 'text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2' : 'text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider py-2 px-2'}`}>
-                  {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </div>
-                {file.children && renderFileTree(file.children, level + 1, forTOC)}
+                {forTOC ? (
+                  <>
+                    <div className="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">
+                      {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </div>
+                    {file.children && file.children.length > 0 && (
+                      <div className="ml-4 mb-2 space-y-1">
+                        {file.children
+                          .filter(child => !child.isDirectory)
+                          .map((child) => (
+                            <Link
+                              key={child.path}
+                              href={`/docs/${child.path}`}
+                              className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              • {child.name.replace(/-/g, ' ')}
+                            </Link>
+                          ))}
+                      </div>
+                    )}
+                    {file.children && renderFileTree(file.children, level + 1, forTOC)}
+                  </>
+                ) : (
+                  <>
+                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider py-2 px-2">
+                      {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </div>
+                    {file.children && renderFileTree(file.children, level + 1, forTOC)}
+                  </>
+                )}
               </>
             ) : (
               <Link
                 href={`/docs/${file.path}`}
+                onClick={() => setSidebarOpen(false)}
                 className={`block px-2 py-1.5 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
                   currentPath === file.path
                     ? 'bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium'
@@ -160,27 +190,108 @@ export default function DocsPage() {
   return (
     <>
       <div className="flex min-h-screen bg-white dark:bg-gray-900">
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+          aria-label="Toggle navigation"
+        >
+          <svg
+            className="w-6 h-6 text-gray-700 dark:text-gray-300"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {sidebarOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+
         {/* Sidebar */}
-        <aside className="w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 overflow-y-auto fixed left-0 top-0 bottom-0">
+        <aside
+          className={`
+            w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 overflow-y-auto
+            fixed left-0 top-0 bottom-0 z-40
+            transition-transform duration-300 ease-in-out
+            md:translate-x-0
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          `}
+        >
           <div className="mb-4">
-            <Link href="/docs" className="text-lg font-bold text-gray-900 dark:text-white">
+            <Link href="/docs" className="text-lg font-bold text-gray-900 dark:text-white" onClick={() => setSidebarOpen(false)}>
               p2pmentor Docs
             </Link>
           </div>
           <nav>{renderFileTree(files)}</nav>
         </aside>
 
+        {/* Sidebar backdrop (mobile only) */}
+        {sidebarOpen && (
+          <div
+            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Main content */}
-        <main className="flex-1 ml-64">
-          <article className="max-w-4xl mx-auto px-8 py-12">
+        <main className="flex-1 md:ml-64">
+          <article className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
             {/* Show table of contents for root /docs */}
             {!currentPath ? (
               renderTableOfContents()
             ) : (
               <>
                 {/* Markdown content */}
-                <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-headings:scroll-mt-20">
+                  <style jsx global>{`
+                    .anchor-link {
+                      text-decoration: none;
+                      color: inherit;
+                    }
+                    .anchor-link:hover {
+                      text-decoration: none;
+                    }
+                    .anchor-link::after {
+                      content: ' #';
+                      opacity: 0;
+                      transition: opacity 0.2s;
+                      color: #6b7280;
+                      font-size: 0.8em;
+                      margin-left: 0.25rem;
+                    }
+                    .anchor-link:hover::after {
+                      opacity: 1;
+                    }
+                    @media (max-width: 768px) {
+                      .prose {
+                        font-size: 1rem;
+                      }
+                      .prose h1 {
+                        font-size: 2rem !important;
+                      }
+                      .prose h2 {
+                        font-size: 1.5rem !important;
+                      }
+                      .prose h3 {
+                        font-size: 1.25rem !important;
+                      }
+                    }
+                  `}</style>
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[
+                      rehypeSlug,
+                      [rehypeAutolinkHeadings, {
+                        behavior: 'wrap',
+                        properties: {
+                          className: ['anchor-link'],
+                        },
+                      }],
+                    ]}
+                  >
                     {content}
                   </ReactMarkdown>
                 </div>
@@ -188,7 +299,7 @@ export default function DocsPage() {
                 {/* Git history banner */}
                 {gitHistory && gitHistory.date && (
                   <div className="mt-12 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div>
                         <span className="font-medium">Last updated:</span>{' '}
                         {formatDate(gitHistory.date)}
