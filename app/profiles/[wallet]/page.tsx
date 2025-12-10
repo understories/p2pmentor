@@ -14,6 +14,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
@@ -42,6 +43,7 @@ export default function ProfileDetailPage() {
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [meetingMode, setMeetingMode] = useState<'request' | 'peer'>('request');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [showGardenNoteModal, setShowGardenNoteModal] = useState(false);
 
   useEffect(() => {
     if (wallet) {
@@ -345,6 +347,14 @@ export default function ProfileDetailPage() {
                         className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
                       >
                         Peer Learning
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowGardenNoteModal(true);
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Leave a Note
                       </button>
                     </div>
                   )}
@@ -797,6 +807,18 @@ export default function ProfileDetailPage() {
             console.log('Meeting requested successfully');
             setSelectedOffer(null); // Clear selected offer after success
             setMeetingMode('request'); // Reset to default
+          }}
+        />
+
+        {/* Garden Note Modal */}
+        <GardenNoteComposeModal
+          isOpen={showGardenNoteModal}
+          onClose={() => setShowGardenNoteModal(false)}
+          targetProfile={profile}
+          userWallet={userWallet}
+          userProfile={userProfile}
+          onSuccess={() => {
+            console.log('Garden note posted successfully');
           }}
         />
       </div>
