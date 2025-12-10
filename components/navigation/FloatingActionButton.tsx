@@ -16,9 +16,9 @@ export function FloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
 
-  // Don't show on landing, auth, beta, or admin pages
-  const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
-  if (hideNavPaths.some(path => pathname === path || pathname.startsWith('/admin'))) {
+  // Don't show on landing, auth, beta, admin, or docs pages
+  const hideNavPaths = ['/', '/auth', '/beta', '/admin', '/docs'];
+  if (hideNavPaths.some(path => pathname === path || pathname?.startsWith('/admin') || pathname?.startsWith('/docs'))) {
     return null;
   }
 
