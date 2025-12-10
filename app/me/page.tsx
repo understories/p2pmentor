@@ -14,6 +14,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
+import { LearningCommunitiesCard } from '@/components/LearningCommunitiesCard';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -252,6 +253,13 @@ export default function MePage() {
               🌱 Public Garden Board
             </Link>
           </div>
+          
+          {/* Learning Communities Card */}
+          {walletAddress && (
+            <div className="mt-4">
+              <LearningCommunitiesCard wallet={walletAddress} />
+            </div>
+          )}
         </div>
       </div>
     </div>
