@@ -67,10 +67,20 @@
 
 /* Apply theme colors */
 body {
-  background-color: var(--bg-primary);
+  background-color: transparent; /* Let BackgroundImage component handle background */
   color: var(--text-primary);
   transition: background-color 2s ease, color 2s ease;
   min-height: 100vh;
+}
+
+/* Light mode body - transparent so background painting shows through */
+.light body {
+  background-color: transparent;
+}
+
+/* Dark mode body - keep existing gradient overlay */
+.dark body {
+  background-color: transparent;
 }
 
 /* Smooth theme transitions for all elements */
@@ -136,6 +146,18 @@ body {
 
 .light .bg-gray-100 {
   background-color: var(--bg-tertiary) !important;
+}
+
+/* Light mode page backgrounds - semi-transparent to show painting */
+.light .min-h-screen.bg-white {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(0.5px);
+}
+
+/* Dark mode page backgrounds - semi-transparent to show painting */
+.dark .min-h-screen.bg-gray-900 {
+  background-color: rgba(17, 24, 39, 0.85) !important;
+  backdrop-filter: blur(0.5px);
 }
 
 /* Dark mode forest background effects - more subtle for readability */
