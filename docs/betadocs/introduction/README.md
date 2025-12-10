@@ -23,6 +23,7 @@ user-flows/              # User-facing features and flows
 arkiv/                   # Arkiv-specific implementation details
 modules/                 # Reusable modules and packages
 practices/               # Best practices and guidelines
+tracking-and-privacy.md  # What we track: transparency & privacy
 roadmap.md               # Future directions
 ```
 
