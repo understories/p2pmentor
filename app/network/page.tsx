@@ -18,6 +18,11 @@ import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { CanopySection } from '@/components/network/CanopySection';
+import { ForestPulseStats } from '@/components/network/ForestPulseStats';
+import { QuickActions } from '@/components/network/QuickActions';
+import { LeafChipFilter } from '@/components/network/LeafChipFilter';
+import { SkillCluster } from '@/components/network/SkillCluster';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
@@ -40,6 +45,7 @@ export default function NetworkPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
+  const [selectedCanopySkill, setSelectedCanopySkill] = useState<string | undefined>();
   const [typeFilter, setTypeFilter] = useState<'all' | 'asks' | 'offers' | 'matches'>('all');
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -200,26 +206,76 @@ export default function NetworkPage() {
   };
 
   // Filter data based on filters
+  const activeSkillFilter = selectedCanopySkill || skillFilter;
+  
   const filteredAsks = asks.filter((ask) => {
-    if (skillFilter && !ask.skill.toLowerCase().includes(skillFilter.toLowerCase())) {
+    if (activeSkillFilter && !ask.skill.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
       return false;
     }
     return true;
   });
 
   const filteredOffers = offers.filter((offer) => {
-    if (skillFilter && !offer.skill.toLowerCase().includes(skillFilter.toLowerCase())) {
+    if (activeSkillFilter && !offer.skill.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
       return false;
     }
     return true;
   });
 
   const filteredMatches = matches.filter((match) => {
-    if (skillFilter && !match.skillMatch.toLowerCase().includes(skillFilter.toLowerCase())) {
+    if (activeSkillFilter && !match.skillMatch.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
       return false;
     }
     return true;
   });
+
+  // Extract top skills for Canopy section
+  const skillCounts = new Map<string, number>();
+  asks.forEach(a => {
+    const count = skillCounts.get(a.skill) || 0;
+    skillCounts.set(a.skill, count + 1);
+  });
+  offers.forEach(o => {
+    const count = skillCounts.get(o.skill) || 0;
+    skillCounts.set(o.skill, count + 1);
+  });
+  const topSkills = Array.from(skillCounts.entries())
+    .map(([skill, count]) => ({ skill, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
+  // Group asks/offers/matches by skill for SkillCluster components
+  const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[] }>();
+  
+  filteredAsks.forEach(ask => {
+    if (!skillsMap.has(ask.skill)) {
+      skillsMap.set(ask.skill, { asks: [], offers: [], matches: [] });
+    }
+    skillsMap.get(ask.skill)!.asks.push(ask);
+  });
+  
+  filteredOffers.forEach(offer => {
+    if (!skillsMap.has(offer.skill)) {
+      skillsMap.set(offer.skill, { asks: [], offers: [], matches: [] });
+    }
+    skillsMap.get(offer.skill)!.offers.push(offer);
+  });
+  
+  filteredMatches.forEach(match => {
+    if (!skillsMap.has(match.skillMatch)) {
+      skillsMap.set(match.skillMatch, { asks: [], offers: [], matches: [] });
+    }
+    skillsMap.get(match.skillMatch)!.matches.push(match);
+  });
+
+  // Sort skills by total activity (matches + asks + offers)
+  const sortedSkills = Array.from(skillsMap.entries())
+    .map(([skill, data]) => ({
+      skill,
+      ...data,
+      totalCount: data.matches.length + data.asks.length + data.offers.length,
+    }))
+    .sort((a, b) => b.totalCount - a.totalCount);
 
   if (loading) {
     return (
@@ -244,366 +300,85 @@ export default function NetworkPage() {
 
         <PageHeader
           title="Network"
-          description="Browse asks, offers, and see matches based on skills."
+          description="A living map of learning + teaching connections"
         />
 
-        <BetaBanner />
+        {/* Section A: The Canopy */}
+        <CanopySection
+          skills={topSkills}
+          onSkillClick={(skill) => {
+            setSelectedCanopySkill(skill);
+            setSkillFilter(skill);
+          }}
+          selectedSkill={selectedCanopySkill}
+        />
 
-        {/* Quick Actions */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Link
-            href="/asks"
-            className={`p-4 ${askColors.card} border ${askColors.border} ${askColors.cardHover} rounded-lg transition-colors`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className={`text-sm font-semibold ${askColors.text} mb-1`}>
-                  {askEmojis.default} Create Ask
-                </h3>
-                <p className={`text-xs ${askColors.textMuted}`}>
-                  Post what you want to learn
-                </p>
-              </div>
-              <span className={askColors.text}>→</span>
-            </div>
-          </Link>
-          <Link
-            href="/offers"
-            className={`p-4 ${offerColors.card} border ${offerColors.border} ${offerColors.cardHover} rounded-lg transition-colors`}
-          >
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className={`text-sm font-semibold ${offerColors.text} mb-1`}>
-                  {offerEmojis.default} Create Offer
-                </h3>
-                <p className={`text-xs ${offerColors.textMuted}`}>
-                  Post what you can teach
-                </p>
-              </div>
-              <span className={offerColors.text}>→</span>
-            </div>
-          </Link>
-        </div>
+        {/* Section B: Forest Pulse Stats */}
+        <ForestPulseStats
+          asksCount={asks.length}
+          offersCount={offers.length}
+          matchesCount={matches.length}
+          onStatClick={(type) => {
+            setTypeFilter(type === 'asks' ? 'asks' : type === 'offers' ? 'offers' : 'matches');
+          }}
+        />
 
-        {/* Forest View Entry Point */}
-        <div className="mb-6 space-y-3">
-          <div className="p-4 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-1">
-                  🌲 Try Forest View (experimental)
-                </h3>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300">
-                  Visualize the network as an interactive graph. Desktop only.
-                </p>
-              </div>
-              <Link
-                href="/network/forest"
-                className="text-xs font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 underline"
-              >
-                Enter Forest →
-              </Link>
-            </div>
-          </div>
-          
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                  🔄 GraphQL API Comparison
-                </h3>
-                <p className="text-xs text-blue-700 dark:text-blue-300">
-                  Compare Arkiv JSON-RPC vs GraphQL API - See the tool in action!
-                </p>
-              </div>
-              <Link
-                href="/network/compare"
-                className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
-              >
-                Compare →
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* Section C: Quick Actions */}
+        <QuickActions />
 
-        {/* Filters */}
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label htmlFor="skillFilter" className="block text-sm font-medium mb-1">
-                Filter by Skill
-              </label>
-              <input
-                id="skillFilter"
-                type="text"
-                value={skillFilter}
-                onChange={(e) => setSkillFilter(e.target.value)}
-                placeholder="e.g., React, TypeScript"
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            <div className="min-w-[150px]">
-              <label htmlFor="typeFilter" className="block text-sm font-medium mb-1">
-                View
-              </label>
-              <select
-                id="typeFilter"
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All</option>
-                <option value="matches">Matches</option>
-                <option value="asks">Asks Only</option>
-                <option value="offers">Offers Only</option>
-              </select>
-            </div>
-          </div>
-        </div>
+        {/* Section E: Leaf Chip Filter */}
+        <LeafChipFilter
+          value={skillFilter}
+          onChange={(value) => {
+            setSkillFilter(value);
+            if (!value) {
+              setSelectedCanopySkill(undefined);
+            }
+          }}
+        />
 
-        {/* Stats */}
-        <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className={`p-4 ${askColors.card} border ${askColors.border} rounded-lg`}>
-            <div className={`text-2xl font-bold ${askColors.text}`}>{asks.length}</div>
-            <div className={`text-sm ${askColors.textMuted}`}>Asks</div>
-          </div>
-          <div className={`p-4 ${offerColors.card} border ${offerColors.border} rounded-lg`}>
-            <div className={`text-2xl font-bold ${offerColors.text}`}>{offers.length}</div>
-            <div className={`text-sm ${offerColors.textMuted}`}>Offers</div>
-          </div>
-          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-200">{matches.length}</div>
-            <div className="text-sm text-purple-700 dark:text-purple-300">Matches</div>
-          </div>
-        </div>
-
-        {/* Matches View */}
-        {(typeFilter === 'all' || typeFilter === 'matches') && filteredMatches.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Matches ({filteredMatches.length})</h2>
-            <div className="space-y-4">
-              {filteredMatches.map((match, idx) => (
-                <div
-                  key={`${match.ask.key}-${match.offer.key}`}
-                  className="p-6 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg"
-                >
-                  <div className="mb-3">
-                    <span className="px-3 py-1 text-sm font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 rounded">
-                      {match.skillMatch}
-                    </span>
-                  </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {/* Ask */}
-                    <div className="p-4 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Learning</div>
-                      <Link
-                        href={`/profiles/${match.ask.wallet}`}
-                        className="font-semibold text-blue-600 dark:text-blue-400 mb-2 hover:underline block"
-                      >
-                        {match.askProfile?.displayName || shortenWallet(match.ask.wallet)}
-                      </Link>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{match.ask.message}</p>
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatDate(match.ask.createdAt)} • {formatTimeRemaining(match.ask.createdAt, match.ask.ttlSeconds)} left
-                      </div>
-                    </div>
-                    {/* Offer */}
-                    <div className="p-4 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                      <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Teaching</div>
-                      <Link
-                        href={`/profiles/${match.offer.wallet}`}
-                        className={`font-semibold ${offerColors.text} mb-2 hover:underline block`}
-                      >
-                        {match.offerProfile?.displayName || shortenWallet(match.offer.wallet)}
-                      </Link>
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">{match.offer.message}</p>
-                      {match.offer.availabilityWindow && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                          Available: {formatAvailabilityForDisplay(match.offer.availabilityWindow)}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500 dark:text-gray-400">
-                        {formatDate(match.offer.createdAt)} • {formatTimeRemaining(match.offer.createdAt, match.offer.ttlSeconds)} left
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Type Filter (simplified, optional) */}
+        {typeFilter !== 'all' && (
+          <div className="mb-4">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
+            >
+              ← Show all
+            </button>
           </div>
         )}
 
-        {/* Asks View */}
-        {(typeFilter === 'all' || typeFilter === 'asks') && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Asks ({filteredAsks.length})</h2>
-            {filteredAsks.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <p>No asks found.</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredAsks.map((ask) => (
-                  <div
-                    key={ask.key}
-                    className={`p-6 ${askColors.card} border ${askColors.border} rounded-lg`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`text-lg font-semibold ${askColors.text}`}>
-                          {ask.skill}
-                        </h3>
-                          {userWallet && userOffers.some(o => {
-                            const askSkill = ask.skill.toLowerCase();
-                            const offerSkill = o.skill.toLowerCase();
-                            return askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill);
-                          }) && (
-                            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                              Matches your offer
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <Link
-                            href={`/profiles/${ask.wallet}`}
-                            className={`hover:underline ${askColors.link}`}
-                          >
-                            {profiles[ask.wallet]?.displayName || shortenWallet(ask.wallet)}
-                          </Link>
-                          {' • '}
-                          {formatDate(ask.createdAt)}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
-                        {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-3">{ask.message}</p>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {(() => {
-                        const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
-                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
-                      })()}</span>
-                      {ask.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${askColors.link} hover:underline`}
-                        >
-                          View on Arkiv
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Section D: Skill Clusters with Sprouts */}
+        {sortedSkills.length > 0 ? (
+          <div className="space-y-8">
+            {sortedSkills.map(({ skill, asks: skillAsks, offers: skillOffers, matches: skillMatches }) => {
+              // Apply type filter to skill cluster
+              const displayAsks = (typeFilter === 'all' || typeFilter === 'asks') ? skillAsks : [];
+              const displayOffers = (typeFilter === 'all' || typeFilter === 'offers') ? skillOffers : [];
+              const displayMatches = (typeFilter === 'all' || typeFilter === 'matches') ? skillMatches : [];
+              
+              if (displayAsks.length === 0 && displayOffers.length === 0 && displayMatches.length === 0) {
+                return null;
+              }
 
-        {/* Offers View */}
-        {(typeFilter === 'all' || typeFilter === 'offers') && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Offers ({filteredOffers.length})</h2>
-            {filteredOffers.length === 0 ? (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                <EmptyState
-                  title="No offers found"
-                  description={skillFilter ? `No offers match "${skillFilter}". Try a different skill or clear the filter.` : 'No one has posted any teaching offers yet. Be the first to offer your expertise!'}
-                  icon={
-                    <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  }
+              return (
+                <SkillCluster
+                  key={skill}
+                  skill={skill}
+                  asks={displayAsks}
+                  offers={displayOffers}
+                  matches={displayMatches}
+                  profiles={profiles}
                 />
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredOffers.map((offer) => (
-                  <div
-                    key={offer.key}
-                    className={`p-6 ${offerColors.card} border ${offerColors.border} rounded-lg`}
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`text-lg font-semibold ${offerColors.text}`}>
-                          {offer.skill}
-                        </h3>
-                          {userWallet && userAsks.some(a => {
-                            const askSkill = a.skill.toLowerCase();
-                            const offerSkill = offer.skill.toLowerCase();
-                            return askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill);
-                          }) && (
-                            <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                              Matches your ask
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                          <Link
-                            href={`/profiles/${offer.wallet}`}
-                            className={`hover:underline ${offerColors.link}`}
-                          >
-                            {profiles[offer.wallet]?.displayName || shortenWallet(offer.wallet)}
-                          </Link>
-                          {' • '}
-                          {formatDate(offer.createdAt)}
-                        </p>
-                      </div>
-                      <span className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}>
-                        {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
-                      </span>
-                    </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-3">{offer.message}</p>
-                    {offer.availabilityWindow && (
-                      <div className="mb-3 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
-                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-                          Availability:
-                        </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300">
-                          {formatAvailabilityForDisplay(offer.availabilityWindow)}
-                        </p>
-                      </div>
-                    )}
-                    {offer.isPaid && (
-                      <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
-                        <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
-                          Payment:
-                        </p>
-                        <p className="text-sm text-purple-800 dark:text-purple-300">
-                          <span className={`${offerColors.text} font-medium`}>💰 Requires payment</span>
-                          {offer.cost && (
-                            <span className="ml-2 text-purple-700 dark:text-purple-300">
-                              ({offer.cost})
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    )}
-                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {(() => {
-                        const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
-                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
-                      })()}</span>
-                      {offer.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${offerColors.link} hover:underline`}
-                        >
-                          View on Arkiv
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+              );
+            })}
           </div>
+        ) : (
+          <EmptyState
+            title="No skills found"
+            description={activeSkillFilter ? `No skills match "${activeSkillFilter}". Try a different filter.` : 'No asks or offers found in the network yet.'}
+          />
         )}
       </div>
     </div>
