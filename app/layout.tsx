@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { FloatingButtonCluster } from "@/components/FloatingButtonCluster";
-import { AppShell } from "@/components/navigation/AppShell";
+import { ConditionalAppShell } from "@/components/navigation/ConditionalAppShell";
 import { BackgroundImage } from "@/components/BackgroundImage";
 
 export const metadata: Metadata = {
@@ -24,9 +24,9 @@ export default function RootLayout({
       <body suppressHydrationWarning className="relative min-h-screen">
         <ThemeProvider>
           <BackgroundImage />
-          <AppShell>
+          <ConditionalAppShell>
             {children}
-          </AppShell>
+          </ConditionalAppShell>
           <FloatingButtonCluster />
         </ThemeProvider>
       </body>
