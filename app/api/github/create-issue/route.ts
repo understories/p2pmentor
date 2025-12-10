@@ -43,6 +43,10 @@ export async function POST(request: NextRequest) {
 
     // Create GitHub issue
     const issueTitle = `[${feedbackType || 'feedback'}] ${page}: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`;
+    
+    // Construct Arkiv explorer link with entity key
+    const arkivExplorerUrl = `https://explorer.mendoza.hoodi.arkiv.network/entity/${feedbackKey}`;
+    
     const issueBody = `## Feedback Details
 
 **Page:** ${page}
@@ -55,7 +59,7 @@ ${message}
 
 ---
 *Created from app feedback entity: ${feedbackKey}*
-*View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network*`;
+*[View on Arkiv Explorer](${arkivExplorerUrl})*`;
 
     const githubResponse = await fetch(
       `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,

@@ -46,6 +46,8 @@ export default function AdminFeedbackPage() {
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [creatingGitHubIssue, setCreatingGitHubIssue] = useState<string | null>(null);
   const [githubIssueLinks, setGithubIssueLinks] = useState<Record<string, { issueNumber: number; issueUrl: string }>>({});
+  const [resolvingIssue, setResolvingIssue] = useState<AppFeedback | null>(null);
+  const [resolutionNote, setResolutionNote] = useState('');
 
   useEffect(() => {
     // Check authentication
@@ -280,22 +282,27 @@ export default function AdminFeedbackPage() {
       return;
     }
 
-    if (!confirm(`Mark this ${feedback.feedbackType} as resolved?`)) {
-      return;
-    }
+    // Open resolution modal
+    setResolvingIssue(feedback);
+    setResolutionNote('');
+  };
 
-    setResolvingFeedback(feedback.key);
+  const confirmResolveFeedback = async () => {
+    if (!resolvingIssue) return;
+
+    setResolvingFeedback(resolvingIssue.key);
     try {
       const adminWallet = typeof window !== 'undefined'
         ? localStorage.getItem('wallet_address') || 'admin'
         : 'admin';
 
+      // Resolve on Arkiv
       const res = await fetch('/api/app-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'resolveFeedback',
-          feedbackKey: feedback.key,
+          feedbackKey: resolvingIssue.key,
           resolvedByWallet: adminWallet,
         }),
       });
@@ -305,7 +312,33 @@ export default function AdminFeedbackPage() {
         throw new Error(data.error || 'Failed to resolve feedback');
       }
 
-      alert('Issue marked as resolved!');
+      // Also close GitHub issue if it exists
+      const issueLink = githubIssueLinks[resolvingIssue.key];
+      if (issueLink) {
+        try {
+          const githubRes = await fetch('/api/github/close-issue', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              issueNumber: issueLink.issueNumber,
+              resolutionNote: resolutionNote.trim() || undefined,
+            }),
+          });
+
+          const githubData = await githubRes.json();
+          if (!githubRes.ok) {
+            console.warn('Failed to close GitHub issue:', githubData.error);
+            // Continue anyway - Arkiv resolution is more important
+          }
+        } catch (githubErr: any) {
+          console.warn('Error closing GitHub issue:', githubErr);
+          // Continue anyway - Arkiv resolution succeeded
+        }
+      }
+
+      alert('Issue marked as resolved' + (issueLink ? ' and GitHub issue closed!' : '!'));
+      setResolvingIssue(null);
+      setResolutionNote('');
       loadFeedback();
     } catch (err: any) {
       console.error('Error resolving feedback:', err);
@@ -321,6 +354,55 @@ export default function AdminFeedbackPage() {
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
         </div>
+
+        {/* Resolution Modal */}
+        {resolvingIssue && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                Resolve Issue
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                This will mark the issue as resolved on Arkiv{githubIssueLinks[resolvingIssue.key] ? ' and close the GitHub issue' : ''}.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Resolution Note (optional)
+                </label>
+                <textarea
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Describe how this issue was resolved..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                  rows={4}
+                />
+                {githubIssueLinks[resolvingIssue.key] && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    This note will be added as a comment to the GitHub issue.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setResolvingIssue(null);
+                    setResolutionNote('');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmResolveFeedback}
+                  disabled={resolvingFeedback === resolvingIssue.key}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {resolvingFeedback === resolvingIssue.key ? 'Resolving...' : 'Mark Resolved'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
@@ -536,13 +618,16 @@ export default function AdminFeedbackPage() {
                               View Issue #{githubIssueLinks[feedback.key].issueNumber}
                             </a>
                           ) : (
-                            <button
-                              onClick={() => handleCreateGitHubIssue(feedback)}
-                              disabled={creatingGitHubIssue === feedback.key}
-                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors disabled:opacity-50"
-                            >
-                              {creatingGitHubIssue === feedback.key ? 'Creating...' : 'Add to GitHub'}
-                            </button>
+                            // Only show "Add to GitHub" for issues, not feedback
+                            feedback.feedbackType === 'issue' && (
+                              <button
+                                onClick={() => handleCreateGitHubIssue(feedback)}
+                                disabled={creatingGitHubIssue === feedback.key}
+                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                              >
+                                {creatingGitHubIssue === feedback.key ? 'Creating...' : 'Add to GitHub'}
+                              </button>
+                            )
                           )}
                         </div>
                       </td>
