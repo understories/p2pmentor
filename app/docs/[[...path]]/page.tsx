@@ -131,9 +131,16 @@ export default function DocsPage() {
         {/* Main content */}
         <main className="flex-1 ml-64">
           <article className="max-w-4xl mx-auto px-8 py-12">
+            {/* Markdown content */}
+            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {content}
+              </ReactMarkdown>
+            </div>
+
             {/* Git history banner */}
             {gitHistory && gitHistory.date && (
-              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="mt-12 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                   <div>
                     <span className="font-medium">Last updated:</span>{' '}
@@ -162,13 +169,6 @@ export default function DocsPage() {
                 )}
               </div>
             )}
-
-            {/* Markdown content */}
-            <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {content}
-              </ReactMarkdown>
-            </div>
           </article>
         </main>
       </div>
