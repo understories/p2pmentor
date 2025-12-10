@@ -50,6 +50,17 @@ const CURATED_SKILLS = [
 
 async function seedSkills() {
   try {
+    // Check if ARKIV_PRIVATE_KEY is set
+    if (!process.env.ARKIV_PRIVATE_KEY) {
+      console.error('❌ Error: ARKIV_PRIVATE_KEY is not set in environment variables.');
+      console.error('\nTo fix this:');
+      console.error('1. Make sure you have a .env file in the project root');
+      console.error('2. Add ARKIV_PRIVATE_KEY=0x... to your .env file');
+      console.error('3. Or export it: export ARKIV_PRIVATE_KEY=0x...');
+      console.error('\nThis key is required to create Skill entities on Arkiv.');
+      process.exit(1);
+    }
+
     const privateKey = getPrivateKey();
     console.log('🌱 Seeding curated Skills...\n');
 
