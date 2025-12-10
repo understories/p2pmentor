@@ -19,15 +19,13 @@ export function BackgroundImage() {
           backgroundImage: `url(${lightImage})`,
         }}
       />
-      {/* Dark Mode Background */}
+      {/* Dark Mode Background - no overlay, show image directly */}
       <div 
-        className="hidden dark:block fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-25"
+        className="hidden dark:block fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat"
         style={{
           backgroundImage: `url(${darkImage})`,
         }}
       />
-      {/* Overlay for dark mode only - for text readability */}
-      <div className="hidden dark:block fixed inset-0 -z-10 bg-gray-900/50" />
     </>
   );
 }
