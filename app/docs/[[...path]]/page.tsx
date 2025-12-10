@@ -65,9 +65,15 @@ export default function DocsPage() {
           const gitRes = await fetch(`/api/docs/git-history?path=${encodeURIComponent(gitPath)}`);
           if (gitRes.ok) {
             const gitData = await gitRes.json();
-            setGitHistory(gitData);
+            // Only set gitHistory if we have at least some data
+            if (gitData && (gitData.hash || gitData.date || gitData.author)) {
+              setGitHistory(gitData);
+            } else {
+              console.warn('[docs] Git history API returned empty data');
+            }
           } else {
-            console.warn('[docs] Failed to load git history:', gitRes.status);
+            const errorData = await gitRes.json().catch(() => ({}));
+            console.warn('[docs] Failed to load git history:', gitRes.status, errorData);
           }
         } catch (error) {
           console.error('[docs] Error loading git history:', error);
@@ -303,7 +309,7 @@ export default function DocsPage() {
                 </div>
 
                 {/* Git history banner - always show at bottom if gitHistory exists */}
-                {gitHistory && (gitHistory.hash || gitHistory.date || gitHistory.author) && (
+                {gitHistory && (
                   <div className="mt-12 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div>
@@ -324,7 +330,9 @@ export default function DocsPage() {
                           </>
                         ) : gitHistory.hash ? (
                           <span className="font-medium">Git commit information available</span>
-                        ) : null}
+                        ) : (
+                          <span className="font-medium">Documentation page</span>
+                        )}
                       </div>
                       {gitHistory.hash && (
                         <a
