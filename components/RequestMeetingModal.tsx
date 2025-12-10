@@ -13,7 +13,10 @@
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
+import type { Ask } from '@/lib/arkiv/asks';
 import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
+
+type MeetingMode = 'request' | 'offer';
 
 interface RequestMeetingModalProps {
   isOpen: boolean;
@@ -22,6 +25,8 @@ interface RequestMeetingModalProps {
   userWallet: string | null;
   userProfile: UserProfile | null;
   offer?: Offer | null; // Optional offer - if provided, show payment info for paid offers
+  ask?: Ask | null; // Optional ask - if provided, user is offering to help
+  mode?: MeetingMode; // 'request' (default) or 'offer' - determines flow direction
   onSuccess?: () => void;
 }
 
@@ -32,6 +37,8 @@ export function RequestMeetingModal({
   userWallet,
   userProfile,
   offer,
+  ask,
+  mode = 'request', // Default to 'request' for backward compatibility
   onSuccess,
 }: RequestMeetingModalProps) {
   const [submitting, setSubmitting] = useState(false);
@@ -43,13 +50,17 @@ export function RequestMeetingModal({
     time: '',
     duration: '60',
     notes: '',
+    // Payment fields for offer mode
+    requiresPayment: false,
+    paymentAddress: '',
+    cost: '',
   });
 
-  // Pre-fill skill from offer or profile's first skill
+  // Pre-fill skill from offer, ask, or profile's first skill
   useEffect(() => {
     if (profile && isOpen) {
-      // If there's a specific offer, use its skill; otherwise use profile's first skill
-      const skill = offer?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
+      // If there's a specific offer or ask, use its skill; otherwise use profile's first skill
+      const skill = offer?.skill || ask?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
       setFormData(prev => ({
         ...prev,
         skill: skill,
@@ -57,9 +68,13 @@ export function RequestMeetingModal({
         time: '',
         duration: '60',
         notes: '',
+        // Reset payment fields
+        requiresPayment: false,
+        paymentAddress: '',
+        cost: '',
       }));
     }
-  }, [profile, offer, isOpen]);
+  }, [profile, offer, ask, isOpen]);
 
   if (!isOpen || !profile) return null;
 
@@ -75,6 +90,22 @@ export function RequestMeetingModal({
       return;
     }
 
+    // Validate payment fields if offering paid session
+    if (mode === 'offer' && formData.requiresPayment) {
+      if (!formData.paymentAddress || !formData.paymentAddress.trim()) {
+        setError('Payment address is required for paid sessions');
+        return;
+      }
+      // Basic address validation (starts with 0x and has reasonable length)
+      // Allow both 40-char (standard) and 42-char (with checksum) addresses
+      const trimmedAddress = formData.paymentAddress.trim();
+      const addressPattern = /^0x[a-fA-F0-9]{40}$/i;
+      if (!addressPattern.test(trimmedAddress)) {
+        setError('Please enter a valid Ethereum address (0x followed by 40 hex characters)');
+        return;
+      }
+    }
+
     // Validate time is in 15-minute increments
     const [hours, minutes] = formData.time.split(':').map(Number);
     if (minutes % 15 !== 0) {
@@ -82,8 +113,8 @@ export function RequestMeetingModal({
       return;
     }
 
-    // Validate against offer availability if offer is provided
-    if (offer?.availabilityWindow) {
+    // Validate against offer availability if offer is provided (request mode only)
+    if (mode === 'request' && offer?.availabilityWindow) {
       const sessionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
       const validation = validateDateTimeAgainstAvailability(sessionDate, offer.availabilityWindow);
       if (!validation.valid) {
@@ -111,37 +142,56 @@ export function RequestMeetingModal({
       // Combine date and time into ISO string
       const sessionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
 
-      // Determine mentor/learner: if target has mentor roles, they're mentor; if user has mentor roles, they're mentor; otherwise default to target as mentor
-      const targetHasMentorRoles = profile.mentorRoles && profile.mentorRoles.length > 0;
-      const userHasMentorRoles = userProfile?.mentorRoles && userProfile.mentorRoles.length > 0;
-      
-      let mentorWallet: string;
-      let learnerWallet: string;
-      
       // Normalize wallet addresses for comparison
       const targetWallet = profile.wallet?.toLowerCase() || '';
       const normalizedUserWallet = userWallet?.toLowerCase() || '';
       
       // Validate that user and target are different wallets
       if (targetWallet === normalizedUserWallet) {
-        setError('Cannot request a meeting with yourself. Please select a different profile.');
+        setError(mode === 'offer' 
+          ? 'Cannot offer to help yourself. Please select a different ask.'
+          : 'Cannot request a meeting with yourself. Please select a different profile.');
         setSubmitting(false);
         return;
       }
       
-      if (targetHasMentorRoles && !userHasMentorRoles) {
-        // Target is mentor, user is learner
-        mentorWallet = targetWallet;
-        learnerWallet = normalizedUserWallet;
-      } else if (userHasMentorRoles && !targetHasMentorRoles) {
-        // User is mentor, target is learner
+      let mentorWallet: string;
+      let learnerWallet: string;
+      
+      if (mode === 'offer') {
+        // When offering to help: user is mentor (offering to teach), ask creator is learner
         mentorWallet = normalizedUserWallet;
         learnerWallet = targetWallet;
       } else {
-        // Default: target is mentor (they're being requested)
-        mentorWallet = targetWallet;
-        learnerWallet = normalizedUserWallet;
+        // When requesting meeting: determine based on mentor roles
+        const targetHasMentorRoles = profile.mentorRoles && profile.mentorRoles.length > 0;
+        const userHasMentorRoles = userProfile?.mentorRoles && userProfile.mentorRoles.length > 0;
+        
+        if (targetHasMentorRoles && !userHasMentorRoles) {
+          // Target is mentor, user is learner
+          mentorWallet = targetWallet;
+          learnerWallet = normalizedUserWallet;
+        } else if (userHasMentorRoles && !targetHasMentorRoles) {
+          // User is mentor, target is learner
+          mentorWallet = normalizedUserWallet;
+          learnerWallet = targetWallet;
+        } else {
+          // Default: target is mentor (they're being requested)
+          mentorWallet = targetWallet;
+          learnerWallet = normalizedUserWallet;
+        }
       }
+
+      // Determine payment settings: use offer's payment if requesting, or form data if offering
+      const requiresPayment = mode === 'offer' 
+        ? formData.requiresPayment 
+        : (offer?.isPaid || false);
+      const paymentAddress = mode === 'offer'
+        ? (formData.requiresPayment ? formData.paymentAddress.trim() : undefined)
+        : (offer?.paymentAddress || undefined);
+      const cost = mode === 'offer'
+        ? (formData.requiresPayment ? formData.cost.trim() : undefined)
+        : (offer?.cost || undefined);
 
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -155,9 +205,9 @@ export function RequestMeetingModal({
             sessionDate,
             duration: formData.duration || '60',
             notes: formData.notes.trim() || '',
-            requiresPayment: offer?.isPaid || false,
-            paymentAddress: offer?.paymentAddress || undefined,
-            cost: offer?.cost || undefined,
+            requiresPayment,
+            paymentAddress,
+            cost,
           }),
       });
 
@@ -184,7 +234,7 @@ export function RequestMeetingModal({
         onSuccess();
       }
       onClose();
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
     } catch (err: any) {
       console.error('Error creating session:', err);
       const errorMessage = err.message || 'Failed to request meeting';
@@ -201,7 +251,7 @@ export function RequestMeetingModal({
           onSuccess();
         }
         onClose();
-        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
       } else {
         // Real error
         setError(errorMessage);
@@ -215,7 +265,7 @@ export function RequestMeetingModal({
     if (!submitting) {
       setError('');
       setShowConfirmation(false);
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '' });
+      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
       onClose();
     }
   };
@@ -240,7 +290,7 @@ export function RequestMeetingModal({
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">
-              Request Meeting
+              {mode === 'offer' ? 'Offer to Help' : 'Request Meeting'}
             </h2>
             <button
               onClick={handleClose}
@@ -255,7 +305,9 @@ export function RequestMeetingModal({
 
           <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
             <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-              Requesting a session with
+              {mode === 'offer' 
+                ? 'Offering to help' 
+                : 'Requesting a session with'}
             </p>
             <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
               {profile.displayName || profile.wallet.slice(0, 6) + '...' + profile.wallet.slice(-4)}
@@ -265,6 +317,11 @@ export function RequestMeetingModal({
                 {profile.bioShort}
               </p>
             )}
+            {ask && (
+              <p className="text-xs text-blue-700 dark:text-blue-400 mt-2 italic">
+                Learning: {ask.message.substring(0, 100)}{ask.message.length > 100 ? '...' : ''}
+              </p>
+            )}
           </div>
 
           {/* Confirmation Preview */}
@@ -272,7 +329,7 @@ export function RequestMeetingModal({
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-blue-900 dark:text-blue-200">
-                  Confirm Meeting Request
+                  {mode === 'offer' ? 'Confirm Help Offer' : 'Confirm Meeting Request'}
                 </h3>
                 <div className="space-y-2 text-sm">
                   <p>
@@ -292,9 +349,9 @@ export function RequestMeetingModal({
                       <strong>Notes:</strong> {formData.notes}
                     </p>
                   )}
-                  {offer?.isPaid && (
+                  {(offer?.isPaid || (mode === 'offer' && formData.requiresPayment)) && (
                     <p className="text-purple-700 dark:text-purple-300">
-                      <strong>Payment Required:</strong> {offer.cost || 'Amount TBD'}
+                      <strong>Payment Required:</strong> {mode === 'offer' ? (formData.cost || 'Amount TBD') : (offer?.cost || 'Amount TBD')}
                     </p>
                   )}
                 </div>
@@ -314,7 +371,9 @@ export function RequestMeetingModal({
                   disabled={submitting}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'Requesting...' : 'Confirm & Request'}
+                  {submitting 
+                    ? (mode === 'offer' ? 'Offering...' : 'Requesting...') 
+                    : (mode === 'offer' ? 'Confirm & Offer Help' : 'Confirm & Request')}
                 </button>
               </div>
             </div>
@@ -332,13 +391,13 @@ export function RequestMeetingModal({
                 onChange={(e) => setFormData({ ...formData, skill: e.target.value })}
                 placeholder="e.g. solidity, react, design"
                 required
-                readOnly={!!offer}
-                disabled={!!offer}
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${offer ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
+                readOnly={!!offer || !!ask}
+                disabled={!!offer || !!ask}
+                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${(offer || ask) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
               />
-              {offer && (
+              {(offer || ask) && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Skill is set by the offer and cannot be changed
+                  Skill is set by the {offer ? 'offer' : 'ask'} and cannot be changed
                 </p>
               )}
             </div>
@@ -465,8 +524,8 @@ export function RequestMeetingModal({
               />
             </div>
 
-            {/* Payment Info for Paid Offers */}
-            {offer?.isPaid && offer.paymentAddress && (
+            {/* Payment Info for Paid Offers (request mode) */}
+            {mode === 'request' && offer?.isPaid && offer.paymentAddress && (
               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
                 <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-2">
                   💰 Payment Required
@@ -482,6 +541,64 @@ export function RequestMeetingModal({
                 <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
                   <strong>Note:</strong> After the mentor confirms your session request, you will be able to submit your payment transaction hash.
                 </p>
+              </div>
+            )}
+
+            {/* Payment Settings for Offer Mode */}
+            {mode === 'offer' && (
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <div className="mb-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.requiresPayment}
+                      onChange={(e) => setFormData({ ...formData, requiresPayment: e.target.checked })}
+                      className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                    />
+                    <span className="text-sm font-medium text-purple-900 dark:text-purple-200">
+                      This is a paid session
+                    </span>
+                  </label>
+                </div>
+
+                {formData.requiresPayment && (
+                  <div className="space-y-3 mt-3">
+                    <div>
+                      <label htmlFor="paymentAddress" className="block text-sm font-medium mb-1 text-purple-900 dark:text-purple-200">
+                        Payment Address *
+                      </label>
+                      <input
+                        id="paymentAddress"
+                        type="text"
+                        value={formData.paymentAddress}
+                        onChange={(e) => setFormData({ ...formData, paymentAddress: e.target.value })}
+                        placeholder="0x..."
+                        required={formData.requiresPayment}
+                        className="w-full px-4 py-2 border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+                        Address where payment will be received
+                      </p>
+                    </div>
+
+                    <div>
+                      <label htmlFor="cost" className="block text-sm font-medium mb-1 text-purple-900 dark:text-purple-200">
+                        Cost (optional)
+                      </label>
+                      <input
+                        id="cost"
+                        type="text"
+                        value={formData.cost}
+                        onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+                        placeholder="e.g., 0.1 ETH, $50"
+                        className="w-full px-4 py-2 border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                      <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+                        Optional: Amount or description of payment
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -505,7 +622,9 @@ export function RequestMeetingModal({
                 disabled={submitting}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {submitting ? 'Requesting...' : 'Request Meeting'}
+                {submitting 
+                  ? (mode === 'offer' ? 'Offering...' : 'Requesting...') 
+                  : (mode === 'offer' ? 'Offer to Help' : 'Request Meeting')}
               </button>
             </div>
           </form>
