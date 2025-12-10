@@ -360,7 +360,31 @@ export async function buildNetworkGraphData(options?: NetworkGraphParams): Promi
   } catch (err) {
     // Log + fallback to JSON-RPC for safety
     console.error('[networkGraph] GraphQL path failed, falling back to JSON-RPC', err);
-    return buildNetworkGraphDataJsonRpc(options || {});
+    
+    // Track fallback event
+    const fallbackStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const fallbackResult = await buildNetworkGraphDataJsonRpc(options || {});
+    const fallbackDurationMs = typeof performance !== 'undefined' ? performance.now() - fallbackStartTime : Date.now() - fallbackStartTime;
+    const fallbackPayloadBytes = JSON.stringify(fallbackResult).length;
+    
+    // Record fallback performance sample
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'buildNetworkGraphData',
+        route: '/network',
+        durationMs: Math.round(fallbackDurationMs),
+        payloadBytes: fallbackPayloadBytes,
+        httpRequests: 2, // JSON-RPC typically needs 2 requests (asks + offers)
+        status: 'success',
+        usedFallback: true, // Track that this was a fallback
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
+    });
+    
+    return fallbackResult;
   }
 }
 

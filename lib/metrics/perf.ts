@@ -9,6 +9,8 @@
 
 /**
  * Performance sample for a single operation
+ * 
+ * Extended for beta metrics: includes status, errorType, and fallback tracking.
  */
 export type PerfSample = {
   source: 'graphql' | 'arkiv';
@@ -17,6 +19,9 @@ export type PerfSample = {
   durationMs: number;
   payloadBytes?: number;
   httpRequests?: number;
+  status?: 'success' | 'failure'; // Track success/failure
+  errorType?: string; // Type of error if status is 'failure'
+  usedFallback?: boolean; // Whether GraphQL fell back to JSON-RPC
   createdAt: string; // ISO timestamp
 };
 

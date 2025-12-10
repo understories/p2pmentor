@@ -44,6 +44,8 @@ export default function AdminFeedbackPage() {
   const [resolvingFeedback, setResolvingFeedback] = useState<string | null>(null);
   const [viewingResponse, setViewingResponse] = useState<{ message: string; createdAt: string; adminWallet: string } | null>(null);
   const [loadingResponse, setLoadingResponse] = useState(false);
+  const [creatingGitHubIssue, setCreatingGitHubIssue] = useState<string | null>(null);
+  const [githubIssueLinks, setGithubIssueLinks] = useState<Record<string, { issueNumber: number; issueUrl: string }>>({});
 
   useEffect(() => {
     // Check authentication
@@ -61,8 +63,30 @@ export default function AdminFeedbackPage() {
   useEffect(() => {
     if (authenticated) {
       loadFeedback();
+      loadGitHubIssueLinks();
     }
   }, [authenticated, filterSince, filterPage]);
+
+  const loadGitHubIssueLinks = async () => {
+    try {
+      const res = await fetch('/api/github/issue-links');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.links) {
+          const linksMap: Record<string, { issueNumber: number; issueUrl: string }> = {};
+          data.links.forEach((link: any) => {
+            linksMap[link.feedbackKey] = {
+              issueNumber: link.issueNumber,
+              issueUrl: link.issueUrl,
+            };
+          });
+          setGithubIssueLinks(linksMap);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading GitHub issue links:', err);
+    }
+  };
 
   const loadFeedback = async () => {
     try {
@@ -194,6 +218,49 @@ export default function AdminFeedbackPage() {
       alert(err.message || 'Failed to submit response');
     } finally {
       setSubmittingResponse(false);
+    }
+  };
+
+  const handleCreateGitHubIssue = async (feedback: AppFeedback) => {
+    if (!confirm('Create a GitHub issue from this feedback?')) {
+      return;
+    }
+
+    setCreatingGitHubIssue(feedback.key);
+    try {
+      const res = await fetch('/api/github/create-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackKey: feedback.key,
+          page: feedback.page,
+          message: feedback.message,
+          rating: feedback.rating,
+          feedbackType: feedback.feedbackType,
+          wallet: feedback.wallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create GitHub issue');
+      }
+
+      // Update local state
+      setGithubIssueLinks(prev => ({
+        ...prev,
+        [feedback.key]: {
+          issueNumber: data.issueNumber,
+          issueUrl: data.issueUrl,
+        },
+      }));
+
+      alert(`GitHub issue #${data.issueNumber} created!`);
+    } catch (err: any) {
+      console.error('Error creating GitHub issue:', err);
+      alert(err.message || 'Failed to create GitHub issue');
+    } finally {
+      setCreatingGitHubIssue(null);
     }
   };
 
@@ -427,26 +494,46 @@ export default function AdminFeedbackPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        <div className="flex gap-2">
-                          {feedback.feedbackType === 'issue' && !feedback.resolved && (
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            {feedback.feedbackType === 'issue' && !feedback.resolved && (
+                              <button
+                                onClick={() => handleResolveFeedback(feedback)}
+                                disabled={resolvingFeedback === feedback.key}
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                              >
+                                {resolvingFeedback === feedback.key ? 'Resolving...' : 'Mark Resolved'}
+                              </button>
+                            )}
                             <button
-                              onClick={() => handleResolveFeedback(feedback)}
-                              disabled={resolvingFeedback === feedback.key}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                              onClick={() => handleRespond(feedback)}
+                              className={`px-3 py-1 text-white text-xs rounded transition-colors ${
+                                feedback.hasResponse
+                                  ? 'bg-gray-500 hover:bg-gray-600'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
                             >
-                              {resolvingFeedback === feedback.key ? 'Resolving...' : 'Mark Resolved'}
+                              {feedback.hasResponse ? 'View Response' : 'Respond'}
+                            </button>
+                          </div>
+                          {githubIssueLinks[feedback.key] ? (
+                            <a
+                              href={githubIssueLinks[feedback.key].issueUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors text-center"
+                            >
+                              View Issue #{githubIssueLinks[feedback.key].issueNumber}
+                            </a>
+                          ) : (
+                            <button
+                              onClick={() => handleCreateGitHubIssue(feedback)}
+                              disabled={creatingGitHubIssue === feedback.key}
+                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                            >
+                              {creatingGitHubIssue === feedback.key ? 'Creating...' : 'Add to GitHub'}
                             </button>
                           )}
-                          <button
-                            onClick={() => handleRespond(feedback)}
-                            className={`px-3 py-1 text-white text-xs rounded transition-colors ${
-                              feedback.hasResponse
-                                ? 'bg-gray-500 hover:bg-gray-600'
-                                : 'bg-blue-600 hover:bg-blue-700'
-                            }`}
-                          >
-                            {feedback.hasResponse ? 'View Response' : 'Respond'}
-                          </button>
                         </div>
                       </td>
                     </tr>

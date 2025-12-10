@@ -138,6 +138,9 @@ export default function AdminDashboard() {
   const [pageLoadTimesExpanded, setPageLoadTimesExpanded] = useState(false); // Default collapsed
   const [recentSamplesExpanded, setRecentSamplesExpanded] = useState(false); // Default collapsed
   const [snapshotsExpanded, setSnapshotsExpanded] = useState(false); // Default collapsed
+  const [clientPerfExpanded, setClientPerfExpanded] = useState(false); // Default collapsed - engineering
+  const [retentionExpanded, setRetentionExpanded] = useState(false); // Default collapsed - engineering
+  const [aggregatesExpanded, setAggregatesExpanded] = useState(false); // Default collapsed - engineering
 
   useEffect(() => {
     // Check authentication
@@ -1064,6 +1067,114 @@ export default function AdminDashboard() {
           </div>
             </div>
           )}
+        </section>
+
+        {/* Beta Metrics Section - Engineering Focused, Default Closed */}
+        <section className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📊</span>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+                  Beta Metrics
+                </h2>
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                Engineering Dashboard
+              </span>
+            </div>
+          </div>
+          
+          {/* Client Performance Metrics */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Client Performance (Web Vitals)
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !clientPerfExpanded;
+                  setClientPerfExpanded(newState);
+                  localStorage.setItem('admin_client_perf_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {clientPerfExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {clientPerfExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Privacy-preserving client-side performance metrics (TTFB, FCP, LCP, FID, CLS, TTI).
+                  All metrics stored as Arkiv entities for transparency.
+                </p>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>Client performance tracking is active. Metrics are collected automatically and stored on Arkiv.</p>
+                  <p className="mt-2 text-xs">View metrics via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/client-perf</code></p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Retention Metrics */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Retention Cohorts
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !retentionExpanded;
+                  setRetentionExpanded(newState);
+                  localStorage.setItem('admin_retention_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {retentionExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {retentionExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Privacy-preserving retention analysis using one-way hashed wallets.
+                  Weekly cohorts computed via Vercel Cron.
+                </p>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>Retention cohorts are computed weekly. View via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/cron/weekly-retention</code></p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Metric Aggregates */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Daily Aggregates (Percentiles)
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !aggregatesExpanded;
+                  setAggregatesExpanded(newState);
+                  localStorage.setItem('admin_aggregates_expanded', String(newState));
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {aggregatesExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {aggregatesExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, and fallback rates.
+                  Computed daily via Vercel Cron.
+                </p>
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <p>Daily aggregates computed automatically. View via: <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">/api/cron/daily-aggregates</code></p>
+                </div>
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Feedback Section - Customer Focused, Default Open */}
