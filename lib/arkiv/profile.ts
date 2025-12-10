@@ -11,6 +11,7 @@ import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMeta
 import { getWalletClient } from "@/lib/wallet/getWalletClient"
 import { CURRENT_WALLET } from "../config"
 import { handleTransactionWithTimeout } from "./transaction-utils"
+import { selectRandomEmoji } from "@/lib/profile/identitySeed"
 
 export type UserProfile = {
   key: string;
@@ -19,6 +20,7 @@ export type UserProfile = {
   displayName: string;
   username?: string;
   profileImage?: string;
+  identity_seed?: string; // Emoji Identity Seed (EIS) - plant emoji for forest aesthetic
   bio?: string; // Legacy: kept for backward compatibility
   bioShort?: string; // Short bio (spec requirement)
   bioLong?: string;
@@ -119,10 +121,14 @@ export async function createUserProfileClient({
   // Use skillsArray if provided, otherwise parse skills string
   const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
 
+  // Auto-assign emoji identity seed (EIS) for new profiles
+  const identity_seed = selectRandomEmoji();
+
   const payload = {
     displayName,
     username,
     profileImage,
+    identity_seed,
     bio,
     bioShort: bioShort || bio,
     bioLong,
@@ -161,6 +167,7 @@ export async function createUserProfileClient({
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
+  if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
   if (bio) attributes.push({ key: 'bio', value: bio });
   if (skills) attributes.push({ key: 'skills', value: skills });
   if (seniority) attributes.push({ key: 'seniority', value: seniority });
@@ -242,10 +249,14 @@ export async function createUserProfile({
   // Use skillsArray if provided, otherwise parse skills string
   const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
 
+  // Auto-assign emoji identity seed (EIS) for new profiles
+  const identity_seed = selectRandomEmoji();
+
   const payload = {
     displayName,
     username,
     profileImage,
+    identity_seed,
     bio,
     bioShort: bioShort || bio,
     bioLong,
@@ -284,6 +295,7 @@ export async function createUserProfile({
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
+  if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
   if (bio) attributes.push({ key: 'bio', value: bio });
   if (skills) attributes.push({ key: 'skills', value: skills });
   if (seniority) attributes.push({ key: 'seniority', value: seniority });
@@ -394,6 +406,7 @@ export async function listUserProfiles(params?: {
       displayName: getAttr('displayName') || payload.displayName || '',
       username: payload.username || getAttr('username') || undefined,
       profileImage: payload.profileImage || undefined,
+      identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
       bio: payload.bio || getAttr('bio') || undefined,
       bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
       bioLong: payload.bioLong || undefined,
@@ -534,6 +547,7 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
       displayName: getAttr('displayName') || payload.displayName || '',
       username: payload.username || getAttr('username') || undefined,
       profileImage: payload.profileImage || undefined,
+      identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
       bio: payload.bio || getAttr('bio') || undefined,
       bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
       bioLong: payload.bioLong || undefined,
