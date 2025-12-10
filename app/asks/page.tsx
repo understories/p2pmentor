@@ -616,6 +616,8 @@ export default function AsksPage() {
           profile={selectedAskProfile}
           userWallet={walletAddress}
           userProfile={userProfile}
+          ask={selectedAsk}
+          mode="offer"
           onSuccess={() => {
             console.log('Help offered successfully');
             setSelectedAsk(null);
