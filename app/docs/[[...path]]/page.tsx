@@ -61,10 +61,16 @@ export default function DocsPage() {
 
         // Load git history
         const gitPath = `docs/betadocs/${currentPath}.md`;
-        const gitRes = await fetch(`/api/docs/git-history?path=${encodeURIComponent(gitPath)}`);
-        if (gitRes.ok) {
-          const gitData = await gitRes.json();
-          setGitHistory(gitData);
+        try {
+          const gitRes = await fetch(`/api/docs/git-history?path=${encodeURIComponent(gitPath)}`);
+          if (gitRes.ok) {
+            const gitData = await gitRes.json();
+            setGitHistory(gitData);
+          } else {
+            console.warn('[docs] Failed to load git history:', gitRes.status);
+          }
+        } catch (error) {
+          console.error('[docs] Error loading git history:', error);
         }
       } catch (error) {
         console.error('Error loading docs:', error);
@@ -296,18 +302,29 @@ export default function DocsPage() {
                   </ReactMarkdown>
                 </div>
 
-                {/* Git history banner */}
-                {gitHistory && gitHistory.date && (
+                {/* Git history banner - always show at bottom if gitHistory exists */}
+                {gitHistory && (gitHistory.hash || gitHistory.date || gitHistory.author) && (
                   <div className="mt-12 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <div>
-                        <span className="font-medium">Last updated:</span>{' '}
-                        {formatDate(gitHistory.date)}
-                        {gitHistory.author && (
+                        {gitHistory.date ? (
                           <>
-                            {' '}by <span className="font-medium">{gitHistory.author}</span>
+                            <span className="font-medium">Last updated:</span>{' '}
+                            {formatDate(gitHistory.date)}
+                            {gitHistory.author && (
+                              <>
+                                {' '}by <span className="font-medium">{gitHistory.author}</span>
+                              </>
+                            )}
                           </>
-                        )}
+                        ) : gitHistory.author ? (
+                          <>
+                            <span className="font-medium">Edited by:</span>{' '}
+                            <span className="font-medium">{gitHistory.author}</span>
+                          </>
+                        ) : gitHistory.hash ? (
+                          <span className="font-medium">Git commit information available</span>
+                        ) : null}
                       </div>
                       {gitHistory.hash && (
                         <a
