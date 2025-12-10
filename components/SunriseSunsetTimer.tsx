@@ -28,17 +28,47 @@ export function SunriseSunsetTimer() {
       return;
     }
 
-    // Ensure we start in dark mode
-    setTheme('dark');
+    // Check if user has already set a preference (manual toggle)
+    const saved = localStorage.getItem('theme');
+    if (saved === 'dark' || saved === 'light') {
+      // User has a saved preference - don't auto-switch
+      userHasToggled = true;
+      return;
+    }
+
+    // Ensure we start in dark mode on first visit (only if no saved preference)
+    if (!userHasToggled) {
+      setTheme('dark');
+    }
+
+    // Listen for manual theme toggles
+    const handleThemeToggle = () => {
+      userHasToggled = true;
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
     
-    // Switch theme every 30 seconds with soft fade
-    // Use toggleTheme to avoid dependency on theme state
-    intervalRef.current = setInterval(() => {
-      // Smooth transition handled by CSS transitions (2s ease)
-      toggleTheme();
-    }, SWITCH_INTERVAL);
+    window.addEventListener('theme-toggled', handleThemeToggle);
+    
+    // Switch theme every 30 seconds with soft fade (only if user hasn't toggled)
+    if (!userHasToggled) {
+      intervalRef.current = setInterval(() => {
+        // Check again before toggling (user might have toggled)
+        if (userHasToggled) {
+          if (intervalRef.current) {
+            clearInterval(intervalRef.current);
+            intervalRef.current = null;
+          }
+          return;
+        }
+        toggleTheme();
+      }, SWITCH_INTERVAL);
+    }
 
     return () => {
+      window.removeEventListener('theme-toggled', handleThemeToggle);
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
