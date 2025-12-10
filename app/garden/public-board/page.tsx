@@ -12,7 +12,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
@@ -26,7 +26,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
-export default function PublicGardenBoardPage() {
+function PublicGardenBoardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [notes, setNotes] = useState<GardenNote[]>([]);
@@ -379,5 +379,19 @@ export default function PublicGardenBoardPage() {
         }}
       />
     </div>
+  );
+}
+
+export default function PublicGardenBoardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+        <div className="max-w-6xl mx-auto">
+          <LoadingSpinner text="Loading garden board..." />
+        </div>
+      </div>
+    }>
+      <PublicGardenBoardContent />
+    </Suspense>
   );
 }
