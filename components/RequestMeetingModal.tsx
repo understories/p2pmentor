@@ -16,7 +16,7 @@ import type { Offer } from '@/lib/arkiv/offers';
 import type { Ask } from '@/lib/arkiv/asks';
 import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
 
-type MeetingMode = 'request' | 'offer';
+type MeetingMode = 'request' | 'offer' | 'peer';
 
 interface RequestMeetingModalProps {
   isOpen: boolean;
@@ -26,7 +26,7 @@ interface RequestMeetingModalProps {
   userProfile: UserProfile | null;
   offer?: Offer | null; // Optional offer - if provided, show payment info for paid offers
   ask?: Ask | null; // Optional ask - if provided, user is offering to help
-  mode?: MeetingMode; // 'request' (default) or 'offer' - determines flow direction
+  mode?: MeetingMode; // 'request' (default), 'offer', or 'peer' - determines flow direction
   onSuccess?: () => void;
 }
 
@@ -90,7 +90,7 @@ export function RequestMeetingModal({
       return;
     }
 
-    // Validate payment fields if offering paid session
+    // Validate payment fields if offering paid session (peer learning is always free)
     if (mode === 'offer' && formData.requiresPayment) {
       if (!formData.paymentAddress || !formData.paymentAddress.trim()) {
         setError('Payment address is required for paid sessions');
@@ -148,9 +148,13 @@ export function RequestMeetingModal({
       
       // Validate that user and target are different wallets
       if (targetWallet === normalizedUserWallet) {
-        setError(mode === 'offer' 
-          ? 'Cannot offer to help yourself. Please select a different ask.'
-          : 'Cannot request a meeting with yourself. Please select a different profile.');
+        if (mode === 'offer') {
+          setError('Cannot offer to help yourself. Please select a different ask.');
+        } else if (mode === 'peer') {
+          setError('Cannot start a peer learning session with yourself. Please select a different person.');
+        } else {
+          setError('Cannot request a meeting with yourself. Please select a different profile.');
+        }
         setSubmitting(false);
         return;
       }
@@ -162,6 +166,17 @@ export function RequestMeetingModal({
         // When offering to help: user is mentor (offering to teach), ask creator is learner
         mentorWallet = normalizedUserWallet;
         learnerWallet = targetWallet;
+      } else if (mode === 'peer') {
+        // Peer learning: both are peers, use alphabetical order for consistency
+        // Initiator goes to mentorWallet slot, other to learnerWallet slot
+        // (The distinction doesn't matter for peer learning, but we need to assign them)
+        if (normalizedUserWallet < targetWallet) {
+          mentorWallet = normalizedUserWallet;
+          learnerWallet = targetWallet;
+        } else {
+          mentorWallet = targetWallet;
+          learnerWallet = normalizedUserWallet;
+        }
       } else {
         // When requesting meeting: determine based on mentor roles
         const targetHasMentorRoles = profile.mentorRoles && profile.mentorRoles.length > 0;
@@ -182,16 +197,22 @@ export function RequestMeetingModal({
         }
       }
 
-      // Determine payment settings: use offer's payment if requesting, or form data if offering
-      const requiresPayment = mode === 'offer' 
-        ? formData.requiresPayment 
-        : (offer?.isPaid || false);
-      const paymentAddress = mode === 'offer'
-        ? (formData.requiresPayment ? formData.paymentAddress.trim() : undefined)
-        : (offer?.paymentAddress || undefined);
-      const cost = mode === 'offer'
-        ? (formData.requiresPayment ? formData.cost.trim() : undefined)
-        : (offer?.cost || undefined);
+      // Determine payment settings: peer learning is always free, otherwise use offer's payment if requesting, or form data if offering
+      const requiresPayment = mode === 'peer'
+        ? false // Peer learning is always free
+        : (mode === 'offer' 
+          ? formData.requiresPayment 
+          : (offer?.isPaid || false));
+      const paymentAddress = mode === 'peer'
+        ? undefined // Peer learning is always free
+        : (mode === 'offer'
+          ? (formData.requiresPayment ? formData.paymentAddress.trim() : undefined)
+          : (offer?.paymentAddress || undefined));
+      const cost = mode === 'peer'
+        ? undefined // Peer learning is always free
+        : (mode === 'offer'
+          ? (formData.requiresPayment ? formData.cost.trim() : undefined)
+          : (offer?.cost || undefined));
 
       const res = await fetch('/api/sessions', {
         method: 'POST',
@@ -290,7 +311,7 @@ export function RequestMeetingModal({
           {/* Header */}
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-semibold">
-              {mode === 'offer' ? 'Offer to Help' : 'Request Meeting'}
+              {mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Peer Learning' : 'Request Meeting'}
             </h2>
             <button
               onClick={handleClose}
@@ -307,6 +328,8 @@ export function RequestMeetingModal({
             <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
               {mode === 'offer' 
                 ? 'Offering to help' 
+                : mode === 'peer'
+                ? 'Starting peer learning session with'
                 : 'Requesting a session with'}
             </p>
             <p className="text-lg font-semibold text-blue-800 dark:text-blue-300">
@@ -329,7 +352,11 @@ export function RequestMeetingModal({
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-blue-900 dark:text-blue-200">
-                  {mode === 'offer' ? 'Confirm Help Offer' : 'Confirm Meeting Request'}
+                  {mode === 'offer' 
+                    ? 'Confirm Help Offer' 
+                    : mode === 'peer'
+                    ? 'Confirm Peer Learning Session'
+                    : 'Confirm Meeting Request'}
                 </h3>
                 <div className="space-y-2 text-sm">
                   <p>
@@ -372,8 +399,8 @@ export function RequestMeetingModal({
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting 
-                    ? (mode === 'offer' ? 'Offering...' : 'Requesting...') 
-                    : (mode === 'offer' ? 'Confirm & Offer Help' : 'Confirm & Request')}
+                    ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                    : (mode === 'offer' ? 'Confirm & Offer Help' : mode === 'peer' ? 'Confirm & Start Session' : 'Confirm & Request')}
                 </button>
               </div>
             </div>
@@ -602,6 +629,27 @@ export function RequestMeetingModal({
               </div>
             )}
 
+            {/* Stake for Accountability (Coming Soon) for Peer Learning */}
+            {mode === 'peer' && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-60">
+                <div className="mb-2">
+                  <label className="flex items-center gap-2 cursor-not-allowed">
+                    <input
+                      type="checkbox"
+                      disabled
+                      className="w-4 h-4 text-gray-400 border-gray-300 rounded cursor-not-allowed"
+                    />
+                    <span className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                      Stake for accountability (Coming Soon)
+                    </span>
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Learners can stake to hold themselves accountable. This feature will be available in a future update.
+                </p>
+              </div>
+            )}
+
             {error && (
               <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
                 {error}
@@ -623,8 +671,8 @@ export function RequestMeetingModal({
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting 
-                  ? (mode === 'offer' ? 'Offering...' : 'Requesting...') 
-                  : (mode === 'offer' ? 'Offer to Help' : 'Request Meeting')}
+                  ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                  : (mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Start Peer Learning' : 'Request Meeting')}
               </button>
             </div>
           </form>
