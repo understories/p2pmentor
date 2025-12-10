@@ -67,6 +67,16 @@ export default function AdminFeedbackPage() {
     }
   }, [authenticated, filterSince, filterPage]);
 
+  // Truncate profile paths since wallet is already shown in Wallet column
+  const formatPagePath = (page: string): string => {
+    // Match /profiles/0x... pattern
+    const profileMatch = page.match(/^\/profiles\/(0x[a-fA-F0-9]+)/);
+    if (profileMatch) {
+      return '/profiles/0x****...';
+    }
+    return page;
+  };
+
   const loadGitHubIssueLinks = async () => {
     try {
       const res = await fetch('/api/github/issue-links');
@@ -426,8 +436,8 @@ export default function AdminFeedbackPage() {
                           {feedback.wallet.slice(0, 10)}...{feedback.wallet.slice(-4)}
                         </a>
                       </td>
-                      <td className="px-4 py-2 text-sm">
-                        {feedback.page}
+                      <td className="px-4 py-2 text-sm" title={feedback.page}>
+                        {formatPagePath(feedback.page)}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.rating ? (
