@@ -17,7 +17,9 @@ export const ASK_TTL_SECONDS = 3600; // 1 hour default
 export type Ask = {
   key: string;
   wallet: string;
-  skill: string;
+  skill: string; // Legacy: kept for backward compatibility
+  skill_id?: string; // New: reference to Skill entity (preferred for beta)
+  skill_label?: string; // Derived from Skill entity (readonly, convenience)
   spaceId: string;
   createdAt: string;
   status: string;
@@ -35,17 +37,26 @@ export type Ask = {
  */
 export async function createAsk({
   wallet,
-  skill,
+  skill, // Legacy: kept for backward compatibility
+  skill_id, // New: reference to Skill entity (preferred for beta)
+  skill_label, // Derived from Skill entity (readonly, convenience)
   message,
   privateKey,
   expiresIn,
 }: {
   wallet: string;
-  skill: string;
+  skill?: string; // Legacy: optional if skill_id provided
+  skill_id?: string; // New: preferred for beta
+  skill_label?: string; // Derived from Skill entity
   message: string;
   privateKey: `0x${string}`;
   expiresIn?: number;
 }): Promise<{ key: string; txHash: string }> {
+  // Validation: require either skill (legacy) or skill_id (beta)
+  if (!skill && !skill_id) {
+    throw new Error('Either skill (legacy) or skill_id (beta) must be provided');
+  }
+
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const spaceId = 'local-dev';
@@ -54,21 +65,34 @@ export async function createAsk({
   // Use expiresIn if provided and valid, otherwise use default
   const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
 
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'ask' },
+    { key: 'wallet', value: wallet.toLowerCase() },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    { key: 'status', value: status },
+    { key: 'ttlSeconds', value: String(ttl) },
+  ];
+
+  // Add skill fields (legacy for compatibility, new for beta)
+  if (skill) {
+    attributes.push({ key: 'skill', value: skill });
+  }
+  if (skill_id) {
+    attributes.push({ key: 'skill_id', value: skill_id });
+  }
+  if (skill_label) {
+    attributes.push({ key: 'skill_label', value: skill_label });
+  }
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
         message,
       })),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'ask' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'skill', value: skill },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        { key: 'status', value: status },
-        { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
-      ],
+      attributes,
       expiresIn: ttl,
     });
   });

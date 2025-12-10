@@ -18,7 +18,9 @@ export const OFFER_TTL_SECONDS = 7200; // 2 hours default
 export type Offer = {
   key: string;
   wallet: string;
-  skill: string;
+  skill: string; // Legacy: kept for backward compatibility
+  skill_id?: string; // New: reference to Skill entity (preferred for beta)
+  skill_label?: string; // Derived from Skill entity (readonly, convenience)
   spaceId: string;
   createdAt: string;
   status: string;
@@ -41,7 +43,9 @@ export type Offer = {
  */
 export async function createOffer({
   wallet,
-  skill,
+  skill, // Legacy: kept for backward compatibility
+  skill_id, // New: reference to Skill entity (preferred for beta)
+  skill_label, // Derived from Skill entity (readonly, convenience)
   message,
   availabilityWindow,
   availabilityKey,
@@ -52,7 +56,9 @@ export async function createOffer({
   expiresIn,
 }: {
   wallet: string;
-  skill: string;
+  skill?: string; // Legacy: optional if skill_id provided
+  skill_id?: string; // New: preferred for beta
+  skill_label?: string; // Derived from Skill entity
   message: string;
   availabilityWindow: string | WeeklyAvailability; // Support both text and structured format
   availabilityKey?: string; // Optional reference to Availability entity
@@ -62,6 +68,10 @@ export async function createOffer({
   privateKey: `0x${string}`;
   expiresIn?: number;
 }): Promise<{ key: string; txHash: string }> {
+  // Validation: require either skill (legacy) or skill_id (beta)
+  if (!skill && !skill_id) {
+    throw new Error('Either skill (legacy) or skill_id (beta) must be provided');
+  }
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const spaceId = 'local-dev';
@@ -97,12 +107,15 @@ export async function createOffer({
       attributes: [
         { key: 'type', value: 'offer' },
         { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'skill', value: skill },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
         { key: 'status', value: status },
         { key: 'isPaid', value: String(isPaid) },
         { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
+        // Add skill fields (legacy for compatibility, new for beta)
+        ...(skill ? [{ key: 'skill', value: skill }] : []),
+        ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
+        ...(skill_label ? [{ key: 'skill_label', value: skill_label }] : []),
         ...(cost ? [{ key: 'cost', value: cost }] : []),
         ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
         ...(availabilityKey ? [{ key: 'availabilityKey', value: availabilityKey }] : []),
