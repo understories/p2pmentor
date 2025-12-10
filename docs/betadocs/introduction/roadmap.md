@@ -14,4 +14,9 @@
 
 ## Contributing
 
-Start with issues labelled for DX, performance or Arkiv patterns. Propose improvements to entity schemas or builder packages. Use repository discussions or issues for technical questions. Share Arkiv-specific feedback in the DX runbook format where possible.
+Start with issues labelled for DX, performance or Arkiv patterns. Provide feedback or report issues directly within the app or on our public Github. 
+
+Propose improvements to entity schemas or builder packages. Use repository discussions or issues for technical questions. Share Arkiv-specific feedback in the DX runbook format where possible.
+
+Reach out directly if you'd like to chat: 
+team (at) p2pmentor.com
