@@ -19,6 +19,15 @@ export function ThemeToggle() {
     setMounted(true);
   }, []);
 
+  const handleToggle = () => {
+    toggleTheme();
+    // Mark that user has manually toggled (stops auto-switching on landing page)
+    if (pathname === '/') {
+      // Signal to SunriseSunsetTimer that user has taken control
+      window.dispatchEvent(new Event('theme-toggled'));
+    }
+  };
+
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
     return null;
@@ -30,7 +39,7 @@ export function ThemeToggle() {
 
   return (
     <button
-      onClick={toggleTheme}
+      onClick={handleToggle}
       className={`${mobileClass} fixed top-4 right-4 z-50 p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2`}
       style={{
         backgroundColor: theme === 'dark' 

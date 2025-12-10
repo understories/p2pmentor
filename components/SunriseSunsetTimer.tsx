@@ -12,6 +12,9 @@ import { useEffect, useRef } from 'react';
 import { useTheme } from '@/lib/theme';
 import { usePathname } from 'next/navigation';
 
+// Track if user has manually toggled theme (shared across instances)
+let userHasToggled = false;
+
 const SWITCH_INTERVAL = 30000; // 30 seconds
 
 export function SunriseSunsetTimer() {
