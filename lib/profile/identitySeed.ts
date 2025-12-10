@@ -7,27 +7,99 @@
  */
 
 /**
- * Curated emoji pool for plant/nature category
+ * Curated emoji pool for plant/nature/celestial category
  * Phase 0: Random selection from this pool
  * Phase 1: User customization + deterministic hash option
+ * 
+ * Includes: plants, nature, fruits, vegetables, celestial bodies, natural elements
  */
 export const PLANT_EMOJI_POOL = [
+  // Plants & Nature
   '🌱', // sprout
   '🌿', // herb
-  '☘️', // shamrock
-  '🍀', // four leaf clover
   '🍃', // leaf fluttering in wind
   '🍂', // fallen leaf
-  '🌾', // sheaf of rice
-  '🌵', // cactus
-  '🌻', // sunflower
-  '🌼', // daisy
-  '🌸', // cherry blossom
   '🍁', // maple leaf
-  '🍄', // mushroom
+  '☘️', // shamrock
+  '🍀', // four leaf clover
+  '🌾', // sheaf of rice
+  '🎍', // pine decoration
+  '🎋', // tanabata tree
+  '🌵', // cactus
+  '🌴', // palm tree
   '🌲', // evergreen tree
   '🌳', // deciduous tree
-  '🌴', // palm tree
+  '🌰', // chestnut
+  '🪴', // potted plant
+  '🍄', // mushroom
+  // Flowers
+  '🌸', // cherry blossom
+  '🌼', // daisy
+  '🌻', // sunflower
+  '🌺', // hibiscus
+  '🌹', // rose
+  '🌷', // tulip
+  '💮', // white flower
+  '🏵️', // rosette
+  '🥀', // wilted flower
+  // Fruits
+  '🍎', // red apple
+  '🍏', // green apple
+  '🍐', // pear
+  '🍊', // tangerine
+  '🍋', // lemon
+  '🍒', // cherries
+  '🍓', // strawberry
+  '🫐', // blueberries
+  '🥝', // kiwi fruit
+  '🍇', // grapes
+  '🥥', // coconut
+  '🍑', // peach
+  '🫘', // beans
+  // Vegetables & Spices
+  '🌶️', // hot pepper
+  '🌽', // ear of corn
+  '🥕', // carrot
+  // Natural Materials
+  '🪶', // feather
+  '🪵', // wood
+  // Celestial & Space
+  '✨', // sparkles
+  '🌟', // glowing star
+  '💫', // dizzy
+  '⭐', // star
+  '🌠', // shooting star
+  '🌙', // crescent moon
+  '☀️', // sun
+  '🌤️', // sun behind small cloud
+  '☁️', // cloud
+  '⛅', // sun behind cloud
+  '🌥️', // sun behind large cloud
+  '🌑', // new moon
+  '🌓', // first quarter moon
+  '🌔', // waxing gibbous moon
+  '🌕', // full moon
+  '🌖', // waning gibbous moon
+  '🌗', // last quarter moon
+  '🌘', // waning crescent moon
+  '🌌', // milky way
+  '🪐', // ringed planet
+  '🌍', // earth globe Europe-Africa
+  '🌎', // earth globe Americas
+  '🌏', // earth globe Asia-Australia
+  '☄️', // comet
+  // Natural Elements
+  '🔥', // fire
+  '💧', // droplet
+  '🌬️', // wind face
+  '⚡', // high voltage
+  '🌪️', // tornado
+  '🌊', // water wave
+  // Technology & Mystical
+  '🛰️', // satellite
+  '📡', // satellite antenna
+  '🔮', // crystal ball
+  '🧠', // brain
 ] as const;
 
 export type PlantEmoji = typeof PLANT_EMOJI_POOL[number];
