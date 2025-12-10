@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/theme";
 import { FloatingButtonCluster } from "@/components/FloatingButtonCluster";
+import { AppShell } from "@/components/navigation/AppShell";
+import { BackgroundImage } from "@/components/BackgroundImage";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -20,18 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className="relative min-h-screen">
-        {/* Background Image */}
-        <div 
-          className="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat opacity-40 dark:opacity-25"
-          style={{
-            backgroundImage: 'url(/understory.jpeg)',
-          }}
-        />
-        {/* Overlay for better text readability - stronger in light mode for accessibility */}
-        <div className="fixed inset-0 -z-10 bg-white/60 dark:bg-gray-900/50" />
-        
         <ThemeProvider>
-          {children}
+          <BackgroundImage />
+          <AppShell>
+            {children}
+          </AppShell>
           <FloatingButtonCluster />
         </ThemeProvider>
       </body>

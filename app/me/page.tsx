@@ -136,74 +136,95 @@ export default function MePage() {
           return null;
         })()}
 
-        <div className="space-y-3 mb-6">
-          <Link
-            href="/me/profile"
-            className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-          >
-            Profile
-            {hasProfile === false && (
-              <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-yellow-500 text-white rounded-full animate-pulse" title="Create your profile">
-                ⭐
-              </span>
-            )}
-          </Link>
-          <Link
-            href="/me/skills"
-            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-          >
-            Skills
-          </Link>
-          <Link
-            href="/me/availability"
-            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-          >
-            Availability
-          </Link>
-          <Link
-            href="/asks"
-            className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center font-medium`}
-          >
-            {askEmojis.default} Asks (I am learning)
-          </Link>
-          <Link
-            href="/offers"
-            className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center font-medium`}
-          >
-            {offerEmojis.default} Offers (I am teaching)
-          </Link>
-          <Link
-            href="/me/sessions"
-            className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-          >
-            Sessions
-          </Link>
-          <Link
-            href="/notifications"
-            className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
-          >
-            Notifications
-            {notificationCount > 0 && (
-              <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
-                {notificationCount}
-              </span>
-            )}
-          </Link>
+        {/* Your Profile Section */}
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Your Profile
+          </h2>
+          <div className="space-y-3">
+            <Link
+              href="/me/profile"
+              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            >
+              Profile
+              {hasProfile === false && (
+                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-yellow-500 text-white rounded-full animate-pulse" title="Create your profile">
+                  ⭐
+                </span>
+              )}
+            </Link>
+            <Link
+              href="/me/skills"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            >
+              Skills
+            </Link>
+            <Link
+              href="/me/availability"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            >
+              Availability
+            </Link>
+          </div>
         </div>
 
-        <div className="space-y-3">
-          <Link
-            href="/profiles"
-            className="block p-3 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-center font-medium"
-          >
-            👥 Browse Profiles
-          </Link>
-          <Link
-            href="/network"
-            className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-center font-medium"
-          >
-            🌐 Browse Network
-          </Link>
+        {/* Your Activity Section */}
+        <div className="mb-6">
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Your Activity
+          </h2>
+          <div className="space-y-3">
+            <Link
+              href="/asks"
+              className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} transition-colors text-center font-medium`}
+            >
+              {askEmojis.default} Asks (I am learning)
+            </Link>
+            <Link
+              href="/offers"
+              className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} transition-colors text-center font-medium`}
+            >
+              {offerEmojis.default} Offers (I am teaching)
+            </Link>
+            <Link
+              href="/me/sessions"
+              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            >
+              Sessions
+            </Link>
+            <Link
+              href="/notifications"
+              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-center"
+            >
+              Notifications
+              {notificationCount > 0 && (
+                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full">
+                  {notificationCount}
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+
+        {/* Community Section */}
+        <div>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Community
+          </h2>
+          <div className="space-y-3">
+            <Link
+              href="/profiles"
+              className="block p-3 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-center font-medium"
+            >
+              👥 Browse Profiles
+            </Link>
+            <Link
+              href="/network"
+              className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-center font-medium"
+            >
+              🌐 Browse Network
+            </Link>
+          </div>
         </div>
       </div>
     </div>

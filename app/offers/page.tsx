@@ -115,6 +115,14 @@ export default function OffersPage() {
       loadData(address);
       // Load user profile for RequestMeetingModal
       getProfileByWallet(address).then(setUserProfile).catch(() => null);
+      
+      // Check for ?create=true param to auto-show form
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('create') === 'true') {
+        setShowCreateForm(true);
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
   }, [router]);
 
