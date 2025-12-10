@@ -8,12 +8,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './landing.css';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
+import { useTheme } from '@/lib/theme';
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
+  const [showTimer, setShowTimer] = useState(true);
+  const { theme } = useTheme();
 
   useEffect(() => {
     // Create tree silhouettes
@@ -33,13 +37,30 @@ export default function Home() {
     }
   }, []);
 
+  // Ensure dark mode on initial load for sunrise effect
+  useEffect(() => {
+    // Force dark mode on landing page load (only if no saved preference)
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (!saved) {
+        const root = document.documentElement;
+        root.classList.add('dark');
+        root.classList.remove('light');
+      }
+    }
+  }, []);
+
   return (
     <>
       <div className="forest-bg"></div>
       <div className="fog-layer fog-1"></div>
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
-      <ThemeToggle />
+      {showTimer ? (
+        <SunriseSunsetTimer onComplete={() => setShowTimer(false)} />
+      ) : (
+        <ThemeToggle />
+      )}
       
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>
