@@ -51,7 +51,7 @@ export function BackgroundImage() {
       />
       {/* Light Mode Overlay - semi-transparent white to show painting but cover it */}
       <div 
-        className="fixed inset-0 -z-10 dark:hidden bg-white/85 backdrop-blur-[0.5px]"
+        className="fixed inset-0 -z-10 dark:hidden bg-white/75 backdrop-blur-[0.5px]"
       />
       
       {/* Dark Mode Background - with semi-transparent overlay */}
