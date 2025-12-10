@@ -136,6 +136,7 @@ export async function createUserProfileClient({
     bioLong,
     skills: finalSkillsArray.join(', '),
     skillsArray: finalSkillsArray,
+    skill_ids: skill_ids || [],
     timezone,
     languages: languages || [],
     contactLinks: contactLinks || {},
