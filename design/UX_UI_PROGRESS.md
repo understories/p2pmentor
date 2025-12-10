@@ -1,7 +1,7 @@
 # UX/UI Progress Report
 
-**Date:** December 9, 2025  
-**Status:** Ready for UX Team Refinement  
+**Date:** December 10, 2025  
+**Status:** Engineering Team Active - Additional Improvements Completed  
 **Branch:** `main` → `playground` (synced)
 
 ---
@@ -165,6 +165,63 @@ No asks yet. Be the first to create one!
   - Prominent "Join Meeting" button if Jitsi URL available
   - **File:** `app/me/sessions/page.tsx`
 
+### 14. Progressive Disclosure for Forms
+
+**Status:** ✅ Complete
+
+- **Advanced Options Section**
+  - TTL (expiration duration) moved to collapsible "Advanced Options" section
+  - Default collapsed to reduce cognitive load
+  - More reasonable defaults: 24 hours for asks, 1 week for offers
+  - Custom TTL input available when needed
+  - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
+
+### 15. Similar Asks/Offers Sections
+
+**Status:** ✅ Complete
+
+- **Community Discovery**
+  - Shows "Others learning [skill]" below each ask
+  - Shows "Others teaching [skill]" below each offer
+  - Displays up to 3 similar items with same skill
+  - Helps reduce isolation, shows community activity
+  - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
+
+### 16. Payment Flow Clarity
+
+**Status:** ✅ Complete
+
+- **3-Step Progress Indicators**
+  - Visual progress: "Step 2 of 3" / "Step 3 of 3"
+  - Clear status for each step:
+    - Step 1: Mentor confirms
+    - Step 2: Submit payment (after mentor confirms)
+    - Step 3: Mentor validates payment
+  - Status messages: "Session confirmed! Please submit your payment"
+  - **File:** `app/me/sessions/page.tsx`
+
+### 17. Social Proof Counters
+
+**Status:** ✅ Complete
+
+- **Active Counters on Pages**
+  - Shows "X active asks" / "X active offers" in page headers
+  - Updates dynamically as data loads
+  - Provides immediate context about platform activity
+  - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
+
+### 18. Background Image & Visual Polish
+
+**Status:** ✅ Complete
+
+- **Global Background Image**
+  - `understory.jpeg` applied as subtle background across entire app
+  - Light mode: 40% image opacity + 60% white overlay (accessibility)
+  - Dark mode: 25% image opacity + 50% dark overlay (visual appeal)
+  - Landing page z-index adjusted to show image
+  - All pages updated to allow background visibility
+  - **Files:** `app/layout.tsx`, `app/landing.css`, all page files
+
 ---
 
 ## 🎨 Ready for UX Team Refinement
@@ -173,17 +230,18 @@ The following areas have been identified as needing UX team expertise for optima
 
 ### High Priority (Strategic Improvements)
 
-#### 1. Progressive Disclosure for Forms
+#### 1. Multi-Step Forms (Enhanced Progressive Disclosure)
 
 **Current State:**
-- Create Ask/Offer forms show all fields at once
-- TTL selection is visible but may be unclear to users
+- ✅ Basic progressive disclosure implemented (Advanced Options section)
+- Forms still show main fields (skill, message) inline
 - Availability selection for offers has 3 radio options (custom/saved/structured)
 
 **UX Team Opportunity:**
-- Implement multi-step forms (Step 1: Essentials → Step 2: Advanced)
-- Simplify TTL selection (make it optional/advanced)
-- Guide users through availability selection more intuitively
+- Implement true multi-step forms (Step 1: Essentials → Step 2: Advanced)
+- Step 1: Skill + Message (required)
+- Step 2: Availability + Payment (for offers) + TTL (optional)
+- Better visual flow and reduced cognitive load
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 1 & 2
 
 **Impact:** High | **Effort:** Medium
@@ -233,48 +291,52 @@ The following areas have been identified as needing UX team expertise for optima
 
 ### Medium Priority (Enhancements)
 
-#### 5. Profile Completeness Indicator
+#### 5. Profile Completeness Indicator (Enhanced)
 
 **Current State:**
-- Profile badge (⭐) shows if no profile exists
-- No progress indicator for profile completeness
+- ✅ Basic profile completeness indicator implemented (progress bar, missing fields list)
+- Shows on dashboard when < 100% complete
+- **File:** `app/me/page.tsx`, `lib/profile/completeness.ts`
 
 **UX Team Opportunity:**
-- Show profile completeness percentage (e.g., "60% complete")
-- Checklist: Name ✓, Bio ✓, Skills ⏳, Availability ⏳
-- "Complete your profile" CTA when < 100%
+- Enhance visual design of completeness indicator
+- Add checklist with checkmarks: Name ✓, Bio ✓, Skills ⏳, Availability ⏳
+- Improve "Complete your profile" CTA design
+- Consider showing on profile page itself, not just dashboard
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 7
 
-**Impact:** Medium | **Effort:** Medium
+**Impact:** Medium | **Effort:** Low (enhancement of existing feature)
 
-#### 6. Match Explanation & Quality Indicators
+#### 6. Match Explanation & Quality Indicators (Enhanced)
 
 **Current State:**
+- ✅ Basic match badges implemented ("Matches your ask" / "Matches your offer")
 - Matches are computed client-side (same skill = match)
-- No explanation of why items match
-- No indication of match quality
+- No indication of match quality (exact vs. partial)
 
 **UX Team Opportunity:**
-- Show why items match: "Matches your ask: [skill]" badge
+- Enhance match badges with more context
 - Highlight exact matches vs. partial matches
 - Visual indicator (e.g., stronger border for exact matches)
+- Show match quality score if available
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 3
 
-**Impact:** Medium | **Effort:** Medium
+**Impact:** Medium | **Effort:** Low (enhancement of existing feature)
 
-#### 7. Payment Flow Clarity
+#### 7. Payment Flow Clarity (Enhanced)
 
 **Current State:**
-- Two-step payment flow exists (mentor confirms → learner pays → mentor validates)
-- Steps may not be clear to users
+- ✅ Basic 3-step progress indicators implemented ("Step 2 of 3", "Step 3 of 3")
+- Status messages show current step clearly
+- **File:** `app/me/sessions/page.tsx`
 
 **UX Team Opportunity:**
-- Show clear progress indicator: "Step 2 of 3"
-- Visual flow: "Mentor confirms" → "Submit payment" → "Mentor validates payment"
-- Status clarity for each step
+- Enhance visual design of progress indicators (progress bar, icons)
+- Add visual flow diagram: "Mentor confirms" → "Submit payment" → "Mentor validates payment"
+- Improve status clarity with better visual hierarchy
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 5
 
-**Impact:** High | **Effort:** Medium
+**Impact:** Medium | **Effort:** Low (enhancement of existing feature)
 
 #### 8. Feedback Form Simplification
 
@@ -292,31 +354,34 @@ The following areas have been identified as needing UX team expertise for optima
 
 ### Low Priority (Polish)
 
-#### 9. Social Proof Counters
+#### 9. Social Proof Counters (Enhanced)
 
 **Current State:**
-- No activity counters on pages
+- ✅ Basic counters implemented ("X active asks" / "X active offers")
+- **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
 
 **UX Team Opportunity:**
-- "X active asks" / "X active offers" counters in headers
-- "X mentors teaching" / "X people learning" counters
-- Update in real-time (poll every 30s)
+- Add "X mentors teaching" / "X people learning" counters to dashboard
+- Update in real-time (poll every 30s) instead of on page load
+- Add counters to network page
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 1, 2, 8
 
-**Impact:** Low | **Effort:** Low
+**Impact:** Medium | **Effort:** Low (enhancement of existing feature)
 
-#### 10. Similar Asks/Offers Sections
+#### 10. Similar Asks/Offers Sections (Enhanced)
 
 **Current State:**
-- No "similar items" shown when browsing
+- ✅ Basic similar items sections implemented
+- Shows "Others learning [skill]" / "Others teaching [skill]"
+- **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
 
 **UX Team Opportunity:**
-- Show "Others learning [skill]" when viewing an ask
-- Show "Others teaching [skill]" when viewing an offer
-- Helps reduce isolation, shows community
+- Enhance visual design of similar items sections
+- Add "View all similar" link if more than 3 items
+- Show match quality or relevance score
 - **Reference:** [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md) - Section 1 & 2
 
-**Impact:** Medium | **Effort:** Medium
+**Impact:** Low | **Effort:** Low (enhancement of existing feature)
 
 ---
 
@@ -405,6 +470,132 @@ Based on white-hat principles, **avoid these patterns:**
 - [x] All improvements follow white-hat principles
 - [x] Code follows engineering guidelines
 - [x] Playground branch ready for sync
+
+---
+
+## 🎯 Next Priorities for Implementation
+
+Based on the improvements document and current state, here are the recommended next steps for the engineering team:
+
+### High Impact, Low Effort (Quick Wins)
+
+#### 1. Feedback Form Simplification ⭐ **RECOMMENDED NEXT**
+**Impact:** High | **Effort:** Low
+
+**Current State:**
+- Feedback form shows rating, notes, and technical DX feedback all at once
+- "Technical DX feedback" may be unclear to users
+
+**Implementation:**
+- Progressive disclosure: Rating (required) → Notes (optional) → Technical DX (optional, advanced)
+- One-click rating (allow submitting with just rating)
+- Template suggestions for notes (already implemented for meeting notes, extend to feedback)
+
+**Files to modify:**
+- `components/FeedbackModal.tsx`
+
+**Why now:** Low effort, high user satisfaction. Reduces friction in closing the feedback loop.
+
+---
+
+#### 2. Template Libraries for Asks/Offers
+**Impact:** Medium | **Effort:** Medium
+
+**Current State:**
+- No templates or examples for creating asks/offers
+- Users start from scratch each time
+
+**Implementation:**
+- Create template library for asks ("Learning React hooks", "Need help with Solidity debugging")
+- Create template library for offers ("Teaching React", "Mentoring Solidity developers")
+- Allow one-click copy with edit capability
+- Store templates in `lib/templates/` or as constants
+
+**Files to modify:**
+- `app/asks/page.tsx`
+- `app/offers/page.tsx`
+- Create `lib/templates/asks.ts` and `lib/templates/offers.ts`
+
+**Why now:** Reduces cognitive load, helps users get started faster.
+
+---
+
+### High Impact, Medium Effort (Strategic)
+
+#### 3. Smart Date/Time Picker for Sessions
+**Impact:** High | **Effort:** High
+
+**Current State:**
+- Basic date/time input with 15-minute increment validation
+- Availability validation happens on submit (late feedback)
+
+**Implementation:**
+- Show only available slots if structured availability exists
+- Visual calendar with available times highlighted
+- Availability preview before date selection
+- Requires parsing `WeeklyAvailability` and filtering available slots
+
+**Files to modify:**
+- `components/RequestMeetingModal.tsx`
+- May need new component: `components/AvailabilityCalendar.tsx`
+
+**Why later:** Higher effort, requires careful UX design. Good candidate for UX team collaboration.
+
+---
+
+#### 4. Dashboard Organization & Activity Feed
+**Impact:** High | **Effort:** High
+
+**Current State:**
+- Dashboard shows all links equally (no hierarchy)
+- No dynamic content or activity feed
+
+**Implementation:**
+- Group related features (Profile section, Activity section, Community section)
+- Add activity feed showing recent matches, session requests, etc.
+- Personalized recommendations based on user profile
+
+**Files to modify:**
+- `app/me/page.tsx`
+- May need new components: `components/ActivityFeed.tsx`, `components/DashboardSection.tsx`
+
+**Why later:** Requires significant restructuring. Good candidate for UX team design phase.
+
+---
+
+### Medium Priority Enhancements
+
+#### 5. Real-time Social Proof Counters
+**Impact:** Medium | **Effort:** Low
+
+**Current State:**
+- ✅ Basic counters implemented (on page load)
+- Counters update only on page load
+
+**Implementation:**
+- Add polling every 30s to update counters
+- Add counters to dashboard and network page
+- "X mentors teaching" / "X people learning" counters
+
+**Files to modify:**
+- `app/asks/page.tsx`
+- `app/offers/page.tsx`
+- `app/me/page.tsx`
+- `app/network/page.tsx`
+
+**Why now:** Low effort enhancement of existing feature.
+
+---
+
+## 📊 Implementation Priority Matrix
+
+| Priority | Task | Impact | Effort | Status |
+|----------|------|--------|--------|--------|
+| 1 | Feedback Form Simplification | High | Low | ⭐ **NEXT** |
+| 2 | Template Libraries | Medium | Medium | Ready |
+| 3 | Real-time Counters | Medium | Low | Ready |
+| 4 | Smart Date/Time Picker | High | High | Needs UX Design |
+| 5 | Dashboard Organization | High | High | Needs UX Design |
 
 ---
 
