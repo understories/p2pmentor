@@ -77,6 +77,7 @@ export async function createUserProfileClient({
   bioLong,
   skills = '',
   skillsArray,
+  skill_ids,
   timezone = '',
   languages,
   contactLinks,
@@ -96,6 +97,7 @@ export async function createUserProfileClient({
   bioLong?: string;
   skills?: string;
   skillsArray?: string[];
+  skill_ids?: string[];
   timezone?: string;
   languages?: string[];
   contactLinks?: {
@@ -206,6 +208,7 @@ export async function createUserProfile({
   bioLong,
   skills = '',
   skillsArray,
+  skill_ids,
   timezone = '',
   languages,
   contactLinks,
@@ -225,6 +228,7 @@ export async function createUserProfile({
   bioLong?: string;
   skills?: string;
   skillsArray?: string[];
+  skill_ids?: string[];
   timezone?: string;
   languages?: string[];
   contactLinks?: {

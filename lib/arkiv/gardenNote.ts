@@ -301,3 +301,4 @@ export async function hasExceededDailyLimit(authorWallet: string): Promise<boole
 
   return todayNotes.length >= GARDEN_NOTE_DAILY_LIMIT;
 }
+

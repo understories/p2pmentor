@@ -36,3 +36,4 @@ export async function authenticateWithPasskey(): Promise<string> {
   throw new Error("Passkey authentication not yet implemented");
 }
 
+

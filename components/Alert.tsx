@@ -72,3 +72,4 @@ export function Alert({ type, title, message, onClose, className = '' }: AlertPr
   );
 }
 
+

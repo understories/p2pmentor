@@ -2,7 +2,10 @@
  * Skills management page
  * 
  * Add, view, and edit skills using Arkiv profile entities.
- * Skills are stored in the profile's skillsArray field.
+ * Skills are stored as references to Skill entities (skill_id) in the profile.
+ * Each profile update creates a new immutable profile entity on Arkiv.
+ * 
+ * Follows the same pattern as asks/offers pages.
  */
 
 'use client';
@@ -13,18 +16,23 @@ import Link from 'next/link';
 import { getProfileByWallet, createUserProfileClient } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SkillSelector } from '@/components/SkillSelector';
 import { connectWallet } from '@/lib/auth/metamask';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Skill } from '@/lib/arkiv/skill';
 import 'viem/window'; // Adds window.ethereum type definition
 
 export default function SkillsPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [newSkill, setNewSkill] = useState('');
+  const [selectedSkillId, setSelectedSkillId] = useState('');
+  const [selectedSkillName, setSelectedSkillName] = useState('');
+  const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -35,42 +43,77 @@ export default function SkillsPage() {
         return;
       }
       setWalletAddress(address);
-      loadProfile(address);
+      loadData(address);
     }
   }, [router]);
 
-  const loadProfile = async (wallet: string) => {
+  const loadData = async (wallet: string) => {
     try {
       setLoading(true);
-      const profileData = await getProfileByWallet(wallet);
+      
+      // Load profile and all skills in parallel (like asks/offers pages)
+      const [profileData, skillsRes] = await Promise.all([
+        getProfileByWallet(wallet).catch(() => null),
+        fetch('/api/skills?status=active&limit=200').then(r => r.json()),
+      ]);
+
       setProfile(profileData);
+      
+      if (skillsRes.ok && skillsRes.skills) {
+        setAllSkills(skillsRes.skills);
+      }
     } catch (err) {
-      console.error('Error loading profile:', err);
-      setError('Failed to load profile');
+      console.error('Error loading data:', err);
+      setError('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddSkill = async () => {
-    if (!newSkill.trim() || !profile || !walletAddress) return;
+  const getUserSkillIds = (): string[] => {
+    if (!profile) return [];
+    // Check for skill_ids array (new) or fall back to skillsArray (legacy)
+    const skillIds = (profile as any).skill_ids || [];
+    // If no skill_ids, try to match skillsArray to skill entities
+    if (skillIds.length === 0 && profile.skillsArray) {
+      return profile.skillsArray
+        .map(skillName => {
+          const skill = allSkills.find(s => s.name_canonical.toLowerCase() === skillName.toLowerCase());
+          return skill?.key;
+        })
+        .filter(Boolean) as string[];
+    }
+    return skillIds;
+  };
 
-    const skill = newSkill.trim();
-    const currentSkills = profile.skillsArray || [];
+  const getUserSkills = (): Skill[] => {
+    const skillIds = getUserSkillIds();
+    return allSkills.filter(skill => skillIds.includes(skill.key));
+  };
+
+  const handleAddSkill = async () => {
+    if (!selectedSkillId || !selectedSkillName || !profile || !walletAddress) return;
+
+    const currentSkillIds = getUserSkillIds();
     
-    // Case-insensitive duplicate check
-    const skillLower = skill.toLowerCase();
-    if (currentSkills.some(s => s.toLowerCase() === skillLower)) {
-      setError('Skill already exists (case-insensitive)');
+    // Check if skill_id already exists
+    if (currentSkillIds.includes(selectedSkillId)) {
+      setError('Skill already added');
+      setSelectedSkillId('');
+      setSelectedSkillName('');
       return;
     }
 
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastTxHash(null);
 
     try {
-      const updatedSkills = [...currentSkills, skill];
+      // Add skill_id to array, and skill name to skillsArray for backward compatibility
+      const updatedSkillIds = [...currentSkillIds, selectedSkillId];
+      const currentSkills = profile.skillsArray || [];
+      const updatedSkills = [...currentSkills, selectedSkillName];
       
       // Check if MetaMask is available
       const hasMetaMask = typeof window !== 'undefined' && window.ethereum;
@@ -91,6 +134,7 @@ export default function SkillsPage() {
             bioLong: profile.bioLong,
             skills: updatedSkills.join(', '),
             skillsArray: updatedSkills,
+            skill_ids: updatedSkillIds,
             timezone: profile.timezone,
             languages: profile.languages,
             contactLinks: profile.contactLinks,
@@ -106,13 +150,15 @@ export default function SkillsPage() {
         // Check if transaction is pending
         if (data.pending) {
           setSuccess('Skill update submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewSkill('');
-          // Don't reload immediately - transaction is still confirming
-          setTimeout(() => loadProfile(walletAddress), 2000);
+          setSelectedSkillId('');
+          setSelectedSkillName('');
+          setTimeout(() => loadData(walletAddress), 2000);
         } else {
           setSuccess('Skill added!');
-          setNewSkill('');
-          await loadProfile(walletAddress);
+          setSelectedSkillId('');
+          setSelectedSkillName('');
+          if (data.txHash) setLastTxHash(data.txHash);
+          await loadData(walletAddress);
         }
       } else {
         // Use MetaMask directly to create profile entity (Arkiv-native)
@@ -126,7 +172,6 @@ export default function SkillsPage() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
           if (!accounts || accounts.length === 0) {
-            // Try to connect
             account = await connectWallet();
           } else {
             account = accounts[0] as `0x${string}`;
@@ -152,6 +197,7 @@ export default function SkillsPage() {
           bioLong: profile.bioLong,
           skills: updatedSkills.join(', '),
           skillsArray: updatedSkills,
+          skill_ids: updatedSkillIds,
           timezone: profile.timezone,
           languages: profile.languages,
           contactLinks: profile.contactLinks,
@@ -160,9 +206,10 @@ export default function SkillsPage() {
         });
 
         setSuccess('Skill added! Transaction submitted.');
-        setNewSkill('');
-        // Reload profile after a short delay to allow transaction to be indexed
-        setTimeout(() => loadProfile(walletAddress), 2000);
+        setLastTxHash(txHash);
+        setSelectedSkillId('');
+        setSelectedSkillName('');
+        setTimeout(() => loadData(walletAddress), 2000);
       }
     } catch (err: any) {
       console.error('Error adding skill:', err);
@@ -172,16 +219,23 @@ export default function SkillsPage() {
     }
   };
 
-  const handleRemoveSkill = async (skillToRemove: string) => {
+  const handleRemoveSkill = async (skillId: string) => {
     if (!profile || !walletAddress) return;
+
+    const skill = allSkills.find(s => s.key === skillId);
+    if (!skill) return;
 
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastTxHash(null);
 
     try {
+      const currentSkillIds = getUserSkillIds();
+      const updatedSkillIds = currentSkillIds.filter(id => id !== skillId);
+      
       const currentSkills = profile.skillsArray || [];
-      const updatedSkills = currentSkills.filter(s => s !== skillToRemove);
+      const updatedSkills = currentSkills.filter(s => s.toLowerCase() !== skill.name_canonical.toLowerCase());
       
       // Check if MetaMask is available
       const hasMetaMask = typeof window !== 'undefined' && window.ethereum;
@@ -202,6 +256,7 @@ export default function SkillsPage() {
             bioLong: profile.bioLong,
             skills: updatedSkills.join(', '),
             skillsArray: updatedSkills,
+            skill_ids: updatedSkillIds,
             timezone: profile.timezone,
             languages: profile.languages,
             contactLinks: profile.contactLinks,
@@ -214,14 +269,13 @@ export default function SkillsPage() {
           throw new Error(data.error || 'Failed to update profile');
         }
 
-        // Check if transaction is pending
         if (data.pending) {
           setSuccess('Skill removal submitted! Transaction is being processed. Please refresh in a moment.');
-          // Don't reload immediately - transaction is still confirming
-          setTimeout(() => loadProfile(walletAddress), 2000);
+          setTimeout(() => loadData(walletAddress), 2000);
         } else {
           setSuccess('Skill removed!');
-          await loadProfile(walletAddress);
+          if (data.txHash) setLastTxHash(data.txHash);
+          await loadData(walletAddress);
         }
       } else {
         // Use MetaMask directly to create profile entity (Arkiv-native)
@@ -235,7 +289,6 @@ export default function SkillsPage() {
         try {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
           if (!accounts || accounts.length === 0) {
-            // Try to connect
             account = await connectWallet();
           } else {
             account = accounts[0] as `0x${string}`;
@@ -261,6 +314,7 @@ export default function SkillsPage() {
           bioLong: profile.bioLong,
           skills: updatedSkills.join(', '),
           skillsArray: updatedSkills,
+          skill_ids: updatedSkillIds,
           timezone: profile.timezone,
           languages: profile.languages,
           contactLinks: profile.contactLinks,
@@ -269,8 +323,8 @@ export default function SkillsPage() {
         });
 
         setSuccess('Skill removed! Transaction submitted.');
-        // Reload profile after a short delay to allow transaction to be indexed
-        setTimeout(() => loadProfile(walletAddress), 2000);
+        setLastTxHash(txHash);
+        setTimeout(() => loadData(walletAddress), 2000);
       }
     } catch (err: any) {
       console.error('Error removing skill:', err);
@@ -312,7 +366,8 @@ export default function SkillsPage() {
     );
   }
 
-  const skills = profile.skillsArray || [];
+  const userSkills = getUserSkills();
+  const userSkillIds = getUserSkillIds();
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
@@ -362,58 +417,87 @@ export default function SkillsPage() {
         {success && (
           <div className="mb-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
             {success}
+            {lastTxHash && (
+              <div className="mt-2 pt-2 border-t border-green-300 dark:border-green-700">
+                <p className="text-xs text-green-600 dark:text-green-400 mb-1">
+                  Transaction Hash:
+                </p>
+                <a
+                  href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${lastTxHash}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-green-600 dark:text-green-400 hover:underline font-mono break-all"
+                >
+                  {lastTxHash.slice(0, 20)}...
+                </a>
+                <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                  <a
+                    href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${lastTxHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                  >
+                    View in Arkiv Explorer →
+                  </a>
+                </p>
+              </div>
+            )}
           </div>
         )}
 
         {/* Add Skill Form */}
         <div className="mb-6 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
           <h2 className="text-lg font-medium mb-4">Add Skill</h2>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={newSkill}
-              onChange={(e) => setNewSkill(e.target.value)}
-              onKeyPress={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddSkill();
-                }
+          <div className="space-y-3">
+            <SkillSelector
+              value={selectedSkillId}
+              onChange={(skillId, skillName) => {
+                setSelectedSkillId(skillId);
+                setSelectedSkillName(skillName);
               }}
-              placeholder="Enter skill name"
-              className="flex-1 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              placeholder="Search for a skill..."
+              allowCreate={true}
+              className="mb-2"
             />
             <button
               onClick={handleAddSkill}
-              disabled={submitting || !newSkill.trim()}
-              className="px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={submitting || !selectedSkillId}
+              className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Add
+              {submitting ? 'Adding...' : 'Add Skill'}
             </button>
           </div>
         </div>
 
-        {/* Skills List */}
+        {/* Your Skills List */}
         <div className="mb-6">
           <h2 className="text-lg font-medium mb-4">
-            Your Skills ({skills.length})
+            Your Skills ({userSkills.length})
           </h2>
           
-          {skills.length === 0 ? (
+          {userSkills.length === 0 ? (
             <p className="text-gray-600 dark:text-gray-400 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
               No skills added yet. Add your first skill above!
             </p>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {skills.map((skill, index) => (
+              {userSkills.map((skill) => (
                 <div
-                  key={index}
+                  key={skill.key}
                   className="flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
                 >
-                  <span className="font-medium">{skill}</span>
+                  <div className="flex-1">
+                    <span className="font-medium">{skill.name_canonical}</span>
+                    {skill.description && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        {skill.description}
+                      </p>
+                    )}
+                  </div>
                   <button
-                    onClick={() => handleRemoveSkill(skill)}
+                    onClick={() => handleRemoveSkill(skill.key)}
                     disabled={submitting}
-                    className="px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                    className="ml-3 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -439,10 +523,17 @@ export default function SkillsPage() {
           </div>
         )}
 
+        {/* Technical Note */}
         <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            <strong>Note:</strong> Skills are stored in your profile on Arkiv. Each update creates a new profile entity.
+          <p className="text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+            <strong>How it works:</strong>
           </p>
+          <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
+            <li>Skills are <strong>Arkiv Skill entities</strong> stored on-chain</li>
+            <li>Your profile <strong>references</strong> these Skill entities (by skill_id)</li>
+            <li>Each profile update creates a <strong>new immutable profile entity</strong> on Arkiv</li>
+            <li>All changes are permanent and viewable on the <a href="https://explorer.mendoza.hoodi.arkiv.network" target="_blank" rel="noopener noreferrer" className="underline">Arkiv Explorer</a></li>
+          </ul>
         </div>
       </div>
     </div>

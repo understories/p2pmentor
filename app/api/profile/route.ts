@@ -48,6 +48,7 @@ export async function POST(request: Request) {
         bioLong,
         skills = '',
         skillsArray,
+        skill_ids,
         timezone = '',
         languages,
         contactLinks,
@@ -77,6 +78,9 @@ export async function POST(request: Request) {
       const finalSkillsArray = skillsArray !== undefined 
         ? skillsArray 
         : (existingProfile?.skillsArray || (finalSkills ? finalSkills.split(',').map((s: string) => s.trim()).filter(Boolean) : []));
+      const finalSkillIds = skill_ids !== undefined 
+        ? skill_ids 
+        : ((existingProfile as any)?.skill_ids || []);
 
       if (!finalDisplayName) {
         return NextResponse.json(
@@ -98,6 +102,7 @@ export async function POST(request: Request) {
           bioLong: finalBioLong,
           skills: finalSkills,
           skillsArray: finalSkillsArray,
+          skill_ids: finalSkillIds,
           timezone: finalTimezone,
           languages: finalLanguages,
           contactLinks: finalContactLinks,
