@@ -47,12 +47,9 @@ export default function BetaPage() {
           <BackButton href="/" />
         </div>
         
-        <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-50">
+        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-50">
           Welcome to p2pmentor Beta
         </h1>
-        <p className="text-lg mb-6 text-gray-700 dark:text-gray-300">
-          Enter your invite code to continue:
-        </p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -64,6 +61,7 @@ export default function BetaPage() {
                 setError('');
               }}
               placeholder="Invite code"
+              title="Enter your invite code to continue"
               className="w-full px-4 py-3 text-base border-2 rounded-lg 
                        bg-white dark:bg-gray-800 
                        text-gray-900 dark:text-gray-100
@@ -93,18 +91,6 @@ export default function BetaPage() {
             Unlock Beta
           </button>
         </form>
-
-        <div className="mt-8 p-4 rounded-lg border-2
-                       bg-yellow-50 dark:bg-yellow-900/30
-                       border-yellow-200 dark:border-yellow-700/50
-                       text-yellow-900 dark:text-yellow-100">
-          <strong className="text-base font-semibold block mb-2">
-            ⚠️ Beta Warning
-          </strong>
-          <p className="text-sm leading-relaxed">
-            Do not use a wallet containing real funds. This is a beta environment on testnet.
-          </p>
-        </div>
       </div>
     </main>
   );
