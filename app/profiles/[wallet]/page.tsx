@@ -40,6 +40,7 @@ export default function ProfileDetailPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingMode, setMeetingMode] = useState<'request' | 'peer'>('request');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   useEffect(() => {
@@ -322,17 +323,30 @@ export default function ProfileDetailPage() {
                       Edit Profile
                     </Link>
                   )}
-                  {/* Request Meeting Button - only show if viewing someone else's profile */}
+                  {/* Action Buttons - only show if viewing someone else's profile */}
                   {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-                    <button
-                      onClick={() => {
-                        setSelectedOffer(null); // General request, not tied to specific offer
-                        setShowMeetingModal(true);
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Request Meeting
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedOffer(null); // General request, not tied to specific offer
+                          setShowMeetingModal(true);
+                          setMeetingMode('request');
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Request Meeting
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedOffer(null);
+                          setShowMeetingModal(true);
+                          setMeetingMode('peer');
+                        }}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Peer Learning
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -498,6 +512,7 @@ export default function ProfileDetailPage() {
                       <button
                         onClick={() => {
                           setSelectedOffer(offer); // Set the specific offer
+                          setMeetingMode('request');
                           setShowMeetingModal(true);
                         }}
                         className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
@@ -770,15 +785,18 @@ export default function ProfileDetailPage() {
           onClose={() => {
             setShowMeetingModal(false);
             setSelectedOffer(null); // Clear selected offer when closing
+            setMeetingMode('request'); // Reset to default
           }}
           profile={profile}
           userWallet={userWallet}
           userProfile={userProfile}
           offer={selectedOffer} // Pass the specific offer that was clicked, or null for general request
+          mode={meetingMode}
           onSuccess={() => {
             // Optionally reload data or show success message
             console.log('Meeting requested successfully');
             setSelectedOffer(null); // Clear selected offer after success
+            setMeetingMode('request'); // Reset to default
           }}
         />
       </div>
