@@ -25,6 +25,7 @@ import { LeafChipFilter } from '@/components/network/LeafChipFilter';
 import { SkillCluster } from '@/components/network/SkillCluster';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
+import type { Skill } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
@@ -45,9 +46,11 @@ export default function NetworkPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
+  const [skillIdFilter, setSkillIdFilter] = useState<string | null>(null);
   const [selectedCanopySkill, setSelectedCanopySkill] = useState<string | undefined>();
   const [typeFilter, setTypeFilter] = useState<'all' | 'asks' | 'offers' | 'matches'>('all');
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [skills, setSkills] = useState<Record<string, Skill>>({});
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
@@ -57,6 +60,30 @@ export default function NetworkPage() {
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
+      
+      // Check for skill_id or skill in URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const skillId = urlParams.get('skill_id');
+      const skillSlug = urlParams.get('skill');
+      
+      if (skillId) {
+        setSkillIdFilter(skillId);
+      } else if (skillSlug) {
+        // Try to resolve skill slug to skill_id
+        fetch(`/api/skills?slug=${encodeURIComponent(skillSlug)}&limit=1`)
+          .then(r => r.json())
+          .then(data => {
+            if (data.ok && data.skills && data.skills.length > 0) {
+              setSkillIdFilter(data.skills[0].key);
+            } else {
+              // Fallback to string filter
+              setSkillFilter(skillSlug);
+            }
+          })
+          .catch(() => {
+            setSkillFilter(skillSlug);
+          });
+      }
     }
     loadNetwork();
   }, []);
@@ -83,9 +110,10 @@ export default function NetworkPage() {
   const loadNetwork = async () => {
     try {
       setLoading(true);
-      const [asksRes, offersRes] = await Promise.all([
+      const [asksRes, offersRes, skillsRes] = await Promise.all([
         fetch('/api/asks').then(r => r.json()),
         fetch('/api/offers').then(r => r.json()),
+        fetch('/api/skills?status=active&limit=200').then(r => r.json()),
       ]);
 
       if (asksRes.ok) {
@@ -93,6 +121,15 @@ export default function NetworkPage() {
       }
       if (offersRes.ok) {
         setOffers(offersRes.offers || []);
+      }
+
+      // Build skills map
+      if (skillsRes.ok && skillsRes.skills) {
+        const skillsMap: Record<string, Skill> = {};
+        skillsRes.skills.forEach((skill: Skill) => {
+          skillsMap[skill.key] = skill;
+        });
+        setSkills(skillsMap);
       }
 
       // Load profiles for all unique wallets
@@ -129,17 +166,41 @@ export default function NetworkPage() {
 
     asks.forEach((ask) => {
       offers.forEach((offer) => {
-        // Match based on skill (case-insensitive, partial match)
-        const askSkill = ask.skill.toLowerCase();
-        const offerSkill = offer.skill.toLowerCase();
+        // Match based on skill_id (preferred) or skill string (legacy)
+        let isMatch = false;
+        let skillMatchLabel = '';
 
-        if (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill)) {
+        if (ask.skill_id && offer.skill_id) {
+          // Both have skill_id: exact match
+          if (ask.skill_id === offer.skill_id) {
+            isMatch = true;
+            skillMatchLabel = skills[ask.skill_id]?.name_canonical || ask.skill_label || ask.skill;
+          }
+        } else if (ask.skill_id || offer.skill_id) {
+          // One has skill_id, one doesn't: try to match by skill string
+          const askSkill = (ask.skill || '').toLowerCase();
+          const offerSkill = (offer.skill || '').toLowerCase();
+          if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+            isMatch = true;
+            skillMatchLabel = ask.skill || offer.skill;
+          }
+        } else {
+          // Both use legacy skill string: case-insensitive, partial match
+          const askSkill = (ask.skill || '').toLowerCase();
+          const offerSkill = (offer.skill || '').toLowerCase();
+          if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+            isMatch = true;
+            skillMatchLabel = ask.skill;
+          }
+        }
+
+        if (isMatch) {
           matchesList.push({
             ask,
             offer,
             askProfile: profiles[ask.wallet],
             offerProfile: profiles[offer.wallet],
-            skillMatch: ask.skill, // Use ask skill as the match identifier
+            skillMatch: skillMatchLabel,
           });
         }
       });
@@ -205,76 +266,111 @@ export default function NetworkPage() {
     return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
   };
 
-  // Filter data based on filters
+  // Filter data based on filters (prioritize skill_id filter)
   const activeSkillFilter = selectedCanopySkill || skillFilter;
   
   const filteredAsks = asks.filter((ask) => {
-    if (activeSkillFilter && !ask.skill.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
-      return false;
+    // If skill_id filter is set, use it
+    if (skillIdFilter) {
+      return ask.skill_id === skillIdFilter;
+    }
+    // Otherwise use string filter (legacy)
+    if (activeSkillFilter) {
+      const askSkill = (ask.skill || '').toLowerCase();
+      return askSkill.includes(activeSkillFilter.toLowerCase());
     }
     return true;
   });
 
   const filteredOffers = offers.filter((offer) => {
-    if (activeSkillFilter && !offer.skill.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
-      return false;
+    // If skill_id filter is set, use it
+    if (skillIdFilter) {
+      return offer.skill_id === skillIdFilter;
+    }
+    // Otherwise use string filter (legacy)
+    if (activeSkillFilter) {
+      const offerSkill = (offer.skill || '').toLowerCase();
+      return offerSkill.includes(activeSkillFilter.toLowerCase());
     }
     return true;
   });
 
   const filteredMatches = matches.filter((match) => {
-    if (activeSkillFilter && !match.skillMatch.toLowerCase().includes(activeSkillFilter.toLowerCase())) {
-      return false;
+    // If skill_id filter is set, check if match involves that skill_id
+    if (skillIdFilter) {
+      return (match.ask.skill_id === skillIdFilter || match.offer.skill_id === skillIdFilter);
+    }
+    // Otherwise use string filter (legacy)
+    if (activeSkillFilter) {
+      const matchSkill = (match.skillMatch || '').toLowerCase();
+      return matchSkill.includes(activeSkillFilter.toLowerCase());
     }
     return true;
   });
 
-  // Extract top skills for Canopy section
+  // Extract top skills for Canopy section (use skill_id when available)
   const skillCounts = new Map<string, number>();
   asks.forEach(a => {
-    const count = skillCounts.get(a.skill) || 0;
-    skillCounts.set(a.skill, count + 1);
+    const skillKey = a.skill_id || a.skill;
+    const count = skillCounts.get(skillKey) || 0;
+    skillCounts.set(skillKey, count + 1);
   });
   offers.forEach(o => {
-    const count = skillCounts.get(o.skill) || 0;
-    skillCounts.set(o.skill, count + 1);
+    const skillKey = o.skill_id || o.skill;
+    const count = skillCounts.get(skillKey) || 0;
+    skillCounts.set(skillKey, count + 1);
   });
   const topSkills = Array.from(skillCounts.entries())
-    .map(([skill, count]) => ({ skill, count }))
+    .map(([skillKey, count]) => {
+      // Get skill name from entity if available
+      const skill = skills[skillKey];
+      const skillName = skill ? skill.name_canonical : skillKey;
+      return { skill: skillName, skillKey, count };
+    })
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Group asks/offers/matches by skill for SkillCluster components
-  const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[] }>();
+  // Group asks/offers/matches by skill (use skill_id when available)
+  const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }>();
   
   filteredAsks.forEach(ask => {
-    if (!skillsMap.has(ask.skill)) {
-      skillsMap.set(ask.skill, { asks: [], offers: [], matches: [] });
+    const skillKey = ask.skill_id || ask.skill;
+    if (!skillsMap.has(skillKey)) {
+      skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
-    skillsMap.get(ask.skill)!.asks.push(ask);
+    skillsMap.get(skillKey)!.asks.push(ask);
   });
   
   filteredOffers.forEach(offer => {
-    if (!skillsMap.has(offer.skill)) {
-      skillsMap.set(offer.skill, { asks: [], offers: [], matches: [] });
+    const skillKey = offer.skill_id || offer.skill;
+    if (!skillsMap.has(skillKey)) {
+      skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
-    skillsMap.get(offer.skill)!.offers.push(offer);
+    skillsMap.get(skillKey)!.offers.push(offer);
   });
   
   filteredMatches.forEach(match => {
-    if (!skillsMap.has(match.skillMatch)) {
-      skillsMap.set(match.skillMatch, { asks: [], offers: [], matches: [] });
+    // Use skill_id from ask/offer if available, otherwise use skillMatch string
+    const skillKey = match.ask.skill_id || match.offer.skill_id || match.skillMatch;
+    if (!skillsMap.has(skillKey)) {
+      skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
-    skillsMap.get(match.skillMatch)!.matches.push(match);
+    skillsMap.get(skillKey)!.matches.push(match);
   });
 
   // Sort skills by total activity (matches + asks + offers)
   const sortedSkills = Array.from(skillsMap.entries())
-    .map(([skill, data]) => ({
-      skill,
-      ...data,
-      totalCount: data.matches.length + data.asks.length + data.offers.length,
-    }))
+    .map(([skillKey, data]) => {
+      // Get skill name from entity if available
+      const skill = skills[skillKey];
+      const skillName = skill ? skill.name_canonical : skillKey;
+      return {
+        skill: skillName,
+        skillKey,
+        ...data,
+        totalCount: data.matches.length + data.asks.length + data.offers.length,
+      };
+    })
     .sort((a, b) => b.totalCount - a.totalCount);
 
   if (loading) {
@@ -308,10 +404,20 @@ export default function NetworkPage() {
 
         {/* Section A: The Canopy */}
         <CanopySection
-          skills={topSkills}
+          skills={topSkills.map(s => ({ skill: s.skill, count: s.count }))}
           onSkillClick={(skill) => {
-            setSelectedCanopySkill(skill);
-            setSkillFilter(skill);
+            // Find the skillKey for this skill name
+            const skillEntry = topSkills.find(s => s.skill === skill);
+            if (skillEntry?.skillKey && skills[skillEntry.skillKey]) {
+              // If it's a skill_id, navigate to topic page
+              const skillEntity = skills[skillEntry.skillKey];
+              router.push(`/topic/${skillEntity.slug}`);
+            } else {
+              // Legacy: use string filter
+              setSelectedCanopySkill(skill);
+              setSkillFilter(skill);
+              setSkillIdFilter(null);
+            }
           }}
           selectedSkill={selectedCanopySkill}
         />
@@ -355,7 +461,7 @@ export default function NetworkPage() {
         {/* Section D: Skill Clusters with Sprouts */}
         {sortedSkills.length > 0 ? (
           <div className="space-y-8">
-            {sortedSkills.map(({ skill, asks: skillAsks, offers: skillOffers, matches: skillMatches }) => {
+            {sortedSkills.map(({ skill, skillKey, asks: skillAsks, offers: skillOffers, matches: skillMatches }) => {
               // Apply type filter to skill cluster
               const displayAsks = (typeFilter === 'all' || typeFilter === 'asks') ? skillAsks : [];
               const displayOffers = (typeFilter === 'all' || typeFilter === 'offers') ? skillOffers : [];
@@ -365,9 +471,11 @@ export default function NetworkPage() {
                 return null;
               }
 
-              return (
+              // If this is a skill entity, wrap in link to topic page
+              const skillEntity = skills[skillKey];
+              const clusterContent = (
                 <SkillCluster
-                  key={skill}
+                  key={skillKey}
                   skill={skill}
                   asks={displayAsks}
                   offers={displayOffers}
@@ -375,12 +483,22 @@ export default function NetworkPage() {
                   profiles={profiles}
                 />
               );
+
+              if (skillEntity) {
+                return (
+                  <Link key={skillKey} href={`/topic/${skillEntity.slug}`} className="block">
+                    {clusterContent}
+                  </Link>
+                );
+              }
+
+              return clusterContent;
             })}
           </div>
         ) : (
           <EmptyState
             title="No skills found"
-            description={activeSkillFilter ? `No skills match "${activeSkillFilter}". Try a different filter.` : 'No asks or offers found in the network yet.'}
+            description={skillIdFilter || activeSkillFilter ? `No skills match the filter. Try a different filter.` : 'No asks or offers found in the network yet.'}
           />
         )}
       </div>

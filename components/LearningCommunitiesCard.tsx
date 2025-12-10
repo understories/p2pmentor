@@ -88,6 +88,39 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
     }
   };
 
+  const handleUnfollow = async (skillId: string) => {
+    if (!wallet || !skillId) return;
+
+    if (!confirm('Unfollow this learning community?')) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/learning-follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'unfollow',
+          profile_wallet: wallet,
+          skill_id: skillId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        await loadFollows(); // Reload follows
+      } else {
+        alert(data.error || 'Failed to unfollow skill');
+      }
+    } catch (error: any) {
+      console.error('Error unfollowing skill:', error);
+      alert('Failed to unfollow skill');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-4 rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
@@ -157,12 +190,22 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
                 <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                   {skill ? skill.name_canonical : `Skill ${follow.skill_id.slice(0, 8)}...`}
                 </span>
-                <Link
-                  href={`/network?skill=${skill?.slug || follow.skill_id}`}
-                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                >
-                  View →
-                </Link>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={skill ? `/topic/${skill.slug}` : `/network?skill_id=${follow.skill_id}`}
+                    className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    View →
+                  </Link>
+                  <button
+                    onClick={() => handleUnfollow(follow.skill_id)}
+                    disabled={submitting}
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+                    title="Unfollow"
+                  >
+                    ×
+                  </button>
+                </div>
               </div>
             );
           })}
