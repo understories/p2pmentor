@@ -9,8 +9,8 @@
 ## Medium term
 
 - Enhance data visualization and network exploration
-- Full Mentor Garden experience on top of the same data
 - More advanced availability, scheduling and calendar integrations
+- Develop learning quests to build and prove skills
 
 ## Contributing
 
