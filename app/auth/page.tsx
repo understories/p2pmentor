@@ -234,6 +234,18 @@ export default function AuthPage() {
             </p>
           )}
         </div>
+
+        {/* Privacy & Data Link */}
+        <div className="mt-4 flex justify-center">
+          <a
+            href="/docs/tracking-and-privacy"
+            className="group inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+            title="Understand and verify what p2pmentor tracks about users and usage"
+          >
+            <span className="text-base" role="img" aria-label="Privacy">🥷</span>
+            <span className="underline">Privacy & Data</span>
+          </a>
+        </div>
       </div>
     </main>
   );
