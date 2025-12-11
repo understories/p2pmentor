@@ -24,6 +24,7 @@ arkiv/                   # Arkiv-specific implementation details
 modules/                 # Reusable modules and packages
 practices/               # Best practices and guidelines
 tracking-and-privacy.md  # What we track: transparency & privacy
+passkey-integration.md   # Passkey wallet implementation and plan
 roadmap.md               # Future directions
 ```
 

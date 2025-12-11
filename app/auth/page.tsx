@@ -221,16 +221,12 @@ export default function AuthPage() {
           </p>
           {mounted && passkeyEnabled && (
             <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
-              <strong>Passkey Wallet:</strong> Powered by the Fusaka upgrade ({' '}
-              <a
-                href="https://eips.ethereum.org/EIPS/eip-7951"
-                target="_blank"
-                rel="noopener noreferrer"
+              <strong>Passkey Wallet:</strong> Custom implementation until Mendoza supports EIP-7951 directly. Uses local secp256k1 wallet gated by WebAuthn. Experimental. You can reset at any time. <a
+                href="/docs/passkey-integration"
                 className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
               >
-                EIP-7951
-              </a>
-              {' '}), which enables native secp256r1 signature verification for efficient passkey authentication. This is experimental. You can reset your passkey wallet at any time. All passkey data is stored locally and can be cleared. MetaMask and Example Wallet remain available as alternatives.
+                Learn more
+              </a>.
             </p>
           )}
         </div>
