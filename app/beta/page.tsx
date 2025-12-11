@@ -15,12 +15,13 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
 
   // Get beta code from environment variable (client-side accessible)
   const expectedCode = process.env.NEXT_PUBLIC_BETA_INVITE_CODE?.toLowerCase().trim() || '';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!expectedCode) {
@@ -28,14 +29,59 @@ export default function BetaPage() {
       return;
     }
     
-    if (inviteCode.toLowerCase().trim() === expectedCode) {
+    const normalizedCode = inviteCode.toLowerCase().trim();
+    
+    if (normalizedCode !== expectedCode) {
+      setError('Invalid invite code');
+      return;
+    }
+
+    setSubmitting(true);
+    setError('');
+
+    try {
+      // Check if code can be used (hasn't exceeded limit)
+      const validateRes = await fetch('/api/beta-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: normalizedCode, action: 'validate' }),
+      });
+
+      const validateData = await validateRes.json();
+      
+      if (!validateData.ok) {
+        throw new Error(validateData.error || 'Failed to validate beta code');
+      }
+
+      if (!validateData.canUse) {
+        setError(`This beta code has reached its usage limit (${validateData.usage?.limit || 50} uses).`);
+        setSubmitting(false);
+        return;
+      }
+
+      // Track usage on Arkiv
+      const trackRes = await fetch('/api/beta-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: normalizedCode, action: 'track' }),
+      });
+
+      const trackData = await trackRes.json();
+      
+      if (!trackData.ok) {
+        throw new Error(trackData.error || 'Failed to track beta code usage');
+      }
+
       // Store invite code in session/localStorage for future checks
       if (typeof window !== 'undefined') {
-        localStorage.setItem('beta_invite_code', inviteCode);
+        localStorage.setItem('beta_invite_code', normalizedCode);
       }
+      
       router.push('/auth');
-    } else {
-      setError('Invalid invite code');
+    } catch (err: any) {
+      console.error('Beta code error:', err);
+      setError(err.message || 'Failed to process beta code');
+      setSubmitting(false);
     }
   };
 
@@ -80,6 +126,7 @@ export default function BetaPage() {
           
           <button
             type="submit"
+            disabled={submitting}
             className="w-full px-6 py-3 text-base font-semibold rounded-lg
                      bg-[var(--accent-color)] dark:bg-emerald-600
                      text-white
@@ -88,7 +135,7 @@ export default function BetaPage() {
                      transition-colors
                      disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Unlock Beta
+            {submitting ? 'Processing...' : 'Unlock Beta'}
           </button>
         </form>
       </div>
