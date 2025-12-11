@@ -49,6 +49,7 @@ export async function POST(request: Request) {
         skills = '',
         skillsArray,
         skill_ids,
+        skillExpertise,
         timezone = '',
         languages,
         contactLinks,
@@ -81,6 +82,9 @@ export async function POST(request: Request) {
       const finalSkillIds = skill_ids !== undefined 
         ? skill_ids 
         : ((existingProfile as any)?.skill_ids || []);
+      const finalSkillExpertise = skillExpertise !== undefined
+        ? skillExpertise
+        : (existingProfile?.skillExpertise || {});
 
       if (!finalDisplayName) {
         return NextResponse.json(
@@ -103,6 +107,7 @@ export async function POST(request: Request) {
           skills: finalSkills,
           skillsArray: finalSkillsArray,
           skill_ids: finalSkillIds,
+          skillExpertise: finalSkillExpertise,
           timezone: finalTimezone,
           languages: finalLanguages,
           contactLinks: finalContactLinks,

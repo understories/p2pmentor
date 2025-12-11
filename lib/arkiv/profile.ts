@@ -21,6 +21,7 @@ export type UserProfile = {
   username?: string;
   profileImage?: string;
   identity_seed?: string; // Emoji Identity Seed (EIS) - plant emoji for forest aesthetic
+  exploringStatement?: string; // "What are you exploring?" - optional one-liner from onboarding
   bio?: string; // Legacy: kept for backward compatibility
   bioShort?: string; // Short bio (spec requirement)
   bioLong?: string;
@@ -35,6 +36,7 @@ export type UserProfile = {
   // Skills / Roles
   skills: string; // Keep as string for backward compatibility, but can be parsed as array
   skillsArray?: string[];
+  skillExpertise?: Record<string, number>; // Map of skillId -> expertise level (0-5) from onboarding
   seniority?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   domainsOfInterest?: string[];
   mentorRoles?: string[];
@@ -61,11 +63,18 @@ export type UserProfile = {
 }
 
 /**
- * Create user profile (client-side with MetaMask)
+ * Create user profile (client-side with MetaMask or Passkey)
  * 
  * @param data - Profile data
- * @param account - Wallet address from MetaMask
+ * @param wallet - Profile wallet address (from localStorage 'wallet_address')
+ *                 This is used as the 'wallet' attribute on the profile entity.
+ * @param account - Wallet address for signing the transaction (MetaMask or Passkey)
  * @returns Entity key and transaction hash
+ * 
+ * Note: The wallet parameter is the profile wallet address (stored in localStorage 'wallet_address').
+ * This is used as the 'wallet' attribute on the entity. The account parameter is used for signing
+ * the transaction via the walletClient. The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY)
+ * is used for server-side API routes, but client-side uses the account parameter for signing.
  */
 export async function createUserProfileClient({
   wallet,
@@ -78,6 +87,7 @@ export async function createUserProfileClient({
   skills = '',
   skillsArray,
   skill_ids,
+  skillExpertise,
   timezone = '',
   languages,
   contactLinks,
@@ -98,6 +108,7 @@ export async function createUserProfileClient({
   skills?: string;
   skillsArray?: string[];
   skill_ids?: string[];
+  skillExpertise?: Record<string, number>;
   timezone?: string;
   languages?: string[];
   contactLinks?: {
@@ -131,12 +142,14 @@ export async function createUserProfileClient({
     username,
     profileImage,
     identity_seed,
+    exploringStatement: bioShort || undefined, // Use bioShort as exploringStatement for onboarding
     bio,
     bioShort: bioShort || bio,
     bioLong,
     skills: finalSkillsArray.join(', '),
     skillsArray: finalSkillsArray,
     skill_ids: skill_ids || [],
+    skillExpertise: skillExpertise || undefined,
     timezone,
     languages: languages || [],
     contactLinks: contactLinks || {},
@@ -196,8 +209,13 @@ export async function createUserProfileClient({
  * Create user profile (server-side with private key)
  * 
  * @param data - Profile data
- * @param privateKey - Private key for signing
+ * @param wallet - Profile wallet address (used as the 'wallet' attribute on the entity)
+ * @param privateKey - Private key for signing (global Arkiv signing wallet from ARKIV_PRIVATE_KEY)
  * @returns Entity key and transaction hash
+ * 
+ * Note: The wallet parameter is the profile wallet address (used as entity attribute).
+ * The privateKey is the global Arkiv signing wallet (from ARKIV_PRIVATE_KEY env var) that signs
+ * all server-side transactions. Entities are tied to the profile wallet, not the signing wallet.
  */
 export async function createUserProfile({
   wallet,
@@ -210,6 +228,7 @@ export async function createUserProfile({
   skills = '',
   skillsArray,
   skill_ids,
+  skillExpertise,
   timezone = '',
   languages,
   contactLinks,
@@ -230,6 +249,7 @@ export async function createUserProfile({
   skills?: string;
   skillsArray?: string[];
   skill_ids?: string[];
+  skillExpertise?: Record<string, number>;
   timezone?: string;
   languages?: string[];
   contactLinks?: {
@@ -267,6 +287,7 @@ export async function createUserProfile({
     bioLong,
     skills: finalSkillsArray.join(', '),
     skillsArray: finalSkillsArray,
+    skillExpertise: skillExpertise || undefined,
     timezone,
     languages: languages || [],
     contactLinks: contactLinks || {},
