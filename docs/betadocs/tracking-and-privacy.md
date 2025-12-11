@@ -52,12 +52,14 @@ Before picking charts, decide what's *allowed*:
 
 **What We DON'T Collect:**
 - ❌ IP addresses
-- ❌ Wallet addresses
+- ❌ Wallet addresses (not included in client performance metrics)
 - ❌ Full user agent strings
 - ❌ Device fingerprints
 - ❌ Screen resolution
 - ❌ Location data
 - ❌ Any personally identifiable information (PII)
+
+**Note:** Wallet addresses are **public on Arkiv** in core entities (profiles, asks, offers, sessions, feedback). We simply don't include them in client performance metrics to keep those metrics privacy-preserving.
 
 **Example Data:**
 ```json
@@ -105,14 +107,19 @@ Before picking charts, decide what's *allowed*:
 
 **Privacy Protection:**
 - Wallets are **one-way hashed** using `keccak256` before any calculations
-- Only **aggregated counts** are stored (never per-wallet history)
+- Only **aggregated counts** are stored (never per-wallet history in retention cohorts)
 - Hash function: `keccak256("p2pmentor-retention-v1:" + wallet.toLowerCase())`
 - Cannot reverse hashes to get original wallet addresses
 
-**What We DON'T Store:**
-- ❌ Individual wallet addresses
-- ❌ Per-wallet activity history
-- ❌ Any way to identify specific users
+**Important Note:**
+- Wallet addresses are **already public on Arkiv** in core entities (profiles, asks, offers, sessions)
+- We don't store wallet addresses in retention cohorts to keep those metrics privacy-preserving
+- But wallet addresses themselves are publicly queryable from Arkiv entities
+
+**What We DON'T Store in Retention Cohorts:**
+- ❌ Individual wallet addresses (we hash them)
+- ❌ Per-wallet activity history (only aggregated counts)
+- ❌ Any way to identify specific users from retention data alone
 
 **Example Data:**
 ```json
@@ -302,27 +309,36 @@ Before picking charts, decide what's *allowed*:
 
 **Data Collected:**
 - Counts are computed from Arkiv entities, not stored separately
-- No per-wallet tracking, only aggregate counts
+- No per-wallet tracking in our metrics, only aggregate counts
 
 **Entities Tracked:**
-- User profiles
-- Asks (mentorship requests)
-- Offers (mentorship offers)
-- Sessions (completed mentorship sessions)
+- User profiles (wallet addresses are public in these entities)
+- Asks (mentorship requests - wallet addresses are public)
+- Offers (mentorship offers - wallet addresses are public)
+- Sessions (completed mentorship sessions - mentor/learner wallets are public)
 
-**What We DON'T Track:**
-- ❌ Individual wallet activity patterns
-- ❌ Cross-wallet relationships (beyond what's on-chain)
+**What's Public on Arkiv:**
+- ✅ Wallet addresses in all core entities (profiles, asks, offers, sessions, feedback)
+- ✅ Authentication wallet addresses (they're the wallet addresses in the entities)
+- ✅ All entity data and transaction hashes
+- ✅ Anyone can query Arkiv to see wallet addresses associated with any entity
+
+**What We DON'T Track in Our Metrics:**
+- ❌ Individual wallet activity patterns (we only compute aggregate counts)
+- ❌ Cross-wallet relationships beyond what's already on-chain
 - ❌ Any off-chain behavioral data
+- ❌ We don't create separate tracking entities that add wallet addresses to behavioral metrics
 
 **Where It Lives:**
 - Computed on-demand from Arkiv entities
 - No separate storage needed (all data is on-chain)
+- Wallet addresses are already public in the source entities
 
 **Why:**
 - Understand product usage
 - Measure growth
 - All data is public and verifiable on-chain
+- We don't need to track wallet addresses separately - they're already public in Arkiv entities
 
 ---
 
@@ -361,6 +377,27 @@ All metrics are stored as **Arkiv entities** on-chain. This means:
 - ✅ **Verifiable:** Each entity has a transaction hash
 - ✅ **Public:** All data is publicly accessible
 
+### 4.1.1 What's Public on Arkiv
+
+**Core entities (publicly visible on Arkiv):**
+- **Profiles** (`user_profile`): Wallet address, display name, bio, skills, availability
+- **Asks** (`ask`): Wallet address, skill, message, status
+- **Offers** (`offer`): Wallet address, skill, message, availability
+- **Sessions** (`session`): Mentor wallet, learner wallet, skill, session details
+- **Feedback** (`app_feedback`): Wallet address, page, message, rating
+- **All transaction hashes**: Every entity creation has a verifiable transaction hash
+
+**What this means:**
+- Wallet addresses are **publicly visible** in these core entities
+- Anyone can query Arkiv to see wallet addresses associated with profiles, asks, offers, sessions, and feedback
+- This is by design - Arkiv is a public blockchain
+- Authentication wallet addresses are also public (they're the wallet addresses in the entities above)
+
+**What we don't add to metrics:**
+- We don't include wallet addresses in client performance metrics (to keep those privacy-preserving)
+- We don't create separate tracking entities that link wallet addresses to behavioral data
+- We use hashed wallets for retention calculations (one-way, cannot reverse)
+
 ### 4.2 How to Verify
 
 Every metric entity includes a `txHash` field. You can:
@@ -391,9 +428,15 @@ To be explicit about what we **don't** do:
 - ❌ **No cross-site tracking**
 - ❌ **No behavioral profiling**
 - ❌ **No location tracking**
-- ❌ **No per-wallet activity history** (only aggregates)
+- ❌ **No per-wallet activity history in our metrics** (only aggregates)
 - ❌ **No hidden tracking pixels**
 - ❌ **No data sharing with third parties**
+
+**Important Clarification:**
+- Wallet addresses **are public on Arkiv** in core entities (profiles, asks, offers, sessions, feedback)
+- We don't add wallet addresses to our metrics (client perf, retention cohorts, aggregates)
+- But wallet addresses themselves are publicly queryable from Arkiv - this is by design
+- Authentication wallet addresses are also public (they're the wallet addresses in the entities)
 
 ---
 
