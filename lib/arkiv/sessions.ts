@@ -99,15 +99,17 @@ export async function createSession({
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
   const sessionStartTime = new Date(sessionDate).getTime();
-  const durationMinutes = typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10);
+  // Ensure duration is always an integer to prevent float propagation
+  const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
   const sessionDurationMs = durationMinutes * 60 * 1000; // Convert minutes to milliseconds
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer after session ends
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
   const now = Date.now();
-  const expiresInSeconds = Math.max(1, Math.floor((expirationTime - now) / 1000)); // Ensure at least 1 second
-  // Ensure it's a proper integer (not a float) for BigInt conversion
-  // Use parseInt to ensure it's definitely an integer, not a float
-  const expiresInSecondsInt = parseInt(String(Math.floor(expiresInSeconds)), 10);
+  // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  const expiresInSecondsRaw = (expirationTime - now) / 1000;
+  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw)); // Ensure at least 1 second
+  // Final safety check: ensure it's definitely an integer
+  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
 
   let entityKey: string;
   let txHash: string;
@@ -968,13 +970,16 @@ export async function confirmSession({
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
       const sessionStartTime = new Date(session.sessionDate).getTime();
-      const durationMinutes = typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10);
+      // Ensure duration is always an integer to prevent float propagation
+      const durationMinutes = Math.floor(typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10));
       const sessionDurationMs = durationMinutes * 60 * 1000;
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      const calculatedExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
-      // Ensure it's a proper integer (not a float) for BigInt conversion
+      // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+      const expiresInSecondsRaw = (expirationTime - now) / 1000;
+      const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
+      // Final safety check: ensure it's definitely an integer
       sessionExpiration = Number.isInteger(calculatedExpiration) ? calculatedExpiration : Math.floor(calculatedExpiration);
     }
   } catch (e) {
@@ -1164,13 +1169,16 @@ export async function rejectSession({
     const session = await getSessionByKey(sessionKey);
     if (session && session.sessionDate) {
       const sessionStartTime = new Date(session.sessionDate).getTime();
-      const durationMinutes = typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10);
+      // Ensure duration is always an integer to prevent float propagation
+      const durationMinutes = Math.floor(typeof session.duration === 'number' ? session.duration : parseInt(String(session.duration || 60), 10));
       const sessionDurationMs = durationMinutes * 60 * 1000;
       const bufferMs = 60 * 60 * 1000; // 1 hour buffer
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
-      const calculatedExpiration = Math.max(1, Math.floor((expirationTime - now) / 1000));
-      // Ensure it's a proper integer (not a float) for BigInt conversion
+      // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+      const expiresInSecondsRaw = (expirationTime - now) / 1000;
+      const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
+      // Final safety check: ensure it's definitely an integer
       sessionExpiration = Number.isInteger(calculatedExpiration) ? calculatedExpiration : Math.floor(calculatedExpiration);
     }
   } catch (e) {

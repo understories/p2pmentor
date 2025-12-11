@@ -83,13 +83,17 @@ export async function createVirtualGathering({
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer
   const sessionStartTime = new Date(sessionDate).getTime();
-  const durationMinutes = typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10);
+  // Ensure duration is always an integer to prevent float propagation
+  const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
   const sessionDurationMs = durationMinutes * 60 * 1000;
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
   const now = Date.now();
-  const expiresInSeconds = Math.max(1, Math.floor((expirationTime - now) / 1000));
-  const expiresInSecondsInt = parseInt(String(Math.floor(expiresInSeconds)), 10);
+  // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  const expiresInSecondsRaw = (expirationTime - now) / 1000;
+  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
+  // Final safety check: ensure it's definitely an integer
+  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
 
   // Create gathering entity
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
@@ -357,13 +361,17 @@ export async function rsvpToGathering({
 
   // Calculate expiration same as gathering
   const sessionStartTime = new Date(gathering.sessionDate).getTime();
-  const durationMinutes = gathering.duration || 60;
+  // Ensure duration is always an integer to prevent float propagation
+  const durationMinutes = Math.floor(typeof gathering.duration === 'number' ? gathering.duration : parseInt(String(gathering.duration || 60), 10));
   const sessionDurationMs = durationMinutes * 60 * 1000;
   const bufferMs = 60 * 60 * 1000;
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
   const now = Date.now();
-  const expiresInSeconds = Math.max(1, Math.floor((expirationTime - now) / 1000));
-  const expiresInSecondsInt = parseInt(String(Math.floor(expiresInSeconds)), 10);
+  // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  const expiresInSecondsRaw = (expirationTime - now) / 1000;
+  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
+  // Final safety check: ensure it's definitely an integer
+  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
 
   // Create session entity for RSVP
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
