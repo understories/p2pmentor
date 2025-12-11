@@ -131,15 +131,23 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
             // Create new Arkiv entity for the recovered credential
             if (registerResult.credentialPublicKey) {
               try {
-                const { privateKeyHex } = await unlockPasskeyWallet(storedUserId, credentialID);
-                await createPasskeyIdentity({
-                  wallet: address,
-                  credentialID,
-                  credentialPublicKey: registerResult.credentialPublicKey,
-                  counter: registerResult.counter || 0,
-                  transports: registerResult.transports,
-                  privateKey: privateKeyHex,
+                // Use API route with global Arkiv signing wallet (not passkey wallet)
+                const arkivRes = await fetch('/api/passkey/register/arkiv', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    wallet: address,
+                    credentialID,
+                    credentialPublicKey: Array.from(registerResult.credentialPublicKey),
+                    counter: registerResult.counter || 0,
+                    transports: registerResult.transports || [],
+                  }),
                 });
+
+                const arkivData = await arkivRes.json();
+                if (!arkivRes.ok || !arkivData.ok) {
+                  throw new Error(arkivData.error || 'Failed to create Arkiv passkey identity');
+                }
               } catch (error) {
                 console.warn('[PasskeyLoginButton] Failed to create Arkiv entity after recovery:', error);
               }
