@@ -167,24 +167,55 @@ export async function verifyRegistration(
 /**
  * Get authentication options for passkey login
  * 
+ * Queries Arkiv for credentials (replaces in-memory Map lookup).
+ * Falls back to in-memory Map for backward compatibility during migration.
+ * 
  * @param userId - User identifier (optional, for allowCredentials filtering)
+ * @param walletAddress - Wallet address (optional, for Arkiv query)
  * @returns WebAuthn authentication options
  */
 export async function getAuthenticationOptions(
-  userId?: string
+  userId?: string,
+  walletAddress?: string
 ): Promise<any> {
-    const opts = {
-      rpID,
-      timeout: 60000, // 60 seconds
-      userVerification: 'preferred' as const,
-      allowCredentials: userId
-        ? (credentialStore.get(userId) || []).map((cred) => ({
-            id: Buffer.from(cred.credentialID).toString('base64url'),
+  let allowCredentials: any[] | undefined = undefined;
+
+  // Try Arkiv first (if wallet address provided)
+  if (walletAddress) {
+    try {
+      const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
+      const identities = await listPasskeyIdentities(walletAddress);
+      
+      if (identities.length > 0) {
+        allowCredentials = identities
+          .filter(identity => identity.credentialID)
+          .map((identity) => ({
+            id: identity.credentialID!,
             type: 'public-key' as const,
-            transports: cred.transports || [],
-          }))
-        : undefined, // If no userId, allow any credential (discoverable credentials)
-    };
+            transports: identity.credential?.transports || [],
+          }));
+      }
+    } catch (error) {
+      console.warn('[getAuthenticationOptions] Failed to query Arkiv, falling back to Map:', error);
+    }
+  }
+
+  // Fallback to in-memory Map (for backward compatibility)
+  if (!allowCredentials && userId) {
+    const userCredentials = credentialStore.get(userId) || [];
+    allowCredentials = userCredentials.map((cred) => ({
+      id: Buffer.from(cred.credentialID).toString('base64url'),
+      type: 'public-key' as const,
+      transports: cred.transports || [],
+    }));
+  }
+
+  const opts = {
+    rpID,
+    timeout: 60000, // 60 seconds
+    userVerification: 'preferred' as const,
+    allowCredentials: allowCredentials && allowCredentials.length > 0 ? allowCredentials : undefined,
+  };
 
   return generateAuthenticationOptions(opts as any);
 }
@@ -192,7 +223,11 @@ export async function getAuthenticationOptions(
 /**
  * Verify authentication response
  * 
+ * Queries Arkiv for credentials (replaces in-memory Map lookup).
+ * Falls back to in-memory Map for backward compatibility during migration.
+ * 
  * @param userId - User identifier (optional, for credential lookup)
+ * @param walletAddress - Wallet address (optional, for Arkiv query)
  * @param response - WebAuthn authentication response from client
  * @param expectedChallenge - Challenge that was sent in authentication options
  * @returns Verification result
@@ -201,34 +236,75 @@ export async function verifyAuthentication(
   userId: string | undefined,
   response: any,
   expectedChallenge: string,
-  requestOrigin?: string
-): Promise<{ verified: boolean; userId?: string; error?: string }> {
+  requestOrigin?: string,
+  walletAddress?: string
+): Promise<{ verified: boolean; userId?: string; walletAddress?: string; error?: string }> {
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
+    const credentialID = response.id; // base64url-encoded from client
     
-    // Find credential by ID (from response)
+    // Try Arkiv first (by credentialID or wallet address)
+    let arkivIdentity: any = null;
+    let foundWallet: string | undefined = undefined;
+    
+    try {
+      const { findPasskeyIdentityByCredentialID, listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
+      
+      // Try finding by credentialID first (most direct)
+      arkivIdentity = await findPasskeyIdentityByCredentialID(credentialID);
+      
+      if (arkivIdentity) {
+        foundWallet = arkivIdentity.wallet;
+      } else if (walletAddress) {
+        // Fallback: query by wallet address
+        const identities = await listPasskeyIdentities(walletAddress);
+        arkivIdentity = identities.find(id => id.credentialID === credentialID);
+        if (arkivIdentity) {
+          foundWallet = walletAddress;
+        }
+      }
+    } catch (error) {
+      console.warn('[verifyAuthentication] Failed to query Arkiv, falling back to Map:', error);
+    }
+
+    // Convert Arkiv credential to StoredCredential format if found
     let storedCredential: StoredCredential | undefined;
     let foundUserId: string | undefined;
 
-    if (userId) {
-      // Look in specific user's credentials
-      const userCredentials = credentialStore.get(userId) || [];
-      const credentialID = Buffer.from(response.id, 'base64url');
-      storedCredential = userCredentials.find(
-        (cred) => Buffer.from(cred.credentialID).equals(credentialID)
-      );
-      foundUserId = userId;
+    if (arkivIdentity && arkivIdentity.credential) {
+      // Use Arkiv credential
+      const cred = arkivIdentity.credential;
+      const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+      const publicKeyBuffer = Buffer.from(cred.credentialPublicKey, 'base64');
+      
+      storedCredential = {
+        credentialID: credentialIDBuffer,
+        credentialPublicKey: publicKeyBuffer,
+        counter: cred.counter || 0,
+        transports: cred.transports,
+      };
+      foundUserId = foundWallet || userId || arkivIdentity.wallet;
     } else {
-      // Search all users (for discoverable credentials)
-      const entries = Array.from(credentialStore.entries());
-      for (const entry of entries) {
-        const [uid, credentials] = entry;
-        const credentialID = Buffer.from(response.id, 'base64url');
-        const cred = credentials.find((c) => Buffer.from(c.credentialID).equals(credentialID));
-        if (cred) {
-          storedCredential = cred;
-          foundUserId = uid;
-          break;
+      // Fallback to in-memory Map (for backward compatibility)
+      if (userId) {
+        const userCredentials = credentialStore.get(userId) || [];
+        const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+        storedCredential = userCredentials.find(
+          (cred) => Buffer.from(cred.credentialID).equals(credentialIDBuffer)
+        );
+        foundUserId = userId;
+      } else {
+        // Search all users (for discoverable credentials)
+        const entries = Array.from(credentialStore.entries());
+        for (const entry of entries) {
+          const [uid, credentials] = entry;
+          const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+          const cred = credentials.find((c) => Buffer.from(c.credentialID).equals(credentialIDBuffer));
+          if (cred) {
+            storedCredential = cred;
+            foundUserId = uid;
+            break;
+          }
         }
       }
     }
@@ -254,16 +330,30 @@ export async function verifyAuthentication(
 
     if (verification.verified) {
       // Update counter (replay attack protection)
-      const userCredentials = credentialStore.get(foundUserId) || [];
-      const credIndex = userCredentials.findIndex(
-        (c) => Buffer.from(c.credentialID).equals(storedCredential!.credentialID)
-      );
-      if (credIndex >= 0) {
-        userCredentials[credIndex].counter = verification.authenticationInfo.newCounter;
-        credentialStore.set(foundUserId, userCredentials);
+      if (arkivIdentity) {
+        // TODO: Create new Arkiv entity with updated counter (Phase 2)
+        // For now, just log - counter update will be implemented in Phase 2
+        console.log('[verifyAuthentication] Counter updated (Arkiv entity update in Phase 2):', {
+          oldCounter: storedCredential.counter,
+          newCounter: verification.authenticationInfo.newCounter,
+        });
+      } else {
+        // Update in-memory Map (backward compatibility)
+        const userCredentials = credentialStore.get(foundUserId) || [];
+        const credIndex = userCredentials.findIndex(
+          (c) => Buffer.from(c.credentialID).equals(storedCredential!.credentialID)
+        );
+        if (credIndex >= 0) {
+          userCredentials[credIndex].counter = verification.authenticationInfo.newCounter;
+          credentialStore.set(foundUserId, userCredentials);
+        }
       }
 
-      return { verified: true, userId: foundUserId };
+      return { 
+        verified: true, 
+        userId: foundUserId,
+        walletAddress: foundWallet,
+      };
     }
 
     return { verified: false, error: 'Verification failed' };
