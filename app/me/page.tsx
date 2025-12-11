@@ -25,6 +25,7 @@ export default function MePage() {
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
+  const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
   const router = useRouter();
 
   useEffect(() => {
@@ -43,6 +44,7 @@ export default function MePage() {
       // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
       import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
         calculateOnboardingLevel(address).then(level => {
+          setOnboardingChecked(true); // Mark check as complete
           if (level === 0) {
             // No profile for this profile wallet - redirect to onboarding
             router.push('/onboarding');
@@ -53,6 +55,7 @@ export default function MePage() {
           loadProfileStatus(address);
         }).catch(() => {
           // On error, allow access (don't block on calculation failure)
+          setOnboardingChecked(true);
           loadNotificationCount(address);
           loadProfileStatus(address);
         });
@@ -111,10 +114,14 @@ export default function MePage() {
     }
   };
 
-  if (!walletAddress) {
+  // Show loading state until wallet is loaded AND onboarding check is complete
+  if (!walletAddress || !onboardingChecked) {
     return (
       <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 flex items-center justify-center">
-        <p>Loading...</p>
+        <div className="text-center">
+          <div className="animate-pulse text-2xl mb-4">🌱</div>
+          <p className="text-gray-600 dark:text-gray-400">Loading your garden...</p>
+        </div>
       </div>
     );
   }
