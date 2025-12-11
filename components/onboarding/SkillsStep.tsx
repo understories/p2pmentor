@@ -131,10 +131,11 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       // Trigger garden animation callback if provided
       onSkillAdded?.(newSkillId);
 
-      // Reset for next skill
+      // After planting, show "anything else?" prompt
+      // Don't reset - let user decide to add more or continue
+      setStep('input');
       setCurrentSkillName('');
       setExpertise(1);
-      setStep('input');
     } catch (err) {
       onError(err instanceof Error ? err : new Error('Failed to add skill'));
     } finally {
@@ -153,14 +154,26 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   const expertiseLabels = ['Beginner', 'Beginner', 'Intermediate', 'Advanced', 'Advanced', 'Expert'];
   const expertiseEmojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨'];
 
-  // Step 1: Input skill name (typeform style - minimal, focused)
+  // Step 1: Input skill name (floating style - minimal, focused)
   if (step === 'input') {
     return (
-      <div className="space-y-8">
+      <div className="space-y-8 animate-fade-in">
         <div className="text-center">
-          <h2 className="text-3xl font-bold mb-3">What skill are you growing?</h2>
-          <p className="text-gray-500 dark:text-gray-400 text-lg">
-            Every skill grows in its own time.
+          <h2 
+            className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+            style={{
+              textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
+            }}
+          >
+            {createdSkills.length > 0 ? 'Anything else?' : 'What skill are you growing?'}
+          </h2>
+          <p 
+            className="text-gray-200 dark:text-gray-300 text-lg drop-shadow-md"
+            style={{
+              textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+            }}
+          >
+            {createdSkills.length > 0 ? 'Add another skill or continue to the next step.' : 'Every skill grows in its own time.'}
           </p>
         </div>
 
@@ -175,7 +188,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               list="skillSuggestions"
               required
               autoFocus
-              className="w-full px-6 py-4 text-lg border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all"
+              className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
               disabled={isSubmitting}
             />
             <datalist id="skillSuggestions">
@@ -185,24 +198,45 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
             </datalist>
           </div>
 
-          <button
-            type="submit"
-            disabled={!currentSkillName.trim() || isSubmitting}
-            className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
-          >
-            Continue →
-          </button>
+          <div className="flex gap-3">
+            {createdSkills.length > 0 && (
+              <button
+                type="button"
+                onClick={handleContinue}
+                className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
+              >
+                Continue →
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={!currentSkillName.trim() || isSubmitting}
+              className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
+            >
+              {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
+            </button>
+          </div>
         </form>
 
         {/* Show created skills if any */}
         {createdSkills.length > 0 && (
-          <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Your skills:</p>
-            <div className="flex flex-wrap gap-2">
+          <div className="pt-6">
+            <p 
+              className="text-sm text-gray-200 dark:text-gray-300 mb-3 drop-shadow-md text-center"
+              style={{
+                textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              Your skills:
+            </p>
+            <div className="flex flex-wrap justify-center gap-2">
               {createdSkills.map((skill, idx) => (
-                <div key={idx} className="flex items-center gap-2 px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <span>{expertiseEmojis[skill.expertise]}</span>
-                  <span className="text-sm font-medium">{skill.skillName}</span>
+                <div 
+                  key={idx} 
+                  className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20"
+                >
+                  <span className="text-lg">{expertiseEmojis[skill.expertise]}</span>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{skill.skillName}</span>
                 </div>
               ))}
             </div>
@@ -214,10 +248,22 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
   // Step 2: Set expertise level with sprout in center
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 animate-fade-in">
       <div className="text-center">
-        <h2 className="text-3xl font-bold mb-2">{currentSkillName}</h2>
-        <p className="text-gray-500 dark:text-gray-400 text-lg mb-8">
+        <h2 
+          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+          style={{
+            textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
+          }}
+        >
+          {currentSkillName}
+        </h2>
+        <p 
+          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+          style={{
+            textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+          }}
+        >
           How experienced are you?
         </p>
       </div>
@@ -262,7 +308,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               setStep('input');
               setCurrentSkillName('');
             }}
-            className="flex-1 px-6 py-4 border-2 border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all font-medium"
+            className="flex-1 px-6 py-4 border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-all font-medium shadow-lg"
             disabled={isSubmitting}
           >
             Back
@@ -285,17 +331,6 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         </div>
       </div>
 
-      {/* Continue Button - show after at least one skill */}
-      {createdSkills.length > 0 && (
-        <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
-          <button
-            onClick={handleContinue}
-            className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors font-medium text-lg shadow-lg hover:shadow-xl"
-          >
-            Continue to Paths →
-          </button>
-        </div>
-      )}
     </div>
   );
 }

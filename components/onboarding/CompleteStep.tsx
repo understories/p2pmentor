@@ -28,30 +28,36 @@ export function CompleteStep({ onEnterGarden }: CompleteStepProps) {
   };
 
   return (
-    <div className="space-y-6 text-center">
+    <div className="space-y-8 text-center animate-fade-in">
       <div 
         className={`text-8xl mb-6 transition-all duration-2000 ${
           showAnimation ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
         }`}
         style={{
-          filter: showAnimation ? 'drop-shadow(0 0 20px rgba(255, 200, 0, 0.6))' : 'none',
+          filter: showAnimation ? 'drop-shadow(0 0 30px rgba(255, 200, 0, 0.8)) drop-shadow(0 0 60px rgba(255, 200, 0, 0.4))' : 'none',
         }}
       >
         🌅
       </div>
       
       <h2 
-        className={`text-3xl font-bold mb-4 transition-all duration-1000 delay-300 ${
+        className={`text-4xl md:text-5xl font-bold mb-4 transition-all duration-1000 delay-300 ${
           showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}
+        } text-white dark:text-white drop-shadow-lg`}
+        style={{
+          textShadow: showAnimation ? '0 0 20px rgba(255, 200, 0, 0.5), 0 0 40px rgba(255, 200, 0, 0.3)' : 'none',
+        }}
       >
         Your Garden is alive
       </h2>
       
       <p 
-        className={`text-lg text-gray-600 dark:text-gray-400 mb-8 transition-all duration-1000 delay-500 ${
+        className={`text-lg mb-8 transition-all duration-1000 delay-500 ${
           showAnimation ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
-        }`}
+        } text-gray-200 dark:text-gray-300 drop-shadow-md`}
+        style={{
+          textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+        }}
       >
         Explore, grow, connect.
       </p>
@@ -63,20 +69,10 @@ export function CompleteStep({ onEnterGarden }: CompleteStepProps) {
       >
         <button
           onClick={handleEnterGarden}
-          className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium text-lg shadow-lg hover:shadow-xl"
+          className="px-8 py-4 bg-green-600 hover:bg-green-700 text-white rounded-xl transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
         >
-          Enter Garden →
+          Continue →
         </button>
-      </div>
-
-      {/* Progress indicator */}
-      <div className="mt-8">
-        <div className="inline-block px-4 py-2 bg-white/50 dark:bg-gray-800/50 rounded-full text-sm">
-          Profile 67% complete
-        </div>
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-          Missing: Availability, Bio, Links (optional)
-        </p>
       </div>
     </div>
   );

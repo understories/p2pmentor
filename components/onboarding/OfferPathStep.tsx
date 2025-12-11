@@ -112,26 +112,43 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <div className="text-center">
-        <div className="text-6xl mb-4">💎</div>
-        <h2 className="text-2xl font-bold mb-2">What can you share?</h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <div 
+          className="text-6xl mb-4"
+          style={{
+            filter: 'drop-shadow(0 0 20px rgba(6, 182, 212, 0.6))',
+          }}
+        >
+          💎
+        </div>
+        <h2 
+          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+          style={{
+            textShadow: '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
+          }}
+        >
+          What can you share?
+        </h2>
+        <p 
+          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+          style={{
+            textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+          }}
+        >
           Offering grows roots that connect you to others.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="skill" className="block text-sm font-medium mb-2">
-            Skill <span className="text-red-500">*</span>
-          </label>
           <select
             id="skill"
             value={selectedSkill}
             onChange={(e) => setSelectedSkill(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            autoFocus
+            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all shadow-lg"
             disabled={isLoadingSkills || isSubmitting}
           >
             {isLoadingSkills ? (
@@ -150,9 +167,6 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
         </div>
 
         <div>
-          <label htmlFor="message" className="block text-sm font-medium mb-2">
-            Your Offer <span className="text-red-500">*</span>
-          </label>
           <textarea
             id="message"
             value={message}
@@ -160,7 +174,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
             placeholder="What can you teach or share?"
             rows={4}
             required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all resize-none shadow-lg"
             disabled={isSubmitting}
           />
         </div>
@@ -168,9 +182,16 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
         <button
           type="submit"
           disabled={!message.trim() || !selectedSkill || isSubmitting}
-          className="w-full px-6 py-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+          className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
         >
-          {isSubmitting ? 'Creating offer...' : 'Create Offer →'}
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">💎</span>
+              <span>Creating offer...</span>
+            </span>
+          ) : (
+            'Continue →'
+          )}
         </button>
       </form>
     </div>

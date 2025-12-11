@@ -67,26 +67,38 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       <div className="text-center">
         <div 
           className={`text-6xl mb-4 transition-all duration-300 ${
             displayName.trim() ? 'hg-anim-plant-sparkle' : 'animate-pulse'
           }`}
+          style={{
+            filter: displayName.trim() ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))' : 'none',
+          }}
         >
           🌱
         </div>
-        <h2 className="text-2xl font-bold mb-2">Create Your Identity</h2>
-        <p className="text-gray-600 dark:text-gray-400">
+        <h2 
+          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+          style={{
+            textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
+          }}
+        >
+          Create Your Identity
+        </h2>
+        <p 
+          className="text-gray-200 dark:text-gray-300 text-lg drop-shadow-md"
+          style={{
+            textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+          }}
+        >
           Your identity is the seed from which everything grows.
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <div>
-          <label htmlFor="displayName" className="block text-sm font-medium mb-2">
-            Display Name <span className="text-red-500">*</span>
-          </label>
           <input
             id="displayName"
             type="text"
@@ -94,26 +106,29 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="How should we call you?"
             required
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            autoFocus
+            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
             disabled={isSubmitting}
           />
         </div>
 
         <div>
-          <label htmlFor="exploringStatement" className="block text-sm font-medium mb-2">
-            What are you exploring? <span className="text-gray-500 text-xs">(optional)</span>
-          </label>
           <textarea
             id="exploringStatement"
             value={exploringStatement}
             onChange={(e) => setExploringStatement(e.target.value)}
-            placeholder="A one-line statement about what you're exploring or becoming..."
+            placeholder="What are you exploring? (optional)"
             rows={2}
             maxLength={200}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent resize-none"
+            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all resize-none shadow-lg"
             disabled={isSubmitting}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p 
+            className="text-xs text-gray-200 dark:text-gray-300 mt-2 text-right drop-shadow-md"
+            style={{
+              textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+            }}
+          >
             {exploringStatement.length}/200
           </p>
         </div>
@@ -121,7 +136,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
         <button
           type="submit"
           disabled={!displayName.trim() || isSubmitting}
-          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50"
+          className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
@@ -129,7 +144,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
               <span>Growing your seed...</span>
             </span>
           ) : (
-            'Grow Seed →'
+            'Continue →'
           )}
         </button>
       </form>

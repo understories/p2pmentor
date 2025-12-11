@@ -50,10 +50,29 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
   }, [wallet, router, onComplete]);
 
   return (
-    <div className="space-y-6 text-center">
-      <div className="text-6xl mb-4">🌐</div>
-      <h2 className="text-2xl font-bold mb-2">Exploring the Network</h2>
-      <p className="text-gray-600 dark:text-gray-400">
+    <div className="space-y-8 text-center animate-fade-in">
+      <div 
+        className="text-6xl mb-4"
+        style={{
+          filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.6))',
+        }}
+      >
+        🌐
+      </div>
+      <h2 
+        className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        style={{
+          textShadow: '0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3)',
+        }}
+      >
+        Exploring the Network
+      </h2>
+      <p 
+        className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+        style={{
+          textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+        }}
+      >
         Redirecting you to the network page...
       </p>
       <div className="animate-pulse">

@@ -192,17 +192,17 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            {/* Other Steps - Keep card for other steps */}
+            {/* Other Steps - Floating text style, no card */}
             {currentStep !== 'welcome' && (
-              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg p-4 md:p-8 shadow-xl border border-gray-200 dark:border-gray-700">
+              <>
                 {/* Error Message */}
                 {error && (
-                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                  <div className="mb-6 p-4 bg-red-50/90 dark:bg-red-900/30 backdrop-blur-md rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm shadow-lg">
                     {error}
                   </div>
                 )}
 
-                {/* Step Content */}
+                {/* Step Content - Floating over background */}
 
               {currentStep === 'identity' && wallet && (
                 <IdentityStep
@@ -274,7 +274,7 @@ export default function OnboardingPage() {
               {currentStep === 'complete' && (
                 <CompleteStep onEnterGarden={() => router.push('/garden/public-board')} />
               )}
-              </div>
+              </>
             )}
           </div>
         </main>
