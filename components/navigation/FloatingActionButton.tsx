@@ -1,39 +1,53 @@
 /**
  * Floating Action Button (FAB)
  * 
- * Phase 0: Simple "+" button that expands to Create Ask/Offer/Session.
- * Routes to existing create forms.
+ * Phase 6: Magical garden-themed FAB with seed-to-sprout transformation.
+ * Filters actions based on onboarding level.
  */
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
+import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 
 export function FloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const [wallet, setWallet] = useState<string | null>(null);
+  const { level } = useOnboardingLevel(wallet);
 
-  // Don't show on landing, auth, beta, admin, or docs pages
-  const hideNavPaths = ['/', '/auth', '/beta', '/admin', '/docs'];
-  if (hideNavPaths.some(path => pathname === path || pathname?.startsWith('/admin') || pathname?.startsWith('/docs'))) {
+  // Get wallet from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWallet = localStorage.getItem('wallet_address');
+      setWallet(storedWallet);
+    }
+  }, []);
+
+  // Don't show on landing, auth, beta, admin, docs, or onboarding pages
+  const hideNavPaths = ['/', '/auth', '/beta', '/admin', '/docs', '/onboarding'];
+  if (hideNavPaths.some(path => pathname === path || pathname?.startsWith('/admin') || pathname?.startsWith('/docs') || pathname?.startsWith('/onboarding'))) {
     return null;
   }
 
-  const actions = [
+  // All possible actions with their minimum onboarding levels
+  const allActions = [
     {
       href: '/asks',
       label: 'Create Ask',
       icon: askEmojis.default,
       color: askColors.button,
+      minLevel: 2, // After first ask or offer
     },
     {
       href: '/offers',
       label: 'Create Offer',
       icon: offerEmojis.default,
       color: offerColors.button,
+      minLevel: 2, // After first ask or offer
     },
     {
       href: '/garden/public-board',
@@ -41,8 +55,12 @@ export function FloatingActionButton() {
       icon: '🌱',
       color: 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600',
       queryParam: 'create=true',
+      minLevel: 1, // After identity + skills
     },
   ];
+
+  // Filter actions based on onboarding level
+  const actions = allActions.filter(action => level >= action.minLevel);
 
   return (
     <>
@@ -59,12 +77,12 @@ export function FloatingActionButton() {
 
       {/* FAB Container - positioned above FloatingButtonCluster */}
       <div className="fixed bottom-24 right-6 z-50 md:bottom-6 md:left-24">
-        {/* Action Buttons */}
-        {isOpen && (
+        {/* Action Buttons - Grow from seed */}
+        {isOpen && actions.length > 0 && (
           <div
             className="flex flex-col-reverse gap-3 mb-3"
             style={{
-              animation: 'fadeInUp 150ms ease-out',
+              animation: 'fadeInUp 200ms ease-out',
             }}
           >
             {actions.map((action, index) => {
@@ -94,13 +112,14 @@ export function FloatingActionButton() {
                     rounded-full
                     ${gardenNoteColor}
                     shadow-lg
-                    transition-all duration-150 ease-out
+                    transition-all duration-200 ease-out
                     hover:scale-105
                     ml-4
                     mb-1
+                    hg-anim-plant-grow-in
                   `}
                   style={{
-                    animationDelay: `${index * 50}ms`,
+                    animationDelay: `${index * 80}ms`,
                   }}
                 >
                   <span className="text-lg">{action.icon}</span>
@@ -113,35 +132,33 @@ export function FloatingActionButton() {
           </div>
         )}
 
-        {/* Main FAB Button */}
+        {/* Main FAB Button - Seed that becomes Sprout */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className={`
             w-14 h-14
             rounded-full
-            bg-blue-600 hover:bg-blue-700
-            dark:bg-blue-500 dark:hover:bg-blue-600
+            bg-green-600 hover:bg-green-700
+            dark:bg-green-500 dark:hover:bg-green-600
             text-white
             shadow-lg hover:shadow-xl
             flex items-center justify-center
-            transition-all duration-150 ease-out
-            ${isOpen ? 'rotate-45' : ''}
+            transition-all duration-300 ease-out
+            ${isOpen ? 'hg-anim-plant-pulse' : 'hg-anim-plant-idle'}
           `}
           aria-label={isOpen ? 'Close menu' : 'Create'}
+          style={{
+            filter: isOpen ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' : 'none',
+          }}
         >
-          <svg
-            className="w-6 h-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <span 
+            className="text-2xl transition-all duration-300"
+            style={{
+              transform: isOpen ? 'scale(1.1) rotate(5deg)' : 'scale(1)',
+            }}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
+            {isOpen ? '🌿' : '🌱'}
+          </span>
         </button>
       </div>
 
