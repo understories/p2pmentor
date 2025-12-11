@@ -17,6 +17,7 @@ import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
 import { fetchProfileDetail } from '@/lib/graph/profileQueries';
@@ -45,6 +46,7 @@ export default function ProfileDetailPage() {
   const [meetingMode, setMeetingMode] = useState<'request' | 'peer'>('request');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showGardenNoteModal, setShowGardenNoteModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'edit' | 'view'>('view'); // 'edit' = show edit controls, 'view' = view as others
 
   useEffect(() => {
     if (wallet) {
@@ -311,19 +313,40 @@ export default function ProfileDetailPage() {
                   {profile.username && (
                     <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
                   )}
+                  {profile.txHash && (
+                    <div className="mt-2">
+                      <ViewOnArkivLink txHash={profile.txHash} entityKey={profile.key} />
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
-                  {/* Edit Profile Button - only show if viewing own profile */}
+                  {/* Edit/View Toggle - only show if viewing own profile */}
                   {userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && (
-                    <Link
-                      href="/me/profile"
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Edit Profile
-                    </Link>
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => setViewMode(viewMode === 'edit' ? 'view' : 'edit')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          viewMode === 'edit'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                        title={viewMode === 'edit' ? 'Switch to view mode (as others see it)' : 'Switch to edit mode'}
+                      >
+                        {viewMode === 'edit' ? '👁️ View as Others' : '✏️ Edit Mode'}
+                      </button>
+                      {viewMode === 'edit' && (
+                        <Link
+                          href="/me/profile"
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Edit Profile
+                        </Link>
+                      )}
+                    </div>
                   )}
-                  {/* Action Buttons - only show if viewing someone else's profile */}
-                  {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
+                  {/* Action Buttons - only show if viewing someone else's profile OR viewing own profile in view mode */}
+                  {((userWallet && userWallet.toLowerCase() !== wallet.toLowerCase()) || 
+                    (userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && viewMode === 'view')) && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
@@ -503,16 +526,7 @@ export default function ProfileDetailPage() {
                         const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
                         return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
                       })()}</span>
-                      {offer.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-600 dark:text-green-400 hover:underline"
-                        >
-                          View on Arkiv
-                        </a>
-                      )}
+                      <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
                     </div>
                     {/* Request Meeting Button for this specific offer */}
                     {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
@@ -563,16 +577,7 @@ export default function ProfileDetailPage() {
                       const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
                       return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
                     })()}</span>
-                    {ask.txHash && (
-                      <a
-                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        View on Arkiv
-                      </a>
-                    )}
+                    <ViewOnArkivLink txHash={ask.txHash} entityKey={ask.key} />
                   </div>
                 </div>
               ))}
@@ -779,6 +784,9 @@ export default function ProfileDetailPage() {
                         </p>
                       </div>
                     )}
+                    <div className="mt-2">
+                      <ViewOnArkivLink txHash={feedback.txHash} entityKey={feedback.key} />
+                    </div>
                   </div>
                 ))}
               </div>
