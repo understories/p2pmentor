@@ -1,92 +1,66 @@
 /**
  * Learning Follow API route
  * 
- * Handles following/unfollowing skills for learning communities.
+ * Handles learning community follow/unfollow.
  */
 
 import { NextResponse } from 'next/server';
-import { createLearningFollow, listLearningFollows, unfollowSkill } from '@/lib/arkiv/learningFollow';
-import { getPrivateKey } from '@/lib/config';
+import { createLearningFollow } from '@/lib/arkiv/learningFollow';
+import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, profile_wallet, skill_id } = body;
+    const { wallet, action, skill_id, mode } = body;
 
-    if (!profile_wallet || !skill_id) {
+    // Use wallet from request, fallback to CURRENT_WALLET for example wallet
+    const targetWallet = wallet || CURRENT_WALLET || '';
+    if (!targetWallet) {
       return NextResponse.json(
-        { ok: false, error: 'profile_wallet and skill_id are required' },
+        { ok: false, error: 'No wallet address provided' },
         { status: 400 }
       );
     }
 
-    if (action === 'follow') {
-      try {
-        const { key, txHash } = await createLearningFollow({
-          profile_wallet,
-          skill_id,
-          mode: 'learning',
-          privateKey: getPrivateKey(),
-          spaceId: 'local-dev',
-        });
-
-        return NextResponse.json({ ok: true, key, txHash });
-      } catch (error: any) {
-        console.error('[learning-follow] Error creating follow:', error);
+    if (action === 'createFollow') {
+      if (!skill_id) {
         return NextResponse.json(
-          { ok: false, error: error.message || 'Failed to follow skill' },
-          { status: 500 }
+          { ok: false, error: 'skill_id is required' },
+          { status: 400 }
         );
       }
-    } else if (action === 'unfollow') {
+
       try {
-        const { key, txHash } = await unfollowSkill({
-          profile_wallet,
+        const { key, txHash } = await createLearningFollow({
+          profile_wallet: targetWallet,
           skill_id,
+          mode: mode || 'learning',
           privateKey: getPrivateKey(),
-          spaceId: 'local-dev',
         });
 
         return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {
-        console.error('[learning-follow] Error unfollowing skill:', error);
-        return NextResponse.json(
-          { ok: false, error: error.message || 'Failed to unfollow skill' },
-          { status: 500 }
-        );
+        // Handle transaction receipt timeout gracefully
+        if (isTransactionTimeoutError(error)) {
+          return NextResponse.json({ 
+            ok: true, 
+            key: null,
+            txHash: null,
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error;
       }
     } else {
       return NextResponse.json(
-        { ok: false, error: 'Invalid action. Use "follow" or "unfollow"' },
+        { ok: false, error: 'Invalid action' },
         { status: 400 }
       );
     }
   } catch (error: any) {
-    console.error('[learning-follow] Error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const profile_wallet = searchParams.get('profile_wallet');
-    const skill_id = searchParams.get('skill_id');
-    const active = searchParams.get('active') !== 'false'; // Default to true
-
-    const follows = await listLearningFollows({
-      profile_wallet: profile_wallet || undefined,
-      skill_id: skill_id || undefined,
-      active,
-      limit: 100,
-    });
-
-    return NextResponse.json({ ok: true, follows });
-  } catch (error: any) {
-    console.error('[learning-follow] Error listing follows:', error);
+    console.error('Learning Follow API error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }
