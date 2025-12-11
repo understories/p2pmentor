@@ -141,7 +141,16 @@ export function SidebarNav() {
 
   const isActive = (href: string) => {
     if (href === '/me') {
-      return pathname === '/me' || pathname.startsWith('/me/');
+      // Only active for /me exactly, or /me/* routes that don't have their own nav items
+      // Exclude routes that have dedicated nav items (sessions, etc.)
+      if (pathname === '/me') return true;
+      if (!pathname.startsWith('/me/')) return false;
+      // Check if this is a route with its own nav item
+      const routesWithNavItems = ['/me/sessions'];
+      if (routesWithNavItems.some(route => pathname.startsWith(route))) {
+        return false; // This route has its own nav item, don't highlight "Me"
+      }
+      return true; // Other /me/* routes should highlight "Me"
     }
     return pathname === href || pathname.startsWith(`${href}/`);
   };
