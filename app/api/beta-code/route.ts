@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { trackBetaCodeUsage, getBetaCodeUsage, canUseBetaCode } from '@/lib/arkiv/betaCode';
+import { createBetaAccess } from '@/lib/arkiv/betaAccess';
 import { getPrivateKey } from '@/lib/config';
 
 /**
@@ -57,6 +58,38 @@ export async function POST(request: NextRequest) {
           remaining: Math.max(0, updatedUsage.limit - updatedUsage.usageCount),
         } : null,
       });
+    } else if (action === 'createAccess') {
+      // Create beta access record (wallet binding - optional, can be done post-auth)
+      const { wallet } = body;
+      
+      if (!wallet) {
+        return NextResponse.json(
+          { ok: false, error: 'Wallet address is required for createAccess' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const privateKey = getPrivateKey();
+        const { key, txHash } = await createBetaAccess({
+          wallet,
+          code,
+          privateKey,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          key,
+          txHash,
+          message: 'Beta access record created',
+        });
+      } catch (error: any) {
+        console.error('[api/beta-code] Error creating beta access:', error);
+        return NextResponse.json(
+          { ok: false, error: error.message || 'Failed to create beta access record' },
+          { status: 500 }
+        );
+      }
     } else {
       return NextResponse.json(
         { ok: false, error: 'Invalid action. Use "validate" or "track"' },

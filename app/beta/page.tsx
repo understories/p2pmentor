@@ -72,12 +72,24 @@ export default function BetaPage() {
         throw new Error(trackData.error || 'Failed to track beta code usage');
       }
 
-      // Store invite code in session/localStorage for future checks
+      // Store invite code and access key for future checks
+      const accessKey = trackData.key; // Beta code usage entity key
+
+      // Set cookies for server-side middleware checks
+      // Cookies are more secure than localStorage for server-side validation
       if (typeof window !== 'undefined') {
+        // Set cookies (httpOnly will be handled by server if needed, but for now client-side is fine)
+        document.cookie = `beta_access_code=${normalizedCode}; path=/; max-age=31536000; SameSite=Lax`;
+        document.cookie = `beta_access_key=${accessKey}; path=/; max-age=31536000; SameSite=Lax`;
+        
+        // Also keep in localStorage for client-side checks
         localStorage.setItem('beta_invite_code', normalizedCode);
+        localStorage.setItem('beta_access_key', accessKey);
       }
       
-      router.push('/auth');
+      // Redirect to auth or return URL
+      const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/auth';
+      router.push(redirectUrl);
     } catch (err: any) {
       console.error('Beta code error:', err);
       setError(err.message || 'Failed to process beta code');
