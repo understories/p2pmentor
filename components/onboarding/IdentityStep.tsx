@@ -52,7 +52,10 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
 
       const data = await res.json();
       if (data.ok) {
-        onComplete();
+        // Small delay for visual feedback (seed "pops")
+        setTimeout(() => {
+          onComplete();
+        }, 300);
       } else {
         throw new Error(data.error || 'Failed to create profile');
       }
@@ -66,7 +69,13 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
   return (
     <div className="space-y-6">
       <div className="text-center">
-        <div className="text-6xl mb-4 animate-pulse">🌱</div>
+        <div 
+          className={`text-6xl mb-4 transition-all duration-300 ${
+            displayName.trim() ? 'hg-anim-plant-sparkle' : 'animate-pulse'
+          }`}
+        >
+          🌱
+        </div>
         <h2 className="text-2xl font-bold mb-2">Create Your Identity</h2>
         <p className="text-gray-600 dark:text-gray-400">
           Your identity is the seed from which everything grows.
@@ -112,9 +121,16 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
         <button
           type="submit"
           disabled={!displayName.trim() || isSubmitting}
-          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50"
         >
-          {isSubmitting ? 'Growing your seed...' : 'Grow Seed →'}
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">🌱</span>
+              <span>Growing your seed...</span>
+            </span>
+          ) : (
+            'Grow Seed →'
+          )}
         </button>
       </form>
     </div>

@@ -59,22 +59,23 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
         {paths.map((path) => (
           <button
             key={path.id}
             onClick={() => {
               setSelectedPath(path.id);
-              setTimeout(() => onSelectPath(path.id), 300); // Small delay for visual feedback
+              // Small delay for visual feedback before transitioning
+              setTimeout(() => onSelectPath(path.id), 300);
             }}
             className={`
-              relative p-6 rounded-lg border-2 transition-all duration-300
+              relative p-4 md:p-6 rounded-lg border-2 transition-all duration-300
               ${selectedPath === path.id
-                ? 'border-green-500 scale-105'
+                ? 'border-green-500 scale-105 shadow-lg'
                 : 'border-gray-300 dark:border-gray-600 hover:border-green-400'
               }
               bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm
-              hover:shadow-lg
+              hover:shadow-lg active:scale-95
             `}
             style={{
               boxShadow: selectedPath === path.id

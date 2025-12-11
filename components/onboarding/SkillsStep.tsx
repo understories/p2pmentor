@@ -15,9 +15,10 @@ interface SkillsStepProps {
   wallet: string;
   onComplete: () => void;
   onError: (error: Error) => void;
+  onSkillAdded?: (skillId: string) => void; // Callback when skill is added (for garden animation)
 }
 
-export function SkillsStep({ wallet, onComplete, onError }: SkillsStepProps) {
+export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: SkillsStepProps) {
   const [skillName, setSkillName] = useState('');
   const [expertise, setExpertise] = useState(1);
   const [existingSkills, setExistingSkills] = useState<Skill[]>([]);
@@ -107,11 +108,15 @@ export function SkillsStep({ wallet, onComplete, onError }: SkillsStepProps) {
         throw new Error(data.error || 'Failed to update profile');
       }
 
+      const newSkillId = skill ? skill.key : skillName.trim().toLowerCase();
       setCreatedSkills([...createdSkills, {
-        skillId: skill ? skill.key : skillName.trim().toLowerCase(),
+        skillId: newSkillId,
         skillName: skill ? skill.name_canonical : skillName.trim(),
         expertise,
       }]);
+
+      // Trigger garden animation callback if provided
+      onSkillAdded?.(newSkillId);
 
       setSkillName('');
       setExpertise(1);
@@ -131,7 +136,7 @@ export function SkillsStep({ wallet, onComplete, onError }: SkillsStepProps) {
   };
 
   const expertiseLabels = ['Seed', 'Sprout', 'Budding', 'Bush', 'Tree', 'Glowing Tree'];
-  const expertiseEmojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '✨'];
+  const expertiseEmojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨'];
 
   return (
     <div className="space-y-6">
@@ -186,6 +191,11 @@ export function SkillsStep({ wallet, onComplete, onError }: SkillsStepProps) {
           <label htmlFor="expertise" className="block text-sm font-medium mb-2">
             Expertise Level: {expertiseLabels[expertise]} {expertiseEmojis[expertise]}
           </label>
+          {createdSkills.length > 0 && (
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+              Increase this skill's level? The plant will grow as you move the slider.
+            </p>
+          )}
           <input
             id="expertise"
             type="range"
@@ -206,9 +216,16 @@ export function SkillsStep({ wallet, onComplete, onError }: SkillsStepProps) {
           type="button"
           onClick={handleAddSkill}
           disabled={!skillName.trim() || isSubmitting}
-          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-all duration-200 font-medium disabled:opacity-50"
         >
-          {isSubmitting ? 'Planting...' : 'Plant Skill'}
+          {isSubmitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">🌱</span>
+              <span>Planting...</span>
+            </span>
+          ) : (
+            'Plant Skill'
+          )}
         </button>
       </div>
 

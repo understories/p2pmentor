@@ -33,6 +33,9 @@ export function CompleteStep({ onEnterGarden }: CompleteStepProps) {
         className={`text-8xl mb-6 transition-all duration-2000 ${
           showAnimation ? 'opacity-100 scale-100' : 'opacity-0 scale-90'
         }`}
+        style={{
+          filter: showAnimation ? 'drop-shadow(0 0 20px rgba(255, 200, 0, 0.6))' : 'none',
+        }}
       >
         🌅
       </div>

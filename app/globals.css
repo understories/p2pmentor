@@ -218,6 +218,97 @@ body {
   border-color: rgba(150, 255, 150, 0.3) !important;
 }
 
+/* Garden Plant Animations (Phase 6: Emoji Garden) */
+@keyframes hg-plant-grow-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hg-plant-breathe {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.03);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hg-plant-sparkle {
+  0% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+  40% {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  }
+  100% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes hg-plant-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hg-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.hg-anim-plant-grow-in {
+  animation: hg-plant-grow-in 0.45s ease-out;
+}
+
+.hg-anim-plant-breathe {
+  animation: hg-plant-breathe 3.6s ease-in-out infinite;
+}
+
+.hg-anim-plant-sparkle {
+  animation: hg-plant-sparkle 0.8s ease-out 1;
+}
+
+.hg-anim-plant-idle {
+  animation: hg-plant-breathe 4.2s ease-in-out infinite;
+}
+
+.hg-anim-plant-pulse {
+  animation: hg-plant-pulse 0.6s ease-out;
+}
+
+.hg-anim-ring-pulse {
+  animation: hg-ring-pulse 1s ease-out;
+}
+
 /* Respect user's motion preferences for accessibility */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -226,6 +317,11 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  
+  .hg-anim-plant-idle,
+  .hg-anim-plant-breathe {
+    animation: none;
   }
 }
 
