@@ -26,6 +26,8 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import { GardenLayer } from '@/components/garden/GardenLayer';
+import { profileToGardenSkills } from '@/lib/garden/types';
 
 function PublicGardenBoardContent() {
   const router = useRouter();
@@ -37,6 +39,7 @@ function PublicGardenBoardContent() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showComposeModal, setShowComposeModal] = useState(false);
+  const [gardenSkills, setGardenSkills] = useState<any[]>([]);
 
   useEffect(() => {
     // Get current user's profile wallet (from localStorage 'wallet_address')
@@ -46,7 +49,15 @@ function PublicGardenBoardContent() {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address)
+          .then(profile => {
+            setUserProfile(profile);
+            if (profile) {
+              const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
+              setGardenSkills(skills);
+            }
+          })
+          .catch(() => null);
         
         // Check if user has profile for this profile wallet - if not, redirect to onboarding
         import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
@@ -152,6 +163,9 @@ function PublicGardenBoardContent() {
     <div className="min-h-screen relative">
       {/* Background art - no gradients, just the base background */}
       <BackgroundImage />
+      
+      {/* Garden Layer - persistent garden showing user's skills */}
+      {gardenSkills.length > 0 && <GardenLayer skills={gardenSkills} />}
 
       {/* No BetaBanner on this page */}
       <ThemeToggle />

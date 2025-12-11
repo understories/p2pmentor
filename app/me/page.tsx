@@ -15,12 +15,16 @@ import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
 import { LearningCommunitiesCard } from '@/components/LearningCommunitiesCard';
+import { GardenLayer } from '@/components/garden/GardenLayer';
+import { profileToGardenSkills } from '@/lib/garden/types';
+import { BackgroundImage } from '@/components/BackgroundImage';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -94,6 +98,12 @@ export default function MePage() {
       const profileData = await getProfileByWallet(wallet).catch(() => null);
       setHasProfile(profileData !== null);
       setProfile(profileData);
+      
+      // Load garden skills from profile
+      if (profileData) {
+        const skills = profileToGardenSkills(profileData.skillsArray, profileData.skillExpertise);
+        setGardenSkills(skills);
+      }
     } catch (err) {
       console.error('Error loading profile status:', err);
       setHasProfile(null);
@@ -110,8 +120,15 @@ export default function MePage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
+    <div className="min-h-screen relative text-gray-900 dark:text-gray-100">
+      {/* Forest Background */}
+      <BackgroundImage />
+      
+      {/* Garden Layer - persistent garden showing user's skills */}
+      {gardenSkills.length > 0 && <GardenLayer skills={gardenSkills} />}
+      
+      <div className="relative z-10 p-4">
+        <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-4">
           <BackButton href="/auth" label="Back to Auth" />
@@ -280,6 +297,7 @@ export default function MePage() {
             </div>
           )}
         </div>
+      </div>
       </div>
     </div>
   );
