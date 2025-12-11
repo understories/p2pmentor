@@ -24,6 +24,7 @@ import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
+import type { Session } from '@/lib/arkiv/sessions';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 
 type Match = {
@@ -43,6 +44,7 @@ export default function TopicDetailPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
   const [gatherings, setGatherings] = useState<VirtualGathering[]>([]);
+  const [communitySessions, setCommunitySessions] = useState<Session[]>([]);
   const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
@@ -91,11 +93,12 @@ export default function TopicDetailPage() {
       const skillEntity = skillData.skills[0];
       setSkill(skillEntity);
 
-      // Load asks, offers, and virtual gatherings filtered by skill_id/community
-      const [asksRes, offersRes, gatheringsRes] = await Promise.all([
+      // Load asks, offers, virtual gatherings, and sessions for this community
+      const [asksRes, offersRes, gatheringsRes, sessionsRes] = await Promise.all([
         fetch('/api/asks').then(r => r.json()),
         fetch('/api/offers').then(r => r.json()),
         fetch(`/api/virtual-gatherings?community=${encodeURIComponent(skillEntity.slug)}${userWallet ? `&wallet=${encodeURIComponent(userWallet)}` : ''}`).then(r => r.json()),
+        fetch(`/api/sessions?skill=${encodeURIComponent(skillEntity.name_canonical)}&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
       ]);
 
       // Filter by skill_id
@@ -117,10 +120,67 @@ export default function TopicDetailPage() {
         }
       }
 
-      // Load profiles for all unique wallets
+      // Load sessions for this community (skill-based sessions)
+      if (sessionsRes.ok && sessionsRes.sessions) {
+        // Filter to upcoming sessions only
+        const now = Date.now();
+        const upcoming = sessionsRes.sessions.filter((s: Session) => {
+          const sessionTime = new Date(s.sessionDate).getTime();
+          return sessionTime > now;
+        });
+        setCommunitySessions(upcoming);
+      }
+
+      // Also load sessions linked to virtual gatherings for this community
+      if (gatheringsRes.ok && gatheringsRes.gatherings) {
+        const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
+        // Query sessions with gatheringKey attribute matching any gathering
+        const gatheringSessionsRes = await Promise.all(
+          gatheringKeys.map((key: string) =>
+            fetch(`/api/sessions?skill=virtual_gathering_rsvp&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }))
+          )
+        );
+        
+        // Filter sessions that match gathering keys
+        const allGatheringSessions: Session[] = [];
+        gatheringSessionsRes.forEach((res) => {
+          if (res.ok && res.sessions) {
+            res.sessions.forEach((s: Session) => {
+              // Check if session notes or payload contains gatheringKey
+              const notes = s.notes || '';
+              const hasGatheringKey = gatheringKeys.some((key: string) => 
+                notes.includes(`virtual_gathering_rsvp:${key}`) || notes.includes(key)
+              );
+              if (hasGatheringKey) {
+                allGatheringSessions.push(s);
+              }
+            });
+          }
+        });
+
+        // Combine with skill-based sessions
+        setCommunitySessions(prev => {
+          const combined = [...prev, ...allGatheringSessions];
+          // Deduplicate by key
+          const unique = new Map<string, Session>();
+          combined.forEach(s => unique.set(s.key, s));
+          return Array.from(unique.values()).sort((a, b) => 
+            new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+          );
+        });
+      }
+
+      // Load profiles for all unique wallets (asks, offers, sessions, gatherings)
       const allWallets = new Set<string>();
       skillAsks.forEach((ask: Ask) => allWallets.add(ask.wallet));
       skillOffers.forEach((offer: Offer) => allWallets.add(offer.wallet));
+      communitySessions.forEach((session: Session) => {
+        allWallets.add(session.mentorWallet);
+        allWallets.add(session.learnerWallet);
+      });
+      if (gatheringsRes.ok && gatheringsRes.gatherings) {
+        gatheringsRes.gatherings.forEach((g: VirtualGathering) => allWallets.add(g.organizerWallet));
+      }
 
       const profilePromises = Array.from(allWallets).map(async (wallet) => {
         try {
@@ -252,7 +312,7 @@ export default function TopicDetailPage() {
     );
   }
 
-  const totalCount = asks.length + offers.length + matches.length + gatherings.length;
+  const totalCount = asks.length + offers.length + matches.length + gatherings.length + communitySessions.length;
   
   // Filter upcoming gatherings (not past)
   const upcomingGatherings = gatherings.filter(g => {
@@ -303,11 +363,81 @@ export default function TopicDetailPage() {
           </div>
         </div>
 
-        {/* Upcoming Community Sessions */}
-        {upcomingGatherings.length > 0 && (
+        {/* Upcoming Community Sessions - Display actual session entities */}
+        {communitySessions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
               📅 Upcoming Community Sessions
+            </h2>
+            <div className="space-y-4">
+              {communitySessions.map((session) => {
+                const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
+                const isLearner = userWallet?.toLowerCase() === session.learnerWallet.toLowerCase();
+                const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+                const otherProfile = profiles[otherWallet.toLowerCase()];
+                const sessionTime = formatSessionDate(session.sessionDate);
+                const sessionDateTime = new Date(session.sessionDate).getTime();
+                const now = Date.now();
+                const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
+                const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+                return (
+                  <div
+                    key={session.key}
+                    className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                          {session.skill === 'virtual_gathering_rsvp' 
+                            ? (session.notes?.includes('gatheringTitle:') 
+                                ? session.notes.split('gatheringTitle:')[1]?.split(',')[0]?.trim() || 'Community Session'
+                                : 'Community Session')
+                            : session.skill}
+                        </h3>
+                        {(isMentor || isLearner) && otherWallet !== userWallet?.toLowerCase() && (
+                          <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                            {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {otherProfile?.displayName || otherWallet.slice(0, 8) + '...'}
+                          </p>
+                        )}
+                        {session.notes && session.notes.includes('virtual_gathering_rsvp:') && (
+                          <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                            Community gathering
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
+                        {session.duration && ` • ${session.duration} min`}
+                      </p>
+                      {session.videoJoinUrl && (
+                        <a
+                          href={session.videoJoinUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                        >
+                          🎥 Join
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Virtual Gatherings (meetings that can be RSVP'd) */}
+        {upcomingGatherings.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              📅 Schedule a Community Meeting
             </h2>
             <div className="space-y-4">
               {upcomingGatherings.map((gathering) => {
