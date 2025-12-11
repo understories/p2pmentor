@@ -16,8 +16,16 @@ export function getSessionSkillId(session: Session): string {
     return session.skill_id;
   }
   // Check if it's a community session with community slug
+  // Extract from notes if not in payload
   if (session.community) {
     return session.community; // Community slug can be used as skill identifier
+  }
+  // Try to extract from notes
+  if (session.notes?.includes('community:')) {
+    const match = session.notes.match(/community:([^,|]+)/);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
   }
   return '[legacy data]';
 }
