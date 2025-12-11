@@ -414,14 +414,16 @@ export default function OffersPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <BackButton href="/network" />
+      <BetaGate>
+        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="mb-6">
+              <BackButton href="/network" />
+            </div>
+            <LoadingSpinner text="Loading offers..." className="py-12" />
           </div>
-          <LoadingSpinner text="Loading offers..." className="py-12" />
         </div>
-      </div>
+      </BetaGate>
     );
   }
 
