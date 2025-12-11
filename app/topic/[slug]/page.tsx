@@ -27,6 +27,7 @@ import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
 import type { Session } from '@/lib/arkiv/sessions';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { formatSessionTitle } from '@/lib/sessions/display';
 
 type Match = {
   ask: Ask;
@@ -384,11 +385,7 @@ export default function TopicDetailPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-                          {session.skill === 'virtual_gathering_rsvp' 
-                            ? (session.notes?.includes('gatheringTitle:') 
-                                ? session.notes.split('gatheringTitle:')[1]?.split(',')[0]?.trim() || 'Community Session'
-                                : 'Community Session')
-                            : session.skill}
+                          {formatSessionTitle(session)}
                         </h3>
                         {(isMentor || isLearner) && otherWallet !== userWallet?.toLowerCase() && (
                           <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
@@ -429,14 +426,22 @@ export default function TopicDetailPage() {
           </div>
         )}
 
-        {/* Upcoming Virtual Gatherings (meetings that can be RSVP'd) */}
-        {upcomingGatherings.length > 0 && (
+        {/* Upcoming Virtual Gatherings (meetings that can be RSVP'd) - exclude ones user already RSVP'd to */}
+        {upcomingGatherings.filter(g => {
+          // Exclude gatherings that user has already RSVP'd to (they'll show as sessions above)
+          if (!userWallet) return true;
+          return !communitySessions.some(s => s.gatheringKey === g.key);
+        }).length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
               🌐 Schedule a Community Meeting
             </h2>
             <div className="space-y-4">
-              {upcomingGatherings.map((gathering) => {
+              {upcomingGatherings.filter(g => {
+                // Exclude gatherings that user has already RSVP'd to
+                if (!userWallet) return true;
+                return !communitySessions.some(s => s.gatheringKey === g.key);
+              }).map((gathering) => {
                 const organizerProfile = profiles[gathering.organizerWallet.toLowerCase()];
                 const organizerName = organizerProfile?.displayName || gathering.organizerWallet.slice(0, 8) + '...';
                 const hasRsvpd = rsvpStatus[gathering.key] || false;

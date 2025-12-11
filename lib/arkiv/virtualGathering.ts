@@ -389,6 +389,8 @@ export async function rsvpToGathering({
         { key: 'status', value: 'scheduled' }, // Immediately scheduled (self-confirmed)
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
+        // Store skill_id if we can resolve community slug to skill entity
+        // For now, we'll store community slug and resolve skill_id in display logic
       ],
       expiresIn: expiresInSecondsInt,
     });

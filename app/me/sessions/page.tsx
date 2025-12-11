@@ -20,6 +20,7 @@ import { Alert } from '@/components/Alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { FeedbackModal } from '@/components/FeedbackModal';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { formatSessionTitle } from '@/lib/sessions/display';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
@@ -418,7 +419,7 @@ export default function SessionsPage() {
                 </span>
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
-                <strong>{upcomingSession.skill}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
+                <strong>{formatSessionTitle(upcomingSession)}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-400">
                 {sessionTime.date} at {sessionTime.time}
@@ -463,7 +464,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
                             Pending
                           </span>
@@ -660,7 +661,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                             Scheduled
                           </span>

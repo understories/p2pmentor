@@ -18,6 +18,7 @@ import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
+import { getSidebarSkillId } from '@/lib/sessions/display';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Session } from '@/lib/arkiv/sessions';
 
@@ -254,46 +255,25 @@ export function SidebarNav() {
           const sessionMap = new Map<string, { skillName: string; isCommunity: boolean; session: Session }>();
           
           upcomingSessions.forEach((session) => {
-            // Get skill name - always use the actual skill, not user-defined titles
-            // For virtual gathering RSVPs, we need to extract the skill from the gathering
-            // The session.skill is 'virtual_gathering_rsvp', but we want the actual skill name
-            let skillName = session.skill;
-            
-            if (session.skill === 'virtual_gathering_rsvp') {
-              // For virtual gathering RSVPs, extract the community (skill slug) from notes
-              // Format: "virtual_gathering_rsvp:gatheringKey,community:skillSlug"
-              if (session.notes?.includes('community:')) {
-                const communityMatch = session.notes.match(/community:([^,|]+)/);
-                if (communityMatch && communityMatch[1]) {
-                  skillName = communityMatch[1].trim();
-                  // Try to get the canonical skill name from the slug
-                  // For now, we'll use the slug as-is (it should match the skill name)
-                  // In the future, we could fetch the skill entity to get name_canonical
-                } else {
-                  skillName = 'Community';
-                }
-              } else {
-                // Fallback if community not in notes (old sessions)
-                skillName = 'Community';
-              }
-            }
-            
-            const normalizedSkillName = skillName.toLowerCase().trim();
+            // Use skill_id for deduplication and display
+            const skillId = getSidebarSkillId(session);
+            const normalizedSkillId = skillId.toLowerCase().trim();
             const isCommunity = Boolean(
               session.skill === 'virtual_gathering_rsvp' || 
+              session.gatheringKey ||
               session.notes?.includes('gatheringKey:') ||
               session.notes?.includes('virtual_gathering_rsvp:')
             );
             
-            // Keep the earliest session for each skill
-            if (!sessionMap.has(normalizedSkillName)) {
-              sessionMap.set(normalizedSkillName, { skillName, isCommunity, session });
+            // Keep the earliest session for each skill_id
+            if (!sessionMap.has(normalizedSkillId)) {
+              sessionMap.set(normalizedSkillId, { skillName: skillId, isCommunity, session });
             } else {
-              const existing = sessionMap.get(normalizedSkillName)!;
+              const existing = sessionMap.get(normalizedSkillId)!;
               const existingDate = new Date(existing.session.sessionDate).getTime();
               const currentDate = new Date(session.sessionDate).getTime();
               if (currentDate < existingDate) {
-                sessionMap.set(normalizedSkillName, { skillName, isCommunity, session });
+                sessionMap.set(normalizedSkillId, { skillName: skillId, isCommunity, session });
               }
             }
           });

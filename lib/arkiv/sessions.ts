@@ -17,7 +17,8 @@ export type Session = {
   key: string;
   mentorWallet: string;
   learnerWallet: string;
-  skill: string;
+  skill: string; // Legacy: skill name (deprecated, use skill_id)
+  skill_id?: string; // Skill entity key (preferred)
   spaceId: string;
   createdAt: string;
   sessionDate: string; // ISO timestamp when session is/was scheduled
@@ -28,6 +29,10 @@ export type Session = {
   txHash?: string; // Session creation transaction hash
   mentorConfirmed?: boolean;
   learnerConfirmed?: boolean;
+  // Community session fields (for virtual gathering RSVPs)
+  gatheringKey?: string; // Virtual gathering entity key
+  gatheringTitle?: string; // Virtual gathering title
+  community?: string; // Skill slug/community name
   // Payment flow fields
   requiresPayment?: boolean; // Whether this session requires payment
   paymentAddress?: string; // Payment receiving address (if paid)
@@ -53,6 +58,7 @@ export async function createSession({
   mentorWallet,
   learnerWallet,
   skill,
+  skill_id,
   sessionDate,
   duration,
   notes,
@@ -63,7 +69,8 @@ export async function createSession({
 }: {
   mentorWallet: string;
   learnerWallet: string;
-  skill: string;
+  skill: string; // Legacy: skill name (deprecated)
+  skill_id?: string; // Skill entity key (preferred)
   sessionDate: string; // ISO timestamp
   duration?: number;
   notes?: string;
@@ -122,11 +129,12 @@ export async function createSession({
         { key: 'type', value: 'session' },
         { key: 'mentorWallet', value: normalizedMentorWallet },
         { key: 'learnerWallet', value: normalizedLearnerWallet },
-        { key: 'skill', value: skill },
+        { key: 'skill', value: skill }, // Legacy: keep for backward compatibility
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
       { key: 'sessionDate', value: sessionDate },
       { key: 'status', value: status },
+      ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
       ...(requiresPayment ? [{ key: 'requiresPayment', value: 'true' }] : []),
       ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
       ...(cost ? [{ key: 'cost', value: cost }] : []),
@@ -551,11 +559,20 @@ export async function listSessions(params?: {
       finalStatus = 'pending';
     }
 
+    // Extract skill_id and community session fields
+    const skill_id = getAttr('skill_id') || payload.skill_id || undefined;
+    const gatheringKey = getAttr('gatheringKey') || payload.gatheringKey || undefined;
+    const gatheringTitle = payload.gatheringTitle || undefined;
+    const community = payload.community || (payload.notes?.includes('community:') 
+      ? payload.notes.split('community:')[1]?.split(',')[0]?.trim() 
+      : undefined);
+
     return {
       key: sessionKey,
       mentorWallet,
       learnerWallet,
       skill: getAttr('skill'),
+      skill_id,
       spaceId: getAttr('spaceId') || 'local-dev',
       createdAt: getAttr('createdAt'),
       sessionDate: getAttr('sessionDate') || payload.sessionDate || '',
@@ -576,6 +593,9 @@ export async function listSessions(params?: {
       videoRoomName: jitsiInfo.videoRoomName,
       videoJoinUrl: jitsiInfo.videoJoinUrl,
       videoJwtToken: jitsiInfo.videoJwtToken,
+      gatheringKey,
+      gatheringTitle,
+      community,
     };
   });
 }

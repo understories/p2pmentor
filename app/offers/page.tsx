@@ -426,6 +426,7 @@ export default function OffersPage() {
   }
 
   return (
+    <BetaGate>
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-4xl mx-auto">
