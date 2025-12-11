@@ -108,7 +108,7 @@ export function SidebarNav() {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
-      minLevel: 4, // After community join
+      minLevel: 1, // Available after identity + skills (sessions can be created via RSVP)
     },
     {
       href: '/network',
