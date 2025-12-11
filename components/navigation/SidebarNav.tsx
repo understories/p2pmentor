@@ -15,6 +15,9 @@ import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
+import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
+import type { UserProfile } from '@/lib/arkiv/profile';
 
 interface NavItem {
   href: string;
@@ -31,11 +34,26 @@ export function SidebarNav() {
   // Get onboarding level for navigation unlocking
   const [wallet, setWallet] = useState<string | null>(null);
   const { level } = useOnboardingLevel(wallet);
+  const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      
+      // Load garden skills for sidebar garden
+      if (storedWallet) {
+        getProfileByWallet(storedWallet)
+          .then((profile: UserProfile | null) => {
+            if (profile) {
+              const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
+              setGardenSkills(skills);
+            }
+          })
+          .catch(() => {
+            // Profile not found - that's okay
+          });
+      }
     }
   }, []);
 
@@ -199,6 +217,47 @@ export function SidebarNav() {
             </Link>
           );
         })}
+        
+        {/* Dynamic Growing Garden - shows user's skills as plants */}
+        {gardenSkills.length > 0 && (
+          <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <div className="flex flex-col items-center gap-2 px-2">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
+                Your Garden
+              </div>
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {gardenSkills.slice(0, 6).map((skill) => (
+                  <div
+                    key={skill.id}
+                    className="relative flex flex-col items-center hg-anim-plant-idle"
+                    title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
+                  >
+                    <span className="text-lg">
+                      {levelToEmoji(skill.level)}
+                    </span>
+                    <span 
+                      className="text-[8px] text-gray-500 dark:text-gray-400 text-center leading-tight"
+                      style={{
+                        maxWidth: '40px',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        lineHeight: '1.2',
+                      }}
+                      title={skill.name}
+                    >
+                      {skill.name}
+                    </span>
+                  </div>
+                ))}
+                {gardenSkills.length > 6 && (
+                  <div className="text-xs text-gray-400 dark:text-gray-500">
+                    +{gardenSkills.length - 6}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );
