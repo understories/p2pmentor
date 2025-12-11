@@ -15,7 +15,7 @@ import { registerPasskey, loginWithPasskey, isWebAuthnSupported, isPlatformAuthe
 import { createPasskeyWallet, unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
-import { createPasskeyIdentity, listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
+import { listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
 import { getWalletClientFromPasskey } from '@/lib/wallet/getWalletClientFromPasskey';
 import { hasLocalPasskeyWallet, hasArkivPasskeyIdentity, hasBackupWallet, recoverPasskeyWallet } from '@/lib/auth/passkey-recovery';
 import { connectWallet, createArkivClients } from '@/lib/auth/metamask';
@@ -380,37 +380,48 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
         }
 
         // Step 3: Create Arkiv entity for passkey credential
+        // CRITICAL: Use API route with global Arkiv signing wallet (not passkey wallet)
+        // The passkey wallet has no funds - all Arkiv transactions must be signed by the env wallet
         if (hasCredentialMetadata && registerResult.credentialPublicKey) {
           try {
-            const { privateKeyHex } = await unlockPasskeyWallet(userIdToUse, credentialID);
-            
             // [PASSKEY][REGISTER][ARKIV_WRITE] - Log before Arkiv write
-            // NOTE: spaceId is hardcoded to 'local-dev' - ensure this matches production space
-            const spaceId = 'local-dev'; // TODO: Get from env/config or match production space
             console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
               wallet: address,
               credentialId_base64url: credentialID,
-              spaceId,
+              spaceId: 'local-dev',
               attempting: true,
-              note: 'spaceId hardcoded to local-dev - verify this matches production',
+              method: 'api_route_with_global_signing_wallet',
             });
             
-            const arkivResult = await createPasskeyIdentity({
-              wallet: address,
-              credentialID,
-              credentialPublicKey: registerResult.credentialPublicKey,
-              counter: registerResult.counter || 0,
-              transports: registerResult.transports,
-              privateKey: privateKeyHex,
+            // Use API route that signs with global Arkiv wallet (from ARKIV_PRIVATE_KEY)
+            // This matches the pattern used for profile creation and all other Arkiv entities
+            const arkivRes = await fetch('/api/passkey/register/arkiv', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                wallet: address,
+                credentialID,
+                credentialPublicKey: Array.from(registerResult.credentialPublicKey), // Convert Uint8Array to array for JSON
+                counter: registerResult.counter || 0,
+                transports: registerResult.transports || [],
+                deviceName: undefined, // Optional
+              }),
             });
+
+            const arkivData = await arkivRes.json();
+            
+            if (!arkivRes.ok || !arkivData.ok) {
+              throw new Error(arkivData.error || 'Failed to create Arkiv passkey identity');
+            }
             
             // [PASSKEY][REGISTER][ARKIV_WRITE] - Log success
             console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
               success: true,
-              entityId: arkivResult.key,
-              txHash: arkivResult.txHash,
-              spaceId,
+              entityId: arkivData.key,
+              txHash: arkivData.txHash,
+              spaceId: 'local-dev',
               credentialId_stored: credentialID,
+              method: 'api_route_with_global_signing_wallet',
             });
             
             console.log('[PasskeyLoginButton] ✅ Created Arkiv auth_identity entity');
@@ -422,6 +433,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               stack: error?.stack,
               wallet: address,
               credentialId_base64url: credentialID,
+              method: 'api_route_with_global_signing_wallet',
             });
             console.warn('[PasskeyLoginButton] Failed to create Arkiv entity (non-fatal):', error);
             // Non-fatal - wallet is created, entity can be created later or on next login
