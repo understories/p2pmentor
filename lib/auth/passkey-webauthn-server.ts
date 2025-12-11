@@ -13,6 +13,7 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
+import { base64urlToBuffer, bufferToBase64url } from './base64url';
 
 // Relying Party configuration from environment
 // RP ID must match the current domain or be a valid parent domain
