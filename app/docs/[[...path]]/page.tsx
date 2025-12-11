@@ -201,7 +201,7 @@ export default function DocsPage() {
 
   return (
     <>
-      <div className="flex min-h-screen bg-white dark:bg-gray-900">
+      <div className="flex min-h-screen">
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}

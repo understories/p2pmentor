@@ -147,13 +147,6 @@ export default function OnboardingPage() {
         showSeedTooltip={currentStep === 'welcome'}
       />
       
-      {/* Overlay for onboarding (darken background during onboarding) */}
-      <div 
-        className="fixed inset-0 bg-black/40 dark:bg-black/60 transition-opacity duration-1000 z-0"
-        style={{
-          opacity: 0.3 + (level * 0.1), // Gradually brighten as level increases
-        }}
-      />
 
       {/* Content */}
       <div className={`relative ${currentStep === 'welcome' ? 'z-5' : 'z-10'} min-h-screen flex flex-col`}>

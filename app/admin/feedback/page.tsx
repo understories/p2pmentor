@@ -412,7 +412,7 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
       <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
