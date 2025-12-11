@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { BetaGate } from '@/components/auth/BetaGate';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
@@ -330,6 +331,7 @@ export default function MePage() {
       </div>
       </div>
     </div>
+    </BetaGate>
   );
 }
 

@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
@@ -898,5 +899,6 @@ export default function OffersPage() {
         />
       </div>
     </div>
+    </BetaGate>
   );
 }
