@@ -143,6 +143,8 @@ export default function OnboardingPage() {
         skills={gardenSkills} 
         showIdentitySeed={showIdentitySeed}
         animateNew={animateNewSkill}
+        onSeedClick={currentStep === 'welcome' ? () => handleStepComplete('identity') : undefined}
+        showSeedTooltip={currentStep === 'welcome'}
       />
       
       {/* Overlay for onboarding (darken background during onboarding) */}
@@ -155,49 +157,52 @@ export default function OnboardingPage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="flex justify-between items-center p-4">
-          <div className="text-sm text-gray-400 dark:text-gray-500">
-            Onboarding
-          </div>
-          <ThemeToggle />
-        </header>
+        {/* Header - hide on welcome step for game-like feel */}
+        {currentStep !== 'welcome' && (
+          <header className="flex justify-between items-center p-4">
+            <div className="text-sm text-gray-400 dark:text-gray-500">
+              Onboarding
+            </div>
+            <ThemeToggle />
+          </header>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 flex items-center justify-center p-4 md:p-8">
           <div className="w-full max-w-2xl">
-            <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg p-4 md:p-8 shadow-xl border border-gray-200 dark:border-gray-700">
-              {/* Error Message */}
-              {error && (
-                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
-                  {error}
-                </div>
-              )}
+            {/* Error Message - only show if not welcome step */}
+            {error && currentStep !== 'welcome' && (
+              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                {error}
+              </div>
+            )}
 
-              {/* Step Content */}
-              {currentStep === 'welcome' && (
-                <div className="text-center space-y-6">
-                  <div className="text-6xl mb-4 hg-anim-plant-idle">🌱</div>
-                  <h1 className="text-3xl font-bold mb-2">Every mentor begins as a seed</h1>
-                  <p className="text-gray-600 dark:text-gray-400 mb-8">
-                    Let's grow your presence in the Hidden Garden.
-                  </p>
-                  <button
-                    onClick={() => {
-                      // Trigger seed "planted" animation
-                      const button = document.querySelector('[data-welcome-button]');
-                      if (button) {
-                        button.classList.add('hg-anim-plant-pulse', 'hg-anim-ring-pulse');
-                      }
-                      setTimeout(() => handleStepComplete('identity'), 400);
-                    }}
-                    data-welcome-button
-                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors font-medium relative"
-                  >
-                    Begin Growing →
-                  </button>
-                </div>
-              )}
+            {/* Welcome Step - No card, floating text with fade-in */}
+            {currentStep === 'welcome' && (
+              <div className="text-center animate-fade-in">
+                <h1 
+                  className="text-4xl md:text-5xl font-bold text-white dark:text-white mb-4 drop-shadow-lg"
+                  style={{
+                    textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
+                    animation: 'fadeIn 1.5s ease-in',
+                  }}
+                >
+                  knowledge and networks light our way through the dark forest
+                </h1>
+              </div>
+            )}
+
+            {/* Other Steps - Keep card for other steps */}
+            {currentStep !== 'welcome' && (
+              <div className="bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg p-4 md:p-8 shadow-xl border border-gray-200 dark:border-gray-700">
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+                    {error}
+                  </div>
+                )}
+
+                {/* Step Content */}
 
               {currentStep === 'identity' && wallet && (
                 <IdentityStep
@@ -269,7 +274,8 @@ export default function OnboardingPage() {
               {currentStep === 'complete' && (
                 <CompleteStep onEnterGarden={() => router.push('/garden/public-board')} />
               )}
-            </div>
+              </div>
+            )}
           </div>
         </main>
       </div>

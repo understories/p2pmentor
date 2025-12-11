@@ -34,6 +34,10 @@
   }
 }
 
+.animate-fade-in {
+  animation: fadeIn 1.5s ease-in;
+}
+
 /* Light theme colors - Green painting aesthetic */
 :root,
 .light {
