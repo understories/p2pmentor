@@ -25,6 +25,7 @@ import type { Skill } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
 import type { Session } from '@/lib/arkiv/sessions';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 
 type Match = {
@@ -419,6 +420,7 @@ export default function TopicDetailPage() {
                           🎥 Join
                         </a>
                       )}
+                      <ViewOnArkivLink txHash={session.txHash} entityKey={session.key} className="text-xs" />
                     </div>
                   </div>
                 );
@@ -498,6 +500,7 @@ export default function TopicDetailPage() {
                             ✓ RSVP'd
                           </span>
                         )}
+                        <ViewOnArkivLink txHash={gathering.txHash} entityKey={gathering.key} className="text-xs" />
                       </div>
                     </div>
                   </div>
