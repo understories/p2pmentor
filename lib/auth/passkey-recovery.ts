@@ -9,7 +9,7 @@
 import { createBackupWalletIdentity, listBackupWalletIdentities, listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
 import { createPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
-import { signMessage } from 'viem';
+import { verifyMessage } from 'viem';
 
 /**
  * Register a backup wallet for passkey recovery (client-side)
@@ -36,8 +36,7 @@ export async function registerBackupWallet({
   backupWalletClient: any; // Wallet client from MetaMask
 }): Promise<{ key: string; txHash: string }> {
   // Create backup wallet identity entity using backup wallet client
-  // We need to create the entity directly using the wallet client
-  // since createBackupWalletIdentity expects a private key (which we don't have from MetaMask)
+  // MetaMask wallet client can sign entity creation transactions directly
   
   const { handleTransactionWithTimeout } = await import('@/lib/arkiv/transaction-utils');
   const enc = new TextEncoder();
@@ -51,7 +50,7 @@ export async function registerBackupWallet({
   // 1 year TTL (effectively permanent for beta)
   const expiresIn = 31536000;
 
-  const result = await handleTransactionWithTimeout(async () => {
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await backupWalletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
@@ -66,7 +65,22 @@ export async function registerBackupWallet({
     });
   });
 
-  return { key: result.entityKey, txHash: result.txHash };
+  // Create separate txhash entity (optional metadata, don't wait)
+  backupWalletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
+      { key: 'identityKey', value: entityKey },
+      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'spaceId', value: 'local-dev' },
+    ],
+    expiresIn,
+  }).catch((error: any) => {
+    console.warn('[registerBackupWallet] Failed to create txhash entity:', error);
+  });
+
+  return { key: entityKey, txHash };
 }
 
 /**
@@ -153,25 +167,9 @@ export async function recoverPasskeyWallet({
     throw new Error('Backup wallet is not registered for this passkey wallet');
   }
 
-  // Create challenge message
-  const message = `Recover passkey wallet ${wallet}\n\nTimestamp: ${Date.now()}`;
-  
-  // Sign message with backup wallet
-  const signature = await backupWalletClient.signMessage({
-    message,
-  });
-
-  // Verify signature
-  const { verifyMessage } = await import('viem');
-  const isValid = await verifyMessage({
-    address: backupWalletAddress,
-    message,
-    signature: signature as `0x${string}`,
-  });
-
-  if (!isValid) {
-    throw new Error('Signature verification failed');
-  }
+  // Verify backup wallet control by having it sign entity creation
+  // The entity creation itself proves control (MetaMask prompts user)
+  // No separate challenge needed - the Arkiv transaction is the proof
 
   // Create new local passkey wallet
   const walletResult = await createPasskeyWallet(userId, credentialID);

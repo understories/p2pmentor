@@ -211,7 +211,7 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
       return [];
     }
 
-  return result.entities.map((entity: any) => {
+    return result.entities.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -261,7 +261,15 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
       spaceId: getAttr('spaceId'),
       credential,
     };
-  });
+    });
+  } catch (fetchError: any) {
+    console.error('[listPasskeyIdentities] Arkiv query failed:', {
+      message: fetchError?.message,
+      stack: fetchError?.stack,
+      error: fetchError
+    });
+    return []; // Return empty array on query failure
+  }
 }
 
 /**
@@ -289,7 +297,7 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
       return [];
     }
 
-  return result.entities.map((entity: any) => {
+    return result.entities.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {

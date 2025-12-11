@@ -245,7 +245,7 @@ export async function verifyAuthentication(
   expectedChallenge: string,
   requestOrigin?: string,
   walletAddress?: string
-): Promise<{ verified: boolean; userId?: string; walletAddress?: string; error?: string }> {
+): Promise<{ verified: boolean; userId?: string; walletAddress?: string; newCounter?: number; error?: string }> {
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
     const credentialID = response.id; // base64url-encoded from client

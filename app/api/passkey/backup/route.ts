@@ -7,6 +7,9 @@
  * GET /api/passkey/backup?wallet=0x...
  */
 
+import { NextResponse } from 'next/server';
+import { listBackupWalletIdentities } from '@/lib/arkiv/authIdentity';
+
 /**
  * GET /api/passkey/backup?wallet=0x...
  * 
