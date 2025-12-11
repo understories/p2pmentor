@@ -254,20 +254,35 @@ export function SidebarNav() {
           const sessionMap = new Map<string, { skillName: string; isCommunity: boolean; session: Session }>();
           
           upcomingSessions.forEach((session) => {
-            // Get skill name (handle virtual gathering RSVPs)
-            const skillName = session.skill === 'virtual_gathering_rsvp' 
-              ? (session.notes?.includes('gatheringTitle:') 
-                  ? session.notes.split('gatheringTitle:')[1]?.split(',')[0]?.trim() || 'Community'
-                  : session.notes?.includes('community:') 
-                  ? session.notes.split('community:')[1]?.split(',')[0]?.trim() || 'Community'
-                  : 'Community')
-              : session.skill;
+            // Get skill name - always use the actual skill, not user-defined titles
+            // For virtual gathering RSVPs, we need to extract the skill from the gathering
+            // The session.skill is 'virtual_gathering_rsvp', but we want the actual skill name
+            let skillName = session.skill;
+            
+            if (session.skill === 'virtual_gathering_rsvp') {
+              // For virtual gathering RSVPs, extract the community (skill slug) from notes
+              // Format: "virtual_gathering_rsvp:gatheringKey,community:skillSlug"
+              if (session.notes?.includes('community:')) {
+                const communityMatch = session.notes.match(/community:([^,|]+)/);
+                if (communityMatch && communityMatch[1]) {
+                  skillName = communityMatch[1].trim();
+                  // Try to get the canonical skill name from the slug
+                  // For now, we'll use the slug as-is (it should match the skill name)
+                  // In the future, we could fetch the skill entity to get name_canonical
+                } else {
+                  skillName = 'Community';
+                }
+              } else {
+                // Fallback if community not in notes (old sessions)
+                skillName = 'Community';
+              }
+            }
             
             const normalizedSkillName = skillName.toLowerCase().trim();
             const isCommunity = Boolean(
               session.skill === 'virtual_gathering_rsvp' || 
               session.notes?.includes('gatheringKey:') ||
-              session.notes?.includes('community:')
+              session.notes?.includes('virtual_gathering_rsvp:')
             );
             
             // Keep the earliest session for each skill
@@ -303,8 +318,8 @@ export function SidebarNav() {
                       : sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                     
-                    // Emoji: 🧑‍🤝‍🧑 for community, 👥 for P2P
-                    const emoji = isCommunity ? '🧑‍🤝‍🧑' : '👥';
+                    // Emoji: 🌐 for community, 👥 for P2P
+                    const emoji = isCommunity ? '🌐' : '👥';
                     
                     return (
                       <Link

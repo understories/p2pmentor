@@ -560,7 +560,7 @@ export default function AsksPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  <ViewOnArkivLink txHash={ask.txHash} entityKey={ask.key} />
+                  <ViewOnArkivLink entityKey={ask.key} />
                 </div>
                     {/* Offer to Help Button - only show if not own ask */}
                     {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (

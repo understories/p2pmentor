@@ -432,7 +432,7 @@ function VirtualGatheringsContent() {
                           ✓ RSVP'd
                         </span>
                       )}
-                      <ViewOnArkivLink txHash={gathering.txHash} entityKey={gathering.key} className="text-xs" />
+                      <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
                     </div>
                   </div>
                 </div>

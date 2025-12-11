@@ -39,14 +39,19 @@ export interface ViewOnArkivLinkProps {
 
 /**
  * Generate the appropriate Arkiv Explorer URL
- * Prefers txHash if available, falls back to entityKey
+ * Prefers entityKey (for entities), falls back to txHash (for transactions)
+ * 
+ * For entities, always use entityKey.
+ * For transactions, explicitly pass only txHash.
  */
 export function getArkivExplorerUrl(txHash?: string, entityKey?: string): string | null {
-  if (txHash && txHash !== 'undefined') {
-    return getArkivExplorerTxUrl(txHash);
-  }
+  // Prefer entityKey for entities (most common case)
   if (entityKey) {
     return getArkivExplorerEntityUrl(entityKey);
+  }
+  // Fall back to txHash only if no entityKey (for transaction-only links)
+  if (txHash && txHash !== 'undefined') {
+    return getArkivExplorerTxUrl(txHash);
   }
   return null;
 }

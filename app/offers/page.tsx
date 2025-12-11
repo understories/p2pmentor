@@ -826,7 +826,7 @@ export default function OffersPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
-                  <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
+                  <ViewOnArkivLink entityKey={offer.key} />
                 </div>
                 {/* Request Meeting Button - only show if not own offer */}
                 {walletAddress && walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (

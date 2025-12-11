@@ -362,7 +362,7 @@ export default function TopicDetailPage() {
         {communitySessions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              📅 Upcoming Community Sessions
+              🌐 Upcoming Community Sessions
             </h2>
             <div className="space-y-4">
               {communitySessions.map((session) => {
@@ -420,7 +420,7 @@ export default function TopicDetailPage() {
                           🎥 Join
                         </a>
                       )}
-                      <ViewOnArkivLink txHash={session.txHash} entityKey={session.key} className="text-xs" />
+                      <ViewOnArkivLink entityKey={session.key} className="text-xs" />
                     </div>
                   </div>
                 );
@@ -433,7 +433,7 @@ export default function TopicDetailPage() {
         {upcomingGatherings.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
-              📅 Schedule a Community Meeting
+              🌐 Schedule a Community Meeting
             </h2>
             <div className="space-y-4">
               {upcomingGatherings.map((gathering) => {
@@ -500,7 +500,7 @@ export default function TopicDetailPage() {
                             ✓ RSVP'd
                           </span>
                         )}
-                        <ViewOnArkivLink txHash={gathering.txHash} entityKey={gathering.key} className="text-xs" />
+                        <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
                       </div>
                     </div>
                   </div>

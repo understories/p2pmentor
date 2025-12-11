@@ -351,11 +351,12 @@ export async function rsvpToGathering({
   const payload = {
     sessionDate: gathering.sessionDate,
     duration: gathering.duration,
-    notes: `virtual_gathering_rsvp:${gatheringKey}`,
+    notes: `virtual_gathering_rsvp:${gatheringKey},community:${gathering.community}`,
     // Mark as self-confirmed (no confirmation needed)
     selfConfirmed: true,
     gatheringKey,
     gatheringTitle: gathering.title,
+    community: gathering.community, // Store community (skill slug) for easy access
     createdAt,
   };
 

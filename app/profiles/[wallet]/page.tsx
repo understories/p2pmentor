@@ -315,7 +315,7 @@ export default function ProfileDetailPage() {
                   )}
                   {profile.txHash && (
                     <div className="mt-2">
-                      <ViewOnArkivLink txHash={profile.txHash} entityKey={profile.key} />
+                      <ViewOnArkivLink entityKey={profile.key} />
                     </div>
                   )}
                 </div>
@@ -577,7 +577,7 @@ export default function ProfileDetailPage() {
                       const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
                       return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
                     })()}</span>
-                    <ViewOnArkivLink txHash={ask.txHash} entityKey={ask.key} />
+                    <ViewOnArkivLink entityKey={ask.key} />
                   </div>
                 </div>
               ))}
@@ -785,7 +785,7 @@ export default function ProfileDetailPage() {
                       </div>
                     )}
                     <div className="mt-2">
-                      <ViewOnArkivLink txHash={feedback.txHash} entityKey={feedback.key} />
+                      <ViewOnArkivLink entityKey={feedback.key} />
                     </div>
                   </div>
                 ))}
