@@ -13,7 +13,8 @@ import { useMemo } from 'react';
 import { GardenSkill, assignSkillsToSlots, levelToEmoji } from '@/lib/garden/types';
 
 interface GardenLayerProps {
-  skills: GardenSkill[];
+  skills: GardenSkill[]; // User's skills (for glowing)
+  allSkills?: GardenSkill[]; // All skills in system (for background display)
   showIdentitySeed?: boolean; // Show central 🌱 for identity step
   animateNew?: string; // ID of newly added skill to animate
   className?: string;
@@ -22,17 +23,41 @@ interface GardenLayerProps {
 }
 
 export function GardenLayer({ 
-  skills, 
+  skills, // User's skills (for glowing)
+  allSkills, // All skills in system (for background display)
   showIdentitySeed = false,
   animateNew,
   className = '',
   onSeedClick,
   showSeedTooltip = false,
 }: GardenLayerProps) {
+  // Use allSkills if provided, otherwise fall back to user's skills
+  const skillsToDisplay = allSkills || skills;
+  
+  // Create a set of user's skill names (normalized) for glowing
+  const userSkillNames = useMemo(() => {
+    return new Set(skills.map(s => s.name.toLowerCase().trim()));
+  }, [skills]);
+  
+  // Remove duplicates from allSkills by skill name
+  const uniqueSkillsToDisplay = useMemo(() => {
+    const seen = new Set<string>();
+    return skillsToDisplay.filter(skill => {
+      const normalizedName = skill.name.toLowerCase().trim();
+      if (seen.has(normalizedName)) {
+        return false;
+      }
+      seen.add(normalizedName);
+      return true;
+    });
+  }, [skillsToDisplay]);
+  
   const slots = useMemo(() => {
-    const assigned = assignSkillsToSlots(skills, 7);
+    // For background display, use more slots to show all skills
+    const maxSlots = allSkills ? Math.min(uniqueSkillsToDisplay.length, 20) : 7;
+    const assigned = assignSkillsToSlots(uniqueSkillsToDisplay, maxSlots);
     // If showing identity seed and no skills yet, add central seed
-    if (showIdentitySeed && skills.length === 0) {
+    if (showIdentitySeed && uniqueSkillsToDisplay.length === 0) {
       // Place identity seed in center slot (index 3)
       const withSeed = [...assigned];
       withSeed[3] = {
@@ -43,7 +68,7 @@ export function GardenLayer({
       return withSeed;
     }
     return assigned;
-  }, [skills, showIdentitySeed]);
+  }, [uniqueSkillsToDisplay, showIdentitySeed, allSkills]);
 
   // Find the identity seed slot
   const identitySeedSlot = slots.find(s => s?.id === 'identity_seed');
@@ -95,9 +120,9 @@ export function GardenLayer({
                     ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
                     : 'none',
                 }}
-              >
-                {levelToEmoji(skill.level)}
-              </span>
+                >
+                  🌱
+                </span>
               {skill.id === 'identity_seed' && showSeedTooltip && (
                 <span className="text-xs font-medium text-green-400 dark:text-green-300 animate-pulse mt-1">
                   grow
@@ -122,12 +147,12 @@ export function GardenLayer({
                       ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
                       : skill.id === 'identity_seed' 
                       ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                      : skill.level === 5 
-                      ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
+                      : userSkillNames.has(skill.name.toLowerCase().trim())
+                      ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.5))' // Glow for user's skills
                       : 'none',
                   }}
                 >
-                  {levelToEmoji(skill.level)}
+                  🌱
                 </span>
                 {skill.id === 'identity_seed' && showSeedTooltip && (
                   <span className="text-xs font-medium text-green-400 dark:text-green-300 animate-pulse mt-1">

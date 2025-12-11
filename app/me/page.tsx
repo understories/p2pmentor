@@ -16,15 +16,17 @@ import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
 import { LearningCommunitiesCard } from '@/components/LearningCommunitiesCard';
 import { GardenLayer } from '@/components/garden/GardenLayer';
-import { profileToGardenSkills } from '@/lib/garden/types';
+import { profileToGardenSkills, type GardenSkill } from '@/lib/garden/types';
 import { BackgroundImage } from '@/components/BackgroundImage';
+import type { Skill } from '@/lib/arkiv/skill';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [gardenSkills, setGardenSkills] = useState<any[]>([]);
+  const [gardenSkills, setGardenSkills] = useState<GardenSkill[]>([]);
+  const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
   const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
   const router = useRouter();
 
@@ -61,6 +63,9 @@ export default function MePage() {
         });
       });
       
+      // Load all system skills for background garden
+      loadAllSystemSkills();
+      
       // Poll for notifications and profile status every 30 seconds (only if profile exists)
       const interval = setInterval(() => {
         if (hasProfile !== false) { // Only poll if we know profile exists or haven't checked yet
@@ -72,6 +77,24 @@ export default function MePage() {
       return () => clearInterval(interval);
     }
   }, [router, hasProfile]);
+  
+  const loadAllSystemSkills = async () => {
+    try {
+      const { listSkills } = await import('@/lib/arkiv/skill');
+      const skills: Skill[] = await listSkills({ status: 'active', limit: 100 });
+      
+      // Convert to GardenSkill format (all as sprout emojis, level 0)
+      const gardenSkills: GardenSkill[] = skills.map((skill) => ({
+        id: skill.slug || skill.key,
+        name: skill.name_canonical,
+        level: 0, // All as sprout emojis for now
+      }));
+      
+      setAllSystemSkills(gardenSkills);
+    } catch (error) {
+      console.error('Error loading all system skills:', error);
+    }
+  };
 
   const loadNotificationCount = async (wallet: string) => {
     try {
@@ -131,8 +154,8 @@ export default function MePage() {
       {/* Forest Background */}
       <BackgroundImage />
       
-      {/* Garden Layer - persistent garden showing user's skills */}
-      {gardenSkills.length > 0 && <GardenLayer skills={gardenSkills} />}
+      {/* Garden Layer - persistent garden showing all system skills, with user's skills glowing */}
+      <GardenLayer skills={gardenSkills} allSkills={allSystemSkills} />
       
       <div className="relative z-10 p-4">
         <ThemeToggle />

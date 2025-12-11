@@ -218,46 +218,57 @@ export function SidebarNav() {
           );
         })}
         
-        {/* Dynamic Growing Garden - shows user's skills as plants */}
-        {gardenSkills.length > 0 && (
-          <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-            <div className="flex flex-col items-center gap-2 px-2">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
-                Your Garden
-              </div>
-              <div className="flex flex-wrap justify-center gap-1.5">
-                {gardenSkills.slice(0, 6).map((skill) => (
-                  <div
-                    key={skill.id}
-                    className="relative flex flex-col items-center hg-anim-plant-idle"
-                    title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
-                  >
-                    <span className="text-lg">
-                      {levelToEmoji(skill.level)}
-                    </span>
-                    <span 
-                      className="text-[8px] text-gray-500 dark:text-gray-400 text-center leading-tight"
-                      style={{
-                        maxWidth: '40px',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word',
-                        lineHeight: '1.2',
-                      }}
-                      title={skill.name}
+        {/* Your Skills - shows profile's skills (deduplicated) */}
+        {gardenSkills.length > 0 && (() => {
+          // Remove duplicates by skill name (case-insensitive)
+          const uniqueSkills = gardenSkills.reduce((acc: typeof gardenSkills, skill) => {
+            const normalizedName = skill.name.toLowerCase().trim();
+            if (!acc.find((s: typeof gardenSkills[0]) => s.name.toLowerCase().trim() === normalizedName)) {
+              acc.push(skill);
+            }
+            return acc;
+          }, [] as typeof gardenSkills);
+          
+          return (
+            <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+              <div className="flex flex-col items-center gap-2 px-2">
+                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
+                  your skills
+                </div>
+                <div className="flex flex-wrap justify-center gap-1.5">
+                  {uniqueSkills.slice(0, 6).map((skill) => (
+                    <div
+                      key={skill.id}
+                      className="relative flex flex-col items-center hg-anim-plant-idle"
+                      title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
                     >
-                      {skill.name}
-                    </span>
-                  </div>
-                ))}
-                {gardenSkills.length > 6 && (
-                  <div className="text-xs text-gray-400 dark:text-gray-500">
-                    +{gardenSkills.length - 6}
-                  </div>
-                )}
+                      <span className="text-lg">
+                        {levelToEmoji(skill.level)}
+                      </span>
+                      <span 
+                        className="text-[8px] text-gray-500 dark:text-gray-400 text-center leading-tight"
+                        style={{
+                          maxWidth: '40px',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word',
+                          lineHeight: '1.2',
+                        }}
+                        title={skill.name}
+                      >
+                        {skill.name}
+                      </span>
+                    </div>
+                  ))}
+                  {uniqueSkills.length > 6 && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      +{uniqueSkills.length - 6}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </nav>
   );
