@@ -11,6 +11,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
+import { mendoza } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
@@ -25,6 +26,7 @@ export default function AuthPage() {
   const [passkeyEnabled, setPasskeyEnabled] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [addingNetwork, setAddingNetwork] = useState(false);
   const router = useRouter();
 
   // Check if user has already passed invite gate
@@ -81,6 +83,50 @@ export default function AuthPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect wallet');
       setIsConnecting(false);
+    }
+  };
+
+  const handleAddMendozaNetwork = async () => {
+    if (!window.ethereum) {
+      setError('MetaMask not installed');
+      return;
+    }
+
+    setAddingNetwork(true);
+    setError('');
+
+    try {
+      const chainIdHex = `0x${mendoza.id.toString(16)}`;
+
+      try {
+        // Try to switch to the chain first
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: chainIdHex }],
+        });
+      } catch (switchError: any) {
+        // Chain doesn't exist, add it
+        if (switchError?.code === 4902) {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: chainIdHex,
+                chainName: mendoza.name,
+                nativeCurrency: mendoza.nativeCurrency,
+                rpcUrls: mendoza.rpcUrls.default.http,
+                blockExplorerUrls: [mendoza.blockExplorers.default.url],
+              },
+            ],
+          });
+        } else {
+          throw switchError;
+        }
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to add Mendoza testnet');
+    } finally {
+      setAddingNetwork(false);
     }
   };
 
@@ -141,6 +187,22 @@ export default function AuthPage() {
         <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
           Choose your authentication method:
         </p>
+
+        {/* Add Mendoza Testnet Button */}
+        {mounted && window.ethereum && (
+          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
+              <strong>First time?</strong> Add Mendoza testnet to your wallet:
+            </p>
+            <button
+              onClick={handleAddMendozaNetwork}
+              disabled={addingNetwork}
+              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {addingNetwork ? 'Adding Network...' : 'Add Mendoza Testnet to Wallet'}
+            </button>
+          </div>
+        )}
 
         {error && (
           <div className="p-4 mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
