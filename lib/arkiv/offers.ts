@@ -78,7 +78,9 @@ export async function createOffer({
   const status = 'active';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
-  const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
+  // Ensure ttl is always an integer (BigInt requirement)
+  const ttlRaw = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
+  const ttl = Math.floor(ttlRaw);
 
   // Handle availabilityWindow: serialize WeeklyAvailability to JSON, or use string as-is
   let availabilityWindowString: string;

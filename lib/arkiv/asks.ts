@@ -63,7 +63,9 @@ export async function createAsk({
   const status = 'open';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
-  const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
+  // Ensure ttl is always an integer (BigInt requirement)
+  const ttlRaw = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
+  const ttl = Math.floor(ttlRaw);
 
   // Build attributes array
   const attributes: Array<{ key: string; value: string }> = [
