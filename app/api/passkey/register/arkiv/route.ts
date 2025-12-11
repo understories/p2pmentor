@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
     // This is the funded wallet that signs all Arkiv transactions
     const privateKey = getPrivateKey();
 
+    // Normalize credentialID (trim whitespace for consistency)
+    const normalizedCredentialID = credentialID.trim();
+
     // Convert credentialPublicKey from array to Uint8Array if needed
     const publicKeyBytes = credentialPublicKey instanceof Array
       ? new Uint8Array(credentialPublicKey)

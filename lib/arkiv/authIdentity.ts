@@ -85,6 +85,9 @@ export async function createPasskeyIdentity({
   // 1 year TTL (effectively permanent for beta)
   const expiresIn = 31536000;
 
+  // Normalize credentialID to ensure consistent encoding (base64url)
+  const normalizedCredentialID = credentialID.trim();
+
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
@@ -93,7 +96,7 @@ export async function createPasskeyIdentity({
         { key: 'type', value: 'auth_identity' },
         { key: 'subtype', value: 'passkey' },
         { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'credentialId', value: credentialID },
+        { key: 'credentialId', value: normalizedCredentialID }, // Store normalized credentialID
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
       ],
