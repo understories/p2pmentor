@@ -43,8 +43,8 @@ export function GardenLayer({
 
   return (
     <div className={`pointer-events-none fixed inset-0 z-0 ${className}`}>
-      {/* Bottom garden strip - responsive spacing */}
-      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-4 md:gap-10 px-2 md:px-4">
+      {/* Bottom garden strip - responsive spacing with padding to prevent cutoff */}
+      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8">
         {slots.map((skill, i) =>
           skill ? (
             <div
@@ -68,7 +68,18 @@ export function GardenLayer({
                 )}
               </span>
               {skill.name !== 'Identity' && (
-                <span className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center max-w-[60px] truncate">
+                <span 
+                  className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                  style={{
+                    maxWidth: '70px',
+                    wordBreak: 'break-word',
+                    overflowWrap: 'break-word',
+                    lineHeight: '1.3',
+                    minHeight: '28px',
+                    display: 'inline-block',
+                  }}
+                  title={skill.name}
+                >
                   {skill.name}
                 </span>
               )}

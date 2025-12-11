@@ -135,7 +135,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
     onComplete();
   };
 
-  const expertiseLabels = ['Seed', 'Sprout', 'Budding', 'Bush', 'Tree', 'Glowing Tree'];
+  const expertiseLabels = ['Beginner', 'Beginner', 'Intermediate', 'Advanced', 'Advanced', 'Expert'];
   const expertiseEmojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨'];
 
   return (
@@ -155,8 +155,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           {createdSkills.map((skill, idx) => (
             <div key={idx} className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
               <span className="font-medium">{skill.skillName}</span>
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {expertiseLabels[skill.expertise]} {expertiseEmojis[skill.expertise]}
+              <span className="text-sm text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                <span>{expertiseEmojis[skill.expertise]}</span>
+                <span>{expertiseLabels[skill.expertise]}</span>
               </span>
             </div>
           ))}
@@ -189,7 +190,11 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
         <div>
           <label htmlFor="expertise" className="block text-sm font-medium mb-2">
-            Expertise Level: {expertiseLabels[expertise]} {expertiseEmojis[expertise]}
+            <span className="flex items-center gap-2">
+              <span>Expertise Level:</span>
+              <span>{expertiseEmojis[expertise]}</span>
+              <span>{expertiseLabels[expertise]}</span>
+            </span>
           </label>
           {createdSkills.length > 0 && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
@@ -207,8 +212,8 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
             disabled={isSubmitting}
           />
           <div className="flex justify-between text-xs text-gray-500 mt-1">
-            <span>0 (Seed)</span>
-            <span>5 (Glowing Tree)</span>
+            <span>0 (Beginner)</span>
+            <span>5 (Expert)</span>
           </div>
         </div>
 

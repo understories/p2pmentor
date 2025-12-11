@@ -31,11 +31,11 @@ export function levelToEmoji(level: SkillLevel): string {
 }
 
 /**
- * Get expertise label for level
+ * Get expertise label for level (human-readable terms)
  */
 export function levelToLabel(level: SkillLevel): string {
-  const labels = ['Seed', 'Sprout', 'Budding', 'Bush', 'Tree', 'Glowing Tree'];
-  return labels[level] || 'Seed';
+  const labels = ['Beginner', 'Beginner', 'Intermediate', 'Advanced', 'Advanced', 'Expert'];
+  return labels[level] || 'Beginner';
 }
 
 /**
