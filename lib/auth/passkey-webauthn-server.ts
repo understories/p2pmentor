@@ -111,14 +111,21 @@ export async function getRegistrationOptions(
  * @param userId - User identifier
  * @param response - WebAuthn registration response from client
  * @param expectedChallenge - Challenge that was sent in registration options
- * @returns Verification result with credential ID
+ * @returns Verification result with credential ID and metadata
  */
 export async function verifyRegistration(
   userId: string,
   response: any,
   expectedChallenge: string,
   requestOrigin?: string
-): Promise<{ verified: boolean; credentialID?: string; error?: string }> {
+): Promise<{ 
+  verified: boolean; 
+  credentialID?: string; 
+  credentialPublicKey?: Uint8Array;
+  counter?: number;
+  transports?: string[];
+  error?: string;
+}> {
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
     
