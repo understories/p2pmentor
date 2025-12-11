@@ -13,7 +13,17 @@ import {
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
-import { base64urlToBuffer, bufferToBase64url } from './base64url';
+import { base64urlToBuffer, bufferToBase64url, isBase64urlSupported } from './base64url';
+
+// Log base64url support status on module load (for debugging)
+if (typeof process !== 'undefined') {
+  const supported = isBase64urlSupported();
+  console.log('[passkey-webauthn-server] Base64URL encoding support:', {
+    supported,
+    nodeVersion: process.version,
+    runtime: typeof Buffer !== 'undefined' ? 'Node.js' : 'unknown',
+  });
+}
 
 // Relying Party configuration from environment
 // RP ID must match the current domain or be a valid parent domain
@@ -110,7 +120,7 @@ export async function getRegistrationOptions(
           .map((identity) => {
             // Convert base64url credentialID to ArrayBuffer for WebAuthn
             try {
-              const credentialIDBuffer = Buffer.from(identity.credentialID!, 'base64url');
+              const credentialIDBuffer = base64urlToBuffer(identity.credentialID!);
               return {
                 id: credentialIDBuffer,
                 type: 'public-key' as const,
@@ -296,7 +306,7 @@ export async function getAuthenticationOptions(
   if (!allowCredentials && userId) {
     const userCredentials = credentialStore.get(userId) || [];
     allowCredentials = userCredentials.map((cred) => ({
-      id: Buffer.from(cred.credentialID).toString('base64url'),
+      id: bufferToBase64url(cred.credentialID),
       type: 'public-key' as const,
       transports: cred.transports || [],
     }));
@@ -435,7 +445,7 @@ export async function verifyAuthentication(
       
       if (userId) {
         const userCredentials = credentialStore.get(userId) || [];
-        const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+        const credentialIDBuffer = base64urlToBuffer(credentialID);
         storedCredential = userCredentials.find(
           (cred) => Buffer.from(cred.credentialID).equals(credentialIDBuffer)
         );
@@ -546,7 +556,7 @@ export async function verifyAuthentication(
  */
 export function removeCredential(userId: string, credentialID: string): boolean {
   const userCredentials = credentialStore.get(userId) || [];
-  const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+  const credentialIDBuffer = base64urlToBuffer(credentialID);
   
   const filtered = userCredentials.filter(
     (cred) => !Buffer.from(cred.credentialID).equals(credentialIDBuffer)
@@ -568,7 +578,7 @@ export function removeCredential(userId: string, credentialID: string): boolean 
  */
 export function getUserCredentials(userId: string): string[] {
   const credentials = credentialStore.get(userId) || [];
-  return credentials.map((cred) => Buffer.from(cred.credentialID).toString('base64url'));
+  return credentials.map((cred) => bufferToBase64url(cred.credentialID));
 }
 
 /**
