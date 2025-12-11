@@ -15,8 +15,10 @@ import { registerPasskey, loginWithPasskey, isWebAuthnSupported, isPlatformAuthe
 import { createPasskeyWallet, unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
-import { createPasskeyIdentity } from '@/lib/arkiv/authIdentity';
+import { createPasskeyIdentity, listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
 import { getWalletClientFromPasskey } from '@/lib/wallet/getWalletClientFromPasskey';
+import { hasLocalPasskeyWallet, hasArkivPasskeyIdentity, hasBackupWallet, recoverPasskeyWallet } from '@/lib/auth/passkey-recovery';
+import { connectWallet, createArkivClients } from '@/lib/auth/metamask';
 
 interface PasskeyLoginButtonProps {
   userId?: string; // Optional: if provided, will check for existing wallet
@@ -63,21 +65,75 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       // Check if wallet already exists (by checking localStorage)
       // Note: We check localStorage for userId, but actual wallet is in IndexedDB
       const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null;
+      const storedWallet = typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
       const hasExistingWallet = storedUserId !== null;
 
       if (hasExistingWallet && storedUserId) {
-        // Login flow: authenticate and unlock existing wallet
-        const loginResult = await loginWithPasskey(storedUserId);
+        // Check if local wallet exists in IndexedDB
+        const hasLocal = await hasLocalPasskeyWallet(storedUserId);
+        const hasArkiv = storedWallet ? await hasArkivPasskeyIdentity(storedWallet) : false;
         
-        // Get credentialID from storage (stored during registration)
-        const storedCredentialID = localStorage.getItem(`passkey_credential_${storedUserId}`);
-        if (!storedCredentialID) {
-          throw new Error('Passkey credential not found. Please register again.');
-        }
-        credentialID = storedCredentialID;
+        if (!hasLocal && hasArkiv) {
+          // Recovery scenario: Arkiv has identity but local wallet is missing
+          const hasBackup = storedWallet ? await hasBackupWallet(storedWallet) : false;
+          
+          if (hasBackup) {
+            // Recovery flow: use backup wallet to recreate passkey wallet
+            const backupWalletAddress = await connectWallet();
+            const { walletClient } = createArkivClients(backupWalletAddress);
+            
+            // Register new passkey (user will authenticate with device)
+            const registerResult = await registerPasskey(storedUserId);
+            credentialID = registerResult.credentialID;
+            
+            // Recover wallet using backup signer
+            const recoveryResult = await recoverPasskeyWallet({
+              wallet: storedWallet!,
+              backupWalletAddress,
+              backupWalletClient: walletClient,
+              userId: storedUserId,
+              credentialID,
+            });
+            
+            address = recoveryResult.address;
+            
+            // Create new Arkiv entity for the recovered credential
+            if (registerResult.credentialPublicKey) {
+              try {
+                const { privateKeyHex } = await unlockPasskeyWallet(storedUserId, credentialID);
+                await createPasskeyIdentity({
+                  wallet: address,
+                  credentialID,
+                  credentialPublicKey: registerResult.credentialPublicKey,
+                  counter: registerResult.counter || 0,
+                  transports: registerResult.transports,
+                  privateKey: privateKeyHex,
+                });
+              } catch (error) {
+                console.warn('[PasskeyLoginButton] Failed to create Arkiv entity after recovery:', error);
+              }
+            }
+          } else {
+            // No backup wallet - user needs to register one or re-register
+            throw new Error('Local wallet not found and no backup wallet registered. Please register a backup wallet or contact support.');
+          }
+        } else if (hasLocal) {
+          // Normal login flow: authenticate and unlock existing wallet
+          const loginResult = await loginWithPasskey(storedUserId);
+          
+          // Get credentialID from storage (stored during registration)
+          const storedCredentialID = localStorage.getItem(`passkey_credential_${storedUserId}`);
+          if (!storedCredentialID) {
+            throw new Error('Passkey credential not found. Please register again.');
+          }
+          credentialID = storedCredentialID;
 
-        const unlockResult = await unlockPasskeyWallet(storedUserId, credentialID);
-        address = unlockResult.address;
+          const unlockResult = await unlockPasskeyWallet(storedUserId, credentialID);
+          address = unlockResult.address;
+        } else {
+          // No local wallet and no Arkiv identity - fresh registration
+          throw new Error('No passkey wallet found. Please register a new passkey.');
+        }
       } else {
         // Registration flow: create new passkey and wallet
         const userIdToUse = userId || `user_${Date.now()}`; // Generate userId if not provided
