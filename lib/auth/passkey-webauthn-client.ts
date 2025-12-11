@@ -109,9 +109,10 @@ export async function registerPasskey(
     // [PASSKEY][REGISTER][CREATED] - Log credential creation
     const { bufferToBase64url } = await import('./base64url');
     const credentialID_raw = credential.rawId;
-    const credentialID_base64 = Buffer.from(credentialID_raw).toString('base64');
-    const credentialID_base64url = bufferToBase64url(credentialID_raw);
-    const credentialID_hex = Buffer.from(credentialID_raw).toString('hex');
+    const credentialID_buffer = Buffer.from(credentialID_raw);
+    const credentialID_base64 = credentialID_buffer.toString('base64');
+    const credentialID_base64url = bufferToBase64url(credentialID_buffer);
+    const credentialID_hex = credentialID_buffer.toString('hex');
     console.log('[PASSKEY][REGISTER][CREATED]', {
       credentialID_raw_len: credentialID_raw.byteLength,
       credentialID_base64,
@@ -253,9 +254,10 @@ export async function loginWithPasskey(
     // [PASSKEY][LOGIN][ASSERTION] - Log assertion received
     const { bufferToBase64url } = await import('./base64url');
     const credentialID_raw = credential.rawId;
-    const credentialID_base64 = Buffer.from(credentialID_raw).toString('base64');
-    const credentialID_base64url = bufferToBase64url(credentialID_raw);
-    const credentialID_hex = Buffer.from(credentialID_raw).toString('hex');
+    const credentialID_buffer = Buffer.from(credentialID_raw);
+    const credentialID_base64 = credentialID_buffer.toString('base64');
+    const credentialID_base64url = bufferToBase64url(credentialID_buffer);
+    const credentialID_hex = credentialID_buffer.toString('hex');
     console.log('[PASSKEY][LOGIN][ASSERTION]', {
       credentialID_base64,
       credentialID_base64url,
