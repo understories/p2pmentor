@@ -151,6 +151,9 @@ export async function verifyRegistration(
       return {
         verified: true,
         credentialID: Buffer.from(credential.credentialID).toString('base64url'),
+        credentialPublicKey: credential.credentialPublicKey,
+        counter: credential.counter,
+        transports: credential.transports,
       };
     }
 

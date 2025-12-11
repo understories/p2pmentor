@@ -36,11 +36,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Return success with credential ID
-    // Client will use this to proceed with wallet creation
+    // Return success with credential ID and metadata
+    // Client will use this to proceed with wallet creation and Arkiv entity creation
     return NextResponse.json({
       ok: true,
       credentialID: verification.credentialID,
+      credentialPublicKey: verification.credentialPublicKey ? Array.from(verification.credentialPublicKey) : undefined,
+      counter: verification.counter,
+      transports: verification.transports,
       message: 'Passkey registered successfully',
     });
   } catch (error: any) {

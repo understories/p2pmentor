@@ -18,13 +18,19 @@
  * 
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (optional, defaults to userId)
- * @returns Credential ID (base64url-encoded) on success
+ * @returns Credential ID and metadata on success
  * @throws Error if WebAuthn is not supported or registration fails
  */
 export async function registerPasskey(
   userId: string,
   userName?: string
-): Promise<{ credentialID: string; challenge: string }> {
+): Promise<{ 
+  credentialID: string; 
+  challenge: string;
+  credentialPublicKey?: Uint8Array;
+  counter?: number;
+  transports?: string[];
+}> {
   // Check WebAuthn support
   if (!window.PublicKeyCredential) {
     throw new Error('WebAuthn is not supported in this browser');
@@ -113,6 +119,9 @@ export async function registerPasskey(
     return {
       credentialID: result.credentialID,
       challenge,
+      credentialPublicKey: result.credentialPublicKey ? new Uint8Array(result.credentialPublicKey) : undefined,
+      counter: result.counter,
+      transports: result.transports,
     };
   } catch (error: any) {
     // Re-throw with context

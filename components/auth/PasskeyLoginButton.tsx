@@ -15,6 +15,8 @@ import { registerPasskey, loginWithPasskey, isWebAuthnSupported, isPlatformAuthe
 import { createPasskeyWallet, unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
+import { createPasskeyIdentity } from '@/lib/arkiv/authIdentity';
+import { getWalletClientFromPasskey } from '@/lib/wallet/getWalletClientFromPasskey';
 
 interface PasskeyLoginButtonProps {
   userId?: string; // Optional: if provided, will check for existing wallet
@@ -83,10 +85,34 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
         // Step 1: Register passkey
         const registerResult = await registerPasskey(userIdToUse);
         credentialID = registerResult.credentialID;
+        
+        // Type guard for credential metadata
+        const hasCredentialMetadata = registerResult.credentialPublicKey !== undefined;
 
         // Step 2: Create wallet
         const walletResult = await createPasskeyWallet(userIdToUse, credentialID);
         address = walletResult.address;
+
+        // Step 3: Create Arkiv entity for passkey credential
+        if (hasCredentialMetadata && registerResult.credentialPublicKey) {
+          try {
+            const { privateKeyHex } = await unlockPasskeyWallet(userIdToUse, credentialID);
+            
+            await createPasskeyIdentity({
+              wallet: address,
+              credentialID,
+              credentialPublicKey: registerResult.credentialPublicKey,
+              counter: registerResult.counter || 0,
+              transports: registerResult.transports,
+              privateKey: privateKeyHex,
+            });
+            
+            console.log('[PasskeyLoginButton] ✅ Created Arkiv auth_identity entity');
+          } catch (error) {
+            console.warn('[PasskeyLoginButton] Failed to create Arkiv entity (non-fatal):', error);
+            // Non-fatal - wallet is created, entity can be created later or on next login
+          }
+        }
 
         // Store credentialID and userId for future logins
         if (typeof window !== 'undefined') {
