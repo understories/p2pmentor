@@ -13,9 +13,11 @@ import { getAuthenticationOptions } from '@/lib/auth/passkey-webauthn-server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId } = body;
+    const { userId, walletAddress } = body;
 
-    const options = await getAuthenticationOptions(userId);
+    // Pass walletAddress to query Arkiv for existing credentials
+    // This enables recovery when localStorage is cleared but Arkiv has the identity
+    const options = await getAuthenticationOptions(userId, walletAddress);
 
     // Challenge returned in response (client will send it back in complete step)
     // No session storage needed - stateless serverless function

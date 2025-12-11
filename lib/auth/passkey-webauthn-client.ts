@@ -11,19 +11,25 @@
  * Register a new passkey for a user
  * 
  * Flow:
- * 1. Fetch registration options from server
- * 2. Call navigator.credentials.create() with options
+ * 1. Fetch registration options from server (server queries Arkiv for existing credentials)
+ * 2. Call navigator.credentials.create() with options (excludeCredentials prevents duplicates)
  * 3. Send response to server for verification
  * 4. Return credential ID on success
  * 
+ * CRITICAL: Pass walletAddress to enable Arkiv-native duplicate prevention.
+ * The server will query Arkiv and populate excludeCredentials, preventing
+ * the WebAuthn API from creating duplicate passkeys even if client-side checks miss something.
+ * 
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (optional, defaults to userId)
+ * @param walletAddress - Wallet address (optional, for Arkiv query to prevent duplicates)
  * @returns Credential ID and metadata on success
  * @throws Error if WebAuthn is not supported or registration fails
  */
 export async function registerPasskey(
   userId: string,
-  userName?: string
+  userName?: string,
+  walletAddress?: string
 ): Promise<{ 
   credentialID: string; 
   challenge: string;
@@ -38,12 +44,13 @@ export async function registerPasskey(
 
   try {
     // Step 1: Fetch registration options from server
+    // Server will query Arkiv for existing credentials and populate excludeCredentials
     const optionsResponse = await fetch('/api/passkey/register/options', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, userName }),
+      body: JSON.stringify({ userId, userName, walletAddress }),
     });
 
     if (!optionsResponse.ok) {
@@ -150,8 +157,9 @@ export async function registerPasskey(
  * @throws Error if WebAuthn is not supported or authentication fails
  */
 export async function loginWithPasskey(
-  userId?: string
-): Promise<{ userId: string; challenge: string }> {
+  userId?: string,
+  walletAddress?: string
+): Promise<{ userId: string; challenge: string; credentialID?: string; walletAddress?: string }> {
   // Check WebAuthn support
   if (!window.PublicKeyCredential) {
     throw new Error('WebAuthn is not supported in this browser');
@@ -159,12 +167,13 @@ export async function loginWithPasskey(
 
   try {
     // Step 1: Fetch authentication options from server
+    // Pass walletAddress to enable Arkiv-native credential lookup
     const optionsResponse = await fetch('/api/passkey/login/options', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ userId, walletAddress }),
     });
 
     if (!optionsResponse.ok) {
@@ -218,6 +227,9 @@ export async function loginWithPasskey(
       type: credential.type,
     };
 
+    // Extract walletAddress from localStorage if available (for recovery scenarios)
+    const storedWallet = typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
+    
     const completeResponse = await fetch('/api/passkey/login/complete', {
       method: 'POST',
       headers: {
@@ -227,18 +239,35 @@ export async function loginWithPasskey(
         userId,
         response: assertionResponse,
         challenge,
+        walletAddress: storedWallet || walletAddress, // Pass walletAddress for Arkiv lookup
       }),
     });
 
     if (!completeResponse.ok) {
-      const error = await completeResponse.json();
-      throw new Error(error.error || 'Authentication verification failed');
+      const errorData = await completeResponse.json();
+      
+      // If credential was found on Arkiv but verification failed, include recovery info
+      if (errorData.foundOnArkiv && errorData.credentialID && errorData.walletAddress) {
+        const recoveryError: any = new Error(errorData.error || 'Authentication verification failed');
+        recoveryError.credentialID = errorData.credentialID;
+        recoveryError.walletAddress = errorData.walletAddress;
+        recoveryError.foundOnArkiv = true;
+        recoveryError.recoveryPossible = errorData.recoveryPossible;
+        throw recoveryError;
+      }
+      
+      // Include credentialID in error for recovery scenarios
+      const error: any = new Error(errorData.error || 'Authentication verification failed');
+      error.credentialID = credential.id; // Include credentialID from WebAuthn response
+      throw error;
     }
 
     const result = await completeResponse.json();
     return {
       userId: result.userId,
       challenge,
+      credentialID: credential.id, // Return credentialID for recovery scenarios
+      walletAddress: result.walletAddress, // Return walletAddress if found on Arkiv
     };
   } catch (error: any) {
     // Re-throw with context

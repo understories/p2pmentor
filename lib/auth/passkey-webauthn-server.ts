@@ -79,14 +79,57 @@ const credentialStore = new Map<string, StoredCredential[]>();
 /**
  * Get registration options for a new passkey
  * 
+ * CRITICAL: Queries Arkiv for existing credentials and populates excludeCredentials
+ * to prevent duplicate passkey registrations. This is called BEFORE navigator.credentials.create()
+ * to ensure the WebAuthn API itself prevents duplicates.
+ * 
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (for display in browser)
- * @returns WebAuthn registration options
+ * @param walletAddress - Wallet address (optional, for Arkiv query to find existing credentials)
+ * @returns WebAuthn registration options with excludeCredentials populated from Arkiv
  */
 export async function getRegistrationOptions(
   userId: string,
-  userName?: string
+  userName?: string,
+  walletAddress?: string
 ): Promise<any> {
+  // CRITICAL: Query Arkiv for existing passkey identities BEFORE generating options
+  // This prevents duplicate registrations at the WebAuthn API level
+  let excludeCredentials: any[] = [];
+  
+  if (walletAddress) {
+    try {
+      const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
+      const identities = await listPasskeyIdentities(walletAddress);
+      
+      if (identities.length > 0) {
+        // Populate excludeCredentials with existing credential IDs from Arkiv
+        excludeCredentials = identities
+          .filter(identity => identity.credentialID)
+          .map((identity) => {
+            // Convert base64url credentialID to ArrayBuffer for WebAuthn
+            try {
+              const credentialIDBuffer = Buffer.from(identity.credentialID!, 'base64url');
+              return {
+                id: credentialIDBuffer,
+                type: 'public-key' as const,
+                transports: identity.credential?.transports || [],
+              };
+            } catch (error) {
+              console.warn('[getRegistrationOptions] Failed to convert credentialID to ArrayBuffer:', error);
+              return null;
+            }
+          })
+          .filter((cred): cred is NonNullable<typeof cred> => cred !== null);
+        
+        console.log('[getRegistrationOptions] Found', excludeCredentials.length, 'existing credentials on Arkiv to exclude');
+      }
+    } catch (error) {
+      console.warn('[getRegistrationOptions] Failed to query Arkiv for existing credentials:', error);
+      // Continue with empty excludeCredentials - better to allow registration than block it
+    }
+  }
+
   const opts = {
     rpName,
     rpID,
@@ -94,7 +137,7 @@ export async function getRegistrationOptions(
     userName: userName || userId,
     timeout: 60000, // 60 seconds
     attestationType: 'none' as const, // We don't need attestation for beta
-    excludeCredentials: [], // Allow multiple credentials per user (future)
+    excludeCredentials, // Populated from Arkiv to prevent duplicates
     authenticatorSelection: {
       authenticatorAttachment: 'platform' as const, // Prefer platform authenticators (Touch ID, Face ID, etc.)
       userVerification: 'preferred' as const, // Prefer user verification but don't require

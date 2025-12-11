@@ -13,7 +13,7 @@ import { getRegistrationOptions } from '@/lib/auth/passkey-webauthn-server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { userId, userName } = body;
+    const { userId, userName, walletAddress } = body;
 
     if (!userId) {
       return NextResponse.json(
@@ -22,7 +22,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const options = await getRegistrationOptions(userId, userName);
+    // CRITICAL: Pass walletAddress to query Arkiv for existing credentials
+    // This populates excludeCredentials to prevent duplicate registrations
+    const options = await getRegistrationOptions(userId, userName, walletAddress);
 
     // Store challenge in response (in production, store in session/DB)
     // For beta, client will send it back in complete step
