@@ -17,7 +17,9 @@ import { ConstellationLines } from '@/components/navigation/ConstellationLines';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
+import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Session } from '@/lib/arkiv/sessions';
 
 interface NavItem {
   href: string;
@@ -35,13 +37,14 @@ export function SidebarNav() {
   const [wallet, setWallet] = useState<string | null>(null);
   const { level } = useOnboardingLevel(wallet);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
+  const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
       
-      // Load garden skills for sidebar garden
+      // Load garden skills and upcoming sessions for sidebar
       if (storedWallet) {
         getProfileByWallet(storedWallet)
           .then((profile: UserProfile | null) => {
@@ -52,6 +55,24 @@ export function SidebarNav() {
           })
           .catch(() => {
             // Profile not found - that's okay
+          });
+        
+        // Load upcoming sessions
+        listSessionsForWallet(storedWallet)
+          .then((sessions: Session[]) => {
+            const now = Date.now();
+            const upcoming = sessions
+              .filter(s => {
+                if (s.status !== 'scheduled') return false;
+                const sessionTime = new Date(s.sessionDate).getTime();
+                return sessionTime > now;
+              })
+              .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
+              .slice(0, 3); // Show up to 3 upcoming sessions
+            setUpcomingSessions(upcoming);
+          })
+          .catch(() => {
+            // Sessions not found - that's okay
           });
       }
     }
@@ -217,6 +238,43 @@ export function SidebarNav() {
             </Link>
           );
         })}
+        
+        {/* Upcoming Sessions */}
+        {upcomingSessions.length > 0 && (
+          <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <div className="flex flex-col items-center gap-2 px-2">
+              <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
+                upcoming sessions
+              </div>
+              <div className="flex flex-col gap-1.5 w-full">
+                {upcomingSessions.map((session) => {
+                  const sessionDate = new Date(session.sessionDate);
+                  const isToday = sessionDate.toDateString() === new Date().toDateString();
+                  const dateStr = isToday 
+                    ? 'Today' 
+                    : sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                  const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+                  
+                  return (
+                    <Link
+                      key={session.key}
+                      href="/me/sessions"
+                      className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                      title={`${session.skill} - ${dateStr} at ${timeStr}`}
+                    >
+                      <span className="text-xs text-gray-600 dark:text-gray-400 text-center leading-tight mb-0.5">
+                        {session.skill}
+                      </span>
+                      <span className="text-[9px] text-gray-500 dark:text-gray-500 text-center">
+                        {dateStr} {timeStr}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
         
         {/* Your Skills - shows profile's skills (deduplicated) */}
         {gardenSkills.length > 0 && (() => {

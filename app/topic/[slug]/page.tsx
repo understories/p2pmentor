@@ -23,6 +23,7 @@ import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 
 type Match = {
@@ -41,12 +42,15 @@ export default function TopicDetailPage() {
   const [asks, setAsks] = useState<Ask[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
+  const [gatherings, setGatherings] = useState<VirtualGathering[]>([]);
+  const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [rsvping, setRsvping] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -56,16 +60,18 @@ export default function TopicDetailPage() {
   });
 
   useEffect(() => {
-    if (slug) {
-      loadTopicData();
-    }
-    
-    // Get user wallet
+    // Get user wallet first
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
     }
-  }, [slug]);
+  }, []);
+
+  useEffect(() => {
+    if (slug) {
+      loadTopicData();
+    }
+  }, [slug, userWallet]);
 
   const loadTopicData = async () => {
     try {
@@ -85,10 +91,11 @@ export default function TopicDetailPage() {
       const skillEntity = skillData.skills[0];
       setSkill(skillEntity);
 
-      // Load asks and offers filtered by skill_id
-      const [asksRes, offersRes] = await Promise.all([
+      // Load asks, offers, and virtual gatherings filtered by skill_id/community
+      const [asksRes, offersRes, gatheringsRes] = await Promise.all([
         fetch('/api/asks').then(r => r.json()),
         fetch('/api/offers').then(r => r.json()),
+        fetch(`/api/virtual-gatherings?community=${encodeURIComponent(skillEntity.slug)}${userWallet ? `&wallet=${encodeURIComponent(userWallet)}` : ''}`).then(r => r.json()),
       ]);
 
       // Filter by skill_id
@@ -101,6 +108,14 @@ export default function TopicDetailPage() {
 
       setAsks(skillAsks);
       setOffers(skillOffers);
+
+      // Load virtual gatherings for this community
+      if (gatheringsRes.ok && gatheringsRes.gatherings) {
+        setGatherings(gatheringsRes.gatherings);
+        if (gatheringsRes.rsvpStatus) {
+          setRsvpStatus(gatheringsRes.rsvpStatus);
+        }
+      }
 
       // Load profiles for all unique wallets
       const allWallets = new Set<string>();
@@ -158,6 +173,55 @@ export default function TopicDetailPage() {
     }
   };
 
+  const handleRSVP = async (gatheringKey: string) => {
+    if (!userWallet) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    setRsvping(gatheringKey);
+    try {
+      const res = await fetch('/api/virtual-gatherings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rsvp',
+          gatheringKey,
+          wallet: userWallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to RSVP');
+      }
+
+      // Update RSVP status
+      setRsvpStatus(prev => ({ ...prev, [gatheringKey]: true }));
+      // Reload gatherings to get updated RSVP count
+      loadTopicData();
+    } catch (err: any) {
+      console.error('Error RSVPing to gathering:', err);
+      alert(err.message || 'Failed to RSVP');
+    } finally {
+      setRsvping(null);
+    }
+  };
+
+  const formatSessionDate = (sessionDate: string): { date: string; time: string; isPast: boolean; isToday: boolean } => {
+    const date = new Date(sessionDate);
+    const now = new Date();
+    const isPast = date < now;
+    const isToday = date.toDateString() === now.toDateString();
+    
+    return {
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+      isPast,
+      isToday,
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
@@ -188,7 +252,13 @@ export default function TopicDetailPage() {
     );
   }
 
-  const totalCount = asks.length + offers.length + matches.length;
+  const totalCount = asks.length + offers.length + matches.length + gatherings.length;
+  
+  // Filter upcoming gatherings (not past)
+  const upcomingGatherings = gatherings.filter(g => {
+    const sessionTime = new Date(g.sessionDate).getTime();
+    return sessionTime > Date.now();
+  }).sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
@@ -232,6 +302,86 @@ export default function TopicDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Upcoming Community Sessions */}
+        {upcomingGatherings.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              📅 Upcoming Community Sessions
+            </h2>
+            <div className="space-y-4">
+              {upcomingGatherings.map((gathering) => {
+                const organizerProfile = profiles[gathering.organizerWallet.toLowerCase()];
+                const organizerName = organizerProfile?.displayName || gathering.organizerWallet.slice(0, 8) + '...';
+                const hasRsvpd = rsvpStatus[gathering.key] || false;
+                const sessionTime = formatSessionDate(gathering.sessionDate);
+                const sessionDateTime = new Date(gathering.sessionDate).getTime();
+                const now = Date.now();
+                const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
+                const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+                return (
+                  <div
+                    key={gathering.key}
+                    className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                          {gathering.title}
+                        </h3>
+                        <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                          Organized by {organizerName}
+                        </p>
+                        {gathering.description && (
+                          <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
+                            {gathering.description}
+                          </p>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                        {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
+                        {gathering.duration && ` • ${gathering.duration} min`}
+                        {gathering.rsvpCount !== undefined && ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
+                      </p>
+                      <div className="flex gap-2">
+                        {gathering.videoJoinUrl && (
+                          <a
+                            href={gathering.videoJoinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                          >
+                            🎥 Join
+                          </a>
+                        )}
+                        {!hasRsvpd && userWallet && (
+                          <button
+                            onClick={() => handleRSVP(gathering.key)}
+                            disabled={rsvping === gathering.key}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm"
+                          >
+                            {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
+                          </button>
+                        )}
+                        {hasRsvpd && (
+                          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium">
+                            ✓ RSVP'd
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         {totalCount === 0 ? (
