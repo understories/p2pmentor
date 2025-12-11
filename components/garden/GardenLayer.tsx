@@ -49,47 +49,39 @@ export function GardenLayer({
   const identitySeedSlot = slots.find(s => s?.id === 'identity_seed');
 
   return (
-    <div className={`fixed inset-0 z-0 ${className}`}>
+    <div className={`fixed inset-0 ${showSeedTooltip ? 'z-20' : 'z-0'} ${className}`}>
       {/* Bottom garden strip - responsive spacing with padding to prevent cutoff */}
-      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 z-50">
+      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8">
         {slots.map((skill, i) =>
           skill ? (
-            <div
-              key={skill.id}
-              className={`
-                flex flex-col items-center gap-1
-                ${skill.id === 'identity_seed' && showSeedTooltip 
-                  ? 'pointer-events-auto cursor-pointer z-50' 
-                  : skill.id === 'identity_seed' 
-                  ? 'pointer-events-auto cursor-pointer' 
-                  : 'pointer-events-none'}
-                ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : skill.id === 'identity_seed' && showSeedTooltip ? '' : 'hg-anim-plant-idle'}
-              `}
-              onClick={skill.id === 'identity_seed' && onSeedClick ? (e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                onSeedClick();
-              } : undefined}
-              role={skill.id === 'identity_seed' && showSeedTooltip ? 'button' : undefined}
-              tabIndex={skill.id === 'identity_seed' && showSeedTooltip ? 0 : undefined}
-              onKeyDown={skill.id === 'identity_seed' && onSeedClick && showSeedTooltip ? (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
+            skill.id === 'identity_seed' && showSeedTooltip && onSeedClick ? (
+              <button
+                key={skill.id}
+                type="button"
+                onClick={(e) => {
                   e.stopPropagation();
+                  e.preventDefault();
                   onSeedClick();
-                }
-              } : undefined}
-              onMouseEnter={(e) => {
-                if (skill.id === 'identity_seed' && showSeedTooltip) {
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSeedClick();
+                  }
+                }}
+                onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'scale(1.2)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (skill.id === 'identity_seed' && showSeedTooltip) {
+                }}
+                onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
-                }
-              }}
-            >
+                }}
+                className="flex flex-col items-center gap-1 relative z-[100] cursor-pointer bg-transparent border-none p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg transition-transform duration-200 hover:scale-110 active:scale-95"
+                style={{
+                  zIndex: 100,
+                }}
+                aria-label="Grow - continue to next step"
+              >
               <span 
                 className={`text-3xl md:text-4xl relative inline-block transition-all duration-300 ${
                   skill.id === 'identity_seed' && showSeedTooltip ? 'hg-anim-seed-pulse-continuous' : ''
@@ -111,23 +103,55 @@ export function GardenLayer({
                   grow
                 </span>
               )}
-              {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
+              </button>
+            ) : (
+              <div
+                key={skill.id}
+                className={`
+                  flex flex-col items-center gap-1
+                  ${skill.id === 'identity_seed' ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
+                  ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : 'hg-anim-plant-idle'}
+                `}
+              >
                 <span 
-                  className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                  className={`text-3xl md:text-4xl relative inline-block transition-all duration-300 ${
+                    skill.id === 'identity_seed' && showSeedTooltip ? 'hg-anim-seed-pulse-continuous' : ''
+                  }`}
                   style={{
-                    maxWidth: '70px',
-                    wordBreak: 'break-word',
-                    overflowWrap: 'break-word',
-                    lineHeight: '1.3',
-                    minHeight: '28px',
-                    display: 'inline-block',
+                    filter: skill.id === 'identity_seed' && showSeedTooltip
+                      ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                      : skill.id === 'identity_seed' 
+                      ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                      : skill.level === 5 
+                      ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
+                      : 'none',
                   }}
-                  title={skill.name}
                 >
-                  {skill.name}
+                  {levelToEmoji(skill.level)}
                 </span>
-              )}
-            </div>
+                {skill.id === 'identity_seed' && showSeedTooltip && (
+                  <span className="text-xs font-medium text-green-400 dark:text-green-300 animate-pulse mt-1">
+                    grow
+                  </span>
+                )}
+                {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
+                  <span 
+                    className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                    style={{
+                      maxWidth: '70px',
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.3',
+                      minHeight: '28px',
+                      display: 'inline-block',
+                    }}
+                    title={skill.name}
+                  >
+                    {skill.name}
+                  </span>
+                )}
+              </div>
+            )
           ) : (
             <div key={i} className="w-8 md:w-10 h-8 md:h-10 pointer-events-none" aria-hidden="true" />
           ),

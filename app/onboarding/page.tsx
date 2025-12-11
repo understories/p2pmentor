@@ -156,7 +156,7 @@ export default function OnboardingPage() {
       />
 
       {/* Content */}
-      <div className="relative z-10 min-h-screen flex flex-col">
+      <div className={`relative ${currentStep === 'welcome' ? 'z-5' : 'z-10'} min-h-screen flex flex-col`}>
         {/* Header - hide on welcome step for game-like feel */}
         {currentStep !== 'welcome' && (
           <header className="flex justify-between items-center p-4">
