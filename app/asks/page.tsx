@@ -17,6 +17,7 @@ import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
@@ -559,18 +560,7 @@ export default function AsksPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  {ask.txHash ? (
-                    <a
-                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      View on Arkiv Explorer
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
-                  )}
+                  <ViewOnArkivLink txHash={ask.txHash} entityKey={ask.key} />
                 </div>
                     {/* Offer to Help Button - only show if not own ask */}
                     {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (

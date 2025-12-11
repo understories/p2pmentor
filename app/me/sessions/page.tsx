@@ -19,6 +19,7 @@ import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { FeedbackModal } from '@/components/FeedbackModal';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 

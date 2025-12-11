@@ -19,6 +19,7 @@ import { BackgroundImage } from '@/components/BackgroundImage';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
@@ -431,16 +432,7 @@ function VirtualGatheringsContent() {
                           ✓ RSVP'd
                         </span>
                       )}
-                      {gathering.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${gathering.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-500 dark:text-gray-400 hover:underline"
-                        >
-                          View on Arkiv
-                        </a>
-                      )}
+                      <ViewOnArkivLink txHash={gathering.txHash} entityKey={gathering.key} className="text-xs" />
                     </div>
                   </div>
                 </div>

@@ -17,6 +17,7 @@ import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
 import { fetchOffers } from '@/lib/graph/offersQueries';
@@ -825,18 +826,7 @@ export default function OffersPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
-                  {offer.txHash ? (
-                    <a
-                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      View on Arkiv Explorer
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
-                  )}
+                  <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
                 </div>
                 {/* Request Meeting Button - only show if not own offer */}
                 {walletAddress && walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (
