@@ -198,12 +198,13 @@ export async function createBackupWalletIdentity({
 export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentity[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  const normalizedWallet = wallet.toLowerCase().trim();
   
   try {
     const result = await query
       .where(eq('type', 'auth_identity'))
       .where(eq('subtype', 'passkey'))
-      .where(eq('wallet', wallet.toLowerCase()))
+      .where(eq('wallet', normalizedWallet))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -359,11 +360,14 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   
+  // Normalize credentialID for query (trim whitespace)
+  const normalizedCredentialID = credentialID.trim();
+  
   try {
     const result = await query
       .where(eq('type', 'auth_identity'))
       .where(eq('subtype', 'passkey'))
-      .where(eq('credentialId', credentialID))
+      .where(eq('credentialId', normalizedCredentialID))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)

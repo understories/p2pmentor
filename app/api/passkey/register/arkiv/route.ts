@@ -47,16 +47,17 @@ export async function POST(request: NextRequest) {
 
     // [PASSKEY][REGISTER][ARKIV_WRITE] - Log before Arkiv write
     console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
-      wallet,
-      credentialId_base64url: credentialID,
+      wallet: wallet.toLowerCase().trim(),
+      credentialId_base64url: normalizedCredentialID,
+      credentialId_length: normalizedCredentialID.length,
       spaceId: 'local-dev',
       attempting: true,
       signingWallet: 'global_arkiv_wallet', // Using env wallet, not passkey wallet
     });
 
     const arkivResult = await createPasskeyIdentity({
-      wallet: wallet.toLowerCase(),
-      credentialID,
+      wallet: wallet.toLowerCase().trim(),
+      credentialID: normalizedCredentialID,
       credentialPublicKey: publicKeyBytes,
       counter: counter || 0,
       transports: transports || [],
@@ -71,7 +72,8 @@ export async function POST(request: NextRequest) {
       entityId: arkivResult.key,
       txHash: arkivResult.txHash,
       spaceId: 'local-dev',
-      credentialId_stored: credentialID,
+      credentialId_stored: normalizedCredentialID,
+      credentialId_length: normalizedCredentialID.length,
       signingWallet: 'global_arkiv_wallet',
     });
 
