@@ -71,6 +71,6 @@ export const config = {
      * - public files (public folder)
      * - .svg, .png, .jpg, .jpeg, .gif, .webp files
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };

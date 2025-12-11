@@ -141,16 +141,19 @@ export default function MePage() {
   // Show loading state until wallet is loaded AND onboarding check is complete
   if (!walletAddress || !onboardingChecked) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-pulse text-2xl mb-4">🌱</div>
-          <p className="text-gray-600 dark:text-gray-400">Loading your garden...</p>
+      <BetaGate>
+        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-pulse text-2xl mb-4">🌱</div>
+            <p className="text-gray-600 dark:text-gray-400">Loading your garden...</p>
+          </div>
         </div>
-      </div>
+      </BetaGate>
     );
   }
 
   return (
+    <BetaGate>
     <div className="min-h-screen relative text-gray-900 dark:text-gray-100">
       {/* Forest Background */}
       <BackgroundImage />
