@@ -336,6 +336,20 @@ export async function rsvpToGathering({
     throw new Error('Gathering not found');
   }
 
+  // Try to resolve community slug to skill_id
+  let skill_id: string | undefined;
+  try {
+    const { getSkillBySlug } = await import('./skill');
+    const skillEntity = await getSkillBySlug(gathering.community);
+    if (skillEntity) {
+      skill_id = skillEntity.key;
+    }
+  } catch (e) {
+    console.warn('[rsvpToGathering] Could not resolve skill_id from community:', e);
+    // Fallback: use community slug as skill_id (will show as skill_id in display)
+    skill_id = gathering.community;
+  }
+
   // Create a session entity for the RSVP
   // Use a special skill marker to identify RSVP sessions
   // Store gathering key in notes
@@ -389,8 +403,7 @@ export async function rsvpToGathering({
         { key: 'status', value: 'scheduled' }, // Immediately scheduled (self-confirmed)
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
-        // Store skill_id if we can resolve community slug to skill entity
-        // For now, we'll store community slug and resolve skill_id in display logic
+        ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
       ],
       expiresIn: expiresInSecondsInt,
     });
