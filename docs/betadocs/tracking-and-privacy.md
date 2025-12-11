@@ -303,7 +303,87 @@ Before picking charts, decide what's *allowed*:
 
 ---
 
-### 2.6 On-Chain Entity Counts
+### 2.6 Beta Code Usage Tracking
+
+**What:** Tracking of beta invite code usage to enforce limits and prevent abuse.
+
+**Data Collected:**
+- `code` - Beta code string (normalized to lowercase)
+- `usageCount` - Number of times the code has been used
+- `limit` - Maximum number of uses allowed (default: 50)
+- `createdAt` - ISO timestamp when code was first used
+- `lastUsedAt` - ISO timestamp when code was last used
+- `txHash` - Transaction hash for entity creation/update
+
+**Beta Access Records:**
+- `wallet` - Wallet address that used the code (after authentication)
+- `code` - Beta code used
+- `grantedAt` - ISO timestamp when access was granted
+- `txHash` - Transaction hash for access record
+
+**What We DON'T Collect:**
+- ❌ IP addresses (not stored in beta code entities)
+- ❌ Browser fingerprints
+- ❌ Device information
+- ❌ Any data beyond code usage and wallet binding (post-auth)
+
+**Example Data:**
+```json
+{
+  "code": "beta2025",
+  "usageCount": 23,
+  "limit": 50,
+  "createdAt": "2024-12-11T10:00:00.000Z",
+  "lastUsedAt": "2024-12-11T15:30:00.000Z",
+  "txHash": "0xabc123..."
+}
+```
+
+**Where It Lives:**
+- Stored as Arkiv entities with type `beta_code_usage`
+- Beta access records stored as type `beta_access` (links wallet to code)
+- Verifiable on-chain via transaction hash
+- Expires after 1 year
+- Queryable via `/api/beta-code`
+
+**Why:**
+- Enforce beta invite code limits (prevent code sharing abuse)
+- Track beta access grants per wallet (for audit trail)
+- All data is transparent and verifiable on-chain
+- No hidden tracking - all access records are public on Arkiv
+
+**Privacy Considerations:**
+- Beta codes themselves are not PII (they're shared invite codes)
+- Wallet addresses are already public on Arkiv in core entities
+- Beta access records link wallet to code for audit purposes
+- This is necessary for enforcing beta limits and preventing abuse
+
+**How Beta Code Gating Works:**
+1. User enters beta code on `/beta` page
+2. Code is validated against Arkiv `beta_code_usage` entity
+3. Usage count is checked against limit
+4. If valid, usage count is incremented and `beta_access` entity is created
+5. Access is stored in cookies and localStorage for session persistence
+6. All routes (client and server) verify beta access before allowing access
+7. Wallet address is linked to beta access after authentication (for audit)
+
+**What This Means for Users:**
+- Beta codes are rate-limited (e.g., 50 uses per code)
+- Your wallet address is linked to the beta code you used (for audit)
+- All beta access records are public on Arkiv (transparent)
+- You can verify your beta access on Arkiv Explorer
+- Beta access persists across sessions via cookies/localStorage
+
+**What This Does NOT Change:**
+- ✅ All existing tracking remains the same (client perf, retention, etc.)
+- ✅ Wallet addresses were already public on Arkiv (no change)
+- ✅ No new behavioral tracking is added
+- ✅ Beta code tracking is only for access control, not analytics
+- ✅ All data remains transparent and verifiable on-chain
+
+---
+
+### 2.7 On-Chain Entity Counts
 
 **What:** Counts of on-chain entities (profiles, asks, offers, sessions).
 
