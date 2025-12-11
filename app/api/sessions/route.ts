@@ -36,12 +36,17 @@ export async function POST(request: Request) {
       }
 
       try {
+        // Ensure duration is always an integer to prevent BigInt conversion errors
+        const durationInt = duration !== undefined && duration !== null
+          ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
+          : undefined;
+
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
           skill,
           sessionDate,
-          duration: duration ? parseInt(duration, 10) : undefined,
+          duration: durationInt,
           notes: notes || undefined,
           requiresPayment: requiresPayment || undefined,
           paymentAddress: paymentAddress || undefined,

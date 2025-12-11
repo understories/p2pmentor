@@ -87,6 +87,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Ensure duration is always an integer to prevent BigInt conversion errors
+      const durationInt = duration !== undefined && duration !== null 
+        ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
+        : 60;
+
       const privateKey = getPrivateKey();
       const { key, txHash } = await createVirtualGathering({
         organizerWallet,
@@ -94,7 +99,7 @@ export async function POST(request: NextRequest) {
         title,
         description,
         sessionDate,
-        duration,
+        duration: durationInt,
         privateKey,
       });
 
