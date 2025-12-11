@@ -62,7 +62,7 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
           There are four paths through the Garden
         </h2>
         <p 
-          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+          className="text-gray-200 dark:text-gray-300 text-lg mb-12 drop-shadow-md"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
@@ -71,7 +71,7 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
         {paths.map((path) => (
           <button
             key={path.id}
@@ -80,28 +80,65 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
               // Small delay for visual feedback before transitioning
               setTimeout(() => onSelectPath(path.id), 300);
             }}
-            className={`
-              relative p-6 md:p-8 rounded-xl border-2 transition-all duration-300
-              ${selectedPath === path.id
-                ? 'border-green-500 scale-105'
-                : 'border-white/30 dark:border-white/20 hover:border-green-400'
-              }
-              bg-white/90 dark:bg-gray-900/90 backdrop-blur-md
-              hover:shadow-xl active:scale-95
-            `}
+            className="relative flex flex-col items-center justify-center transition-all duration-300 group"
             style={{
-              boxShadow: selectedPath === path.id
-                ? `0 0 30px ${path.glowColor}, 0 0 60px ${path.glowColor}`
-                : '0 4px 20px rgba(0, 0, 0, 0.3)',
+              filter: selectedPath === path.id
+                ? `drop-shadow(0 0 20px ${path.glowColor}) drop-shadow(0 0 40px ${path.glowColor})`
+                : undefined,
+            }}
+            onMouseEnter={(e) => {
+              if (selectedPath !== path.id) {
+                e.currentTarget.style.filter = `drop-shadow(0 0 15px ${path.glowColor}) drop-shadow(0 0 30px ${path.glowColor})`;
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (selectedPath !== path.id) {
+                e.currentTarget.style.filter = '';
+                e.currentTarget.style.transform = '';
+              }
             }}
           >
-            <div className="text-5xl mb-4">{path.icon}</div>
-            <h3 className="font-bold text-xl mb-2 text-gray-900 dark:text-gray-100">{path.title}</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">{path.description}</p>
+            <div 
+              className="text-6xl md:text-7xl mb-4 transition-all duration-300"
+              style={{
+                transform: selectedPath === path.id ? 'scale(1.1)' : 'scale(1)',
+                filter: selectedPath === path.id
+                  ? `drop-shadow(0 0 15px ${path.glowColor})`
+                  : undefined,
+              }}
+            >
+              {path.icon}
+            </div>
+            <h3 
+              className="font-bold text-2xl md:text-3xl mb-2 text-white dark:text-white drop-shadow-lg transition-all duration-300"
+              style={{
+                textShadow: selectedPath === path.id
+                  ? `0 0 10px ${path.glowColor}, 0 0 20px ${path.glowColor}`
+                  : '0 0 10px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              {path.title}
+            </h3>
+            <p 
+              className="text-base md:text-lg text-gray-200 dark:text-gray-300 drop-shadow-md text-center"
+              style={{
+                textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+              }}
+            >
+              {path.description}
+            </p>
             
             {selectedPath === path.id && (
-              <div className="absolute top-3 right-3">
-                <span className="text-green-500 text-2xl">✓</span>
+              <div className="absolute -top-2 -right-2">
+                <span 
+                  className="text-green-400 text-3xl drop-shadow-lg"
+                  style={{
+                    filter: 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.8))',
+                  }}
+                >
+                  ✓
+                </span>
               </div>
             )}
           </button>
