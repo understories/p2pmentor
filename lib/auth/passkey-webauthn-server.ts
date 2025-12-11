@@ -130,11 +130,23 @@ export async function getRegistrationOptions(
     }
   }
 
+  // Use meaningful userName - prefer provided userName, fallback to wallet address format
+  // If userId is wallet-based (wallet_xxxx), extract wallet address for display
+  let displayName = userName;
+  if (!displayName && userId.startsWith('wallet_')) {
+    // Extract wallet address from userId (wallet_12345678 -> 0x12345678...)
+    const walletSuffix = userId.replace('wallet_', '');
+    displayName = `0x${walletSuffix}...`;
+  } else if (!displayName) {
+    // Last resort: use userId as-is
+    displayName = userId;
+  }
+
   const opts = {
     rpName,
     rpID,
-    userID: userId, // SimpleWebAuthn v9 expects string
-    userName: userName || userId,
+    userID: userId, // SimpleWebAuthn v9 expects string (stable wallet-based ID)
+    userName: displayName, // Human-readable name for browser display
     timeout: 60000, // 60 seconds
     attestationType: 'none' as const, // We don't need attestation for beta
     excludeCredentials, // Populated from Arkiv to prevent duplicates

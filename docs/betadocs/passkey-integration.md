@@ -46,6 +46,39 @@ When Mendoza supports EIP-7951:
 
 ## Known Issues & Solutions
 
+### Stable User IDs (No More `user_${Date.now()}`)
+
+**Issue**: Previous implementation generated throwaway user IDs (`user_${Date.now()}`) on each registration, creating multiple passkeys in Safari's keychain even for the same wallet. This was a developer problem during testing/deployment, but also affected production if localStorage was cleared.
+
+**Solution**: Use stable wallet-based user IDs:
+- Format: `wallet_${walletAddress.slice(2, 10)}` (e.g., `wallet_12345678` for `0x12345678...`)
+- User display name: Shortened wallet address (e.g., `0x1234...5678`)
+- Only generate temporary IDs as last resort for truly new users (then immediately update to wallet-based ID)
+
+**Implementation**:
+- `PasskeyLoginButton` now generates stable userId from wallet address
+- Server-side `getRegistrationOptions()` uses meaningful `userName` for browser display
+- After wallet creation, temporary IDs are immediately replaced with wallet-based stable IDs
+
+**Why this works**: Safari shows meaningful names in the passkey picker, and the same wallet always uses the same userId, preventing duplicate registrations even across deployments.
+
+### Arkiv-First Check (Default to Login, Not Registration)
+
+**Issue**: App would register new passkeys even when Arkiv already had an identity for the wallet, because it only checked localStorage/IndexedDB.
+
+**Solution**: Always check Arkiv FIRST before any registration attempt:
+1. Query Arkiv for existing passkey identities (using wallet address from localStorage or previous session)
+2. If Arkiv has identity → attempt LOGIN (not registration)
+3. Only register if truly no identity exists anywhere
+
+**Implementation**:
+- `PasskeyLoginButton` queries Arkiv at the start of `handlePasskeyAuth()`
+- If Arkiv identity found, attempts authentication with existing credential
+- Registration flow only reached if no Arkiv identity exists
+- Server-side `excludeCredentials` provides additional protection
+
+**Why this works**: Arkiv is the source of truth. Even after deployment/restart, the app knows "this wallet already has passkeys" and defaults to login, preventing duplicate registrations.
+
 ### Duplicate Passkey Prevention
 
 **Issue**: The WebAuthn API (`navigator.credentials.create()`) is called client-side immediately when the user clicks the passkey button, before Arkiv can be queried for existing credentials. This can result in multiple passkeys being registered for the same wallet.
