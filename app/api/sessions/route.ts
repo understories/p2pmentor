@@ -8,12 +8,25 @@
  * Reference: refs/mentor-graph/pages/api/me.ts (createSession action)
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, submitPayment, validatePayment } from '@/lib/arkiv/sessions';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { validateTransaction } from '@/lib/payments';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId } = body;

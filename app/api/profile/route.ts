@@ -7,12 +7,24 @@
  * Reference: refs/mentor-graph/pages/api/me.ts
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createUserProfile, getProfileByWallet } from '@/lib/arkiv/profile';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError, isRateLimitError } from '@/lib/arkiv/transaction-utils';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const { wallet, action, ...profileData } = body;

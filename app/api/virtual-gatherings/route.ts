@@ -73,6 +73,18 @@ export async function GET(request: Request) {
  * Body: { action: 'create' | 'rsvp', ... }
  */
 export async function POST(request: NextRequest) {
+  // Verify beta access
+  const { verifyBetaAccess } = await import('@/lib/auth/betaAccess');
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const { action } = body;

@@ -4,11 +4,23 @@
  * Handles feedback creation and retrieval.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createFeedback, listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
 import { getPrivateKey } from '@/lib/config';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const {
