@@ -44,10 +44,26 @@ export default function TopicDetailPage() {
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [userWallet, setUserWallet] = useState<string | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '',
+    duration: '60',
+  });
 
   useEffect(() => {
     if (slug) {
       loadTopicData();
+    }
+    
+    // Get user wallet
+    if (typeof window !== 'undefined') {
+      const address = localStorage.getItem('wallet_address');
+      setUserWallet(address);
     }
   }, [slug]);
 
@@ -198,12 +214,22 @@ export default function TopicDetailPage() {
                 }
               </p>
             </div>
-            <Link
-              href="/network"
-              className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
-            >
-              View all topics →
-            </Link>
+            <div className="flex items-center gap-3">
+              {userWallet && (
+                <button
+                  onClick={() => setShowScheduleModal(true)}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  📅 Schedule Meeting
+                </button>
+              )}
+              <Link
+                href="/network"
+                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+              >
+                View all topics →
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -221,6 +247,173 @@ export default function TopicDetailPage() {
             matches={matches}
             profiles={profiles}
           />
+        )}
+
+        {/* Schedule Meeting Modal */}
+        {showScheduleModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Schedule Meeting - {skill.name_canonical}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowScheduleModal(false);
+                      setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                    }}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!userWallet) {
+                      alert('Please connect your wallet first');
+                      return;
+                    }
+
+                    if (!formData.title || !formData.date || !formData.time) {
+                      alert('Please fill in title, date, and time');
+                      return;
+                    }
+
+                    setSubmitting(true);
+                    try {
+                      // Combine date and time into ISO timestamp
+                      const sessionDate = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+
+                      // Create virtual gathering (immediately generates Jitsi link)
+                      const res = await fetch('/api/virtual-gatherings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          action: 'create',
+                          organizerWallet: userWallet,
+                          community: skill.slug, // Use skill slug as community identifier
+                          title: formData.title,
+                          description: formData.description,
+                          sessionDate,
+                          duration: parseInt(formData.duration, 10),
+                        }),
+                      });
+
+                      const data = await res.json();
+                      if (!res.ok) {
+                        throw new Error(data.error || 'Failed to create meeting');
+                      }
+
+                      alert('Meeting scheduled! Jitsi room is ready.');
+                      setShowScheduleModal(false);
+                      setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                      // Reload topic data to show new meeting
+                      loadTopicData();
+                    } catch (err: any) {
+                      console.error('Error scheduling meeting:', err);
+                      alert(err.message || 'Failed to schedule meeting');
+                    } finally {
+                      setSubmitting(false);
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Title *
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      placeholder="e.g., Spanish Conversation Practice"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      rows={3}
+                      placeholder="Optional description..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Date *
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Time *
+                      </label>
+                      <input
+                        type="time"
+                        value={formData.time}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Duration (minutes)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.duration}
+                      onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      min="15"
+                      max="240"
+                      step="15"
+                    />
+                  </div>
+
+                  <div className="flex gap-3 pt-4">
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      {submitting ? 'Scheduling...' : 'Schedule Meeting'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowScheduleModal(false);
+                        setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                      }}
+                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

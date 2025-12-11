@@ -12,10 +12,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { LearningFollow } from '@/lib/arkiv/learningFollow';
 import type { Skill } from '@/lib/arkiv/skill';
-import type { Offer } from '@/lib/arkiv/offers';
-import type { UserProfile } from '@/lib/arkiv/profile';
 import { SkillSelector } from './SkillSelector';
-import { RequestMeetingModal } from './RequestMeetingModal';
 
 interface LearningCommunitiesCardProps {
   wallet: string;
@@ -28,23 +25,10 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
   const [showFollowForm, setShowFollowForm] = useState(false);
   const [selectedSkillId, setSelectedSkillId] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  
-  // Meeting creation state
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
-  const [selectedSkillForMeeting, setSelectedSkillForMeeting] = useState<Skill | null>(null);
-  const [offersForSkill, setOffersForSkill] = useState<Offer[]>([]);
-  const [loadingOffers, setLoadingOffers] = useState(false);
-  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
-  const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (wallet) {
       loadFollows();
-      // Load user profile for RequestMeetingModal
-      import('@/lib/arkiv/profile').then(({ getProfileByWallet }) => {
-        getProfileByWallet(wallet).then(setUserProfile).catch(() => null);
-      });
     }
   }, [wallet]);
 
@@ -138,50 +122,6 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
     }
   };
 
-  const handleCreateMeeting = async (skill: Skill) => {
-    if (!wallet) {
-      alert('Please connect your wallet first');
-      return;
-    }
-
-    setSelectedSkillForMeeting(skill);
-    setLoadingOffers(true);
-    setShowMeetingModal(true);
-
-    try {
-      // Fetch offers for this skill
-      const { listOffers } = await import('@/lib/arkiv/offers');
-      const offers = await listOffers({ skill: skill.name_canonical, limit: 20 });
-      setOffersForSkill(offers);
-    } catch (error) {
-      console.error('Error loading offers:', error);
-      alert('Failed to load offers for this skill');
-      setShowMeetingModal(false);
-    } finally {
-      setLoadingOffers(false);
-    }
-  };
-
-  const handleSelectOffer = async (offer: Offer) => {
-    try {
-      // Load profile for the offer creator
-      const { getProfileByWallet } = await import('@/lib/arkiv/profile');
-      const profile = await getProfileByWallet(offer.wallet);
-      setSelectedOfferProfile(profile);
-      setSelectedOffer(offer);
-    } catch (error) {
-      console.error('Error loading offer profile:', error);
-      alert('Failed to load mentor profile');
-    }
-  };
-
-  const handleMeetingSuccess = () => {
-    setShowMeetingModal(false);
-    setSelectedOffer(null);
-    setSelectedOfferProfile(null);
-    setSelectedSkillForMeeting(null);
-    setOffersForSkill([]);
-  };
 
   if (loading) {
     return (
@@ -253,14 +193,6 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
                   {skill ? skill.name_canonical : `Skill ${follow.skill_id.slice(0, 8)}...`}
                 </span>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => skill && handleCreateMeeting(skill)}
-                    disabled={submitting || loadingOffers}
-                    className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    title="Create Meeting"
-                  >
-                    📅 Meeting
-                  </button>
                   <Link
                     href={skill ? `/topic/${skill.slug}` : `/network?skill_id=${follow.skill_id}`}
                     className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
@@ -287,96 +219,6 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
         </div>
       )}
 
-      {/* Meeting Creation Modal */}
-      {showMeetingModal && selectedSkillForMeeting && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Create Meeting - {selectedSkillForMeeting.name_canonical}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowMeetingModal(false);
-                    setSelectedOffer(null);
-                    setSelectedOfferProfile(null);
-                    setSelectedSkillForMeeting(null);
-                    setOffersForSkill([]);
-                  }}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-                >
-                  ×
-                </button>
-              </div>
-
-              {loadingOffers ? (
-                <div className="text-center py-8">
-                  <div className="text-gray-600 dark:text-gray-400">Loading offers...</div>
-                </div>
-              ) : offersForSkill.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-gray-600 dark:text-gray-400 mb-4">
-                    No active offers found for this skill.
-                  </p>
-                  <Link
-                    href="/offers"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    Browse all offers →
-                  </Link>
-                </div>
-              ) : selectedOffer && selectedOfferProfile ? (
-                <RequestMeetingModal
-                  isOpen={true}
-                  onClose={() => {
-                    setSelectedOffer(null);
-                    setSelectedOfferProfile(null);
-                  }}
-                  profile={selectedOfferProfile}
-                  userWallet={wallet}
-                  userProfile={userProfile}
-                  offer={selectedOffer}
-                  mode="request"
-                  onSuccess={handleMeetingSuccess}
-                />
-              ) : (
-                <div className="space-y-3">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                    Select a mentor to request a meeting:
-                  </p>
-                  {offersForSkill.map((offer) => (
-                    <button
-                      key={offer.key}
-                      onClick={() => handleSelectOffer(offer)}
-                      className="w-full p-4 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-gray-900 dark:text-gray-100">
-                            {offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}
-                          </div>
-                          {offer.message && (
-                            <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {offer.message.slice(0, 100)}
-                              {offer.message.length > 100 ? '...' : ''}
-                            </div>
-                          )}
-                        </div>
-                        {offer.isPaid && (
-                          <span className="text-xs px-2 py-1 rounded bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300">
-                            Paid
-                          </span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
