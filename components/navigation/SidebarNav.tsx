@@ -239,13 +239,16 @@ export function SidebarNav() {
           );
         })}
         
-        {/* Upcoming Sessions */}
+        {/* Upcoming Sessions - Always show if user has sessions, tied to profile identity */}
         {upcomingSessions.length > 0 && (
           <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <div className="flex flex-col items-center gap-2 px-2">
-              <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
+              <Link
+                href="/me/sessions"
+                className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
                 upcoming sessions
-              </div>
+              </Link>
               <div className="flex flex-col gap-1.5 w-full">
                 {upcomingSessions.map((session) => {
                   const sessionDate = new Date(session.sessionDate);
@@ -255,15 +258,22 @@ export function SidebarNav() {
                     : sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                   const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                   
+                  // Get skill name (handle virtual gathering RSVPs)
+                  const skillName = session.skill === 'virtual_gathering_rsvp' 
+                    ? (session.notes?.includes('gatheringTitle:') 
+                        ? session.notes.split('gatheringTitle:')[1]?.split(',')[0]?.trim() || 'Community'
+                        : 'Community')
+                    : session.skill;
+                  
                   return (
                     <Link
                       key={session.key}
                       href="/me/sessions"
-                      className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                      title={`${session.skill} - ${dateStr} at ${timeStr}`}
+                      className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      title={`${skillName} - ${dateStr} at ${timeStr}`}
                     >
-                      <span className="text-xs text-gray-600 dark:text-gray-400 text-center leading-tight mb-0.5">
-                        {session.skill}
+                      <span className="text-xs text-gray-600 dark:text-gray-400 text-center leading-tight mb-0.5 max-w-[60px] truncate">
+                        {skillName}
                       </span>
                       <span className="text-[9px] text-gray-500 dark:text-gray-500 text-center">
                         {dateStr} {timeStr}
