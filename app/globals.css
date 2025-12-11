@@ -277,6 +277,21 @@ body {
   }
 }
 
+@keyframes hg-seed-pulse-continuous {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 30px rgba(34, 197, 94, 1)) drop-shadow(0 0 60px rgba(34, 197, 94, 0.6));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+  }
+}
+
 @keyframes hg-ring-pulse {
   0% {
     box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
@@ -311,6 +326,10 @@ body {
 
 .hg-anim-ring-pulse {
   animation: hg-ring-pulse 1s ease-out;
+}
+
+.hg-anim-seed-pulse-continuous {
+  animation: hg-seed-pulse-continuous 2s ease-in-out infinite;
 }
 
 /* Respect user's motion preferences for accessibility */

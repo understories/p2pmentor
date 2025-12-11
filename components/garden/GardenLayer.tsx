@@ -51,29 +51,57 @@ export function GardenLayer({
   return (
     <div className={`fixed inset-0 z-0 ${className}`}>
       {/* Bottom garden strip - responsive spacing with padding to prevent cutoff */}
-      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8">
+      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 z-50">
         {slots.map((skill, i) =>
           skill ? (
             <div
               key={skill.id}
               className={`
                 flex flex-col items-center gap-1
-                ${skill.id === 'identity_seed' ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
-                ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : 'hg-anim-plant-idle'}
+                ${skill.id === 'identity_seed' && showSeedTooltip 
+                  ? 'pointer-events-auto cursor-pointer z-50' 
+                  : skill.id === 'identity_seed' 
+                  ? 'pointer-events-auto cursor-pointer' 
+                  : 'pointer-events-none'}
+                ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : skill.id === 'identity_seed' && showSeedTooltip ? '' : 'hg-anim-plant-idle'}
               `}
-              onClick={skill.id === 'identity_seed' && onSeedClick ? onSeedClick : undefined}
-              style={{
-                filter: skill.id === 'identity_seed' 
-                  ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                  : skill.level === 5 
-                  ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
-                  : 'none',
+              onClick={skill.id === 'identity_seed' && onSeedClick ? (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                onSeedClick();
+              } : undefined}
+              role={skill.id === 'identity_seed' && showSeedTooltip ? 'button' : undefined}
+              tabIndex={skill.id === 'identity_seed' && showSeedTooltip ? 0 : undefined}
+              onKeyDown={skill.id === 'identity_seed' && onSeedClick && showSeedTooltip ? (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSeedClick();
+                }
+              } : undefined}
+              onMouseEnter={(e) => {
+                if (skill.id === 'identity_seed' && showSeedTooltip) {
+                  e.currentTarget.style.transform = 'scale(1.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (skill.id === 'identity_seed' && showSeedTooltip) {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }
               }}
             >
               <span 
-                className="text-3xl md:text-4xl relative inline-block transition-all duration-300"
+                className={`text-3xl md:text-4xl relative inline-block transition-all duration-300 ${
+                  skill.id === 'identity_seed' && showSeedTooltip ? 'hg-anim-seed-pulse-continuous' : ''
+                }`}
                 style={{
-                  transform: skill.id === 'identity_seed' ? 'scale(1.1)' : 'scale(1)',
+                  filter: skill.id === 'identity_seed' && showSeedTooltip
+                    ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                    : skill.id === 'identity_seed' 
+                    ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                    : skill.level === 5 
+                    ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
+                    : 'none',
                 }}
               >
                 {levelToEmoji(skill.level)}
