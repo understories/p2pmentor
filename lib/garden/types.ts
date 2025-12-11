@@ -18,16 +18,19 @@ export type GardenSkill = {
 /**
  * Map skill expertise level to plant emoji
  * 
- * 0-1: 🌱 (Seed)
- * 2:   🌿 (Sprout)
- * 3-4: 🌳 (Tree)
- * 5:   🌴 (Glowing Tree - palm tree for distinction)
+ * Must match exactly the emoji array used in SkillsStep.tsx:
+ * ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨']
+ * 
+ * 0: 🌱 (Beginner)
+ * 1: 🌿 (Beginner)
+ * 2: 🌳 (Intermediate)
+ * 3: 🌲 (Advanced)
+ * 4: 🌴 (Advanced)
+ * 5: 🌴✨ (Expert - Glowing Tree)
  */
 export function levelToEmoji(level: SkillLevel): string {
-  if (level <= 1) return '🌱';
-  if (level === 2) return '🌿';
-  if (level >= 3 && level <= 4) return '🌳';
-  return '🌴'; // Level 5: Glowing tree (using palm tree emoji for visual distinction)
+  const emojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨'];
+  return emojis[level] || '🌱';
 }
 
 /**

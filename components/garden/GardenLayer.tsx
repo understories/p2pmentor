@@ -63,9 +63,6 @@ export function GardenLayer({
                 }}
               >
                 {levelToEmoji(skill.level)}
-                {skill.level === 5 && (
-                  <span className="absolute -top-1 -right-1 text-lg animate-pulse">✨</span>
-                )}
               </span>
               {skill.name !== 'Identity' && (
                 <span 
