@@ -240,6 +240,18 @@ export async function getAuthenticationOptions(
   userId?: string,
   walletAddress?: string
 ): Promise<any> {
+  // [PASSKEY][LOGIN][START] - Log server-side login options generation
+  const env = process.env.NODE_ENV || 'development';
+  const rpId = getRPID();
+  const origin = getExpectedOrigin();
+  console.log('[PASSKEY][LOGIN][START]', {
+    env,
+    rpId,
+    origin,
+    userId: userId || 'none',
+    walletAddress: walletAddress || 'none',
+  });
+
   let allowCredentials: any[] | undefined = undefined;
 
   // Try Arkiv first (if wallet address provided)
@@ -247,6 +259,18 @@ export async function getAuthenticationOptions(
     try {
       const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
       const identities = await listPasskeyIdentities(walletAddress);
+      
+      // [PASSKEY][LOGIN][START] - Log Arkiv query results
+      const arkivCredentialIds = identities
+        .filter(id => id.credentialID)
+        .map(id => id.credentialID!);
+      
+      console.log('[PASSKEY][LOGIN][START]', {
+        arkivQueryResult: {
+          found: identities.length,
+          credentialIds: arkivCredentialIds.map(id => id.substring(0, 16) + '...'), // First 16 chars for readability
+        },
+      });
       
       if (identities.length > 0) {
         allowCredentials = identities
@@ -258,6 +282,11 @@ export async function getAuthenticationOptions(
           }));
       }
     } catch (error) {
+      console.warn('[PASSKEY][LOGIN][START]', {
+        arkivQueryResult: {
+          error: error instanceof Error ? error.message : String(error),
+        },
+      });
       console.warn('[getAuthenticationOptions] Failed to query Arkiv, falling back to Map:', error);
     }
   }
@@ -305,9 +334,18 @@ export async function verifyAuthentication(
     const expectedOrigin = getExpectedOrigin(requestOrigin);
     const credentialID = response.id; // base64url-encoded from client
     
+    // [PASSKEY][LOGIN][CREDENTIAL_LOOKUP] - Log lookup start
+    console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+      credentialId_base64url: credentialID,
+      userId: userId || 'none',
+      walletAddress: walletAddress || 'none',
+      attempting: 'arkiv_first',
+    });
+    
     // Try Arkiv first (by credentialID or wallet address)
     let arkivIdentity: any = null;
     let foundWallet: string | undefined = undefined;
+    let arkivQueryError: any = null;
     
     try {
       const { findPasskeyIdentityByCredentialID, listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
@@ -317,16 +355,44 @@ export async function verifyAuthentication(
       
       if (arkivIdentity) {
         foundWallet = arkivIdentity.wallet;
+        console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+          found: true,
+          source: 'findPasskeyIdentityByCredentialID',
+          wallet: foundWallet,
+          arkiv_credentialId: arkivIdentity.credentialID,
+          match: arkivIdentity.credentialID === credentialID ? 'exact' : 'mismatch',
+        });
       } else if (walletAddress) {
         // Fallback: query by wallet address
         const identities = await listPasskeyIdentities(walletAddress);
-        arkivIdentity = identities.find(id => id.credentialID === credentialID);
-        if (arkivIdentity) {
+        const matchingIdentity = identities.find(id => id.credentialID === credentialID);
+        
+        console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+          found: !!matchingIdentity,
+          source: 'listPasskeyIdentities',
+          wallet: walletAddress,
+          totalIdentities: identities.length,
+          knownCredentialIds: identities
+            .filter(id => id.credentialID)
+            .map(id => ({
+              stored: id.credentialID!.substring(0, 16) + '...',
+              received: credentialID.substring(0, 16) + '...',
+              match: id.credentialID === credentialID,
+            })),
+        });
+        
+        if (matchingIdentity) {
+          arkivIdentity = matchingIdentity;
           foundWallet = walletAddress;
         }
       }
     } catch (error) {
-      console.warn('[verifyAuthentication] Failed to query Arkiv, falling back to Map:', error);
+      arkivQueryError = error;
+      console.warn('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+        arkivQueryFailed: true,
+        error: error instanceof Error ? error.message : String(error),
+        fallingBackTo: 'in_memory_map',
+      });
     }
 
     // Convert Arkiv credential to StoredCredential format if found
@@ -339,6 +405,17 @@ export async function verifyAuthentication(
       const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
       const publicKeyBuffer = Buffer.from(cred.credentialPublicKey, 'base64');
       
+      // [PASSKEY][LOGIN][CREDENTIAL_LOOKUP] - Log encoding comparison
+      console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+        found: true,
+        source: 'arkiv',
+        encodingCheck: {
+          received_base64url: credentialID,
+          stored_base64url: cred.credentialID,
+          match: cred.credentialID === credentialID,
+        },
+      });
+      
       storedCredential = {
         credentialID: credentialIDBuffer,
         credentialPublicKey: publicKeyBuffer,
@@ -348,6 +425,13 @@ export async function verifyAuthentication(
       foundUserId = foundWallet || userId || arkivIdentity.wallet;
     } else {
       // Fallback to in-memory Map (for backward compatibility)
+      console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+        found: false,
+        source: 'arkiv',
+        fallingBackTo: 'in_memory_map',
+        checkingUserId: userId || 'none',
+      });
+      
       if (userId) {
         const userCredentials = credentialStore.get(userId) || [];
         const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
@@ -355,6 +439,13 @@ export async function verifyAuthentication(
           (cred) => Buffer.from(cred.credentialID).equals(credentialIDBuffer)
         );
         foundUserId = userId;
+        
+        console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+          found: !!storedCredential,
+          source: 'in_memory_map',
+          userId,
+          credentialsInMap: userCredentials.length,
+        });
       } else {
         // Search all users (for discoverable credentials)
         const entries = Array.from(credentialStore.entries());
@@ -368,10 +459,26 @@ export async function verifyAuthentication(
             break;
           }
         }
+        
+        console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
+          found: !!storedCredential,
+          source: 'in_memory_map_discoverable',
+          searchedUsers: entries.length,
+        });
       }
     }
 
     if (!storedCredential || !foundUserId) {
+      // [PASSKEY][LOGIN][NOT_REGISTERED] - Log before returning error
+      console.error('[PASSKEY][LOGIN][NOT_REGISTERED]', {
+        reason: !arkivIdentity ? 'not_in_arkiv' : !storedCredential ? 'credential_mismatch' : 'no_user_id',
+        credentialId_base64url: credentialID,
+        arkivQueryAttempted: !arkivQueryError,
+        arkivQueryError: arkivQueryError ? (arkivQueryError instanceof Error ? arkivQueryError.message : String(arkivQueryError)) : null,
+        userId: userId || 'none',
+        walletAddress: walletAddress || 'none',
+      });
+      
       return { verified: false, error: 'Credential not found' };
     }
 

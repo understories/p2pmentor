@@ -231,6 +231,15 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
                   return;
                 } else {
                   // Credential not found on Arkiv - this is a real issue
+                  // [PASSKEY][LOGIN][NOT_REGISTERED] - Log before showing error
+                  console.error('[PASSKEY][LOGIN][NOT_REGISTERED]', {
+                    reason: 'not_in_arkiv',
+                    credentialId_base64url: credentialIDFromError,
+                    walletAddress: storedWallet || 'none',
+                    recoveryAttempted: true,
+                    recoveryResult: 'not_found',
+                  });
+                  
                   console.warn('[PasskeyLoginButton] Credential not found on Arkiv:', credentialIDFromError);
                   throw new Error('The selected passkey is not registered on Arkiv. This may be a local-only credential. Please use "Reset passkeys" to clear local credentials and register a new passkey.');
                 }
@@ -375,7 +384,18 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           try {
             const { privateKeyHex } = await unlockPasskeyWallet(userIdToUse, credentialID);
             
-            await createPasskeyIdentity({
+            // [PASSKEY][REGISTER][ARKIV_WRITE] - Log before Arkiv write
+            // NOTE: spaceId is hardcoded to 'local-dev' - ensure this matches production space
+            const spaceId = 'local-dev'; // TODO: Get from env/config or match production space
+            console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
+              wallet: address,
+              credentialId_base64url: credentialID,
+              spaceId,
+              attempting: true,
+              note: 'spaceId hardcoded to local-dev - verify this matches production',
+            });
+            
+            const arkivResult = await createPasskeyIdentity({
               wallet: address,
               credentialID,
               credentialPublicKey: registerResult.credentialPublicKey,
@@ -384,8 +404,25 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               privateKey: privateKeyHex,
             });
             
+            // [PASSKEY][REGISTER][ARKIV_WRITE] - Log success
+            console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
+              success: true,
+              entityId: arkivResult.key,
+              txHash: arkivResult.txHash,
+              spaceId,
+              credentialId_stored: credentialID,
+            });
+            
             console.log('[PasskeyLoginButton] ✅ Created Arkiv auth_identity entity');
-          } catch (error) {
+          } catch (error: any) {
+            // [PASSKEY][REGISTER][ARKIV_WRITE] - Log failure
+            console.error('[PASSKEY][REGISTER][ARKIV_WRITE]', {
+              success: false,
+              error: error?.message || String(error),
+              stack: error?.stack,
+              wallet: address,
+              credentialId_base64url: credentialID,
+            });
             console.warn('[PasskeyLoginButton] Failed to create Arkiv entity (non-fatal):', error);
             // Non-fatal - wallet is created, entity can be created later or on next login
           }

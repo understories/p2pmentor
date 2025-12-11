@@ -42,6 +42,19 @@ export async function registerPasskey(
     throw new Error('WebAuthn is not supported in this browser');
   }
 
+  // [PASSKEY][REGISTER][START] - Log registration start
+  const env = typeof window !== 'undefined' ? window.location.hostname : 'server';
+  const rpId = typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+  console.log('[PASSKEY][REGISTER][START]', {
+    env,
+    rpId,
+    origin,
+    walletAddress: walletAddress || 'none',
+    userId,
+    userName: userName || 'none',
+  });
+
   try {
     // Step 1: Fetch registration options from server
     // Server will query Arkiv for existing credentials and populate excludeCredentials
@@ -92,6 +105,19 @@ export async function registerPasskey(
     if (!credential) {
       throw new Error('Failed to create passkey credential');
     }
+
+    // [PASSKEY][REGISTER][CREATED] - Log credential creation
+    const credentialID_raw = credential.rawId;
+    const credentialID_base64 = Buffer.from(credentialID_raw).toString('base64');
+    const credentialID_base64url = Buffer.from(credentialID_raw).toString('base64url');
+    const credentialID_hex = Buffer.from(credentialID_raw).toString('hex');
+    console.log('[PASSKEY][REGISTER][CREATED]', {
+      credentialID_raw_len: credentialID_raw.byteLength,
+      credentialID_base64,
+      credentialID_base64url,
+      credentialID_hex: credentialID_hex.substring(0, 32) + '...', // First 32 chars for readability
+      publicKeyAlgo: 'P-256', // Expected for ES256
+    });
 
     // Step 3: Send response to server for verification
     const response = credential.response as AuthenticatorAttestationResponse;
@@ -165,6 +191,18 @@ export async function loginWithPasskey(
     throw new Error('WebAuthn is not supported in this browser');
   }
 
+  // [PASSKEY][LOGIN][START] - Log login start
+  const env = typeof window !== 'undefined' ? window.location.hostname : 'server';
+  const rpId = typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+  console.log('[PASSKEY][LOGIN][START]', {
+    env,
+    rpId,
+    origin,
+    userId: userId || 'none',
+    walletAddress: walletAddress || 'none',
+  });
+
   try {
     // Step 1: Fetch authentication options from server
     // Pass walletAddress to enable Arkiv-native credential lookup
@@ -210,6 +248,17 @@ export async function loginWithPasskey(
     if (!credential) {
       throw new Error('Failed to authenticate with passkey');
     }
+
+    // [PASSKEY][LOGIN][ASSERTION] - Log assertion received
+    const credentialID_raw = credential.rawId;
+    const credentialID_base64 = Buffer.from(credentialID_raw).toString('base64');
+    const credentialID_base64url = Buffer.from(credentialID_raw).toString('base64url');
+    const credentialID_hex = Buffer.from(credentialID_raw).toString('hex');
+    console.log('[PASSKEY][LOGIN][ASSERTION]', {
+      credentialID_base64,
+      credentialID_base64url,
+      credentialID_hex: credentialID_hex.substring(0, 32) + '...', // First 32 chars for readability
+    });
 
     // Step 3: Send response to server for verification
     const response = credential.response as AuthenticatorAssertionResponse;
