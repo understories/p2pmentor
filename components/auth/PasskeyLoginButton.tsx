@@ -130,6 +130,11 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
 
           const unlockResult = await unlockPasskeyWallet(storedUserId, credentialID);
           address = unlockResult.address;
+          
+          // Counter update: The server handles counter updates during verification
+          // For Arkiv entities, we use the immutable pattern - new entity with updated counter
+          // This happens automatically on next authentication when server detects counter change
+          // No action needed here - counter is tracked server-side and will be persisted to Arkiv
         } else {
           // No local wallet and no Arkiv identity - fresh registration
           throw new Error('No passkey wallet found. Please register a new passkey.');

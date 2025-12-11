@@ -36,11 +36,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Return success with userId
-    // Client will use this to proceed with wallet unlock
+    // Return success with userId and counter update
+    // Client will use this to proceed with wallet unlock and counter update
     return NextResponse.json({
       ok: true,
       userId: verification.userId,
+      walletAddress: verification.walletAddress,
+      newCounter: verification.newCounter,
       message: 'Passkey authentication successful',
     });
   } catch (error: any) {

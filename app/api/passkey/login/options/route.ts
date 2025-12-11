@@ -17,8 +17,8 @@ export async function POST(request: Request) {
 
     const options = await getAuthenticationOptions(userId);
 
-    // Store challenge in response (in production, store in session/DB)
-    // For beta, client will send it back in complete step
+    // Challenge returned in response (client will send it back in complete step)
+    // No session storage needed - stateless serverless function
     return NextResponse.json({
       ok: true,
       options,

@@ -1,8 +1,8 @@
 /**
  * Passkey Reset API
  *
- * Clears all server-side passkey credentials (in-memory store).
- * This is useful for resetting during beta testing.
+ * Clears all passkey credentials from ephemeral in-memory Map (backward compatibility only).
+ * Arkiv entities are NOT affected. This is useful for resetting during beta testing.
  *
  * POST /api/passkey/reset
  * Body: { userId?: string } (optional, if provided only clears that user's credentials)
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       clearAllCredentials();
       return NextResponse.json({
         ok: true,
-        message: 'All passkey credentials cleared from server',
+        message: 'All passkey credentials cleared from in-memory Map (Arkiv entities unaffected)',
       });
     }
   } catch (error: any) {

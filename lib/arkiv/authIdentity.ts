@@ -1,7 +1,7 @@
 /**
  * Auth Identity CRUD helpers
  * 
- * Stores passkey credential metadata on Arkiv (replaces server in-memory Map).
+ * Stores passkey credential metadata on Arkiv (replaces ephemeral in-memory Map).
  * Mirrors MetaMask pattern: wallet address = identity, auth_identity = credential metadata.
  * 
  * Reference: refs/doc/passkey_levelup.md
@@ -85,7 +85,7 @@ export async function createPasskeyIdentity({
   // 1 year TTL (effectively permanent for beta)
   const expiresIn = 31536000;
 
-  const result = await handleTransactionWithTimeout(async () => {
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
@@ -101,7 +101,22 @@ export async function createPasskeyIdentity({
     });
   });
 
-  return { key: result.entityKey, txHash: result.txHash };
+  // Create separate txhash entity (optional metadata, don't wait)
+  walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'auth_identity_passkey_txhash' },
+      { key: 'identityKey', value: entityKey },
+      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'spaceId', value: spaceId },
+    ],
+    expiresIn,
+  }).catch((error: any) => {
+    console.warn('[createPasskeyIdentity] Failed to create txhash entity:', error);
+  });
+
+  return { key: entityKey, txHash };
 }
 
 /**
@@ -135,7 +150,7 @@ export async function createBackupWalletIdentity({
   // 1 year TTL (effectively permanent for beta)
   const expiresIn = 31536000;
 
-  const result = await handleTransactionWithTimeout(async () => {
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
@@ -150,7 +165,22 @@ export async function createBackupWalletIdentity({
     });
   });
 
-  return { key: result.entityKey, txHash: result.txHash };
+  // Create separate txhash entity (optional metadata, don't wait)
+  walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
+      { key: 'identityKey', value: entityKey },
+      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'spaceId', value: spaceId },
+    ],
+    expiresIn,
+  }).catch((error: any) => {
+    console.warn('[createBackupWalletIdentity] Failed to create txhash entity:', error);
+  });
+
+  return { key: entityKey, txHash };
 }
 
 /**
@@ -166,18 +196,20 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   
-  const result = await query
-    .where(eq('type', 'auth_identity'))
-    .where(eq('subtype', 'passkey'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
+  try {
+    const result = await query
+      .where(eq('type', 'auth_identity'))
+      .where(eq('subtype', 'passkey'))
+      .where(eq('wallet', wallet.toLowerCase()))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
 
-  if (!result?.entities || !Array.isArray(result.entities)) {
-    return [];
-  }
+    if (!result?.entities || !Array.isArray(result.entities)) {
+      console.warn('[listPasskeyIdentities] Invalid result structure, returning empty array', { result });
+      return [];
+    }
 
   return result.entities.map((entity: any) => {
     let payload: any = {};
@@ -242,18 +274,20 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   
-  const result = await query
-    .where(eq('type', 'auth_identity'))
-    .where(eq('subtype', 'backup_wallet'))
-    .where(eq('wallet', wallet.toLowerCase()))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
+  try {
+    const result = await query
+      .where(eq('type', 'auth_identity'))
+      .where(eq('subtype', 'backup_wallet'))
+      .where(eq('wallet', wallet.toLowerCase()))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
 
-  if (!result?.entities || !Array.isArray(result.entities)) {
-    return [];
-  }
+    if (!result?.entities || !Array.isArray(result.entities)) {
+      console.warn('[listBackupWalletIdentities] Invalid result structure, returning empty array', { result });
+      return [];
+    }
 
   return result.entities.map((entity: any) => {
     let payload: any = {};
@@ -292,6 +326,14 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
       },
     };
   });
+  } catch (fetchError: any) {
+    console.error('[listBackupWalletIdentities] Arkiv query failed:', {
+      message: fetchError?.message,
+      stack: fetchError?.stack,
+      error: fetchError
+    });
+    return []; // Return empty array on query failure
+  }
 }
 
 /**
@@ -306,18 +348,19 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   
-  const result = await query
-    .where(eq('type', 'auth_identity'))
-    .where(eq('subtype', 'passkey'))
-    .where(eq('credentialId', credentialID))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(1)
-    .fetch();
+  try {
+    const result = await query
+      .where(eq('type', 'auth_identity'))
+      .where(eq('subtype', 'passkey'))
+      .where(eq('credentialId', credentialID))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
 
-  if (!result?.entities || result.entities.length === 0) {
-    return null;
-  }
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return null;
+    }
 
   const entity = result.entities[0];
   let payload: any = {};
@@ -368,4 +411,12 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
     spaceId: getAttr('spaceId'),
     credential,
   };
+  } catch (fetchError: any) {
+    console.error('[findPasskeyIdentityByCredentialID] Arkiv query failed:', {
+      message: fetchError?.message,
+      stack: fetchError?.stack,
+      error: fetchError
+    });
+    return null; // Return null on query failure
+  }
 }

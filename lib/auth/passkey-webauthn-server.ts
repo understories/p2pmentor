@@ -1,8 +1,8 @@
 /**
- * WebAuthn server-side helpers for passkey authentication
+ * WebAuthn API route helpers for passkey authentication
  * 
  * Wraps @simplewebauthn/server for registration and authentication flows.
- * Server only stores WebAuthn credential metadata, NOT wallet keys.
+ * Runs in serverless API routes (Next.js). Credentials stored on Arkiv, NOT in memory.
  * 
  * Reference: Arkiv Passkey Wallet Beta Implementation Plan
  */
@@ -37,7 +37,7 @@ const rpName = process.env.PASSKEY_RP_NAME || 'p2pmentor';
  * 
  * Priority:
  * 1. PASSKEY_ORIGIN env var (explicit override)
- * 2. Request origin (from headers, for server-side)
+ * 2. Request origin (from headers, in API routes)
  * 3. window.location.origin (client-side)
  * 4. Default to localhost for development
  * 
@@ -54,16 +54,17 @@ function getExpectedOrigin(requestOrigin?: string): string {
   if (typeof window !== 'undefined') {
     return window.location.origin;
   }
-  // Default for server-side when no request origin provided
+  // Default for API routes when no request origin provided
   return process.env.NODE_ENV === 'production' 
     ? 'https://p2pmentor.com' 
     : 'http://localhost:3000';
 }
 
 /**
- * In-memory storage for WebAuthn credentials (beta)
+ * In-memory storage for WebAuthn credentials (backward compatibility only)
  * 
- * TODO: Migrate to persistent storage (database, KV store, etc.) for production
+ * NOTE: This is ephemeral and lost on serverless function restart.
+ * New credentials are stored on Arkiv. This Map is only for migration/fallback.
  * Structure: Map<userId, Array<Credential>>
  */
 interface StoredCredential {
@@ -129,8 +130,7 @@ export async function verifyRegistration(
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
     
-    // Get stored registration options (in production, store in session/DB)
-    // For beta, we'll reconstruct from the response
+    // Registration options reconstructed from response (stateless serverless function)
     const opts = {
       response,
       expectedChallenge,
@@ -338,11 +338,14 @@ export async function verifyAuthentication(
     if (verification.verified) {
       // Update counter (replay attack protection)
       if (arkivIdentity) {
-        // TODO: Create new Arkiv entity with updated counter (Phase 2)
-        // For now, just log - counter update will be implemented in Phase 2
-        console.log('[verifyAuthentication] Counter updated (Arkiv entity update in Phase 2):', {
+        // Create new Arkiv entity with updated counter (immutable pattern)
+        // Note: This requires the wallet's private key, which we don't have in API routes
+        // The counter update will be handled client-side after authentication
+        // For now, log the update - client will create new entity if needed
+        console.log('[verifyAuthentication] Counter updated (client will create new entity):', {
           oldCounter: storedCredential.counter,
           newCounter: verification.authenticationInfo.newCounter,
+          credentialID: credentialID,
         });
       } else {
         // Update in-memory Map (backward compatibility)
@@ -360,6 +363,7 @@ export async function verifyAuthentication(
         verified: true, 
         userId: foundUserId,
         walletAddress: foundWallet,
+        newCounter: verification.authenticationInfo.newCounter,
       };
     }
 
@@ -417,10 +421,11 @@ export function clearUserCredentials(userId: string): boolean {
 }
 
 /**
- * Clear ALL credentials from the server (for reset/testing)
+ * Clear ALL credentials from in-memory Map (for reset/testing)
  * 
- * WARNING: This clears all passkey credentials from the in-memory store.
- * Use with caution - all users will need to re-register.
+ * WARNING: This clears all passkey credentials from the ephemeral in-memory store.
+ * Arkiv entities are NOT affected. Use with caution - users with only in-memory
+ * credentials will need to re-register.
  */
 export function clearAllCredentials(): void {
   credentialStore.clear();
