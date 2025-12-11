@@ -132,42 +132,36 @@ export default function TopicDetailPage() {
       }
 
       // Also load sessions linked to virtual gatherings for this community
-      if (gatheringsRes.ok && gatheringsRes.gatherings) {
+      if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
-        // Query sessions with gatheringKey attribute matching any gathering
-        const gatheringSessionsRes = await Promise.all(
-          gatheringKeys.map((key: string) =>
-            fetch(`/api/sessions?skill=virtual_gathering_rsvp&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }))
-          )
-        );
-        
-        // Filter sessions that match gathering keys
-        const allGatheringSessions: Session[] = [];
-        gatheringSessionsRes.forEach((res) => {
-          if (res.ok && res.sessions) {
-            res.sessions.forEach((s: Session) => {
-              // Check if session notes or payload contains gatheringKey
+        // Query all virtual_gathering_rsvp sessions and filter by gatheringKey
+        try {
+          const gatheringSessionsRes = await fetch(`/api/sessions?skill=virtual_gathering_rsvp&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }));
+          
+          if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
+            // Filter sessions that match gathering keys for this community
+            const allGatheringSessions: Session[] = gatheringSessionsRes.sessions.filter((s: Session) => {
               const notes = s.notes || '';
-              const hasGatheringKey = gatheringKeys.some((key: string) => 
+              // Check if session notes contains gatheringKey for any of our gatherings
+              return gatheringKeys.some((key: string) => 
                 notes.includes(`virtual_gathering_rsvp:${key}`) || notes.includes(key)
               );
-              if (hasGatheringKey) {
-                allGatheringSessions.push(s);
-              }
+            });
+
+            // Combine with skill-based sessions
+            setCommunitySessions(prev => {
+              const combined = [...prev, ...allGatheringSessions];
+              // Deduplicate by key
+              const unique = new Map<string, Session>();
+              combined.forEach(s => unique.set(s.key, s));
+              return Array.from(unique.values()).sort((a, b) => 
+                new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+              );
             });
           }
-        });
-
-        // Combine with skill-based sessions
-        setCommunitySessions(prev => {
-          const combined = [...prev, ...allGatheringSessions];
-          // Deduplicate by key
-          const unique = new Map<string, Session>();
-          combined.forEach(s => unique.set(s.key, s));
-          return Array.from(unique.values()).sort((a, b) => 
-            new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
-          );
-        });
+        } catch (err) {
+          console.warn('Error loading gathering sessions:', err);
+        }
       }
 
       // Load profiles for all unique wallets (asks, offers, sessions, gatherings)
