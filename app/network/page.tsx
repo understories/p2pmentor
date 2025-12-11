@@ -61,6 +61,21 @@ export default function NetworkPage() {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
       
+      // Check onboarding level (requires level 3 for network)
+      if (address) {
+        import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+          calculateOnboardingLevel(address).then(level => {
+            // Allow if onboarding=true param (coming from onboarding flow)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (level < 3 && urlParams.get('onboarding') !== 'true') {
+              router.push('/onboarding');
+            }
+          }).catch(() => {
+            // On error, allow access (don't block on calculation failure)
+          });
+        });
+      }
+      
       // Check for skill_id or skill in URL params
       const urlParams = new URLSearchParams(window.location.search);
       const skillId = urlParams.get('skill_id');

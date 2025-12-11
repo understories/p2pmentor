@@ -54,14 +54,30 @@ export default function AuthPage() {
     try {
       const address = await connectWallet();
       
-      // Store wallet address in localStorage for session persistence
+      // Store profile wallet address in localStorage for session persistence
+      // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
+      // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
       if (typeof window !== 'undefined') {
         localStorage.setItem('wallet_address', address);
         // Store wallet type for unified wallet client getter
         setWalletType(address, 'metamask');
       }
       
-      router.push('/me');
+      // Check if user has profile for this profile wallet - redirect to onboarding if not
+      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+        calculateOnboardingLevel(address).then(level => {
+          if (level === 0) {
+            // No profile for this profile wallet - redirect to onboarding
+            router.push('/onboarding');
+          } else {
+            // Has profile - go to dashboard
+            router.push('/me');
+          }
+        }).catch(() => {
+          // On error, default to /me (don't block on calculation failure)
+          router.push('/me');
+        });
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to connect wallet');
       setIsConnecting(false);
@@ -84,12 +100,27 @@ export default function AuthPage() {
       if (!data.address) {
         throw new Error('No example wallet available');
       }
-      // Store wallet address in localStorage for session persistence
+      // Store profile wallet address in localStorage for session persistence
+      // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
+      // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
       if (typeof window !== 'undefined') {
         localStorage.setItem('wallet_address', data.address);
       }
-      // Redirect to dashboard
-      router.push('/me');
+      // Check if user has profile for this profile wallet - redirect to onboarding if not
+      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+        calculateOnboardingLevel(data.address).then(level => {
+          if (level === 0) {
+            // No profile for this profile wallet - redirect to onboarding
+            router.push('/onboarding');
+          } else {
+            // Has profile - go to dashboard
+            router.push('/me');
+          }
+        }).catch(() => {
+          // On error, default to /me (don't block on calculation failure)
+          router.push('/me');
+        });
+      });
     } catch (err: any) {
       console.error('Failed to load example wallet:', err);
       setError(err.message || 'Failed to load example wallet');

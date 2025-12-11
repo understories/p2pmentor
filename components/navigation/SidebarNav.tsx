@@ -9,11 +9,12 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { askEmojis, offerEmojis } from '@/lib/colors';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
+import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 
 interface NavItem {
   href: string;
@@ -26,46 +27,72 @@ export function SidebarNav() {
   const pathname = usePathname();
   const notificationCount = useNotificationCount();
   const [hoveredIndex, setHoveredIndex] = useState<number | undefined>();
+  
+  // Get onboarding level for navigation unlocking
+  const [wallet, setWallet] = useState<string | null>(null);
+  const { level } = useOnboardingLevel(wallet);
+  
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWallet = localStorage.getItem('wallet_address');
+      setWallet(storedWallet);
+    }
+  }, []);
 
-  // Primary navigation items
-  const navItems: NavItem[] = [
+  // Primary navigation items with unlock levels
+  const allNavItems: Array<NavItem & { minLevel?: number }> = [
     {
       href: '/me',
       label: 'Me',
       icon: '👤',
-    },
-    {
-      href: '/network',
-      label: 'Network',
-      icon: '🌐',
-    },
-    {
-      href: '/asks',
-      label: 'Asks',
-      icon: askEmojis.default,
-    },
-    {
-      href: '/offers',
-      label: 'Offers',
-      icon: offerEmojis.default,
-    },
-    {
-      href: '/me/sessions',
-      label: 'Sessions',
-      icon: '📅',
+      minLevel: 0, // Always available
     },
     {
       href: '/garden/public-board',
       label: 'Garden',
       icon: '🌱',
+      minLevel: 1, // After identity + skills
+    },
+    {
+      href: '/asks',
+      label: 'Asks',
+      icon: askEmojis.default,
+      minLevel: 2, // After first ask or offer
+    },
+    {
+      href: '/offers',
+      label: 'Offers',
+      icon: offerEmojis.default,
+      minLevel: 2, // After first ask or offer
+    },
+    {
+      href: '/me/sessions',
+      label: 'Sessions',
+      icon: '📅',
+      minLevel: 4, // After community join
+    },
+    {
+      href: '/network',
+      label: 'Network',
+      icon: '🌐',
+      minLevel: 3, // After network exploration
     },
     {
       href: '/notifications',
       label: 'Notifications',
       icon: '🔔',
       badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
+      minLevel: 0, // Always available
     },
   ];
+
+  // Filter nav items based on onboarding level
+  const navItems = allNavItems
+    .filter(item => {
+      if (item.minLevel === undefined) return true;
+      return level >= item.minLevel;
+    })
+    .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
 
   // Don't show on landing, auth, beta, or admin pages
   const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
@@ -101,21 +128,31 @@ export function SidebarNav() {
         
         {navItems.map((item, index) => {
           const active = isActive(item.href);
+          const itemMinLevel = allNavItems.find(ni => ni.href === item.href)?.minLevel ?? 0;
+          const isLocked = itemMinLevel > level;
+          
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={isLocked ? '/onboarding' : item.href}
               className={`
                 relative flex flex-col items-center justify-center
                 w-full py-3 px-2
                 rounded-lg
                 transition-all duration-150 ease-out
-                ${active
+                ${isLocked 
+                  ? 'opacity-30 cursor-not-allowed'
+                  : active
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
-              title={item.label}
+              title={isLocked ? `Complete onboarding to unlock ${item.label}` : item.label}
+              onClick={(e) => {
+                if (isLocked) {
+                  e.preventDefault();
+                }
+              }}
               style={{
                 boxShadow: active
                   ? `0 0 12px ${navTokens.node.active.glow}`
@@ -123,15 +160,17 @@ export function SidebarNav() {
                 transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
               }}
               onMouseEnter={(e) => {
-                setHoveredIndex(index);
-                if (!active) {
-                  e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
-                  e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
+                if (!isLocked) {
+                  setHoveredIndex(index);
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
+                    e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
+                  }
                 }
               }}
               onMouseLeave={(e) => {
                 setHoveredIndex(undefined);
-                if (!active) {
+                if (!active && !isLocked) {
                   e.currentTarget.style.boxShadow = '';
                   e.currentTarget.style.transform = '';
                 }

@@ -33,19 +33,38 @@ export default function MePage() {
       }
       setWalletAddress(address);
       
-      // Load notification count and profile status
-      loadNotificationCount(address);
-      loadProfileStatus(address);
+      // Check if user has profile for this profile wallet - if not, redirect to onboarding
+      // address is the profile wallet (from localStorage 'wallet_address')
+      // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
+      // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
+      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+        calculateOnboardingLevel(address).then(level => {
+          if (level === 0) {
+            // No profile for this profile wallet - redirect to onboarding
+            router.push('/onboarding');
+            return;
+          }
+          // Has profile - continue loading
+          loadNotificationCount(address);
+          loadProfileStatus(address);
+        }).catch(() => {
+          // On error, allow access (don't block on calculation failure)
+          loadNotificationCount(address);
+          loadProfileStatus(address);
+        });
+      });
       
-      // Poll for notifications and profile status every 30 seconds
+      // Poll for notifications and profile status every 30 seconds (only if profile exists)
       const interval = setInterval(() => {
-        loadNotificationCount(address);
-        loadProfileStatus(address);
+        if (hasProfile !== false) { // Only poll if we know profile exists or haven't checked yet
+          loadNotificationCount(address);
+          loadProfileStatus(address);
+        }
       }, 30000);
       
       return () => clearInterval(interval);
     }
-  }, [router]);
+  }, [router, hasProfile]);
 
   const loadNotificationCount = async (wallet: string) => {
     try {

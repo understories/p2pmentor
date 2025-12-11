@@ -103,6 +103,17 @@ export default function AsksPage() {
         return;
       }
       setWalletAddress(address);
+      
+      // Check onboarding level (requires level 2 for asks)
+      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+        calculateOnboardingLevel(address).then(level => {
+          if (level < 2) {
+            router.push('/onboarding');
+          }
+        }).catch(() => {
+          // On error, allow access (don't block on calculation failure)
+        });
+      });
       loadData(address);
       // Load user profile for RequestMeetingModal
       getProfileByWallet(address).then(setUserProfile).catch(() => null);

@@ -39,15 +39,29 @@ function PublicGardenBoardContent() {
   const [showComposeModal, setShowComposeModal] = useState(false);
 
   useEffect(() => {
-    // Get current user's wallet
+    // Get current user's profile wallet (from localStorage 'wallet_address')
+    // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
+    // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
         getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        
+        // Check if user has profile for this profile wallet - if not, redirect to onboarding
+        import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+          calculateOnboardingLevel(address).then(level => {
+            if (level === 0) {
+              // No profile for this profile wallet - redirect to onboarding
+              router.push('/onboarding');
+            }
+          }).catch(() => {
+            // On error, allow access (don't block on calculation failure)
+          });
+        });
       }
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     loadNotes();
