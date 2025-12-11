@@ -25,7 +25,7 @@ export function AppShell({ children }: AppShellProps) {
       <BottomNav />
 
       {/* Main Content Area */}
-      <main className="md:ml-20 pt-14 md:pt-0 pb-4">
+      <main className="md:ml-56 pt-14 md:pt-0 pb-4">
         {children}
       </main>
 

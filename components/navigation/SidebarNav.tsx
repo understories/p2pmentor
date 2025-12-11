@@ -154,13 +154,13 @@ export function SidebarNav() {
   });
 
   return (
-    <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-20 z-30 border-r border-gray-200/30 dark:border-gray-700/30">
-      <div className="relative flex flex-col items-center py-4 space-y-2 w-full">
+    <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30">
+      <div className="relative flex flex-col items-start py-4 space-y-2 w-full px-3">
         {/* Constellation Lines */}
         <ConstellationLines
           itemCount={navItems.length}
-          itemHeight={72} // Approximate height per item (py-3 + space-y-2)
-          containerHeight={navItems.length * 72}
+          itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
+          containerHeight={navItems.length * 48}
           activeIndex={activeIndex >= 0 ? activeIndex : undefined}
           hoveredIndex={hoveredIndex}
         />
@@ -175,8 +175,8 @@ export function SidebarNav() {
               key={item.href}
               href={isLocked ? '/onboarding' : item.href}
               className={`
-                relative flex flex-col items-center justify-center
-                w-full py-3 px-2
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 px-3
                 rounded-lg
                 transition-all duration-150 ease-out
                 ${isLocked 
@@ -215,15 +215,15 @@ export function SidebarNav() {
                 }
               }}
             >
-              <span className="relative text-2xl mb-1">
+              <span className="relative text-xl flex-shrink-0">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                     {item.badge > 99 ? '99+' : item.badge}
                   </span>
                 )}
               </span>
-              <span className="text-xs font-medium text-center leading-tight">
+              <span className="text-sm font-medium leading-tight">
                 {item.label}
               </span>
               {active && (
@@ -242,14 +242,14 @@ export function SidebarNav() {
         {/* Upcoming Sessions - Always show if user has sessions, tied to profile identity */}
         {upcomingSessions.length > 0 && (
           <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-            <div className="flex flex-col items-center gap-2 px-2">
+            <div className="flex flex-col gap-2">
               <Link
                 href="/me/sessions"
-                className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+                className="text-xs text-gray-500 dark:text-gray-400 font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
               >
                 upcoming sessions
               </Link>
-              <div className="flex flex-col gap-1.5 w-full">
+              <div className="flex flex-col gap-2 w-full">
                 {upcomingSessions.map((session) => {
                   const sessionDate = new Date(session.sessionDate);
                   const isToday = sessionDate.toDateString() === new Date().toDateString();
@@ -269,14 +269,14 @@ export function SidebarNav() {
                     <Link
                       key={session.key}
                       href="/me/sessions"
-                      className="flex flex-col items-center p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      className="flex flex-col p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                       title={`${skillName} - ${dateStr} at ${timeStr}`}
                     >
-                      <span className="text-xs text-gray-600 dark:text-gray-400 text-center leading-tight mb-0.5 max-w-[60px] truncate">
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
                         {skillName}
                       </span>
-                      <span className="text-[9px] text-gray-500 dark:text-gray-500 text-center">
-                        {dateStr} {timeStr}
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                        {dateStr} at {timeStr}
                       </span>
                     </Link>
                   );
@@ -299,27 +299,26 @@ export function SidebarNav() {
           
           return (
             <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-              <div className="flex flex-col items-center gap-2 px-2">
-                <div className="text-[10px] text-gray-500 dark:text-gray-400 font-medium mb-1">
+              <div className="flex flex-col gap-2">
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
                   your skills
                 </div>
-                <div className="flex flex-wrap justify-center gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {uniqueSkills.slice(0, 6).map((skill) => (
                     <div
                       key={skill.id}
-                      className="relative flex flex-col items-center hg-anim-plant-idle"
+                      className="relative flex items-center gap-1.5 hg-anim-plant-idle"
                       title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
                     >
-                      <span className="text-lg">
+                      <span className="text-lg flex-shrink-0">
                         {levelToEmoji(skill.level)}
                       </span>
                       <span 
-                        className="text-[8px] text-gray-500 dark:text-gray-400 text-center leading-tight"
+                        className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
                         style={{
-                          maxWidth: '40px',
                           wordBreak: 'break-word',
                           overflowWrap: 'break-word',
-                          lineHeight: '1.2',
+                          lineHeight: '1.3',
                         }}
                         title={skill.name}
                       >
@@ -328,7 +327,7 @@ export function SidebarNav() {
                     </div>
                   ))}
                   {uniqueSkills.length > 6 && (
-                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                    <div className="text-sm text-gray-400 dark:text-gray-500">
                       +{uniqueSkills.length - 6}
                     </div>
                   )}
