@@ -265,6 +265,14 @@ export async function listVirtualGatherings({
           return String(attrs[key] || '');
         };
 
+        // Ensure duration is always an integer (prevent BigInt conversion errors)
+        const durationRaw = payload.duration || getAttr('duration') || 60;
+        const durationInt = Math.floor(
+          typeof durationRaw === 'number' 
+            ? durationRaw 
+            : parseInt(String(durationRaw), 10) || 60
+        );
+
         const gathering: VirtualGathering = {
           key: entity.key,
           organizerWallet: getAttr('organizerWallet') || payload.organizerWallet,
@@ -272,7 +280,7 @@ export async function listVirtualGatherings({
           title: getAttr('title') || payload.title,
           description: payload.description,
           sessionDate: getAttr('sessionDate') || payload.sessionDate,
-          duration: payload.duration || parseInt(getAttr('duration'), 10) || 60,
+          duration: durationInt,
           spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
           createdAt: getAttr('createdAt') || payload.createdAt,
           txHash: txHashMap[entity.key] || payload.txHash,
@@ -377,16 +385,29 @@ export async function rsvpToGathering({
   // Calculate expiration same as gathering
   const sessionStartTime = new Date(gathering.sessionDate).getTime();
   // Ensure duration is always an integer to prevent float propagation
-  const durationMinutes = Math.floor(typeof gathering.duration === 'number' ? gathering.duration : parseInt(String(gathering.duration || 60), 10));
+  const durationMinutes = Math.floor(
+    typeof gathering.duration === 'number' 
+      ? gathering.duration 
+      : parseInt(String(gathering.duration || 60), 10)
+  );
   const sessionDurationMs = durationMinutes * 60 * 1000;
   const bufferMs = 60 * 60 * 1000;
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
   const now = Date.now();
   // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  // Division always produces float, so we must floor it
   const expiresInSecondsRaw = (expirationTime - now) / 1000;
+  // Floor immediately after division to ensure integer
   const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
-  // Final safety check: ensure it's definitely an integer
-  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
+  // Final safety check: ensure it's definitely an integer (defensive programming)
+  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) 
+    ? expiresInSeconds 
+    : Math.floor(expiresInSeconds);
+  
+  // CRITICAL: One more check before using - must be integer for BigInt
+  if (!Number.isInteger(expiresInSecondsInt)) {
+    throw new Error(`expiresIn must be an integer, got: ${expiresInSecondsInt}`);
+  }
 
   // Create session entity for RSVP
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
