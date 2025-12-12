@@ -59,6 +59,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'overview': 1,
     'arkiv-integration': 2,
     'graphql-performance': 3,
+    'admin-dashboard': 4,
   },
   // Arkiv section
   'arkiv': {
