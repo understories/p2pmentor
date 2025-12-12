@@ -403,7 +403,7 @@ export default function MePage() {
               })()}
               {/* Explore Other Skills */}
               <Link
-                href="/network"
+                href="/skills/explore"
                 className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
               >
                 🔍 Explore Other Skills
