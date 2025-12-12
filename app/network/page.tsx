@@ -491,7 +491,13 @@ export default function NetworkPage() {
           matchesCount={userMatches.length}
           matchesLabel="Your Matches"
           onStatClick={(type) => {
-            setTypeFilter(type === 'asks' ? 'asks' : type === 'offers' ? 'offers' : 'matches');
+            if (type === 'asks') {
+              router.push('/asks');
+            } else if (type === 'offers') {
+              router.push('/offers');
+            } else if (type === 'matches') {
+              router.push('/matches');
+            }
           }}
         />
 
