@@ -105,6 +105,31 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Check username uniqueness (query all historical profiles)
+      if (finalUsername && finalUsername.trim()) {
+        const { checkUsernameExists } = await import('@/lib/arkiv/profile');
+        const existingProfiles = await checkUsernameExists(finalUsername.trim());
+        
+        // Filter out profiles from the same wallet (user can reuse their own username)
+        const otherWalletProfiles = existingProfiles.filter(p => 
+          p.wallet.toLowerCase() !== targetWallet.toLowerCase()
+        );
+        
+        if (otherWalletProfiles.length > 0) {
+          return NextResponse.json({
+            ok: false,
+            error: 'Username already exists',
+            duplicateProfiles: otherWalletProfiles.map(p => ({
+              key: p.key,
+              wallet: p.wallet,
+              displayName: p.displayName,
+              createdAt: p.createdAt,
+            })),
+            canRegrow: true, // Indicate regrow is possible
+          }, { status: 409 }); // 409 Conflict
+        }
+      }
+
       // Always allow server-side creation (like mentor-graph)
       // The frontend decides whether to use this API or MetaMask directly
       try {
