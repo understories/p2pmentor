@@ -415,6 +415,7 @@ export function SidebarNav() {
                     // Handle click to ensure skill entity exists before navigating
                     const handleSkillClick = async (e: React.MouseEvent) => {
                       e.preventDefault();
+                      e.stopPropagation();
                       const { getSkillTopicLink } = await import('@/lib/arkiv/skill-helpers');
                       const topicLink = await getSkillTopicLink(skill.name);
                       if (topicLink) {
@@ -425,19 +426,9 @@ export function SidebarNav() {
                       }
                     };
                     
-                    // If skill entity found, link to topic page; otherwise use click handler to create
-                    const skillLink = skillEntity 
-                      ? `/topic/${skillEntity.slug}` 
-                      : '#'; // Use # and handle click to create skill
-                    
-                    return (
-                      <Link
-                        key={skill.id}
-                        href={skillLink}
-                        onClick={!skillEntity ? handleSkillClick : undefined}
-                        className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
-                        title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
-                      >
+                    const skillTitle = `${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`;
+                    const skillContent = (
+                      <>
                         <span className="text-lg flex-shrink-0">
                           {levelToEmoji(skill.level)}
                         </span>
@@ -452,8 +443,33 @@ export function SidebarNav() {
                         >
                           {skill.name}
                         </span>
-                      </Link>
+                      </>
                     );
+                    
+                    // If skill entity found, use Link; otherwise use button to create entity first
+                    if (skillEntity) {
+                      return (
+                        <Link
+                          key={skill.id}
+                          href={`/topic/${skillEntity.slug}`}
+                          className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                          title={skillTitle}
+                        >
+                          {skillContent}
+                        </Link>
+                      );
+                    } else {
+                      return (
+                        <button
+                          key={skill.id}
+                          onClick={handleSkillClick}
+                          className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity text-left"
+                          title={skillTitle}
+                        >
+                          {skillContent}
+                        </button>
+                      );
+                    }
                   })}
                   {uniqueSkills.length > 6 && (
                     <div className="text-sm text-gray-400 dark:text-gray-500">
