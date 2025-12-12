@@ -52,6 +52,7 @@ export function SidebarNav() {
       
       // Load all skills for mapping skill_id to name_canonical
       // This is used to display skill names in sessions sidebar
+      // CRITICAL: Load skills first so skillsMap is ready when sessions render
       listSkills({ status: 'active', limit: 200 })
         .then((skills) => {
           const map: Record<string, Skill> = {};
@@ -63,53 +64,66 @@ export function SidebarNav() {
             }
           });
           setSkillsMap(map);
+          
+          // Only load sessions AFTER skills map is ready to avoid race condition
+          if (storedWallet) {
+            loadSessionsAndProfile(storedWallet);
+          }
         })
-        .catch(() => {
-          // Skills not found - that's okay
+        .catch((error) => {
+          console.error('[SidebarNav] Error loading skills:', error);
+          // Still try to load sessions even if skills fail
+          if (storedWallet) {
+            loadSessionsAndProfile(storedWallet);
+          }
         });
-      
-      // Load garden skills and upcoming sessions for sidebar
-      if (storedWallet) {
-        getProfileByWallet(storedWallet)
-          .then((profile: UserProfile | null) => {
-            if (profile) {
-              const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
-              setGardenSkills(skills);
-            }
-          })
-          .catch(() => {
-            // Profile not found - that's okay
-          });
-        
-        // Load upcoming sessions
-        listSessionsForWallet(storedWallet)
-          .then((sessions: Session[]) => {
-            const now = Date.now();
-            const upcoming = sessions
-              .filter(s => {
-                if (s.status !== 'scheduled') return false;
-                const sessionTime = new Date(s.sessionDate).getTime();
-                return sessionTime > now;
-              })
-              .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
-              .slice(0, 3); // Show up to 3 upcoming sessions
-            setUpcomingSessions(upcoming);
-          })
-          .catch(() => {
-            // Sessions not found - that's okay
-          });
-        
-        // Load followed communities for join/leave state
-        listLearningFollows({ profile_wallet: storedWallet, active: true })
-          .then((follows) => {
-            setFollowedCommunities(follows);
-          })
-          .catch(() => {
-            // Communities not found - that's okay
-          });
-      }
     }
-  }, []);
+  }, []); // Empty deps - only run on mount
+
+  // Separate function to load sessions and profile data
+  const loadSessionsAndProfile = (wallet: string) => {
+    // Load garden skills
+    getProfileByWallet(wallet)
+      .then((profile: UserProfile | null) => {
+        if (profile) {
+          const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
+          setGardenSkills(skills);
+        }
+      })
+      .catch((error) => {
+        console.error('[SidebarNav] Error loading profile:', error);
+      });
+    
+    // Load upcoming sessions - CRITICAL: This must work for sessions to show
+    listSessionsForWallet(wallet)
+      .then((sessions: Session[]) => {
+        const now = Date.now();
+        const upcoming = sessions
+          .filter(s => {
+            if (s.status !== 'scheduled') return false;
+            const sessionTime = new Date(s.sessionDate).getTime();
+            return sessionTime > now;
+          })
+          .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
+          .slice(0, 3); // Show up to 3 upcoming sessions
+        console.log('[SidebarNav] Loaded sessions:', { total: sessions.length, upcoming: upcoming.length, upcomingSessions: upcoming });
+        setUpcomingSessions(upcoming);
+      })
+      .catch((error) => {
+        console.error('[SidebarNav] Error loading sessions:', error);
+        // Set empty array on error so we know it failed
+        setUpcomingSessions([]);
+      });
+    
+    // Load followed communities for join/leave state
+    listLearningFollows({ profile_wallet: wallet, active: true })
+      .then((follows) => {
+        setFollowedCommunities(follows);
+      })
+      .catch((error) => {
+        console.error('[SidebarNav] Error loading communities:', error);
+      });
+  };
 
   // Primary navigation items with unlock levels
   // Only Dashboard and Network in main nav (Notifications moved to bottom above Logout)
