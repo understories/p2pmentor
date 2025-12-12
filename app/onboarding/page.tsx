@@ -43,6 +43,12 @@ export default function OnboardingPage() {
       const storedWallet = localStorage.getItem('wallet_address');
       if (storedWallet) {
         setWallet(storedWallet); // Profile wallet address
+        
+        // Set bypass flag when on onboarding page
+        // This allows navigation to protected pages during onboarding flow
+        import('@/lib/onboarding/access').then(({ setOnboardingBypass }) => {
+          setOnboardingBypass(true);
+        });
       } else {
         // No wallet - redirect to auth
         router.push('/auth');

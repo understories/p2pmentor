@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createOnboardingEventClient } from '@/lib/arkiv/onboardingEvent';
 import { getWalletClient } from '@/lib/wallet/getWalletClient';
+import { setOnboardingBypass } from '@/lib/onboarding/access';
 
 interface NetworkPathStepProps {
   wallet: string;
@@ -40,8 +41,11 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
 
     trackExploration();
     
-    // Redirect to network page with onboarding flag
-    router.push('/network?onboarding=true');
+    // Set bypass flag so network page allows access
+    setOnboardingBypass(true);
+    
+    // Redirect to network page
+    router.push('/network');
     
     // Call onComplete after a short delay (user will be on network page)
     setTimeout(() => {

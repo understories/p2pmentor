@@ -55,21 +55,16 @@ export default function MePage() {
       }
       setWalletAddress(address);
       
-      // Check if user has profile for this profile wallet - if not, redirect to onboarding
-      // address is the profile wallet (from localStorage 'wallet_address')
-      // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
-      // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
-      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-        calculateOnboardingLevel(address).then(level => {
+      // Check onboarding access (requires level 1 for dashboard - at least profile + skills)
+      import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
+        checkOnboardingRoute(address, 1, '/onboarding').then((hasAccess) => {
           setOnboardingChecked(true); // Mark check as complete
-          if (level === 0) {
-            // No profile for this profile wallet - redirect to onboarding
-            router.push('/onboarding');
-            return;
+          if (hasAccess) {
+            // Has access - continue loading
+            loadNotificationCount(address);
+            loadProfileStatus(address);
           }
-          // Has profile - continue loading
-          loadNotificationCount(address);
-          loadProfileStatus(address);
+          // If no access, checkOnboardingRoute will redirect
         }).catch(() => {
           // On error, allow access (don't block on calculation failure)
           setOnboardingChecked(true);
@@ -342,7 +337,7 @@ export default function MePage() {
                             window.location.href = topicLink;
                           } else {
                             // Fallback to network page if skill creation fails
-                            window.location.href = `/network?skill=${encodeURIComponent(gardenSkill.name)}&onboarding=true`;
+                            window.location.href = `/network?skill=${encodeURIComponent(gardenSkill.name)}`;
                           }
                         };
                         
@@ -441,7 +436,7 @@ export default function MePage() {
           {expandedSections.community && (
             <div className="mt-3 space-y-3">
               <Link
-                href={level < 3 ? "/network?onboarding=true" : "/network"}
+                href="/network"
                 className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
               >
                 🌐 Browse Network

@@ -422,7 +422,7 @@ export function SidebarNav() {
                         window.location.href = topicLink;
                       } else {
                         // Fallback to network page if skill creation fails
-                        window.location.href = `/network?skill=${encodeURIComponent(skill.name)}&onboarding=true`;
+                        window.location.href = `/network?skill=${encodeURIComponent(skill.name)}`;
                       }
                     };
                     

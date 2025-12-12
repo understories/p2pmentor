@@ -62,19 +62,28 @@ export default function NetworkPage() {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
       
-      // Check onboarding level (requires level 3 for network)
+      // Check onboarding access (requires level 3 for network)
       if (address) {
-        import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-          calculateOnboardingLevel(address).then(level => {
-            // Allow if onboarding=true param (coming from onboarding flow)
-            const urlParams = new URLSearchParams(window.location.search);
-            if (level < 3 && urlParams.get('onboarding') !== 'true') {
-              router.push('/onboarding');
+        import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
+          checkOnboardingRoute(address, 3, '/onboarding').then((hasAccess) => {
+            // If access granted, continue loading
+            if (hasAccess) {
+              // Check for returnTo param from onboarding redirect
+              const urlParams = new URLSearchParams(window.location.search);
+              const returnTo = urlParams.get('returnTo');
+              if (returnTo) {
+                // Clean up URL
+                window.history.replaceState({}, '', returnTo);
+              }
             }
+            // If no access, checkOnboardingRoute will redirect
           }).catch(() => {
             // On error, allow access (don't block on calculation failure)
           });
         });
+      } else {
+        // No wallet - redirect to auth
+        router.push('/auth');
       }
       
       // Check for skill_id or skill in URL params
