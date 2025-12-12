@@ -33,7 +33,32 @@ export default function DocsPage() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['arkiv', 'arkiv/entity-overview'])); // Default to expanded
+  
+  // Load expanded directories from localStorage on mount
+  const getInitialExpandedDirs = (): Set<string> => {
+    if (typeof window === 'undefined') {
+      return new Set(['arkiv', 'arkiv/entity-overview']); // Default
+    }
+    const stored = localStorage.getItem('docs_expanded_dirs');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return new Set(parsed);
+      } catch {
+        return new Set(['arkiv', 'arkiv/entity-overview']); // Default on parse error
+      }
+    }
+    return new Set(['arkiv', 'arkiv/entity-overview']); // Default
+  };
+  
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(getInitialExpandedDirs);
+  
+  // Persist expanded directories to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined' && expandedDirs.size > 0) {
+      localStorage.setItem('docs_expanded_dirs', JSON.stringify(Array.from(expandedDirs)));
+    }
+  }, [expandedDirs]);
 
   useEffect(() => {
     const loadDocs = async () => {
@@ -98,8 +123,44 @@ export default function DocsPage() {
       } else {
         next.add(path);
       }
+      // Persist immediately
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('docs_expanded_dirs', JSON.stringify(Array.from(next)));
+      }
       return next;
     });
+  };
+  
+  // Flatten all files into a single ordered list for navigation
+  const flattenFiles = (files: DocFile[]): DocFile[] => {
+    const result: DocFile[] = [];
+    const traverse = (items: DocFile[]) => {
+      for (const item of items) {
+        if (!item.isDirectory) {
+          result.push(item);
+        }
+        if (item.children) {
+          traverse(item.children);
+        }
+      }
+    };
+    traverse(files);
+    return result;
+  };
+  
+  // Get previous and next pages
+  const getNavigationPages = () => {
+    if (!currentPath) return { prev: null, next: null };
+    
+    const allFiles = flattenFiles(files);
+    const currentIndex = allFiles.findIndex(f => f.path === currentPath);
+    
+    if (currentIndex === -1) return { prev: null, next: null };
+    
+    return {
+      prev: currentIndex > 0 ? allFiles[currentIndex - 1] : null,
+      next: currentIndex < allFiles.length - 1 ? allFiles[currentIndex + 1] : null,
+    };
   };
 
   const renderFileTree = (files: DocFile[], level = 0, forTOC = false) => {
@@ -321,6 +382,50 @@ export default function DocsPage() {
               renderTableOfContents()
             ) : (
               <>
+                {/* Previous/Next Navigation */}
+                {(() => {
+                  const nav = getNavigationPages();
+                  if (!nav.prev && !nav.next) return null;
+                  return (
+                    <div className="mb-8 flex items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-4">
+                      {nav.prev ? (
+                        <Link
+                          href={`/docs/${nav.prev.path}`}
+                          className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                          </svg>
+                          <div className="flex flex-col">
+                            <span className="text-xs text-gray-500 dark:text-gray-500">Previous</span>
+                            <span className="truncate max-w-[200px] md:max-w-[300px] font-medium">
+                              {nav.prev.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </div>
+                        </Link>
+                      ) : (
+                        <div className="flex-1" />
+                      )}
+                      {nav.next && (
+                        <Link
+                          href={`/docs/${nav.next.path}`}
+                          className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors ml-auto"
+                        >
+                          <div className="flex flex-col text-right">
+                            <span className="text-xs text-gray-500 dark:text-gray-500">Next</span>
+                            <span className="truncate max-w-[200px] md:max-w-[300px] font-medium">
+                              {nav.next.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </div>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </Link>
+                      )}
+                    </div>
+                  );
+                })()}
+                
                 {/* Markdown content */}
                 <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-headings:scroll-mt-20">
                   <style jsx global>{`
