@@ -67,6 +67,14 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'entity-schemas': 3,
     'privacy-consent': 4,
     'patterns-and-implementation': 5,
+    // Entity schemas (alphabetical)
+    'ask': 6,
+    'availability': 7,
+    'feedback': 8,
+    'offer': 9,
+    'profile': 10,
+    'session': 11,
+    'skill': 12,
   },
   // Modules section
   'modules': {
