@@ -318,7 +318,7 @@ export default function MePage() {
           const completeness = calculateProfileCompleteness(profile);
           if (completeness.percentage < 100) {
             return (
-              <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <div className="mb-6 p-4 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm border border-yellow-200 dark:border-yellow-800 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-yellow-900 dark:text-yellow-200">
                     Profile {completeness.percentage}% Complete
@@ -351,7 +351,7 @@ export default function MePage() {
         {hasProfile && profile && (
           <div className="mb-6 space-y-4">
             {/* Profile Information Display */}
-            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-3">
+            <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Profile Information</h3>
               
               {profile.username && (
@@ -465,7 +465,7 @@ export default function MePage() {
         <div className="mb-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             {/* Sessions Completed */}
-            <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center cursor-help">
+            <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {sessionsCompleted}
               </p>
@@ -484,7 +484,7 @@ export default function MePage() {
             </div>
             
             {/* Upcoming Sessions */}
-            <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center cursor-help">
+            <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center cursor-help">
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {sessionsUpcoming}
               </p>
@@ -503,7 +503,7 @@ export default function MePage() {
             </div>
             
             {/* Average Rating */}
-            <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center cursor-help">
+            <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center cursor-help">
               <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                 {avgRating.toFixed(1)} ⭐
               </p>
@@ -524,7 +524,7 @@ export default function MePage() {
             </div>
             
             {/* Skills Learning */}
-            <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center cursor-help">
+            <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center cursor-help">
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {skillsLearningCount}
               </p>
