@@ -36,6 +36,7 @@ export default function MePage() {
   const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [avgRating, setAvgRating] = useState<number>(0);
@@ -684,14 +685,16 @@ export default function MePage() {
                               {skillEntity && (
                                 <button
                                   onClick={async () => {
-                                    if (!walletAddress || !skillEntity.key) return;
+                                    if (!walletAddress || !skillEntity.key || submittingFollow === skillEntity.key) return;
                                     
+                                    const action = isJoined ? 'unfollow' : 'follow';
+                                    setSubmittingFollow(skillEntity.key);
                                     try {
                                       const res = await fetch('/api/learning-follow', {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json' },
                                         body: JSON.stringify({
-                                          action: isJoined ? 'unfollow' : 'follow',
+                                          action,
                                           profile_wallet: walletAddress,
                                           skill_id: skillEntity.key,
                                         }),
@@ -699,6 +702,8 @@ export default function MePage() {
                                       
                                       const data = await res.json();
                                       if (data.ok) {
+                                        // Wait for Arkiv to index the new entity (especially important for joins)
+                                        await new Promise(resolve => setTimeout(resolve, 1500));
                                         // Reload followed skills
                                         const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
                                         setFollowedSkills(follows.map(f => f.skill_id));
@@ -708,11 +713,17 @@ export default function MePage() {
                                     } catch (error: any) {
                                       console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
                                       alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                    } finally {
+                                      setSubmittingFollow(null);
                                     }
                                   }}
-                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                  disabled={submittingFollow === skillEntity.key}
+                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                  {isJoined ? 'Leave' : 'Join'}
+                                  {submittingFollow === skillEntity.key 
+                                    ? (isJoined ? 'Leaving...' : 'Joining...') 
+                                    : (isJoined ? 'Leave' : 'Join')
+                                  }
                                 </button>
                               )}
                             </div>

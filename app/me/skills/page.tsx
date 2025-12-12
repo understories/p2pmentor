@@ -430,13 +430,14 @@ export default function SkillsPage() {
                               onClick={async () => {
                                 if (!walletAddress || !skill.key || isSubmittingFollow) return;
                                 
+                                const action = isJoined ? 'unfollow' : 'follow';
                                 setSubmittingFollow(skill.key);
                                 try {
                                   const res = await fetch('/api/learning-follow', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({
-                                      action: isJoined ? 'unfollow' : 'follow',
+                                      action,
                                       profile_wallet: walletAddress,
                                       skill_id: skill.key,
                                     }),
@@ -444,6 +445,8 @@ export default function SkillsPage() {
                                   
                                   const data = await res.json();
                                   if (data.ok) {
+                                    // Wait for Arkiv to index the new entity (especially important for joins)
+                                    await new Promise(resolve => setTimeout(resolve, 1500));
                                     // Reload followed skills
                                     const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
                                     setFollowedSkills(follows.map(f => f.skill_id));
@@ -464,7 +467,10 @@ export default function SkillsPage() {
                                   : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                               }`}
                             >
-                              {isSubmittingFollow ? '...' : isJoined ? 'Leave' : 'Join'}
+                              {isSubmittingFollow 
+                                ? (isJoined ? 'Leaving...' : 'Joining...') 
+                                : (isJoined ? 'Leave' : 'Join')
+                              }
                             </button>
                           )}
                         </div>

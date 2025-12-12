@@ -177,13 +177,14 @@ export default function ExploreSkillsPage() {
                           e.stopPropagation();
                           if (!walletAddress || !skill.key || isSubmitting) return;
                           
+                          const action = isJoined ? 'unfollow' : 'follow';
                           setSubmitting(skill.key);
                           try {
                             const res = await fetch('/api/learning-follow', {
                               method: 'POST',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({
-                                action: isJoined ? 'unfollow' : 'follow',
+                                action,
                                 profile_wallet: walletAddress,
                                 skill_id: skill.key,
                               }),
@@ -191,6 +192,8 @@ export default function ExploreSkillsPage() {
                             
                             const data = await res.json();
                             if (data.ok) {
+                              // Wait for Arkiv to index the new entity (especially important for joins)
+                              await new Promise(resolve => setTimeout(resolve, 1500));
                               await loadFollowedSkills(walletAddress);
                             } else {
                               alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
@@ -209,7 +212,10 @@ export default function ExploreSkillsPage() {
                             : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                       >
-                        {isSubmitting ? '...' : isJoined ? 'Leave' : 'Join'}
+                        {isSubmitting 
+                          ? (isJoined ? 'Leaving...' : 'Joining...') 
+                          : (isJoined ? 'Leave' : 'Join')
+                        }
                       </button>
                     )}
                   </div>
