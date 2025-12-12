@@ -22,6 +22,7 @@ import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import type { Skill } from '@/lib/arkiv/skill';
 import { listSkills } from '@/lib/arkiv/skill';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -190,10 +191,45 @@ export default function MePage() {
           <BackButton href="/auth" label="Back to Auth" />
         </div>
         
-        <h1 className="text-2xl font-semibold mb-2">Your Dashboard</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 font-mono break-all">
-          {walletAddress}
-        </p>
+        {/* Profile Avatar with EIS */}
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative mb-3">
+            <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 border-2 border-emerald-300 dark:border-emerald-600 flex items-center justify-center shadow-lg">
+              <EmojiIdentitySeed 
+                profile={profile} 
+                size="xl" 
+                showGlow={true}
+                className="drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]"
+              />
+            </div>
+            {/* Subtle glow ring */}
+            <div 
+              className="absolute inset-0 rounded-full opacity-30 pointer-events-none"
+              style={{
+                boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.1)',
+              }}
+            />
+          </div>
+          {profile?.displayName ? (
+            <>
+              <h1 className="text-2xl font-semibold mb-1 text-gray-900 dark:text-gray-100">
+                {profile.displayName}
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono break-all">
+                {walletAddress}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-semibold mb-1 text-gray-900 dark:text-gray-100">
+                Your Dashboard
+              </h1>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono break-all">
+                {walletAddress}
+              </p>
+            </>
+          )}
+        </div>
 
         {/* Profile Completeness Indicator */}
         {hasProfile && profile && (() => {

@@ -134,13 +134,11 @@ export async function createUserProfileClient({
   // Use skillsArray if provided, otherwise parse skills string
   const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
 
-  // Auto-assign emoji identity seed (EIS) for new profiles
-  const identity_seed = selectRandomEmoji();
-
   // Calculate avgRating if this is an update (get existing profile first)
   let avgRating = 0;
+  let existingProfile: UserProfile | null = null;
   try {
-      const existingProfile = await getProfileByWallet(wallet);
+      existingProfile = await getProfileByWallet(wallet);
       if (existingProfile) {
         // Recalculate from all feedback
         avgRating = await calculateAverageRating(wallet);
@@ -149,6 +147,10 @@ export async function createUserProfileClient({
     // New profile or calculation failed - use 0
     avgRating = 0;
   }
+
+  // Auto-assign emoji identity seed (EIS) for new profiles only
+  // Preserve existing identity_seed for profile updates
+  const identity_seed = existingProfile?.identity_seed || selectRandomEmoji();
 
   const payload = {
     displayName,
@@ -287,13 +289,11 @@ export async function createUserProfile({
   // Use skillsArray if provided, otherwise parse skills string
   const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
 
-  // Auto-assign emoji identity seed (EIS) for new profiles
-  const identity_seed = selectRandomEmoji();
-
   // Calculate avgRating if this is an update (get existing profile first)
   let avgRating = 0;
+  let existingProfile: UserProfile | null = null;
   try {
-      const existingProfile = await getProfileByWallet(wallet);
+      existingProfile = await getProfileByWallet(wallet);
       if (existingProfile) {
         // Recalculate from all feedback
         avgRating = await calculateAverageRating(wallet);
@@ -302,6 +302,10 @@ export async function createUserProfile({
     // New profile or calculation failed - use 0
     avgRating = 0;
   }
+
+  // Auto-assign emoji identity seed (EIS) for new profiles only
+  // Preserve existing identity_seed for profile updates
+  const identity_seed = existingProfile?.identity_seed || selectRandomEmoji();
 
   const payload = {
     displayName,
