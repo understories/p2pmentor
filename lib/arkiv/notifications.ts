@@ -141,10 +141,18 @@ export async function listNotifications({
   try {
     const publicClient = getPublicClient();
     
+    // Build query with wallet filter at Arkiv level for efficiency
+    // This ensures we only fetch notifications for the specified wallet
+    let notificationQuery = publicClient.buildQuery()
+      .where(eq('type', 'notification'));
+    
+    if (wallet) {
+      notificationQuery = notificationQuery.where(eq('wallet', wallet.toLowerCase()));
+    }
+    
     // Fetch notification entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
-        .where(eq('type', 'notification'))
+      notificationQuery
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)

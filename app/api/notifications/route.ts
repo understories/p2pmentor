@@ -22,9 +22,12 @@ export async function GET(request: Request) {
       );
     }
 
+    // Normalize wallet address to lowercase for consistent querying
+    const normalizedWallet = wallet.toLowerCase();
+
     // Query notifications directly from Arkiv entities
     const notifications = await listNotifications({
-      wallet,
+      wallet: normalizedWallet,
       notificationType: notificationType as any,
       status: status || 'active',
       limit: 100,
