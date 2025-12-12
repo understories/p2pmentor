@@ -404,6 +404,89 @@ export function SidebarNav() {
           </div>
         )}
         
+        {/* Asks, Offers, Matches - below Network */}
+        {level >= 1 && (
+          <div className="mt-2 w-full">
+            <div className="flex flex-col gap-1">
+              <Link
+                href="/asks"
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2 px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/asks')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
+              >
+                <span className="text-lg flex-shrink-0">🎓</span>
+                <span className="text-xs font-medium leading-tight">Asks</span>
+                {isActive('/asks') && (
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                    style={{
+                      transition: 'opacity 150ms ease-out',
+                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                    }}
+                  />
+                )}
+              </Link>
+              <Link
+                href="/offers"
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2 px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/offers')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
+              >
+                <span className="text-lg flex-shrink-0">💎</span>
+                <span className="text-xs font-medium leading-tight">Offers</span>
+                {isActive('/offers') && (
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                    style={{
+                      transition: 'opacity 150ms ease-out',
+                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                    }}
+                  />
+                )}
+              </Link>
+              <Link
+                href="/matches"
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2 px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/matches')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
+              >
+                <span className="text-lg flex-shrink-0">✨</span>
+                <span className="text-xs font-medium leading-tight">Matches</span>
+                {isActive('/matches') && (
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                    style={{
+                      transition: 'opacity 150ms ease-out',
+                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                    }}
+                  />
+                )}
+              </Link>
+            </div>
+          </div>
+        )}
+        
         {/* Skills - shows profile's skills (deduplicated) with links to topic pages */}
         {gardenSkills.length > 0 && (() => {
           // Remove duplicates by skill name (case-insensitive)
