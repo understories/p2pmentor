@@ -33,7 +33,7 @@ export default function DocsPage() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['arkiv', 'arkiv/entity-schemas'])); // Default to expanded
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['arkiv', 'arkiv/entity-overview'])); // Default to expanded
 
   useEffect(() => {
     const loadDocs = async () => {
@@ -140,8 +140,8 @@ export default function DocsPage() {
                   </>
                 ) : (
                   <>
-                    {/* Check if this is a linkable directory (entity-schemas) */}
-                    {file.path === 'arkiv/entity-schemas' ? (
+                    {/* Check if this is a linkable directory (entity-overview) */}
+                    {file.path === 'arkiv/entity-overview' ? (
                       <>
                         <div className="flex items-center gap-1.5">
                           <button
@@ -152,7 +152,7 @@ export default function DocsPage() {
                               ▶
                             </span>
                             <Link
-                              href="/docs/arkiv/entity-schemas"
+                              href="/docs/arkiv/entity-overview"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 setSidebarOpen(false);

@@ -263,7 +263,7 @@
 ### Other Supporting Entities
 
 - `learning_follow`: Skill following relationships
-- `beta_code`: Beta access codes
+- `beta_code_usage`: Beta code usage tracking
 - `auth_identity`: Passkey credentials (passkey and backup wallet)
 - `github_issue_link`: Links app feedback to GitHub issues
 - `admin_response`: Admin responses to feedback
@@ -272,7 +272,7 @@
 - `onboarding_event`: Onboarding tracking
 - `client_perf_metric`: Client-side performance metrics
 - `perf_snapshot`: Performance snapshots
-- `retention_metric`: User retention metrics
+- `retention_cohort`: User retention cohort metrics
 - `metric_aggregate`: Aggregated metrics
 
 ## Query patterns

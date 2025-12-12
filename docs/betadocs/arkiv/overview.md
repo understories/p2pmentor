@@ -51,7 +51,7 @@ All entities include a `spaceId` attribute. Currently set to `'local-dev'` for b
 - Transaction hash tracking: `*_txhash` entities for reliable querying
 - Session state: `session_confirmation`, `session_rejection`, `session_jitsi`, `session_payment_*`
 - Community: `virtual_gathering` for community meetings
-- Access control: `beta_code`, `auth_identity`
+- Access control: `beta_code_usage`, `auth_identity`
 - Feedback: `app_feedback`, `github_issue_link`, `admin_response`
 - Metrics: `dx_metric`, `client_perf_metric`, `perf_snapshot`, `retention_metric`, `metric_aggregate`
 - Other: `learning_follow`, `notification_preferences`, `garden_note`, `onboarding_event`
@@ -146,6 +146,6 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 ## See Also
 
 - [Data Model](data-model.md) - Complete entity schemas
-- [Entity Schemas](entity-schemas.md) - Detailed schema documentation
-- [Patterns & Implementation](patterns-and-implementation.md) - Common patterns and Q&A
+- [Entity Overview](entity-overview.md) - Detailed schema documentation
+- [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
 - [Arkiv Integration](../architecture/arkiv-integration.md) - Architecture details

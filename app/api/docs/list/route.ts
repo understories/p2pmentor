@@ -65,9 +65,9 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
   'arkiv': {
     'overview': 1,
     'data-model': 2,
-    'entity-schemas': 3, // Overview page (will be linked from folder)
+    'entity-overview': 3, // Overview page (will be linked from folder)
     'privacy-consent': 4,
-    'patterns-and-implementation': 5,
+    'implementation-faq': 5,
     // Entity schemas (alphabetical, grouped under entity-schemas folder)
     'ask': 1,
     'availability': 2,
@@ -169,7 +169,7 @@ function groupEntitySchemas(files: DocFile[]): DocFile[] {
   
   return files.map((file) => {
     if (file.path === 'arkiv' && file.isDirectory && file.children) {
-      // Find entity schema files and the entity-schemas overview
+      // Find entity schema files and the entity-overview overview
       const schemaChildren: DocFile[] = [];
       const otherChildren: DocFile[] = [];
       let entitySchemasOverview: DocFile | null = null;
@@ -177,7 +177,7 @@ function groupEntitySchemas(files: DocFile[]): DocFile[] {
       file.children.forEach((child) => {
         if (schemaFiles.includes(child.name)) {
           schemaChildren.push(child);
-        } else if (child.name === 'entity-schemas' && !child.isDirectory) {
+        } else if (child.name === 'entity-overview' && !child.isDirectory) {
           // Keep the overview page reference (we'll link to it from the folder)
           entitySchemasOverview = child;
         } else {
@@ -188,24 +188,24 @@ function groupEntitySchemas(files: DocFile[]): DocFile[] {
       // Create virtual "entity-schemas" directory
       if (schemaChildren.length > 0) {
         const entitySchemasDir: DocFile = {
-          path: 'arkiv/entity-schemas',
-          name: 'entity-schemas',
+          path: 'arkiv/entity-overview',
+          name: 'entity-overview',
           isDirectory: true,
           children: schemaChildren.sort((a, b) => {
             const orderA = FILE_ORDER['arkiv']?.[a.name] || 999;
             const orderB = FILE_ORDER['arkiv']?.[b.name] || 999;
             return orderA - orderB;
           }),
-          order: FILE_ORDER['arkiv']?.['entity-schemas'] || 3,
+          order: FILE_ORDER['arkiv']?.['entity-overview'] || 3,
         };
         
-        // Keep entity-schemas.md in the top level (it's the overview page)
+        // Keep entity-overview.md in the top level (it's the overview page)
         // The folder will link to it, but we also show it as a file
         const finalChildren = [
           ...otherChildren,
         ];
         
-        // Insert entity-schemas overview before the folder if it exists
+        // Insert entity-overview overview before the folder if it exists
         if (entitySchemasOverview) {
           finalChildren.push(entitySchemasOverview);
         }

@@ -139,6 +139,8 @@ Post-session feedback (ratings, notes, technical DX feedback).
 
 **Query:** Filter by `type: 'session_feedback'` and `feedbackTo: <wallet>`.
 
+**Note:** Entity type is `session_feedback`, not `feedback`.
+
 ---
 
 ### Availability (`availability`)
@@ -151,7 +153,7 @@ User availability time blocks for scheduling sessions.
 - `availabilityWindow`: Legacy text description
 - `weeklyAvailability`: Structured WeeklyAvailability JSON (version 1.0)
 
-**Timezone:** All times stored in user's timezone (not converted to UTC), converted to viewer's timezone client-side when displaying.
+**Timezone:** All times stored in user's timezone (not converted to UTC). The timezone is stored in both the `timezone` attribute and the payload. Times are converted to viewer's timezone client-side when displaying.
 
 **Query:** Filter by `type: 'availability'` and `wallet: <address>`.
 
@@ -254,5 +256,7 @@ const result = await publicClient.buildQuery()
 ---
 
 **See Also:**
-- [Arkiv Data Model Overview](overview.md)
+- [Arkiv Data Model Overview](data-model.md)
+- [Additional Entities](additional-entities/) - Supporting entity types
+- [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
 - [Arkiv Integration Guide](../architecture/arkiv-integration.md)

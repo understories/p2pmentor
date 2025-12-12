@@ -1,4 +1,4 @@
-# Arkiv Patterns & Implementation Details
+# Arkiv Implementation FAQ
 
 This document answers common questions about Arkiv patterns and implementation details in p2pmentor.
 
