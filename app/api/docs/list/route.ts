@@ -66,6 +66,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'data-model': 2,
     'entity-schemas': 3,
     'privacy-consent': 4,
+    'patterns-and-implementation': 5,
   },
   // Modules section
   'modules': {
