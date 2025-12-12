@@ -340,9 +340,9 @@ export default function SkillsPage() {
         )}
 
         {/* Add Skill Form */}
-        <div className="mb-6 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
+        <div className="mb-6 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 relative z-10 overflow-visible">
           <h2 className="text-lg font-medium mb-4">Add Skill</h2>
-          <div className="space-y-3">
+          <div className="space-y-3 relative overflow-visible">
             <SkillSelector
               value={selectedSkillId}
               onChange={(skillId, skillName) => {
@@ -364,7 +364,7 @@ export default function SkillsPage() {
         </div>
 
         {/* Your Skills List */}
-        <div className="mb-6">
+        <div className="mb-6 relative z-0">
           <h2 className="text-lg font-medium mb-4">
             Your Skills ({userSkills.length})
           </h2>
