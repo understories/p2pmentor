@@ -20,6 +20,8 @@ import { SkillSelector } from '@/components/SkillSelector';
 import { connectWallet } from '@/lib/auth/metamask';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
+import { normalizeSkillSlug } from '@/lib/arkiv/skill';
 import 'viem/window'; // Adds window.ethereum type definition
 
 export default function SkillsPage() {
@@ -33,6 +35,8 @@ export default function SkillsPage() {
   const [selectedSkillId, setSelectedSkillId] = useState('');
   const [selectedSkillName, setSelectedSkillName] = useState('');
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
+  const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -51,10 +55,11 @@ export default function SkillsPage() {
     try {
       setLoading(true);
       
-      // Load profile and all skills in parallel (like asks/offers pages)
-      const [profileData, skillsRes] = await Promise.all([
+      // Load profile, all skills, and followed skills in parallel
+      const [profileData, skillsRes, follows] = await Promise.all([
         getProfileByWallet(wallet).catch(() => null),
         fetch('/api/skills?status=active&limit=200').then(r => r.json()),
+        listLearningFollows({ profile_wallet: wallet, active: true }).catch(() => []),
       ]);
 
       setProfile(profileData);
@@ -62,6 +67,8 @@ export default function SkillsPage() {
       if (skillsRes.ok && skillsRes.skills) {
         setAllSkills(skillsRes.skills);
       }
+
+      setFollowedSkills(follows.map(f => f.skill_id));
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load data');
@@ -375,60 +382,119 @@ export default function SkillsPage() {
             </p>
           ) : (
             <div className="space-y-3">
-              {userSkills.map((skill) => (
-                <div
-                  key={skill.key}
-                  className="p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-medium text-gray-900 dark:text-gray-100">
-                          {skill.name_canonical}
-                        </span>
+              {userSkills.map((skill) => {
+                const isJoined = followedSkills.includes(skill.key);
+                const isSubmittingFollow = submittingFollow === skill.key;
+                const skillSlug = skill.slug || normalizeSkillSlug(skill.name_canonical);
+                const topicLink = skillSlug ? `/topic/${skillSlug}` : null;
+
+                return (
+                  <div
+                    key={skill.key}
+                    className="p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-medium text-gray-900 dark:text-gray-100">
+                            {skill.name_canonical}
+                          </span>
+                          {skill.txHash && (
+                            <a
+                              href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                              title="View Skill entity on Arkiv Explorer"
+                            >
+                              🔗 View on Arkiv
+                            </a>
+                          )}
+                        </div>
+                        {skill.description && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
+                            {skill.description}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          {topicLink && (
+                            <Link
+                              href={topicLink}
+                              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
+                            >
+                              View Community →
+                            </Link>
+                          )}
+                          {walletAddress && (
+                            <button
+                              onClick={async () => {
+                                if (!walletAddress || !skill.key || isSubmittingFollow) return;
+                                
+                                setSubmittingFollow(skill.key);
+                                try {
+                                  const res = await fetch('/api/learning-follow', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      action: isJoined ? 'unfollow' : 'follow',
+                                      profile_wallet: walletAddress,
+                                      skill_id: skill.key,
+                                    }),
+                                  });
+                                  
+                                  const data = await res.json();
+                                  if (data.ok) {
+                                    // Reload followed skills
+                                    const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
+                                    setFollowedSkills(follows.map(f => f.skill_id));
+                                  } else {
+                                    alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                  }
+                                } catch (error: any) {
+                                  console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                                  alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                } finally {
+                                  setSubmittingFollow(null);
+                                }
+                              }}
+                              disabled={isSubmittingFollow}
+                              className={`text-xs px-2 py-1 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                isJoined
+                                  ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                  : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                              }`}
+                            >
+                              {isSubmittingFollow ? '...' : isJoined ? 'Leave' : 'Join'}
+                            </button>
+                          )}
+                        </div>
                         {skill.txHash && (
-                          <a
-                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                            title="View Skill entity on Arkiv Explorer"
-                          >
-                            🔗 View on Arkiv
-                          </a>
+                          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
+                              Skill Entity Transaction:
+                            </p>
+                            <a
+                              href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-mono break-all"
+                            >
+                              {skill.txHash.slice(0, 20)}...
+                            </a>
+                          </div>
                         )}
                       </div>
-                      {skill.description && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-2">
-                          {skill.description}
-                        </p>
-                      )}
-                      {skill.txHash && (
-                        <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">
-                            Skill Entity Transaction:
-                          </p>
-                          <a
-                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-mono break-all"
-                          >
-                            {skill.txHash.slice(0, 20)}...
-                          </a>
-                        </div>
-                      )}
+                      <button
+                        onClick={() => handleRemoveSkill(skill.key)}
+                        disabled={submitting}
+                        className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                      >
+                        Remove
+                      </button>
                     </div>
-                    <button
-                      onClick={() => handleRemoveSkill(skill.key)}
-                      disabled={submitting}
-                      className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                    >
-                      Remove
-                    </button>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
