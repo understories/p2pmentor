@@ -521,9 +521,9 @@ export default function NetworkPage() {
                 return null;
               }
 
-              // If this is a skill entity, wrap in link to topic page
-              const skillEntity = skills[skillKey];
-              const clusterContent = (
+              // Display skill cluster directly (no navigation wrapper)
+              // Users can click individual asks/offers/matches for details
+              return (
                 <SkillCluster
                   key={skillKey}
                   skill={skill}
@@ -533,16 +533,6 @@ export default function NetworkPage() {
                   profiles={profiles}
                 />
               );
-
-              if (skillEntity) {
-                return (
-                  <Link key={skillKey} href={`/topic/${skillEntity.slug}`} className="block">
-                    {clusterContent}
-                  </Link>
-                );
-              }
-
-              return clusterContent;
             })}
           </div>
         ) : showContent ? (
