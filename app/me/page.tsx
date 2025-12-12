@@ -350,35 +350,80 @@ export default function MePage() {
         {/* Profile Stats - Always visible */}
         <div className="mb-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center">
+            {/* Sessions Completed */}
+            <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center cursor-help">
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {sessionsCompleted}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="font-mono text-left">
+                  <div>Arkiv query: type='session',</div>
+                  <div>(mentorWallet='{walletAddress?.slice(0, 8)}...' OR</div>
+                  <div>learnerWallet='{walletAddress?.slice(0, 8)}...'),</div>
+                  <div>status='completed' OR</div>
+                  <div>(status='scheduled' AND sessionDate &lt; now)</div>
+                </div>
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+              </div>
             </div>
-            <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center">
+            
+            {/* Upcoming Sessions */}
+            <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center cursor-help">
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {sessionsUpcoming}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="font-mono text-left">
+                  <div>Arkiv query: type='session',</div>
+                  <div>(mentorWallet='{walletAddress?.slice(0, 8)}...' OR</div>
+                  <div>learnerWallet='{walletAddress?.slice(0, 8)}...'),</div>
+                  <div>status='scheduled' AND</div>
+                  <div>sessionDate &gt; now</div>
+                </div>
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+              </div>
             </div>
-            <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center">
+            
+            {/* Average Rating */}
+            <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center cursor-help">
               <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                 {avgRating.toFixed(1)} ⭐
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
-                {ratingCalculation.totalRatings > 0 
-                  ? `from ${ratingCalculation.totalRatings} rating${ratingCalculation.totalRatings !== 1 ? 's' : ''} (Arkiv query: type='session_feedback', feedbackTo='${walletAddress?.slice(0, 8)}...')`
-                  : 'no ratings yet (Arkiv query: type=\'session_feedback\', feedbackTo=wallet)'
-                }
-              </p>
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="font-mono text-left">
+                  {ratingCalculation.totalRatings > 0 && (
+                    <div className="mb-1">
+                      from {ratingCalculation.totalRatings} rating{ratingCalculation.totalRatings !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  <div>Arkiv query: type='session_feedback',</div>
+                  <div>feedbackTo='{walletAddress?.slice(0, 8)}...'</div>
+                </div>
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+              </div>
             </div>
-            <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center">
+            
+            {/* Skills Learning */}
+            <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center cursor-help">
               <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                 {skillsLearningCount}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+              {/* Tooltip */}
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                <div className="font-mono text-left">
+                  <div>Arkiv query: type='learning_follow',</div>
+                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...',</div>
+                  <div>active=true</div>
+                </div>
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+              </div>
             </div>
           </div>
         </div>
