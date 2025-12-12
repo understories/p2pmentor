@@ -404,15 +404,15 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Asks, Offers, Matches - below Network */}
+        {/* Asks, Offers, Matches - below Network, side by side */}
         {level >= 1 && (
           <div className="mt-2 w-full">
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-row gap-1">
               <Link
                 href="/asks"
                 className={`
-                  relative flex flex-row items-center gap-3
-                  w-full py-2 px-3
+                  relative flex flex-col items-center justify-center
+                  flex-1 py-1.5 px-2
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/asks')
@@ -420,9 +420,10 @@ export function SidebarNav() {
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
+                title="Asks"
               >
-                <span className="text-lg flex-shrink-0">🎓</span>
-                <span className="text-xs font-medium leading-tight">Asks</span>
+                <span className="text-base flex-shrink-0">🎓</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5">Asks</span>
                 {isActive('/asks') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -436,8 +437,8 @@ export function SidebarNav() {
               <Link
                 href="/offers"
                 className={`
-                  relative flex flex-row items-center gap-3
-                  w-full py-2 px-3
+                  relative flex flex-col items-center justify-center
+                  flex-1 py-1.5 px-2
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/offers')
@@ -445,9 +446,10 @@ export function SidebarNav() {
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
+                title="Offers"
               >
-                <span className="text-lg flex-shrink-0">💎</span>
-                <span className="text-xs font-medium leading-tight">Offers</span>
+                <span className="text-base flex-shrink-0">💎</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5">Offers</span>
                 {isActive('/offers') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -461,8 +463,8 @@ export function SidebarNav() {
               <Link
                 href="/matches"
                 className={`
-                  relative flex flex-row items-center gap-3
-                  w-full py-2 px-3
+                  relative flex flex-col items-center justify-center
+                  flex-1 py-1.5 px-2
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/matches')
@@ -470,9 +472,10 @@ export function SidebarNav() {
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
+                title="Matches"
               >
-                <span className="text-lg flex-shrink-0">✨</span>
-                <span className="text-xs font-medium leading-tight">Matches</span>
+                <span className="text-base flex-shrink-0">✨</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5">Matches</span>
                 {isActive('/matches') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
