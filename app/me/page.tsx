@@ -320,71 +320,99 @@ export default function MePage() {
                 });
                 
                 return (
-                  <div className="space-y-2">
-                    {uniqueSkills.map((gardenSkill) => {
-                      // Find matching skill entity by name
-                      const skillEntity = allSkills.find(s => 
-                        s.name_canonical?.toLowerCase().trim() === gardenSkill.name.toLowerCase().trim()
-                      );
-                      const isJoined = skillEntity ? followedSkills.includes(skillEntity.key) : false;
-                      const skillLink = skillEntity ? `/topic/${skillEntity.slug}` : `/network?skill=${encodeURIComponent(gardenSkill.name)}&onboarding=true`;
-                      
-                      return (
-                        <div
-                          key={gardenSkill.id}
-                          className="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700"
-                        >
-                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {gardenSkill.name}
-                          </span>
-                          <div className="flex items-center gap-2">
-                            <Link
-                              href={skillLink}
-                              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                            >
-                              View Community →
-                            </Link>
-                            {skillEntity && (
-                              <button
-                                onClick={async () => {
-                                  if (!walletAddress || !skillEntity.key) return;
-                                  
-                                  try {
-                                    const res = await fetch('/api/learning-follow', {
-                                      method: 'POST',
-                                      headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({
-                                        action: isJoined ? 'unfollow' : 'follow',
-                                        profile_wallet: walletAddress,
-                                        skill_id: skillEntity.key,
-                                      }),
-                                    });
-                                    
-                                    const data = await res.json();
-                                    if (data.ok) {
-                                      // Reload followed skills
-                                      const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
-                                      setFollowedSkills(follows.map(f => f.skill_id));
-                                    } else {
-                                      alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                    }
-                                  } catch (error: any) {
-                                    console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
-                                    alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                  }
-                                }}
-                                className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  <div className="space-y-3">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                      Your Skills
+                    </div>
+                    <div className="space-y-2">
+                      {uniqueSkills.map((gardenSkill) => {
+                        // Find matching skill entity by name or slug
+                        const skillEntity = allSkills.find(s => 
+                          s.name_canonical?.toLowerCase().trim() === gardenSkill.name.toLowerCase().trim() ||
+                          s.slug?.toLowerCase().trim() === gardenSkill.name.toLowerCase().trim().replace(/\s+/g, '-')
+                        );
+                        const isJoined = skillEntity ? followedSkills.includes(skillEntity.key) : false;
+                        
+                        // Handle click to ensure skill entity exists before navigating
+                        const handleViewCommunity = async (e: React.MouseEvent) => {
+                          e.preventDefault();
+                          const { getSkillTopicLink } = await import('@/lib/arkiv/skill-helpers');
+                          const topicLink = await getSkillTopicLink(gardenSkill.name);
+                          if (topicLink) {
+                            window.location.href = topicLink;
+                          } else {
+                            // Fallback to network page if skill creation fails
+                            window.location.href = `/network?skill=${encodeURIComponent(gardenSkill.name)}&onboarding=true`;
+                          }
+                        };
+                        
+                        const skillLink = skillEntity ? `/topic/${skillEntity.slug}` : '#';
+                        
+                        return (
+                          <div
+                            key={gardenSkill.id}
+                            className="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700"
+                          >
+                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {gardenSkill.name}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href={skillLink}
+                                onClick={!skillEntity ? handleViewCommunity : undefined}
+                                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
                               >
-                                {isJoined ? 'Leave' : 'Join'}
-                              </button>
-                            )}
+                                View Community →
+                              </Link>
+                              {skillEntity && (
+                                <button
+                                  onClick={async () => {
+                                    if (!walletAddress || !skillEntity.key) return;
+                                    
+                                    try {
+                                      const res = await fetch('/api/learning-follow', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          action: isJoined ? 'unfollow' : 'follow',
+                                          profile_wallet: walletAddress,
+                                          skill_id: skillEntity.key,
+                                        }),
+                                      });
+                                      
+                                      const data = await res.json();
+                                      if (data.ok) {
+                                        // Reload followed skills
+                                        const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
+                                        setFollowedSkills(follows.map(f => f.skill_id));
+                                      } else {
+                                        alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                      }
+                                    } catch (error: any) {
+                                      console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                                      alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                    }
+                                  }}
+                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                  {isJoined ? 'Leave' : 'Join'}
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })()}
+              {/* Explore Other Skills */}
+              <Link
+                href="/network"
+                className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
+              >
+                🔍 Explore Other Skills
+              </Link>
               <div className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed text-center">
                 Learning Quests (Coming Soon)
               </div>

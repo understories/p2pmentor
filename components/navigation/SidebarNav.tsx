@@ -19,7 +19,7 @@ import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import { getSidebarSkillId } from '@/lib/sessions/display';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
-import { listSkills } from '@/lib/arkiv/skill';
+import { listSkills, normalizeSkillSlug } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -411,17 +411,33 @@ export function SidebarNav() {
                   {uniqueSkills.slice(0, 6).map((skill) => {
                     // Find skill entity by name to get slug for topic page link
                     const skillEntity = Object.values(skillsMap).find(s => 
-                      s.name_canonical?.toLowerCase().trim() === skill.name.toLowerCase().trim()
+                      s.name_canonical?.toLowerCase().trim() === skill.name.toLowerCase().trim() ||
+                      s.slug?.toLowerCase().trim() === normalizeSkillSlug(skill.name)
                     );
-                    // If skill entity found, link to topic page; otherwise link to network with onboarding param to bypass check
+                    
+                    // Handle click to ensure skill entity exists before navigating
+                    const handleSkillClick = async (e: React.MouseEvent) => {
+                      e.preventDefault();
+                      const { getSkillTopicLink } = await import('@/lib/arkiv/skill-helpers');
+                      const topicLink = await getSkillTopicLink(skill.name);
+                      if (topicLink) {
+                        window.location.href = topicLink;
+                      } else {
+                        // Fallback to network page if skill creation fails
+                        window.location.href = `/network?skill=${encodeURIComponent(skill.name)}&onboarding=true`;
+                      }
+                    };
+                    
+                    // If skill entity found, link to topic page; otherwise use click handler to create
                     const skillLink = skillEntity 
                       ? `/topic/${skillEntity.slug}` 
-                      : `/network?skill=${encodeURIComponent(skill.name)}&onboarding=true`;
+                      : '#'; // Use # and handle click to create skill
                     
                     return (
                       <Link
                         key={skill.id}
                         href={skillLink}
+                        onClick={!skillEntity ? handleSkillClick : undefined}
                         className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
                         title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
                       >
