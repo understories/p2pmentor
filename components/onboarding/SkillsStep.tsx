@@ -10,6 +10,8 @@ import { useState, useEffect } from 'react';
 import { listSkills } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
+import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
+import { listUserProfiles } from '@/lib/arkiv/profile';
 
 interface SkillsStepProps {
   wallet: string;
@@ -26,6 +28,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdSkills, setCreatedSkills] = useState<Array<{ skillId: string; skillName: string; expertise: number }>>([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationMessage, setConfirmationMessage] = useState('');
+  const [confirmationType, setConfirmationType] = useState<'new' | 'existing'>('new');
 
   // Load existing skills for autocomplete
   useEffect(() => {
@@ -53,6 +58,37 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
     setStep('level');
   };
 
+  // Get profile count for a skill
+  const getSkillProfileCount = async (skillKey: string): Promise<number> => {
+    try {
+      const allProfiles = await listUserProfiles();
+      const skill = existingSkills.find(s => s.key === skillKey);
+      if (!skill) return 0;
+
+      let count = 0;
+      allProfiles.forEach(profile => {
+        // Check skill_ids array (new format)
+        if (Array.isArray((profile as any).skill_ids) && (profile as any).skill_ids.includes(skillKey)) {
+          count++;
+          return;
+        }
+        // Check skillsArray (match by name)
+        if (Array.isArray(profile.skillsArray) && profile.skillsArray.some(s => s.toLowerCase() === skill.name_canonical.toLowerCase())) {
+          count++;
+          return;
+        }
+        // Check skills string (legacy)
+        if (typeof profile.skills === 'string' && profile.skills.toLowerCase().includes(skill.name_canonical.toLowerCase())) {
+          count++;
+        }
+      });
+      return count;
+    } catch (error) {
+      console.error('Error getting skill profile count:', error);
+      return 0;
+    }
+  };
+
   // Step 2: Plant skill with selected expertise level
   const handlePlantSkill = async () => {
     if (!currentSkillName.trim()) {
@@ -63,9 +99,34 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
     setIsSubmitting(true);
 
     try {
-      // Check if skill already exists
-      const normalizedName = currentSkillName.trim().toLowerCase();
-      let skill = existingSkills.find(s => s.name_canonical.toLowerCase() === normalizedName);
+      // Ensure skill entity exists (Arkiv-native - creates if doesn't exist)
+      const skillEntity = await ensureSkillEntity(currentSkillName.trim());
+      if (!skillEntity) {
+        throw new Error('Failed to create or find skill entity');
+      }
+
+      // Find the skill in our list (may need to reload if it was just created)
+      let skill = existingSkills.find(s => s.key === skillEntity.key);
+      if (!skill) {
+        // Skill was just created, reload skills list
+        const updatedSkills = await listSkills({ status: 'active', limit: 50 });
+        setExistingSkills(updatedSkills);
+        skill = updatedSkills.find(s => s.key === skillEntity.key);
+        if (!skill) {
+          // Use the entity data we have
+          skill = {
+            key: skillEntity.key,
+            name_canonical: skillEntity.name_canonical,
+            slug: skillEntity.slug,
+            status: 'active' as const,
+            spaceId: 'local-dev',
+            createdAt: new Date().toISOString(),
+          } as Skill;
+        }
+      }
+
+      // Check if this is a new skill (was just created) or existing
+      const wasNewSkill = !existingSkills.find(s => s.key === skillEntity.key);
       
       // Get current profile
       const profile = await getProfileByWallet(wallet);
@@ -79,25 +140,16 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       let newSkills: string[];
       let newExpertise: Record<string, number>;
       
-      if (!skill) {
-        // New skill - add to profile
-        newSkills = [...currentSkills, currentSkillName.trim()];
-        newExpertise = {
-          ...currentExpertise,
-          [currentSkillName.trim().toLowerCase()]: expertise,
-        };
+      // Add skill to profile if not already there
+      if (!currentSkills.includes(skill.name_canonical)) {
+        newSkills = [...currentSkills, skill.name_canonical];
       } else {
-        // Existing skill - add to profile if not already there
-        if (!currentSkills.includes(skill.name_canonical)) {
-          newSkills = [...currentSkills, skill.name_canonical];
-        } else {
-          newSkills = currentSkills;
-        }
-        newExpertise = {
-          ...currentExpertise,
-          [skill.key]: expertise,
-        };
+        newSkills = currentSkills;
       }
+      newExpertise = {
+        ...currentExpertise,
+        [skill.key]: expertise,
+      };
       
       // Use API route for profile update (uses global Arkiv signing wallet)
       const res = await fetch('/api/profile', {
@@ -111,6 +163,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           bioShort: profile.bioShort,
           skills: newSkills.join(', '),
           skillsArray: newSkills,
+          skill_ids: [...(profile as any).skill_ids || [], skill.key].filter((id, idx, arr) => arr.indexOf(id) === idx), // Add skill_id, deduplicate
           skillExpertise: newExpertise, // Store in payload
           timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
@@ -121,15 +174,26 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         throw new Error(data.error || 'Failed to update profile');
       }
 
-      const newSkillId = skill ? skill.key : currentSkillName.trim().toLowerCase();
+      // Show confirmation based on whether skill was new or existing
+      if (wasNewSkill) {
+        setConfirmationType('new');
+        setConfirmationMessage(`You added a new skill to the network! "${skill.name_canonical}" has been planted in the Arkiv garden.`);
+      } else {
+        // Get profile count for existing skill
+        const profileCount = await getSkillProfileCount(skill.key);
+        setConfirmationType('existing');
+        setConfirmationMessage(`You are joining ${profileCount} other${profileCount === 1 ? '' : 's'} in the network learning "${skill.name_canonical}".`);
+      }
+      setShowConfirmation(true);
+
       setCreatedSkills([...createdSkills, {
-        skillId: newSkillId,
-        skillName: skill ? skill.name_canonical : currentSkillName.trim(),
+        skillId: skill.key,
+        skillName: skill.name_canonical,
         expertise,
       }]);
 
       // Trigger garden animation callback if provided
-      onSkillAdded?.(newSkillId);
+      onSkillAdded?.(skill.key);
 
       // After planting, show "anything else?" prompt
       // Don't reset - let user decide to add more or continue
@@ -157,7 +221,33 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   // Step 1: Input skill name (floating style - minimal, focused)
   if (step === 'input') {
     return (
-      <div className="space-y-8 animate-fade-in">
+      <>
+        {/* Confirmation Modal */}
+        {showConfirmation && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+              <div className="text-center">
+                <div className="text-6xl mb-4 animate-pulse">
+                  {confirmationType === 'new' ? '🌱' : '👥'}
+                </div>
+                <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                  {confirmationType === 'new' ? 'Skill Planted!' : 'Welcome to the Community!'}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400 mb-6">
+                  {confirmationMessage}
+                </p>
+                <button
+                  onClick={() => setShowConfirmation(false)}
+                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
+                >
+                  Continue
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-8 animate-fade-in">
         <div className="text-center">
           <h2 
             className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
@@ -243,6 +333,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           </div>
         )}
       </div>
+      </>
     );
   }
 
