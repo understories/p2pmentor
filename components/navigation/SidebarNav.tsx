@@ -483,7 +483,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
                   title="Public Garden Board"
                 >
-                  <span className="text-lg flex-shrink-0">🌱</span>
+                  <span className="text-lg flex-shrink-0">💌</span>
                   <span 
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
                     style={{

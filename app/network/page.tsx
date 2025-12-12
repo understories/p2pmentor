@@ -465,9 +465,10 @@ export default function NetworkPage() {
         <div className="mb-6">
           <Link
             href="/garden/public-board"
-            className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
+            className="relative inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            title="Public Garden Board"
           >
-            🌱 Public Garden Board
+            <span className="text-lg">💌</span>
           </Link>
         </div>
 
