@@ -50,14 +50,16 @@ export default function ProfileDetailPage() {
 
   useEffect(() => {
     if (wallet) {
-      loadProfileData(wallet);
+      // Normalize wallet to lowercase for Arkiv queries
+      const normalizedWallet = wallet.toLowerCase();
+      loadProfileData(normalizedWallet);
     }
     // Get current user's wallet and profile
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address.toLowerCase()).then(setUserProfile).catch(() => null);
       }
     }
   }, [wallet]);
@@ -336,7 +338,7 @@ export default function ProfileDetailPage() {
                       </button>
                       {viewMode === 'edit' && (
                         <Link
-                          href="/me/profile"
+                          href="/me?edit=profile"
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                         >
                           Edit Profile

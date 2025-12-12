@@ -65,6 +65,14 @@ export default function MePage() {
       }
       setWalletAddress(address);
       
+      // Check for ?edit=profile query param to auto-open edit profile section
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('edit') === 'profile') {
+        setExpandedSections(prev => ({ ...prev, profile: true }));
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+      
       // Check onboarding access (requires level 1 for dashboard - at least profile + skills)
       import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
         checkOnboardingRoute(address, 1, '/onboarding').then((hasAccess) => {
