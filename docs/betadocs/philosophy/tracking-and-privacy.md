@@ -15,16 +15,16 @@ Before picking charts, decide what's *allowed*:
 
 2. **No third-party tracking, no dark patterns**
 
-   * If we need web analytics, use **self-hosted, privacy-preserving tools** (Umami, Plausible, etc.) that avoid cookies and don't store personal data. ([Plausible Analytics][1])
+   * If we need web analytics, use **self-hosted, privacy-preserving tools** (Umami, Plausible, etc.) that avoid cookies and don't store personal data.
 
 3. **Minimal necessary telemetry**
 
-   * For infra & API health: latency, error rates, throughput, uptime. ([OpenObserve][2])
+   * For infra & API health: latency, error rates, throughput, uptime.
    * For product: counts and funnels for **on-chain entities** (profiles, asks, offers, sessions, feedback).
 
 4. **Wallets as pseudo-identities, not customers**
 
-   * Retention & funnel metrics are computed per wallet **cohort**, but stored as **counts/percentages**, not per-wallet history. This follows emerging Web3 analytics practice (wallet-cohort retention, activity per wallet, etc.). ([formo.so][3])
+   * Retention & funnel metrics are computed per wallet **cohort**, but stored as **counts/percentages**, not per-wallet history. This follows emerging Web3 analytics practice (wallet-cohort retention, activity per wallet, etc.).
 
 5. **Everything explainable to the user**
 
@@ -560,14 +560,3 @@ If we add new tracking or change existing tracking:
 2. We will document the change clearly
 3. We will maintain the same privacy-first principles
 
----
-
-## References
-
-- [Plausible Analytics][1] - Privacy-preserving web analytics
-- [OpenObserve][2] - Self-hosted observability platform
-- [formo.so][3] - Web3 analytics best practices
-
-[1]: https://plausible.io/
-[2]: https://openobserve.ai/
-[3]: https://formo.so/
