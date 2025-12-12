@@ -402,8 +402,6 @@ export default function SessionsPage() {
           title="Sessions"
           description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
         />
-        
-        <BetaBanner />
 
         {error && (
           <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />

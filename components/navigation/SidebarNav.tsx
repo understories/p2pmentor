@@ -44,7 +44,6 @@ export function SidebarNav() {
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [followedCommunities, setFollowedCommunities] = useState<LearningFollow[]>([]);
-  const [communitiesSkillsMap, setCommunitiesSkillsMap] = useState<Record<string, Skill>>({});
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -95,24 +94,10 @@ export function SidebarNav() {
             // Sessions not found - that's okay
           });
         
-        // Load followed communities
+        // Load followed communities for join/leave state
         listLearningFollows({ profile_wallet: storedWallet, active: true })
           .then((follows) => {
             setFollowedCommunities(follows);
-            // Load skills for followed communities
-            if (follows.length > 0) {
-              listSkills({ status: 'active', limit: 200 })
-                .then((skills) => {
-                  const map: Record<string, Skill> = {};
-                  skills.forEach(skill => {
-                    map[skill.key] = skill;
-                  });
-                  setCommunitiesSkillsMap(map);
-                })
-                .catch(() => {
-                  // Skills not found - that's okay
-                });
-            }
           })
           .catch(() => {
             // Communities not found - that's okay
@@ -334,9 +319,6 @@ export function SidebarNav() {
           return (
             <div className="mt-2 w-full">
               <div className="flex flex-col gap-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
-                  upcoming sessions
-                </div>
                 <div className="flex flex-col gap-2 w-full">
                   {uniqueSessions.map(({ skillName, isCommunity, session }) => {
                     const sessionDate = new Date(session.sessionDate);
@@ -346,21 +328,22 @@ export function SidebarNav() {
                       : sessionDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
                     const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                     
-                    // Emoji: 🌐 for community, 👥 for P2P
-                    const emoji = isCommunity ? '🌐' : '👥';
-                    
                     return (
-                      <Link
+                      <div
                         key={session.key}
-                        href="/me/sessions"
-                        className="flex flex-row items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        className="flex flex-row items-center gap-2 p-2 rounded-lg"
                         title={`${skillName} - ${dateStr} at ${timeStr}`}
                       >
-                        <span className="text-base flex-shrink-0">{emoji}</span>
-                        <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
-                          {skillName}
-                        </span>
-                      </Link>
+                        <span className="text-base flex-shrink-0">📖</span>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
+                            {skillName}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {dateStr} {timeStr}
+                          </span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -369,39 +352,6 @@ export function SidebarNav() {
           );
         })()}
         
-        {/* Learner Communities - shows followed communities */}
-        {followedCommunities.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-            <div className="flex flex-col gap-2">
-              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
-                learner communities
-              </div>
-              <div className="flex flex-col gap-2 w-full">
-                {followedCommunities.slice(0, 5).map((follow) => {
-                  const skill = communitiesSkillsMap[follow.skill_id];
-                  const skillName = skill?.name_canonical || follow.skill_id.slice(0, 8) + '...';
-                  return (
-                    <Link
-                      key={follow.key}
-                      href={skill ? `/topic/${skill.slug}` : `/network?skill_id=${follow.skill_id}`}
-                      className="flex flex-row items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
-                    >
-                      <span className="text-base flex-shrink-0">🌐</span>
-                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
-                        {skillName}
-                      </span>
-                    </Link>
-                  );
-                })}
-                {followedCommunities.length > 5 && (
-                  <div className="text-xs text-gray-400 dark:text-gray-500 px-3">
-                    +{followedCommunities.length - 5} more
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
         
         {/* Garden Button - above your skills */}
         {level >= 1 && (
@@ -434,7 +384,7 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Your Skills - shows profile's skills (deduplicated) */}
+        {/* Your Skills - shows profile's skills (deduplicated) with links to topic pages */}
         {gardenSkills.length > 0 && (() => {
           // Remove duplicates by skill name (case-insensitive)
           const uniqueSkills = gardenSkills.reduce((acc: typeof gardenSkills, skill) => {
@@ -452,28 +402,37 @@ export function SidebarNav() {
                   your skills
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {uniqueSkills.slice(0, 6).map((skill) => (
-                    <div
-                      key={skill.id}
-                      className="relative flex items-center gap-1.5 hg-anim-plant-idle"
-                      title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
-                    >
-                      <span className="text-lg flex-shrink-0">
-                        {levelToEmoji(skill.level)}
-                      </span>
-                      <span 
-                        className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
-                        style={{
-                          wordBreak: 'break-word',
-                          overflowWrap: 'break-word',
-                          lineHeight: '1.3',
-                        }}
-                        title={skill.name}
+                  {uniqueSkills.slice(0, 6).map((skill) => {
+                    // Find skill entity by name to get slug for topic page link
+                    const skillEntity = Object.values(skillsMap).find(s => 
+                      s.name_canonical?.toLowerCase().trim() === skill.name.toLowerCase().trim()
+                    );
+                    const skillLink = skillEntity ? `/topic/${skillEntity.slug}` : `/network?skill=${encodeURIComponent(skill.name)}`;
+                    
+                    return (
+                      <Link
+                        key={skill.id}
+                        href={skillLink}
+                        className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                        title={`${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`}
                       >
-                        {skill.name}
-                      </span>
-                    </div>
-                  ))}
+                        <span className="text-lg flex-shrink-0">
+                          {levelToEmoji(skill.level)}
+                        </span>
+                        <span 
+                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                          style={{
+                            wordBreak: 'break-word',
+                            overflowWrap: 'break-word',
+                            lineHeight: '1.3',
+                          }}
+                          title={skill.name}
+                        >
+                          {skill.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
                   {uniqueSkills.length > 6 && (
                     <div className="text-sm text-gray-400 dark:text-gray-500">
                       +{uniqueSkills.length - 6}
