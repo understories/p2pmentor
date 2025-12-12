@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Return candidate profile data for client-side creation
-    // Client will use createUserProfileClient() to create the new profile
+    // Client will use /api/profile API route to create the new profile (uses server-side signing wallet)
     const candidate = {
       displayName: selectedProfile.displayName,
       username: selectedProfile.username,

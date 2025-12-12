@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getProfileByWallet, createUserProfileClient } from '@/lib/arkiv/profile';
+import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { SkillSelector } from '@/components/SkillSelector';
@@ -115,79 +115,13 @@ export default function SkillsPage() {
       const currentSkills = profile.skillsArray || [];
       const updatedSkills = [...currentSkills, selectedSkillName];
       
-      // Check if MetaMask is available
-      const hasMetaMask = typeof window !== 'undefined' && window.ethereum;
-      
-      if (!hasMetaMask) {
-        // Use server-side API route for example wallet
-        const res = await fetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'updateProfile',
-            wallet: walletAddress,
-            displayName: profile.displayName,
-            username: profile.username,
-            profileImage: profile.profileImage,
-            bio: profile.bio,
-            bioShort: profile.bioShort,
-            bioLong: profile.bioLong,
-            skills: updatedSkills.join(', '),
-            skillsArray: updatedSkills,
-            skill_ids: updatedSkillIds,
-            timezone: profile.timezone,
-            languages: profile.languages,
-            contactLinks: profile.contactLinks,
-            seniority: profile.seniority,
-          }),
-        });
-
-        const data = await res.json();
-        if (!data.ok) {
-          throw new Error(data.error || 'Failed to update profile');
-        }
-
-        // Check if transaction is pending
-        if (data.pending) {
-          setSuccess('Skill update submitted! Transaction is being processed. Please refresh in a moment.');
-          setSelectedSkillId('');
-          setSelectedSkillName('');
-          setTimeout(() => loadData(walletAddress), 2000);
-        } else {
-          setSuccess('Skill added!');
-          setSelectedSkillId('');
-          setSelectedSkillName('');
-          if (data.txHash) setLastTxHash(data.txHash);
-          await loadData(walletAddress);
-        }
-      } else {
-        // Use MetaMask directly to create profile entity (Arkiv-native)
-        if (!window.ethereum) {
-          setError('MetaMask not available');
-          return;
-        }
-
-        // Get connected account from MetaMask
-        let account: `0x${string}`;
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
-          if (!accounts || accounts.length === 0) {
-            account = await connectWallet();
-          } else {
-            account = accounts[0] as `0x${string}`;
-          }
-        } catch (connectError: any) {
-          setError(connectError.message || 'Failed to connect MetaMask');
-          return;
-        }
-        
-        if (account.toLowerCase() !== walletAddress.toLowerCase()) {
-          setError('Connected MetaMask account does not match your profile wallet');
-          return;
-        }
-
-        // Create updated profile with new skills using MetaMask
-        const { key, txHash } = await createUserProfileClient({
+      // Always use server-side API route with global Arkiv signing wallet
+      // The user's wallet is only used as the 'wallet' attribute on entities, not for signing
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateProfile',
           wallet: walletAddress,
           displayName: profile.displayName,
           username: profile.username,
@@ -202,14 +136,26 @@ export default function SkillsPage() {
           languages: profile.languages,
           contactLinks: profile.contactLinks,
           seniority: profile.seniority,
-          account,
-        });
+        }),
+      });
 
-        setSuccess('Skill added! Transaction submitted.');
-        setLastTxHash(txHash);
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      // Check if transaction is pending
+      if (data.pending) {
+        setSuccess('Skill update submitted! Transaction is being processed. Please refresh in a moment.');
         setSelectedSkillId('');
         setSelectedSkillName('');
         setTimeout(() => loadData(walletAddress), 2000);
+      } else {
+        setSuccess('Skill added!');
+        setSelectedSkillId('');
+        setSelectedSkillName('');
+        if (data.txHash) setLastTxHash(data.txHash);
+        await loadData(walletAddress);
       }
     } catch (err: any) {
       console.error('Error adding skill:', err);
@@ -237,74 +183,13 @@ export default function SkillsPage() {
       const currentSkills = profile.skillsArray || [];
       const updatedSkills = currentSkills.filter(s => s.toLowerCase() !== skill.name_canonical.toLowerCase());
       
-      // Check if MetaMask is available
-      const hasMetaMask = typeof window !== 'undefined' && window.ethereum;
-      
-      if (!hasMetaMask) {
-        // Use server-side API route for example wallet
-        const res = await fetch('/api/profile', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'updateProfile',
-            wallet: walletAddress,
-            displayName: profile.displayName,
-            username: profile.username,
-            profileImage: profile.profileImage,
-            bio: profile.bio,
-            bioShort: profile.bioShort,
-            bioLong: profile.bioLong,
-            skills: updatedSkills.join(', '),
-            skillsArray: updatedSkills,
-            skill_ids: updatedSkillIds,
-            timezone: profile.timezone,
-            languages: profile.languages,
-            contactLinks: profile.contactLinks,
-            seniority: profile.seniority,
-          }),
-        });
-
-        const data = await res.json();
-        if (!data.ok) {
-          throw new Error(data.error || 'Failed to update profile');
-        }
-
-        if (data.pending) {
-          setSuccess('Skill removal submitted! Transaction is being processed. Please refresh in a moment.');
-          setTimeout(() => loadData(walletAddress), 2000);
-        } else {
-          setSuccess('Skill removed!');
-          if (data.txHash) setLastTxHash(data.txHash);
-          await loadData(walletAddress);
-        }
-      } else {
-        // Use MetaMask directly to create profile entity (Arkiv-native)
-        if (!window.ethereum) {
-          setError('MetaMask not available');
-          return;
-        }
-
-        // Get connected account from MetaMask
-        let account: `0x${string}`;
-        try {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
-          if (!accounts || accounts.length === 0) {
-            account = await connectWallet();
-          } else {
-            account = accounts[0] as `0x${string}`;
-          }
-        } catch (connectError: any) {
-          setError(connectError.message || 'Failed to connect MetaMask');
-          return;
-        }
-        
-        if (account.toLowerCase() !== walletAddress.toLowerCase()) {
-          setError('Connected MetaMask account does not match your profile wallet');
-          return;
-        }
-
-        // Create updated profile with removed skill using MetaMask
-        const { key, txHash } = await createUserProfileClient({
+      // Always use server-side API route with global Arkiv signing wallet
+      // The user's wallet is only used as the 'wallet' attribute on entities, not for signing
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateProfile',
           wallet: walletAddress,
           displayName: profile.displayName,
           username: profile.username,
@@ -319,12 +204,21 @@ export default function SkillsPage() {
           languages: profile.languages,
           contactLinks: profile.contactLinks,
           seniority: profile.seniority,
-          account,
-        });
+        }),
+      });
 
-        setSuccess('Skill removed! Transaction submitted.');
-        setLastTxHash(txHash);
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      if (data.pending) {
+        setSuccess('Skill removal submitted! Transaction is being processed. Please refresh in a moment.');
         setTimeout(() => loadData(walletAddress), 2000);
+      } else {
+        setSuccess('Skill removed!');
+        if (data.txHash) setLastTxHash(data.txHash);
+        await loadData(walletAddress);
       }
     } catch (err: any) {
       console.error('Error removing skill:', err);

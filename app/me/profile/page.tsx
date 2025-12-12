@@ -10,7 +10,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { createUserProfileClient, getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
+import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
