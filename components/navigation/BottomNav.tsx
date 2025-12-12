@@ -10,7 +10,6 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useTheme } from '@/lib/theme';
-import { askEmojis, offerEmojis } from '@/lib/colors';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 
@@ -26,37 +25,17 @@ export function BottomNav() {
   const { theme, toggleTheme } = useTheme();
   const notificationCount = useNotificationCount();
 
-  // Primary navigation items
+  // Primary navigation items - simplified for mobile
   const navItems: NavItem[] = [
     {
       href: '/me',
-      label: 'Me',
+      label: 'Dashboard',
       icon: '👤',
-    },
-    {
-      href: '/network',
-      label: 'Network',
-      icon: '🌐',
-    },
-    {
-      href: '/asks',
-      label: 'Asks',
-      icon: askEmojis.default,
-    },
-    {
-      href: '/offers',
-      label: 'Offers',
-      icon: offerEmojis.default,
     },
     {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
-    },
-    {
-      href: '/garden/public-board',
-      label: 'Garden',
-      icon: '🌱',
     },
     {
       href: '/notifications',
@@ -148,6 +127,32 @@ export function BottomNav() {
         >
           <span className="text-lg mb-0.5">{theme === 'dark' ? '☀️' : '🌙'}</span>
           <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Theme</span>
+        </button>
+        {/* Logout Button */}
+        <button
+          onClick={() => {
+            if (typeof window !== 'undefined') {
+              // Clear all wallet-related localStorage
+              localStorage.removeItem('wallet_address');
+              localStorage.removeItem('passkey_user_id');
+              // Clear all passkey-related keys
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach(key => localStorage.removeItem(key));
+              // Redirect to auth page
+              window.location.href = '/auth';
+            }
+          }}
+          className="flex flex-col items-center justify-center h-full px-2 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+          title="Disconnect wallet and logout"
+        >
+          <span className="text-lg mb-0.5">⚡</span>
+          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Logout</span>
         </button>
       </div>
     </nav>
