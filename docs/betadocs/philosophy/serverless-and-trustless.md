@@ -12,9 +12,12 @@ Instead of storing data in our own database, we store everything on Arkiv, a dec
 **p2pmentor:**
 - User creates profile → stored as an entity on Arkiv blockchain
 - User creates session → stored as an entity on Arkiv blockchain
-- We don't control the data, users do. It's permanent and verifiable.
+- We don't control the data, users do. It's verifiable and cryptographically secured.
 
 When you create a profile, we write it to Arkiv. When you view your profile, we read it from Arkiv. We're just a client that helps you interact with the blockchain. The data lives on Arkiv, not on our servers.
+
+**Entity Expiration and Archival:**
+All entities on Arkiv have an expiry block. When you query an entity after its expiry block, standard RPC nodes will no longer return it. However, archival nodes can query historical data by providing a specific block number. Access to archival nodes may require payment and is not guaranteed to be free. This means entities are verifiable and cryptographically secured during their active period, but after expiry they may only be accessible through specialized archival infrastructure.
 
 ## Why would we not want a central server?
 
