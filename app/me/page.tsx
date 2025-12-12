@@ -19,6 +19,7 @@ import { LearningCommunitiesCard } from '@/components/LearningCommunitiesCard';
 import { GardenLayer } from '@/components/garden/GardenLayer';
 import { profileToGardenSkills, type GardenSkill } from '@/lib/garden/types';
 import { BackgroundImage } from '@/components/BackgroundImage';
+import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import type { Skill } from '@/lib/arkiv/skill';
 
 export default function MePage() {
@@ -29,7 +30,17 @@ export default function MePage() {
   const [gardenSkills, setGardenSkills] = useState<GardenSkill[]>([]);
   const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
   const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
+  const [expandedSections, setExpandedSections] = useState<{
+    profile: boolean;
+    skillGarden: boolean;
+    community: boolean;
+  }>({
+    profile: false,
+    skillGarden: false,
+    community: false,
+  });
   const router = useRouter();
+  const { level } = useOnboardingLevel(walletAddress);
 
   useEffect(() => {
     // Check authentication
@@ -207,7 +218,7 @@ export default function MePage() {
           return null;
         })()}
 
-        {/* Your Profile Section */}
+        {/* Profile Section - Collapsible */}
         <div className="mb-8 relative">
           {/* Subtle radial gradient hint */}
           <div 
@@ -216,82 +227,83 @@ export default function MePage() {
               background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
             }}
           />
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
-            Your Profile
-          </h2>
-          <div className="space-y-3">
-            <Link
-              href="/me/profile"
-              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-            >
-              Profile
-              {hasProfile === false && (
-                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-yellow-500 text-white rounded-full animate-pulse" title="Create your profile">
-                  ⭐
-                </span>
-              )}
-            </Link>
-            <Link
-              href="/me/skills"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-            >
-              Skills
-            </Link>
-            <Link
-              href="/me/availability"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-            >
-              Availability
-            </Link>
-          </div>
+          <button
+            onClick={() => setExpandedSections(prev => ({ ...prev, profile: !prev.profile }))}
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+          >
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Profile</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              {expandedSections.profile ? '▼' : '▶'}
+            </span>
+          </button>
+          {expandedSections.profile && (
+            <div className="mt-3 space-y-3">
+              <Link
+                href="/me/profile"
+                className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                Edit Profile
+                {hasProfile === false && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-yellow-500 text-white rounded-full animate-pulse" title="Create your profile">
+                    ⭐
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/me/skills"
+                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                Skills
+              </Link>
+              <Link
+                href="/me/availability"
+                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                Availability
+              </Link>
+            </div>
+          )}
         </div>
 
-        {/* Your Activity Section */}
+        {/* Skill Garden Section - Collapsible */}
         <div className="mb-8 relative">
           {/* Subtle radial gradient hint */}
           <div 
             className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
             style={{
-              background: 'radial-gradient(circle at center, rgba(59, 130, 246, 0.08) 0%, transparent 70%)',
+              background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
             }}
           />
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
-            Your Activity
-          </h2>
-          <div className="space-y-3">
-            <Link
-              href="/asks"
-              className={`block p-3 rounded-lg border ${askColors.border} ${askColors.card} ${askColors.cardHover} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium`}
-            >
-              {askEmojis.default} Asks (I am learning)
-            </Link>
-            <Link
-              href="/offers"
-              className={`block p-3 rounded-lg border ${offerColors.border} ${offerColors.card} ${offerColors.cardHover} hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium`}
-            >
-              {offerEmojis.default} Offers (I am teaching)
-            </Link>
-            <Link
-              href="/me/sessions"
-              className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-            >
-              Sessions
-            </Link>
-            <Link
-              href="/notifications"
-              className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-            >
-              Notifications
-              {notificationCount > 0 && (
-                <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
-                  {notificationCount}
-                </span>
+          <button
+            onClick={() => setExpandedSections(prev => ({ ...prev, skillGarden: !prev.skillGarden }))}
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+          >
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Skill Garden</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              {expandedSections.skillGarden ? '▼' : '▶'}
+            </span>
+          </button>
+          {expandedSections.skillGarden && (
+            <div className="mt-3 space-y-3">
+              <Link
+                href="/garden/public-board"
+                className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
+              >
+                🌱 Public Garden Board
+              </Link>
+              {walletAddress && (
+                <div>
+                  <LearningCommunitiesCard wallet={walletAddress} />
+                </div>
               )}
-            </Link>
-          </div>
+              <div className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed text-center">
+                Learning Quests (Coming Soon)
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Community Section */}
+        {/* Community Section - Collapsible */}
         <div className="relative">
           {/* Subtle radial gradient hint */}
           <div 
@@ -300,34 +312,40 @@ export default function MePage() {
               background: 'radial-gradient(circle at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%)',
             }}
           />
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-4 mt-2">
-            Community
-          </h2>
-          <div className="space-y-3">
-            <Link
-              href="/profiles"
-              className="block p-3 rounded-lg border border-purple-300 dark:border-purple-600 bg-purple-50 dark:bg-purple-900/20 hover:bg-purple-100 dark:hover:bg-purple-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-            >
-              👥 Browse Profiles
-            </Link>
-            <Link
-              href="/network"
-              className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-            >
-              🌐 Browse Network
-            </Link>
-            <Link
-              href="/garden/public-board"
-              className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-            >
-              🌱 Public Garden Board
-            </Link>
-          </div>
-          
-          {/* Learning Communities Card */}
-          {walletAddress && (
-            <div className="mt-4">
-              <LearningCommunitiesCard wallet={walletAddress} />
+          <button
+            onClick={() => setExpandedSections(prev => ({ ...prev, community: !prev.community }))}
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+          >
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Community</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              {expandedSections.community ? '▼' : '▶'}
+            </span>
+          </button>
+          {expandedSections.community && (
+            <div className="mt-3 space-y-3">
+              <Link
+                href={level < 3 ? "/network?onboarding=true" : "/network"}
+                className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
+              >
+                🌐 Browse Network
+              </Link>
+              <Link
+                href="/me/sessions"
+                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                📅 Sessions
+              </Link>
+              <Link
+                href="/notifications"
+                className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                🔔 Notifications
+                {notificationCount > 0 && (
+                  <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
+                    {notificationCount}
+                  </span>
+                )}
+              </Link>
             </div>
           )}
         </div>

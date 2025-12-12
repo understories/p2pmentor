@@ -49,6 +49,7 @@ export default function TopicDetailPage() {
   const [communitySessions, setCommunitySessions] = useState<Session[]>([]);
   const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -81,6 +82,15 @@ export default function TopicDetailPage() {
     try {
       setLoading(true);
       setError(null);
+
+      // Load all skills for mapping skill_id to name_canonical
+      const { listSkills } = await import('@/lib/arkiv/skill');
+      const skills = await listSkills({ status: 'active', limit: 200 });
+      const skillsMap: Record<string, Skill> = {};
+      skills.forEach(skill => {
+        skillsMap[skill.key] = skill;
+      });
+      setSkillsMap(skillsMap);
 
       // Load skill by slug
       const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(slug)}&limit=1`);
@@ -385,7 +395,7 @@ export default function TopicDetailPage() {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-                          {formatSessionTitle(session)}
+                          {formatSessionTitle(session, skillsMap)}
                         </h3>
                         {(isMentor || isLearner) && otherWallet !== userWallet?.toLowerCase() && (
                           <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">

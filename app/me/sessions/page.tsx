@@ -23,6 +23,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { formatSessionTitle } from '@/lib/sessions/display';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Skill } from '@/lib/arkiv/skill';
 
 function shortenWallet(wallet: string): string {
   if (!wallet || wallet.length < 10) return wallet;
@@ -59,6 +60,7 @@ export default function SessionsPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -87,6 +89,15 @@ export default function SessionsPage() {
     try {
       setLoading(true);
       setError('');
+
+      // Load skills for mapping skill_id to name_canonical
+      const { listSkills } = await import('@/lib/arkiv/skill');
+      const skills = await listSkills({ status: 'active', limit: 200 });
+      const skillsMap: Record<string, Skill> = {};
+      skills.forEach(skill => {
+        skillsMap[skill.key] = skill;
+      });
+      setSkillsMap(skillsMap);
 
       // Fetch sessions
       const sessionsRes = await fetch(`/api/sessions?wallet=${encodeURIComponent(wallet)}`);
@@ -419,7 +430,7 @@ export default function SessionsPage() {
                 </span>
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
-                <strong>{formatSessionTitle(upcomingSession)}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
+                <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-400">
                 {sessionTime.date} at {sessionTime.time}
@@ -464,7 +475,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session)}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
                             Pending
                           </span>
@@ -661,7 +672,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session)}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                             Scheduled
                           </span>

@@ -10,7 +10,6 @@
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
-import { askEmojis, offerEmojis } from '@/lib/colors';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
@@ -19,8 +18,12 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import { getSidebarSkillId } from '@/lib/sessions/display';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
+import { listSkills } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Session } from '@/lib/arkiv/sessions';
+import type { Skill } from '@/lib/arkiv/skill';
+import type { LearningFollow } from '@/lib/arkiv/learningFollow';
 
 interface NavItem {
   href: string;
@@ -39,11 +42,27 @@ export function SidebarNav() {
   const { level } = useOnboardingLevel(wallet);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
+  const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
+  const [followedCommunities, setFollowedCommunities] = useState<LearningFollow[]>([]);
+  const [communitiesSkillsMap, setCommunitiesSkillsMap] = useState<Record<string, Skill>>({});
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      
+      // Load all skills for mapping skill_id to name_canonical
+      listSkills({ status: 'active', limit: 200 })
+        .then((skills) => {
+          const map: Record<string, Skill> = {};
+          skills.forEach(skill => {
+            map[skill.key] = skill;
+          });
+          setSkillsMap(map);
+        })
+        .catch(() => {
+          // Skills not found - that's okay
+        });
       
       // Load garden skills and upcoming sessions for sidebar
       if (storedWallet) {
@@ -75,41 +94,41 @@ export function SidebarNav() {
           .catch(() => {
             // Sessions not found - that's okay
           });
+        
+        // Load followed communities
+        listLearningFollows({ profile_wallet: storedWallet, active: true })
+          .then((follows) => {
+            setFollowedCommunities(follows);
+            // Load skills for followed communities
+            if (follows.length > 0) {
+              listSkills({ status: 'active', limit: 200 })
+                .then((skills) => {
+                  const map: Record<string, Skill> = {};
+                  skills.forEach(skill => {
+                    map[skill.key] = skill;
+                  });
+                  setCommunitiesSkillsMap(map);
+                })
+                .catch(() => {
+                  // Skills not found - that's okay
+                });
+            }
+          })
+          .catch(() => {
+            // Communities not found - that's okay
+          });
       }
     }
   }, []);
 
   // Primary navigation items with unlock levels
+  // Only Dashboard, Network, and Notifications in main nav
   const allNavItems: Array<NavItem & { minLevel?: number }> = [
     {
       href: '/me',
-      label: 'Me',
+      label: 'Dashboard',
       icon: '👤',
       minLevel: 0, // Always available
-    },
-    {
-      href: '/garden/public-board',
-      label: 'Garden',
-      icon: '🌱',
-      minLevel: 1, // After identity + skills
-    },
-    {
-      href: '/asks',
-      label: 'Asks',
-      icon: askEmojis.default,
-      minLevel: 2, // After first ask or offer
-    },
-    {
-      href: '/offers',
-      label: 'Offers',
-      icon: offerEmojis.default,
-      minLevel: 2, // After first ask or offer
-    },
-    {
-      href: '/me/sessions',
-      label: 'Sessions',
-      icon: '📅',
-      minLevel: 1, // Available after identity + skills (sessions can be created via RSVP)
     },
     {
       href: '/network',
@@ -249,14 +268,46 @@ export function SidebarNav() {
           );
         })}
         
+        {/* Sessions Button - above upcoming sessions */}
+        {level >= 1 && (
+          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <Link
+              href="/me/sessions"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 px-3
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/me/sessions')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+            >
+              <span className="text-xl flex-shrink-0">📅</span>
+              <span className="text-sm font-medium leading-tight">Sessions</span>
+              {isActive('/me/sessions') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+        )}
+        
         {/* Upcoming Sessions - Always show if user has sessions, tied to profile identity */}
         {upcomingSessions.length > 0 && (() => {
           // Deduplicate sessions by skill name (case-insensitive) and determine type
           const sessionMap = new Map<string, { skillName: string; isCommunity: boolean; session: Session }>();
           
           upcomingSessions.forEach((session) => {
-            // Use skill_id for deduplication and display
-            const skillId = getSidebarSkillId(session);
+            // Use skill_id for deduplication and display with skills map
+            const skillTitle = getSidebarSkillId(session, skillsMap);
+            const skillId = session.skill_id || '[legacy data]';
             const normalizedSkillId = skillId.toLowerCase().trim();
             const isCommunity = Boolean(
               session.skill === 'virtual_gathering_rsvp' || 
@@ -267,13 +318,13 @@ export function SidebarNav() {
             
             // Keep the earliest session for each skill_id
             if (!sessionMap.has(normalizedSkillId)) {
-              sessionMap.set(normalizedSkillId, { skillName: skillId, isCommunity, session });
+              sessionMap.set(normalizedSkillId, { skillName: skillTitle, isCommunity, session });
             } else {
               const existing = sessionMap.get(normalizedSkillId)!;
               const existingDate = new Date(existing.session.sessionDate).getTime();
               const currentDate = new Date(session.sessionDate).getTime();
               if (currentDate < existingDate) {
-                sessionMap.set(normalizedSkillId, { skillName: skillId, isCommunity, session });
+                sessionMap.set(normalizedSkillId, { skillName: skillTitle, isCommunity, session });
               }
             }
           });
@@ -281,14 +332,11 @@ export function SidebarNav() {
           const uniqueSessions = Array.from(sessionMap.values());
           
           return (
-            <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <div className="mt-2 w-full">
               <div className="flex flex-col gap-2">
-                <Link
-                  href="/me/sessions"
-                  className="text-xs text-gray-500 dark:text-gray-400 font-medium hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-                >
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
                   upcoming sessions
-                </Link>
+                </div>
                 <div className="flex flex-col gap-2 w-full">
                   {uniqueSessions.map(({ skillName, isCommunity, session }) => {
                     const sessionDate = new Date(session.sessionDate);
@@ -321,6 +369,71 @@ export function SidebarNav() {
           );
         })()}
         
+        {/* Learner Communities - shows followed communities */}
+        {followedCommunities.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
+                learner communities
+              </div>
+              <div className="flex flex-col gap-2 w-full">
+                {followedCommunities.slice(0, 5).map((follow) => {
+                  const skill = communitiesSkillsMap[follow.skill_id];
+                  const skillName = skill?.name_canonical || follow.skill_id.slice(0, 8) + '...';
+                  return (
+                    <Link
+                      key={follow.key}
+                      href={skill ? `/topic/${skill.slug}` : `/network?skill_id=${follow.skill_id}`}
+                      className="flex flex-row items-center gap-2 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                    >
+                      <span className="text-base flex-shrink-0">🌐</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
+                        {skillName}
+                      </span>
+                    </Link>
+                  );
+                })}
+                {followedCommunities.length > 5 && (
+                  <div className="text-xs text-gray-400 dark:text-gray-500 px-3">
+                    +{followedCommunities.length - 5} more
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Garden Button - above your skills */}
+        {level >= 1 && (
+          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <Link
+              href="/garden/public-board"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 px-3
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/garden/public-board')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+            >
+              <span className="text-xl flex-shrink-0">🌱</span>
+              <span className="text-sm font-medium leading-tight">Garden</span>
+              {isActive('/garden/public-board') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+        )}
+        
         {/* Your Skills - shows profile's skills (deduplicated) */}
         {gardenSkills.length > 0 && (() => {
           // Remove duplicates by skill name (case-insensitive)
@@ -333,9 +446,9 @@ export function SidebarNav() {
           }, [] as typeof gardenSkills);
           
           return (
-            <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <div className="mt-2 w-full">
               <div className="flex flex-col gap-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
                   your skills
                 </div>
                 <div className="flex flex-wrap gap-2">

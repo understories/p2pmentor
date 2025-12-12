@@ -6,6 +6,7 @@
  */
 
 import type { Session } from '@/lib/arkiv/sessions';
+import type { Skill } from '@/lib/arkiv/skill';
 
 /**
  * Get skill ID for display
@@ -31,45 +32,50 @@ export function getSessionSkillId(session: Session): string {
 }
 
 /**
+ * Get skill title (name_canonical) from skill_id
+ * Returns the skill's name_canonical if found in skills map, otherwise returns skill_id
+ */
+export function getSkillTitle(skillId: string, skillsMap?: Record<string, Skill>): string {
+  if (!skillsMap || skillId === '[legacy data]') {
+    return skillId;
+  }
+  const skill = skillsMap[skillId];
+  return skill?.name_canonical || skillId;
+}
+
+/**
  * Format session title for display
- * Format: "skill_id + community session + title"
+ * Now shows skill title (name_canonical) instead of skill_id
  * 
- * For community sessions: "skill_id community session title"
- * For regular sessions: "skill_id session title" (if title exists in notes)
+ * For community sessions: "skill_title community session title"
+ * For regular sessions: "skill_title" (just the skill title)
  * For legacy: "[legacy data] skill"
  */
-export function formatSessionTitle(session: Session): string {
+export function formatSessionTitle(session: Session, skillsMap?: Record<string, Skill>): string {
   const skillId = getSessionSkillId(session);
+  const skillTitle = getSkillTitle(skillId, skillsMap);
   const isCommunity = session.skill === 'virtual_gathering_rsvp' || session.gatheringKey;
   
   if (isCommunity) {
-    // Community session format: "skill_id community session title"
+    // Community session format: "skill_title community session title"
     const title = session.gatheringTitle || session.notes?.split('gatheringTitle:')[1]?.split(',')[0]?.trim() || 'Community Session';
-    return `${skillId} community session ${title}`;
+    return `${skillTitle} community session ${title}`;
   }
   
-  // Regular session - check if we have a title in notes
-  // For now, just show skill_id + skill name (legacy)
+  // Regular session - just show skill title
   if (skillId === '[legacy data]') {
     return `[legacy data] ${session.skill}`;
   }
   
-  // Try to extract title from notes if available
-  const titleMatch = session.notes?.match(/title[:\s]+([^,\n]+)/i);
-  const title = titleMatch ? titleMatch[1].trim() : undefined;
-  
-  if (title) {
-    return `${skillId} ${title}`;
-  }
-  
-  // Fallback: just skill_id
-  return skillId;
+  // Just return the skill title
+  return skillTitle;
 }
 
 /**
- * Get skill ID for sidebar display
- * Returns skill_id only, with [legacy data] fallback
+ * Get skill title for sidebar display
+ * Returns skill title (name_canonical) if available, otherwise skill_id, with [legacy data] fallback
  */
-export function getSidebarSkillId(session: Session): string {
-  return getSessionSkillId(session);
+export function getSidebarSkillId(session: Session, skillsMap?: Record<string, Skill>): string {
+  const skillId = getSessionSkillId(session);
+  return getSkillTitle(skillId, skillsMap);
 }

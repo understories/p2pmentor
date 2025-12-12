@@ -13,6 +13,7 @@ interface ForestPulseStatsProps {
   asksCount: number;
   offersCount: number;
   matchesCount: number;
+  matchesLabel?: string; // Optional custom label for matches (default: "Matches")
   onStatClick?: (type: 'asks' | 'offers' | 'matches') => void;
 }
 
@@ -20,6 +21,7 @@ export function ForestPulseStats({
   asksCount,
   offersCount,
   matchesCount,
+  matchesLabel = 'Matches',
   onStatClick,
 }: ForestPulseStatsProps) {
   const { theme } = useTheme();
@@ -52,7 +54,7 @@ export function ForestPulseStats({
         : 'rgba(34, 197, 94, 0.3)',
     },
     {
-      label: 'Matches',
+      label: matchesLabel,
       count: matchesCount,
       description: 'Skill matches',
       icon: '✨',

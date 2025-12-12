@@ -54,6 +54,7 @@ export default function NetworkPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
+  const [showContent, setShowContent] = useState(false); // Hide content by default
 
   useEffect(() => {
     // Get user wallet
@@ -230,6 +231,14 @@ export default function NetworkPage() {
 
     setMatches(matchesList);
   };
+
+  // Compute user matches (matches involving user's asks or offers)
+  const userMatches = matches.filter(match => {
+    if (!userWallet) return false;
+    const isUserAsk = match.ask.wallet.toLowerCase() === userWallet.toLowerCase();
+    const isUserOffer = match.offer.wallet.toLowerCase() === userWallet.toLowerCase();
+    return isUserAsk || isUserOffer;
+  });
 
   const formatDate = (dateString: string) => {
     try {
@@ -415,44 +424,48 @@ export default function NetworkPage() {
           title="Network"
           description="A living map of learning + teaching connections"
         />
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 -mt-4">
-          Explore skills, find matches, and connect with mentors and learners
-        </p>
 
-        {/* Section A: The Canopy */}
-        <CanopySection
-          skills={topSkills.map(s => ({ skill: s.skill, count: s.count }))}
-          onSkillClick={(skill) => {
-            // Find the skillKey for this skill name
-            const skillEntry = topSkills.find(s => s.skill === skill);
-            if (skillEntry?.skillKey && skills[skillEntry.skillKey]) {
-              // If it's a skill_id, navigate to topic page
-              const skillEntity = skills[skillEntry.skillKey];
-              router.push(`/topic/${skillEntity.slug}`);
-            } else {
-              // Legacy: use string filter
-              setSelectedCanopySkill(skill);
-              setSkillFilter(skill);
-              setSkillIdFilter(null);
-            }
-          }}
-          selectedSkill={selectedCanopySkill}
-        />
-
-        {/* Section B: Forest Pulse Stats */}
+        {/* Top Section: Asks, Offers, Your Matches with Action Buttons */}
         <ForestPulseStats
           asksCount={asks.length}
           offersCount={offers.length}
-          matchesCount={matches.length}
+          matchesCount={userMatches.length}
+          matchesLabel="Your Matches"
           onStatClick={(type) => {
             setTypeFilter(type === 'asks' ? 'asks' : type === 'offers' ? 'offers' : 'matches');
           }}
         />
 
-        {/* Section C: Quick Actions */}
         <QuickActions />
 
-        {/* Section E: Leaf Chip Filter */}
+        {/* Skill Canopy Section */}
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Skill Canopy</h2>
+          <CanopySection
+            skills={topSkills.map(s => ({ skill: s.skill, count: s.count }))}
+            onSkillClick={(skill) => {
+              // Find the skillKey for this skill name
+              const skillEntry = topSkills.find(s => s.skill === skill);
+              if (skillEntry?.skillKey && skills[skillEntry.skillKey]) {
+                // If it's a skill_id, set filter and show content
+                const skillEntity = skills[skillEntry.skillKey];
+                setSkillIdFilter(skillEntity.key);
+                setSelectedCanopySkill(skill);
+                setSkillFilter('');
+                setShowContent(true);
+              } else {
+                // Legacy: use string filter
+                setSelectedCanopySkill(skill);
+                setSkillFilter(skill);
+                setSkillIdFilter(null);
+                setShowContent(true);
+              }
+            }}
+            selectedSkill={selectedCanopySkill}
+          />
+        </div>
+
+        {/* Filter by Skill */}
         <LeafChipFilter
           value={skillFilter}
           onChange={async (value) => {
@@ -460,7 +473,9 @@ export default function NetworkPage() {
             if (!value) {
               setSelectedCanopySkill(undefined);
               setSkillIdFilter(null);
+              setShowContent(false);
             } else {
+              setShowContent(true);
               // Verify skill exists on Arkiv (query by slug or name)
               try {
                 const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(value.toLowerCase().trim())}&limit=1`);
@@ -493,8 +508,8 @@ export default function NetworkPage() {
           </div>
         )}
 
-        {/* Section D: Skill Clusters with Sprouts */}
-        {sortedSkills.length > 0 ? (
+        {/* Section D: Skill Clusters with Sprouts - Only show when content should be visible */}
+        {showContent && sortedSkills.length > 0 ? (
           <div className="space-y-8">
             {sortedSkills.map(({ skill, skillKey, asks: skillAsks, offers: skillOffers, matches: skillMatches }) => {
               // Apply type filter to skill cluster
@@ -530,11 +545,16 @@ export default function NetworkPage() {
               return clusterContent;
             })}
           </div>
-        ) : (
+        ) : showContent ? (
           <EmptyState
             title="No skills found"
             description={skillIdFilter || activeSkillFilter ? `No skills match the filter. Try a different filter.` : 'No asks or offers found in the network yet.'}
           />
+        ) : (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p className="text-lg mb-2">Select a skill from the canopy above to explore asks, offers, and matches</p>
+            <p className="text-sm">Or use the filter to search for a specific skill</p>
+          </div>
         )}
       </div>
     </div>
