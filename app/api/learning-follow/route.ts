@@ -4,12 +4,25 @@
  * Handles learning community follow/unfollow.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createLearningFollow, unfollowSkill } from '@/lib/arkiv/learningFollow';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { wallet, action, skill_id, mode, profile_wallet } = body;
