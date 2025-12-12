@@ -9,7 +9,7 @@
  * - Educational (explicit consent, blockchain teaching moments)
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { 
   createGardenNote, 
   listGardenNotes, 
@@ -19,6 +19,7 @@ import {
   GARDEN_NOTE_DAILY_LIMIT,
 } from '@/lib/arkiv/gardenNote';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 export async function GET(request: Request) {
   try {
