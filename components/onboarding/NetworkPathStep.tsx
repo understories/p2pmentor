@@ -8,8 +8,6 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createOnboardingEventClient } from '@/lib/arkiv/onboardingEvent';
-import { getWalletClient } from '@/lib/wallet/getWalletClient';
 import { setOnboardingBypass } from '@/lib/onboarding/access';
 
 interface NetworkPathStepProps {
@@ -25,17 +23,23 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
     async function trackExploration() {
       try {
         // Create onboarding event to track network exploration
-        const walletClient = await getWalletClient(wallet as `0x${string}`);
-        // We need account address for createOnboardingEventClient
-        // For now, use wallet as account (works for MetaMask)
-        await createOnboardingEventClient({
-          wallet,
-          eventType: 'network_explored',
-          account: wallet as `0x${string}`,
+        // Uses server-side signing wallet (no MetaMask popup)
+        const res = await fetch('/api/onboarding-events', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            wallet,
+            eventType: 'network_explored',
+          }),
         });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || 'Failed to track network exploration');
+        }
       } catch (err) {
         console.error('Failed to track network exploration:', err);
-        // Don't block user if tracking fails
+        // Don't block user if tracking fails - this is non-critical analytics
       }
     }
 
