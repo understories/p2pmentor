@@ -30,9 +30,7 @@ const SECTION_ORDER: Record<string, number> = {
 const FILE_ORDER: Record<string, Record<string, number>> = {
   // Root level files (standalone docs)
   '': {
-    'tracking-and-privacy': 1,
-    'passkey-integration': 2,
-    'roadmap': 3,
+    'roadmap': 1,
   },
   // Introduction section
   'introduction': {
@@ -47,6 +45,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'first-principles': 1,
     'dark-forest-garden': 2,
     'design-values': 3,
+    'tracking-and-privacy': 4,
   },
   // History section
   'history': {
@@ -69,8 +68,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
   'modules': {
     'arkiv-client': 1,
     'graphql-api': 2,
-    'jitsi-integration': 3,
-    'feedback-modules': 4,
+    'feedback-modules': 3,
   },
   // Practices section
   'practices': {
@@ -92,6 +90,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'jitsi-integration': 1,
     'github-integration': 2,
     'graphql-integration': 3,
+    'passkey-integration': 4,
   },
   // Meta section
   'meta': {
