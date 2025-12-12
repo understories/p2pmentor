@@ -392,9 +392,13 @@ export async function listUserProfiles(params?: {
   const query = publicClient.buildQuery();
   let queryBuilder = query.where(eq('type', 'user_profile'));
   
-  if (params?.skill) {
-    queryBuilder = queryBuilder.where(eq('skills', params.skill));
-  }
+  // Note: Skill filtering is done client-side after fetching
+  // because skills can be stored in multiple ways:
+  // - skill_ids array in payload (preferred, beta)
+  // - skillsArray in payload (legacy)
+  // - skills attribute (legacy comma-separated string)
+  // - skill_0, skill_1, etc. attributes (for querying, but not reliable for filtering)
+  // We fetch all profiles and filter client-side for accuracy
   
   if (params?.seniority) {
     queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
