@@ -33,6 +33,11 @@ export function BottomNav() {
       icon: '👤',
     },
     {
+      href: '/network',
+      label: 'Network',
+      icon: '🌐',
+    },
+    {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
