@@ -452,6 +452,16 @@ export default function NetworkPage() {
           description="A living map of learning + teaching connections"
         />
 
+        {/* Public Garden Board Link */}
+        <div className="mb-6">
+          <Link
+            href="/garden/public-board"
+            className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
+          >
+            🌱 Public Garden Board
+          </Link>
+        </div>
+
         {/* Top Section: Asks, Offers, Your Matches with Action Buttons */}
         <ForestPulseStats
           asksCount={asks.length}

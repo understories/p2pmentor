@@ -359,25 +359,25 @@ export function SidebarNav() {
         })()}
         
         
-        {/* Garden Button - above your skills */}
+        {/* Network Button - above skills */}
         {level >= 1 && (
           <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <Link
-              href="/garden/public-board"
+              href="/network"
               className={`
                 relative flex flex-row items-center gap-3
                 w-full py-2.5 px-3
                 rounded-lg
                 transition-all duration-150 ease-out
-                ${isActive('/garden/public-board')
+                ${isActive('/network')
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
             >
-              <span className="text-xl flex-shrink-0">🌱</span>
-              <span className="text-sm font-medium leading-tight">Garden</span>
-              {isActive('/garden/public-board') && (
+              <span className="text-xl flex-shrink-0">🌐</span>
+              <span className="text-sm font-medium leading-tight">Network</span>
+              {isActive('/network') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
                   style={{
@@ -390,7 +390,7 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Your Skills - shows profile's skills (deduplicated) with links to topic pages */}
+        {/* Skills - shows profile's skills (deduplicated) with links to topic pages */}
         {gardenSkills.length > 0 && (() => {
           // Remove duplicates by skill name (case-insensitive)
           const uniqueSkills = gardenSkills.reduce((acc: typeof gardenSkills, skill) => {
@@ -404,9 +404,6 @@ export function SidebarNav() {
           return (
             <div className="mt-2 w-full">
               <div className="flex flex-col gap-2">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-medium px-3">
-                  your skills
-                </div>
                 <div className="flex flex-wrap gap-2">
                   {uniqueSkills.slice(0, 6).map((skill) => {
                     // Find skill entity by name to get slug for topic page link
@@ -464,6 +461,24 @@ export function SidebarNav() {
                     </div>
                   )}
                 </div>
+                {/* Public Garden Board - same size as skills */}
+                <Link
+                  href="/garden/public-board"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  title="Public Garden Board"
+                >
+                  <span className="text-lg flex-shrink-0">🌱</span>
+                  <span 
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    style={{
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.3',
+                    }}
+                  >
+                    Public Board
+                  </span>
+                </Link>
               </div>
             </div>
           );
