@@ -168,6 +168,22 @@ export function SkillSelector({
         return;
       }
 
+      // If skill was created but is pending (not yet queryable), wait and retry
+      if (data.pending && data.skill) {
+        // Skill was created but not yet indexed - wait a bit and reload
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        await loadSkills();
+        // Try to find the skill by slug
+        const foundSkill = skills.find(s => s.slug === data.skill.slug);
+        if (foundSkill) {
+          handleSelect(foundSkill);
+        } else {
+          // Still not found, but skill exists - use the data we have
+          handleSelect(data.skill);
+        }
+        return;
+      }
+
       // Reload skills to include the new one
       await loadSkills();
       
