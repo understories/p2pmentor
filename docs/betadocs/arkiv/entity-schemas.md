@@ -121,7 +121,7 @@ Mentorship sessions between mentor and learner.
 
 ---
 
-### Feedback (`feedback`)
+### Feedback (`session_feedback`)
 
 Post-session feedback (ratings, notes, technical DX feedback).
 
@@ -137,7 +137,7 @@ Post-session feedback (ratings, notes, technical DX feedback).
 
 **Linking:** Links to session via `sessionKey`, links to profile via `feedbackTo` (wallet address).
 
-**Query:** Filter by `type: 'feedback'` and `feedbackTo: <wallet>`.
+**Query:** Filter by `type: 'session_feedback'` and `feedbackTo: <wallet>`.
 
 ---
 
@@ -151,7 +151,7 @@ User availability time blocks for scheduling sessions.
 - `availabilityWindow`: Legacy text description
 - `weeklyAvailability`: Structured WeeklyAvailability JSON (version 1.0)
 
-**Timezone:** All times stored in UTC, converted to viewer's timezone client-side.
+**Timezone:** All times stored in user's timezone (not converted to UTC), converted to viewer's timezone client-side when displaying.
 
 **Query:** Filter by `type: 'availability'` and `wallet: <address>`.
 

@@ -25,6 +25,9 @@
 | requiresPayment | boolean | No | Payload | Whether session requires payment |
 | paymentAddress | string | No | Payload | Payment receiving address (if paid) |
 | cost | string | No | Payload | Cost amount (if paid) |
+| gatheringKey | string | No | Payload | Virtual gathering entity key (for community sessions) |
+| gatheringTitle | string | No | Payload | Virtual gathering title |
+| community | string | No | Payload | Skill slug/community name (for virtual gatherings) |
 
 ## State Transitions and Who Can Trigger Them
 

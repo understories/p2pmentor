@@ -11,10 +11,36 @@
 
 **Payload:**
 - `displayName`: Display name
-- `bio`: Short bio
-- `skills`: Array of skill strings
-- `availabilityWindow`: Text description of availability
+- `username`: Unique username (optional)
+- `profileImage`: Profile image URL
+- `identity_seed`: Emoji Identity Seed (EIS)
+- `exploringStatement`: "What are you exploring?" one-liner
+- `bio`: Legacy bio
+- `bioShort`: Short bio
+- `bioLong`: Long bio
+- `skills`: Comma-separated skills string (legacy)
+- `skillsArray`: Array of skill names (legacy)
+- `skill_ids`: Array of Skill entity keys (preferred, beta)
+- `skillExpertise`: Map of skillId → expertise level (0-5)
+- `timezone`: IANA timezone
+- `languages`: Array of language codes
+- `contactLinks`: { twitter?, github?, telegram?, discord? }
+- `seniority`: 'beginner' | 'intermediate' | 'advanced' | 'expert'
+- `domainsOfInterest`: Array of domain strings
 - `mentorRoles`: Array of mentor role strings
+- `learnerRoles`: Array of learner role strings
+- `availabilityWindow`: Text description of availability
+- `sessionsCompleted`: Total sessions completed
+- `sessionsGiven`: Sessions given as mentor
+- `sessionsReceived`: Sessions received as learner
+- `avgRating`: Average rating (calculated on-demand)
+- `npsScore`: Net Promoter Score
+- `topSkillsUsage`: Array of {skill, count}
+- `peerTestimonials`: Array of testimonials
+- `trustEdges`: Array of trust network edges
+- `communityAffiliations`: Array of community identifiers
+- `reputationScore`: Reputation score
+- `lastActiveTimestamp`: ISO timestamp of last activity
 
 **Notes:**
 - Immutable: updates create new entities
@@ -34,6 +60,10 @@
 **Payload:**
 - `message`: Ask description
 
+**Additional fields (beta):**
+- `skill_id`: Skill entity key (preferred over `skill` attribute)
+- `skill_label`: Skill display name (derived, readonly)
+
 **Supporting entity:**
 - `ask_txhash`: Transaction hash tracking, linked via `askKey` attribute
 
@@ -51,6 +81,14 @@
 **Payload:**
 - `message`: Offer description
 - `availabilityWindow`: Availability description
+
+**Additional fields (beta):**
+- `skill_id`: Skill entity key (preferred over `skill` attribute)
+- `skill_label`: Skill display name (derived, readonly)
+- `availabilityKey`: Reference to Availability entity key (optional)
+- `isPaid`: 'true' | 'false' (free vs paid offer)
+- `cost`: Cost amount (required if paid)
+- `paymentAddress`: Payment receiving address (required if paid)
 
 **Supporting entity:**
 - `offer_txhash`: Transaction hash tracking, linked via `offerKey` attribute
@@ -81,6 +119,12 @@
 - `session_payment_submission`: Payment txHash from learner, linked via `sessionKey`
 - `session_payment_validation`: Payment validation from mentor, linked via `sessionKey`
 
+**Additional fields (beta):**
+- `skill_id`: Skill entity key (preferred over `skill` attribute)
+- `gatheringKey`: Virtual gathering entity key (for community sessions)
+- `gatheringTitle`: Virtual gathering title
+- `community`: Skill slug/community name (for virtual gatherings)
+
 **Status computation:**
 - `pending`: Created but not confirmed by both parties
 - `scheduled`: Both parties confirmed
@@ -93,33 +137,143 @@
 
 ## Supporting entities
 
+### skill
+
+**Attributes:**
+- `type`: 'skill'
+- `name_canonical`: Display name (e.g., "Spanish")
+- `slug`: Normalized key (e.g., "spanish")
+- `status`: 'active' | 'archived'
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
+- `created_by_profile`: Wallet address of creator (optional)
+
+**Payload:**
+- `description`: Skill description (optional)
+
+**Notes:**
+- First-class entity for beta
+- Profiles reference skills via `skill_ids` array (entity keys)
+- Expires after 1 year (31536000 seconds)
+
+### availability
+
+**Attributes:**
+- `type`: 'availability'
+- `wallet`: Wallet address (lowercase)
+- `timezone`: IANA timezone (e.g., "America/New_York")
+- `availabilityVersion`: '1.0' (structured) | 'legacy' (text)
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
+
+**Payload:**
+- `timeBlocks`: JSON string (WeeklyAvailability) or legacy text
+- `timezone`: IANA timezone
+- `createdAt`: ISO timestamp
+
+**Notes:**
+- Supports structured (v1.0) and legacy text formats
+- Expires after 30 days (2592000 seconds)
+- Deletion via `availability_deletion` marker entity
+
 ### session_feedback
 
 **Attributes:**
 - `type`: 'session_feedback'
 - `sessionKey`: Session entity key
-- `wallet`: Feedback author wallet
+- `mentorWallet`: Mentor wallet address
+- `learnerWallet`: Learner wallet address
+- `feedbackFrom`: Wallet of person giving feedback
+- `feedbackTo`: Wallet of person receiving feedback
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
+- `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
-- Feedback data (rating, comments, tags)
+- `rating`: Rating 1-5 (optional)
+- `notes`: Qualitative feedback text
+- `technicalDxFeedback`: Technical developer experience feedback
+- `createdAt`: ISO timestamp
+
+**Notes:**
+- Expires after 1 year (31536000 seconds)
+- Validation: Only session participants can give feedback
 
 ### app_feedback
 
 **Attributes:**
 - `type`: 'app_feedback'
 - `wallet`: Feedback author wallet
+- `page`: Page where feedback was given
+- `feedbackType`: 'feedback' | 'issue'
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
+- `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
-- General UX feedback
+- `message`: Feedback message
+- `rating`: Rating 1-5 (optional)
+- `createdAt`: ISO timestamp
+
+**Notes:**
+- Expires after 1 year (31536000 seconds)
+
+### virtual_gathering
+
+**Attributes:**
+- `type`: 'virtual_gathering'
+- `organizerWallet`: Organizer wallet address
+- `community`: Community identifier (e.g., skill slug)
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
+
+**Payload:**
+- `title`: Gathering title
+- `description`: Gathering description
+- `sessionDate`: ISO timestamp when gathering is scheduled
+- `duration`: Duration in minutes
+- `videoJoinUrl`: Jitsi join URL (generated immediately)
+
+**Notes:**
+- Jitsi URL generated immediately (no confirmation needed)
+- RSVP via session entities with special handling
 
 ### dx_metric
 
 **Attributes:**
 - `type`: 'dx_metric'
-- Operation name, source ('arkiv' vs 'graphql'), timestamps
+- `source`: 'arkiv' | 'graphql'
+- `operation`: Operation name
+- `route`: API route (optional)
+- `spaceId`: 'local-dev'
+- `createdAt`: ISO timestamp
 
 **Payload:**
-- Performance metrics, pain points, errors
+- `durationMs`: Duration in milliseconds
+- `payloadBytes`: Payload size in bytes (optional)
+- `httpRequests`: Number of HTTP requests (optional)
+- `status`: 'success' | 'failure' (optional)
+- `errorType`: Error type (optional)
+- `usedFallback`: Whether fallback was used (optional)
+
+**Notes:**
+- Performance metrics stored on-chain for verifiability
+- Expires after 1 year (31536000 seconds)
+
+### Other Supporting Entities
+
+- `learning_follow`: Skill following relationships
+- `beta_code`: Beta access codes
+- `auth_identity`: Passkey credentials (passkey and backup wallet)
+- `github_issue_link`: Links app feedback to GitHub issues
+- `admin_response`: Admin responses to feedback
+- `notification_preferences`: User notification settings
+- `garden_note`: Public garden notes
+- `onboarding_event`: Onboarding tracking
+- `client_perf_metric`: Client-side performance metrics
+- `perf_snapshot`: Performance snapshots
+- `retention_metric`: User retention metrics
+- `metric_aggregate`: Aggregated metrics
 
 ## Query patterns
 
