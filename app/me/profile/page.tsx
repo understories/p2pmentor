@@ -234,6 +234,13 @@ export default function ProfilePage() {
 
       const result = await res.json();
       if (!result.ok) {
+        // Handle username duplicate error with regrow option
+        if (res.status === 409 && result.duplicateProfiles && result.duplicateProfiles.length > 0) {
+          const error: any = new Error(result.error || 'Username already exists');
+          error.duplicateProfiles = result.duplicateProfiles;
+          error.canRegrow = result.canRegrow;
+          throw error;
+        }
         throw new Error(result.error || 'Failed to create profile');
       }
 
@@ -248,7 +255,15 @@ export default function ProfilePage() {
       }
     } catch (err: any) {
       console.error('Error creating profile:', err);
-      setError(err.message || 'Failed to create profile');
+      if (err.duplicateProfiles && err.duplicateProfiles.length > 0) {
+        // Store duplicate profiles in window for error display
+        (window as any).duplicateProfiles = err.duplicateProfiles;
+        setError('Username already exists');
+      } else {
+        // Clear duplicateProfiles if different error
+        (window as any).duplicateProfiles = undefined;
+        setError(err.message || 'Failed to create profile');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -337,7 +352,43 @@ export default function ProfilePage() {
 
         {error && (
           <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
-            {error}
+            <p className="font-medium mb-2">{error}</p>
+            {error.includes('Username already exists') && typeof window !== 'undefined' && (window as any).duplicateProfiles && Array.isArray((window as any).duplicateProfiles) && (window as any).duplicateProfiles.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-sm">Found {(window as any).duplicateProfiles.length} profile(s) with this username:</p>
+                <div className="space-y-2">
+                  {(window as any).duplicateProfiles.map((dup: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-white dark:bg-gray-800 rounded border border-red-200 dark:border-red-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="font-medium">{dup.displayName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Wallet: {dup.wallet.slice(0, 10)}...{dup.wallet.slice(-8)}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Created: {new Date(dup.createdAt).toLocaleDateString()}</p>
+                        </div>
+                        <a
+                          href={`https://explorer.mendoza.hoodi.arkiv.network/entity/${dup.key}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
+                        >
+                          View on Arkiv →
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('regrow');
+                    setError('');
+                    (window as any).duplicateProfiles = undefined;
+                  }}
+                  className="mt-3 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
+                >
+                  Regrow Profile?
+                </button>
+              </div>
+            )}
           </div>
         )}
 
@@ -475,6 +526,19 @@ export default function ProfilePage() {
               />
               {/* Hidden input for form submission */}
               <input type="hidden" name="timezone" value={timezone} />
+              {/* Display timezone conversion for verification */}
+              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-xs font-medium text-blue-900 dark:text-blue-200 mb-1">Timezone Verification</p>
+                <p className="text-xs text-blue-800 dark:text-blue-300">
+                  Your timezone: <strong>{timezone}</strong>
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+                  Current time in your timezone: {new Date().toLocaleString('en-US', { timeZone: timezone })}
+                </p>
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  UTC time: {new Date().toISOString()}
+                </p>
+              </div>
             </div>
 
             <div>
