@@ -265,7 +265,13 @@ export async function getAuthenticationOptions(
 
   let allowCredentials: any[] | undefined = undefined;
 
-  // Try Arkiv first (if wallet address provided)
+  // CREDENTIAL-FIRST: allowCredentials is optional
+  // If empty, WebAuthn will show all passkeys for this RP (discoverable credentials)
+  // Server will query Arkiv by credentialID after WebAuthn response (in verifyAuthentication)
+  // This enables login even when localStorage is empty
+  
+  // Optional: Try to populate allowCredentials if wallet address provided (optimization only)
+  // This is NOT required - login will work without it
   if (walletAddress) {
     try {
       const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
@@ -281,6 +287,7 @@ export async function getAuthenticationOptions(
           found: identities.length,
           credentialIds: arkivCredentialIds.map(id => id.substring(0, 16) + '...'), // First 16 chars for readability
         },
+        note: 'allowCredentials populated for optimization, but not required for login',
       });
       
       if (identities.length > 0) {
@@ -297,12 +304,12 @@ export async function getAuthenticationOptions(
         arkivQueryResult: {
           error: error instanceof Error ? error.message : String(error),
         },
+        note: 'allowCredentials query failed (non-fatal - login will still work)',
       });
-      console.warn('[getAuthenticationOptions] Failed to query Arkiv, falling back to Map:', error);
     }
   }
 
-  // Fallback to in-memory Map (for backward compatibility)
+  // Fallback to in-memory Map (for backward compatibility only)
   if (!allowCredentials && userId) {
     const userCredentials = credentialStore.get(userId) || [];
     allowCredentials = userCredentials.map((cred) => ({
@@ -462,7 +469,7 @@ export async function verifyAuthentication(
         const entries = Array.from(credentialStore.entries());
         for (const entry of entries) {
           const [uid, credentials] = entry;
-          const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
+          const credentialIDBuffer = base64urlToBuffer(credentialID); // Use custom utility for compatibility
           const cred = credentials.find((c) => Buffer.from(c.credentialID).equals(credentialIDBuffer));
           if (cred) {
             storedCredential = cred;
