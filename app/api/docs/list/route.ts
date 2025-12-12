@@ -47,6 +47,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'design-values': 3,
     'tracking-and-privacy': 4,
     'engineering-guidelines': 5,
+    'a-platform-that-teaches': 6,
   },
   // History section
   'history': {
