@@ -461,7 +461,7 @@ export default function NetworkPage() {
           description="A living map of learning + teaching connections"
         />
 
-        {/* Public Garden Board Link and Browse Profiles */}
+        {/* Public Garden Board Link, Browse Profiles, and Learner Communities */}
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/garden/public-board"
@@ -475,6 +475,12 @@ export default function NetworkPage() {
             className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
           >
             Browse Profiles
+          </Link>
+          <Link
+            href="/skills/explore"
+            className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
+          >
+            Learner Communities
           </Link>
         </div>
 
