@@ -72,6 +72,7 @@ export function AppFeedbackModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'createFeedback',
           wallet: walletToUse,
           page: pathname || '/',
           message: formData.message.trim() || undefined, // Allow empty if rating provided
