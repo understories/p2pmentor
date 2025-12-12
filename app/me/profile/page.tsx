@@ -202,9 +202,9 @@ export default function ProfilePage() {
       }
     });
     
-    // Skills
-    const skills = formData.get('skills') as string;
-    const skillsArray = skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : undefined;
+    // Skills - No longer editable here, must use /me/skills page
+    // Keep existing skills from profile
+    const skillsArray = profile?.skillsArray;
     const seniority = formData.get('seniority') as string || undefined;
 
     try {
@@ -213,23 +213,23 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'createProfile',
-          wallet: walletAddress,
-          displayName,
-          username: username || undefined,
-          profileImage: profileImage || undefined,
-          bio: bio || undefined,
-          bioShort: bioShort || undefined,
-          bioLong: bioLong || undefined,
-          skills: skills || '',
-          skillsArray,
-          timezone: timezoneValue,
-          languages,
-          contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
-          seniority: seniority || undefined,
-          availabilityWindow: availabilityWindow || undefined,
-        }),
+          body: JSON.stringify({
+            action: 'createProfile',
+            wallet: walletAddress,
+            displayName,
+            username: username || undefined,
+            profileImage: profileImage || undefined,
+            bio: bio || undefined,
+            bioShort: bioShort || undefined,
+            bioLong: bioLong || undefined,
+            skills: skillsArray?.join(', ') || '', // Legacy format for backward compatibility
+            skillsArray,
+            timezone: timezoneValue,
+            languages,
+            contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
+            seniority: seniority || undefined,
+            availabilityWindow: availabilityWindow || undefined,
+          }),
       });
 
       const result = await res.json();
@@ -559,24 +559,28 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Skills */}
+          {/* Skills - Removed legacy text field, skills must be added as entities via /me/skills */}
           <div className="space-y-4">
             <h2 className="text-xl font-medium border-b border-gray-200 dark:border-gray-700 pb-2">
               Skills
             </h2>
             
-            <div>
-              <label htmlFor="skills" className="block text-sm font-medium mb-1">
-                Skills (comma-separated)
-              </label>
-              <input
-                type="text"
-                id="skills"
-                name="skills"
-                defaultValue={profile?.skillsArray?.join(', ') || profile?.skills || ''}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="JavaScript, React, TypeScript"
-              />
+            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-900 dark:text-blue-200 mb-2">
+                Skills are managed as first-class entities. Add or remove skills from the <Link href="/me/skills" className="underline font-medium">Skills page</Link>.
+              </p>
+              {profile?.skillsArray && profile.skillsArray.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-xs text-blue-800 dark:text-blue-300 mb-2">Current skills:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.skillsArray.map((skill, idx) => (
+                      <span key={idx} className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
