@@ -371,6 +371,37 @@ export function SidebarNav() {
             </div>
           );
         })()}
+        
+        {/* Logout Button */}
+        {wallet && (
+          <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <button
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  // Clear all wallet-related localStorage
+                  localStorage.removeItem('wallet_address');
+                  localStorage.removeItem('passkey_user_id');
+                  // Clear all passkey-related keys
+                  const keysToRemove: string[] = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
+                      keysToRemove.push(key);
+                    }
+                  }
+                  keysToRemove.forEach(key => localStorage.removeItem(key));
+                  // Redirect to auth page
+                  window.location.href = '/auth';
+                }
+              }}
+              className="w-full flex flex-row items-center gap-3 py-2.5 px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
+              title="Disconnect wallet and logout"
+            >
+              <span className="text-xl flex-shrink-0">⚡</span>
+              <span className="text-sm font-medium leading-tight">Logout</span>
+            </button>
+          </div>
+        )}
       </div>
     </nav>
   );
