@@ -112,7 +112,7 @@ export function SidebarNav() {
   }, []);
 
   // Primary navigation items with unlock levels
-  // Only Dashboard, Network, and Notifications in main nav
+  // Only Dashboard and Network in main nav (Notifications moved to bottom above Logout)
   const allNavItems: Array<NavItem & { minLevel?: number }> = [
     {
       href: '/me',
@@ -125,13 +125,6 @@ export function SidebarNav() {
       label: 'Network',
       icon: '🌐',
       minLevel: 3, // After network exploration
-    },
-    {
-      href: '/notifications',
-      label: 'Notifications',
-      icon: '🔔',
-      badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
-      minLevel: 0, // Always available
     },
   ];
 
@@ -460,9 +453,47 @@ export function SidebarNav() {
           );
         })()}
         
-        {/* Logout Button */}
+        {/* Notifications - above logout */}
         {wallet && (
           <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+            <Link
+              href="/notifications"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 px-3
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/notifications')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+            >
+              <span className="relative text-xl flex-shrink-0">
+                🔔
+                {notificationCount !== null && notificationCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </span>
+              <span className="text-sm font-medium leading-tight">Notifications</span>
+              {isActive('/notifications') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
+          </div>
+        )}
+        
+        {/* Logout Button */}
+        {wallet && (
+          <div className="pt-2 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <button
               onClick={() => {
                 if (typeof window !== 'undefined') {
