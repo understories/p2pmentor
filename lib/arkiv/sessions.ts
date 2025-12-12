@@ -187,6 +187,36 @@ export async function createSession({
     console.warn('Failed to create session_txhash entity, but session was created:', error);
   }
 
+  // Create notification for the recipient (mentor or learner who didn't create the session)
+  // Note: We don't know who created it, so we'll create notifications for both
+  // The notification system will deduplicate or we can determine creator from context
+  // For now, create notification for mentor (assuming learner created the request)
+  try {
+    const { createNotification } = await import('./notifications');
+    await createNotification({
+      wallet: normalizedMentorWallet,
+      notificationType: 'meeting_request',
+      sourceEntityType: 'session',
+      sourceEntityKey: entityKey,
+      title: 'New Meeting Request',
+      message: `You have a new meeting request for ${skill}`,
+      link: '/me/sessions',
+      metadata: {
+        sessionKey: entityKey,
+        skill,
+        skill_id: skill_id || undefined,
+        otherWallet: normalizedLearnerWallet,
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn('[createSession] Failed to create notification for mentor:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block session creation
+    console.warn('[createSession] Error importing or creating notification:', err);
+  }
+
   return { key: entityKey, txHash };
 }
 

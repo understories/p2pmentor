@@ -12,19 +12,7 @@ import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
-import {
-  detectMeetingRequests,
-  detectProfileMatches,
-  detectAskOfferMatches,
-  detectNewOffers,
-  detectAdminResponses,
-  detectIssueResolutions,
-  getUnreadCount,
-} from '@/lib/notifications';
-import type { Session } from '@/lib/arkiv/sessions';
-import type { Ask } from '@/lib/arkiv/asks';
-import type { Offer } from '@/lib/arkiv/offers';
-import type { UserProfile } from '@/lib/arkiv/profile';
+import { getUnreadCount } from '@/lib/notifications';
 
 const POLL_INTERVAL = 30000; // 30 seconds
 
@@ -35,46 +23,14 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [userWallet, setUserWallet] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
   // Filtering state
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Track previously seen items to detect new ones (persisted to localStorage)
-  const getPersistedRef = (key: string): Set<string> => {
-    if (typeof window === 'undefined') return new Set();
-    const stored = localStorage.getItem(`notification_refs_${key}`);
-    return stored ? new Set(JSON.parse(stored)) : new Set();
-  };
-
-  const setPersistedRef = (key: string, value: Set<string>) => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem(`notification_refs_${key}`, JSON.stringify(Array.from(value)));
-  };
-
-  const previousSessionKeys = useRef<Set<string>>(getPersistedRef('sessionKeys'));
-  const previousMatchedWallets = useRef<Set<string>>(getPersistedRef('matchedWallets'));
-  const previousMatches = useRef<Set<string>>(getPersistedRef('matches'));
-  const previousOfferKeys = useRef<Set<string>>(getPersistedRef('offerKeys'));
-  const previousResponseKeys = useRef<Set<string>>(getPersistedRef('responseKeys'));
-  const previousResolvedKeys = useRef<Set<string>>(getPersistedRef('resolvedKeys'));
-  
-  // Store notification preferences to use during detection
+  // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
-
-  // Persist refs when they change
-  useEffect(() => {
-    if (typeof window !== 'undefined' && userWallet) {
-      setPersistedRef('sessionKeys', previousSessionKeys.current);
-      setPersistedRef('matchedWallets', previousMatchedWallets.current);
-      setPersistedRef('matches', previousMatches.current);
-      setPersistedRef('offerKeys', previousOfferKeys.current);
-      setPersistedRef('responseKeys', previousResponseKeys.current);
-      setPersistedRef('resolvedKeys', previousResolvedKeys.current);
-    }
-  }, [userWallet]);
 
   useEffect(() => {
     // Get user wallet from localStorage
@@ -138,159 +94,47 @@ export default function NotificationsPage() {
 
   const loadNotifications = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/notifications?wallet=${wallet}`);
+      const res = await fetch(`/api/notifications?wallet=${wallet}&status=active`);
       const data = await res.json();
       
       if (!data.ok) {
         throw new Error(data.error || 'Failed to load notifications');
       }
 
-      const { sessions, userAsks, allOffers, allProfiles, adminResponses, resolvedIssues } = data.data;
+      // Notifications are now Arkiv entities, query directly
+      const arkivNotifications = data.notifications || [];
       
-      // Load user profile
-      if (!userProfile) {
-        try {
-          const profileRes = await fetch(`/api/profile?wallet=${wallet}`);
-          const profileData = await profileRes.json();
-          if (profileData.ok && profileData.profile) {
-            setUserProfile(profileData.profile);
-          }
-        } catch (e) {
-          console.error('Error loading user profile:', e);
-        }
-      }
-
-      // Detect new notifications
-      const newNotifications: Notification[] = [];
-      
-      // Meeting requests
-      const meetingRequestNotifs = detectMeetingRequests(
-        sessions,
-        wallet,
-        previousSessionKeys.current
-      );
-      newNotifications.push(...meetingRequestNotifs);
-      
-      // Update seen session keys
-      sessions.forEach((s: Session) => previousSessionKeys.current.add(s.key));
-      
-      // Profile matches
-      if (userProfile) {
-        const profileMatchNotifs = detectProfileMatches(
-          userProfile,
-          allProfiles,
-          wallet,
-          previousMatchedWallets.current
-        );
-        newNotifications.push(...profileMatchNotifs);
-        
-        // Update seen matched wallets
-        profileMatchNotifs.forEach(n => {
-          if (n.metadata?.wallet) {
-            previousMatchedWallets.current.add(n.metadata.wallet.toLowerCase());
-          }
-        });
-      }
-      
-      // Ask & offer matches
-      const askOfferMatchNotifs = detectAskOfferMatches(
-        userAsks,
-        allOffers,
-        previousMatches.current
-      );
-      newNotifications.push(...askOfferMatchNotifs);
-      
-      // Update seen matches
-      askOfferMatchNotifs.forEach(n => {
-        if (n.metadata?.askKey && n.metadata?.offerKey) {
-          previousMatches.current.add(`${n.metadata.askKey}_${n.metadata.offerKey}`);
-        }
-      });
-      
-      // New offers
-      const newOfferNotifs = detectNewOffers(
-        allOffers,
-        wallet,
-        previousOfferKeys.current
-      );
-      newNotifications.push(...newOfferNotifs);
-      
-      // Update seen offer keys
-      allOffers.forEach((o: Offer) => previousOfferKeys.current.add(o.key));
-      
-      // Admin responses
-      const adminResponseNotifs = detectAdminResponses(
-        adminResponses || [],
-        wallet,
-        previousResponseKeys.current
-      );
-      newNotifications.push(...adminResponseNotifs);
-
-      // Update seen response keys
-      (adminResponses || []).forEach((r: any) => previousResponseKeys.current.add(r.key));
-
-      // Issue resolutions
-      const issueResolutionNotifs = detectIssueResolutions(
-        (resolvedIssues || []).map((f: any) => ({
-          key: f.key,
-          message: f.message,
-          resolvedAt: f.resolvedAt || f.createdAt,
-          page: f.page,
-        })),
-        wallet,
-        previousResolvedKeys.current
-      );
-      newNotifications.push(...issueResolutionNotifs);
-
-      // Update seen resolved keys
-      (resolvedIssues || []).forEach((f: any) => previousResolvedKeys.current.add(f.key));
-      // Apply preferences to new notifications (read state and archived filter)
-      const notificationsWithPreferences = newNotifications.map(n => {
-        const pref = notificationPreferences.current.get(n.id);
-        if (pref) {
-          // If archived, don't include it
-          if (pref.archived) {
+      // Convert Arkiv notification entities to client Notification format
+      // and apply preferences for read/archived state
+      const notificationsWithPreferences = arkivNotifications
+        .map((n: any): Notification | null => {
+          // Use notification key as ID (Arkiv-native)
+          const notificationId = n.key;
+          const pref = notificationPreferences.current.get(notificationId);
+          
+          // Filter out archived notifications
+          if (pref?.archived) {
             return null;
           }
-          // Use persisted read state
-          return { ...n, read: pref.read };
-        }
-        // New notification, use default read: false
-        return n;
-      }).filter((n): n is Notification => n !== null);
+          
+          // Convert to client Notification format
+          return {
+            id: notificationId,
+            type: n.notificationType,
+            title: n.title,
+            message: n.message,
+            timestamp: n.createdAt,
+            link: n.link,
+            read: pref?.read ?? false, // Default to unread if no preference
+            metadata: n.metadata || {},
+          };
+        })
+        .filter((n: Notification | null): n is Notification => n !== null);
 
-      // Merge with existing notifications (update existing with latest preferences, add new ones)
-      setNotifications(prev => {
-        const existingMap = new Map(prev.map(n => [n.id, n]));
-        const newMap = new Map(notificationsWithPreferences.map(n => [n.id, n]));
-        
-        // Update existing notifications with latest preferences from Arkiv
-        const updated = prev.map(n => {
-          const pref = notificationPreferences.current.get(n.id);
-          const newNotif = newMap.get(n.id);
-          
-          // If there's a new version detected, use it (but preserve read state from preferences)
-          if (newNotif) {
-            return { ...newNotif, read: pref?.read ?? n.read };
-          }
-          
-          // Otherwise, update read state from preferences if changed
-          if (pref) {
-            return { ...n, read: pref.read };
-          }
-          
-          return n;
-        });
-        
-        // Add truly new notifications
-        const uniqueNew = notificationsWithPreferences.filter(n => !existingMap.has(n.id));
-        
-        // Combine and sort
-        const combined = [...uniqueNew, ...updated];
-        return combined.sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      });
+      // Update state with notifications from Arkiv
+      setNotifications(notificationsWithPreferences.sort((a: Notification, b: Notification) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ));
       
       setLoading(false);
     } catch (err: any) {

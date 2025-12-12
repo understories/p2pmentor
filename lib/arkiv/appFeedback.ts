@@ -147,6 +147,57 @@ export async function resolveAppFeedback({
     expiresIn,
   });
 
+  // Get feedback to find the user wallet
+  try {
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'app_feedback'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1000)
+      .fetch();
+    
+    if (result?.entities && Array.isArray(result.entities)) {
+      const feedbackEntity = result.entities.find((e: any) => e.key === feedbackKey);
+      if (feedbackEntity) {
+        const attrs = feedbackEntity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const userWallet = getAttr('wallet');
+        
+        if (userWallet) {
+          const { createNotification } = await import('./notifications');
+          await createNotification({
+            wallet: userWallet.toLowerCase(),
+            notificationType: 'issue_resolved',
+            sourceEntityType: 'app_feedback',
+            sourceEntityKey: feedbackKey,
+            title: 'Issue Resolved',
+            message: 'Your reported issue has been resolved',
+            link: '/notifications',
+            metadata: {
+              feedbackKey,
+              resolutionKey: entityKey,
+              resolvedBy: resolvedByWallet.toLowerCase(),
+            },
+            privateKey,
+            spaceId,
+          }).catch((err: any) => {
+            console.warn('[resolveAppFeedback] Failed to create notification:', err);
+          });
+        }
+      }
+    }
+  } catch (err: any) {
+    // Notification creation failure shouldn't block resolution
+    console.warn('[resolveAppFeedback] Error creating notification:', err);
+  }
+
   return { key: entityKey, txHash };
 }
 

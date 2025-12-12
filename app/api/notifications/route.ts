@@ -1,22 +1,19 @@
 /**
  * Notifications API route
  * 
- * Fetches data needed for notification detection.
- * Client-side will poll this endpoint and detect new items.
+ * Fetches notifications from Arkiv entities (Arkiv-native approach).
+ * Notifications are created server-side when events occur.
  */
 
 import { NextResponse } from 'next/server';
-import { listSessionsForWallet } from '@/lib/arkiv/sessions';
-import { listAsks, listAsksForWallet } from '@/lib/arkiv/asks';
-import { listOffers } from '@/lib/arkiv/offers';
-import { listUserProfiles } from '@/lib/arkiv/profile';
-import { listAdminResponses } from '@/lib/arkiv/adminResponse';
-import { listAppFeedback } from '@/lib/arkiv/appFeedback';
+import { listNotifications } from '@/lib/arkiv/notifications';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');
+    const notificationType = searchParams.get('notificationType') || undefined;
+    const status = searchParams.get('status') as 'active' | 'archived' | undefined;
     
     if (!wallet) {
       return NextResponse.json(
@@ -25,31 +22,17 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch all data needed for notification detection
-    const [sessions, userAsks, allAsks, allOffers, allProfiles, adminResponses, userFeedback] = await Promise.all([
-      listSessionsForWallet(wallet),
-      listAsksForWallet(wallet),
-      listAsks(),
-      listOffers(),
-      listUserProfiles(),
-      listAdminResponses({ wallet }), // Admin responses for this user
-      listAppFeedback({ wallet }), // User's feedback/issues
-    ]);
-
-    // Filter for resolved issues only
-    const resolvedIssues = userFeedback.filter(f => f.feedbackType === 'issue' && f.resolved);
+    // Query notifications directly from Arkiv entities
+    const notifications = await listNotifications({
+      wallet,
+      notificationType: notificationType as any,
+      status: status || 'active',
+      limit: 100,
+    });
 
     return NextResponse.json({
       ok: true,
-      data: {
-        sessions,
-        userAsks,
-        allAsks,
-        allOffers,
-        allProfiles,
-        adminResponses,
-        resolvedIssues, // Resolved issues for notification detection
-      },
+      notifications,
     });
   } catch (error: any) {
     console.error('Notifications API error:', error);
