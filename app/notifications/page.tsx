@@ -42,16 +42,39 @@ export default function NotificationsPage() {
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Track previously seen items to detect new ones
-  const previousSessionKeys = useRef<Set<string>>(new Set());
-  const previousMatchedWallets = useRef<Set<string>>(new Set());
-  const previousMatches = useRef<Set<string>>(new Set());
-  const previousOfferKeys = useRef<Set<string>>(new Set());
-  const previousResponseKeys = useRef<Set<string>>(new Set());
-  const previousResolvedKeys = useRef<Set<string>>(new Set());
+  // Track previously seen items to detect new ones (persisted to localStorage)
+  const getPersistedRef = (key: string): Set<string> => {
+    if (typeof window === 'undefined') return new Set();
+    const stored = localStorage.getItem(`notification_refs_${key}`);
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  };
+
+  const setPersistedRef = (key: string, value: Set<string>) => {
+    if (typeof window === 'undefined') return;
+    localStorage.setItem(`notification_refs_${key}`, JSON.stringify(Array.from(value)));
+  };
+
+  const previousSessionKeys = useRef<Set<string>>(getPersistedRef('sessionKeys'));
+  const previousMatchedWallets = useRef<Set<string>>(getPersistedRef('matchedWallets'));
+  const previousMatches = useRef<Set<string>>(getPersistedRef('matches'));
+  const previousOfferKeys = useRef<Set<string>>(getPersistedRef('offerKeys'));
+  const previousResponseKeys = useRef<Set<string>>(getPersistedRef('responseKeys'));
+  const previousResolvedKeys = useRef<Set<string>>(getPersistedRef('resolvedKeys'));
   
   // Store notification preferences to use during detection
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
+
+  // Persist refs when they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userWallet) {
+      setPersistedRef('sessionKeys', previousSessionKeys.current);
+      setPersistedRef('matchedWallets', previousMatchedWallets.current);
+      setPersistedRef('matches', previousMatches.current);
+      setPersistedRef('offerKeys', previousOfferKeys.current);
+      setPersistedRef('responseKeys', previousResponseKeys.current);
+      setPersistedRef('resolvedKeys', previousResolvedKeys.current);
+    }
+  }, [userWallet]);
 
   useEffect(() => {
     // Get user wallet from localStorage
@@ -236,11 +259,35 @@ export default function NotificationsPage() {
         return n;
       }).filter((n): n is Notification => n !== null);
 
-      // Merge with existing notifications (avoid duplicates)
+      // Merge with existing notifications (update existing with latest preferences, add new ones)
       setNotifications(prev => {
-        const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNew = notificationsWithPreferences.filter(n => !existingIds.has(n.id));
-        return [...uniqueNew, ...prev].sort((a, b) => 
+        const existingMap = new Map(prev.map(n => [n.id, n]));
+        const newMap = new Map(notificationsWithPreferences.map(n => [n.id, n]));
+        
+        // Update existing notifications with latest preferences from Arkiv
+        const updated = prev.map(n => {
+          const pref = notificationPreferences.current.get(n.id);
+          const newNotif = newMap.get(n.id);
+          
+          // If there's a new version detected, use it (but preserve read state from preferences)
+          if (newNotif) {
+            return { ...newNotif, read: pref?.read ?? n.read };
+          }
+          
+          // Otherwise, update read state from preferences if changed
+          if (pref) {
+            return { ...n, read: pref.read };
+          }
+          
+          return n;
+        });
+        
+        // Add truly new notifications
+        const uniqueNew = notificationsWithPreferences.filter(n => !existingMap.has(n.id));
+        
+        // Combine and sort
+        const combined = [...uniqueNew, ...updated];
+        return combined.sort((a, b) => 
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
       });
