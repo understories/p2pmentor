@@ -69,6 +69,18 @@ export async function POST(request: NextRequest) {
       learnerConfirmed,
     });
 
+    // Update profile avgRating for feedbackTo (person receiving feedback)
+    if (rating && rating > 0) {
+      try {
+        const { updateProfileAvgRating } = await import('@/lib/arkiv/profile');
+        await updateProfileAvgRating(feedbackTo, getPrivateKey());
+        console.log('[api/feedback] Updated avgRating for profile:', feedbackTo);
+      } catch (error: any) {
+        console.warn('[api/feedback] Failed to update avgRating (non-fatal):', error);
+        // Non-fatal - feedback was created successfully
+      }
+    }
+
     return NextResponse.json({ ok: true, key, txHash });
   } catch (error: any) {
     console.error('Feedback API error:', error);
