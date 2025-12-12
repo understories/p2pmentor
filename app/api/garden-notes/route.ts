@@ -61,7 +61,19 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { 
