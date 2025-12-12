@@ -20,6 +20,7 @@ const PUBLIC_ROUTES = [
 // API routes that don't require beta access
 const PUBLIC_API_ROUTES = [
   '/api/beta-code', // Beta code validation itself
+  '/api/docs', // Documentation API routes (list, content, git-history)
 ];
 
 export async function middleware(request: NextRequest) {
