@@ -262,7 +262,7 @@ export default function MePage() {
 
   return (
     <BetaGate>
-    <div className="min-h-screen relative text-gray-900 dark:text-gray-100">
+    <div className="min-h-screen relative text-gray-900 dark:text-gray-100 pb-24">
       {/* Forest Background */}
       <BackgroundImage />
       
