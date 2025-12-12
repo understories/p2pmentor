@@ -137,6 +137,19 @@ export async function createUserProfileClient({
   // Auto-assign emoji identity seed (EIS) for new profiles
   const identity_seed = selectRandomEmoji();
 
+  // Calculate avgRating if this is an update (get existing profile first)
+  let avgRating = 0;
+  try {
+      const existingProfile = await getProfileByWallet(wallet);
+      if (existingProfile) {
+        // Recalculate from all feedback
+        avgRating = await calculateAverageRating(wallet);
+      }
+  } catch (e) {
+    // New profile or calculation failed - use 0
+    avgRating = 0;
+  }
+
   const payload = {
     displayName,
     username,
@@ -164,7 +177,7 @@ export async function createUserProfileClient({
     sessionsCompleted: 0,
     sessionsGiven: 0,
     sessionsReceived: 0,
-    avgRating: 0,
+    avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
     npsScore: 0,
     topSkillsUsage: [],
     peerTestimonials: [],
@@ -277,6 +290,19 @@ export async function createUserProfile({
   // Auto-assign emoji identity seed (EIS) for new profiles
   const identity_seed = selectRandomEmoji();
 
+  // Calculate avgRating if this is an update (get existing profile first)
+  let avgRating = 0;
+  try {
+      const existingProfile = await getProfileByWallet(wallet);
+      if (existingProfile) {
+        // Recalculate from all feedback
+        avgRating = await calculateAverageRating(wallet);
+      }
+  } catch (e) {
+    // New profile or calculation failed - use 0
+    avgRating = 0;
+  }
+
   const payload = {
     displayName,
     username,
@@ -302,7 +328,7 @@ export async function createUserProfile({
     sessionsCompleted: 0,
     sessionsGiven: 0,
     sessionsReceived: 0,
-    avgRating: 0,
+    avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
     npsScore: 0,
     topSkillsUsage: [],
     peerTestimonials: [],
@@ -604,3 +630,214 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
   });
 }
 
+/**
+ * Check if username is already taken (queries all historical profiles)
+ * 
+ * Uses same query pattern as regrow function to check all profiles.
+ * 
+ * @param username - Username to check
+ * @returns Array of profiles with this username (all historical versions)
+ */
+export async function checkUsernameExists(username: string): Promise<UserProfile[]> {
+  if (!username || username.trim() === '') {
+    return [];
+  }
+
+  const publicClient = getPublicClient();
+  const query = publicClient.buildQuery();
+  
+  try {
+    // Query all profiles with this username (check both attribute and payload)
+    const result = await query
+      .where(eq('type', 'user_profile'))
+      .where(eq('username', username.trim()))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities)) {
+      return [];
+    }
+
+    // Also check payload for username (in case it's only in payload, not attribute)
+    const profilesWithUsername: UserProfile[] = [];
+    
+    result.entities.forEach((entity: any) => {
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('[checkUsernameExists] Error decoding payload:', e);
+      }
+
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // Check if username matches (case-insensitive)
+      const attrUsername = getAttr('username');
+      const payloadUsername = payload.username;
+      const normalizedInput = username.trim().toLowerCase();
+      
+      if (
+        (attrUsername && attrUsername.toLowerCase() === normalizedInput) ||
+        (payloadUsername && payloadUsername.toLowerCase() === normalizedInput)
+      ) {
+        // Parse full profile data (reuse same logic as listUserProfilesForWallet)
+        const finalSkillsArray: string[] = [];
+        if (Array.isArray(attrs)) {
+          attrs.forEach((attr: any) => {
+            if (attr.key?.startsWith('skill_')) {
+              finalSkillsArray.push(attr.value);
+            }
+          });
+        }
+        const finalSkillsArrayFromPayload = payload.skillsArray || (payload.skills ? payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+
+        let trustEdges = payload.trustEdges || [];
+        if (Array.isArray(trustEdges) && trustEdges.length > 0 && typeof trustEdges[0] === 'string') {
+          trustEdges = trustEdges.map((wallet: string) => ({
+            toWallet: wallet,
+            strength: 1,
+            createdAt: new Date().toISOString(),
+          }));
+        }
+
+        profilesWithUsername.push({
+          key: entity.key,
+          wallet: getAttr('wallet') || payload.wallet || '',
+          displayName: getAttr('displayName') || payload.displayName || '',
+          username: payloadUsername || attrUsername || undefined,
+          profileImage: payload.profileImage || undefined,
+          identity_seed: payload.identity_seed || getAttr('identity_seed') || undefined,
+          bio: payload.bio || getAttr('bio') || undefined,
+          bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
+          bioLong: payload.bioLong || undefined,
+          skills: getAttr('skills') || payload.skills || '',
+          skillsArray: finalSkillsArrayFromPayload.length > 0 ? finalSkillsArrayFromPayload : finalSkillsArray,
+          timezone: getAttr('timezone') || payload.timezone || '',
+          languages: payload.languages || [],
+          contactLinks: payload.contactLinks || {},
+          seniority: payload.seniority || getAttr('seniority') || undefined,
+          domainsOfInterest: payload.domainsOfInterest || [],
+          mentorRoles: payload.mentorRoles || [],
+          learnerRoles: payload.learnerRoles || [],
+          sessionsCompleted: payload.sessionsCompleted || 0,
+          sessionsGiven: payload.sessionsGiven || 0,
+          sessionsReceived: payload.sessionsReceived || 0,
+          avgRating: payload.avgRating || 0,
+          npsScore: payload.npsScore || 0,
+          topSkillsUsage: payload.topSkillsUsage || [],
+          peerTestimonials: payload.peerTestimonials || [],
+          trustEdges: trustEdges as Array<{ toWallet: string; strength: number; createdAt: string }>,
+          lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
+          communityAffiliations: payload.communityAffiliations || [],
+          reputationScore: payload.reputationScore || 0,
+          spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+          createdAt: getAttr('createdAt') || payload.createdAt,
+          txHash: payload.txHash,
+        });
+      }
+    });
+
+    return profilesWithUsername;
+  } catch (error: any) {
+    console.error('[checkUsernameExists] Arkiv query failed:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error
+    });
+    return []; // Return empty array on query failure
+  }
+}
+
+/**
+ * Calculate average rating from feedback entities for a wallet
+ * 
+ * @param wallet - Wallet address
+ * @returns Average rating (0 if no feedback)
+ */
+export async function calculateAverageRating(wallet: string): Promise<number> {
+  try {
+    const { listFeedbackForWallet } = await import('./feedback');
+    const feedbacks = await listFeedbackForWallet(wallet);
+    
+    // Filter feedback received (feedbackTo matches wallet)
+    const receivedFeedback = feedbacks.filter(f => 
+      f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+    );
+    
+    const ratings = receivedFeedback
+      .map(f => f.rating)
+      .filter((r): r is number => r !== undefined && r > 0);
+    
+    if (ratings.length === 0) {
+      return 0;
+    }
+    
+    return ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+  } catch (error: any) {
+    console.error('[calculateAverageRating] Error:', error);
+    return 0;
+  }
+}
+
+/**
+ * Update profile avgRating field
+ * 
+ * Creates new profile entity with updated avgRating.
+ * 
+ * @param wallet - Wallet address
+ * @param privateKey - Private key for signing
+ * @returns Entity key and transaction hash
+ */
+export async function updateProfileAvgRating(
+  wallet: string,
+  privateKey: `0x${string}`
+): Promise<{ key: string; txHash: string }> {
+  // Get current profile
+  const currentProfile = await getProfileByWallet(wallet);
+  if (!currentProfile) {
+    throw new Error('Profile not found');
+  }
+  
+  // Calculate new average rating
+  const avgRating = await calculateAverageRating(wallet);
+  
+  // Create new profile entity with updated avgRating
+  return await createUserProfile({
+    wallet,
+    displayName: currentProfile.displayName,
+    username: currentProfile.username,
+    profileImage: currentProfile.profileImage,
+    bio: currentProfile.bio,
+    bioShort: currentProfile.bioShort,
+    bioLong: currentProfile.bioLong,
+    skills: currentProfile.skills,
+    skillsArray: currentProfile.skillsArray,
+    skill_ids: (currentProfile as any).skill_ids,
+    skillExpertise: currentProfile.skillExpertise,
+    timezone: currentProfile.timezone,
+    languages: currentProfile.languages,
+    contactLinks: currentProfile.contactLinks,
+    seniority: currentProfile.seniority,
+    domainsOfInterest: currentProfile.domainsOfInterest,
+    mentorRoles: currentProfile.mentorRoles,
+    learnerRoles: currentProfile.learnerRoles,
+    availabilityWindow: currentProfile.availabilityWindow,
+    privateKey,
+  });
+}
