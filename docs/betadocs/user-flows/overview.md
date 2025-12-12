@@ -2,10 +2,9 @@
 
 Core mentorship flows in the beta:
 
-1. [Profiles and Skills](profiles-skills.md)
-2. [Asks and Offers](asks-offers.md)
-3. [Network Discovery](network-discovery.md)
-4. [Sessions](sessions.md)
-5. [Feedback](feedback.md)
-
-For onboarding and authentication, see [Getting Started](../introduction/getting-started.md).
+1. [Getting Started Tutorial](getting-started.md) - Step-by-step guide for new users
+2. [Profiles and Skills](profiles-skills.md)
+3. [Asks and Offers](asks-offers.md)
+4. [Network Discovery](network-discovery.md)
+5. [Sessions](sessions.md)
+6. [Feedback](feedback.md)

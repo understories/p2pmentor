@@ -82,11 +82,12 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
   // User Flows section
   'user-flows': {
     'overview': 1,
-    'profiles-skills': 2,
-    'asks-offers': 3,
-    'network-discovery': 4,
-    'sessions': 5,
-    'feedback': 6,
+    'getting-started': 2,
+    'profiles-skills': 3,
+    'asks-offers': 4,
+    'network-discovery': 5,
+    'sessions': 6,
+    'feedback': 7,
   },
   // Integrations section
   'integrations': {
