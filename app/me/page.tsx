@@ -553,10 +553,10 @@ export default function MePage() {
           />
           <button
             onClick={() => setExpandedSections(prev => ({ ...prev, profile: !prev.profile }))}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left cursor-pointer"
           >
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Edit Profile</span>
-            <span className="text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 pointer-events-none">Edit Profile</span>
+            <span className="text-gray-500 dark:text-gray-400 pointer-events-none">
               {expandedSections.profile ? '▼' : '▶'}
             </span>
           </button>
@@ -601,10 +601,10 @@ export default function MePage() {
           />
           <button
             onClick={() => setExpandedSections(prev => ({ ...prev, skillGarden: !prev.skillGarden }))}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left cursor-pointer"
           >
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Skill Garden</span>
-            <span className="text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 pointer-events-none">Skill Garden</span>
+            <span className="text-gray-500 dark:text-gray-400 pointer-events-none">
               {expandedSections.skillGarden ? '▼' : '▶'}
             </span>
           </button>
@@ -740,10 +740,10 @@ export default function MePage() {
           />
           <button
             onClick={() => setExpandedSections(prev => ({ ...prev, community: !prev.community }))}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left"
+            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left cursor-pointer"
           >
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Community</span>
-            <span className="text-gray-500 dark:text-gray-400">
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 pointer-events-none">Community</span>
+            <span className="text-gray-500 dark:text-gray-400 pointer-events-none">
               {expandedSections.community ? '▼' : '▶'}
             </span>
           </button>
