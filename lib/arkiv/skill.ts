@@ -56,7 +56,11 @@ export async function createSkill({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
+  // Always create slug - this is required for topic/learning community pages
   const slug = normalizeSkillSlug(name_canonical);
+  if (!slug || slug.trim() === '') {
+    throw new Error(`Cannot create skill "${name_canonical}": slug normalization resulted in empty string`);
+  }
   const status = 'active';
 
   // Skills should persist long-term (1 year)

@@ -121,30 +121,50 @@ export default function ExploreSkillsPage() {
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredSkills.map((skill) => (
-              <Link
-                key={skill.key}
-                href={`/topic/${skill.slug}`}
-                className="block p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200"
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                    {skill.name_canonical}
-                  </h3>
+            {filteredSkills.map((skill) => {
+              // Ensure skill has a slug - if not, generate one from name_canonical
+              const skillSlug = skill.slug || skill.name_canonical.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              const topicLink = skillSlug ? `/topic/${skillSlug}` : null;
+              
+              const content = (
+                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200">
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {skill.name_canonical}
+                    </h3>
+                  </div>
+                  {skill.description && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                      {skill.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
+                    <span className="font-medium">{skill.profileCount}</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {skill.profileCount === 1 ? 'profile' : 'profiles'}
+                    </span>
+                  </div>
                 </div>
-                {skill.description && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
-                    {skill.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 text-sm text-emerald-600 dark:text-emerald-400">
-                  <span className="font-medium">{skill.profileCount}</span>
-                  <span className="text-gray-500 dark:text-gray-400">
-                    {skill.profileCount === 1 ? 'profile' : 'profiles'}
-                  </span>
-                </div>
-              </Link>
-            ))}
+              );
+              
+              // If skill has a slug, link to topic page; otherwise show as non-clickable
+              if (topicLink) {
+                return (
+                  <Link key={skill.key} href={topicLink}>
+                    {content}
+                  </Link>
+                );
+              } else {
+                return (
+                  <div key={skill.key}>
+                    {content}
+                    <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                      ⚠️ Topic page unavailable (missing slug)
+                    </div>
+                  </div>
+                );
+              }
+            })}
           </div>
         )}
 
