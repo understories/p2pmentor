@@ -508,8 +508,8 @@ export async function listUserProfiles(params?: {
       }
       // Check skills string (legacy)
       if (profile.skills) {
-        const skillsList = profile.skills.toLowerCase().split(',').map(s => s.trim());
-        return skillsList.some(skill => skill.includes(skillFilter));
+        const skillsList = profile.skills.toLowerCase().split(',').map((s: string) => s.trim());
+        return skillsList.some((skill: string) => skill.includes(skillFilter));
       }
       // Note: skill_ids array would require loading all skills to match IDs to names
       // For now, we rely on skillsArray and skills string for filtering
