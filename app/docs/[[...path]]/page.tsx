@@ -33,6 +33,7 @@ export default function DocsPage() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set(['arkiv', 'arkiv/entity-schemas'])); // Default to expanded
 
   useEffect(() => {
     const loadDocs = async () => {
@@ -89,6 +90,18 @@ export default function DocsPage() {
     loadDocs();
   }, [currentPath]);
 
+  const toggleDirectory = (path: string) => {
+    setExpandedDirs((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) {
+        next.delete(path);
+      } else {
+        next.add(path);
+      }
+      return next;
+    });
+  };
+
   const renderFileTree = (files: DocFile[], level = 0, forTOC = false) => {
     return (
       <ul className={level === 0 ? 'space-y-1' : 'ml-4 mt-1 space-y-1'}>
@@ -127,10 +140,55 @@ export default function DocsPage() {
                   </>
                 ) : (
                   <>
-                    <div className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider py-2 px-2">
-                      {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </div>
-                    {file.children && renderFileTree(file.children, level + 1, forTOC)}
+                    {/* Check if this is a linkable directory (entity-schemas) */}
+                    {file.path === 'arkiv/entity-schemas' ? (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => toggleDirectory(file.path)}
+                            className="flex-1 flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                          >
+                            <span className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}>
+                              ▶
+                            </span>
+                            <Link
+                              href="/docs/arkiv/entity-schemas"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSidebarOpen(false);
+                              }}
+                              className="hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </Link>
+                          </button>
+                        </div>
+                        {expandedDirs.has(file.path) && file.children && (
+                          <div className="ml-4">
+                            {renderFileTree(file.children, level + 1, forTOC)}
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => toggleDirectory(file.path)}
+                            className="flex-1 flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                          >
+                            <span className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}>
+                              ▶
+                            </span>
+                            <span>{file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                          </button>
+                        </div>
+                        {expandedDirs.has(file.path) && file.children && (
+                          <div className="ml-4">
+                            {renderFileTree(file.children, level + 1, forTOC)}
+                          </div>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </>

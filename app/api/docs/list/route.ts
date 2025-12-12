@@ -64,17 +64,17 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
   'arkiv': {
     'overview': 1,
     'data-model': 2,
-    'entity-schemas': 3,
+    'entity-schemas': 3, // Overview page (will be linked from folder)
     'privacy-consent': 4,
     'patterns-and-implementation': 5,
-    // Entity schemas (alphabetical)
-    'ask': 6,
-    'availability': 7,
-    'feedback': 8,
-    'offer': 9,
-    'profile': 10,
-    'session': 11,
-    'skill': 12,
+    // Entity schemas (alphabetical, grouped under entity-schemas folder)
+    'ask': 1,
+    'availability': 2,
+    'feedback': 3,
+    'offer': 4,
+    'profile': 5,
+    'session': 6,
+    'skill': 7,
   },
   // Modules section
   'modules': {
@@ -160,12 +160,81 @@ async function listDocs(dir: string, basePath: string = ''): Promise<DocFile[]> 
   });
 }
 
+/**
+ * Post-process files to group entity schema files under a virtual "entity-schemas" directory
+ */
+function groupEntitySchemas(files: DocFile[]): DocFile[] {
+  const schemaFiles = ['ask', 'availability', 'feedback', 'offer', 'profile', 'session', 'skill'];
+  
+  return files.map((file) => {
+    if (file.path === 'arkiv' && file.isDirectory && file.children) {
+      // Find entity schema files and the entity-schemas overview
+      const schemaChildren: DocFile[] = [];
+      const otherChildren: DocFile[] = [];
+      let entitySchemasOverview: DocFile | null = null;
+      
+      file.children.forEach((child) => {
+        if (schemaFiles.includes(child.name)) {
+          schemaChildren.push(child);
+        } else if (child.name === 'entity-schemas' && !child.isDirectory) {
+          // Keep the overview page reference (we'll link to it from the folder)
+          entitySchemasOverview = child;
+        } else {
+          otherChildren.push(child);
+        }
+      });
+      
+      // Create virtual "entity-schemas" directory
+      if (schemaChildren.length > 0) {
+        const entitySchemasDir: DocFile = {
+          path: 'arkiv/entity-schemas',
+          name: 'entity-schemas',
+          isDirectory: true,
+          children: schemaChildren.sort((a, b) => {
+            const orderA = FILE_ORDER['arkiv']?.[a.name] || 999;
+            const orderB = FILE_ORDER['arkiv']?.[b.name] || 999;
+            return orderA - orderB;
+          }),
+          order: FILE_ORDER['arkiv']?.['entity-schemas'] || 3,
+        };
+        
+        // Keep entity-schemas.md in the top level (it's the overview page)
+        // The folder will link to it, but we also show it as a file
+        const finalChildren = [
+          ...otherChildren,
+        ];
+        
+        // Insert entity-schemas overview before the folder if it exists
+        if (entitySchemasOverview) {
+          finalChildren.push(entitySchemasOverview);
+        }
+        
+        // Add the folder after the overview
+        finalChildren.push(entitySchemasDir);
+        
+        return {
+          ...file,
+          children: finalChildren.sort((a, b) => {
+            const orderA = a.order || 999;
+            const orderB = b.order || 999;
+            return orderA - orderB;
+          }),
+        };
+      }
+    }
+    return file;
+  });
+}
+
 export async function GET() {
   try {
     const docsPath = join(process.cwd(), 'docs', 'betadocs');
     const files = await listDocs(docsPath, '');
     
-    return NextResponse.json({ files });
+    // Group entity schemas under virtual directory
+    const processedFiles = groupEntitySchemas(files);
+    
+    return NextResponse.json({ files: processedFiles });
   } catch (error: any) {
     console.error('[docs/list] Error:', error);
     return NextResponse.json(
