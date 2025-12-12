@@ -92,7 +92,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
   const handleUnfollow = async (skillId: string) => {
     if (!wallet || !skillId) return;
 
-    if (!confirm('Unfollow this learning community?')) {
+    if (!confirm('Leave this learning community?')) {
       return;
     }
 
@@ -142,7 +142,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
             onClick={() => setShowFollowForm(true)}
             className="text-xs px-2 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
           >
-            + Follow
+            + Join
           </button>
         )}
       </div>
@@ -152,7 +152,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
           <SkillSelector
             value={selectedSkillId}
             onChange={(skillId) => setSelectedSkillId(skillId)}
-            placeholder="Select a skill to follow..."
+            placeholder="Select a skill to join..."
             className="mb-2"
           />
           <div className="flex gap-2">
@@ -161,7 +161,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
               disabled={!selectedSkillId || submitting}
               className="flex-1 px-3 py-1.5 text-sm rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {submitting ? 'Following...' : 'Follow'}
+              {submitting ? 'Joining...' : 'Join'}
             </button>
             <button
               onClick={() => {
@@ -178,7 +178,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
 
       {follows.length === 0 ? (
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          You're not following any learning topics yet. Follow a skill to see activity in your feed.
+          You're not part of any learning communities yet. Join a skill community to see activity in your feed.
         </div>
       ) : (
         <div className="space-y-2">
@@ -203,7 +203,7 @@ export function LearningCommunitiesCard({ wallet }: LearningCommunitiesCardProps
                     onClick={() => handleUnfollow(follow.skill_id)}
                     disabled={submitting}
                     className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
-                    title="Unfollow"
+                    title="Leave"
                   >
                     ×
                   </button>

@@ -5,17 +5,17 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createLearningFollow } from '@/lib/arkiv/learningFollow';
+import { createLearningFollow, unfollowSkill } from '@/lib/arkiv/learningFollow';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, action, skill_id, mode } = body;
+    const { wallet, action, skill_id, mode, profile_wallet } = body;
 
-    // Use wallet from request, fallback to CURRENT_WALLET for example wallet
-    const targetWallet = wallet || CURRENT_WALLET || '';
+    // Use wallet from request (profile_wallet for backward compatibility), fallback to CURRENT_WALLET
+    const targetWallet = wallet || profile_wallet || CURRENT_WALLET || '';
     if (!targetWallet) {
       return NextResponse.json(
         { ok: false, error: 'No wallet address provided' },
@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    if (action === 'createFollow') {
+    if (action === 'createFollow' || action === 'follow') {
       if (!skill_id) {
         return NextResponse.json(
           { ok: false, error: 'skill_id is required' },
@@ -36,6 +36,35 @@ export async function POST(request: Request) {
           profile_wallet: targetWallet,
           skill_id,
           mode: mode || 'learning',
+          privateKey: getPrivateKey(),
+        });
+
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle transaction receipt timeout gracefully
+        if (isTransactionTimeoutError(error)) {
+          return NextResponse.json({ 
+            ok: true, 
+            key: null,
+            txHash: null,
+            pending: true,
+            message: error.message || 'Transaction submitted, confirmation pending'
+          });
+        }
+        throw error;
+      }
+    } else if (action === 'unfollow') {
+      if (!skill_id) {
+        return NextResponse.json(
+          { ok: false, error: 'skill_id is required' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const { key, txHash } = await unfollowSkill({
+          profile_wallet: targetWallet,
+          skill_id,
           privateKey: getPrivateKey(),
         });
 
