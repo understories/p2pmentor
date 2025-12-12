@@ -125,6 +125,28 @@ export default function AsksPage() {
     }
   }, [router]);
 
+  // Handle scroll to ask when hash is present in URL
+  useEffect(() => {
+    if (!loading && asks.length > 0) {
+      const hash = window.location.hash;
+      if (hash) {
+        const askKey = hash.substring(1); // Remove the #
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          const element = document.getElementById(askKey);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight the element briefly
+            element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+            setTimeout(() => {
+              element.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+            }, 2000);
+          }
+        }, 100);
+      }
+    }
+  }, [loading, asks]);
+
   const loadData = async (wallet: string) => {
     try {
       setLoading(true);
@@ -534,8 +556,8 @@ export default function AsksPage() {
               ).slice(0, 3); // Limit to 3 similar asks
 
               return (
-                <div key={ask.key}>
-                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div key={ask.key} id={ask.key}>
+                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-300">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
