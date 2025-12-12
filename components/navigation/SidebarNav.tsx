@@ -249,9 +249,16 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium leading-tight">
-                {item.label}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium leading-tight">
+                  {item.label}
+                </span>
+                {item.href === '/me' && wallet && (
+                  <span className="text-[10px] text-gray-500 dark:text-gray-500 font-mono leading-tight mt-0.5">
+                    {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                  </span>
+                )}
+              </div>
               {active && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"

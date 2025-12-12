@@ -9,6 +9,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
@@ -24,6 +25,14 @@ export function BottomNav() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const notificationCount = useNotificationCount();
+  const [wallet, setWallet] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWallet = localStorage.getItem('wallet_address');
+      setWallet(storedWallet);
+    }
+  }, []);
 
   // Primary navigation items - simplified for mobile
   const navItems: NavItem[] = [
@@ -103,9 +112,16 @@ export function BottomNav() {
               }}
             >
               <span className="text-lg mb-0.5">{item.icon}</span>
-              <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                {item.label}
-              </span>
+              <div className="flex flex-col items-center">
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                  {item.label}
+                </span>
+                {item.href === '/me' && wallet && (
+                  <span className="text-[9px] text-gray-500 dark:text-gray-500 font-mono leading-tight mt-0.5">
+                    {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                  </span>
+                )}
+              </div>
               {item.badge !== undefined && item.badge > 0 && (
                 <span className="absolute top-0 right-1/2 translate-x-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {item.badge > 99 ? '99+' : item.badge}
