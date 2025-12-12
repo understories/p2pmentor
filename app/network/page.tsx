@@ -455,10 +455,28 @@ export default function NetworkPage() {
         {/* Section E: Leaf Chip Filter */}
         <LeafChipFilter
           value={skillFilter}
-          onChange={(value) => {
+          onChange={async (value) => {
             setSkillFilter(value);
             if (!value) {
               setSelectedCanopySkill(undefined);
+              setSkillIdFilter(null);
+            } else {
+              // Verify skill exists on Arkiv (query by slug or name)
+              try {
+                const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(value.toLowerCase().trim())}&limit=1`);
+                const skillData = await skillRes.json();
+                if (skillData.ok && skillData.skills && skillData.skills.length > 0) {
+                  // Found skill entity - use skill_id filter
+                  setSkillIdFilter(skillData.skills[0].key);
+                  setSkillFilter(''); // Clear string filter when using skill_id
+                } else {
+                  // No skill entity found - use string filter (legacy)
+                  setSkillIdFilter(null);
+                }
+              } catch (err) {
+                console.warn('[NetworkPage] Failed to verify skill on Arkiv, using string filter:', err);
+                setSkillIdFilter(null);
+              }
             }
           }}
         />
