@@ -40,14 +40,14 @@ export function FloatingActionButton() {
       label: 'Create Ask',
       icon: askEmojis.default,
       color: askColors.button,
-      minLevel: 2, // After first ask or offer
+      minLevel: 1, // After identity + skills
     },
     {
       href: '/offers',
       label: 'Create Offer',
       icon: offerEmojis.default,
       color: offerColors.button,
-      minLevel: 2, // After first ask or offer
+      minLevel: 1, // After identity + skills
     },
     {
       href: '/garden/public-board',
