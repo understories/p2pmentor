@@ -407,7 +407,10 @@ export function SidebarNav() {
                     const skillEntity = Object.values(skillsMap).find(s => 
                       s.name_canonical?.toLowerCase().trim() === skill.name.toLowerCase().trim()
                     );
-                    const skillLink = skillEntity ? `/topic/${skillEntity.slug}` : `/network?skill=${encodeURIComponent(skill.name)}`;
+                    // If skill entity found, link to topic page; otherwise link to network with onboarding param to bypass check
+                    const skillLink = skillEntity 
+                      ? `/topic/${skillEntity.slug}` 
+                      : `/network?skill=${encodeURIComponent(skill.name)}&onboarding=true`;
                     
                     return (
                       <Link
