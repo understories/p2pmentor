@@ -46,6 +46,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'dark-forest-garden': 2,
     'design-values': 3,
     'tracking-and-privacy': 4,
+    'engineering-guidelines': 5,
   },
   // History section
   'history': {
