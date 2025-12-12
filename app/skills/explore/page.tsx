@@ -15,6 +15,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { Skill } from '@/lib/arkiv/skill';
+import { normalizeSkillSlug } from '@/lib/arkiv/skill';
 
 type SkillWithCount = Skill & {
   profileCount: number;
@@ -122,8 +123,9 @@ export default function ExploreSkillsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredSkills.map((skill) => {
-              // Ensure skill has a slug - if not, generate one from name_canonical
-              const skillSlug = skill.slug || skill.name_canonical.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+              // Use proper slug normalization - ensure skill has a slug
+              // If skill doesn't have a slug, generate one from name_canonical using proper normalization
+              const skillSlug = skill.slug || normalizeSkillSlug(skill.name_canonical);
               const topicLink = skillSlug ? `/topic/${skillSlug}` : null;
               
               const content = (

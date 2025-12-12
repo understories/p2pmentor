@@ -84,7 +84,7 @@ export default function TopicDetailPage() {
       setError(null);
 
       // Load all skills for mapping skill_id to name_canonical
-      const { listSkills } = await import('@/lib/arkiv/skill');
+      const { listSkills, normalizeSkillSlug } = await import('@/lib/arkiv/skill');
       const skills = await listSkills({ status: 'active', limit: 200 });
       const skillsMap: Record<string, Skill> = {};
       skills.forEach(skill => {
@@ -92,17 +92,77 @@ export default function TopicDetailPage() {
       });
       setSkillsMap(skillsMap);
 
-      // Load skill by slug
+      // Load skill by slug (Arkiv-native: query skill entity)
+      let skillEntity: Skill | null = null;
       const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(slug)}&limit=1`);
       const skillData = await skillRes.json();
       
-      if (!skillData.ok || !skillData.skills || skillData.skills.length === 0) {
+      if (skillData.ok && skillData.skills && skillData.skills.length > 0) {
+        skillEntity = skillData.skills[0];
+      } else {
+        // Skill not found by exact slug - try to find by normalized slug matching
+        // This handles cases where slug normalization might differ or slug is missing
+        const normalizedSlug = normalizeSkillSlug(slug);
+        
+        // Find skill where slug matches (normalized) or name_canonical normalizes to this slug
+        skillEntity = skills.find(s => {
+          if (!s.slug && !s.name_canonical) return false;
+          const skillNormalizedSlug = s.slug ? normalizeSkillSlug(s.slug) : normalizeSkillSlug(s.name_canonical);
+          return skillNormalizedSlug === normalizedSlug || 
+                 s.slug === slug || 
+                 normalizeSkillSlug(s.name_canonical) === normalizedSlug;
+        }) || null;
+        
+        // If still not found, but skill exists on explore page (meaning it's in Arkiv),
+        // ensure skill entity exists using the slug to derive name_canonical
+        // This is Arkiv-native: create the skill entity if it doesn't exist
+        if (!skillEntity) {
+          try {
+            // Derive name_canonical from slug (reverse normalization)
+            // Convert "solidity" -> "Solidity", "spanish-conversation" -> "Spanish Conversation"
+            const derivedName = slug
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            
+            // Ensure skill entity exists (will create if needed, returns existing if found)
+            // Uses server-side signing wallet (Arkiv-native)
+            const { ensureSkillEntity } = await import('@/lib/arkiv/skill-helpers');
+            const ensuredSkill = await ensureSkillEntity(derivedName);
+            
+            if (ensuredSkill) {
+              // Re-query by slug after creation/ensuring
+              const retryRes = await fetch(`/api/skills?slug=${encodeURIComponent(ensuredSkill.slug)}&limit=1`);
+              const retryData = await retryRes.json();
+              if (retryData.ok && retryData.skills && retryData.skills.length > 0) {
+                skillEntity = retryData.skills[0];
+              } else {
+                // If slug still doesn't match, try to find by key in our loaded skills
+                const foundByKey = skills.find(s => s.key === ensuredSkill.key);
+                if (foundByKey) {
+                  skillEntity = foundByKey;
+                } else {
+                  // Last resort: query all skills again to find the newly created one
+                  const allSkillsRetry = await listSkills({ status: 'active', limit: 200 });
+                  const foundByKeyRetry = allSkillsRetry.find(s => s.key === ensuredSkill.key);
+                  if (foundByKeyRetry) {
+                    skillEntity = foundByKeyRetry;
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.warn('[topic] Error ensuring skill entity:', err);
+          }
+        }
+      }
+      
+      if (!skillEntity) {
         setError('Topic not found');
         setLoading(false);
         return;
       }
 
-      const skillEntity = skillData.skills[0];
       setSkill(skillEntity);
 
       // Load asks, offers, virtual gatherings, and sessions for this community
