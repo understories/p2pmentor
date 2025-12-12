@@ -62,9 +62,42 @@ async function switchToMendozaChain() {
 }
 
 /**
+ * Disconnect MetaMask wallet by revoking permissions
+ * 
+ * This forces MetaMask to show the account selection dialog on next connection.
+ * 
+ * @throws Error if MetaMask is not installed
+ */
+export async function disconnectWallet(): Promise<void> {
+  if (!window.ethereum) {
+    throw new Error("MetaMask not installed");
+  }
+
+  try {
+    // Revoke permissions to force account selection on next connect
+    // This uses EIP-2255 wallet_revokePermissions
+    await window.ethereum.request({
+      method: "wallet_revokePermissions",
+      params: [
+        {
+          eth_accounts: {},
+        },
+      ],
+    });
+  } catch (error) {
+    // If wallet_revokePermissions is not supported, try to clear accounts
+    // Some wallets may not support this method, so we silently fail
+    // The important part is that we clear localStorage, which we do in logout handlers
+    console.warn("Could not revoke MetaMask permissions:", error);
+  }
+}
+
+/**
  * Connect to MetaMask and return the connected wallet address
  * 
  * Automatically switches to Mendoza testnet chain.
+ * Forces account selection by revoking existing permissions first (if any),
+ * then requesting permissions, which ensures the account selection dialog appears.
  * 
  * @returns Wallet address (0x... format)
  * @throws Error if MetaMask is not installed
@@ -79,7 +112,47 @@ export async function connectWallet(): Promise<`0x${string}`> {
   // First switch to the correct chain
   await switchToMendozaChain();
 
-  // Then request accounts
+  // Check if we have a stored wallet address in localStorage
+  // If not, this is a fresh login, so we should revoke permissions first
+  // to ensure account selection dialog appears
+  const storedWallet = typeof window !== 'undefined' 
+    ? localStorage.getItem('wallet_address') 
+    : null;
+  
+  if (!storedWallet) {
+    // Fresh login - revoke existing permissions to force account selection
+    try {
+      await window.ethereum.request({
+        method: "wallet_revokePermissions",
+        params: [
+          {
+            eth_accounts: {},
+          },
+        ],
+      });
+    } catch (error) {
+      // If wallet_revokePermissions is not supported or fails, continue anyway
+      // Some wallets may not support this method
+    }
+  }
+
+  // Request permissions explicitly - this will show account selection dialog
+  // if permissions were revoked, or if this is the first connection
+  try {
+    await window.ethereum.request({
+      method: "wallet_requestPermissions",
+      params: [
+        {
+          eth_accounts: {},
+        },
+      ],
+    });
+  } catch (error) {
+    // If user denies or wallet_requestPermissions fails, fall back to eth_requestAccounts
+    // This maintains backward compatibility
+  }
+
+  // Then request accounts (this will use the selected account)
   const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
   }) as string[];

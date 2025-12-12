@@ -135,8 +135,23 @@ export function BottomNav() {
         </button>
         {/* Logout Button */}
         <button
-          onClick={() => {
+          onClick={async () => {
             if (typeof window !== 'undefined') {
+              // Disconnect MetaMask if it's a MetaMask wallet
+              const walletAddress = localStorage.getItem('wallet_address');
+              if (walletAddress) {
+                const walletType = localStorage.getItem(`wallet_type_${walletAddress.toLowerCase()}`);
+                if (walletType === 'metamask' && window.ethereum) {
+                  try {
+                    const { disconnectWallet } = await import('@/lib/auth/metamask');
+                    await disconnectWallet();
+                  } catch (error) {
+                    // Silently fail - clearing localStorage is the important part
+                    console.warn('Failed to disconnect MetaMask:', error);
+                  }
+                }
+              }
+              
               // Clear all wallet-related localStorage
               localStorage.removeItem('wallet_address');
               localStorage.removeItem('passkey_user_id');
