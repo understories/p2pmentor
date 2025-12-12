@@ -51,11 +51,16 @@ export function SidebarNav() {
       setWallet(storedWallet);
       
       // Load all skills for mapping skill_id to name_canonical
+      // This is used to display skill names in sessions sidebar
       listSkills({ status: 'active', limit: 200 })
         .then((skills) => {
           const map: Record<string, Skill> = {};
           skills.forEach(skill => {
             map[skill.key] = skill;
+            // Also index by slug for community session lookups
+            if (skill.slug) {
+              map[skill.slug] = skill;
+            }
           });
           setSkillsMap(map);
         })
@@ -286,14 +291,17 @@ export function SidebarNav() {
         
         {/* Upcoming Sessions - Always show if user has sessions, tied to profile identity */}
         {upcomingSessions.length > 0 && (() => {
-          // Deduplicate sessions by skill name (case-insensitive) and determine type
+          // Deduplicate sessions by skill_id and determine type
           const sessionMap = new Map<string, { skillName: string; isCommunity: boolean; session: Session }>();
           
           upcomingSessions.forEach((session) => {
-            // Use skill_id for deduplication and display with skills map
-            const skillTitle = getSidebarSkillId(session, skillsMap);
-            const skillId = session.skill_id || '[legacy data]';
+            // Get skill_id for deduplication
+            const skillId = session.skill_id || session.community || '[legacy data]';
             const normalizedSkillId = skillId.toLowerCase().trim();
+            
+            // Get skill name from skills map (will use skill_id as fallback if not found)
+            const skillTitle = getSidebarSkillId(session, skillsMap);
+            
             const isCommunity = Boolean(
               session.skill === 'virtual_gathering_rsvp' || 
               session.gatheringKey ||
@@ -315,6 +323,11 @@ export function SidebarNav() {
           });
           
           const uniqueSessions = Array.from(sessionMap.values());
+          
+          // Only render if we have sessions to show
+          if (uniqueSessions.length === 0) {
+            return null;
+          }
           
           return (
             <div className="mt-2 w-full">

@@ -34,13 +34,27 @@ export function getSessionSkillId(session: Session): string {
 /**
  * Get skill title (name_canonical) from skill_id
  * Returns the skill's name_canonical if found in skills map, otherwise returns skill_id
+ * Also checks by slug if skill_id doesn't match a key
  */
 export function getSkillTitle(skillId: string, skillsMap?: Record<string, Skill>): string {
   if (!skillsMap || skillId === '[legacy data]') {
     return skillId;
   }
+  
+  // First try direct key lookup
   const skill = skillsMap[skillId];
-  return skill?.name_canonical || skillId;
+  if (skill) {
+    return skill.name_canonical;
+  }
+  
+  // If not found by key, try to find by slug (for community sessions)
+  const skillBySlug = Object.values(skillsMap).find(s => s.slug === skillId);
+  if (skillBySlug) {
+    return skillBySlug.name_canonical;
+  }
+  
+  // Fallback to skill_id if not found
+  return skillId;
 }
 
 /**
