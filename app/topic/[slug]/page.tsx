@@ -48,6 +48,7 @@ export default function TopicDetailPage() {
   const [gatherings, setGatherings] = useState<VirtualGathering[]>([]);
   const [communitySessions, setCommunitySessions] = useState<Session[]>([]);
   const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
+  const [sessionRsvpStatus, setSessionRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [loading, setLoading] = useState(true);
@@ -230,6 +231,32 @@ export default function TopicDetailPage() {
                 new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
               );
             });
+
+            // Check RSVP status for community sessions (if user wallet is available)
+            if (userWallet) {
+              const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
+              const sessionRsvpChecks = allGatheringSessions.map(async (s: Session) => {
+                // Extract gatheringKey from session attributes or notes
+                const gatheringKey = (s as any).gatheringKey || 
+                  (s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
+                  (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
+                
+                if (gatheringKey) {
+                  const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
+                  return { sessionKey: s.key, gatheringKey, hasRsvpd };
+                }
+                return null;
+              });
+              
+              const rsvpResults = await Promise.all(sessionRsvpChecks);
+              const sessionRsvpMap: Record<string, boolean> = {};
+              rsvpResults.forEach(result => {
+                if (result) {
+                  sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
+                }
+              });
+              setSessionRsvpStatus(sessionRsvpMap);
+            }
           }
         } catch (err) {
           console.warn('Error loading gathering sessions:', err);
@@ -322,8 +349,21 @@ export default function TopicDetailPage() {
         throw new Error(data.error || 'Failed to RSVP');
       }
 
-      // Update RSVP status
+      // Update RSVP status for both gatherings and sessions
       setRsvpStatus(prev => ({ ...prev, [gatheringKey]: true }));
+      
+      // Update session RSVP status for any sessions linked to this gathering
+      const updatedSessionRsvp: Record<string, boolean> = {};
+      communitySessions.forEach(s => {
+        const sessionGatheringKey = (s as any).gatheringKey || 
+          (s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
+          (s.notes?.includes('virtual_gathering_rsvp:') ? gatherings.find(g => s.notes?.includes(g.key))?.key : null);
+        if (sessionGatheringKey === gatheringKey) {
+          updatedSessionRsvp[s.key] = true;
+        }
+      });
+      setSessionRsvpStatus(prev => ({ ...prev, ...updatedSessionRsvp }));
+      
       // Reload gatherings to get updated RSVP count
       loadTopicData();
     } catch (err: any) {
@@ -447,6 +487,16 @@ export default function TopicDetailPage() {
                 const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
                 const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
 
+                // Extract gatheringKey from session (for community sessions)
+                const gatheringKey = (session as any).gatheringKey || 
+                  (session.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
+                  (session.notes?.includes('virtual_gathering_rsvp:') ? gatherings.find(g => session.notes?.includes(g.key))?.key : null);
+                
+                // Check if this is a community gathering session and if user has RSVP'd
+                const isCommunityGathering = gatheringKey && (session.skill === 'virtual_gathering_rsvp' || session.notes?.includes('virtual_gathering_rsvp:'));
+                const hasUserRsvpd = gatheringKey ? (sessionRsvpStatus[session.key] || (isMentor && isLearner)) : false;
+                const gathering = gatheringKey ? gatherings.find(g => g.key === gatheringKey) : null;
+
                 return (
                   <div
                     key={session.key}
@@ -462,7 +512,7 @@ export default function TopicDetailPage() {
                             {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {otherProfile?.displayName || otherWallet.slice(0, 8) + '...'}
                           </p>
                         )}
-                        {session.notes && session.notes.includes('virtual_gathering_rsvp:') && (
+                        {isCommunityGathering && (
                           <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
                             Community gathering
                           </p>
@@ -476,18 +526,35 @@ export default function TopicDetailPage() {
                       <p className="text-sm text-blue-800 dark:text-blue-300">
                         <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
                         {session.duration && ` • ${session.duration} min`}
+                        {gathering && gathering.rsvpCount !== undefined && ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
                       </p>
-                      {session.videoJoinUrl && (
-                        <a
-                          href={session.videoJoinUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
-                        >
-                          🎥 Join
-                        </a>
-                      )}
-                      <ViewOnArkivLink entityKey={session.key} className="text-xs" />
+                      <div className="flex gap-2 items-center">
+                        {session.videoJoinUrl && (
+                          <a
+                            href={session.videoJoinUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                          >
+                            🎥 Join
+                          </a>
+                        )}
+                        {isCommunityGathering && gatheringKey && !hasUserRsvpd && userWallet && (
+                          <button
+                            onClick={() => handleRSVP(gatheringKey)}
+                            disabled={rsvping === gatheringKey}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm"
+                          >
+                            {rsvping === gatheringKey ? 'RSVPing...' : 'RSVP'}
+                          </button>
+                        )}
+                        {isCommunityGathering && hasUserRsvpd && (
+                          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium">
+                            ✓ RSVP'd
+                          </span>
+                        )}
+                        <ViewOnArkivLink entityKey={session.key} className="text-xs" />
+                      </div>
                     </div>
                   </div>
                 );
