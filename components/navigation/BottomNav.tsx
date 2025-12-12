@@ -70,7 +70,7 @@ export function BottomNav() {
         paddingTop: 'env(safe-area-inset-top, 0)',
       }}
     >
-      <div className="flex items-center justify-around h-14 max-w-2xl mx-auto px-2">
+      <div className="flex items-center h-14 max-w-2xl mx-auto px-1">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
@@ -79,7 +79,7 @@ export function BottomNav() {
               href={item.href}
               className={`
                 relative flex flex-col items-center justify-center
-                flex-1 h-full
+                flex-1 h-full min-w-0
                 transition-all duration-150 ease-out
                 ${active 
                   ? 'opacity-100' 
@@ -126,7 +126,7 @@ export function BottomNav() {
         {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="flex flex-col items-center justify-center h-full px-2 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+          className="flex flex-col items-center justify-center flex-1 h-full min-w-0 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
           aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
           title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
@@ -153,7 +153,7 @@ export function BottomNav() {
               window.location.href = '/auth';
             }
           }}
-          className="flex flex-col items-center justify-center h-full px-2 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+          className="flex flex-col items-center justify-center flex-1 h-full min-w-0 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
           title="Disconnect wallet and logout"
         >
           <span className="text-lg mb-0.5">⚡</span>
