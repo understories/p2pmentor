@@ -116,7 +116,14 @@ export default function DocsPage() {
                           ))}
                       </div>
                     )}
-                    {file.children && renderFileTree(file.children, level + 1, forTOC)}
+                    {/* Only recursively render subdirectories, not files (files already rendered above) */}
+                    {file.children && file.children.length > 0 && (
+                      renderFileTree(
+                        file.children.filter(child => child.isDirectory),
+                        level + 1,
+                        forTOC
+                      )
+                    )}
                   </>
                 ) : (
                   <>
