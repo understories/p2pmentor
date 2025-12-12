@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { listAdminResponses } from "./adminResponse";
+import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 
 export type AppFeedback = {
   key: string;
@@ -100,6 +101,49 @@ export async function createAppFeedback({
     ],
     expiresIn,
   });
+
+  // Create notification for admins (using signing wallet as recipient)
+  // This follows the same pattern as other notifications (sessions, admin responses)
+  try {
+    const { createNotification } = await import('./notifications');
+    const adminWallet = privateKeyToAccount(privateKey).address.toLowerCase();
+    
+    // Build notification message from feedback data
+    const feedbackPreview = hasMessage 
+      ? (message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim())
+      : `Rating: ${rating}/5`;
+    
+    const notificationTitle = feedbackType === 'issue' 
+      ? 'New Issue Reported' 
+      : 'New Feedback Submitted';
+    
+    await createNotification({
+      wallet: adminWallet, // Use signing wallet as admin/system wallet
+      notificationType: 'app_feedback_submitted',
+      sourceEntityType: 'app_feedback',
+      sourceEntityKey: entityKey,
+      title: notificationTitle,
+      message: feedbackPreview,
+      link: '/admin/feedback',
+      metadata: {
+        feedbackKey: entityKey,
+        userWallet: wallet.toLowerCase(),
+        page,
+        message: hasMessage ? message.trim() : undefined,
+        rating: hasRating ? rating : undefined,
+        feedbackType,
+        createdAt,
+        txHash,
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn('[createAppFeedback] Failed to create notification:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block feedback creation
+    console.warn('[createAppFeedback] Error creating notification:', err);
+  }
 
   return { key: entityKey, txHash };
 }

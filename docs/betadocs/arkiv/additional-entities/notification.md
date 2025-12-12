@@ -16,7 +16,7 @@ type: 'notification'
 |-----------|------|----------|-------------|
 | `type` | string | Yes | Always `'notification'` |
 | `wallet` | string | Yes | Recipient wallet address (lowercase) |
-| `notificationType` | string | Yes | Type of notification: `'meeting_request'`, `'profile_match'`, `'ask_offer_match'`, `'new_offer'`, `'admin_response'`, `'issue_resolved'` |
+| `notificationType` | string | Yes | Type of notification: `'meeting_request'`, `'profile_match'`, `'ask_offer_match'`, `'new_offer'`, `'admin_response'`, `'issue_resolved'`, `'app_feedback_submitted'` |
 | `sourceEntityType` | string | Yes | Type of source entity: `'session'`, `'ask'`, `'offer'`, `'user_profile'`, `'admin_response'`, `'app_feedback'` |
 | `sourceEntityKey` | string | Yes | Key of the source entity that triggered this notification |
 | `status` | string | Yes | `'active'` or `'archived'` (for soft delete) |
@@ -134,6 +134,40 @@ await createNotification({
 });
 ```
 
+### App Feedback Submitted Notification
+
+Created when a user submits feedback or reports an issue:
+
+```typescript
+import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
+
+const adminWallet = privateKeyToAccount(getPrivateKey()).address.toLowerCase();
+
+await createNotification({
+  wallet: adminWallet, // Use signing wallet as admin/system wallet
+  notificationType: 'app_feedback_submitted',
+  sourceEntityType: 'app_feedback',
+  sourceEntityKey: feedbackKey,
+  title: feedbackType === 'issue' ? 'New Issue Reported' : 'New Feedback Submitted',
+  message: message.trim().length > 100 
+    ? message.trim().substring(0, 100) + '...' 
+    : message.trim() || `Rating: ${rating}/5`,
+  link: '/admin/feedback',
+  metadata: {
+    feedbackKey,
+    userWallet: wallet.toLowerCase(),
+    page,
+    message: message || undefined,
+    rating: rating || undefined,
+    feedbackType,
+    createdAt,
+    txHash,
+  },
+  privateKey: getPrivateKey(),
+  spaceId: 'local-dev',
+});
+```
+
 ### Issue Resolved Notification
 
 Created when an app feedback issue is marked as resolved:
@@ -166,6 +200,7 @@ await createNotification({
 | `ask_offer_match` | Ask/offer match found | `ask` or `offer` | When ask/offer matches user's asks/offers (future) |
 | `new_offer` | New offer available | `offer` | When new offer is created (future) |
 | `admin_response` | Admin responded to feedback | `admin_response` | When admin_response entity is created |
+| `app_feedback_submitted` | User submitted feedback/issue | `app_feedback` | When app_feedback entity is created |
 | `issue_resolved` | Reported issue resolved | `app_feedback` | When app_feedback is marked as resolved |
 
 ## Archiving (Soft Delete)
@@ -228,5 +263,5 @@ The Arkiv-native notification system replaces the previous client-side detection
 - **Notification Creation**: Integrated into entity creation flows:
   - `lib/arkiv/sessions.ts` (meeting requests)
   - `lib/arkiv/adminResponse.ts` (admin responses)
-  - `lib/arkiv/appFeedback.ts` (issue resolutions)
+  - `lib/arkiv/appFeedback.ts` (feedback submissions and issue resolutions)
 
