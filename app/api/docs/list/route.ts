@@ -12,7 +12,7 @@ interface DocFile {
 
 /**
  * Define custom ordering for documentation sections and files
- * Natural order: Introduction → Philosophy → History → Architecture → Arkiv → Modules → Practices → User Flows → Meta
+ * Natural order: Introduction → Philosophy → History → Architecture → Arkiv → Modules → Practices → User Flows → Integrations → Meta
  */
 const SECTION_ORDER: Record<string, number> = {
   'introduction': 1,
@@ -23,7 +23,8 @@ const SECTION_ORDER: Record<string, number> = {
   'modules': 6,
   'practices': 7,
   'user-flows': 8,
-  'meta': 9,
+  'integrations': 9,
+  'meta': 10,
 };
 
 const FILE_ORDER: Record<string, Record<string, number>> = {
@@ -85,6 +86,12 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'network-discovery': 4,
     'sessions': 5,
     'feedback': 6,
+  },
+  // Integrations section
+  'integrations': {
+    'jitsi-integration': 1,
+    'github-integration': 2,
+    'graphql-integration': 3,
   },
   // Meta section
   'meta': {
