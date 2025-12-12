@@ -14,7 +14,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -451,8 +450,6 @@ export default function OffersPage() {
             Asks &gt;
           </Link>
         </div>
-
-        <BetaBanner />
 
         {/* Create Offer Button */}
         {!showCreateForm && (
