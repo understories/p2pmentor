@@ -494,8 +494,30 @@ export async function listUserProfiles(params?: {
       spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
       createdAt: getAttr('createdAt') || payload.createdAt,
       txHash: payload.txHash,
+      skill_ids: payload.skill_ids || [], // Include skill_ids for client-side filtering
     };
   });
+  
+  // Client-side skill filtering (Arkiv-native: skills stored in payload, not queryable via attributes)
+  if (params?.skill) {
+    const skillFilter = params.skill.toLowerCase().trim();
+    profiles = profiles.filter(profile => {
+      // Check skillsArray (legacy) - match by name
+      if (profile.skillsArray && Array.isArray(profile.skillsArray)) {
+        return profile.skillsArray.some(skill => skill.toLowerCase().includes(skillFilter));
+      }
+      // Check skills string (legacy)
+      if (profile.skills) {
+        const skillsList = profile.skills.toLowerCase().split(',').map(s => s.trim());
+        return skillsList.some(skill => skill.includes(skillFilter));
+      }
+      // Note: skill_ids array would require loading all skills to match IDs to names
+      // For now, we rely on skillsArray and skills string for filtering
+      return false;
+    });
+  }
+  
+  return profiles;
 }
 
 /**
