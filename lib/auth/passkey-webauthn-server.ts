@@ -245,20 +245,23 @@ export async function verifyRegistration(
  * 
  * @param userId - User identifier (optional, for allowCredentials filtering)
  * @param walletAddress - Wallet address (optional, for Arkiv query)
+ * @param requestOrigin - Origin from request headers (optional, for consistency checks)
  * @returns WebAuthn authentication options
  */
 export async function getAuthenticationOptions(
   userId?: string,
-  walletAddress?: string
+  walletAddress?: string,
+  requestOrigin?: string
 ): Promise<any> {
   // [PASSKEY][LOGIN][START] - Log server-side login options generation
   const env = process.env.NODE_ENV || 'development';
   const rpId = getRPID();
-  const origin = getExpectedOrigin();
+  const origin = getExpectedOrigin(requestOrigin);
   console.log('[PASSKEY][LOGIN][START]', {
     env,
     rpId,
     origin,
+    requestOrigin: requestOrigin || 'none',
     userId: userId || 'none',
     walletAddress: walletAddress || 'none',
   });
@@ -319,6 +322,9 @@ export async function getAuthenticationOptions(
     }));
   }
 
+  // Note: authenticatorSelection is NOT valid for authentication (only for registration)
+  // The key to avoiding QR/phone routing is populating allowCredentials with known credential IDs
+  // When allowCredentials is empty, Safari may offer all passkeys including phone-based ones
   const opts = {
     rpID,
     timeout: 60000, // 60 seconds
@@ -326,7 +332,28 @@ export async function getAuthenticationOptions(
     allowCredentials: allowCredentials && allowCredentials.length > 0 ? allowCredentials : undefined,
   };
 
-  return generateAuthenticationOptions(opts as any);
+  const generatedOptions = await generateAuthenticationOptions(opts as any);
+
+  // [PASSKEY][LOGIN][OPTIONS] - Comprehensive logging of final options shape
+  // This logging will help diagnose why Safari sometimes routes to phone QR vs platform authenticator
+  console.log('[PASSKEY][LOGIN][OPTIONS]', {
+    rpId: generatedOptions.rpId || rpId,
+    allowCredentialsCount: generatedOptions.allowCredentials?.length || 0,
+    userVerification: generatedOptions.userVerification || 'preferred',
+    timeout: generatedOptions.timeout || 60000,
+    challengeLength: generatedOptions.challenge?.length || 0,
+    intendedBehavior: {
+      allowCredentialsProvided: (generatedOptions.allowCredentials?.length || 0) > 0,
+      note: allowCredentials && allowCredentials.length > 0
+        ? 'allowCredentials populated - should narrow to known credentials (prefers platform authenticator)'
+        : 'allowCredentials empty - will show all passkeys for this RP (may include phone QR)',
+    },
+    warning: allowCredentials && allowCredentials.length === 0
+      ? 'allowCredentials is empty - Safari may route to phone QR even if platform authenticator exists'
+      : undefined,
+  });
+
+  return generatedOptions;
 }
 
 /**

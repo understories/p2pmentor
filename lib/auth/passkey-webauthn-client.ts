@@ -236,10 +236,35 @@ export async function loginWithPasskey(
       })) || undefined,
     };
 
-    console.log('[passkey-webauthn-client] Authenticating with passkey:', {
+    // [PASSKEY][LOGIN][CLIENT] - Comprehensive logging before navigator.credentials.get()
+    const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
+    const browserInfo = {
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+      isChrome: typeof navigator !== 'undefined' && /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent),
+      isFirefox: typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent),
+    };
+
+    console.log('[PASSKEY][LOGIN][CLIENT]', {
       challengeLength: publicKeyOptions.challenge.byteLength,
       allowCredentialsCount: publicKeyOptions.allowCredentials?.length || 0,
       rpId: publicKeyOptions.rpId,
+      userVerification: publicKeyOptions.userVerification || 'preferred',
+      authenticatorAttachment: (publicKeyOptions as any).authenticatorSelection?.authenticatorAttachment || 'not_set',
+      residentKey: (publicKeyOptions as any).extensions?.credProps?.rk || 'not_set',
+      timeout: publicKeyOptions.timeout || 60000,
+      isPlatformAuthenticatorAvailable: platformAuthAvailable,
+      browserInfo,
+      origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+      fullOptionsShape: {
+        hasAllowCredentials: !!publicKeyOptions.allowCredentials,
+        allowCredentialsLength: publicKeyOptions.allowCredentials?.length || 0,
+        hasAuthenticatorSelection: !!(publicKeyOptions as any).authenticatorSelection,
+        userVerification: publicKeyOptions.userVerification,
+      },
+      note: platformAuthAvailable
+        ? 'Platform authenticator available - should prefer Touch ID/Face ID'
+        : 'Platform authenticator NOT available - may route to phone/USB',
     });
 
     // Step 3: Call WebAuthn API to get credential
