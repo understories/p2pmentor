@@ -23,6 +23,9 @@ import type { Skill } from '@/lib/arkiv/skill';
 import { listSkills } from '@/lib/arkiv/skill';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
+import { listSessionsForWallet, type Session } from '@/lib/arkiv/sessions';
+import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
+import { calculateAverageRating } from '@/lib/arkiv/profile';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -34,12 +37,18 @@ export default function MePage() {
   const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [sessionsCompleted, setSessionsCompleted] = useState(0);
+  const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
+  const [skillsLearningCount, setSkillsLearningCount] = useState(0);
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
     community: boolean;
   }>({
-    profile: false,
+    profile: true, // Default to expanded
     skillGarden: false,
     community: false,
   });
@@ -85,9 +94,14 @@ export default function MePage() {
         ]).then(([skills, follows]) => {
           setAllSkills(skills);
           setFollowedSkills(follows.map(f => f.skill_id));
+          setSkillsLearningCount(follows.length);
         }).catch(() => {
           // Skills or follows not found - that's okay
         });
+        
+        // Load sessions and feedback for stats
+        loadSessionStats(address);
+        loadFeedbackStats(address);
       }
       
       // Poll for notifications and profile status every 30 seconds (only if profile exists)
@@ -158,6 +172,57 @@ export default function MePage() {
       console.error('Error loading profile status:', err);
       setHasProfile(null);
       setProfile(null);
+    }
+  };
+
+  const loadSessionStats = async (wallet: string) => {
+    try {
+      const allSessions = await listSessionsForWallet(wallet);
+      setSessions(allSessions);
+      
+      const now = Date.now();
+      const completed = allSessions.filter(s => {
+        if (s.status === 'completed') return true;
+        // Also count past scheduled sessions as completed
+        if (s.status === 'scheduled') {
+          const sessionTime = new Date(s.sessionDate).getTime();
+          const sessionEnd = sessionTime + (s.duration || 60) * 60 * 1000;
+          return sessionEnd < now;
+        }
+        return false;
+      }).length;
+      
+      const upcoming = allSessions.filter(s => {
+        if (s.status !== 'scheduled') return false;
+        const sessionTime = new Date(s.sessionDate).getTime();
+        return sessionTime > now;
+      }).length;
+      
+      setSessionsCompleted(completed);
+      setSessionsUpcoming(upcoming);
+    } catch (err) {
+      console.error('Error loading session stats:', err);
+    }
+  };
+
+  const loadFeedbackStats = async (wallet: string) => {
+    try {
+      const allFeedback = await listFeedbackForWallet(wallet);
+      setFeedbacks(allFeedback);
+      
+      // Calculate average rating from feedback received
+      const receivedFeedback = allFeedback.filter(f => 
+        f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+      );
+      
+      if (receivedFeedback.length > 0) {
+        const rating = await calculateAverageRating(wallet);
+        setAvgRating(rating);
+      } else {
+        setAvgRating(null);
+      }
+    } catch (err) {
+      console.error('Error loading feedback stats:', err);
     }
   };
 
@@ -284,7 +349,151 @@ export default function MePage() {
             </span>
           </button>
           {expandedSections.profile && (
-            <div className="mt-3 space-y-3">
+            <div className="mt-3 space-y-4">
+              {/* Profile Stats */}
+              {hasProfile && profile && (
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center">
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {sessionsCompleted}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+                  </div>
+                  <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center">
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {sessionsUpcoming}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+                  </div>
+                  {avgRating !== null && (
+                    <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center">
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {avgRating.toFixed(1)} ⭐
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
+                    </div>
+                  )}
+                  <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center">
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {skillsLearningCount}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Profile Information Display */}
+              {hasProfile && profile && (
+                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-3">
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Profile Information</h3>
+                  
+                  {profile.username && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Username</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">@{profile.username}</p>
+                    </div>
+                  )}
+                  
+                  {profile.bio && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Bio</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
+                    </div>
+                  )}
+                  
+                  {profile.bioLong && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">About</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.bioLong}</p>
+                    </div>
+                  )}
+                  
+                  {profile.timezone && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Timezone</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.timezone}</p>
+                    </div>
+                  )}
+                  
+                  {profile.seniority && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Seniority</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{profile.seniority}</p>
+                    </div>
+                  )}
+                  
+                  {profile.languages && profile.languages.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Languages</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.languages.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {profile.domainsOfInterest && profile.domainsOfInterest.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Domains of Interest</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.domainsOfInterest.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {profile.mentorRoles && profile.mentorRoles.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mentor Roles</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.mentorRoles.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {profile.learnerRoles && profile.learnerRoles.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Learner Roles</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.learnerRoles.join(', ')}</p>
+                    </div>
+                  )}
+                  
+                  {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Links</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.contactLinks.twitter && (
+                          <a href={profile.contactLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                            Twitter
+                          </a>
+                        )}
+                        {profile.contactLinks.github && (
+                          <a href={profile.contactLinks.github} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                            GitHub
+                          </a>
+                        )}
+                        {profile.contactLinks.telegram && (
+                          <a href={profile.contactLinks.telegram} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                            Telegram
+                          </a>
+                        )}
+                        {profile.contactLinks.discord && (
+                          <a href={profile.contactLinks.discord} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                            Discord
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {profile.skillsArray && profile.skillsArray.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skills</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.skillsArray.map((skill, idx) => (
+                          <span key={idx} className="px-2 py-1 text-xs rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-200">
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Action Links */}
               <Link
                 href="/me/profile"
                 className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
