@@ -270,7 +270,6 @@ export default function AvailabilityPage() {
           </nav>
         </div>
 
-        <BetaBanner />
 
         {/* Existing Availability Entities (Grouped Chronologically) */}
         {availabilities.length > 0 && (
@@ -332,14 +331,14 @@ export default function AvailabilityPage() {
                         <button
                           onClick={() => handleEdit(availability)}
                           disabled={isEditing || isDeleting}
-                          className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
                         >
                           {isEditing ? 'Editing...' : 'Edit'}
                         </button>
                         <button
                           onClick={() => handleDelete(availability.key)}
                           disabled={isEditing || isDeleting}
-                          className="px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800 rounded hover:bg-red-200 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                         >
                           {isDeleting ? 'Deleting...' : 'Delete'}
                         </button>
@@ -587,14 +586,14 @@ export default function AvailabilityPage() {
                         <button
                           onClick={() => handleEdit(availability)}
                           disabled={isEditing || isDeleting}
-                          className="px-3 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-800 rounded hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
                         >
                           {isEditing ? 'Editing...' : 'Edit'}
                         </button>
                         <button
                           onClick={() => handleDelete(availability.key)}
                           disabled={isEditing || isDeleting}
-                          className="px-3 py-1 text-xs font-medium text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-800 rounded hover:bg-red-200 dark:hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
                         >
                           {isDeleting ? 'Deleting...' : 'Delete'}
                         </button>

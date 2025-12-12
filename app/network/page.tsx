@@ -461,14 +461,20 @@ export default function NetworkPage() {
           description="A living map of learning + teaching connections"
         />
 
-        {/* Public Garden Board Link */}
-        <div className="mb-6">
+        {/* Public Garden Board Link and Browse Profiles */}
+        <div className="mb-6 flex items-center gap-4">
           <Link
             href="/garden/public-board"
             className="relative inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
             title="Public Garden Board"
           >
             <span className="text-lg">💌</span>
+          </Link>
+          <Link
+            href="/profiles"
+            className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
+          >
+            Browse Profiles
           </Link>
         </div>
 

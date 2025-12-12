@@ -9,7 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
@@ -39,7 +38,8 @@ export default function MePage() {
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-  const [avgRating, setAvgRating] = useState<number | null>(null);
+  const [avgRating, setAvgRating] = useState<number>(0);
+  const [ratingCalculation, setRatingCalculation] = useState<{ totalRatings: number; average: number }>({ totalRatings: 0, average: 0 });
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
@@ -210,19 +210,39 @@ export default function MePage() {
       const allFeedback = await listFeedbackForWallet(wallet);
       setFeedbacks(allFeedback);
       
-      // Calculate average rating from feedback received
+      // Calculate average rating from feedback received (query: type='session_feedback', feedbackTo=wallet)
       const receivedFeedback = allFeedback.filter(f => 
         f.feedbackTo.toLowerCase() === wallet.toLowerCase()
       );
       
-      if (receivedFeedback.length > 0) {
-        const rating = await calculateAverageRating(wallet);
-        setAvgRating(rating);
+      // Extract ratings from received feedback
+      const ratings = receivedFeedback
+        .map(f => f.rating)
+        .filter((r): r is number => r !== undefined && r > 0);
+      
+      if (ratings.length > 0) {
+        const average = ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
+        setAvgRating(Math.round(average * 10) / 10); // Round to 1 decimal
+        setRatingCalculation({
+          totalRatings: ratings.length,
+          average: Math.round(average * 10) / 10,
+        });
       } else {
-        setAvgRating(null);
+        // No ratings yet - show 0
+        setAvgRating(0);
+        setRatingCalculation({
+          totalRatings: 0,
+          average: 0,
+        });
       }
     } catch (err) {
       console.error('Error loading feedback stats:', err);
+      // On error, still show 0
+      setAvgRating(0);
+      setRatingCalculation({
+        totalRatings: 0,
+        average: 0,
+      });
     }
   };
 
@@ -252,9 +272,6 @@ export default function MePage() {
       <div className="relative z-10 p-4">
         <ThemeToggle />
       <div className="max-w-2xl mx-auto">
-        <div className="mb-4">
-          <BackButton href="/auth" label="Back to Auth" />
-        </div>
         
         {/* Profile Avatar with EIS */}
         <div className="mb-6 flex flex-col items-center">
@@ -330,39 +347,45 @@ export default function MePage() {
           return null;
         })()}
 
+        {/* Profile Stats - Always visible */}
+        <div className="mb-6 space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center">
+              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                {sessionsCompleted}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+            </div>
+            <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {sessionsUpcoming}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+            </div>
+            <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center">
+              <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                {avgRating.toFixed(1)} ⭐
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
+              <p className="text-xs text-gray-500 dark:text-gray-500 mt-1 font-mono">
+                {ratingCalculation.totalRatings > 0 
+                  ? `from ${ratingCalculation.totalRatings} rating${ratingCalculation.totalRatings !== 1 ? 's' : ''} (Arkiv query: type='session_feedback', feedbackTo='${walletAddress?.slice(0, 8)}...')`
+                  : 'no ratings yet (Arkiv query: type=\'session_feedback\', feedbackTo=wallet)'
+                }
+              </p>
+            </div>
+            <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center">
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {skillsLearningCount}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+            </div>
+          </div>
+        </div>
+
         {/* Profile Information Display - Above Toggle */}
         {hasProfile && profile && (
           <div className="mb-6 space-y-4">
-            {/* Profile Stats */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-900/20 text-center">
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {sessionsCompleted}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
-              </div>
-              <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-center">
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                  {sessionsUpcoming}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
-              </div>
-              {avgRating !== null && (
-                <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50 dark:bg-yellow-900/20 text-center">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {avgRating.toFixed(1)} ⭐
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
-                </div>
-              )}
-              <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-center">
-                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {skillsLearningCount}
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
-              </div>
-            </div>
-
             {/* Profile Information Display */}
             <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Profile Information</h3>

@@ -12,6 +12,7 @@ interface DocFile {
 
 /**
  * Define custom ordering for documentation sections and files
+ * Natural order: Introduction → Philosophy → History → Architecture → Arkiv → Modules → Practices → User Flows → Meta
  */
 const SECTION_ORDER: Record<string, number> = {
   'introduction': 1,
@@ -26,49 +27,57 @@ const SECTION_ORDER: Record<string, number> = {
 };
 
 const FILE_ORDER: Record<string, Record<string, number>> = {
-  '': { // Root level files (now in introduction/)
-    'introduction': 1,
-    'overview': 2,
-    'getting-started': 3,
-    'roadmap': 4,
-    'README': 5,
+  // Root level files (standalone docs)
+  '': {
+    'tracking-and-privacy': 1,
+    'passkey-integration': 2,
+    'roadmap': 3,
   },
+  // Introduction section
   'introduction': {
-    'introduction': 1,
-    'overview': 2,
-    'getting-started': 3,
-    'roadmap': 4,
-    'README': 5,
+    'README': 1,
+    'introduction': 2,
+    'overview': 3,
+    'getting-started': 4,
+    'roadmap': 5,
   },
+  // Philosophy section
   'philosophy': {
     'first-principles': 1,
     'dark-forest-garden': 2,
     'design-values': 3,
   },
+  // History section
   'history': {
     'context': 1,
   },
+  // Architecture section
   'architecture': {
     'overview': 1,
     'arkiv-integration': 2,
     'graphql-performance': 3,
   },
+  // Arkiv section
   'arkiv': {
     'overview': 1,
     'data-model': 2,
-    'privacy-consent': 3,
+    'entity-schemas': 3,
+    'privacy-consent': 4,
   },
+  // Modules section
   'modules': {
     'arkiv-client': 1,
     'graphql-api': 2,
     'jitsi-integration': 3,
     'feedback-modules': 4,
   },
+  // Practices section
   'practices': {
     'developer-experience': 1,
     'performance': 2,
     'arkiv-integration': 3,
   },
+  // User Flows section
   'user-flows': {
     'overview': 1,
     'profiles-skills': 2,
@@ -77,6 +86,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'sessions': 5,
     'feedback': 6,
   },
+  // Meta section
   'meta': {
     'outline': 1,
   },
