@@ -84,6 +84,7 @@ export default function NetworkPage() {
       
       if (skillId) {
         setSkillIdFilter(skillId);
+        setShowContent(true); // Show content when skill is selected from URL
       } else if (skillSlug) {
         // Try to resolve skill slug to skill_id
         fetch(`/api/skills?slug=${encodeURIComponent(skillSlug)}&limit=1`)
@@ -91,13 +92,16 @@ export default function NetworkPage() {
           .then(data => {
             if (data.ok && data.skills && data.skills.length > 0) {
               setSkillIdFilter(data.skills[0].key);
+              setShowContent(true); // Show content when skill is selected from URL
             } else {
               // Fallback to string filter
               setSkillFilter(skillSlug);
+              setShowContent(true); // Show content when skill is selected from URL
             }
           })
           .catch(() => {
             setSkillFilter(skillSlug);
+            setShowContent(true); // Show content when skill is selected from URL
           });
       }
     }
@@ -123,6 +127,16 @@ export default function NetworkPage() {
     }
   }, [asks, offers, profiles]);
 
+  // Show content automatically when a skill filter is set, or when data is loaded
+  useEffect(() => {
+    if (skillIdFilter || skillFilter) {
+      setShowContent(true);
+    } else if (asks.length > 0 || offers.length > 0 || matches.length > 0) {
+      // Show all content by default when there's data and no filter
+      setShowContent(true);
+    }
+  }, [skillIdFilter, skillFilter, asks.length, offers.length, matches.length]);
+
   const loadNetwork = async () => {
     try {
       setLoading(true);
@@ -132,11 +146,24 @@ export default function NetworkPage() {
         fetch('/api/skills?status=active&limit=200').then(r => r.json()),
       ]);
 
+      console.log('[Network] Data loaded:', {
+        asksCount: asksRes.ok ? (asksRes.asks || []).length : 0,
+        offersCount: offersRes.ok ? (offersRes.offers || []).length : 0,
+        skillsCount: skillsRes.ok ? (skillsRes.skills || []).length : 0,
+        asksOk: asksRes.ok,
+        offersOk: offersRes.ok,
+        skillsOk: skillsRes.ok,
+      });
+
       if (asksRes.ok) {
         setAsks(asksRes.asks || []);
+      } else {
+        console.error('[Network] Failed to load asks:', asksRes);
       }
       if (offersRes.ok) {
         setOffers(offersRes.offers || []);
+      } else {
+        console.error('[Network] Failed to load offers:', offersRes);
       }
 
       // Build skills map
