@@ -414,7 +414,7 @@ export async function listUserProfiles(params?: {
     .limit(100)
     .fetch();
 
-  return result.entities.map((entity: any) => {
+  let profiles = result.entities.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
