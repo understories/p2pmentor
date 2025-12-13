@@ -585,6 +585,8 @@ export default function NotificationsPage() {
                     <option value="ask_offer_match">🔗 Ask & Offer Matches</option>
                     <option value="new_offer">💡 New Offers</option>
                     <option value="admin_response">💬 Admin Responses</option>
+                    <option value="app_feedback_submitted">🔔 Feedback Submitted</option>
+                    <option value="issue_resolved">✅ Issue Resolved</option>
                   </select>
                 </div>
               </div>
