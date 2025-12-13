@@ -7,10 +7,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createAsk } from '@/lib/arkiv/asks';
 import { listSkills } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
-import { getWalletClient } from '@/lib/wallet/getWalletClient';
 import type { Skill } from '@/lib/arkiv/skill';
 
 interface AskPathStepProps {
