@@ -370,9 +370,16 @@ export async function rsvpToGathering({
   // This is a special case for community gatherings
   const normalizedWallet = wallet.toLowerCase();
 
+  // Ensure duration in payload is also an integer (defensive - prevents float in payload)
+  const payloadDuration = Math.floor(
+    typeof gathering.duration === 'number' 
+      ? gathering.duration 
+      : parseInt(String(gathering.duration || 60), 10)
+  );
+
   const payload = {
     sessionDate: gathering.sessionDate,
-    duration: gathering.duration,
+    duration: payloadDuration, // Use integer duration (prevents float propagation)
     notes: `virtual_gathering_rsvp:${gatheringKey},community:${gathering.community}`,
     // Mark as self-confirmed (no confirmation needed)
     selfConfirmed: true,
@@ -383,30 +390,45 @@ export async function rsvpToGathering({
   };
 
   // Calculate expiration same as gathering
-  const sessionStartTime = new Date(gathering.sessionDate).getTime();
-  // Ensure duration is always an integer to prevent float propagation
-  const durationMinutes = Math.floor(
-    typeof gathering.duration === 'number' 
-      ? gathering.duration 
-      : parseInt(String(gathering.duration || 60), 10)
-  );
-  const sessionDurationMs = durationMinutes * 60 * 1000;
-  const bufferMs = 60 * 60 * 1000;
-  const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
-  const now = Date.now();
-  // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
-  // Division always produces float, so we must floor it
-  const expiresInSecondsRaw = (expirationTime - now) / 1000;
-  // Floor immediately after division to ensure integer
-  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
-  // Final safety check: ensure it's definitely an integer (defensive programming)
-  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) 
-    ? expiresInSeconds 
-    : Math.floor(expiresInSeconds);
+  // CRITICAL: Ensure all numeric values are integers before any calculations
+  // This prevents float propagation that causes BigInt conversion errors
   
-  // CRITICAL: One more check before using - must be integer for BigInt
-  if (!Number.isInteger(expiresInSecondsInt)) {
-    throw new Error(`expiresIn must be an integer, got: ${expiresInSecondsInt}`);
+  // Step 1: Ensure duration is an integer (defensive - even though it should be from listVirtualGatherings)
+  const durationRaw = gathering.duration;
+  const durationMinutes = Math.floor(
+    typeof durationRaw === 'number' 
+      ? durationRaw 
+      : parseInt(String(durationRaw || 60), 10)
+  );
+  // Final check: duration must be integer
+  if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
+    throw new Error(`Duration must be a positive integer, got: ${durationRaw} (resolved to: ${durationMinutes})`);
+  }
+  
+  // Step 2: Calculate time values (all should be integers)
+  const sessionStartTime = Math.floor(new Date(gathering.sessionDate).getTime());
+  const sessionDurationMs = durationMinutes * 60 * 1000; // Integer * integer = integer
+  const bufferMs = 60 * 60 * 1000; // Integer constant
+  const expirationTime = sessionStartTime + sessionDurationMs + bufferMs; // All integers
+  const now = Math.floor(Date.now()); // Ensure integer
+  
+  // Step 3: Calculate expiresIn (division produces float, must floor immediately)
+  const timeDiffMs = expirationTime - now; // Integer - integer = integer
+  const expiresInSecondsRaw = timeDiffMs / 1000; // Division produces float
+  // Floor immediately and ensure minimum of 1 second
+  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
+  
+  // Step 4: Final safety checks - must be integer for BigInt
+  if (!Number.isInteger(expiresInSeconds)) {
+    throw new Error(`expiresIn calculation produced non-integer: ${expiresInSeconds} (raw: ${expiresInSecondsRaw}, timeDiffMs: ${timeDiffMs})`);
+  }
+  
+  // Step 5: One more defensive floor (should be no-op but ensures integer type)
+  const expiresInSecondsInt = Math.floor(expiresInSeconds);
+  
+  // Step 6: Final validation before use
+  if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt < 1) {
+    throw new Error(`expiresIn must be a positive integer, got: ${expiresInSecondsInt} (type: ${typeof expiresInSecondsInt})`);
   }
 
   // Create session entity for RSVP
