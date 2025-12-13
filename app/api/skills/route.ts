@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { listSkills, createSkill, getSkillBySlug } from '@/lib/arkiv/skill';
+import { listSkills, createSkill, getSkillBySlug, normalizeSkillSlug } from '@/lib/arkiv/skill';
 import { getPrivateKey } from '@/lib/config';
 
 /**
@@ -69,7 +69,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if skill already exists by slug
-    const normalizedSlug = name_canonical.toLowerCase().trim().replace(/\s+/g, '-');
+    // Use normalizeSkillSlug() for consistent normalization (removes special chars, handles edge cases)
+    const normalizedSlug = normalizeSkillSlug(name_canonical);
+    if (!normalizedSlug || normalizedSlug.trim() === '') {
+      return NextResponse.json(
+        { ok: false, error: `Cannot create skill "${name_canonical}": slug normalization resulted in empty string` },
+        { status: 400 }
+      );
+    }
     const existing = await getSkillBySlug(normalizedSlug);
     if (existing) {
       return NextResponse.json({

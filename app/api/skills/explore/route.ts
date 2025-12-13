@@ -5,8 +5,9 @@
  */
 
 import { NextResponse } from 'next/server';
-import { listSkills } from '@/lib/arkiv/skill';
+import { listSkills, normalizeSkillSlug } from '@/lib/arkiv/skill';
 import { listUserProfiles } from '@/lib/arkiv/profile';
+import type { Skill } from '@/lib/arkiv/skill';
 
 export async function GET(request: Request) {
   try {
@@ -16,15 +17,51 @@ export async function GET(request: Request) {
     // Get all profiles
     const profiles = await listUserProfiles();
     
-    // Count profiles for each skill
-    const skillsWithCounts = skills.map(skill => {
+    // Deduplicate skills by name_canonical (case-insensitive) or slug
+    // If duplicates exist, keep the most recent one (by createdAt) and merge profile counts
+    const skillMap = new Map<string, Skill & { profileCount: number; allKeys: string[] }>();
+    
+    skills.forEach(skill => {
+      // Use normalized name_canonical as the deduplication key (case-insensitive)
+      const dedupeKey = skill.name_canonical.toLowerCase().trim();
+      const existing = skillMap.get(dedupeKey);
+      
+      if (existing) {
+        // Duplicate found - keep the most recent one (by createdAt)
+        const existingDate = new Date(existing.createdAt).getTime();
+        const currentDate = new Date(skill.createdAt).getTime();
+        
+        if (currentDate > existingDate) {
+          // Current skill is newer - replace existing
+          skillMap.set(dedupeKey, {
+            ...skill,
+            profileCount: 0, // Will be calculated below
+            allKeys: [...existing.allKeys, skill.key],
+          });
+        } else {
+          // Existing skill is newer or same - keep it, but track the duplicate key
+          existing.allKeys.push(skill.key);
+        }
+      } else {
+        // New skill - add to map
+        skillMap.set(dedupeKey, {
+          ...skill,
+          profileCount: 0, // Will be calculated below
+          allKeys: [skill.key],
+        });
+      }
+    });
+    
+    // Count profiles for each deduplicated skill
+    // For duplicates, count profiles that reference ANY of the duplicate skill keys
+    const skillsWithCounts = Array.from(skillMap.values()).map(skill => {
       let count = 0;
       
       profiles.forEach(profile => {
         // Check if profile has this skill
-        // Check skill_ids array (new format)
+        // Check skill_ids array (new format) - check against all duplicate keys
         const skillIds = (profile as any).skill_ids || [];
-        if (skillIds.includes(skill.key)) {
+        if (skill.allKeys.some(key => skillIds.includes(key))) {
           count++;
           return;
         }
@@ -49,8 +86,10 @@ export async function GET(request: Request) {
         }
       });
       
+      // Remove allKeys from the returned object (internal only)
+      const { allKeys, ...skillWithoutKeys } = skill;
       return {
-        ...skill,
+        ...skillWithoutKeys,
         profileCount: count,
       };
     });
