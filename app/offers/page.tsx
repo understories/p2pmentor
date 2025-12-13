@@ -16,7 +16,6 @@ import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForOffers } from '@/lib/graph/featureFlags';
@@ -26,6 +25,8 @@ import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvaila
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { SkillSelector } from '@/components/SkillSelector';
 import { offerColors, offerEmojis, askColors } from '@/lib/colors';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -106,6 +107,7 @@ export default function OffersPage() {
   const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -415,7 +417,27 @@ export default function OffersPage() {
             <div className="mb-6">
               <BackButton href="/network" />
             </div>
-            <LoadingSpinner text="Loading offers..." className="py-12" />
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `loadData("${walletAddress?.toLowerCase() || '...'}")`,
+                  `Queries:`,
+                  `1. getProfileByWallet("${walletAddress?.toLowerCase() || '...'}")`,
+                  `   → type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                  `2. GET /api/availability?wallet=${walletAddress?.toLowerCase() || '...'}`,
+                  `   → type='availability', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                  `3. fetchOffers({ includeExpired: false, limit: 100 }) (GraphQL) OR`,
+                  `   GET /api/offers (JSON-RPC)`,
+                  `   → type='offer', status='active'`,
+                  `Returns: Offer[] (all active offers)`
+                ]}
+                label="Loading Offers"
+              >
+                <LoadingSpinner text="Loading offers..." className="py-12" />
+              </ArkivQueryTooltip>
+            ) : (
+              <LoadingSpinner text="Loading offers..." className="py-12" />
+            )}
           </div>
         </div>
       </BetaGate>
@@ -425,7 +447,6 @@ export default function OffersPage() {
   return (
     <BetaGate>
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
@@ -454,12 +475,33 @@ export default function OffersPage() {
         {/* Create Offer Button */}
         {!showCreateForm && (
           <div className="mb-6">
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
-            >
-              {offerEmojis.default} Create Offer
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Clicking opens form to create offer entity`,
+                  `POST /api/offers { action: 'createOffer', ... }`,
+                  `Creates: type='offer' entity`,
+                  `Attributes: wallet, skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
+                  `Payload: Full offer data`,
+                  `TTL: expiresIn (default 1 week = 604800 seconds)`
+                ]}
+                label="Create Offer"
+              >
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                >
+                  {offerEmojis.default} Create Offer
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+              >
+                {offerEmojis.default} Create Offer
+              </button>
+            )}
           </div>
         )}
 
@@ -713,13 +755,35 @@ export default function OffersPage() {
               )}
 
               <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Creating...' : 'Create Offer'}
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `POST /api/offers { action: 'createOffer', ... }`,
+                      `Creates: type='offer' entity`,
+                      `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
+                      `Payload: Full offer data`,
+                      `TTL: expiresIn (default 1 week = 604800 seconds)`,
+                      `Note: Creates offer_txhash entity for transaction tracking`
+                    ]}
+                    label="Create Offer"
+                  >
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? 'Creating...' : 'Create Offer'}
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Creating...' : 'Create Offer'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -823,23 +887,60 @@ export default function OffersPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
-                  <ViewOnArkivLink entityKey={offer.key} />
+                  {arkivBuilderMode && offer.key && (
+                    <div className="flex items-center gap-2">
+                      <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} className="text-xs" />
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {offer.key.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
+                  {!arkivBuilderMode && (
+                    <ViewOnArkivLink entityKey={offer.key} />
+                  )}
                 </div>
                 {/* Request Meeting Button - only show if not own offer */}
                 {walletAddress && walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (
                   <div className="mt-4">
-                    <button
-                      onClick={async () => {
-                        // Load profile for the offer's wallet
-                        const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                        setSelectedOfferProfile(offerProfile);
-                        setSelectedOffer(offer);
-                        setShowMeetingModal(true);
-                      }}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                    >
-                      Request Meeting
-                    </button>
+                    {arkivBuilderMode ? (
+                      <ArkivQueryTooltip
+                        query={[
+                          `Opens RequestMeetingModal to create session`,
+                          `POST /api/sessions { action: 'createSession', ... }`,
+                          `Creates: type='session' entity`,
+                          `Attributes: mentorWallet='${offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                          `Payload: Full session data`,
+                          `TTL: sessionDate + duration + 1 hour buffer`
+                        ]}
+                        label="Request Meeting"
+                      >
+                        <button
+                          onClick={async () => {
+                            // Load profile for the offer's wallet
+                            const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                            setSelectedOfferProfile(offerProfile);
+                            setSelectedOffer(offer);
+                            setShowMeetingModal(true);
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Request Meeting
+                        </button>
+                      </ArkivQueryTooltip>
+                    ) : (
+                      <button
+                        onClick={async () => {
+                          // Load profile for the offer's wallet
+                          const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                          setSelectedOfferProfile(offerProfile);
+                          setSelectedOffer(offer);
+                          setShowMeetingModal(true);
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Request Meeting
+                      </button>
+                    )}
                   </div>
                 )}
                   </div>
