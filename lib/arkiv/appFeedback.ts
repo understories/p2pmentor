@@ -102,11 +102,10 @@ export async function createAppFeedback({
     expiresIn,
   });
 
-  // Create notification for admins (using signing wallet as recipient)
-  // This follows the same pattern as other notifications (sessions, admin responses)
+  // Create notification for the user who submitted the feedback (tied to their profile wallet)
+  // This confirms their feedback/issue was successfully submitted
   try {
     const { createNotification } = await import('./notifications');
-    const adminWallet = privateKeyToAccount(privateKey).address.toLowerCase();
     
     // Build notification message from feedback data
     const feedbackPreview = hasMessage 
@@ -114,17 +113,17 @@ export async function createAppFeedback({
       : `Rating: ${rating}/5`;
     
     const notificationTitle = feedbackType === 'issue' 
-      ? 'New Issue Reported' 
-      : 'New Feedback Submitted';
+      ? 'Issue Reported' 
+      : 'Feedback Submitted';
     
     await createNotification({
-      wallet: adminWallet, // Use signing wallet as admin/system wallet
+      wallet: wallet.toLowerCase(), // Use profile wallet (user who submitted feedback)
       notificationType: 'app_feedback_submitted',
       sourceEntityType: 'app_feedback',
       sourceEntityKey: entityKey,
       title: notificationTitle,
       message: feedbackPreview,
-      link: '/admin/feedback',
+      link: '/notifications',
       metadata: {
         feedbackKey: entityKey,
         userWallet: wallet.toLowerCase(),
