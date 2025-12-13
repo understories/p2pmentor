@@ -16,7 +16,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -85,8 +84,6 @@ export default function ProfilesPage() {
           title="Browse Profiles"
           description="Discover mentors and learners in the network."
         />
-        
-        <BetaBanner />
 
         {/* Filter */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
