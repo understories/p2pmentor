@@ -130,7 +130,12 @@ export default function NotificationsPage() {
             timestamp: n.createdAt,
             link: n.link,
             read: pref?.read ?? false, // Default to unread if no preference
-            metadata: n.metadata || {},
+            metadata: {
+              ...(n.metadata || {}),
+              // Include sourceEntityKey in metadata for easy access
+              sourceEntityKey: n.sourceEntityKey,
+              sourceEntityType: n.sourceEntityType,
+            },
           };
         })
         .filter((n: Notification | null): n is Notification => n !== null);
@@ -501,15 +506,16 @@ export default function NotificationsPage() {
 
     setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
     try {
-      const res = await fetch(`/api/app-feedback?wallet=${userWallet}`);
+      // Query feedback directly by key (works for any profile, not just current user)
+      const res = await fetch(`/api/app-feedback?key=${encodeURIComponent(feedbackKey)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.ok && data.feedbacks) {
-          const feedback = data.feedbacks.find((f: any) => f.key === feedbackKey);
-          if (feedback) {
-            setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: feedback }));
-          }
+        if (data.ok && data.feedback) {
+          setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
         }
+      } else if (res.status === 404) {
+        // Feedback not found - might be from a different profile or deleted
+        console.warn(`Feedback ${feedbackKey} not found`);
       }
     } catch (err) {
       console.error('Error loading feedback details:', err);
@@ -684,12 +690,13 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {filteredNotifications.map((notification) => {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
-              const feedbackKey = notification.metadata?.feedbackKey;
+              // Use sourceEntityKey (from notification) or feedbackKey (from metadata) as fallback
+              const feedbackKey = notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey;
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
               const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
 
               // Load feedback details if needed
-              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback && userWallet) {
+              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback) {
                 loadFeedbackDetails(feedbackKey);
               }
 

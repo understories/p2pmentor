@@ -451,3 +451,146 @@ export async function listAppFeedback({
   }
 }
 
+/**
+ * Get a single app feedback by key
+ * 
+ * @param key - App feedback entity key
+ * @returns AppFeedback or null if not found
+ */
+export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | null> {
+  const publicClient = getPublicClient();
+  
+  try {
+    // Query by key using where clause
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'app_feedback'))
+      .where(eq('key', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    if (!result || !result.entities || result.entities.length === 0) {
+      return null;
+    }
+
+    const entity = result.entities[0];
+    
+    // Fetch txHash, resolution, and response in parallel
+    const [txHashResult, resolutionResult] = await Promise.all([
+      publicClient.buildQuery()
+        .where(eq('type', 'app_feedback_txhash'))
+        .where(eq('feedbackKey', key))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(1)
+        .fetch(),
+      publicClient.buildQuery()
+        .where(eq('type', 'app_feedback_resolution'))
+        .where(eq('feedbackKey', key))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(1)
+        .fetch(),
+    ]);
+
+    // Build txHash
+    let txHash: string | undefined;
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+      try {
+        const txHashEntity = txHashResult.entities[0];
+        const txHashPayload = txHashEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(txHashEntity.payload)
+          : typeof txHashEntity.payload === 'string'
+          ? txHashEntity.payload
+          : JSON.stringify(txHashEntity.payload);
+        const decoded = JSON.parse(txHashPayload);
+        txHash = decoded.txHash;
+      } catch (e) {
+        console.error('Error decoding txHash:', e);
+      }
+    }
+
+    // Build resolution
+    let resolution: { resolvedAt: string; resolvedBy: string } | undefined;
+    if (resolutionResult?.entities && Array.isArray(resolutionResult.entities) && resolutionResult.entities.length > 0) {
+      try {
+        const resolutionEntity = resolutionResult.entities[0];
+        const resolutionAttrs = resolutionEntity.attributes || {};
+        const getResolutionAttr = (key: string): string => {
+          if (Array.isArray(resolutionAttrs)) {
+            const attr = resolutionAttrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(resolutionAttrs[key] || '');
+        };
+        resolution = {
+          resolvedAt: getResolutionAttr('resolvedAt'),
+          resolvedBy: getResolutionAttr('resolvedBy'),
+        };
+      } catch (e) {
+        console.error('Error decoding resolution:', e);
+      }
+    }
+
+    // Check for admin response
+    let hasResponse = false;
+    let responseAt: string | undefined;
+    try {
+      const { listAdminResponses } = await import('./adminResponse');
+      const responses = await listAdminResponses({ feedbackKey: key, limit: 1 });
+      if (responses.length > 0) {
+        hasResponse = true;
+        responseAt = responses[0].createdAt;
+      }
+    } catch (error) {
+      console.error('Error loading admin response:', error);
+      // Continue without response data - don't fail the entire query
+    }
+
+    // Decode payload
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding app feedback payload:', e);
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    return {
+      key: entity.key,
+      wallet: getAttr('wallet'),
+      page: getAttr('page'),
+      message: payload.message || '',
+      rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
+      feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
+      spaceId: getAttr('spaceId') || 'local-dev',
+      createdAt: getAttr('createdAt'),
+      txHash: txHash || payload.txHash || undefined,
+      resolved: !!resolution,
+      resolvedAt: resolution?.resolvedAt,
+      resolvedBy: resolution?.resolvedBy,
+      hasResponse,
+      responseAt,
+    };
+  } catch (error: any) {
+    console.error(`Error getting app feedback by key ${key}:`, error);
+    return null;
+  }
+}
+
