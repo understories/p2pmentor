@@ -936,7 +936,7 @@ export default function NotificationsPage() {
                   {/* Show full admin response details for admin_response notifications */}
                   {isAdminResponseNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {isLoadingAdminResponse ? (
+                      {isLoadingAdminResponse && !adminResponse ? (
                         <div className="text-sm text-gray-500 dark:text-gray-400">Loading response details...</div>
                       ) : adminResponse ? (
                         <div className="space-y-3">
@@ -1001,7 +1001,7 @@ export default function NotificationsPage() {
                   {/* Show full feedback details for app_feedback_submitted notifications */}
                   {isFeedbackNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {isLoadingFeedback ? (
+                      {isLoadingFeedback && !feedback ? (
                         <div className="text-sm text-gray-500 dark:text-gray-400">Loading feedback details...</div>
                       ) : feedback ? (
                         <div className="space-y-3">
