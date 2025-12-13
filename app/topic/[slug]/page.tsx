@@ -16,8 +16,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SkillCluster } from '@/components/network/SkillCluster';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -28,6 +26,8 @@ import type { Session } from '@/lib/arkiv/sessions';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatSessionTitle } from '@/lib/sessions/display';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 type Match = {
   ask: Ask;
@@ -65,6 +65,7 @@ export default function TopicDetailPage() {
     time: '',
     duration: '60',
   });
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     // Get user wallet first
@@ -448,7 +449,6 @@ export default function TopicDetailPage() {
   if (error || !skill) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <ThemeToggle />
         <div className="max-w-6xl mx-auto">
           <div className="mb-6">
             <BackButton href="/network" />
@@ -472,7 +472,6 @@ export default function TopicDetailPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />

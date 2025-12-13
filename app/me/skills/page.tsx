@@ -15,13 +15,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SkillSelector } from '@/components/SkillSelector';
 import { connectWallet } from '@/lib/auth/metamask';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { normalizeSkillSlug } from '@/lib/arkiv/skill';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import 'viem/window'; // Adds window.ethereum type definition
 
 export default function SkillsPage() {
@@ -38,6 +40,7 @@ export default function SkillsPage() {
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
   const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -239,7 +242,25 @@ export default function SkillsPage() {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
-          <p>Loading skills...</p>
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadData("${walletAddress || '...'}")`,
+                `Queries:`,
+                `1. getProfileByWallet("${walletAddress?.toLowerCase() || '...'}")`,
+                `   → type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                `2. GET /api/skills?status=active&limit=200`,
+                `   → type='skill', status='active'`,
+                `3. listLearningFollows({ profile_wallet: "${walletAddress?.toLowerCase() || '...'}", active: true })`,
+                `   → type='learning_follow', profile_wallet='${walletAddress?.toLowerCase() || '...'}'`
+              ]}
+              label="Loading Skills"
+            >
+              <p>Loading skills...</p>
+            </ArkivQueryTooltip>
+          ) : (
+            <p>Loading skills...</p>
+          )}
         </div>
       </div>
     );
@@ -272,7 +293,6 @@ export default function SkillsPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6 flex items-center justify-between">
           <BackButton href="/me" />
@@ -360,13 +380,35 @@ export default function SkillsPage() {
               allowCreate={true}
               className="mb-2"
             />
-            <button
-              onClick={handleAddSkill}
-              disabled={submitting || !selectedSkillId}
-              className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? 'Adding...' : 'Add Skill'}
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `POST /api/profile { action: 'updateProfile', ... }`,
+                  `Creates: type='user_profile' entity`,
+                  `Attributes: wallet, displayName, skills, skill_ids, ...`,
+                  `Payload: Full profile data with updated skill_ids array`,
+                  `TTL: 1 year (31536000 seconds)`,
+                  `Note: Creates new immutable profile entity on Arkiv`
+                ]}
+                label="Add Skill"
+              >
+                <button
+                  onClick={handleAddSkill}
+                  disabled={submitting || !selectedSkillId}
+                  className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Adding...' : 'Add Skill'}
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={handleAddSkill}
+                disabled={submitting || !selectedSkillId}
+                className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Adding...' : 'Add Skill'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -399,7 +441,15 @@ export default function SkillsPage() {
                           <span className="font-medium text-gray-900 dark:text-gray-100">
                             {skill.name_canonical}
                           </span>
-                          {skill.txHash && (
+                          {arkivBuilderMode && skill.key && (
+                            <ViewOnArkivLink
+                              entityKey={skill.key}
+                              txHash={skill.txHash}
+                              label="View Skill Entity"
+                              className="text-xs"
+                            />
+                          )}
+                          {!arkivBuilderMode && skill.txHash && (
                             <a
                               href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${skill.txHash}`}
                               target="_blank"
@@ -409,6 +459,11 @@ export default function SkillsPage() {
                             >
                               🔗 View on Arkiv
                             </a>
+                          )}
+                          {arkivBuilderMode && skill.key && (
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              Key: {skill.key.slice(0, 12)}...
+                            </span>
                           )}
                         </div>
                         {skill.description && (
@@ -426,52 +481,65 @@ export default function SkillsPage() {
                             </Link>
                           )}
                           {walletAddress && (
-                            <button
-                              onClick={async () => {
-                                if (!walletAddress || !skill.key || isSubmittingFollow) return;
-                                
-                                const action = isJoined ? 'unfollow' : 'follow';
-                                setSubmittingFollow(skill.key);
-                                try {
-                                  const res = await fetch('/api/learning-follow', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                      action,
-                                      profile_wallet: walletAddress,
-                                      skill_id: skill.key,
-                                    }),
-                                  });
-                                  
-                                  const data = await res.json();
-                                  if (data.ok) {
-                                    // Wait for Arkiv to index the new entity (especially important for joins)
-                                    await new Promise(resolve => setTimeout(resolve, 1500));
-                                    // Reload followed skills
-                                    const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
-                                    setFollowedSkills(follows.map(f => f.skill_id));
-                                  } else {
-                                    alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                  }
-                                } catch (error: any) {
-                                  console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
-                                  alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                } finally {
-                                  setSubmittingFollow(null);
-                                }
-                              }}
-                              disabled={isSubmittingFollow}
-                              className={`text-xs px-2 py-1 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                                isJoined
-                                  ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                                  : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                              }`}
+                            <ArkivQueryTooltip
+                              query={[
+                                `POST /api/learning-follow { action: '${isJoined ? 'unfollow' : 'follow'}', ... }`,
+                                isJoined 
+                                  ? `Updates: type='learning_follow' entity (sets active=false)`
+                                  : `Creates: type='learning_follow' entity`,
+                                `Attributes: profile_wallet='${walletAddress.toLowerCase().slice(0, 8)}...', skill_id='${skill.key.slice(0, 12)}...', active=${!isJoined}`,
+                                `Payload: Full learning follow data`,
+                                `TTL: 1 year (31536000 seconds)`
+                              ]}
+                              label={isJoined ? 'Leave Community' : 'Join Community'}
                             >
-                              {isSubmittingFollow 
-                                ? (isJoined ? 'Leaving...' : 'Joining...') 
-                                : (isJoined ? 'Leave' : 'Join')
-                              }
-                            </button>
+                              <button
+                                onClick={async () => {
+                                  if (!walletAddress || !skill.key || isSubmittingFollow) return;
+                                  
+                                  const action = isJoined ? 'unfollow' : 'follow';
+                                  setSubmittingFollow(skill.key);
+                                  try {
+                                    const res = await fetch('/api/learning-follow', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({
+                                        action,
+                                        profile_wallet: walletAddress,
+                                        skill_id: skill.key,
+                                      }),
+                                    });
+                                    
+                                    const data = await res.json();
+                                    if (data.ok) {
+                                      // Wait for Arkiv to index the new entity (especially important for joins)
+                                      await new Promise(resolve => setTimeout(resolve, 1500));
+                                      // Reload followed skills
+                                      const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
+                                      setFollowedSkills(follows.map(f => f.skill_id));
+                                    } else {
+                                      alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                    }
+                                  } catch (error: any) {
+                                    console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                                    alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                  } finally {
+                                    setSubmittingFollow(null);
+                                  }
+                                }}
+                                disabled={isSubmittingFollow}
+                                className={`text-xs px-2 py-1 rounded border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                                  isJoined
+                                    ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
+                                }`}
+                              >
+                                {isSubmittingFollow 
+                                  ? (isJoined ? 'Leaving...' : 'Joining...') 
+                                  : (isJoined ? 'Leave' : 'Join')
+                                }
+                              </button>
+                            </ArkivQueryTooltip>
                           )}
                         </div>
                         {skill.txHash && (
@@ -490,13 +558,35 @@ export default function SkillsPage() {
                           </div>
                         )}
                       </div>
-                      <button
-                        onClick={() => handleRemoveSkill(skill.key)}
-                        disabled={submitting}
-                        className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                      >
-                        Remove
-                      </button>
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `POST /api/profile { action: 'updateProfile', ... }`,
+                            `Creates: type='user_profile' entity`,
+                            `Attributes: wallet, displayName, skills, skill_ids (removed), ...`,
+                            `Payload: Full profile data with updated skill_ids array`,
+                            `TTL: 1 year (31536000 seconds)`,
+                            `Note: Creates new immutable profile entity on Arkiv`
+                          ]}
+                          label="Remove Skill"
+                        >
+                          <button
+                            onClick={() => handleRemoveSkill(skill.key)}
+                            disabled={submitting}
+                            className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          >
+                            Remove
+                          </button>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <button
+                          onClick={() => handleRemoveSkill(skill.key)}
+                          disabled={submitting}
+                          className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </div>
                   </div>
                 );

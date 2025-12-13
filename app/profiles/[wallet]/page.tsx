@@ -16,12 +16,13 @@ import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
 import { fetchProfileDetail } from '@/lib/graph/profileQueries';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -62,6 +63,7 @@ export default function ProfileDetailPage() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showGardenNoteModal, setShowGardenNoteModal] = useState(false);
   const [viewMode, setViewMode] = useState<'edit' | 'view'>('view'); // 'edit' = show edit controls, 'view' = view as others
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (wallet) {
@@ -313,7 +315,6 @@ export default function ProfileDetailPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/profiles" />
@@ -334,7 +335,20 @@ export default function ProfileDetailPage() {
                   {profile.username && (
                     <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
                   )}
-                  {profile.txHash && (
+                  {arkivBuilderMode && profile.key && (
+                    <div className="mt-2 flex items-center gap-2">
+                      <ViewOnArkivLink
+                        entityKey={profile.key}
+                        txHash={profile.txHash}
+                        label="View Profile Entity"
+                        className="text-xs"
+                      />
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        Key: {profile.key.slice(0, 16)}...
+                      </span>
+                    </div>
+                  )}
+                  {!arkivBuilderMode && profile.txHash && (
                     <div className="mt-2">
                       <ViewOnArkivLink entityKey={profile.key} />
                     </div>
@@ -488,7 +502,21 @@ export default function ProfileDetailPage() {
         {/* Offers (Teaching) */}
         {offers.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/offers?wallet=${wallet.toLowerCase()}`,
+                  `Query: type='offer', wallet='${wallet.toLowerCase()}'`,
+                  `Returns: Offer[] (${offers.length} offers)`,
+                  `Each offer is a type='offer' entity on Arkiv`
+                ]}
+                label={`Teaching Offers (${offers.length})`}
+              >
+                <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+              </ArkivQueryTooltip>
+            ) : (
+              <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+            )}
             <div className="space-y-4">
               {offers.map((offer) => (
                 <div
@@ -540,7 +568,17 @@ export default function ProfileDetailPage() {
                         const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
                         return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
                       })()}</span>
-                      <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
+                      {arkivBuilderMode && offer.key && (
+                        <div className="flex items-center gap-2">
+                          <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} className="text-xs" />
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            {offer.key.slice(0, 12)}...
+                          </span>
+                        </div>
+                      )}
+                      {!arkivBuilderMode && (
+                        <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
+                      )}
                     </div>
                     {/* Request Meeting Button for this specific offer */}
                     {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
@@ -565,7 +603,21 @@ export default function ProfileDetailPage() {
         {/* Asks (Learning) */}
         {asks.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/asks?wallet=${wallet.toLowerCase()}`,
+                  `Query: type='ask', wallet='${wallet.toLowerCase()}'`,
+                  `Returns: Ask[] (${asks.length} asks)`,
+                  `Each ask is a type='ask' entity on Arkiv`
+                ]}
+                label={`Learning Requests (${asks.length})`}
+              >
+                <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+              </ArkivQueryTooltip>
+            ) : (
+              <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+            )}
             <div className="space-y-4">
               {asks.map((ask) => (
                 <div
@@ -591,7 +643,17 @@ export default function ProfileDetailPage() {
                       const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
                       return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
                     })()}</span>
-                    <ViewOnArkivLink entityKey={ask.key} />
+                    {arkivBuilderMode && ask.key && (
+                      <div className="flex items-center gap-2">
+                        <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          {ask.key.slice(0, 12)}...
+                        </span>
+                      </div>
+                    )}
+                    {!arkivBuilderMode && (
+                      <ViewOnArkivLink entityKey={ask.key} />
+                    )}
                   </div>
                 </div>
               ))}
@@ -631,7 +693,21 @@ export default function ProfileDetailPage() {
 
           return (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `GET /api/sessions?wallet=${wallet.toLowerCase()}`,
+                    `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                    `Returns: Session[] (${sessions.length} sessions)`,
+                    `Each session is a type='session' entity on Arkiv`
+                  ]}
+                  label="Session History"
+                >
+                  <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+                </ArkivQueryTooltip>
+              ) : (
+                <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+              )}
               
               {/* Stats */}
               {(sessionsCompleted > 0 || sessionsGiven > 0 || sessionsReceived > 0) && (
@@ -740,7 +816,22 @@ export default function ProfileDetailPage() {
 
           return (
             <div className="mb-8">
-              <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `GET /api/feedback?wallet=${wallet.toLowerCase()}`,
+                    `Query: type='feedback', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                    `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
+                    `Returns: Feedback[] (${receivedFeedback.length} feedbacks)`,
+                    `Each feedback is a type='feedback' entity on Arkiv`
+                  ]}
+                  label="Feedback & Ratings"
+                >
+                  <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+                </ArkivQueryTooltip>
+              ) : (
+                <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+              )}
               
               {/* Stats */}
               <div className="mb-6 grid grid-cols-2 gap-4">
