@@ -651,15 +651,6 @@ export default function ProfilePage() {
               }
             </button>
           </div>
-
-          <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-            <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              <strong>⚠️ Beta Warning:</strong> Blockchain data is immutable. All data inputted is viewable forever on the{' '}
-              <a href="https://explorer.mendoza.hoodi.arkiv.network" target="_blank" rel="noopener noreferrer" className="underline">
-                Arkiv explorer
-              </a>.
-            </p>
-          </div>
         </form>
         )}
       </div>
