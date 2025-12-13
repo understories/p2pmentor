@@ -503,6 +503,10 @@ export default function NotificationsPage() {
   const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
   const [loadingFeedback, setLoadingFeedback] = useState<Record<string, boolean>>({});
 
+  // State for admin response details (for admin_response notifications)
+  const [adminResponseDetails, setAdminResponseDetails] = useState<Record<string, any>>({});
+  const [loadingAdminResponse, setLoadingAdminResponse] = useState<Record<string, boolean>>({});
+
   // Load feedback details for app_feedback_submitted notifications
   const loadFeedbackDetails = async (feedbackKey: string) => {
     if (feedbackDetails[feedbackKey] || loadingFeedback[feedbackKey]) {
@@ -526,6 +530,32 @@ export default function NotificationsPage() {
       console.error('Error loading feedback details:', err);
     } finally {
       setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Load admin response details for admin_response notifications
+  const loadAdminResponseDetails = async (responseKey: string) => {
+    if (adminResponseDetails[responseKey] || loadingAdminResponse[responseKey]) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: true }));
+    try {
+      // Query admin response directly by key (works for any profile, not just current user)
+      const res = await fetch(`/api/admin/response?key=${encodeURIComponent(responseKey)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.response) {
+          setAdminResponseDetails(prev => ({ ...prev, [responseKey]: data.response }));
+        }
+      } else if (res.status === 404) {
+        // Admin response not found - might be from a different profile or deleted
+        console.warn(`Admin response ${responseKey} not found`);
+      }
+    } catch (err) {
+      console.error('Error loading admin response details:', err);
+    } finally {
+      setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: false }));
     }
   };
 
@@ -714,14 +744,26 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {filteredNotifications.map((notification) => {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
+              const isAdminResponseNotification = notification.type === 'admin_response';
+              
               // Use sourceEntityKey (from notification) or feedbackKey (from metadata) as fallback
               const feedbackKey = notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey;
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
               const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
 
+              // For admin_response, use sourceEntityKey (the response key) or responseKey from metadata
+              const responseKey = notification.metadata?.sourceEntityKey || notification.metadata?.responseKey;
+              const adminResponse = responseKey ? adminResponseDetails[responseKey] : null;
+              const isLoadingAdminResponse = responseKey ? loadingAdminResponse[responseKey] : false;
+
               // Load feedback details if needed
               if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback) {
                 loadFeedbackDetails(feedbackKey);
+              }
+
+              // Load admin response details if needed
+              if (isAdminResponseNotification && responseKey && !adminResponse && !isLoadingAdminResponse) {
+                loadAdminResponseDetails(responseKey);
               }
 
               return (
@@ -888,6 +930,71 @@ export default function NotificationsPage() {
                           )}
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Show full admin response details for admin_response notifications */}
+                  {isAdminResponseNotification && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {isLoadingAdminResponse ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading response details...</div>
+                      ) : adminResponse ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Date:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {new Date(adminResponse.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">From:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100 font-mono text-xs">
+                                {adminResponse.adminWallet.slice(0, 8)}...
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium text-sm">Response:</span>
+                            <p className="text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-wrap">
+                              {adminResponse.message}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {adminResponse.txHash && (
+                              <ViewOnArkivLink
+                                entityKey={adminResponse.key}
+                                txHash={adminResponse.txHash}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
+                            )}
+                            {arkivBuilderMode && adminResponse.key && (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                Key: {adminResponse.key.slice(0, 16)}...
+                              </div>
+                            )}
+                          </div>
+                          {/* Link to original feedback if available */}
+                          {adminResponse.feedbackKey && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              <span className="font-medium">Related Feedback:</span>{' '}
+                              {arkivBuilderMode ? (
+                                <ViewOnArkivLink
+                                  entityKey={adminResponse.feedbackKey}
+                                  label="View Feedback Entity"
+                                  className="text-xs"
+                                  icon="🔗"
+                                />
+                              ) : (
+                                <span className="font-mono">{adminResponse.feedbackKey.slice(0, 8)}...</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Response details not available</div>
+                      )}
                     </div>
                   )}
 

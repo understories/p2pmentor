@@ -243,3 +243,94 @@ export async function listAdminResponses({
   }
 }
 
+/**
+ * Get a single admin response by key
+ * 
+ * @param key - Admin response entity key
+ * @returns AdminResponse or null if not found
+ */
+export async function getAdminResponseByKey(key: string): Promise<AdminResponse | null> {
+  const publicClient = getPublicClient();
+  
+  try {
+    // Query by key using where clause
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'admin_response'))
+      .where(eq('key', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    if (!result || !result.entities || result.entities.length === 0) {
+      return null;
+    }
+
+    const entity = result.entities[0];
+    
+    // Fetch txHash
+    const txHashResult = await publicClient.buildQuery()
+      .where(eq('type', 'admin_response_txhash'))
+      .where(eq('responseKey', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    // Build txHash
+    let txHash: string | undefined;
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+      try {
+        const txHashEntity = txHashResult.entities[0];
+        const txHashPayload = txHashEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(txHashEntity.payload)
+          : typeof txHashEntity.payload === 'string'
+          ? txHashEntity.payload
+          : JSON.stringify(txHashEntity.payload);
+        const decoded = JSON.parse(txHashPayload);
+        txHash = decoded.txHash;
+      } catch (e) {
+        console.error('Error decoding txHash:', e);
+      }
+    }
+
+    // Decode payload
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding admin response payload:', e);
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    return {
+      key: entity.key,
+      feedbackKey: getAttr('feedbackKey'),
+      wallet: getAttr('wallet'),
+      message: payload.message || '',
+      adminWallet: getAttr('adminWallet'),
+      spaceId: getAttr('spaceId') || 'local-dev',
+      createdAt: getAttr('createdAt'),
+      txHash: txHash || payload.txHash || undefined,
+    };
+  } catch (error: any) {
+    console.error(`Error getting admin response by key ${key}:`, error);
+    return null;
+  }
+}
+
