@@ -15,6 +15,7 @@ import {
   listVirtualGatherings,
   rsvpToGathering,
   hasRsvpdToGathering,
+  listRsvpWalletsForGathering,
 } from '@/lib/arkiv/virtualGathering';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 
@@ -30,6 +31,17 @@ export async function GET(request: Request) {
     const community = searchParams.get('community') || undefined;
     const organizerWallet = searchParams.get('organizerWallet') || undefined;
     const wallet = searchParams.get('wallet') || undefined; // For checking RSVP status
+    const gatheringKey = searchParams.get('gatheringKey') || undefined; // For getting RSVP wallets for a specific gathering
+
+    // If gatheringKey is provided, return RSVP wallets for that gathering
+    if (gatheringKey) {
+      const rsvpWallets = await listRsvpWalletsForGathering(gatheringKey);
+      return NextResponse.json({
+        ok: true,
+        rsvpWallets,
+        count: rsvpWallets.length,
+      });
+    }
 
     const gatherings = await listVirtualGatherings({
       community,

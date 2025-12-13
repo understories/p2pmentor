@@ -51,6 +51,7 @@ export default function TopicDetailPage() {
   const [sessionRsvpStatus, setSessionRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
+  const [rsvpWallets, setRsvpWallets] = useState<Record<string, string[]>>({}); // gatheringKey -> array of wallet addresses
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -191,6 +192,46 @@ export default function TopicDetailPage() {
         if (gatheringsRes.rsvpStatus) {
           setRsvpStatus(gatheringsRes.rsvpStatus);
         }
+        
+        // Fetch RSVP wallets for each gathering
+        const rsvpWalletsMap: Record<string, string[]> = {};
+        const rsvpPromises = gatheringsRes.gatherings.map(async (gathering: VirtualGathering) => {
+          try {
+            const rsvpRes = await fetch(`/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gathering.key)}`);
+            const rsvpData = await rsvpRes.json();
+            if (rsvpData.ok && rsvpData.rsvpWallets) {
+              rsvpWalletsMap[gathering.key] = rsvpData.rsvpWallets;
+            }
+          } catch (err) {
+            console.warn(`Error fetching RSVPs for gathering ${gathering.key}:`, err);
+          }
+        });
+        await Promise.all(rsvpPromises);
+        setRsvpWallets(rsvpWalletsMap);
+        
+        // Load profiles for all RSVP wallets
+        const allRsvpWallets = new Set<string>();
+        Object.values(rsvpWalletsMap).forEach(wallets => {
+          wallets.forEach(wallet => allRsvpWallets.add(wallet));
+        });
+        
+        const rsvpProfilePromises = Array.from(allRsvpWallets).map(async (wallet) => {
+          try {
+            const profile = await getProfileByWallet(wallet);
+            return { wallet, profile };
+          } catch {
+            return { wallet, profile: null };
+          }
+        });
+        
+        const rsvpProfileResults = await Promise.all(rsvpProfilePromises);
+        const updatedProfiles = { ...profiles };
+        rsvpProfileResults.forEach(({ wallet, profile }) => {
+          if (profile) {
+            updatedProfiles[wallet.toLowerCase()] = profile;
+          }
+        });
+        setProfiles(updatedProfiles);
       }
 
       // Load sessions for this community (skill-based sessions)
@@ -364,7 +405,10 @@ export default function TopicDetailPage() {
       });
       setSessionRsvpStatus(prev => ({ ...prev, ...updatedSessionRsvp }));
       
-      // Reload gatherings to get updated RSVP count
+      // Wait for Arkiv to index the new RSVP entity before reloading
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Reload gatherings to get updated RSVP count and wallets list
       loadTopicData();
     } catch (err: any) {
       console.error('Error RSVPing to gathering:', err);
@@ -497,6 +541,12 @@ export default function TopicDetailPage() {
                 const hasUserRsvpd = gatheringKey ? (sessionRsvpStatus[session.key] || (isMentor && isLearner)) : false;
                 const gathering = gatheringKey ? gatherings.find(g => g.key === gatheringKey) : null;
 
+                // Get RSVP wallets for this gathering
+                const gatheringRsvpWallets = gatheringKey ? (rsvpWallets[gatheringKey] || []) : [];
+                const rsvpProfiles = gatheringRsvpWallets
+                  .map(wallet => profiles[wallet.toLowerCase()])
+                  .filter(Boolean) as UserProfile[];
+
                 return (
                   <div
                     key={session.key}
@@ -556,6 +606,36 @@ export default function TopicDetailPage() {
                         <ViewOnArkivLink entityKey={session.key} className="text-xs" />
                       </div>
                     </div>
+                    {/* RSVP'd Profiles List */}
+                    {isCommunityGathering && gatheringRsvpWallets.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
+                          {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {rsvpProfiles.map((profile) => (
+                            <Link
+                              key={profile.wallet}
+                              href={`/profiles/${profile.wallet}`}
+                              className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                            >
+                              {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
+                            </Link>
+                          ))}
+                          {/* Show wallets without profiles */}
+                          {gatheringRsvpWallets
+                            .filter(wallet => !profiles[wallet.toLowerCase()])
+                            .map((wallet) => (
+                              <span
+                                key={wallet}
+                                className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200"
+                              >
+                                {wallet.slice(0, 8)}...{wallet.slice(-4)}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -587,6 +667,12 @@ export default function TopicDetailPage() {
                 const now = Date.now();
                 const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
                 const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+                // Get RSVP wallets for this gathering
+                const gatheringRsvpWallets = rsvpWallets[gathering.key] || [];
+                const rsvpProfiles = gatheringRsvpWallets
+                  .map(wallet => profiles[wallet.toLowerCase()])
+                  .filter(Boolean) as UserProfile[];
 
                 return (
                   <div
@@ -645,6 +731,36 @@ export default function TopicDetailPage() {
                         <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
                       </div>
                     </div>
+                    {/* RSVP'd Profiles List */}
+                    {gatheringRsvpWallets.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
+                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
+                          {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {rsvpProfiles.map((profile) => (
+                            <Link
+                              key={profile.wallet}
+                              href={`/profiles/${profile.wallet}`}
+                              className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                            >
+                              {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
+                            </Link>
+                          ))}
+                          {/* Show wallets without profiles */}
+                          {gatheringRsvpWallets
+                            .filter(wallet => !profiles[wallet.toLowerCase()])
+                            .map((wallet) => (
+                              <span
+                                key={wallet}
+                                className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200"
+                              >
+                                {wallet.slice(0, 8)}...{wallet.slice(-4)}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}

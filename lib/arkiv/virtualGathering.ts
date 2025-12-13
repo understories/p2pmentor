@@ -491,3 +491,55 @@ export async function hasRsvpdToGathering(
     return false;
   }
 }
+
+/**
+ * List all wallets that have RSVP'd to a gathering
+ * 
+ * @param gatheringKey - The gathering entity key
+ * @returns Array of wallet addresses (normalized to lowercase)
+ */
+export async function listRsvpWalletsForGathering(
+  gatheringKey: string
+): Promise<string[]> {
+  const publicClient = getPublicClient();
+
+  try {
+    // Query all RSVP sessions for this gathering
+    const rsvpResult = await publicClient.buildQuery()
+      .where(eq('type', 'session'))
+      .where(eq('skill', 'virtual_gathering_rsvp'))
+      .where(eq('gatheringKey', gatheringKey))
+      .withAttributes(true)
+      .limit(1000)
+      .fetch();
+
+    if (!rsvpResult?.entities || !Array.isArray(rsvpResult.entities)) {
+      return [];
+    }
+
+    // Extract unique wallets from learnerWallet (they're the same as mentorWallet for RSVPs)
+    const wallets = new Set<string>();
+    rsvpResult.entities.forEach((entity: any) => {
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      
+      // For RSVP sessions, learnerWallet and mentorWallet are the same (self-confirmed)
+      // Use learnerWallet as the source of truth
+      const wallet = getAttr('learnerWallet') || getAttr('mentorWallet');
+      if (wallet) {
+        wallets.add(wallet.toLowerCase());
+      }
+    });
+
+    return Array.from(wallets);
+  } catch (error) {
+    console.error('[listRsvpWalletsForGathering] Error:', error);
+    return [];
+  }
+}
