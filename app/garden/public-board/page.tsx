@@ -23,6 +23,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -328,19 +329,15 @@ function PublicGardenBoardContent() {
                         </div>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-gray-600 dark:text-gray-400">{formatTimeAgo(note.createdAt)}</span>
-                          {note.txHash && note.txHash !== 'undefined' && (
+                          {note.key && (
                             <>
                               <span className="text-gray-400 dark:text-gray-500">·</span>
-                              <a
-                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${note.txHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"
-                                title="View in Arkiv Explorer"
-                              >
-                                <span>🔗</span>
-                                <span>Public Arkiv entry</span>
-                              </a>
+                              <ViewOnArkivLink 
+                                entityKey={note.key}
+                                txHash={note.txHash}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
                             </>
                           )}
                         </div>
@@ -375,15 +372,13 @@ function PublicGardenBoardContent() {
                   {/* Footer */}
                   <div className="pt-3 border-t border-gray-300/50 dark:border-gray-600/50 flex items-center justify-between text-xs">
                     <span className="font-mono text-gray-700 dark:text-gray-300">{authorWalletShort}</span>
-                    {note.txHash && note.txHash !== 'undefined' && (
-                      <a
-                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${note.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-green-600 dark:text-green-400 font-medium"
-                      >
-                        View raw data →
-                      </a>
+                    {note.key && (
+                      <ViewOnArkivLink 
+                        entityKey={note.key}
+                        txHash={note.txHash}
+                        label="View on Arkiv"
+                        className="text-xs"
+                      />
                     )}
                   </div>
                   </div>
