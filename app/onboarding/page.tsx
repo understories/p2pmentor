@@ -13,7 +13,6 @@ import { useRouter } from 'next/navigation';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import { OnboardingStep } from '@/lib/onboarding/types';
 import { BackgroundImage } from '@/components/BackgroundImage';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { IdentityStep } from '@/components/onboarding/IdentityStep';
 import { SkillsStep } from '@/components/onboarding/SkillsStep';
 import { PathSelectionStep } from '@/components/onboarding/PathSelectionStep';
@@ -25,6 +24,8 @@ import { CompleteStep } from '@/components/onboarding/CompleteStep';
 import { GardenLayer } from '@/components/garden/GardenLayer';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills } from '@/lib/garden/types';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -34,6 +35,7 @@ export default function OnboardingPage() {
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   const [animateNewSkill, setAnimateNewSkill] = useState<string | undefined>(undefined);
   const { level, isComplete, loading } = useOnboardingLevel(wallet);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Get profile wallet from localStorage (set during auth)
   // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
@@ -77,7 +79,7 @@ export default function OnboardingPage() {
           // Profile not found yet - that's okay during onboarding
         });
     }
-  }, [wallet, loading, currentStep]);
+  }, [wallet, loading, currentStep, arkivBuilderMode]);
 
   // If already has profile, skip welcome and identity
   useEffect(() => {
@@ -162,7 +164,6 @@ export default function OnboardingPage() {
             <div className="text-sm text-gray-400 dark:text-gray-500">
               Onboarding
             </div>
-            <ThemeToggle />
           </header>
         )}
 

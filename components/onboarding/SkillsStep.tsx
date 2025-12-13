@@ -12,6 +12,8 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
 import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
 import { listUserProfiles } from '@/lib/arkiv/profile';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 interface SkillsStepProps {
   wallet: string;
@@ -28,6 +30,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdSkills, setCreatedSkills] = useState<Array<{ skillId: string; skillName: string; expertise: number }>>([]);
+  const arkivBuilderMode = useArkivBuilderMode();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState('');
   const [confirmationType, setConfirmationType] = useState<'new' | 'existing'>('new');
@@ -298,13 +301,34 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
                 Continue →
               </button>
             )}
-            <button
-              type="submit"
-              disabled={!currentSkillName.trim() || isSubmitting}
-              className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
-            >
-              {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Clicking opens expertise level selector`,
+                  `Next step: ensureSkillEntity() + POST /api/profile { action: 'updateProfile', ... }`,
+                  `Creates/Updates: type='skill' entity (if new), type='user_profile' entity (update)`,
+                  `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
+                  `Payload: Full profile data with updated skills`
+                ]}
+                label={createdSkills.length > 0 ? 'Add Skill' : 'Continue'}
+              >
+                <button
+                  type="submit"
+                  disabled={!currentSkillName.trim() || isSubmitting}
+                  className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
+                >
+                  {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                type="submit"
+                disabled={!currentSkillName.trim() || isSubmitting}
+                className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
+              >
+                {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
+              </button>
+            )}
           </div>
         </form>
 
@@ -404,21 +428,54 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           >
             Back
           </button>
-          <button
-            type="button"
-            onClick={handlePlantSkill}
-            disabled={isSubmitting}
-            className="flex-1 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
-          >
-            {isSubmitting ? (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin">🌱</span>
-                <span>Planting...</span>
-              </span>
-            ) : (
-              'Plant Skill'
-            )}
-          </button>
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `handlePlantSkill()`,
+                `1. ensureSkillEntity("${currentSkillName}")`,
+                `   → Creates: type='skill' entity (if doesn't exist)`,
+                `   → Returns: Skill entity`,
+                `2. POST /api/profile { action: 'updateProfile', ... }`,
+                `   → Updates: type='user_profile' entity`,
+                `   → Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
+                `   → Payload: Full profile data with updated skills`,
+                `TTL: 1 year (31536000 seconds)`
+              ]}
+              label="Plant Skill"
+            >
+              <button
+                type="button"
+                onClick={handlePlantSkill}
+                disabled={isSubmitting}
+                className="flex-1 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="animate-spin">🌱</span>
+                    <span>Planting...</span>
+                  </span>
+                ) : (
+                  'Plant Skill'
+                )}
+              </button>
+            </ArkivQueryTooltip>
+          ) : (
+            <button
+              type="button"
+              onClick={handlePlantSkill}
+              disabled={isSubmitting}
+              className="flex-1 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">🌱</span>
+                  <span>Planting...</span>
+                </span>
+              ) : (
+                'Plant Skill'
+              )}
+            </button>
+          )}
         </div>
       </div>
 

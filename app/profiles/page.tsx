@@ -16,8 +16,10 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {
@@ -25,6 +27,7 @@ export default function ProfilesPage() {
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     fetchProfiles(skillFilter || undefined);
@@ -74,7 +77,6 @@ export default function ProfilesPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
@@ -110,7 +112,24 @@ export default function ProfilesPage() {
 
         {/* Profiles List */}
         {loading ? (
-          <LoadingSpinner text="Loading profiles..." className="py-12" />
+          arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `fetchProfiles(${skillFilter ? `skill='${skillFilter}'` : 'all'})`,
+                `Queries:`,
+                skillFilter
+                  ? `GET /api/profiles?skill=${encodeURIComponent(skillFilter)}`
+                  : `GET /api/profiles`,
+                `   → type='user_profile'${skillFilter ? `, skills contains '${skillFilter}'` : ''}`,
+                `Returns: UserProfile[] (all profiles, deduplicated by wallet)`
+              ]}
+              label="Loading Profiles"
+            >
+              <LoadingSpinner text="Loading profiles..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading profiles..." className="py-12" />
+          )
         ) : profiles.length === 0 ? (
           <EmptyState
             title={skillFilter ? `No profiles found` : 'No profiles yet'}
@@ -194,7 +213,7 @@ export default function ProfilesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -204,6 +223,19 @@ export default function ProfilesPage() {
                   >
                     View Profile →
                   </button>
+                  {arkivBuilderMode && profile.key && (
+                    <div className="flex items-center gap-2">
+                      <ViewOnArkivLink
+                        entityKey={profile.key}
+                        txHash={profile.txHash}
+                        label="View Profile on Arkiv"
+                        className="text-xs"
+                      />
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {profile.key.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
