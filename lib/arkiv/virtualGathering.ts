@@ -138,6 +138,68 @@ export async function createVirtualGathering({
     console.warn('[virtualGathering] Failed to create txhash entity:', error);
   }
 
+  // Create notifications for all members of the learner community when a new meeting is scheduled
+  try {
+    const { createNotification } = await import('./notifications');
+    const { listLearningFollows } = await import('./learningFollow');
+    const { getSkillBySlug } = await import('./skill');
+    
+    // Get the skill entity to find its key
+    const skillEntity = await getSkillBySlug(community);
+    if (!skillEntity) {
+      console.warn(`[createVirtualGathering] Skill not found for community: ${community}`);
+      return { key: entityKey, txHash };
+    }
+
+    // Get all learning follows for this skill (community members)
+    const learningFollows = await listLearningFollows({
+      skill_id: skillEntity.key,
+      active: true,
+      limit: 1000, // Max 1000 community members
+    });
+
+    // Create notification for each community member (excluding the organizer)
+    const organizerWalletLower = organizerWallet.toLowerCase();
+    const notificationPromises = learningFollows
+      .filter(follow => follow.profile_wallet.toLowerCase() !== organizerWalletLower)
+      .map(follow => 
+        createNotification({
+          wallet: follow.profile_wallet.toLowerCase(),
+          notificationType: 'community_meeting_scheduled',
+          sourceEntityType: 'virtual_gathering',
+          sourceEntityKey: entityKey,
+          title: 'New Community Meeting',
+          message: `${title} - ${new Date(sessionDate).toLocaleDateString()}`,
+          link: `/topic/${community}`,
+          metadata: {
+            gatheringKey: entityKey,
+            community,
+            skillKey: skillEntity.key,
+            skillName: skillEntity.name_canonical,
+            title,
+            description: description || undefined,
+            sessionDate,
+            duration: durationMinutes,
+            organizerWallet: organizerWallet.toLowerCase(),
+            createdAt,
+            txHash,
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn(`[createVirtualGathering] Failed to create notification for ${follow.profile_wallet}:`, err);
+        })
+      );
+
+    // Don't wait for all notifications - fire and forget (non-blocking)
+    Promise.all(notificationPromises).catch((err: any) => {
+      console.warn('[createVirtualGathering] Some notifications failed to create:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block gathering creation
+    console.warn('[createVirtualGathering] Error creating notifications:', err);
+  }
+
   return { key: entityKey, txHash };
 }
 

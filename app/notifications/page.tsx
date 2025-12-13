@@ -8,6 +8,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
@@ -417,8 +418,70 @@ export default function NotificationsPage() {
         return '🔔';
       case 'issue_resolved':
         return '✅';
+      case 'new_garden_note':
+        return '💌';
+      case 'new_skill_created':
+        return '🌱';
+      case 'community_meeting_scheduled':
+        return '📅';
       default:
         return '🔔';
+    }
+  };
+
+  // State for join/leave community functionality
+  const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const [isSubmittingFollow, setIsSubmittingFollow] = useState<string | null>(null);
+
+  // Load followed skills on mount
+  useEffect(() => {
+    if (userWallet) {
+      loadFollowedSkills(userWallet);
+    }
+  }, [userWallet]);
+
+  const loadFollowedSkills = async (wallet: string) => {
+    try {
+      const res = await fetch(`/api/learning-follow?profile_wallet=${wallet}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.follows) {
+          setFollowedSkills(data.follows.map((f: any) => f.skill_id));
+        }
+      }
+    } catch (err) {
+      console.error('Error loading followed skills:', err);
+    }
+  };
+
+  const handleFollow = async (skillId: string, action: 'follow' | 'unfollow') => {
+    if (!userWallet || !skillId) return;
+
+    setIsSubmittingFollow(skillId);
+    try {
+      const res = await fetch('/api/learning-follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: action === 'follow' ? 'createFollow' : 'unfollow',
+          profile_wallet: userWallet,
+          skill_id: skillId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        // Add a small delay to allow Arkiv to index the new entity
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await loadFollowedSkills(userWallet);
+      } else {
+        alert(data.error || `Failed to ${action} community`);
+      }
+    } catch (error: any) {
+      console.error(`Error ${action}ing community:`, error);
+      alert(`Failed to ${action} community`);
+    } finally {
+      setIsSubmittingFollow(null);
     }
   };
 
@@ -587,6 +650,9 @@ export default function NotificationsPage() {
                     <option value="admin_response">💬 Admin Responses</option>
                     <option value="app_feedback_submitted">🔔 Feedback Submitted</option>
                     <option value="issue_resolved">✅ Issue Resolved</option>
+                    <option value="new_garden_note">💌 New Garden Note</option>
+                    <option value="new_skill_created">🌱 New Skill Created</option>
+                    <option value="community_meeting_scheduled">📅 Community Meeting</option>
                   </select>
                 </div>
               </div>

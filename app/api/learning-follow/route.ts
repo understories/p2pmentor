@@ -5,10 +5,35 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createLearningFollow, unfollowSkill } from '@/lib/arkiv/learningFollow';
+import { createLearningFollow, unfollowSkill, listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const profile_wallet = searchParams.get('profile_wallet') || undefined;
+    const skill_id = searchParams.get('skill_id') || undefined;
+    const active = searchParams.get('active') !== 'false'; // Default to true
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100;
+
+    const follows = await listLearningFollows({
+      profile_wallet,
+      skill_id,
+      active,
+      limit,
+    });
+
+    return NextResponse.json({ ok: true, follows });
+  } catch (error: any) {
+    console.error('Learning Follow API GET error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: NextRequest) {
   // Verify beta access

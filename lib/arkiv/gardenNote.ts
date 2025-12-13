@@ -128,6 +128,60 @@ export async function createGardenNote({
     expiresIn: GARDEN_NOTE_TTL_SECONDS,
   });
 
+  // Create notifications for all profiles when a new public garden note is created
+  // This notifies everyone about new messages on the public board
+  try {
+    const { createNotification } = await import('./notifications');
+    const { listUserProfiles } = await import('./profile');
+    
+    // Get all profiles to notify
+    const allProfiles = await listUserProfiles();
+    const uniqueWallets = new Set<string>();
+    allProfiles.forEach(profile => {
+      if (profile.wallet) {
+        uniqueWallets.add(profile.wallet.toLowerCase());
+      }
+    });
+
+    // Create notification for each profile (excluding the author)
+    const authorWalletLower = authorWallet.toLowerCase();
+    const notificationPromises = Array.from(uniqueWallets)
+      .filter(wallet => wallet !== authorWalletLower)
+      .map(wallet => 
+        createNotification({
+          wallet,
+          notificationType: 'new_garden_note',
+          sourceEntityType: 'garden_note',
+          sourceEntityKey: entityKey,
+          title: 'New Message on Public Board',
+          message: message.trim().length > 100 
+            ? message.trim().substring(0, 100) + '...' 
+            : message.trim(),
+          link: '/garden/public-board',
+          metadata: {
+            gardenNoteKey: entityKey,
+            authorWallet: authorWallet.toLowerCase(),
+            message: message.trim(),
+            tags: normalizedTags,
+            createdAt,
+            txHash,
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn(`[createGardenNote] Failed to create notification for ${wallet}:`, err);
+        })
+      );
+
+    // Don't wait for all notifications - fire and forget (non-blocking)
+    Promise.all(notificationPromises).catch((err: any) => {
+      console.warn('[createGardenNote] Some notifications failed to create:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block garden note creation
+    console.warn('[createGardenNote] Error creating notifications:', err);
+  }
+
   return { key: entityKey, txHash };
 }
 

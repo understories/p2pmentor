@@ -104,6 +104,55 @@ export async function createSkill({
     console.warn('[skill] Failed to create skill_txhash entity, but skill was created:', error);
   }
 
+  // Create notifications for all profiles when a new skill is created
+  // This invites everyone to join the new learning community
+  try {
+    const { createNotification } = await import('./notifications');
+    const { listUserProfiles } = await import('./profile');
+    
+    // Get all profiles to notify
+    const allProfiles = await listUserProfiles();
+    const uniqueWallets = new Set<string>();
+    allProfiles.forEach(profile => {
+      if (profile.wallet) {
+        uniqueWallets.add(profile.wallet.toLowerCase());
+      }
+    });
+
+    // Create notification for each profile
+    const notificationPromises = Array.from(uniqueWallets).map(wallet => 
+      createNotification({
+        wallet,
+        notificationType: 'new_skill_created',
+        sourceEntityType: 'skill',
+        sourceEntityKey: entityKey,
+        title: 'New Learning Community',
+        message: `Join the ${name_canonical} community!`,
+        link: `/topic/${slug}`,
+        metadata: {
+          skillKey: entityKey,
+          skillName: name_canonical,
+          skillSlug: slug,
+          description: description || undefined,
+          createdAt,
+          txHash,
+        },
+        privateKey,
+        spaceId,
+      }).catch((err: any) => {
+        console.warn(`[createSkill] Failed to create notification for ${wallet}:`, err);
+      })
+    );
+
+    // Don't wait for all notifications - fire and forget (non-blocking)
+    Promise.all(notificationPromises).catch((err: any) => {
+      console.warn('[createSkill] Some notifications failed to create:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block skill creation
+    console.warn('[createSkill] Error creating notifications:', err);
+  }
+
   return { key: entityKey, txHash };
 }
 

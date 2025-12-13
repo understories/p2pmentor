@@ -18,7 +18,10 @@ export type NotificationType =
   | 'new_offer'
   | 'admin_response'
   | 'issue_resolved'
-  | 'app_feedback_submitted';
+  | 'app_feedback_submitted'
+  | 'new_garden_note'
+  | 'new_skill_created'
+  | 'community_meeting_scheduled';
 
 export type Notification = {
   key: string;
