@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Subtle card glow animation for dashboard */
+@keyframes subtleGlow {
+  0%, 100% {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+  }
+}
+
 @keyframes glowPulse {
   0%, 100% {
     opacity: 0.8;
@@ -24,17 +34,21 @@
   }
 }
 
-/* Light theme colors */
+.animate-fade-in {
+  animation: fadeIn 1.5s ease-in;
+}
+
+/* Light theme colors - Green painting aesthetic */
 :root,
 .light {
   --bg-primary: #ffffff;
   --bg-secondary: #f9fafb;
   --bg-tertiary: #f3f4f6;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --border-color: #e5e7eb;
-  --accent-color: #3b82f6;
-  --accent-hover: #2563eb;
+  --text-primary: #2d5016; /* Deep forest green for readability */
+  --text-secondary: #4a7c2a; /* Medium green for secondary text */
+  --border-color: #c8e6c9; /* Light green border */
+  --accent-color: #2e7d32; /* Forest green accent */
+  --accent-hover: #1b5e20; /* Darker green on hover */
 }
 
 /* Dark theme colors - Forest aesthetic matching landing page */
@@ -57,10 +71,94 @@
 
 /* Apply theme colors */
 body {
-  background-color: var(--bg-primary);
+  background-color: transparent; /* Let BackgroundImage component handle background */
   color: var(--text-primary);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: background-color 2s ease, color 2s ease;
   min-height: 100vh;
+}
+
+/* Light mode body - transparent so background painting shows through */
+.light body {
+  background-color: transparent;
+}
+
+/* Dark mode body - keep existing gradient overlay */
+.dark body {
+  background-color: transparent;
+}
+
+/* Smooth theme transitions for all elements */
+* {
+  transition: background-color 2s ease, color 2s ease, border-color 2s ease;
+}
+
+/* Light mode text colors - green painting aesthetic */
+:root,
+.light {
+  color: var(--text-primary);
+}
+
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6 {
+  color: var(--text-primary);
+}
+
+.light p,
+.light span,
+.light div,
+.light a {
+  color: var(--text-primary);
+}
+
+.light .text-gray-900 {
+  color: var(--text-primary) !important;
+}
+
+.light .text-gray-700 {
+  color: var(--text-secondary) !important;
+}
+
+.light .text-gray-600 {
+  color: var(--text-secondary) !important;
+}
+
+.light .text-gray-500 {
+  color: var(--text-secondary) !important;
+  opacity: 0.8;
+}
+
+/* Light mode border colors - green painting aesthetic */
+.light .border-gray-200,
+.light .border-gray-300 {
+  border-color: var(--border-color) !important;
+}
+
+.light .border-gray-600,
+.light .border-gray-700 {
+  border-color: var(--accent-color) !important;
+  opacity: 0.6;
+}
+
+/* Light mode background colors - subtle green tints */
+.light .bg-gray-50 {
+  background-color: var(--bg-secondary) !important;
+}
+
+.light .bg-gray-100 {
+  background-color: var(--bg-tertiary) !important;
+}
+
+/* Page backgrounds - NO overlays, pure background image only */
+.light .min-h-screen.bg-white {
+  background-color: transparent !important;
+}
+
+.dark .min-h-screen.bg-gray-900 {
+  background-color: transparent !important;
 }
 
 /* Dark mode forest background effects - more subtle for readability */
@@ -124,6 +222,116 @@ body {
   border-color: rgba(150, 255, 150, 0.3) !important;
 }
 
+/* Garden Plant Animations (Phase 6: Emoji Garden) */
+@keyframes hg-plant-grow-in {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.05);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hg-plant-breathe {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.03);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes hg-plant-sparkle {
+  0% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+  40% {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
+  }
+  100% {
+    text-shadow: 0 0 0 rgba(255, 255, 255, 0);
+  }
+}
+
+@keyframes hg-plant-pulse {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes hg-seed-pulse-continuous {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+  }
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 30px rgba(34, 197, 94, 1)) drop-shadow(0 0 60px rgba(34, 197, 94, 0.6));
+  }
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+  }
+}
+
+@keyframes hg-ring-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.hg-anim-plant-grow-in {
+  animation: hg-plant-grow-in 0.45s ease-out;
+}
+
+.hg-anim-plant-breathe {
+  animation: hg-plant-breathe 3.6s ease-in-out infinite;
+}
+
+.hg-anim-plant-sparkle {
+  animation: hg-plant-sparkle 0.8s ease-out 1;
+}
+
+.hg-anim-plant-idle {
+  animation: hg-plant-breathe 4.2s ease-in-out infinite;
+}
+
+.hg-anim-plant-pulse {
+  animation: hg-plant-pulse 0.6s ease-out;
+}
+
+.hg-anim-ring-pulse {
+  animation: hg-ring-pulse 1s ease-out;
+}
+
+.hg-anim-seed-pulse-continuous {
+  animation: hg-seed-pulse-continuous 2s ease-in-out infinite;
+}
+
 /* Respect user's motion preferences for accessibility */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -132,6 +340,11 @@ body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  
+  .hg-anim-plant-idle,
+  .hg-anim-plant-breathe {
+    animation: none;
   }
 }
 

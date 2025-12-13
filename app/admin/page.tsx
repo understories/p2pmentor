@@ -138,6 +138,15 @@ export default function AdminDashboard() {
   const [pageLoadTimesExpanded, setPageLoadTimesExpanded] = useState(false); // Default collapsed
   const [recentSamplesExpanded, setRecentSamplesExpanded] = useState(false); // Default collapsed
   const [snapshotsExpanded, setSnapshotsExpanded] = useState(false); // Default collapsed
+  const [clientPerfExpanded, setClientPerfExpanded] = useState(false); // Default collapsed - engineering
+  const [retentionExpanded, setRetentionExpanded] = useState(false); // Default collapsed - engineering
+  const [aggregatesExpanded, setAggregatesExpanded] = useState(false); // Default collapsed - engineering
+  const [clientPerfData, setClientPerfData] = useState<any[]>([]);
+  const [clientPerfLoading, setClientPerfLoading] = useState(false);
+  const [retentionData, setRetentionData] = useState<any[]>([]);
+  const [retentionLoading, setRetentionLoading] = useState(false);
+  const [aggregatesData, setAggregatesData] = useState<any[]>([]);
+  const [aggregatesLoading, setAggregatesLoading] = useState(false);
 
   useEffect(() => {
     // Check authentication
@@ -253,8 +262,8 @@ export default function AdminDashboard() {
                 .then(snapData => {
                   if (snapData.ok) {
                     console.log('[Admin] Auto-created performance snapshot');
-                    // Refresh snapshots list
-                    return fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
+                    // Refresh snapshots list (fetch all snapshots, no operation filter)
+                    return fetch('/api/admin/perf-snapshots?limit=20');
                   }
                 })
                 .then(snapshotsRes => snapshotsRes?.json())
@@ -280,8 +289,8 @@ export default function AdminDashboard() {
         })
         .catch(err => console.error('Failed to check snapshot status:', err));
 
-      // Fetch historical snapshots
-      fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10')
+      // Fetch historical snapshots (no operation filter to show all snapshots)
+      fetch('/api/admin/perf-snapshots?limit=20')
         .then(res => res.json())
         .then(data => {
           if (data.ok) {
@@ -333,12 +342,20 @@ export default function AdminDashboard() {
       
       if (data.ok) {
         // Success - refresh data
-        // Refresh snapshots
-        const snapshotsRes = await fetch('/api/admin/perf-snapshots?operation=buildNetworkGraphData&limit=10');
-        const snapshotsData = await snapshotsRes.json();
-        console.log('[Admin] Snapshots data:', snapshotsData);
-        if (snapshotsData.ok) {
-          setSnapshots(snapshotsData.snapshots || []);
+        // Note: Transaction may be pending, so we show success but note it may take a moment to appear
+        // The handleTransactionWithTimeout wrapper handles receipt timeouts gracefully
+        const txHash = data.snapshot?.txHash;
+        if (txHash) {
+          // Wait a bit longer for entity to be indexed (same pattern as other entity creation)
+          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Fetch all snapshots (no operation filter) to show complete history
+          const snapshotsRes = await fetch('/api/admin/perf-snapshots?limit=20');
+          const snapshotsData = await snapshotsRes.json();
+          console.log('[Admin] Snapshots data after creation:', snapshotsData);
+          if (snapshotsData.ok) {
+            setSnapshots(snapshotsData.snapshots || []);
+            console.log('[Admin] Updated snapshots list, count:', snapshotsData.snapshots?.length || 0);
+          }
         }
         // Refresh snapshot check
         const checkRes = await fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
@@ -349,6 +366,11 @@ export default function AdminDashboard() {
             hoursAgo: checkData.lastSnapshot?.hoursAgo,
           });
         }
+        // Refresh performance summary to show updated data
+        fetch('/api/admin/perf-samples?summary=true')
+          .then(res => res.json())
+          .then(summaryData => setPerfSummary(summaryData))
+          .catch(err => console.error('Failed to refresh perf summary:', err));
         alert(`Snapshot created successfully! Transaction: ${data.snapshot?.txHash?.slice(0, 10)}...`);
       } else if (res.status === 429) {
         // Too many requests - idempotency check
@@ -373,7 +395,7 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
         </div>
@@ -386,7 +408,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
       <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         {/* Security Warning Banner */}
@@ -820,23 +842,33 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         {/* Show which method this page uses (if we have that data) */}
-                        {perfSummary && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
-                            {perfSummary.graphql?.pages?.[result.page] && (
-                              <span className="text-emerald-600 dark:text-emerald-400">
-                                GraphQL: {perfSummary.graphql.pages[result.page]} queries
-                              </span>
-                            )}
-                            {perfSummary.arkiv?.pages?.[result.page] && (
-                              <span className="text-blue-600 dark:text-blue-400">
-                                JSON-RPC: {perfSummary.arkiv.pages[result.page]} queries
-                              </span>
-                            )}
-                            {(!perfSummary.graphql?.pages?.[result.page] && !perfSummary.arkiv?.pages?.[result.page]) && (
-                              <span>No query data for this page</span>
-                            )}
-                          </div>
-                        )}
+                        {perfSummary && (() => {
+                          // Normalize route for matching: profile pages use /profiles/[wallet] in summary
+                          const normalizedRoute = result.page.startsWith('/profiles/') && result.page !== '/profiles'
+                            ? '/profiles/[wallet]'
+                            : result.page;
+                          
+                          const graphqlCount = perfSummary.graphql?.pages?.[normalizedRoute] || perfSummary.graphql?.pages?.[result.page];
+                          const arkivCount = perfSummary.arkiv?.pages?.[normalizedRoute] || perfSummary.arkiv?.pages?.[result.page];
+                          
+                          return (
+                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
+                              {graphqlCount && (
+                                <span className="text-emerald-600 dark:text-emerald-400">
+                                  GraphQL: {graphqlCount} queries
+                                </span>
+                              )}
+                              {arkivCount && (
+                                <span className="text-blue-600 dark:text-blue-400">
+                                  JSON-RPC: {arkivCount} queries
+                                </span>
+                              )}
+                              {(!graphqlCount && !arkivCount) && (
+                                <span>No query data for this page</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     ))}
                   </div>
@@ -1041,6 +1073,344 @@ export default function AdminDashboard() {
           </div>
             </div>
           )}
+        </section>
+
+        {/* Beta Metrics Section - Engineering Focused, Default Closed */}
+        <section className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">
+          <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📊</span>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+                  Beta Metrics
+                </h2>
+              </div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 font-mono">
+                Engineering Dashboard
+              </span>
+            </div>
+          </div>
+          
+          {/* Client Performance Metrics */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Client Performance (Web Vitals)
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !clientPerfExpanded;
+                  setClientPerfExpanded(newState);
+                  localStorage.setItem('admin_client_perf_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && clientPerfData.length === 0 && !clientPerfLoading) {
+                    setClientPerfLoading(true);
+                    fetch('/api/client-perf?limit=50')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setClientPerfData(data.metrics || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch client perf:', err))
+                      .finally(() => setClientPerfLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {clientPerfExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {clientPerfExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Privacy-preserving client-side performance metrics (TTFB, FCP, LCP, FID, CLS, TTI).
+                  All metrics stored as Arkiv entities for transparency.
+                </p>
+                {clientPerfLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading metrics...</p>
+                  </div>
+                ) : clientPerfData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Samples</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{clientPerfData.length}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg TTFB</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withTtfb = clientPerfData.filter(m => m.ttfb);
+                            return withTtfb.length > 0 
+                              ? `${Math.round(withTtfb.reduce((sum, m) => sum + (m.ttfb || 0), 0) / withTtfb.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg LCP</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withLcp = clientPerfData.filter(m => m.lcp);
+                            return withLcp.length > 0 
+                              ? `${Math.round(withLcp.reduce((sum, m) => sum + (m.lcp || 0), 0) / withLcp.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Avg FCP</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {(() => {
+                            const withFcp = clientPerfData.filter(m => m.fcp);
+                            return withFcp.length > 0 
+                              ? `${Math.round(withFcp.reduce((sum, m) => sum + (m.fcp || 0), 0) / withFcp.length)}ms`
+                              : '-';
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Data Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Page</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">TTFB (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">FCP (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">LCP (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">FID (ms)</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">CLS</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {clientPerfData.slice(0, 20).map((metric, idx) => (
+                            <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="px-3 py-2 font-mono text-xs">{metric.page || '-'}</td>
+                              <td className="px-3 py-2">{metric.ttfb || '-'}</td>
+                              <td className="px-3 py-2">{metric.fcp || '-'}</td>
+                              <td className="px-3 py-2">{metric.lcp || '-'}</td>
+                              <td className="px-3 py-2">{metric.fid || '-'}</td>
+                              <td className="px-3 py-2">{metric.cls !== undefined ? metric.cls.toFixed(3) : '-'}</td>
+                              <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                {new Date(metric.createdAt).toLocaleDateString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data (Machine Readable) */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(clientPerfData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No client performance metrics available yet.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Retention Metrics */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Retention Cohorts
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !retentionExpanded;
+                  setRetentionExpanded(newState);
+                  localStorage.setItem('admin_retention_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && retentionData.length === 0 && !retentionLoading) {
+                    setRetentionLoading(true);
+                    fetch('/api/admin/retention-cohorts?limit=20&period=weekly')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setRetentionData(data.cohorts || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch retention:', err))
+                      .finally(() => setRetentionLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {retentionExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {retentionExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Privacy-preserving retention analysis using one-way hashed wallets.
+                  Weekly cohorts computed via Vercel Cron.
+                </p>
+                {retentionLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading retention data...</p>
+                  </div>
+                ) : retentionData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Cohort Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Cohort Date</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 0</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 1</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 7</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 14</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Day 30</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Retention Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {retentionData.map((cohort, idx) => {
+                            const day0 = cohort.day0 || 0;
+                            const day7 = cohort.day7 || 0;
+                            const retention7d = day0 > 0 ? ((day7 / day0) * 100).toFixed(1) : '0.0';
+                            return (
+                              <tr key={cohort.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                <td className="px-3 py-2 font-mono text-xs">{cohort.cohortDate || '-'}</td>
+                                <td className="px-3 py-2">{day0}</td>
+                                <td className="px-3 py-2">{cohort.day1 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day7 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day14 || '-'}</td>
+                                <td className="px-3 py-2">{cohort.day30 || '-'}</td>
+                                <td className="px-3 py-2 font-semibold">{retention7d}%</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(retentionData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No retention cohorts available yet. Cohorts are computed weekly.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Metric Aggregates */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Daily Aggregates (Percentiles)
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !aggregatesExpanded;
+                  setAggregatesExpanded(newState);
+                  localStorage.setItem('admin_aggregates_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && aggregatesData.length === 0 && !aggregatesLoading) {
+                    setAggregatesLoading(true);
+                    // Get recent aggregates (last 7 days)
+                    fetch('/api/admin/metric-aggregates?limit=50&period=daily')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setAggregatesData(data.aggregates || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch aggregates:', err))
+                      .finally(() => setAggregatesLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {aggregatesExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {aggregatesExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, and fallback rates.
+                  Computed daily via Vercel Cron.
+                </p>
+                {aggregatesLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading aggregates...</p>
+                  </div>
+                ) : aggregatesData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Aggregates Table */}
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                        <thead className="bg-gray-100 dark:bg-gray-800">
+                          <tr>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Date</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Operation</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Source</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p50</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p90</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p95</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">p99</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Avg</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Samples</th>
+                            <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Error Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {aggregatesData.map((agg, idx) => (
+                            <tr key={agg.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                              <td className="px-3 py-2 font-mono text-xs">{agg.date || '-'}</td>
+                              <td className="px-3 py-2 text-xs">{agg.operation || '-'}</td>
+                              <td className="px-3 py-2 text-xs">{agg.source || '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p50 ? `${Math.round(agg.percentiles.p50)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p90 ? `${Math.round(agg.percentiles.p90)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p95 ? `${Math.round(agg.percentiles.p95)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.p99 ? `${Math.round(agg.percentiles.p99)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.avg ? `${Math.round(agg.percentiles.avg)}ms` : '-'}</td>
+                              <td className="px-3 py-2">{agg.percentiles?.sampleCount || '-'}</td>
+                              <td className="px-3 py-2">{agg.errorRate !== undefined ? `${(agg.errorRate * 100).toFixed(1)}%` : '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* JSON Data */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(aggregatesData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No daily aggregates available yet. Aggregates are computed daily.</p>
+                )}
+              </div>
+            )}
+          </div>
         </section>
 
         {/* Feedback Section - Customer Focused, Default Open */}

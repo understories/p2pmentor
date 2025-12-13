@@ -269,14 +269,292 @@ export async function GET(request: Request) {
           }
         }
 
-        // 4. Profile operations using default wallet (real Arkiv entities)
-        if (CURRENT_WALLET) {
-          await getProfileByWallet(CURRENT_WALLET).catch(() => null);
-          await listAsksForWallet(CURRENT_WALLET).catch(() => []);
-          await listOffersForWallet(CURRENT_WALLET).catch(() => []);
+        // 4. Test Asks page operations (both GraphQL and JSON-RPC)
+        if (testGraphQL) {
+          try {
+            const { fetchAsks } = await import('@/lib/graph/asksQueries');
+            // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+            const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+            
+            // Warm up: Execute query once to avoid cold start skewing results
+            try {
+              await fetchAsks({ limit: 1 }, { endpoint: graphqlEndpoint });
+              await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+            } catch (warmupErr) {
+              console.log('[seed-perf] Warmup asks query failed (non-fatal):', warmupErr);
+              // Ignore warmup errors
+            }
+            
+            const startTime = Date.now();
+            let asksData;
+            try {
+              asksData = await fetchAsks({ limit: 25 }, { endpoint: graphqlEndpoint });
+            } catch (fetchError: any) {
+              console.error('[seed-perf] fetchAsks error:', {
+                message: fetchError?.message,
+                stack: fetchError?.stack,
+                error: fetchError,
+              });
+              throw new Error(`fetchAsks failed: ${fetchError?.message || 'Unknown error'}`);
+            }
+            const duration = Date.now() - startTime;
+            const payloadSize = JSON.stringify(asksData).length;
+            
+            console.log('[seed-perf] GraphQL asks query successful:', {
+              asksCount: asksData.length,
+              durationMs: duration,
+              payloadBytes: payloadSize,
+            });
+            
+            // Create DX metric for GraphQL asks
+            try {
+              const { txHash } = await createDxMetric({
+                sample: {
+                  source: 'graphql',
+                  operation: 'listAsks',
+                  route: '/asks',
+                  durationMs: duration,
+                  payloadBytes: payloadSize,
+                  httpRequests: 1,
+                  createdAt: new Date().toISOString(),
+                },
+                privateKey,
+              });
+              createdEntities.push({ source: 'graphql', operation: 'listAsks', txHash });
+            } catch (err) {
+              console.error('[seed-perf] Failed to create GraphQL asks metric:', err);
+            }
+          } catch (err: any) {
+            console.error('[seed-perf] GraphQL asks test failed:', {
+              message: err?.message,
+              stack: err?.stack,
+              error: err,
+            });
+          }
         }
         
-        // 5. List all profiles (instrumented)
+        if (testArkiv) {
+          try {
+            const startTime = Date.now();
+            const asksData = await listAsks({ limit: 25 });
+            const duration = Date.now() - startTime;
+            const payloadSize = JSON.stringify(asksData).length;
+            
+            // Create DX metric for JSON-RPC asks
+            try {
+              const { txHash } = await createDxMetric({
+                sample: {
+                  source: 'arkiv',
+                  operation: 'listAsks',
+                  route: '/asks',
+                  durationMs: duration,
+                  payloadBytes: payloadSize,
+                  httpRequests: 1,
+                  createdAt: new Date().toISOString(),
+                },
+                privateKey,
+              });
+              createdEntities.push({ source: 'arkiv', operation: 'listAsks', txHash });
+            } catch (err) {
+              console.error('[seed-perf] Failed to create Arkiv asks metric:', err);
+            }
+          } catch (err) {
+            console.error('[seed-perf] Arkiv asks test failed:', err);
+          }
+        }
+
+        // 5. Test Offers page operations (both GraphQL and JSON-RPC)
+        if (testGraphQL) {
+          try {
+            const { fetchOffers } = await import('@/lib/graph/offersQueries');
+            // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+            const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+            
+            // Warm up: Execute query once to avoid cold start skewing results
+            try {
+              await fetchOffers({ limit: 1 }, { endpoint: graphqlEndpoint });
+              await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+            } catch (warmupErr) {
+              console.log('[seed-perf] Warmup offers query failed (non-fatal):', warmupErr);
+              // Ignore warmup errors
+            }
+            
+            const startTime = Date.now();
+            let offersData;
+            try {
+              offersData = await fetchOffers({ limit: 25 }, { endpoint: graphqlEndpoint });
+            } catch (fetchError: any) {
+              console.error('[seed-perf] fetchOffers error:', {
+                message: fetchError?.message,
+                stack: fetchError?.stack,
+                error: fetchError,
+              });
+              throw new Error(`fetchOffers failed: ${fetchError?.message || 'Unknown error'}`);
+            }
+            const duration = Date.now() - startTime;
+            const payloadSize = JSON.stringify(offersData).length;
+            
+            console.log('[seed-perf] GraphQL offers query successful:', {
+              offersCount: offersData.length,
+              durationMs: duration,
+              payloadBytes: payloadSize,
+            });
+            
+            // Create DX metric for GraphQL offers
+            try {
+              const { txHash } = await createDxMetric({
+                sample: {
+                  source: 'graphql',
+                  operation: 'listOffers',
+                  route: '/offers',
+                  durationMs: duration,
+                  payloadBytes: payloadSize,
+                  httpRequests: 1,
+                  createdAt: new Date().toISOString(),
+                },
+                privateKey,
+              });
+              createdEntities.push({ source: 'graphql', operation: 'listOffers', txHash });
+            } catch (err) {
+              console.error('[seed-perf] Failed to create GraphQL offers metric:', err);
+            }
+          } catch (err: any) {
+            console.error('[seed-perf] GraphQL offers test failed:', {
+              message: err?.message,
+              stack: err?.stack,
+              error: err,
+            });
+          }
+        }
+        
+        if (testArkiv) {
+          try {
+            const startTime = Date.now();
+            const offersData = await listOffers({ limit: 25 });
+            const duration = Date.now() - startTime;
+            const payloadSize = JSON.stringify(offersData).length;
+            
+            // Create DX metric for JSON-RPC offers
+            try {
+              const { txHash } = await createDxMetric({
+                sample: {
+                  source: 'arkiv',
+                  operation: 'listOffers',
+                  route: '/offers',
+                  durationMs: duration,
+                  payloadBytes: payloadSize,
+                  httpRequests: 1,
+                  createdAt: new Date().toISOString(),
+                },
+                privateKey,
+              });
+              createdEntities.push({ source: 'arkiv', operation: 'listOffers', txHash });
+            } catch (err) {
+              console.error('[seed-perf] Failed to create Arkiv offers metric:', err);
+            }
+          } catch (err) {
+            console.error('[seed-perf] Arkiv offers test failed:', err);
+          }
+        }
+
+        // 6. Test Profile page operations (both GraphQL and JSON-RPC)
+        if (CURRENT_WALLET) {
+          if (testGraphQL) {
+            try {
+              const { fetchProfileDetail } = await import('@/lib/graph/profileQueries');
+              // For server-side calls, we need an absolute URL (same pattern as networkOverview)
+              const graphqlEndpoint = `${requestUrl.origin}/api/graphql`;
+              
+              // Warm up: Execute query once to avoid cold start skewing results
+              try {
+                await fetchProfileDetail({ wallet: CURRENT_WALLET, limitAsks: 1, limitOffers: 1, limitFeedback: 1 }, { endpoint: graphqlEndpoint });
+                await new Promise(resolve => setTimeout(resolve, 200)); // Brief pause
+              } catch (warmupErr) {
+                console.log('[seed-perf] Warmup profile query failed (non-fatal):', warmupErr);
+                // Ignore warmup errors
+              }
+              
+              const startTime = Date.now();
+              let profileData;
+              try {
+                profileData = await fetchProfileDetail({ wallet: CURRENT_WALLET }, { endpoint: graphqlEndpoint });
+              } catch (fetchError: any) {
+                console.error('[seed-perf] fetchProfileDetail error:', {
+                  message: fetchError?.message,
+                  stack: fetchError?.stack,
+                  error: fetchError,
+                });
+                throw new Error(`fetchProfileDetail failed: ${fetchError?.message || 'Unknown error'}`);
+              }
+              const duration = Date.now() - startTime;
+              const payloadSize = JSON.stringify(profileData).length;
+              
+              console.log('[seed-perf] GraphQL profile query successful:', {
+                hasProfile: !!profileData.profile,
+                feedbackCount: profileData.feedback?.length || 0,
+                durationMs: duration,
+                payloadBytes: payloadSize,
+              });
+              
+              // Create DX metric for GraphQL profile
+              try {
+                const { txHash } = await createDxMetric({
+                  sample: {
+                    source: 'graphql',
+                    operation: 'loadProfileData',
+                    route: '/profiles/[wallet]',
+                    durationMs: duration,
+                    payloadBytes: payloadSize,
+                    httpRequests: 2, // 1 GraphQL + 1 API (sessions)
+                    createdAt: new Date().toISOString(),
+                  },
+                  privateKey,
+                });
+                createdEntities.push({ source: 'graphql', operation: 'loadProfileData', txHash });
+              } catch (err) {
+                console.error('[seed-perf] Failed to create GraphQL profile metric:', err);
+              }
+            } catch (err) {
+              console.error('[seed-perf] GraphQL profile test failed:', err);
+            }
+          }
+          
+          if (testArkiv) {
+            try {
+              const startTime = Date.now();
+              const [profile, asks, offers] = await Promise.all([
+                getProfileByWallet(CURRENT_WALLET).catch(() => null),
+                listAsksForWallet(CURRENT_WALLET).catch(() => []),
+                listOffersForWallet(CURRENT_WALLET).catch(() => []),
+              ]);
+              const duration = Date.now() - startTime;
+              const payloadSize = JSON.stringify({ profile, asks, offers }).length;
+              
+              // Create DX metric for JSON-RPC profile
+              try {
+                const { txHash } = await createDxMetric({
+                  sample: {
+                    source: 'arkiv',
+                    operation: 'loadProfileData',
+                    route: '/profiles/[wallet]',
+                    durationMs: duration,
+                    payloadBytes: payloadSize,
+                    httpRequests: 3, // profile + asks + offers
+                    createdAt: new Date().toISOString(),
+                  },
+                  privateKey,
+                });
+                createdEntities.push({ source: 'arkiv', operation: 'loadProfileData', txHash });
+              } catch (err) {
+                console.error('[seed-perf] Failed to create Arkiv profile metric:', err);
+              }
+            } catch (err) {
+              console.error('[seed-perf] Arkiv profile test failed:', err);
+            }
+          }
+        }
+        
+        // 7. List all profiles (instrumented)
         await listUserProfiles().catch(() => []);
 
         return NextResponse.json({ 

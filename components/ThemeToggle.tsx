@@ -8,25 +8,41 @@
 
 import { useTheme } from '@/lib/theme';
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
+  const pathname = usePathname();
   
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleToggle = () => {
+    toggleTheme();
+    // Mark that user has manually toggled (stops auto-switching on landing page)
+    if (pathname === '/') {
+      // Signal to SunriseSunsetTimer that user has taken control
+      window.dispatchEvent(new Event('theme-toggled'));
+    }
+  };
 
   // Don't render until mounted to avoid hydration issues
   if (!mounted) {
     return null;
   }
 
+  // Show on mobile for landing and auth pages
+  const showOnMobile = pathname === '/' || pathname === '/auth';
+  const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
+
   return (
     <button
-      onClick={toggleTheme}
-      className="fixed top-4 right-4 z-50 p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+      onClick={handleToggle}
+      className={`${mobileClass} fixed top-4 z-50 p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2`}
       style={{
+        right: 'clamp(2rem, calc(50% - 32rem), 4rem)', // Responsive: more space on right, stays near center on large screens
         backgroundColor: theme === 'dark' 
           ? 'rgba(5, 20, 5, 0.3)' 
           : 'rgba(240, 240, 240, 0.9)',

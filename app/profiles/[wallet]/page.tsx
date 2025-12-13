@@ -11,12 +11,17 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
 import { fetchProfileDetail } from '@/lib/graph/profileQueries';
+import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -38,18 +43,23 @@ export default function ProfileDetailPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingMode, setMeetingMode] = useState<'request' | 'peer'>('request');
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [showGardenNoteModal, setShowGardenNoteModal] = useState(false);
+  const [viewMode, setViewMode] = useState<'edit' | 'view'>('view'); // 'edit' = show edit controls, 'view' = view as others
 
   useEffect(() => {
     if (wallet) {
-      loadProfileData(wallet);
+      // Normalize wallet to lowercase for Arkiv queries
+      const normalizedWallet = wallet.toLowerCase();
+      loadProfileData(normalizedWallet);
     }
     // Get current user's wallet and profile
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address.toLowerCase()).then(setUserProfile).catch(() => null);
       }
     }
   }, [wallet]);
@@ -59,7 +69,7 @@ export default function ProfileDetailPage() {
       setLoading(true);
       setError('');
 
-      const useGraphQL = useGraphqlForProfile();
+      const useGraphQL = await useGraphqlForProfile();
 
       if (useGraphQL) {
         // Use GraphQL: Single query for profile, asks, offers, feedback
@@ -240,9 +250,19 @@ export default function ProfileDetailPage() {
     }
   };
 
+  const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    return Date.now() >= expires;
+  };
+
+  const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
+    return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/profiles" />
@@ -257,7 +277,7 @@ export default function ProfileDetailPage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/profiles" />
@@ -273,7 +293,7 @@ export default function ProfileDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
@@ -283,13 +303,9 @@ export default function ProfileDetailPage() {
         {/* Profile Header */}
         <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
           <div className="flex items-start gap-6">
-            {profile.profileImage && (
-              <img
-                src={profile.profileImage}
-                alt={profile.displayName}
-                className="w-24 h-24 rounded-full object-cover"
-              />
-            )}
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border-2 border-green-300/30 dark:border-green-500/20 flex-shrink-0">
+              <EmojiIdentitySeed profile={profile} size="xl" showGlow={true} />
+            </div>
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <div>
@@ -299,19 +315,72 @@ export default function ProfileDetailPage() {
                   {profile.username && (
                     <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
                   )}
+                  {profile.txHash && (
+                    <div className="mt-2">
+                      <ViewOnArkivLink entityKey={profile.key} />
+                    </div>
+                  )}
                 </div>
-                {/* Request Meeting Button - only show if viewing someone else's profile */}
-                {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-                  <button
-                    onClick={() => {
-                      setSelectedOffer(null); // General request, not tied to specific offer
-                      setShowMeetingModal(true);
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                  >
-                    Request Meeting
-                  </button>
-                )}
+                <div className="flex gap-2">
+                  {/* Edit/View Toggle - only show if viewing own profile */}
+                  {userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && (
+                    <div className="flex gap-2 items-center">
+                      <button
+                        onClick={() => setViewMode(viewMode === 'edit' ? 'view' : 'edit')}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          viewMode === 'edit'
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                        }`}
+                        title={viewMode === 'edit' ? 'Switch to view mode (as others see it)' : 'Switch to edit mode'}
+                      >
+                        {viewMode === 'edit' ? '👁️ View as Others' : '✏️ Edit Mode'}
+                      </button>
+                      {viewMode === 'edit' && (
+                        <Link
+                          href="/me?edit=profile"
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Edit Profile
+                        </Link>
+                      )}
+                    </div>
+                  )}
+                  {/* Action Buttons - only show if viewing someone else's profile OR viewing own profile in view mode */}
+                  {((userWallet && userWallet.toLowerCase() !== wallet.toLowerCase()) || 
+                    (userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && viewMode === 'view')) && (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedOffer(null); // General request, not tied to specific offer
+                          setShowMeetingModal(true);
+                          setMeetingMode('request');
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Request Meeting
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedOffer(null);
+                          setShowMeetingModal(true);
+                          setMeetingMode('peer');
+                        }}
+                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Peer Learning
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowGardenNoteModal(true);
+                        }}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Leave a Note
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
               {profile.bioShort && (
                 <p className="text-gray-700 dark:text-gray-300 mb-3">{profile.bioShort}</p>
@@ -424,7 +493,7 @@ export default function ProfileDetailPage() {
                       </p>
                     </div>
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                      {offer.status}
+                      {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
                     </span>
                   </div>
                   <p className="text-gray-700 dark:text-gray-300 mb-3">{offer.message}</p>
@@ -434,7 +503,7 @@ export default function ProfileDetailPage() {
                         Availability:
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {offer.availabilityWindow}
+                        {formatAvailabilityForDisplay(offer.availabilityWindow)}
                       </p>
                     </div>
                   )}
@@ -455,23 +524,18 @@ export default function ProfileDetailPage() {
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)} left</span>
-                      {offer.txHash && (
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${offer.txHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-green-600 dark:text-green-400 hover:underline"
-                        >
-                          View on Arkiv
-                        </a>
-                      )}
+                      <span>⏰ {(() => {
+                        const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
+                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
+                      })()}</span>
+                      <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} />
                     </div>
                     {/* Request Meeting Button for this specific offer */}
                     {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
                       <button
                         onClick={() => {
                           setSelectedOffer(offer); // Set the specific offer
+                          setMeetingMode('request');
                           setShowMeetingModal(true);
                         }}
                         className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
@@ -506,22 +570,16 @@ export default function ProfileDetailPage() {
                       </p>
                     </div>
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                      {ask.status}
+                      {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                     </span>
                   </div>
                   <p className="text-gray-700 dark:text-gray-300 mb-3">{ask.message}</p>
                   <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>⏰ {formatTimeRemaining(ask.createdAt, ask.ttlSeconds)} left</span>
-                    {ask.txHash && (
-                      <a
-                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
-                      >
-                        View on Arkiv
-                      </a>
-                    )}
+                    <span>⏰ {(() => {
+                      const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
+                      return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
+                    })()}</span>
+                    <ViewOnArkivLink entityKey={ask.key} />
                   </div>
                 </div>
               ))}
@@ -728,6 +786,9 @@ export default function ProfileDetailPage() {
                         </p>
                       </div>
                     )}
+                    <div className="mt-2">
+                      <ViewOnArkivLink entityKey={feedback.key} />
+                    </div>
                   </div>
                 ))}
               </div>
@@ -741,15 +802,30 @@ export default function ProfileDetailPage() {
           onClose={() => {
             setShowMeetingModal(false);
             setSelectedOffer(null); // Clear selected offer when closing
+            setMeetingMode('request'); // Reset to default
           }}
           profile={profile}
           userWallet={userWallet}
           userProfile={userProfile}
           offer={selectedOffer} // Pass the specific offer that was clicked, or null for general request
+          mode={meetingMode}
           onSuccess={() => {
             // Optionally reload data or show success message
             console.log('Meeting requested successfully');
             setSelectedOffer(null); // Clear selected offer after success
+            setMeetingMode('request'); // Reset to default
+          }}
+        />
+
+        {/* Garden Note Modal */}
+        <GardenNoteComposeModal
+          isOpen={showGardenNoteModal}
+          onClose={() => setShowGardenNoteModal(false)}
+          targetProfile={profile}
+          userWallet={userWallet}
+          userProfile={userProfile}
+          onSuccess={() => {
+            console.log('Garden note posted successfully');
           }}
         />
       </div>

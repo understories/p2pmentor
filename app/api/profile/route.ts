@@ -7,12 +7,24 @@
  * Reference: refs/mentor-graph/pages/api/me.ts
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createUserProfile, getProfileByWallet } from '@/lib/arkiv/profile';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
-import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import { isTransactionTimeoutError, isRateLimitError } from '@/lib/arkiv/transaction-utils';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const { wallet, action, ...profileData } = body;
@@ -48,6 +60,8 @@ export async function POST(request: Request) {
         bioLong,
         skills = '',
         skillsArray,
+        skill_ids,
+        skillExpertise,
         timezone = '',
         languages,
         contactLinks,
@@ -77,12 +91,43 @@ export async function POST(request: Request) {
       const finalSkillsArray = skillsArray !== undefined 
         ? skillsArray 
         : (existingProfile?.skillsArray || (finalSkills ? finalSkills.split(',').map((s: string) => s.trim()).filter(Boolean) : []));
+      const finalSkillIds = skill_ids !== undefined 
+        ? skill_ids 
+        : ((existingProfile as any)?.skill_ids || []);
+      const finalSkillExpertise = skillExpertise !== undefined
+        ? skillExpertise
+        : (existingProfile?.skillExpertise || {});
 
       if (!finalDisplayName) {
         return NextResponse.json(
           { ok: false, error: 'displayName is required' },
           { status: 400 }
         );
+      }
+
+      // Check username uniqueness (query all historical profiles)
+      if (finalUsername && finalUsername.trim()) {
+        const { checkUsernameExists } = await import('@/lib/arkiv/profile');
+        const existingProfiles = await checkUsernameExists(finalUsername.trim());
+        
+        // Filter out profiles from the same wallet (user can reuse their own username)
+        const otherWalletProfiles = existingProfiles.filter(p => 
+          p.wallet.toLowerCase() !== targetWallet.toLowerCase()
+        );
+        
+        if (otherWalletProfiles.length > 0) {
+          return NextResponse.json({
+            ok: false,
+            error: 'Username already exists',
+            duplicateProfiles: otherWalletProfiles.map(p => ({
+              key: p.key,
+              wallet: p.wallet,
+              displayName: p.displayName,
+              createdAt: p.createdAt,
+            })),
+            canRegrow: true, // Indicate regrow is possible
+          }, { status: 409 }); // 409 Conflict
+        }
       }
 
       // Always allow server-side creation (like mentor-graph)
@@ -98,6 +143,8 @@ export async function POST(request: Request) {
           bioLong: finalBioLong,
           skills: finalSkills,
           skillsArray: finalSkillsArray,
+          skill_ids: finalSkillIds,
+          skillExpertise: finalSkillExpertise,
           timezone: finalTimezone,
           languages: finalLanguages,
           contactLinks: finalContactLinks,
@@ -111,6 +158,15 @@ export async function POST(request: Request) {
         
         return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {
+        // Handle rate limit errors with user-friendly message
+        if (isRateLimitError(error)) {
+          return NextResponse.json({ 
+            ok: false, 
+            error: 'Rate limit exceeded. The Arkiv network is temporarily limiting requests. Please wait a moment and try again.',
+            rateLimited: true,
+          }, { status: 429 });
+        }
+        
         // Handle transaction receipt timeout gracefully
         if (isTransactionTimeoutError(error)) {
           return NextResponse.json({ 

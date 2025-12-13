@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import './landing.css';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
@@ -33,12 +34,26 @@ export default function Home() {
     }
   }, []);
 
+  // Ensure dark mode on initial load for sunrise effect
+  useEffect(() => {
+    // Force dark mode on landing page load (only if no saved preference)
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('theme');
+      if (!saved) {
+        const root = document.documentElement;
+        root.classList.add('dark');
+        root.classList.remove('light');
+      }
+    }
+  }, []);
+
   return (
     <>
       <div className="forest-bg"></div>
       <div className="fog-layer fog-1"></div>
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
+      <SunriseSunsetTimer />
       <ThemeToggle />
       
       <main className="landing-container">

@@ -4,19 +4,39 @@
  * Handles availability entity creation and retrieval.
  */
 
-import { NextResponse } from 'next/server';
-import { createAvailability, listAvailabilityForWallet } from '@/lib/arkiv/availability';
+import { NextRequest, NextResponse } from 'next/server';
+import { createAvailability, listAvailabilityForWallet, deleteAvailability, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { getPrivateKey } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const { wallet, timeBlocks, timezone, spaceId } = body;
 
-    if (!wallet || !timeBlocks || !timezone) {
+    if (!wallet || !timezone) {
       return NextResponse.json(
-        { ok: false, error: 'wallet, timeBlocks, and timezone are required' },
+        { ok: false, error: 'wallet and timezone are required' },
+        { status: 400 }
+      );
+    }
+
+    // timeBlocks can be either a string (legacy) or WeeklyAvailability object (structured)
+    if (!timeBlocks || (typeof timeBlocks === 'string' && !timeBlocks.trim())) {
+      return NextResponse.json(
+        { ok: false, error: 'timeBlocks is required' },
         { status: 400 }
       );
     }
@@ -24,7 +44,7 @@ export async function POST(request: Request) {
     try {
       const { key, txHash } = await createAvailability({
         wallet,
-        timeBlocks,
+        timeBlocks: timeBlocks as string | WeeklyAvailability, // Support both formats
         timezone,
         privateKey: getPrivateKey(),
         spaceId: spaceId || 'local-dev',
@@ -70,6 +90,48 @@ export async function GET(request: Request) {
     return NextResponse.json({ ok: true, availabilities });
   } catch (error: any) {
     console.error('Availability API GET error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json();
+    const { availabilityKey, wallet } = body;
+
+    if (!availabilityKey || !wallet) {
+      return NextResponse.json(
+        { ok: false, error: 'availabilityKey and wallet are required' },
+        { status: 400 }
+      );
+    }
+
+    try {
+      const { key, txHash } = await deleteAvailability({
+        availabilityKey,
+        wallet,
+        privateKey: getPrivateKey(),
+      });
+
+      return NextResponse.json({ ok: true, key, txHash });
+    } catch (error: any) {
+      // Handle transaction receipt timeout gracefully
+      if (isTransactionTimeoutError(error)) {
+        return NextResponse.json({ 
+          ok: true, 
+          key: null,
+          txHash: null,
+          pending: true,
+          message: error.message || 'Transaction submitted, confirmation pending'
+        });
+      }
+      throw error;
+    }
+  } catch (error: any) {
+    console.error('Availability API DELETE error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }

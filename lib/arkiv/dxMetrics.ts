@@ -20,6 +20,9 @@ export type DxMetric = {
   durationMs: number;
   payloadBytes?: number;
   httpRequests?: number;
+  status?: 'success' | 'failure';
+  errorType?: string;
+  usedFallback?: boolean;
   createdAt: string;
   txHash?: string;
 }
@@ -47,6 +50,9 @@ export async function createDxMetric({
     durationMs: sample.durationMs,
     payloadBytes: sample.payloadBytes,
     httpRequests: sample.httpRequests,
+    status: sample.status || 'success',
+    errorType: sample.errorType || undefined,
+    usedFallback: sample.usedFallback || false,
     createdAt,
   };
 
@@ -64,8 +70,11 @@ export async function createDxMetric({
         { key: 'operation', value: sample.operation },
         { key: 'route', value: sample.route || '' },
         { key: 'durationMs', value: String(sample.durationMs) },
+        { key: 'status', value: sample.status || 'success' },
         ...(sample.payloadBytes ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }] : []),
         ...(sample.httpRequests ? [{ key: 'httpRequests', value: String(sample.httpRequests) }] : []),
+        ...(sample.errorType ? [{ key: 'errorType', value: sample.errorType }] : []),
+        { key: 'usedFallback', value: String(sample.usedFallback || false) },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
       ],
@@ -199,6 +208,9 @@ export async function listDxMetrics({
         durationMs: payload.durationMs || parseInt(getAttr('durationMs'), 10),
         payloadBytes: payload.payloadBytes || (getAttr('payloadBytes') ? parseInt(getAttr('payloadBytes'), 10) : undefined),
         httpRequests: payload.httpRequests || (getAttr('httpRequests') ? parseInt(getAttr('httpRequests'), 10) : undefined),
+        status: (getAttr('status') || payload.status || 'success') as 'success' | 'failure',
+        errorType: getAttr('errorType') || payload.errorType || undefined,
+        usedFallback: getAttr('usedFallback') === 'true' || payload.usedFallback === true,
         createdAt: getAttr('createdAt') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };

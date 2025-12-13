@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
 import { BetaBanner } from '@/components/BetaBanner';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {
@@ -73,7 +74,7 @@ export default function ProfilesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
@@ -86,13 +87,6 @@ export default function ProfilesPage() {
         />
         
         <BetaBanner />
-
-        {/* Beta Warning */}
-        <div className="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            ⚠️ <strong>Beta Environment:</strong> This is a test environment. All data is on the Mendoza testnet and may be reset.
-          </p>
-        </div>
 
         {/* Filter */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -195,7 +189,7 @@ export default function ProfilesPage() {
                   )}
                   {profile.availabilityWindow && (
                     <div>
-                      <strong>Available:</strong> {profile.availabilityWindow}
+                      <strong>Available:</strong> {formatAvailabilityForDisplay(profile.availabilityWindow)}
                     </div>
                   )}
                   <div>

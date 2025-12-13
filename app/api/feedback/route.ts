@@ -4,11 +4,23 @@
  * Handles feedback creation and retrieval.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createFeedback, listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
 import { getPrivateKey } from '@/lib/config';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
     const {
@@ -56,6 +68,18 @@ export async function POST(request: Request) {
       mentorConfirmed,
       learnerConfirmed,
     });
+
+    // Update profile avgRating for feedbackTo (person receiving feedback)
+    if (rating && rating > 0) {
+      try {
+        const { updateProfileAvgRating } = await import('@/lib/arkiv/profile');
+        await updateProfileAvgRating(feedbackTo, getPrivateKey());
+        console.log('[api/feedback] Updated avgRating for profile:', feedbackTo);
+      } catch (error: any) {
+        console.warn('[api/feedback] Failed to update avgRating (non-fatal):', error);
+        // Non-fatal - feedback was created successfully
+      }
+    }
 
     return NextResponse.json({ ok: true, key, txHash });
   } catch (error: any) {

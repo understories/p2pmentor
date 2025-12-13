@@ -68,27 +68,70 @@ export function useGraphqlForMe(): boolean {
 /**
  * Check if GraphQL should be used for profile pages
  * 
+ * Client-side: Fetches from /api/graphql-flags endpoint
+ * Server-side: Reads from process.env
+ * 
  * @returns true if USE_GRAPHQL_FOR_PROFILE is set to "true"
  */
-export function useGraphqlForProfile(): boolean {
+export async function useGraphqlForProfile(): Promise<boolean>;
+export function useGraphqlForProfile(): boolean;
+export function useGraphqlForProfile(): boolean | Promise<boolean> {
+  // Client-side: fetch from API endpoint
+  if (typeof window !== 'undefined') {
+    return fetch('/api/graphql-flags')
+      .then(res => res.json())
+      .then(data => data.ok && data.flags?.profile === true)
+      .catch(() => false);
+  }
+  
+  // Server-side: read from env
   return readBoolEnv('USE_GRAPHQL_FOR_PROFILE');
 }
 
 /**
  * Check if GraphQL should be used for asks page
  * 
+ * Client-side: Fetches from /api/graphql-flags endpoint
+ * Server-side: Reads from process.env
+ * 
  * @returns true if USE_GRAPHQL_FOR_ASKS is set to "true"
  */
-export function useGraphqlForAsks(): boolean {
+export async function useGraphqlForAsks(): Promise<boolean>;
+export function useGraphqlForAsks(): boolean;
+export function useGraphqlForAsks(): boolean | Promise<boolean> {
+  // Client-side: fetch from API endpoint
+  if (typeof window !== 'undefined') {
+    // Return a promise that fetches the flag
+    return fetch('/api/graphql-flags')
+      .then(res => res.json())
+      .then(data => data.ok && data.flags?.asks === true)
+      .catch(() => false);
+  }
+  
+  // Server-side: read from env
   return readBoolEnv('USE_GRAPHQL_FOR_ASKS');
 }
 
 /**
  * Check if GraphQL should be used for offers page
  * 
+ * Client-side: Fetches from /api/graphql-flags endpoint
+ * Server-side: Reads from process.env
+ * 
  * @returns true if USE_GRAPHQL_FOR_OFFERS is set to "true"
  */
-export function useGraphqlForOffers(): boolean {
+export async function useGraphqlForOffers(): Promise<boolean>;
+export function useGraphqlForOffers(): boolean;
+export function useGraphqlForOffers(): boolean | Promise<boolean> {
+  // Client-side: fetch from API endpoint
+  if (typeof window !== 'undefined') {
+    return fetch('/api/graphql-flags')
+      .then(res => res.json())
+      .then(data => data.ok && data.flags?.offers === true)
+      .catch(() => false);
+  }
+  
+  // Server-side: read from env
   return readBoolEnv('USE_GRAPHQL_FOR_OFFERS');
 }
 

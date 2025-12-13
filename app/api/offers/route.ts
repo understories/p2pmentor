@@ -6,15 +6,28 @@
  * Reference: refs/mentor-graph/pages/api/offers.ts
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createOffer, listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import type { WeeklyAvailability } from '@/lib/arkiv/availability';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
   try {
     const body = await request.json();
-    const { wallet, action, skill, message, availabilityWindow, isPaid, cost, paymentAddress, expiresIn } = body;
+    const { wallet, action, skill, skill_id, skill_label, message, availabilityWindow, availabilityKey, isPaid, cost, paymentAddress, expiresIn } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -26,9 +39,19 @@ export async function POST(request: Request) {
     }
 
     if (action === 'createOffer') {
-      if (!skill || !message || !availabilityWindow) {
+      // For beta: require skill_id (new Skill entity system)
+      // Legacy: fallback to skill string if skill_id not provided
+      if ((!skill_id && !skill) || !message) {
         return NextResponse.json(
-          { ok: false, error: 'skill, message, and availabilityWindow are required' },
+          { ok: false, error: 'skill_id (or skill) and message are required' },
+          { status: 400 }
+        );
+      }
+
+      // Validate availability: either availabilityWindow or availabilityKey must be provided
+      if (!availabilityWindow && !availabilityKey) {
+        return NextResponse.json(
+          { ok: false, error: 'Either availabilityWindow or availabilityKey is required' },
           { status: 400 }
         );
       }
@@ -58,9 +81,12 @@ export async function POST(request: Request) {
       try {
         const { key, txHash } = await createOffer({
           wallet: targetWallet,
-          skill,
+          skill: skill || undefined, // Legacy: optional if skill_id provided
+          skill_id: skill_id || undefined, // New: preferred for beta
+          skill_label: skill_label || skill || undefined, // Derived from Skill entity
           message,
           availabilityWindow,
+          availabilityKey: availabilityKey || undefined,
           isPaid: isPaid === true || isPaid === 'true',
           cost: cost || undefined,
           paymentAddress: paymentAddress || undefined,

@@ -11,14 +11,14 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 0;
+  z-index: -9;
   background: 
     radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
     radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.1) 0%, transparent 70%),
-    linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%),
-    linear-gradient(180deg, #0a0e0f 0%, #050708 100%);
+    linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%);
   animation: forestPulse 10s ease-in-out infinite;
+  pointer-events: none;
 }
 
 @keyframes forestPulse {

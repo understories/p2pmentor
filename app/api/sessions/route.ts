@@ -8,15 +8,28 @@
  * Reference: refs/mentor-graph/pages/api/me.ts (createSession action)
  */
 
-import { NextResponse } from 'next/server';
-import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, validatePayment } from '@/lib/arkiv/sessions';
+import { NextRequest, NextResponse } from 'next/server';
+import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, submitPayment, validatePayment } from '@/lib/arkiv/sessions';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 import { validateTransaction } from '@/lib/payments';
+import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  // Verify beta access
+  const betaCheck = await verifyBetaAccess(request, {
+    requireArkivValidation: false, // Fast path - cookies are sufficient
+  });
+
+  if (!betaCheck.hasAccess) {
+    return NextResponse.json(
+      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, paymentTxHash, validatedByWallet, spaceId } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -36,14 +49,21 @@ export async function POST(request: Request) {
       }
 
       try {
+        // Ensure duration is always an integer to prevent BigInt conversion errors
+        const durationInt = duration !== undefined && duration !== null
+          ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
+          : undefined;
+
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
           skill,
           sessionDate,
-          duration: duration ? parseInt(duration, 10) : undefined,
+          duration: durationInt,
           notes: notes || undefined,
-          paymentTxHash: paymentTxHash || undefined,
+          requiresPayment: requiresPayment || undefined,
+          paymentAddress: paymentAddress || undefined,
+          cost: cost || undefined,
           privateKey: getPrivateKey(),
         });
 
@@ -95,6 +115,25 @@ export async function POST(request: Request) {
         privateKey: getPrivateKey(),
         mentorWallet,
         learnerWallet,
+      });
+
+      return NextResponse.json({ ok: true, key, txHash });
+    } else if (action === 'submitPayment') {
+      if (!sessionKey || !paymentTxHash || !submittedByWallet) {
+        return NextResponse.json(
+          { ok: false, error: 'sessionKey, paymentTxHash, and submittedByWallet are required' },
+          { status: 400 }
+        );
+      }
+
+      const { key, txHash } = await submitPayment({
+        sessionKey,
+        paymentTxHash,
+        submittedByWallet,
+        privateKey: getPrivateKey(),
+        mentorWallet,
+        learnerWallet,
+        spaceId,
       });
 
       return NextResponse.json({ ok: true, key, txHash });

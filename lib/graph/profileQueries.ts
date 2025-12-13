@@ -174,10 +174,12 @@ export interface ProfileDetailParams {
  * Fetch profile detail data via GraphQL
  * 
  * @param params - Query parameters
+ * @param options - Optional endpoint override (for server-side calls)
  * @returns Profile detail data
  */
 export async function fetchProfileDetail(
-  params: ProfileDetailParams
+  params: ProfileDetailParams,
+  options?: { endpoint?: string }
 ): Promise<ProfileDetailResponse> {
   const {
     wallet,
@@ -198,7 +200,7 @@ export async function fetchProfileDetail(
   const response = await graphRequest<ProfileDetailResponse>(
     PROFILE_DETAIL_QUERY,
     variables,
-    { operationName: 'ProfileDetail' }
+    { operationName: 'ProfileDetail', endpoint: options?.endpoint }
   );
   
   const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;

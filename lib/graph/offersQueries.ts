@@ -78,10 +78,12 @@ export interface OffersParams {
  * Fetch offers via GraphQL
  * 
  * @param params - Query parameters
+ * @param options - Optional endpoint override (for server-side calls)
  * @returns Array of offers
  */
 export async function fetchOffers(
-  params: OffersParams = {}
+  params: OffersParams = {},
+  options?: { endpoint?: string }
 ): Promise<OffersResponse['offers']> {
   const {
     skill,
@@ -102,7 +104,7 @@ export async function fetchOffers(
   const response = await graphRequest<OffersResponse>(
     OFFERS_QUERY,
     variables,
-    { operationName: 'Offers' }
+    { operationName: 'Offers', endpoint: options?.endpoint }
   );
   
   const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;

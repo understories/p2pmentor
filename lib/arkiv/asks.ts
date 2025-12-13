@@ -17,7 +17,9 @@ export const ASK_TTL_SECONDS = 3600; // 1 hour default
 export type Ask = {
   key: string;
   wallet: string;
-  skill: string;
+  skill: string; // Legacy: kept for backward compatibility
+  skill_id?: string; // New: reference to Skill entity (preferred for beta)
+  skill_label?: string; // Derived from Skill entity (readonly, convenience)
   spaceId: string;
   createdAt: string;
   status: string;
@@ -35,24 +37,56 @@ export type Ask = {
  */
 export async function createAsk({
   wallet,
-  skill,
+  skill, // Legacy: kept for backward compatibility
+  skill_id, // New: reference to Skill entity (preferred for beta)
+  skill_label, // Derived from Skill entity (readonly, convenience)
   message,
   privateKey,
   expiresIn,
 }: {
   wallet: string;
-  skill: string;
+  skill?: string; // Legacy: optional if skill_id provided
+  skill_id?: string; // New: preferred for beta
+  skill_label?: string; // Derived from Skill entity
   message: string;
   privateKey: `0x${string}`;
   expiresIn?: number;
 }): Promise<{ key: string; txHash: string }> {
+  // Validation: require either skill (legacy) or skill_id (beta)
+  if (!skill && !skill_id) {
+    throw new Error('Either skill (legacy) or skill_id (beta) must be provided');
+  }
+
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const spaceId = 'local-dev';
   const status = 'open';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
-  const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
+  // Ensure ttl is always an integer (BigInt requirement)
+  const ttlRaw = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : ASK_TTL_SECONDS;
+  const ttl = Math.floor(ttlRaw);
+
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'ask' },
+    { key: 'wallet', value: wallet.toLowerCase() },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    { key: 'status', value: status },
+    { key: 'ttlSeconds', value: String(ttl) },
+  ];
+
+  // Add skill fields (legacy for compatibility, new for beta)
+  if (skill) {
+    attributes.push({ key: 'skill', value: skill });
+  }
+  if (skill_id) {
+    attributes.push({ key: 'skill_id', value: skill_id });
+  }
+  if (skill_label) {
+    attributes.push({ key: 'skill_label', value: skill_label });
+  }
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
@@ -60,15 +94,7 @@ export async function createAsk({
         message,
       })),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'ask' },
-        { key: 'wallet', value: wallet },
-        { key: 'skill', value: skill },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        { key: 'status', value: status },
-        { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
-      ],
+      attributes,
       expiresIn: ttl,
     });
   });
@@ -82,11 +108,11 @@ export async function createAsk({
       txHash,
     })),
     contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'ask_txhash' },
-      { key: 'askKey', value: entityKey },
-      { key: 'wallet', value: wallet },
-      { key: 'spaceId', value: spaceId },
+      attributes: [
+        { key: 'type', value: 'ask_txhash' },
+        { key: 'askKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
     ],
     expiresIn: ttl,
   });
@@ -102,27 +128,50 @@ export async function createAsk({
  */
 export async function listAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-  let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
-  }
-  
-  const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'ask_txhash'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit)
-      .fetch(),
-  ]);
+  try {
+    const publicClient = getPublicClient();
+    const query = publicClient.buildQuery();
+    const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
+    let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
+    
+    if (params?.spaceId) {
+      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    }
+    
+    let result: any = null;
+    let txHashResult: any = null;
+    
+    try {
+      [result, txHashResult] = await Promise.all([
+        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
+        publicClient.buildQuery()
+          .where(eq('type', 'ask_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+          .fetch(),
+      ]);
+    } catch (fetchError: any) {
+      console.error('[listAsks] Arkiv query failed:', {
+        message: fetchError?.message,
+        stack: fetchError?.stack,
+        error: fetchError
+      });
+      return []; // Return empty array on query failure
+    }
+
+    // Defensive check: ensure result and entities exist
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.warn('[listAsks] Invalid result structure, returning empty array', { 
+        result: result ? { hasEntities: !!result.entities, entitiesType: typeof result.entities, entitiesIsArray: Array.isArray(result.entities) } : 'null/undefined'
+      });
+      return [];
+    }
 
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -152,7 +201,7 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     }
   });
 
-  let asks = result.entities.map((entity: any) => {
+  let asks = (result.entities || []).map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -193,30 +242,40 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     };
   });
 
-  if (params?.skill) {
-    const skillLower = params.skill.toLowerCase();
-    asks = asks.filter(ask => ask.skill.toLowerCase().includes(skillLower));
-  }
+    if (params?.skill) {
+      const skillLower = params.skill.toLowerCase();
+      asks = asks.filter((ask: Ask) => ask.skill.toLowerCase().includes(skillLower));
+    }
 
-  // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-  const payloadBytes = JSON.stringify(asks).length;
-  
-  // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'listAsks',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 2, // Two parallel queries: asks + txhashes
-      createdAt: new Date().toISOString(),
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(asks).length;
+    
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'listAsks',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 2, // Two parallel queries: asks + txhashes
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
 
-  return asks;
+    return asks;
+  } catch (error: any) {
+    // CRITICAL: Catch ANY error and return empty array
+    // This ensures the function NEVER throws, making it safe for GraphQL resolvers
+    console.error('[listAsks] Unexpected error, returning empty array:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error?.toString()
+    });
+    return [];
+  }
 }
 
 /**
@@ -231,22 +290,29 @@ export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
   const [result, txHashResult] = await Promise.all([
     query
       .where(eq('type', 'ask'))
-      .where(eq('wallet', wallet))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'ask_txhash'))
-      .where(eq('wallet', wallet))
+        publicClient.buildQuery()
+          .where(eq('type', 'ask_txhash'))
+          .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
   ]);
 
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listAsksForWallet] Invalid result structure, returning empty array', { result });
+    return [];
+  }
+
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -276,7 +342,7 @@ export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
     }
   });
 
-  return result.entities.map((entity: any) => {
+  return (result.entities || []).map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {

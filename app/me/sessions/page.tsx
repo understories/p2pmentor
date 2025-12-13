@@ -19,8 +19,11 @@ import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { FeedbackModal } from '@/components/FeedbackModal';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { formatSessionTitle } from '@/lib/sessions/display';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import type { Skill } from '@/lib/arkiv/skill';
 
 function shortenWallet(wallet: string): string {
   if (!wallet || wallet.length < 10) return wallet;
@@ -57,10 +60,13 @@ export default function SessionsPage() {
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<string | null>(null);
+  const [submittingPayment, setSubmittingPayment] = useState<string | null>(null);
+  const [paymentTxHashInput, setPaymentTxHashInput] = useState<Record<string, string>>({});
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
   const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
@@ -83,6 +89,15 @@ export default function SessionsPage() {
     try {
       setLoading(true);
       setError('');
+
+      // Load skills for mapping skill_id to name_canonical
+      const { listSkills } = await import('@/lib/arkiv/skill');
+      const skills = await listSkills({ status: 'active', limit: 200 });
+      const skillsMap: Record<string, Skill> = {};
+      skills.forEach(skill => {
+        skillsMap[skill.key] = skill;
+      });
+      setSkillsMap(skillsMap);
 
       // Fetch sessions
       const sessionsRes = await fetch(`/api/sessions?wallet=${encodeURIComponent(wallet)}`);
@@ -221,6 +236,64 @@ export default function SessionsPage() {
     }
   };
 
+  const handleSubmitPayment = async (session: Session) => {
+    if (!userWallet) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    const paymentTxHash = paymentTxHashInput[session.key]?.trim();
+    if (!paymentTxHash) {
+      alert('Please enter a payment transaction hash');
+      return;
+    }
+
+    if (!confirm(`Submit payment transaction ${paymentTxHash.slice(0, 10)}...?`)) {
+      return;
+    }
+
+    setSubmittingPayment(session.key);
+
+    try {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submitPayment',
+          wallet: userWallet,
+          sessionKey: session.key,
+          paymentTxHash,
+          submittedByWallet: userWallet,
+          mentorWallet: session.mentorWallet,
+          learnerWallet: session.learnerWallet,
+          spaceId: session.spaceId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to submit payment');
+      }
+
+      alert('Payment submitted successfully! The mentor will validate it.');
+      // Clear input
+      setPaymentTxHashInput(prev => {
+        const next = { ...prev };
+        delete next[session.key];
+        return next;
+      });
+      // Reload sessions
+      if (userWallet) {
+        loadSessions(userWallet);
+      }
+    } catch (err: any) {
+      console.error('Error submitting payment:', err);
+      alert(`Error: ${err.message || 'Failed to submit payment'}`);
+    } finally {
+      setSubmittingPayment(null);
+    }
+  };
+
   const handleValidatePayment = async (session: Session) => {
     if (!userWallet) {
       alert('Please connect your wallet first');
@@ -274,7 +347,7 @@ export default function SessionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -288,7 +361,7 @@ export default function SessionsPage() {
 
   if (error && !userWallet) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -306,10 +379,19 @@ export default function SessionsPage() {
   const completedSessions = sessions.filter(s => s.status === 'completed');
   const cancelledSessions = sessions.filter(s => s.status === 'cancelled');
 
+  // Find upcoming session (next scheduled session)
+  const now = Date.now();
+  const upcomingSession = scheduledSessions
+    .filter(s => {
+      const sessionTime = new Date(s.sessionDate).getTime();
+      return sessionTime > now;
+    })
+    .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
+
   const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
@@ -320,12 +402,50 @@ export default function SessionsPage() {
           title="Sessions"
           description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
         />
-        
-        <BetaBanner />
 
         {error && (
           <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
         )}
+
+        {/* Upcoming Session Highlight */}
+        {upcomingSession && (() => {
+          const isMentor = userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
+          const otherWallet = isMentor ? upcomingSession.learnerWallet : upcomingSession.mentorWallet;
+          const otherProfile = profiles[otherWallet.toLowerCase()];
+          const sessionTime = formatSessionDate(upcomingSession.sessionDate);
+          const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
+          const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
+          const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+
+          return (
+            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                  📅 Next Session
+                </h3>
+                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                  {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                </span>
+              </div>
+              <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
+                <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                {sessionTime.date} at {sessionTime.time}
+              </p>
+              {upcomingSession.videoJoinUrl && (
+                <a
+                  href={upcomingSession.videoJoinUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  🎥 Join Meeting
+                </a>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Pending Sessions */}
         {pendingSessions.length > 0 && (
@@ -335,8 +455,8 @@ export default function SessionsPage() {
             </h2>
             <div className="space-y-4">
               {pendingSessions.map((session) => {
-                const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
-                const isLearner = userWallet?.toLowerCase() === session.learnerWallet.toLowerCase();
+                const isMentor = Boolean(userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase());
+                const isLearner = Boolean(userWallet && userWallet.toLowerCase() === session.learnerWallet.toLowerCase());
                 const canConfirm = isMentor || isLearner;
                 const userConfirmed = isMentor ? session.mentorConfirmed : (isLearner ? session.learnerConfirmed : false);
                 const otherConfirmed = isMentor ? session.learnerConfirmed : (isLearner ? session.mentorConfirmed : false);
@@ -353,7 +473,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
                             Pending
                           </span>
@@ -420,11 +540,77 @@ export default function SessionsPage() {
                       </div>
                     </div>
 
+                    {/* Payment Flow Progress Indicator */}
+                    {session.requiresPayment && (
+                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
+                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Payment Progress:</p>
+                        <div className="flex items-center gap-2 mb-3">
+                          {/* Step 1: Mentor Confirms */}
+                          <div className={`flex items-center gap-2 ${session.mentorConfirmed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.mentorConfirmed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
+                              {session.mentorConfirmed ? '✓' : '1'}
+                            </span>
+                            <span className="text-xs">Mentor confirms</span>
+                          </div>
+                          <div className={`flex-1 h-0.5 ${session.mentorConfirmed ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-200 dark:bg-gray-700'}`} />
+                          {/* Step 2: Learner Submits Payment */}
+                          <div className={`flex items-center gap-2 ${session.paymentTxHash ? 'text-green-600 dark:text-green-400' : (session.mentorConfirmed ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentTxHash ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.mentorConfirmed ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
+                              {session.paymentTxHash ? '✓' : '2'}
+                            </span>
+                            <span className="text-xs">Payment submitted</span>
+                          </div>
+                          <div className={`flex-1 h-0.5 ${session.paymentValidated ? 'bg-green-300 dark:bg-green-700' : (session.paymentTxHash ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700')}`} />
+                          {/* Step 3: Mentor Validates Payment */}
+                          <div className={`flex items-center gap-2 ${session.paymentValidated ? 'text-green-600 dark:text-green-400' : (session.paymentTxHash ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentValidated ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.paymentTxHash ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
+                              {session.paymentValidated ? '✓' : '3'}
+                            </span>
+                            <span className="text-xs">Payment validated</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Payment submission UI (for learner after mentor confirms) */}
+                    {session.requiresPayment && 
+                     !session.paymentTxHash && 
+                     session.mentorConfirmed && 
+                     isLearner && (
+                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Session confirmed! Please submit your payment (Step 2 of 3):
+                        </p>
+                        <div className="mb-3">
+                          <input
+                            type="text"
+                            value={paymentTxHashInput[session.key] || ''}
+                            onChange={(e) => setPaymentTxHashInput(prev => ({
+                              ...prev,
+                              [session.key]: e.target.value
+                            }))}
+                            placeholder="Enter payment transaction hash (0x...)"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleSubmitPayment(session)}
+                          disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
+                          className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
+                        </button>
+                      </div>
+                    )}
+
                     {canConfirm && !userConfirmed && (
                       <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
                         {/* Payment validation button (if payment exists and not validated) */}
-                        {session.paymentTxHash && !session.paymentValidated && (
-                          <div className="mb-3">
+                        {session.paymentTxHash && !session.paymentValidated && isMentor && (
+                          <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              Payment submitted! Please validate (Step 3 of 3):
+                            </p>
                             <button
                               onClick={() => handleValidatePayment(session)}
                               disabled={validatingPayment === session.key}
@@ -440,9 +626,9 @@ export default function SessionsPage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => handleConfirm(session)}
-                            disabled={confirming === session.key || (session.paymentTxHash ? !session.paymentValidated : false)}
+                            disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
                             className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={session.paymentTxHash && !session.paymentValidated ? 'Please validate payment first' : ''}
+                            title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
                           >
                             {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
                           </button>
@@ -484,7 +670,7 @@ export default function SessionsPage() {
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                           <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                             Scheduled
                           </span>
@@ -575,7 +761,7 @@ export default function SessionsPage() {
         {/* Completed Sessions */}
         {completedSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">
+            <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
               ✓ Completed ({completedSessions.length})
             </h2>
             <div className="space-y-4">
@@ -597,11 +783,11 @@ export default function SessionsPage() {
                 return (
                   <div
                     key={session.key}
-                    className="p-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg"
+                    className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded">
+                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
                         Completed
                       </span>
                     </div>

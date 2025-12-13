@@ -49,3 +49,4 @@ graph deploy --node <graph-node-url> --ipfs <ipfs-url> <subgraph-name>
 - [Subgraph Development Guide](https://thegraph.com/docs/en/developing/creating-a-subgraph/)
 - `docs/graph_indexing_plan.md` - Implementation plan
 
+
