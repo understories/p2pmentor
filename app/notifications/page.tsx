@@ -96,7 +96,9 @@ export default function NotificationsPage() {
 
   const loadNotifications = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/notifications?wallet=${wallet}&status=active`);
+      // Normalize wallet to lowercase for consistent querying
+      const normalizedWallet = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
       const data = await res.json();
       
       if (!data.ok) {

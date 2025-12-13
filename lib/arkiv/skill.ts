@@ -114,8 +114,10 @@ export async function createSkill({
     const allProfiles = await listUserProfiles();
     const uniqueWallets = new Set<string>();
     allProfiles.forEach(profile => {
-      if (profile.wallet) {
-        uniqueWallets.add(profile.wallet.toLowerCase());
+      // Ensure wallet is normalized and not empty
+      const wallet = profile.wallet?.trim();
+      if (wallet && wallet.length > 0) {
+        uniqueWallets.add(wallet.toLowerCase());
       }
     });
 

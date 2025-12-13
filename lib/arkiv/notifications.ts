@@ -227,9 +227,13 @@ export async function listNotifications({
         return String(attrs[key] || '');
       };
 
+      // Normalize wallet from entity to ensure consistent matching
+      const walletAttr = getAttr('wallet');
+      const normalizedWallet = walletAttr ? walletAttr.toLowerCase().trim() : '';
+
       return {
         key: entity.key,
-        wallet: getAttr('wallet'),
+        wallet: normalizedWallet,
         notificationType: getAttr('notificationType') as NotificationType,
         sourceEntityType: getAttr('sourceEntityType'),
         sourceEntityKey: getAttr('sourceEntityKey'),
