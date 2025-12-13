@@ -415,7 +415,21 @@ export default function ProfileGardenNotesPage() {
                         </div>
                         <div className="flex items-center gap-2 text-xs">
                           <span className="text-gray-600 dark:text-gray-400">{formatTimeAgo(note.createdAt)}</span>
-                          {note.txHash && note.txHash !== 'undefined' && (
+                          {arkivBuilderMode && note.key && (
+                            <>
+                              <span className="text-gray-400 dark:text-gray-500">·</span>
+                              <ViewOnArkivLink 
+                                entityKey={note.key}
+                                txHash={note.txHash}
+                                label="View Garden Note on Arkiv"
+                                className="text-xs"
+                              />
+                              <span className="text-gray-400 dark:text-gray-500 font-mono">
+                                {note.key.slice(0, 12)}...
+                              </span>
+                            </>
+                          )}
+                          {!arkivBuilderMode && note.txHash && note.txHash !== 'undefined' && (
                             <>
                               <span className="text-gray-400 dark:text-gray-500">·</span>
                               <a
