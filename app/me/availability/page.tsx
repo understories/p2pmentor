@@ -13,8 +13,6 @@ import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Availability, WeeklyAvailability } from '@/lib/arkiv/availability';
@@ -24,6 +22,9 @@ import {
   isStructuredAvailability 
 } from '@/lib/arkiv/availability';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 
 export default function AvailabilityPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -40,6 +41,7 @@ export default function AvailabilityPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null); // Track which availability is being edited
   const [deletingKey, setDeletingKey] = useState<string | null>(null); // Track which availability is being deleted
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -220,22 +222,37 @@ export default function AvailabilityPage() {
   };
 
   if (loading) {
-  return (
+    return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
-      <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <LoadingSpinner text="Loading availability..." className="py-12" />
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadData("${walletAddress?.toLowerCase() || '...'}")`,
+                `Queries:`,
+                `1. getProfileByWallet("${walletAddress?.toLowerCase() || '...'}")`,
+                `   → type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                `2. GET /api/availability?wallet=${walletAddress?.toLowerCase() || '...'}`,
+                `   → type='availability', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                `Returns: Availability[] (all availability entities for wallet)`
+              ]}
+              label="Loading Availability"
+            >
+              <LoadingSpinner text="Loading availability..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading availability..." className="py-12" />
+          )}
         </div>
       </div>
     );
   }
 
   return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
@@ -318,7 +335,7 @@ export default function AvailabilityPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        {availability.txHash && (
+                        {!arkivBuilderMode && availability.txHash && (
                           <a
                             href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
                             target="_blank"
@@ -328,20 +345,64 @@ export default function AvailabilityPage() {
                             View on Arkiv
                           </a>
                         )}
-                        <button
-                          onClick={() => handleEdit(availability)}
-                          disabled={isEditing || isDeleting}
-                          className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
-                        >
-                          {isEditing ? 'Editing...' : 'Edit'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(availability.key)}
-                          disabled={isEditing || isDeleting}
-                          className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                        >
-                          {isDeleting ? 'Deleting...' : 'Delete'}
-                        </button>
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `Editing creates new entity (original remains immutable)`,
+                              `POST /api/availability { wallet, timeBlocks, timezone }`,
+                              `Creates: type='availability' entity`,
+                              `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', timeBlocks, timezone`,
+                              `Payload: Full availability data`,
+                              `TTL: 1 year (31536000 seconds)`
+                            ]}
+                            label="Edit Availability"
+                          >
+                            <button
+                              onClick={() => handleEdit(availability)}
+                              disabled={isEditing || isDeleting}
+                              className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+                            >
+                              {isEditing ? 'Editing...' : 'Edit'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleEdit(availability)}
+                            disabled={isEditing || isDeleting}
+                            className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {isEditing ? 'Editing...' : 'Edit'}
+                          </button>
+                        )}
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `DELETE /api/availability { availabilityKey, wallet }`,
+                              `Creates: type='availability_deletion' entity`,
+                              `Attributes: availabilityKey='${availability.key.slice(0, 12)}...', wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...'`,
+                              `Payload: { deletedAt: ISO timestamp }`,
+                              `TTL: 1 year (31536000 seconds)`,
+                              `Note: Creates deletion marker, original entity remains on Arkiv`
+                            ]}
+                            label="Delete Availability"
+                          >
+                            <button
+                              onClick={() => handleDelete(availability.key)}
+                              disabled={isEditing || isDeleting}
+                              className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                            >
+                              {isDeleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(availability.key)}
+                            disabled={isEditing || isDeleting}
+                            className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -482,13 +543,35 @@ export default function AvailabilityPage() {
           )}
 
           <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting ? 'Saving...' : editingKey ? 'Update Availability' : 'Save Availability'}
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `POST /api/availability { wallet, timeBlocks, timezone }`,
+                  `Creates: type='availability' entity`,
+                  `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', timeBlocks, timezone`,
+                  `Payload: Full availability data (structured or text format)`,
+                  `TTL: 1 year (31536000 seconds)`,
+                  editingKey ? `Note: Creates new entity (original remains immutable)` : ``
+                ]}
+                label={editingKey ? 'Update Availability' : 'Save Availability'}
+              >
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Saving...' : editingKey ? 'Update Availability' : 'Save Availability'}
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Saving...' : editingKey ? 'Update Availability' : 'Save Availability'}
+              </button>
+            )}
             {editingKey ? (
               <button
                 type="button"
@@ -571,9 +654,22 @@ export default function AvailabilityPage() {
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Created: {new Date(availability.createdAt).toLocaleDateString()}
                         </p>
+                        {arkivBuilderMode && availability.key && (
+                          <div className="mt-2 flex items-center gap-2">
+                            <ViewOnArkivLink
+                              entityKey={availability.key}
+                              txHash={availability.txHash}
+                              label="View Availability Entity"
+                              className="text-xs"
+                            />
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              Key: {availability.key.slice(0, 12)}...
+                            </span>
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2 ml-4">
-                        {availability.txHash && (
+                        {!arkivBuilderMode && availability.txHash && (
                           <a
                             href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${availability.txHash}`}
                             target="_blank"
@@ -583,20 +679,64 @@ export default function AvailabilityPage() {
                             View on Arkiv
                           </a>
                         )}
-                        <button
-                          onClick={() => handleEdit(availability)}
-                          disabled={isEditing || isDeleting}
-                          className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
-                        >
-                          {isEditing ? 'Editing...' : 'Edit'}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(availability.key)}
-                          disabled={isEditing || isDeleting}
-                          className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
-                        >
-                          {isDeleting ? 'Deleting...' : 'Delete'}
-                        </button>
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `Editing creates new entity (original remains immutable)`,
+                              `POST /api/availability { wallet, timeBlocks, timezone }`,
+                              `Creates: type='availability' entity`,
+                              `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', timeBlocks, timezone`,
+                              `Payload: Full availability data`,
+                              `TTL: 1 year (31536000 seconds)`
+                            ]}
+                            label="Edit Availability"
+                          >
+                            <button
+                              onClick={() => handleEdit(availability)}
+                              disabled={isEditing || isDeleting}
+                              className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+                            >
+                              {isEditing ? 'Editing...' : 'Edit'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleEdit(availability)}
+                            disabled={isEditing || isDeleting}
+                            className="ml-4 px-3 py-1 rounded text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {isEditing ? 'Editing...' : 'Edit'}
+                          </button>
+                        )}
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `DELETE /api/availability { availabilityKey, wallet }`,
+                              `Creates: type='availability_deletion' entity`,
+                              `Attributes: availabilityKey='${availability.key.slice(0, 12)}...', wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...'`,
+                              `Payload: { deletedAt: ISO timestamp }`,
+                              `TTL: 1 year (31536000 seconds)`,
+                              `Note: Creates deletion marker, original entity remains on Arkiv`
+                            ]}
+                            label="Delete Availability"
+                          >
+                            <button
+                              onClick={() => handleDelete(availability.key)}
+                              disabled={isEditing || isDeleting}
+                              className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                            >
+                              {isDeleting ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleDelete(availability.key)}
+                            disabled={isEditing || isDeleting}
+                            className="ml-4 px-3 py-1 rounded text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          >
+                            {isDeleting ? 'Deleting...' : 'Delete'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -15,12 +15,12 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { FeedbackModal } from '@/components/FeedbackModal';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { formatSessionTitle } from '@/lib/sessions/display';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -70,6 +70,7 @@ export default function SessionsPage() {
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
   const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     // Get current user's wallet
@@ -353,7 +354,27 @@ export default function SessionsPage() {
             <BackButton href="/me" />
           </div>
           <PageHeader title="Sessions" />
-          <LoadingSpinner text="Loading sessions..." className="py-12" />
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadSessions("${userWallet?.toLowerCase() || '...'}")`,
+                `Queries:`,
+                `1. listSkills({ status: 'active', limit: 200 })`,
+                `   → type='skill', status='active'`,
+                `2. GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                `   → type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                `3. GET /api/profile?wallet=${userWallet?.toLowerCase() || '...'}`,
+                `   → type='user_profile', wallet='${userWallet?.toLowerCase() || '...'}'`,
+                `4. GET /api/profile?wallet=... (for each participant)`,
+                `   → type='user_profile', wallet='...'`
+              ]}
+              label="Loading Sessions"
+            >
+              <LoadingSpinner text="Loading sessions..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading sessions..." className="py-12" />
+          )}
         </div>
       </div>
     );
@@ -392,7 +413,6 @@ export default function SessionsPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
@@ -450,9 +470,26 @@ export default function SessionsPage() {
         {/* Pending Sessions */}
         {pendingSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-orange-600 dark:text-orange-400">
-              ⏳ Pending ({pendingSessions.length})
-            </h2>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                  `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                  `Filtered: status='pending'`,
+                  `Returns: Session[] (${pendingSessions.length} pending sessions)`,
+                  `Each session is a type='session' entity on Arkiv`
+                ]}
+                label={`⏳ Pending (${pendingSessions.length})`}
+              >
+                <h2 className="text-xl font-semibold mb-4 text-orange-600 dark:text-orange-400">
+                  ⏳ Pending ({pendingSessions.length})
+                </h2>
+              </ArkivQueryTooltip>
+            ) : (
+              <h2 className="text-xl font-semibold mb-4 text-orange-600 dark:text-orange-400">
+                ⏳ Pending ({pendingSessions.length})
+              </h2>
+            )}
             <div className="space-y-4">
               {pendingSessions.map((session) => {
                 const isMentor = Boolean(userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase());
@@ -477,6 +514,19 @@ export default function SessionsPage() {
                           <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
                             Pending
                           </span>
+                          {arkivBuilderMode && session.key && (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <ViewOnArkivLink
+                                entityKey={session.key}
+                                txHash={session.txHash}
+                                label="View Session Entity"
+                                className="text-xs"
+                              />
+                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                {session.key.slice(0, 12)}...
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <p className="text-gray-700 dark:text-gray-300 mb-2">
                           <strong>With:</strong>{' '}
@@ -593,13 +643,35 @@ export default function SessionsPage() {
                             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
                           />
                         </div>
-                        <button
-                          onClick={() => handleSubmitPayment(session)}
-                          disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
-                          className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
-                        </button>
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `POST /api/sessions { action: 'submitPayment', ... }`,
+                              `Creates: type='session_payment_submission' entity`,
+                              `Attributes: sessionKey='${session.key.slice(0, 12)}...', submittedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
+                              `Payload: { submittedAt: ISO timestamp, paymentTxHash }`,
+                              `TTL: Matches session expiration`,
+                              `Note: Learner submits payment transaction hash for mentor validation`
+                            ]}
+                            label="Submit Payment"
+                          >
+                            <button
+                              onClick={() => handleSubmitPayment(session)}
+                              disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
+                              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleSubmitPayment(session)}
+                            disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
+                            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
+                          </button>
+                        )}
                       </div>
                     )}
 
@@ -611,34 +683,101 @@ export default function SessionsPage() {
                             <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                               Payment submitted! Please validate (Step 3 of 3):
                             </p>
-                            <button
-                              onClick={() => handleValidatePayment(session)}
-                              disabled={validatingPayment === session.key}
-                              className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
-                            </button>
+                            {arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `POST /api/sessions { action: 'validatePayment', ... }`,
+                                  `Creates: type='session_payment_validation' entity`,
+                                  `Attributes: sessionKey='${session.key.slice(0, 12)}...', validatedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
+                                  `Payload: { validatedAt: ISO timestamp, paymentTxHash }`,
+                                  `TTL: Matches session expiration`,
+                                  `Note: Mentor validates payment transaction hash submitted by learner`
+                                ]}
+                                label="Validate Payment"
+                              >
+                                <button
+                                  onClick={() => handleValidatePayment(session)}
+                                  disabled={validatingPayment === session.key}
+                                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                  {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
+                              <button
+                                onClick={() => handleValidatePayment(session)}
+                                disabled={validatingPayment === session.key}
+                                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
+                              </button>
+                            )}
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
                               Validate the payment transaction before confirming
                             </p>
                           </div>
                         )}
                         <div className="flex gap-3">
-                          <button
-                            onClick={() => handleConfirm(session)}
-                            disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
-                            className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
-                          >
-                            {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
-                          </button>
-                          <button
-                            onClick={() => handleReject(session)}
-                            disabled={rejecting === session.key}
-                            className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
-                          </button>
+                          {arkivBuilderMode ? (
+                            <ArkivQueryTooltip
+                              query={[
+                                `POST /api/sessions { action: 'confirmSession', ... }`,
+                                `Creates: type='session_confirmation' entity`,
+                                `Attributes: sessionKey='${session.key.slice(0, 12)}...', confirmedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
+                                `Payload: { confirmedAt: ISO timestamp }`,
+                                `TTL: Matches session expiration`,
+                                `Note: When both parties confirm, creates session_jitsi entity`
+                              ]}
+                              label="Confirm Session"
+                            >
+                              <button
+                                onClick={() => handleConfirm(session)}
+                                disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
+                                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
+                              >
+                                {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
+                              </button>
+                            </ArkivQueryTooltip>
+                          ) : (
+                            <button
+                              onClick={() => handleConfirm(session)}
+                              disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
+                              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
+                            >
+                              {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
+                            </button>
+                          )}
+                          {arkivBuilderMode ? (
+                            <ArkivQueryTooltip
+                              query={[
+                                `POST /api/sessions { action: 'rejectSession', ... }`,
+                                `Creates: type='session_rejection' entity`,
+                                `Attributes: sessionKey='${session.key.slice(0, 12)}...', rejectedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
+                                `Payload: { rejectedAt: ISO timestamp }`,
+                                `TTL: Matches session expiration`,
+                                `Note: Sets session status to 'cancelled'`
+                              ]}
+                              label="Reject Session"
+                            >
+                              <button
+                                onClick={() => handleReject(session)}
+                                disabled={rejecting === session.key}
+                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
+                              </button>
+                            </ArkivQueryTooltip>
+                          ) : (
+                            <button
+                              onClick={() => handleReject(session)}
+                              disabled={rejecting === session.key}
+                              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
@@ -652,9 +791,26 @@ export default function SessionsPage() {
         {/* Scheduled Sessions */}
         {scheduledSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">
-              ✅ Scheduled ({scheduledSessions.length})
-            </h2>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                  `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                  `Filtered: status='scheduled'`,
+                  `Returns: Session[] (${scheduledSessions.length} scheduled sessions)`,
+                  `Each session is a type='session' entity on Arkiv`
+                ]}
+                label={`✅ Scheduled (${scheduledSessions.length})`}
+              >
+                <h2 className="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">
+                  ✅ Scheduled ({scheduledSessions.length})
+                </h2>
+              </ArkivQueryTooltip>
+            ) : (
+              <h2 className="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">
+                ✅ Scheduled ({scheduledSessions.length})
+              </h2>
+            )}
             <div className="space-y-4">
               {scheduledSessions.map((session) => {
                 const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
@@ -674,6 +830,19 @@ export default function SessionsPage() {
                           <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                             Scheduled
                           </span>
+                          {arkivBuilderMode && session.key && (
+                            <div className="flex items-center gap-2 ml-auto">
+                              <ViewOnArkivLink
+                                entityKey={session.key}
+                                txHash={session.txHash}
+                                label="View Session Entity"
+                                className="text-xs"
+                              />
+                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                {session.key.slice(0, 12)}...
+                              </span>
+                            </div>
+                          )}
                         </div>
                         <p className="text-gray-700 dark:text-gray-300 mb-2">
                           <strong>With:</strong>{' '}
@@ -761,9 +930,26 @@ export default function SessionsPage() {
         {/* Completed Sessions */}
         {completedSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
-              ✓ Completed ({completedSessions.length})
-            </h2>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                  `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                  `Filtered: status='completed'`,
+                  `Returns: Session[] (${completedSessions.length} completed sessions)`,
+                  `Each session is a type='session' entity on Arkiv`
+                ]}
+                label={`✓ Completed (${completedSessions.length})`}
+              >
+                <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
+                  ✓ Completed ({completedSessions.length})
+                </h2>
+              </ArkivQueryTooltip>
+            ) : (
+              <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
+                ✓ Completed ({completedSessions.length})
+              </h2>
+            )}
             <div className="space-y-4">
               {completedSessions.map((session) => {
                 const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();

@@ -16,6 +16,8 @@ import type { Offer } from '@/lib/arkiv/offers';
 import type { Ask } from '@/lib/arkiv/asks';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 type MeetingMode = 'request' | 'offer' | 'peer';
 
@@ -42,6 +44,7 @@ export function RequestMeetingModal({
   mode = 'request', // Default to 'request' for backward compatibility
   onSuccess,
 }: RequestMeetingModalProps) {
+  const arkivBuilderMode = useArkivBuilderMode();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -414,16 +417,42 @@ export function RequestMeetingModal({
                 >
                   Back to Edit
                 </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmSubmit}
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting 
-                    ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
-                    : (mode === 'offer' ? 'Confirm & Offer Help' : mode === 'peer' ? 'Confirm & Start Session' : 'Confirm & Request')}
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `POST /api/sessions { action: 'createSession', ... }`,
+                      `Creates: type='session' entity`,
+                      `Attributes: mentorWallet, learnerWallet, skill, sessionDate, duration, notes`,
+                      `Optional: requiresPayment, paymentAddress, cost (if paid session)`,
+                      `Payload: Full session data`,
+                      `TTL: sessionDate + duration + 1 hour buffer`,
+                      `Note: Creates session_txhash entity for transaction tracking`
+                    ]}
+                    label={mode === 'offer' ? 'Confirm & Offer Help' : mode === 'peer' ? 'Confirm & Start Session' : 'Confirm & Request'}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleConfirmSubmit}
+                      disabled={submitting}
+                      className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting 
+                        ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                        : (mode === 'offer' ? 'Confirm & Offer Help' : mode === 'peer' ? 'Confirm & Start Session' : 'Confirm & Request')}
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleConfirmSubmit}
+                    disabled={submitting}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting 
+                      ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                      : (mode === 'offer' ? 'Confirm & Offer Help' : mode === 'peer' ? 'Confirm & Start Session' : 'Confirm & Request')}
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -687,15 +716,40 @@ export function RequestMeetingModal({
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting 
-                  ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
-                  : (mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Start Peer Learning' : 'Request Meeting')}
-              </button>
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet, learnerWallet, skill, sessionDate, duration, notes`,
+                    `Optional: requiresPayment, paymentAddress, cost (if paid session)`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`,
+                    `Note: Creates session_txhash entity for transaction tracking`
+                  ]}
+                  label={mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Start Peer Learning' : 'Request Meeting'}
+                >
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting 
+                      ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                      : (mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Start Peer Learning' : 'Request Meeting')}
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting 
+                    ? (mode === 'offer' ? 'Offering...' : mode === 'peer' ? 'Creating...' : 'Requesting...') 
+                    : (mode === 'offer' ? 'Offer to Help' : mode === 'peer' ? 'Start Peer Learning' : 'Request Meeting')}
+                </button>
+              )}
             </div>
           </form>
           )}
