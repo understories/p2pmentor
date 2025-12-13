@@ -47,6 +47,23 @@ export default function MePage() {
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+
+  // Sync Arkiv Builder Mode to localStorage for sidebar access
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('arkiv_builder_mode', String(arkivBuilderMode));
+    }
+  }, [arkivBuilderMode]);
+
+  // Load Arkiv Builder Mode from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('arkiv_builder_mode');
+      if (saved === 'true') {
+        setArkivBuilderMode(true);
+      }
+    }
+  }, []);
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
@@ -746,56 +763,91 @@ export default function MePage() {
                               {gardenSkill.name}
                             </span>
                             <div className="flex items-center gap-2">
-                              <Link
-                                href={skillLink}
-                                onClick={!skillEntity ? handleViewCommunity : undefined}
-                                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                              >
-                                View Community →
-                              </Link>
-                              {skillEntity && (
-                                <button
-                                  onClick={async () => {
-                                    if (!walletAddress || !skillEntity.key || submittingFollow === skillEntity.key) return;
-                                    
-                                    const action = isJoined ? 'unfollow' : 'follow';
-                                    setSubmittingFollow(skillEntity.key);
-                                    try {
-                                      const res = await fetch('/api/learning-follow', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({
-                                          action,
-                                          profile_wallet: walletAddress,
-                                          skill_id: skillEntity.key,
-                                        }),
-                                      });
-                                      
-                                      const data = await res.json();
-                                      if (data.ok) {
-                                        // Wait for Arkiv to index the new entity (especially important for joins)
-                                        await new Promise(resolve => setTimeout(resolve, 1500));
-                                        // Reload followed skills
-                                        const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
-                                        setFollowedSkills(follows.map(f => f.skill_id));
-                                      } else {
-                                        alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                      }
-                                    } catch (error: any) {
-                                      console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
-                                      alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                    } finally {
-                                      setSubmittingFollow(null);
-                                    }
-                                  }}
-                                  disabled={submittingFollow === skillEntity.key}
-                                  className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              <div className="relative group/link">
+                                <Link
+                                  href={skillLink}
+                                  onClick={!skillEntity ? handleViewCommunity : undefined}
+                                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
                                 >
-                                  {submittingFollow === skillEntity.key 
-                                    ? (isJoined ? 'Leaving...' : 'Joining...') 
-                                    : (isJoined ? 'Leave' : 'Join')
-                                  }
-                                </button>
+                                  View Community →
+                                </Link>
+                                {/* Arkiv Builder Mode: Query Tooltip */}
+                                {arkivBuilderMode && skillEntity && (
+                                  <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/link:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
+                                    <div className="font-semibold mb-1">Skill Query:</div>
+                                    <div>type='skill',</div>
+                                    <div>slug='{skillEntity.slug || 'N/A'}'</div>
+                                    {skillEntity.key && (
+                                      <>
+                                        <div className="mt-2 pt-2 border-t border-gray-700">
+                                          <div className="text-xs text-gray-400">Entity Key:</div>
+                                          <div className="text-xs">{skillEntity.key.slice(0, 16)}...</div>
+                                        </div>
+                                      </>
+                                    )}
+                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {skillEntity && (
+                                <div className="relative group/button">
+                                  <button
+                                    onClick={async () => {
+                                      if (!walletAddress || !skillEntity.key || submittingFollow === skillEntity.key) return;
+                                      
+                                      const action = isJoined ? 'unfollow' : 'follow';
+                                      setSubmittingFollow(skillEntity.key);
+                                      try {
+                                        const res = await fetch('/api/learning-follow', {
+                                          method: 'POST',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({
+                                            action,
+                                            profile_wallet: walletAddress,
+                                            skill_id: skillEntity.key,
+                                          }),
+                                        });
+                                        
+                                        const data = await res.json();
+                                        if (data.ok) {
+                                          // Wait for Arkiv to index the new entity (especially important for joins)
+                                          await new Promise(resolve => setTimeout(resolve, 1500));
+                                          // Reload followed skills
+                                          const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
+                                          setFollowedSkills(follows.map(f => f.skill_id));
+                                        } else {
+                                          alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                        }
+                                      } catch (error: any) {
+                                        console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                                        alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                      } finally {
+                                        setSubmittingFollow(null);
+                                      }
+                                    }}
+                                    disabled={submittingFollow === skillEntity.key}
+                                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {submittingFollow === skillEntity.key 
+                                      ? (isJoined ? 'Leaving...' : 'Joining...') 
+                                      : (isJoined ? 'Leave' : 'Join')
+                                    }
+                                  </button>
+                                  {/* Arkiv Builder Mode: Entity Creation Tooltip */}
+                                  {arkivBuilderMode && (
+                                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/button:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
+                                      <div className="font-semibold mb-1">Creates Entity:</div>
+                                      <div>type='learning_follow',</div>
+                                      <div>profile_wallet='{walletAddress?.slice(0, 8)}...',</div>
+                                      <div>skill_id='{skillEntity.key.slice(0, 8)}...',</div>
+                                      <div>active={isJoined ? 'false' : 'true'}</div>
+                                      <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-400">
+                                        {isJoined ? 'Unfollow: Creates new entity with active=false' : 'Follow: Creates new entity with active=true'}
+                                      </div>
+                                      <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>
