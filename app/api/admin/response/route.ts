@@ -7,17 +7,32 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createAdminResponse, listAdminResponses } from '@/lib/arkiv/adminResponse';
+import { createAdminResponse, listAdminResponses, getAdminResponseByKey } from '@/lib/arkiv/adminResponse';
 import { getPrivateKey } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+    
+    // If key is provided, get single response by key
+    if (key) {
+      const response = await getAdminResponseByKey(key);
+      if (!response) {
+        return NextResponse.json(
+          { ok: false, error: 'Admin response not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ ok: true, response });
+    }
+    
+    // Otherwise, list responses by feedbackKey
     const feedbackKey = searchParams.get('feedbackKey') || undefined;
 
     if (!feedbackKey) {
       return NextResponse.json(
-        { ok: false, error: 'feedbackKey parameter is required' },
+        { ok: false, error: 'Either key or feedbackKey parameter is required' },
         { status: 400 }
       );
     }

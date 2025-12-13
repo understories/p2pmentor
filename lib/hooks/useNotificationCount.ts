@@ -24,25 +24,38 @@ export function useNotificationCount(): number | null {
 
     const loadCount = async () => {
       try {
-        const res = await fetch(`/api/notifications?wallet=${wallet}`);
+        const res = await fetch(`/api/notifications?wallet=${wallet}&status=active`);
         const data = await res.json();
         if (!data.ok) {
           setCount(0);
           return;
         }
         
-        // Simple count: pending sessions where user hasn't confirmed
-        const { sessions } = data.data;
-        const pendingCount = sessions.filter((s: any) => {
-          if (s.status !== 'pending') return false;
-          const isMentor = s.mentorWallet.toLowerCase() === wallet.toLowerCase();
-          const isLearner = s.learnerWallet.toLowerCase() === wallet.toLowerCase();
-          if (!isMentor && !isLearner) return false;
-          const hasConfirmed = isMentor ? s.mentorConfirmed : s.learnerConfirmed;
-          return !hasConfirmed;
-        }).length;
+        // Count unread notifications
+        // Check localStorage for notification preferences to determine read status
+        const notifications = data.notifications || [];
+        let unreadCount = 0;
         
-        setCount(pendingCount);
+        notifications.forEach((n: any) => {
+          const notificationId = n.key;
+          const prefStr = localStorage.getItem(`notification_pref_${notificationId}`);
+          if (prefStr) {
+            try {
+              const pref = JSON.parse(prefStr);
+              if (!pref.read && !pref.archived) {
+                unreadCount++;
+              }
+            } catch (e) {
+              // If pref can't be parsed, treat as unread
+              unreadCount++;
+            }
+          } else {
+            // No preference stored, treat as unread
+            unreadCount++;
+          }
+        });
+        
+        setCount(unreadCount);
       } catch (err) {
         console.error('Error loading notification count:', err);
         setCount(0);

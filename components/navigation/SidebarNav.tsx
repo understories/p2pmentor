@@ -44,6 +44,34 @@ export function SidebarNav() {
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [followedCommunities, setFollowedCommunities] = useState<LearningFollow[]>([]);
+  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+
+  // Load Arkiv Builder Mode from localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('arkiv_builder_mode');
+      setArkivBuilderMode(saved === 'true');
+      
+      // Listen for changes from other components
+      const handleStorageChange = () => {
+        const updated = localStorage.getItem('arkiv_builder_mode');
+        setArkivBuilderMode(updated === 'true');
+      };
+      window.addEventListener('storage', handleStorageChange);
+      // Also check periodically (since storage event doesn't fire in same tab)
+      const interval = setInterval(() => {
+        const updated = localStorage.getItem('arkiv_builder_mode');
+        if (updated === 'true' !== arkivBuilderMode) {
+          setArkivBuilderMode(updated === 'true');
+        }
+      }, 500);
+      
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        clearInterval(interval);
+      };
+    }
+  }, [arkivBuilderMode]);
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -197,50 +225,51 @@ export function SidebarNav() {
           const isLocked = itemMinLevel > level;
           
           return (
-            <Link
-              key={item.href}
-              href={isLocked ? '/onboarding' : item.href}
-              className={`
-                relative flex flex-row items-center gap-3
-                w-full py-2.5 px-3
-                rounded-lg
-                transition-all duration-150 ease-out
-                ${isLocked 
-                  ? 'opacity-30 cursor-not-allowed'
-                  : active
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
-              `}
-              title={isLocked ? `Complete onboarding to unlock ${item.label}` : item.label}
-              onClick={(e) => {
-                if (isLocked) {
-                  e.preventDefault();
-                }
-              }}
-              style={{
-                boxShadow: active
-                  ? `0 0 12px ${navTokens.node.active.glow}`
-                  : undefined,
-                transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
-              }}
-              onMouseEnter={(e) => {
-                if (!isLocked) {
-                  setHoveredIndex(index);
-                  if (!active) {
-                    e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
-                    e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
+            <div className="relative group/nav">
+              <Link
+                key={item.href}
+                href={isLocked ? '/onboarding' : item.href}
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2.5 px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isLocked 
+                    ? 'opacity-30 cursor-not-allowed'
+                    : active
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
-                }
-              }}
-              onMouseLeave={(e) => {
-                setHoveredIndex(undefined);
-                if (!active && !isLocked) {
-                  e.currentTarget.style.boxShadow = '';
-                  e.currentTarget.style.transform = '';
-                }
-              }}
-            >
+                `}
+                title={isLocked ? `Complete onboarding to unlock ${item.label}` : item.label}
+                onClick={(e) => {
+                  if (isLocked) {
+                    e.preventDefault();
+                  }
+                }}
+                style={{
+                  boxShadow: active
+                    ? `0 0 12px ${navTokens.node.active.glow}`
+                    : undefined,
+                  transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isLocked) {
+                    setHoveredIndex(index);
+                    if (!active) {
+                      e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
+                      e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
+                    }
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  setHoveredIndex(undefined);
+                  if (!active && !isLocked) {
+                    e.currentTarget.style.boxShadow = '';
+                    e.currentTarget.style.transform = '';
+                  }
+                }}
+              >
               <span className="relative text-xl flex-shrink-0">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
@@ -268,38 +297,73 @@ export function SidebarNav() {
                   }}
                 />
               )}
-            </Link>
+              </Link>
+              {/* Arkiv Builder Mode: Query Tooltip */}
+              {arkivBuilderMode && !isLocked && (
+                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                  <div className="font-semibold mb-1">Arkiv Queries:</div>
+                  {item.href === '/me' && wallet && (
+                    <>
+                      <div>getProfileByWallet()</div>
+                      <div className="text-gray-400">type='user_profile',</div>
+                      <div className="text-gray-400">wallet='{wallet.slice(0, 8)}...'</div>
+                    </>
+                  )}
+                  {item.href === '/network' && (
+                    <>
+                      <div>listSkills()</div>
+                      <div className="text-gray-400">type='skill',</div>
+                      <div className="text-gray-400">status='active'</div>
+                    </>
+                  )}
+                  <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                </div>
+              )}
+            </div>
           );
         })}
         
         {/* Sessions Button - above upcoming sessions */}
         {level >= 1 && (
           <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-            <Link
-              href="/me/sessions"
-              className={`
-                relative flex flex-row items-center gap-3
-                w-full py-2.5 px-3
-                rounded-lg
-                transition-all duration-150 ease-out
-                ${isActive('/me/sessions')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
-              `}
-            >
-              <span className="text-xl flex-shrink-0">📅</span>
-              <span className="text-sm font-medium leading-tight">Sessions</span>
-              {isActive('/me/sessions') && (
-                <div 
-                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
-                  style={{
-                    transition: 'opacity 150ms ease-out',
-                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
-                  }}
-                />
+            <div className="relative group/sessions">
+              <Link
+                href="/me/sessions"
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2.5 px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/me/sessions')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
+              >
+                <span className="text-xl flex-shrink-0">📅</span>
+                <span className="text-sm font-medium leading-tight">Sessions</span>
+                {isActive('/me/sessions') && (
+                  <div 
+                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                    style={{
+                      transition: 'opacity 150ms ease-out',
+                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                    }}
+                  />
+                )}
+              </Link>
+              {/* Arkiv Builder Mode: Query Tooltip */}
+              {arkivBuilderMode && wallet && (
+                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/sessions:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                  <div className="font-semibold mb-1">Arkiv Query:</div>
+                  <div>listSessionsForWallet()</div>
+                  <div className="text-gray-400">type='session',</div>
+                  <div className="text-gray-400">(mentorWallet='{wallet.slice(0, 8)}...'</div>
+                  <div className="text-gray-400">OR learnerWallet='{wallet.slice(0, 8)}...')</div>
+                  <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                </div>
               )}
-            </Link>
+            </div>
           </div>
         )}
         
@@ -356,20 +420,37 @@ export function SidebarNav() {
                     const timeStr = sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
                     
                     return (
-                      <div
-                        key={session.key}
-                        className="flex flex-row items-center gap-2 p-2 rounded-lg"
-                        title={`${skillName} - ${dateStr} at ${timeStr}`}
-                      >
-                        <span className="text-base flex-shrink-0">📖</span>
-                        <div className="flex flex-col gap-0.5">
-                          <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
-                            {skillName}
-                          </span>
-                          <span className="text-xs text-gray-500 dark:text-gray-400">
-                            {dateStr} {timeStr}
-                          </span>
+                      <div key={session.key} className="relative group/session">
+                        <div
+                          className="flex flex-row items-center gap-2 p-2 rounded-lg"
+                          title={`${skillName} - ${dateStr} at ${timeStr}`}
+                        >
+                          <span className="text-base flex-shrink-0">📖</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
+                              {skillName}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {dateStr} {timeStr}
+                            </span>
+                          </div>
                         </div>
+                        {/* Arkiv Builder Mode: Session Entity Tooltip */}
+                        {arkivBuilderMode && session.key && (
+                          <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/session:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                            <div className="font-semibold mb-1">Session Entity:</div>
+                            <div className="text-gray-400">Key: {session.key.slice(0, 16)}...</div>
+                            {session.txHash && (
+                              <div className="text-gray-400">TxHash: {session.txHash.slice(0, 16)}...</div>
+                            )}
+                            <div className="mt-2 pt-2 border-t border-gray-700 text-xs">
+                              <div>Query: getSessionByKey()</div>
+                              <div className="text-gray-400">type='session',</div>
+                              <div className="text-gray-400">key='{session.key.slice(0, 8)}...'</div>
+                            </div>
+                            <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

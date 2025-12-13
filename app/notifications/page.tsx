@@ -31,6 +31,9 @@ export default function NotificationsPage() {
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   
+  // Arkiv Builder Mode state
+  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+  
   // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
 
@@ -130,7 +133,14 @@ export default function NotificationsPage() {
             timestamp: n.createdAt,
             link: n.link,
             read: pref?.read ?? false, // Default to unread if no preference
-            metadata: n.metadata || {},
+            metadata: {
+              ...(n.metadata || {}),
+              // Include full Arkiv entity data for Builder Mode
+              sourceEntityKey: n.sourceEntityKey,
+              sourceEntityType: n.sourceEntityType,
+              notificationKey: n.key,
+              notificationTxHash: n.txHash,
+            },
           };
         })
         .filter((n: Notification | null): n is Notification => n !== null);
@@ -493,6 +503,10 @@ export default function NotificationsPage() {
   const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
   const [loadingFeedback, setLoadingFeedback] = useState<Record<string, boolean>>({});
 
+  // State for admin response details (for admin_response notifications)
+  const [adminResponseDetails, setAdminResponseDetails] = useState<Record<string, any>>({});
+  const [loadingAdminResponse, setLoadingAdminResponse] = useState<Record<string, boolean>>({});
+
   // Load feedback details for app_feedback_submitted notifications
   const loadFeedbackDetails = async (feedbackKey: string) => {
     if (feedbackDetails[feedbackKey] || loadingFeedback[feedbackKey]) {
@@ -501,20 +515,47 @@ export default function NotificationsPage() {
 
     setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
     try {
-      const res = await fetch(`/api/app-feedback?wallet=${userWallet}`);
+      // Query feedback directly by key (works for any profile, not just current user)
+      const res = await fetch(`/api/app-feedback?key=${encodeURIComponent(feedbackKey)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.ok && data.feedbacks) {
-          const feedback = data.feedbacks.find((f: any) => f.key === feedbackKey);
-          if (feedback) {
-            setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: feedback }));
-          }
+        if (data.ok && data.feedback) {
+          setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
         }
+      } else if (res.status === 404) {
+        // Feedback not found - might be from a different profile or deleted
+        console.warn(`Feedback ${feedbackKey} not found`);
       }
     } catch (err) {
       console.error('Error loading feedback details:', err);
     } finally {
       setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Load admin response details for admin_response notifications
+  const loadAdminResponseDetails = async (responseKey: string) => {
+    if (adminResponseDetails[responseKey] || loadingAdminResponse[responseKey]) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: true }));
+    try {
+      // Query admin response directly by key (works for any profile, not just current user)
+      const res = await fetch(`/api/admin/response?key=${encodeURIComponent(responseKey)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.response) {
+          setAdminResponseDetails(prev => ({ ...prev, [responseKey]: data.response }));
+        }
+      } else if (res.status === 404) {
+        // Admin response not found - might be from a different profile or deleted
+        console.warn(`Admin response ${responseKey} not found`);
+      }
+    } catch (err) {
+      console.error('Error loading admin response details:', err);
+    } finally {
+      setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: false }));
     }
   };
 
@@ -590,6 +631,25 @@ export default function NotificationsPage() {
               )}
             </h1>
             <div className="flex gap-3 items-center">
+              {/* Arkiv Builder Mode Toggle */}
+              <div className="relative group">
+                <button
+                  onClick={() => setArkivBuilderMode(!arkivBuilderMode)}
+                  className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+                    arkivBuilderMode
+                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500'
+                      : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20'
+                  }`}
+                  title="Arkiv Builder Mode"
+                >
+                  [A]
+                </button>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
+                  Arkiv Builder Mode
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                </div>
+              </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-colors"
@@ -684,13 +744,26 @@ export default function NotificationsPage() {
           <div className="space-y-3">
             {filteredNotifications.map((notification) => {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
-              const feedbackKey = notification.metadata?.feedbackKey;
+              const isAdminResponseNotification = notification.type === 'admin_response';
+              
+              // Use sourceEntityKey (from notification) or feedbackKey (from metadata) as fallback
+              const feedbackKey = notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey;
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
               const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
 
+              // For admin_response, use sourceEntityKey (the response key) or responseKey from metadata
+              const responseKey = notification.metadata?.sourceEntityKey || notification.metadata?.responseKey;
+              const adminResponse = responseKey ? adminResponseDetails[responseKey] : null;
+              const isLoadingAdminResponse = responseKey ? loadingAdminResponse[responseKey] : false;
+
               // Load feedback details if needed
-              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback && userWallet) {
+              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback) {
                 loadFeedbackDetails(feedbackKey);
+              }
+
+              // Load admin response details if needed
+              if (isAdminResponseNotification && responseKey && !adminResponse && !isLoadingAdminResponse) {
+                loadAdminResponseDetails(responseKey);
               }
 
               return (
@@ -719,34 +792,211 @@ export default function NotificationsPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-500">
                         {formatTime(notification.timestamp)}
                       </p>
+                      
+                      {/* Arkiv Builder Mode: Query Information Tooltip */}
+                      {arkivBuilderMode && (
+                        <div className="mt-2 group/query relative">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 font-mono cursor-help border border-gray-300 dark:border-gray-600 rounded px-2 py-1 inline-block bg-gray-50 dark:bg-gray-800">
+                            Arkiv Query
+                          </div>
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left max-w-md">
+                            <div className="font-semibold mb-1">Notification Query:</div>
+                            <div>type='notification',</div>
+                            <div>wallet='{userWallet?.slice(0, 8)}...',</div>
+                            <div>status='active'</div>
+                            <div className="absolute top-full left-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2 ml-4">
                       {notification.read ? (
-                        <button
-                          onClick={() => markAsUnread(notification.id)}
-                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="Mark as unread"
-                        >
-                          ↶
-                        </button>
+                        <div className="relative group/action">
+                          <button
+                            onClick={() => markAsUnread(notification.id)}
+                            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                            title="Mark as unread"
+                          >
+                            ↶
+                          </button>
+                          {arkivBuilderMode && (
+                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/action:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
+                              <div>Creates: notification_preference</div>
+                              <div>read=false</div>
+                              <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <button
-                          onClick={() => markAsRead(notification.id)}
-                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                          title="Mark as read"
-                        >
-                          ✓
-                        </button>
+                        <div className="relative group/action">
+                          <button
+                            onClick={() => markAsRead(notification.id)}
+                            className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                            title="Mark as read"
+                          >
+                            ✓
+                          </button>
+                          {arkivBuilderMode && (
+                            <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/action:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
+                              <div>Creates: notification_preference</div>
+                              <div>read=true</div>
+                              <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                            </div>
+                          )}
+                        </div>
                       )}
-                      <button
-                        onClick={() => deleteNotification(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Delete"
-                      >
-                        ×
-                      </button>
+                      <div className="relative group/action">
+                        <button
+                          onClick={() => deleteNotification(notification.id)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Delete"
+                        >
+                          ×
+                        </button>
+                        {arkivBuilderMode && (
+                          <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/action:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
+                            <div>Creates: notification_preference</div>
+                            <div>archived=true</div>
+                            <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
+
+                  {/* Arkiv Builder Mode: Entity Links and Information */}
+                  {arkivBuilderMode && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                      <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                        Arkiv Entities:
+                      </div>
+                      
+                      {/* Notification Entity */}
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-gray-500 dark:text-gray-400">Notification:</span>
+                        {notification.metadata?.notificationKey && (
+                          <ViewOnArkivLink
+                            entityKey={notification.metadata.notificationKey}
+                            txHash={notification.metadata.notificationTxHash}
+                            label="View Notification Entity"
+                            className="text-xs"
+                            icon="🔔"
+                          />
+                        )}
+                        {notification.metadata?.notificationKey && (
+                          <span className="text-gray-400 dark:text-gray-500 font-mono text-xs">
+                            ({notification.metadata.notificationKey.slice(0, 8)}...)
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Source Entity */}
+                      {notification.metadata?.sourceEntityKey && (
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Source ({notification.metadata.sourceEntityType}):
+                          </span>
+                          <ViewOnArkivLink
+                            entityKey={notification.metadata.sourceEntityKey}
+                            label={`View ${notification.metadata.sourceEntityType} Entity`}
+                            className="text-xs"
+                            icon="🔗"
+                          />
+                          <span className="text-gray-400 dark:text-gray-500 font-mono text-xs">
+                            ({notification.metadata.sourceEntityKey.slice(0, 8)}...)
+                          </span>
+                        </div>
+                      )}
+                      
+                      {/* Entity Keys Display */}
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                          {notification.metadata?.notificationKey && (
+                            <div className="font-mono">
+                              <span className="text-gray-600 dark:text-gray-300">Key:</span>{' '}
+                              <span className="text-gray-400 dark:text-gray-500 break-all">
+                                {notification.metadata.notificationKey}
+                              </span>
+                            </div>
+                          )}
+                          {notification.metadata?.notificationTxHash && (
+                            <div className="font-mono">
+                              <span className="text-gray-600 dark:text-gray-300">TxHash:</span>{' '}
+                              <span className="text-gray-400 dark:text-gray-500 break-all">
+                                {notification.metadata.notificationTxHash}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show full admin response details for admin_response notifications */}
+                  {isAdminResponseNotification && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {isLoadingAdminResponse ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading response details...</div>
+                      ) : adminResponse ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Date:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {new Date(adminResponse.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">From:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100 font-mono text-xs">
+                                {adminResponse.adminWallet.slice(0, 8)}...
+                              </span>
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium text-sm">Response:</span>
+                            <p className="text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-wrap">
+                              {adminResponse.message}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {adminResponse.txHash && (
+                              <ViewOnArkivLink
+                                entityKey={adminResponse.key}
+                                txHash={adminResponse.txHash}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
+                            )}
+                            {arkivBuilderMode && adminResponse.key && (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                Key: {adminResponse.key.slice(0, 16)}...
+                              </div>
+                            )}
+                          </div>
+                          {/* Link to original feedback if available */}
+                          {adminResponse.feedbackKey && (
+                            <div className="text-xs text-gray-500 dark:text-gray-400">
+                              <span className="font-medium">Related Feedback:</span>{' '}
+                              {arkivBuilderMode ? (
+                                <ViewOnArkivLink
+                                  entityKey={adminResponse.feedbackKey}
+                                  label="View Feedback Entity"
+                                  className="text-xs"
+                                  icon="🔗"
+                                />
+                              ) : (
+                                <span className="font-mono">{adminResponse.feedbackKey.slice(0, 8)}...</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Response details not available</div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Show full feedback details for app_feedback_submitted notifications */}
                   {isFeedbackNotification && (
@@ -836,6 +1086,11 @@ export default function NotificationsPage() {
                                 className="text-xs"
                               />
                             )}
+                            {arkivBuilderMode && feedback.key && (
+                              <div className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                Key: {feedback.key.slice(0, 16)}...
+                              </div>
+                            )}
                           </div>
                         </div>
                       ) : (
@@ -846,13 +1101,20 @@ export default function NotificationsPage() {
 
                   {/* Show link for other notification types (but not app_feedback_submitted) */}
                   {!isFeedbackNotification && notification.link && (
-                    <a
-                      href={notification.link}
-                      className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
-                      onClick={() => markAsRead(notification.id)}
-                    >
-                      View →
-                    </a>
+                    <div className="mt-3">
+                      <a
+                        href={notification.link}
+                        className="inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
+                        onClick={() => markAsRead(notification.id)}
+                      >
+                        View →
+                      </a>
+                      {arkivBuilderMode && notification.metadata?.sourceEntityKey && (
+                        <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          Links to: {notification.metadata.sourceEntityType} entity
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               );

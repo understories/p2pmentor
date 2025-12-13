@@ -7,7 +7,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { createAppFeedback, listAppFeedback, resolveAppFeedback } from '@/lib/arkiv/appFeedback';
+import { createAppFeedback, listAppFeedback, resolveAppFeedback, getAppFeedbackByKey } from '@/lib/arkiv/appFeedback';
 import { getPrivateKey } from '@/lib/config';
 
 export async function POST(request: Request) {
@@ -84,6 +84,21 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const key = searchParams.get('key');
+    
+    // If key is provided, get single feedback by key
+    if (key) {
+      const feedback = await getAppFeedbackByKey(key);
+      if (!feedback) {
+        return NextResponse.json(
+          { ok: false, error: 'Feedback not found' },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({ ok: true, feedback });
+    }
+    
+    // Otherwise, list feedback with filters
     const page = searchParams.get('page') || undefined;
     const wallet = searchParams.get('wallet') || undefined;
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
