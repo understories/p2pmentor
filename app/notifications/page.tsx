@@ -10,6 +10,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import { getUnreadCount } from '@/lib/notifications';
@@ -412,9 +413,51 @@ export default function NotificationsPage() {
         return '💡';
       case 'admin_response':
         return '💬';
+      case 'app_feedback_submitted':
+        return '🔔';
+      case 'issue_resolved':
+        return '✅';
       default:
         return '🔔';
     }
+  };
+
+  // State for feedback details (for app_feedback_submitted notifications)
+  const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
+  const [loadingFeedback, setLoadingFeedback] = useState<Record<string, boolean>>({});
+
+  // Load feedback details for app_feedback_submitted notifications
+  const loadFeedbackDetails = async (feedbackKey: string) => {
+    if (feedbackDetails[feedbackKey] || loadingFeedback[feedbackKey]) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
+    try {
+      const res = await fetch(`/api/app-feedback?wallet=${userWallet}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.feedbacks) {
+          const feedback = data.feedbacks.find((f: any) => f.key === feedbackKey);
+          if (feedback) {
+            setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: feedback }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading feedback details:', err);
+    } finally {
+      setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Format page path (same as admin dashboard)
+  const formatPagePath = (page: string): string => {
+    const profileMatch = page.match(/^\/profiles\/(0x[a-fA-F0-9]+)/);
+    if (profileMatch) {
+      return '/profiles/0x****...';
+    }
+    return page;
   };
 
   const unreadCount = getUnreadCount(notifications);
@@ -567,71 +610,181 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-4 rounded-lg border ${
-                  notification.read
-                    ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    : 'bg-emerald-50/30 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">{getNotificationIcon(notification.type)}</span>
-                      <h3 className={`font-semibold ${notification.read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'}`}>
-                        {notification.title}
-                      </h3>
-                      {!notification.read && (
-                        <span className="text-xs opacity-75">✨</span>
+            {filteredNotifications.map((notification) => {
+              const isFeedbackNotification = notification.type === 'app_feedback_submitted';
+              const feedbackKey = notification.metadata?.feedbackKey;
+              const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
+              const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
+
+              // Load feedback details if needed
+              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback && userWallet) {
+                loadFeedbackDetails(feedbackKey);
+              }
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`p-4 rounded-lg border ${
+                    notification.read
+                      ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                      : 'bg-emerald-50/30 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">{getNotificationIcon(notification.type)}</span>
+                        <h3 className={`font-semibold ${notification.read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                          {notification.title}
+                        </h3>
+                        {!notification.read && (
+                          <span className="text-xs opacity-75">✨</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {formatTime(notification.timestamp)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      {notification.read ? (
+                        <button
+                          onClick={() => markAsUnread(notification.id)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Mark as unread"
+                        >
+                          ↶
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => markAsRead(notification.id)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Mark as read"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteNotification(notification.id)}
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Show full feedback details for app_feedback_submitted notifications */}
+                  {isFeedbackNotification && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {isLoadingFeedback ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading feedback details...</div>
+                      ) : feedback ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Date:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {new Date(feedback.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Type:</span>{' '}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                feedback.feedbackType === 'issue'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
+                                {feedback.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Page:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100" title={feedback.page}>
+                                {formatPagePath(feedback.page)}
+                              </span>
+                            </div>
+                            {feedback.rating && (
+                              <div>
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">Rating:</span>{' '}
+                                <span className="text-yellow-500">
+                                  {'★'.repeat(feedback.rating)}{'☆'.repeat(5 - feedback.rating)}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Status:</span>{' '}
+                              {feedback.feedbackType === 'issue' ? (
+                                feedback.resolved ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                    ✓ Resolved
+                                    {feedback.resolvedAt && (
+                                      <span className="ml-1 text-xs opacity-75">
+                                        {new Date(feedback.resolvedAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                                    ⏳ Pending
+                                  </span>
+                                )
+                              ) : (
+                                feedback.hasResponse ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                    ✓ Responded
+                                    {feedback.responseAt && (
+                                      <span className="ml-1 text-xs opacity-75">
+                                        {new Date(feedback.responseAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                    📬 Waiting Response
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium text-sm">Message:</span>
+                            <p className="text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-wrap">
+                              {feedback.message}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {feedback.txHash && (
+                              <ViewOnArkivLink
+                                entityKey={feedback.key}
+                                txHash={feedback.txHash}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Feedback details not available</div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {formatTime(notification.timestamp)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    {notification.read ? (
-                      <button
-                        onClick={() => markAsUnread(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Mark as unread"
-                      >
-                        ↶
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Mark as read"
-                      >
-                        ✓
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Delete"
+                  )}
+
+                  {/* Show link for other notification types (but not app_feedback_submitted) */}
+                  {!isFeedbackNotification && notification.link && (
+                    <a
+                      href={notification.link}
+                      className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
+                      onClick={() => markAsRead(notification.id)}
                     >
-                      ×
-                    </button>
-                  </div>
+                      View →
+                    </a>
+                  )}
                 </div>
-                {notification.link && (
-                  <a
-                    href={notification.link}
-                    className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
-                    onClick={() => markAsRead(notification.id)}
-                  >
-                    View →
-                  </a>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

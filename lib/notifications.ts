@@ -18,7 +18,8 @@ export type NotificationType =
   | 'ask_offer_match'
   | 'new_offer'
   | 'admin_response'
-  | 'issue_resolved';
+  | 'issue_resolved'
+  | 'app_feedback_submitted';
 
 export interface Notification {
   id: string;
