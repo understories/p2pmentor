@@ -10,7 +10,6 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { listAdminResponses } from "./adminResponse";
-import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
 
 export type AppFeedback = {
   key: string;

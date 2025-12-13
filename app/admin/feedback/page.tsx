@@ -689,16 +689,39 @@ export default function AdminFeedbackPage() {
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading response...</p>
               </div>
             ) : viewingResponse ? (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  <strong>Admin Response:</strong>
-                </p>
-                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
-                  By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
-                </p>
-              </div>
+              <>
+                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Replying to:</strong>
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap mb-2">{respondingTo.message}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span>From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)}</span>
+                    <span>•</span>
+                    <span>Page: {respondingTo.page}</span>
+                    <span>•</span>
+                    <span>{respondingTo.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}</span>
+                    {respondingTo.rating && (
+                      <>
+                        <span>•</span>
+                        <span className="text-yellow-500">
+                          {'★'.repeat(respondingTo.rating)}{'☆'.repeat(5 - respondingTo.rating)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Admin Response:</strong>
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
+                    By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
+                  </p>
+                </div>
+              </>
             ) : (
               <div className="mb-4">
                 <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
