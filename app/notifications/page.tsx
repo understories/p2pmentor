@@ -8,22 +8,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
-import {
-  detectMeetingRequests,
-  detectProfileMatches,
-  detectAskOfferMatches,
-  detectNewOffers,
-  detectAdminResponses,
-  getUnreadCount,
-} from '@/lib/notifications';
-import type { Session } from '@/lib/arkiv/sessions';
-import type { Ask } from '@/lib/arkiv/asks';
-import type { Offer } from '@/lib/arkiv/offers';
-import type { UserProfile } from '@/lib/arkiv/profile';
+import { getUnreadCount } from '@/lib/notifications';
 
 const POLL_INTERVAL = 30000; // 30 seconds
 
@@ -34,31 +25,30 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [userWallet, setUserWallet] = useState<string | null>(null);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   
   // Filtering state
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Track previously seen items to detect new ones
-  const previousSessionKeys = useRef<Set<string>>(new Set());
-  const previousMatchedWallets = useRef<Set<string>>(new Set());
-  const previousMatches = useRef<Set<string>>(new Set());
-  const previousOfferKeys = useRef<Set<string>>(new Set());
-  const previousResponseKeys = useRef<Set<string>>(new Set());
+  // Store notification preferences to use for read/archived state
+  const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
 
   useEffect(() => {
     // Get user wallet from localStorage
     const storedWallet = localStorage.getItem('wallet_address');
     if (storedWallet) {
       setUserWallet(storedWallet);
-      loadNotifications(storedWallet);
-      loadNotificationPreferences(storedWallet);
+      // Load preferences FIRST, then notifications
+      loadNotificationPreferences(storedWallet).then(() => {
+        loadNotifications(storedWallet);
+      });
       
       // Set up polling
       const interval = setInterval(() => {
-        loadNotifications(storedWallet);
+        loadNotificationPreferences(storedWallet).then(() => {
+          loadNotifications(storedWallet);
+        });
       }, POLL_INTERVAL);
       
       return () => clearInterval(interval);
@@ -68,28 +58,36 @@ export default function NotificationsPage() {
   }, []);
 
   // Load notification preferences from Arkiv
-  const loadNotificationPreferences = async (wallet: string) => {
+  const loadNotificationPreferences = async (wallet: string): Promise<void> => {
     try {
       const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
       const data = await res.json();
       
       if (data.ok && data.preferences) {
-        // Map preferences to notifications
-        const preferenceMap = new Map<string, boolean>();
+        // Store preferences in ref for use during notification detection
+        const prefMap = new Map<string, { read: boolean; archived: boolean }>();
         data.preferences.forEach((pref: any) => {
-          if (!pref.archived) {
-            preferenceMap.set(pref.notificationId, pref.read);
-          }
+          prefMap.set(pref.notificationId, {
+            read: pref.read,
+            archived: pref.archived,
+          });
         });
+        notificationPreferences.current = prefMap;
         
-        // Update notifications with persisted read state
-        setNotifications(prev => prev.map(n => {
-          const persistedRead = preferenceMap.get(n.id);
-          if (persistedRead !== undefined) {
-            return { ...n, read: persistedRead };
-          }
-          return n;
-        }));
+        // Also update existing notifications with persisted read/archived state
+        setNotifications(prev => {
+          return prev.map(n => {
+            const pref = notificationPreferences.current.get(n.id);
+            if (pref) {
+              return { ...n, read: pref.read };
+            }
+            return n;
+          }).filter(n => {
+            // Filter out archived notifications
+            const pref = notificationPreferences.current.get(n.id);
+            return !pref || !pref.archived;
+          });
+        });
       }
     } catch (err) {
       console.error('Error loading notification preferences:', err);
@@ -98,104 +96,49 @@ export default function NotificationsPage() {
 
   const loadNotifications = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/notifications?wallet=${wallet}`);
+      // Normalize wallet to lowercase for consistent querying
+      const normalizedWallet = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
       const data = await res.json();
       
       if (!data.ok) {
         throw new Error(data.error || 'Failed to load notifications');
       }
 
-      const { sessions, userAsks, allOffers, allProfiles, adminResponses } = data.data;
+      // Notifications are now Arkiv entities, query directly
+      const arkivNotifications = data.notifications || [];
       
-      // Load user profile
-      if (!userProfile) {
-        try {
-          const profileRes = await fetch(`/api/profile?wallet=${wallet}`);
-          const profileData = await profileRes.json();
-          if (profileData.ok && profileData.profile) {
-            setUserProfile(profileData.profile);
+      // Convert Arkiv notification entities to client Notification format
+      // and apply preferences for read/archived state
+      const notificationsWithPreferences = arkivNotifications
+        .map((n: any): Notification | null => {
+          // Use notification key as ID (Arkiv-native)
+          const notificationId = n.key;
+          const pref = notificationPreferences.current.get(notificationId);
+          
+          // Filter out archived notifications
+          if (pref?.archived) {
+            return null;
           }
-        } catch (e) {
-          console.error('Error loading user profile:', e);
-        }
-      }
+          
+          // Convert to client Notification format
+          return {
+            id: notificationId,
+            type: n.notificationType,
+            title: n.title,
+            message: n.message,
+            timestamp: n.createdAt,
+            link: n.link,
+            read: pref?.read ?? false, // Default to unread if no preference
+            metadata: n.metadata || {},
+          };
+        })
+        .filter((n: Notification | null): n is Notification => n !== null);
 
-      // Detect new notifications
-      const newNotifications: Notification[] = [];
-      
-      // Meeting requests
-      const meetingRequestNotifs = detectMeetingRequests(
-        sessions,
-        wallet,
-        previousSessionKeys.current
-      );
-      newNotifications.push(...meetingRequestNotifs);
-      
-      // Update seen session keys
-      sessions.forEach((s: Session) => previousSessionKeys.current.add(s.key));
-      
-      // Profile matches
-      if (userProfile) {
-        const profileMatchNotifs = detectProfileMatches(
-          userProfile,
-          allProfiles,
-          wallet,
-          previousMatchedWallets.current
-        );
-        newNotifications.push(...profileMatchNotifs);
-        
-        // Update seen matched wallets
-        profileMatchNotifs.forEach(n => {
-          if (n.metadata?.wallet) {
-            previousMatchedWallets.current.add(n.metadata.wallet.toLowerCase());
-          }
-        });
-      }
-      
-      // Ask & offer matches
-      const askOfferMatchNotifs = detectAskOfferMatches(
-        userAsks,
-        allOffers,
-        previousMatches.current
-      );
-      newNotifications.push(...askOfferMatchNotifs);
-      
-      // Update seen matches
-      askOfferMatchNotifs.forEach(n => {
-        if (n.metadata?.askKey && n.metadata?.offerKey) {
-          previousMatches.current.add(`${n.metadata.askKey}_${n.metadata.offerKey}`);
-        }
-      });
-      
-      // New offers
-      const newOfferNotifs = detectNewOffers(
-        allOffers,
-        wallet,
-        previousOfferKeys.current
-      );
-      newNotifications.push(...newOfferNotifs);
-      
-      // Update seen offer keys
-      allOffers.forEach((o: Offer) => previousOfferKeys.current.add(o.key));
-      
-      // Admin responses
-      const adminResponseNotifs = detectAdminResponses(
-        adminResponses || [],
-        wallet,
-        previousResponseKeys.current
-      );
-      newNotifications.push(...adminResponseNotifs);
-
-      // Update seen response keys
-      (adminResponses || []).forEach((r: any) => previousResponseKeys.current.add(r.key));
-      // Merge with existing notifications (avoid duplicates)
-      setNotifications(prev => {
-        const existingIds = new Set(prev.map(n => n.id));
-        const uniqueNew = newNotifications.filter(n => !existingIds.has(n.id));
-        return [...uniqueNew, ...prev].sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      });
+      // Update state with notifications from Arkiv
+      setNotifications(notificationsWithPreferences.sort((a: Notification, b: Notification) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      ));
       
       setLoading(false);
     } catch (err: any) {
@@ -213,6 +156,13 @@ export default function NotificationsPage() {
         n.id === notificationId ? { ...n, read: true } : n
       )
     );
+    
+    // Update preferences ref
+    const currentPref = notificationPreferences.current.get(notificationId);
+    notificationPreferences.current.set(notificationId, {
+      read: true,
+      archived: currentPref?.archived || false,
+    });
     
     // Persist to Arkiv
     try {
@@ -238,6 +188,12 @@ export default function NotificationsPage() {
           n.id === notificationId ? { ...n, read: false } : n
         )
       );
+      // Revert preferences ref
+      if (currentPref) {
+        notificationPreferences.current.set(notificationId, currentPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
     }
   };
 
@@ -250,6 +206,13 @@ export default function NotificationsPage() {
         n.id === notificationId ? { ...n, read: false } : n
       )
     );
+    
+    // Update preferences ref
+    const currentPref = notificationPreferences.current.get(notificationId);
+    notificationPreferences.current.set(notificationId, {
+      read: false,
+      archived: currentPref?.archived || false,
+    });
     
     // Persist to Arkiv
     try {
@@ -275,6 +238,12 @@ export default function NotificationsPage() {
           n.id === notificationId ? { ...n, read: true } : n
         )
       );
+      // Revert preferences ref
+      if (currentPref) {
+        notificationPreferences.current.set(notificationId, currentPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
     }
   };
 
@@ -284,8 +253,20 @@ export default function NotificationsPage() {
     const unreadNotifications = notifications.filter(n => !n.read);
     if (unreadNotifications.length === 0) return;
     
+    // Store previous state for revert
+    const previousPrefs = new Map(notificationPreferences.current);
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    
+    // Update preferences ref
+    unreadNotifications.forEach(n => {
+      const currentPref = notificationPreferences.current.get(n.id);
+      notificationPreferences.current.set(n.id, {
+        read: true,
+        archived: currentPref?.archived || false,
+      });
+    });
     
     // Persist to Arkiv
     try {
@@ -309,6 +290,8 @@ export default function NotificationsPage() {
         const wasUnread = unreadNotifications.some(un => un.id === n.id);
         return wasUnread ? { ...n, read: false } : n;
       }));
+      // Revert preferences ref
+      notificationPreferences.current = previousPrefs;
     }
   };
 
@@ -318,8 +301,20 @@ export default function NotificationsPage() {
     const readNotifications = notifications.filter(n => n.read);
     if (readNotifications.length === 0) return;
     
+    // Store previous state for revert
+    const previousPrefs = new Map(notificationPreferences.current);
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: false })));
+    
+    // Update preferences ref
+    readNotifications.forEach(n => {
+      const currentPref = notificationPreferences.current.get(n.id);
+      notificationPreferences.current.set(n.id, {
+        read: false,
+        archived: currentPref?.archived || false,
+      });
+    });
     
     // Persist to Arkiv
     try {
@@ -343,18 +338,31 @@ export default function NotificationsPage() {
         const wasRead = readNotifications.some(rn => rn.id === n.id);
         return wasRead ? { ...n, read: true } : n;
       }));
+      // Revert preferences ref
+      notificationPreferences.current = previousPrefs;
     }
   };
 
   const deleteNotification = async (notificationId: string) => {
     if (!userWallet) return;
     
+    // Store previous state for revert
+    const previousPref = notificationPreferences.current.get(notificationId);
+    
     // Optimistic update
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
     
+    // Update preferences ref (mark as archived)
+    const notification = notifications.find(n => n.id === notificationId);
+    if (notification) {
+      notificationPreferences.current.set(notificationId, {
+        read: notification.read,
+        archived: true,
+      });
+    }
+    
     // Persist to Arkiv (mark as archived)
     try {
-      const notification = notifications.find(n => n.id === notificationId);
       if (notification) {
         await fetch('/api/notifications/preferences', {
           method: 'POST',
@@ -370,7 +378,13 @@ export default function NotificationsPage() {
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
-      // Revert on error - reload preferences
+      // Revert on error
+      if (previousPref) {
+        notificationPreferences.current.set(notificationId, previousPref);
+      } else {
+        notificationPreferences.current.delete(notificationId);
+      }
+      // Reload preferences to restore state
       loadNotificationPreferences(userWallet);
     }
   };
@@ -402,9 +416,115 @@ export default function NotificationsPage() {
         return '💡';
       case 'admin_response':
         return '💬';
+      case 'app_feedback_submitted':
+        return '🔔';
+      case 'issue_resolved':
+        return '✅';
+      case 'new_garden_note':
+        return '💌';
+      case 'new_skill_created':
+        return '🌱';
+      case 'community_meeting_scheduled':
+        return '📅';
       default:
         return '🔔';
     }
+  };
+
+  // State for join/leave community functionality
+  const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const [isSubmittingFollow, setIsSubmittingFollow] = useState<string | null>(null);
+
+  // Load followed skills on mount
+  useEffect(() => {
+    if (userWallet) {
+      loadFollowedSkills(userWallet);
+    }
+  }, [userWallet]);
+
+  const loadFollowedSkills = async (wallet: string) => {
+    try {
+      // Normalize wallet to lowercase for consistent querying
+      const normalizedWallet = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/learning-follow?profile_wallet=${encodeURIComponent(normalizedWallet)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.follows) {
+          setFollowedSkills(data.follows.map((f: any) => f.skill_id));
+        }
+      }
+    } catch (err) {
+      console.error('Error loading followed skills:', err);
+    }
+  };
+
+  const handleFollow = async (skillId: string, action: 'follow' | 'unfollow') => {
+    if (!userWallet || !skillId) return;
+
+    setIsSubmittingFollow(skillId);
+    try {
+      const res = await fetch('/api/learning-follow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: action === 'follow' ? 'createFollow' : 'unfollow',
+          profile_wallet: userWallet,
+          skill_id: skillId,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        // Add a small delay to allow Arkiv to index the new entity
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await loadFollowedSkills(userWallet);
+      } else {
+        alert(data.error || `Failed to ${action} community`);
+      }
+    } catch (error: any) {
+      console.error(`Error ${action}ing community:`, error);
+      alert(`Failed to ${action} community`);
+    } finally {
+      setIsSubmittingFollow(null);
+    }
+  };
+
+  // State for feedback details (for app_feedback_submitted notifications)
+  const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
+  const [loadingFeedback, setLoadingFeedback] = useState<Record<string, boolean>>({});
+
+  // Load feedback details for app_feedback_submitted notifications
+  const loadFeedbackDetails = async (feedbackKey: string) => {
+    if (feedbackDetails[feedbackKey] || loadingFeedback[feedbackKey]) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
+    try {
+      const res = await fetch(`/api/app-feedback?wallet=${userWallet}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.feedbacks) {
+          const feedback = data.feedbacks.find((f: any) => f.key === feedbackKey);
+          if (feedback) {
+            setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: feedback }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading feedback details:', err);
+    } finally {
+      setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Format page path (same as admin dashboard)
+  const formatPagePath = (page: string): string => {
+    const profileMatch = page.match(/^\/profiles\/(0x[a-fA-F0-9]+)/);
+    if (profileMatch) {
+      return '/profiles/0x****...';
+    }
+    return page;
   };
 
   const unreadCount = getUnreadCount(notifications);
@@ -423,7 +543,7 @@ export default function NotificationsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -437,7 +557,7 @@ export default function NotificationsPage() {
 
   if (!userWallet) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-2xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -452,7 +572,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
@@ -464,7 +584,7 @@ export default function NotificationsPage() {
             <h1 className="text-3xl font-semibold">
               Notifications
               {unreadCount > 0 && (
-                <span className="ml-3 px-2 py-1 text-sm font-medium bg-blue-600 text-white rounded-full">
+                <span className="ml-3 px-2 py-1 text-sm font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
                   {unreadCount}
                 </span>
               )}
@@ -472,7 +592,7 @@ export default function NotificationsPage() {
             <div className="flex gap-3 items-center">
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 px-3 py-1 rounded-md border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800"
+                className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-colors"
               >
                 {showFilters ? 'Hide' : 'Show'} Filters
               </button>
@@ -481,7 +601,7 @@ export default function NotificationsPage() {
                   {unreadCount > 0 && (
                     <button
                       onClick={markAllAsRead}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
                     >
                       Mark all as read
                     </button>
@@ -489,7 +609,7 @@ export default function NotificationsPage() {
                   {notifications.filter(n => n.read).length > 0 && (
                     <button
                       onClick={markAllAsUnread}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
                     >
                       Mark all as unread
                     </button>
@@ -532,6 +652,11 @@ export default function NotificationsPage() {
                     <option value="ask_offer_match">🔗 Ask & Offer Matches</option>
                     <option value="new_offer">💡 New Offers</option>
                     <option value="admin_response">💬 Admin Responses</option>
+                    <option value="app_feedback_submitted">🔔 Feedback Submitted</option>
+                    <option value="issue_resolved">✅ Issue Resolved</option>
+                    <option value="new_garden_note">💌 New Garden Note</option>
+                    <option value="new_skill_created">🌱 New Skill Created</option>
+                    <option value="community_meeting_scheduled">📅 Community Meeting</option>
                   </select>
                 </div>
               </div>
@@ -557,71 +682,181 @@ export default function NotificationsPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filteredNotifications.map((notification) => (
-              <div
-                key={notification.id}
-                className={`p-4 rounded-lg border ${
-                  notification.read
-                    ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xl">{getNotificationIcon(notification.type)}</span>
-                      <h3 className={`font-semibold ${notification.read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'}`}>
-                        {notification.title}
-                      </h3>
-                      {!notification.read && (
-                        <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+            {filteredNotifications.map((notification) => {
+              const isFeedbackNotification = notification.type === 'app_feedback_submitted';
+              const feedbackKey = notification.metadata?.feedbackKey;
+              const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
+              const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
+
+              // Load feedback details if needed
+              if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback && userWallet) {
+                loadFeedbackDetails(feedbackKey);
+              }
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`p-4 rounded-lg border ${
+                    notification.read
+                      ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                      : 'bg-emerald-50/30 dark:bg-emerald-900/20 border-emerald-200/50 dark:border-emerald-800/50'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xl">{getNotificationIcon(notification.type)}</span>
+                        <h3 className={`font-semibold ${notification.read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-900 dark:text-gray-100'}`}>
+                          {notification.title}
+                        </h3>
+                        {!notification.read && (
+                          <span className="text-xs opacity-75">✨</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                        {notification.message}
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {formatTime(notification.timestamp)}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      {notification.read ? (
+                        <button
+                          onClick={() => markAsUnread(notification.id)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Mark as unread"
+                        >
+                          ↶
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => markAsRead(notification.id)}
+                          className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                          title="Mark as read"
+                        >
+                          ✓
+                        </button>
+                      )}
+                      <button
+                        onClick={() => deleteNotification(notification.id)}
+                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
+                        title="Delete"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Show full feedback details for app_feedback_submitted notifications */}
+                  {isFeedbackNotification && (
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                      {isLoadingFeedback ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading feedback details...</div>
+                      ) : feedback ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Date:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100">
+                                {new Date(feedback.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Type:</span>{' '}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                feedback.feedbackType === 'issue'
+                                  ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                                  : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                              }`}>
+                                {feedback.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Page:</span>{' '}
+                              <span className="text-gray-900 dark:text-gray-100" title={feedback.page}>
+                                {formatPagePath(feedback.page)}
+                              </span>
+                            </div>
+                            {feedback.rating && (
+                              <div>
+                                <span className="text-gray-600 dark:text-gray-400 font-medium">Rating:</span>{' '}
+                                <span className="text-yellow-500">
+                                  {'★'.repeat(feedback.rating)}{'☆'.repeat(5 - feedback.rating)}
+                                </span>
+                              </div>
+                            )}
+                            <div>
+                              <span className="text-gray-600 dark:text-gray-400 font-medium">Status:</span>{' '}
+                              {feedback.feedbackType === 'issue' ? (
+                                feedback.resolved ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                                    ✓ Resolved
+                                    {feedback.resolvedAt && (
+                                      <span className="ml-1 text-xs opacity-75">
+                                        {new Date(feedback.resolvedAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                                    ⏳ Pending
+                                  </span>
+                                )
+                              ) : (
+                                feedback.hasResponse ? (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                                    ✓ Responded
+                                    {feedback.responseAt && (
+                                      <span className="ml-1 text-xs opacity-75">
+                                        {new Date(feedback.responseAt).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                                    📬 Waiting Response
+                                  </span>
+                                )
+                              )}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600 dark:text-gray-400 font-medium text-sm">Message:</span>
+                            <p className="text-gray-900 dark:text-gray-100 mt-1 whitespace-pre-wrap">
+                              {feedback.message}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {feedback.txHash && (
+                              <ViewOnArkivLink
+                                entityKey={feedback.key}
+                                txHash={feedback.txHash}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Feedback details not available</div>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      {notification.message}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
-                      {formatTime(notification.timestamp)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 ml-4">
-                    {notification.read ? (
-                      <button
-                        onClick={() => markAsUnread(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Mark as unread"
-                      >
-                        ↶
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => markAsRead(notification.id)}
-                        className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                        title="Mark as read"
-                      >
-                        ✓
-                      </button>
-                    )}
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700"
-                      title="Delete"
+                  )}
+
+                  {/* Show link for other notification types (but not app_feedback_submitted) */}
+                  {!isFeedbackNotification && notification.link && (
+                    <a
+                      href={notification.link}
+                      className="mt-3 inline-block text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 transition-colors"
+                      onClick={() => markAsRead(notification.id)}
                     >
-                      ×
-                    </button>
-                  </div>
+                      View →
+                    </a>
+                  )}
                 </div>
-                {notification.link && (
-                  <a
-                    href={notification.link}
-                    className="mt-3 inline-block text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                    onClick={() => markAsRead(notification.id)}
-                  >
-                    View →
-                  </a>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

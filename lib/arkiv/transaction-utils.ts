@@ -1,12 +1,62 @@
 /**
  * Transaction utility functions
  * 
- * Handles transaction receipt timeouts gracefully (common on testnets).
+ * Handles transaction receipt timeouts and rate limits gracefully (common on testnets).
  * Based on the pattern used in sessions.ts
  */
 
 /**
- * Wraps createEntity calls to handle transaction receipt timeouts
+ * Checks if an error is a rate limit error
+ * 
+ * @param error - Error object or message
+ * @returns True if this is a rate limit error (429)
+ */
+export function isRateLimitError(error: any): boolean {
+  const errorMessage = typeof error === 'string' ? error : error?.message || '';
+  const errorCode = error?.code || error?.status || error?.statusCode;
+  
+  return errorCode === 429 ||
+         errorCode === -32016 || // Arkiv rate limit error code
+         errorMessage.includes('rate limit') ||
+         errorMessage.includes('over rate limit') ||
+         errorMessage.includes('too many requests') ||
+         (errorMessage.includes('429') && errorMessage.toLowerCase().includes('limit'));
+}
+
+/**
+ * Retry with exponential backoff for rate limit errors
+ */
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: any;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      lastError = error;
+      
+      // Only retry on rate limit errors
+      if (!isRateLimitError(error) || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate exponential backoff delay
+      const delay = initialDelay * Math.pow(2, attempt);
+      console.warn(`[transaction-utils] Rate limit hit, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries + 1})`);
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+/**
+ * Wraps createEntity calls to handle transaction receipt timeouts and rate limits
  * 
  * @param createEntityFn - Function that returns a promise with createEntity call
  * @returns Entity key and transaction hash, or throws user-friendly error
@@ -15,8 +65,14 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
   createEntityFn: () => Promise<T>
 ): Promise<T> {
   try {
-    return await createEntityFn();
+    // Retry with backoff for rate limit errors
+    return await retryWithBackoff(createEntityFn, 3, 1000);
   } catch (error: any) {
+    // Handle rate limit errors with user-friendly message
+    if (isRateLimitError(error)) {
+      throw new Error('Rate limit exceeded. Please wait a moment and try again. The Arkiv network is temporarily limiting requests.');
+    }
+    
     // Handle transaction receipt timeout - common on testnets
     // If error mentions receipt not found, the transaction was likely submitted
     const receiptError = error.message?.includes('Transaction receipt') && 
@@ -50,4 +106,3 @@ export function isTransactionTimeoutError(error: any): boolean {
          errorMessage.includes('Transaction submitted') ||
          (errorMessage.includes('could not be found') && errorMessage.includes('hash'));
 }
-

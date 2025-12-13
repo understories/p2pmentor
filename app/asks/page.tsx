@@ -9,15 +9,21 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
 import { Alert } from '@/components/Alert';
+import { EmptyState } from '@/components/EmptyState';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { SkillSelector } from '@/components/SkillSelector';
+import { askColors, askEmojis, offerColors } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -59,7 +65,12 @@ function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSecon
     return () => clearInterval(interval);
   }, [createdAt, ttlSeconds]);
 
-  return <span className="text-orange-600 dark:text-orange-400 font-medium">⏰ {timeRemaining} left</span>;
+  const isExpired = timeRemaining === 'Expired';
+  return (
+    <span className="text-orange-600 dark:text-orange-400 font-medium">
+      ⏰ {timeRemaining}{isExpired ? '' : ' left'}
+    </span>
+  );
 }
 
 export default function AsksPage() {
@@ -71,12 +82,18 @@ export default function AsksPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
   const [newAsk, setNewAsk] = useState({ 
-    skill: '', 
+    skill: '', // Legacy: kept for backward compatibility
+    skill_id: '', // New: Skill entity ID (preferred for beta)
     message: '',
-    ttlHours: '1', // Default 1 hour
+    ttlHours: '24', // Default 24 hours (more reasonable)
     customTtlHours: '', // For custom input
   });
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedAsk, setSelectedAsk] = useState<Ask | null>(null);
+  const [selectedAskProfile, setSelectedAskProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -87,68 +104,125 @@ export default function AsksPage() {
         return;
       }
       setWalletAddress(address);
+      
+      // Check onboarding access (requires level 2 for asks)
+      import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
+        checkOnboardingRoute(address, 2, '/onboarding').catch(() => {
+          // On error, allow access (don't block on calculation failure)
+        });
+      });
       loadData(address);
+      // Load user profile for RequestMeetingModal
+      getProfileByWallet(address).then(setUserProfile).catch(() => null);
+      
+      // Check for ?create=true param to auto-show form
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('create') === 'true') {
+        setShowCreateForm(true);
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
     }
   }, [router]);
+
+  // Handle scroll to ask when hash is present in URL
+  useEffect(() => {
+    if (!loading && asks.length > 0) {
+      const hash = window.location.hash;
+      if (hash) {
+        const askKey = hash.substring(1); // Remove the #
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          const element = document.getElementById(askKey);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Highlight the element briefly
+            element.classList.add('ring-2', 'ring-blue-500', 'ring-opacity-50');
+            setTimeout(() => {
+              element.classList.remove('ring-2', 'ring-blue-500', 'ring-opacity-50');
+            }, 2000);
+          }
+        }, 100);
+      }
+    }
+  }, [loading, asks]);
 
   const loadData = async (wallet: string) => {
     try {
       setLoading(true);
       
-      const useGraphQL = useGraphqlForAsks();
+      const useGraphQL = await useGraphqlForAsks();
       
       if (useGraphQL) {
-        // Use GraphQL: Single query for asks
-        const [profileData, graphqlAsks] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetchAsks({ includeExpired: false, limit: 100 }).catch(() => []),
-        ]);
-        
-        setProfile(profileData);
-        setAsks(graphqlAsks.map(ask => ({
-          id: ask.id,
-          key: ask.key,
-          wallet: ask.wallet,
-          skill: ask.skill,
-          message: ask.message || '',
-          status: ask.status,
-          createdAt: ask.createdAt,
-          expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
-          ttlSeconds: ask.ttlSeconds,
-          txHash: ask.txHash || undefined,
-          spaceId: 'local-dev', // Default space ID
-        })) as Ask[]);
-      } else {
-        // Fallback to JSON-RPC
-        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        
-        const [profileData, asksRes] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetch('/api/asks').then(r => r.json()),
-        ]);
-        
-        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-        const payloadBytes = JSON.stringify(asksRes).length;
-        
-        // Record performance sample (async, don't block)
-        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-          recordPerfSample({
-            source: 'arkiv',
-            operation: 'listAsks',
-            route: '/asks',
-            durationMs: Math.round(durationMs),
-            payloadBytes,
-            httpRequests: 1, // Single API call
-            createdAt: new Date().toISOString(),
-          });
-        }).catch(() => {
-          // Silently fail if metrics module not available
-        });
-        
-        setProfile(profileData);
-        if (asksRes.ok) {
-          setAsks(asksRes.asks || []);
+        // Try GraphQL first
+        try {
+          const [profileData, graphqlAsks] = await Promise.all([
+            getProfileByWallet(wallet).catch(() => null),
+            fetchAsks({ includeExpired: false, limit: 100 }),
+          ]);
+          
+          // Only use GraphQL results if we got valid data
+          if (graphqlAsks && Array.isArray(graphqlAsks) && graphqlAsks.length >= 0) {
+            setProfile(profileData);
+            const mappedAsks = graphqlAsks.map(ask => ({
+              id: ask.id,
+              key: ask.key,
+              wallet: ask.wallet,
+              skill: ask.skill,
+              message: ask.message || '',
+              status: ask.status,
+              createdAt: ask.createdAt,
+              expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
+              ttlSeconds: ask.ttlSeconds,
+              txHash: ask.txHash || undefined,
+              spaceId: 'local-dev', // Default space ID
+            })) as Ask[];
+            // Sort by newest first (invert order)
+            const sortedAsks = mappedAsks.sort((a, b) => 
+              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            );
+            setAsks(sortedAsks);
+            return; // Success, exit early
+          }
+        } catch (graphqlError) {
+          console.warn('[AsksPage] GraphQL query failed, falling back to JSON-RPC:', graphqlError);
+          // Fall through to JSON-RPC fallback
         }
+      }
+      
+      // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
+      const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      
+      const [profileData, asksRes] = await Promise.all([
+        getProfileByWallet(wallet).catch(() => null),
+        fetch('/api/asks').then(r => r.json()),
+      ]);
+      
+      const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const payloadBytes = JSON.stringify(asksRes).length;
+      
+      // Record performance sample (async, don't block)
+      import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'listAsks',
+          route: '/asks',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 1, // Single API call
+          createdAt: new Date().toISOString(),
+        });
+      }).catch(() => {
+        // Silently fail if metrics module not available
+      });
+      
+      setProfile(profileData);
+      if (asksRes.ok) {
+        // Sort by newest first (invert order)
+        const sortedAsks = (asksRes.asks || []).sort((a: Ask, b: Ask) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setAsks(sortedAsks);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -160,7 +234,11 @@ export default function AsksPage() {
 
   const handleCreateAsk = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newAsk.skill.trim() || !newAsk.message.trim() || !walletAddress) return;
+    // Require skill_id for beta (new Skill entity system)
+    if (!newAsk.skill_id || !newAsk.message.trim() || !walletAddress) {
+      setError('Please select a skill and enter a message');
+      return;
+    }
 
     setSubmitting(true);
     setError('');
@@ -170,7 +248,7 @@ export default function AsksPage() {
       // Convert hours to seconds for expiresIn
       const ttlValue = newAsk.ttlHours === 'custom' ? newAsk.customTtlHours : newAsk.ttlHours;
       const ttlHours = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 3600 : Math.floor(ttlHours * 3600); // Default to 1 hour if invalid
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 86400 : Math.floor(ttlHours * 3600); // Default to 24 hours if invalid
 
       const res = await fetch('/api/asks', {
         method: 'POST',
@@ -178,7 +256,9 @@ export default function AsksPage() {
         body: JSON.stringify({
           action: 'createAsk',
           wallet: walletAddress,
-          skill: newAsk.skill.trim(),
+          skill: newAsk.skill.trim(), // Legacy: kept for backward compatibility
+          skill_id: newAsk.skill_id, // New: preferred for beta
+          skill_label: newAsk.skill.trim(), // Derived from Skill entity
           message: newAsk.message.trim(),
           expiresIn: expiresIn,
         }),
@@ -188,24 +268,20 @@ export default function AsksPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setShowAdvancedOptions(false);
           setShowCreateForm(false);
-          // Reload asks after a delay
+          // Reload asks after a delay using the same method as initial load (GraphQL if enabled)
           setTimeout(async () => {
-            const asksRes = await fetch('/api/asks').then(r => r.json());
-            if (asksRes.ok) {
-              setAsks(asksRes.asks || []);
-            }
+            await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess('Ask created successfully!');
-          setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
+          setSuccess(`Ask created successfully! "${newAsk.skill || 'Your ask'}" is now live and visible to mentors. View it in Network →`);
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setShowAdvancedOptions(false);
           setShowCreateForm(false);
-          // Reload asks
-          const asksRes = await fetch('/api/asks').then(r => r.json());
-          if (asksRes.ok) {
-            setAsks(asksRes.asks || []);
-          }
+          // Reload asks using the same method as initial load (GraphQL if enabled)
+          await loadData(walletAddress!);
         }
       } else {
         setError(data.error || 'Failed to create ask');
@@ -258,9 +334,19 @@ export default function AsksPage() {
     }
   };
 
+  const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
+    const created = new Date(createdAt).getTime();
+    const expires = created + (ttlSeconds * 1000);
+    return Date.now() >= expires;
+  };
+
+  const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
+    return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/network" />
@@ -272,28 +358,42 @@ export default function AsksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
+    <BetaGate>
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
         </div>
 
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex-1">
         <PageHeader
           title="Asks"
           description="Browse what others are learning, or post your own learning request."
         />
-
-        <BetaBanner />
+            {asks.length > 0 && (
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {asks.length} active {asks.length === 1 ? 'ask' : 'asks'}
+              </p>
+            )}
+          </div>
+          <Link
+            href="/offers"
+            className={`px-4 py-2 text-sm font-medium ${offerColors.buttonOutline} rounded-lg transition-colors`}
+          >
+            Offers &gt;
+          </Link>
+        </div>
 
         {/* Create Ask Button */}
         {!showCreateForm && (
           <div className="mb-6">
             <button
               onClick={() => setShowCreateForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
             >
-              + Create Ask
+              {askEmojis.default} Create Ask
             </button>
           </div>
         )}
@@ -307,13 +407,11 @@ export default function AsksPage() {
                 <label htmlFor="skill" className="block text-sm font-medium mb-2">
                   Skill you want to learn *
                 </label>
-                <input
-                  id="skill"
-                  type="text"
-                  value={newAsk.skill}
-                  onChange={(e) => setNewAsk({ ...newAsk, skill: e.target.value })}
-                  placeholder="e.g., React, TypeScript, Solidity"
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                <SkillSelector
+                  value={newAsk.skill_id}
+                  onChange={(skillId, skillName) => setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })}
+                  placeholder="Search for a skill..."
+                  allowCreate={true}
                   required
                 />
               </div>
@@ -331,9 +429,32 @@ export default function AsksPage() {
                   required
                 />
               </div>
+
+              {/* Advanced Options Toggle */}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Options
+                </button>
+              </div>
+
+              {/* Advanced Options (Collapsed by Default) */}
+              {showAdvancedOptions && (
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div>
                 <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
-                  Expiration Duration *
+                      Expiration Duration (optional)
                 </label>
                 <div className="flex gap-2">
                   <select
@@ -347,7 +468,7 @@ export default function AsksPage() {
                     <option value="2">2 hours</option>
                     <option value="6">6 hours</option>
                     <option value="12">12 hours</option>
-                    <option value="24">24 hours (1 day)</option>
+                        <option value="24">24 hours (1 day) - Recommended</option>
                     <option value="48">48 hours (2 days)</option>
                     <option value="168">1 week</option>
                     <option value="custom">Custom (hours)</option>
@@ -368,9 +489,12 @@ export default function AsksPage() {
                   )}
                 </div>
                 <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  How long should this ask stay active? Default: 1 hour
+                      How long should this ask remain active? Default: 24 hours
                 </p>
               </div>
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <button
                   type="submit"
@@ -383,7 +507,8 @@ export default function AsksPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewAsk({ skill: '', message: '', ttlHours: '1', customTtlHours: '' });
+                    setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+                    setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');
                   }}
@@ -405,15 +530,34 @@ export default function AsksPage() {
         {/* Asks List */}
         <div className="space-y-4">
           {asks.length === 0 ? (
-            <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-              <p>No asks yet. Be the first to create one!</p>
-            </div>
+            <EmptyState
+              title="No asks yet"
+              description="Be the first to share what you're learning! Create an ask to connect with mentors who can help."
+              icon={<span className="text-4xl">{askEmojis.default}</span>}
+              action={
+                !showCreateForm && (
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                  >
+                    {askEmojis.default} Create Your First Ask
+                  </button>
+                )
+              }
+            />
           ) : (
-            asks.map((ask) => (
-              <div
-                key={ask.key}
-                className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-              >
+            asks.map((ask) => {
+              // Find similar asks (same skill, different wallet)
+              const similarAsks = asks.filter(
+                (a) =>
+                  a.key !== ask.key &&
+                  a.skill.toLowerCase() === ask.skill.toLowerCase() &&
+                  a.wallet.toLowerCase() !== ask.wallet.toLowerCase()
+              ).slice(0, 3); // Limit to 3 similar asks
+
+              return (
+                <div key={ask.key} id={ask.key}>
+                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-300">
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
@@ -423,8 +567,8 @@ export default function AsksPage() {
                       {formatDate(ask.createdAt)}
                     </p>
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                    {ask.status}
+                      <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
+                        {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                   </span>
                 </div>
                 <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
@@ -433,24 +577,79 @@ export default function AsksPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  {ask.txHash ? (
-                    <a
-                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${ask.txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
-                    >
-                      View on Arkiv Explorer
-                    </a>
-                  ) : (
-                    <span className="text-gray-400 dark:text-gray-500 text-xs">Transaction pending...</span>
-                  )}
+                  <ViewOnArkivLink entityKey={ask.key} />
                 </div>
+                    {/* Offer to Help Button - only show if not own ask */}
+                    {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
+                      <div className="mt-4">
+                        <button
+                          onClick={async () => {
+                            // Load profile for the ask's wallet
+                            const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                            setSelectedAskProfile(askProfile);
+                            setSelectedAsk(ask);
+                            setShowMeetingModal(true);
+                          }}
+                          className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                        >
+                          Offer to Help
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Similar Asks Section */}
+                  {similarAsks.length > 0 && (
+                    <div className="mt-3 ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+                        {askEmojis.default} Others learning {ask.skill}:
+                      </p>
+                      <div className="space-y-2">
+                        {similarAsks.map((similarAsk) => (
+                          <Link
+                            key={similarAsk.key}
+                            href={`/asks#${similarAsk.key}`}
+                            className="block p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          >
+                            <span className="font-medium text-blue-700 dark:text-blue-300">
+                              {similarAsk.message.substring(0, 60)}
+                              {similarAsk.message.length > 60 ? '...' : ''}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                              by {similarAsk.wallet.slice(0, 6)}...{similarAsk.wallet.slice(-4)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  )}
               </div>
-            ))
+              );
+            })
           )}
         </div>
+
+        {/* Request Meeting Modal (for Offer to Help) */}
+        <RequestMeetingModal
+          isOpen={showMeetingModal}
+          onClose={() => {
+            setShowMeetingModal(false);
+            setSelectedAsk(null);
+            setSelectedAskProfile(null);
+          }}
+          profile={selectedAskProfile}
+          userWallet={walletAddress}
+          userProfile={userProfile}
+          ask={selectedAsk}
+          mode="offer"
+          onSuccess={() => {
+            console.log('Help offered successfully');
+            setSelectedAsk(null);
+            setSelectedAskProfile(null);
+          }}
+        />
       </div>
     </div>
+    </BetaGate>
   );
 }

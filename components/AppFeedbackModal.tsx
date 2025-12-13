@@ -54,8 +54,9 @@ export function AppFeedbackModal({
       return;
     }
 
-    if (!formData.message.trim()) {
-      setError('Please provide feedback message');
+    // Allow submission with just rating OR message (at least one required)
+    if (!formData.message.trim() && formData.rating === 0) {
+      setError('Please provide either a rating or feedback message');
       return;
     }
 
@@ -71,9 +72,10 @@ export function AppFeedbackModal({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'createFeedback',
           wallet: walletToUse,
           page: pathname || '/',
-          message: formData.message.trim(),
+          message: formData.message.trim() || undefined, // Allow empty if rating provided
           rating: formData.rating > 0 ? formData.rating : undefined,
           feedbackType: formData.feedbackType,
         }),
@@ -193,7 +195,8 @@ export function AppFeedbackModal({
 
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Your Feedback <span className="text-red-500">*</span>
+                Your Feedback {formData.rating === 0 && <span className="text-red-500">*</span>}
+                {formData.rating > 0 && <span className="text-gray-500 text-xs font-normal">(optional)</span>}
               </label>
               <textarea
                 id="message"
@@ -202,9 +205,8 @@ export function AppFeedbackModal({
                 rows={4}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 placeholder={formData.feedbackType === 'issue' 
-                  ? "Describe the issue you encountered, steps to reproduce, and any error messages..."
-                  : "Tell us what you think about p2pmentor, what works well, what could be improved..."}
-                required
+                  ? "Describe the issue you encountered, steps to reproduce, and any error messages... (optional if you provided a rating)"
+                  : "Tell us what you think about p2pmentor, what works well, what could be improved... (optional if you provided a rating)"}
               />
             </div>
 
@@ -225,7 +227,7 @@ export function AppFeedbackModal({
               </button>
               <button
                 type="submit"
-                disabled={submitting || !formData.message.trim()}
+                disabled={submitting || (!formData.message.trim() && formData.rating === 0)}
                 className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? 'Submitting...' : formData.feedbackType === 'issue' ? 'Report Issue' : 'Submit Feedback'}

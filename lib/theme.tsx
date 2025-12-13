@@ -22,7 +22,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>('light');
+  // Start with dark mode for landing page sunrise effect
+  const [theme, setThemeState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
   // Initialize theme from localStorage or system preference
@@ -32,9 +33,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (saved === 'dark' || saved === 'light') {
       setThemeState(saved);
     } else {
-      // Check system preference
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      setThemeState(prefersDark ? 'dark' : 'light');
+      // Default to dark mode for landing page sunrise effect
+      // System preference check happens after initial render
+      setThemeState('dark');
     }
   }, []);
 

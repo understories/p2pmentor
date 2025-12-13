@@ -124,37 +124,8 @@ export async function graphRequest<T = any>(
       );
     }
 
-    // Record performance metrics
-    const durationMs = perf.now() - startTime;
-    const payloadBytes = JSON.stringify(result.data).length;
-    
-    // Extract operation name from query or use provided one
-    let operationName = options.operationName;
-    if (!operationName) {
-      // Try to parse operation name from query (simple regex)
-      const match = query.match(/(?:query|mutation|subscription)\s+(\w+)/);
-      if (match) {
-        operationName = match[1];
-      } else {
-        // Fallback: use first field name
-        const fieldMatch = query.match(/\{\s*(\w+)/);
-        operationName = fieldMatch ? fieldMatch[1] : 'unknown';
-      }
-    }
-
-    // Record performance sample (async, don't block)
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'graphql',
-        operation: operationName || 'unknown',
-        durationMs: Math.round(durationMs),
-        payloadBytes,
-        httpRequests: 1, // GraphQL is always 1 HTTP request
-        createdAt: new Date().toISOString(),
-      });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
+    // Note: Performance tracking is handled by the calling functions (fetchAsks, fetchOffers, etc.)
+    // which have route context. We don't record here to avoid duplicate samples without routes.
 
     return result.data;
   } catch (error) {

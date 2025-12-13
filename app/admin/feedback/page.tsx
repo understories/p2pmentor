@@ -24,6 +24,11 @@ interface AppFeedback {
   feedbackType: 'feedback' | 'issue';
   createdAt: string;
   txHash: string | null;
+  resolved?: boolean;
+  resolvedAt?: string;
+  resolvedBy?: string;
+  hasResponse?: boolean;
+  responseAt?: string;
 }
 
 export default function AdminFeedbackPage() {
@@ -36,6 +41,13 @@ export default function AdminFeedbackPage() {
   const [respondingTo, setRespondingTo] = useState<AppFeedback | null>(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
+  const [resolvingFeedback, setResolvingFeedback] = useState<string | null>(null);
+  const [viewingResponse, setViewingResponse] = useState<{ message: string; createdAt: string; adminWallet: string } | null>(null);
+  const [loadingResponse, setLoadingResponse] = useState(false);
+  const [creatingGitHubIssue, setCreatingGitHubIssue] = useState<string | null>(null);
+  const [githubIssueLinks, setGithubIssueLinks] = useState<Record<string, { issueNumber: number; issueUrl: string }>>({});
+  const [resolvingIssue, setResolvingIssue] = useState<AppFeedback | null>(null);
+  const [resolutionNote, setResolutionNote] = useState('');
 
   useEffect(() => {
     // Check authentication
@@ -53,8 +65,40 @@ export default function AdminFeedbackPage() {
   useEffect(() => {
     if (authenticated) {
       loadFeedback();
+      loadGitHubIssueLinks();
     }
   }, [authenticated, filterSince, filterPage]);
+
+  // Truncate profile paths since wallet is already shown in Wallet column
+  const formatPagePath = (page: string): string => {
+    // Match /profiles/0x... pattern
+    const profileMatch = page.match(/^\/profiles\/(0x[a-fA-F0-9]+)/);
+    if (profileMatch) {
+      return '/profiles/0x****...';
+    }
+    return page;
+  };
+
+  const loadGitHubIssueLinks = async () => {
+    try {
+      const res = await fetch('/api/github/issue-links');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.links) {
+          const linksMap: Record<string, { issueNumber: number; issueUrl: string }> = {};
+          data.links.forEach((link: any) => {
+            linksMap[link.feedbackKey] = {
+              issueNumber: link.issueNumber,
+              issueUrl: link.issueUrl,
+            };
+          });
+          setGithubIssueLinks(linksMap);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading GitHub issue links:', err);
+    }
+  };
 
   const loadFeedback = async () => {
     try {
@@ -88,6 +132,11 @@ export default function AdminFeedbackPage() {
         feedbackType: f.feedbackType || 'feedback',
         createdAt: f.createdAt,
         txHash: f.txHash || null,
+        resolved: f.resolved || false,
+        resolvedAt: f.resolvedAt,
+        resolvedBy: f.resolvedBy,
+        hasResponse: f.hasResponse || false,
+        responseAt: f.responseAt,
       }));
       setFeedbacks(feedbacks);
     } catch (err) {
@@ -104,9 +153,43 @@ export default function AdminFeedbackPage() {
     router.push('/admin/login');
   };
 
-  const handleRespond = (feedback: AppFeedback) => {
-    setRespondingTo(feedback);
-    setResponseMessage('');
+  const handleRespond = async (feedback: AppFeedback) => {
+    // If there's already a response, fetch and display it
+    if (feedback.hasResponse) {
+      setLoadingResponse(true);
+      try {
+        const res = await fetch(`/api/admin/response?feedbackKey=${encodeURIComponent(feedback.key)}`);
+        const data = await res.json();
+        if (data.ok && data.responses && data.responses.length > 0) {
+          // Get the most recent response
+          const latestResponse = data.responses[0];
+          setViewingResponse({
+            message: latestResponse.message,
+            createdAt: latestResponse.createdAt,
+            adminWallet: latestResponse.adminWallet,
+          });
+          setRespondingTo(feedback);
+        } else {
+          // Response not found, allow creating new one
+          setViewingResponse(null);
+          setRespondingTo(feedback);
+          setResponseMessage('');
+        }
+      } catch (err) {
+        console.error('Error loading response:', err);
+        // On error, allow creating new response
+        setViewingResponse(null);
+        setRespondingTo(feedback);
+        setResponseMessage('');
+      } finally {
+        setLoadingResponse(false);
+      }
+    } else {
+      // No response yet, open form to create one
+      setViewingResponse(null);
+      setRespondingTo(feedback);
+      setResponseMessage('');
+    }
   };
 
   const handleSubmitResponse = async () => {
@@ -140,6 +223,7 @@ export default function AdminFeedbackPage() {
       // Close modal and refresh feedback list
       setRespondingTo(null);
       setResponseMessage('');
+      setViewingResponse(null);
       loadFeedback();
     } catch (err: any) {
       console.error('Error submitting response:', err);
@@ -149,12 +233,176 @@ export default function AdminFeedbackPage() {
     }
   };
 
+  const handleCreateGitHubIssue = async (feedback: AppFeedback) => {
+    if (!confirm('Create a GitHub issue from this feedback?')) {
+      return;
+    }
+
+    setCreatingGitHubIssue(feedback.key);
+    try {
+      const res = await fetch('/api/github/create-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedbackKey: feedback.key,
+          page: feedback.page,
+          message: feedback.message,
+          rating: feedback.rating,
+          feedbackType: feedback.feedbackType,
+          wallet: feedback.wallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create GitHub issue');
+      }
+
+      // Update local state
+      setGithubIssueLinks(prev => ({
+        ...prev,
+        [feedback.key]: {
+          issueNumber: data.issueNumber,
+          issueUrl: data.issueUrl,
+        },
+      }));
+
+      alert(`GitHub issue #${data.issueNumber} created!`);
+    } catch (err: any) {
+      console.error('Error creating GitHub issue:', err);
+      alert(err.message || 'Failed to create GitHub issue');
+    } finally {
+      setCreatingGitHubIssue(null);
+    }
+  };
+
+  const handleResolveFeedback = async (feedback: AppFeedback) => {
+    if (feedback.resolved) {
+      alert('This issue is already resolved');
+      return;
+    }
+
+    // Open resolution modal
+    setResolvingIssue(feedback);
+    setResolutionNote('');
+  };
+
+  const confirmResolveFeedback = async () => {
+    if (!resolvingIssue) return;
+
+    setResolvingFeedback(resolvingIssue.key);
+    try {
+      const adminWallet = typeof window !== 'undefined'
+        ? localStorage.getItem('wallet_address') || 'admin'
+        : 'admin';
+
+      // Resolve on Arkiv
+      const res = await fetch('/api/app-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'resolveFeedback',
+          feedbackKey: resolvingIssue.key,
+          resolvedByWallet: adminWallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to resolve feedback');
+      }
+
+      // Also close GitHub issue if it exists
+      const issueLink = githubIssueLinks[resolvingIssue.key];
+      if (issueLink) {
+        try {
+          const githubRes = await fetch('/api/github/close-issue', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              issueNumber: issueLink.issueNumber,
+              resolutionNote: resolutionNote.trim() || undefined,
+            }),
+          });
+
+          const githubData = await githubRes.json();
+          if (!githubRes.ok) {
+            console.warn('Failed to close GitHub issue:', githubData.error);
+            // Continue anyway - Arkiv resolution is more important
+          }
+        } catch (githubErr: any) {
+          console.warn('Error closing GitHub issue:', githubErr);
+          // Continue anyway - Arkiv resolution succeeded
+        }
+      }
+
+      alert('Issue marked as resolved' + (issueLink ? ' and GitHub issue closed!' : '!'));
+      setResolvingIssue(null);
+      setResolutionNote('');
+      loadFeedback();
+    } catch (err: any) {
+      console.error('Error resolving feedback:', err);
+      alert(err.message || 'Failed to resolve feedback');
+    } finally {
+      setResolvingFeedback(null);
+    }
+  };
+
   if (loading && !authenticated) {
     return (
-      <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
         </div>
+
+        {/* Resolution Modal */}
+        {resolvingIssue && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                Resolve Issue
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                This will mark the issue as resolved on Arkiv{githubIssueLinks[resolvingIssue.key] ? ' and close the GitHub issue' : ''}.
+              </p>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                  Resolution Note (optional)
+                </label>
+                <textarea
+                  value={resolutionNote}
+                  onChange={(e) => setResolutionNote(e.target.value)}
+                  placeholder="Describe how this issue was resolved..."
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                  rows={4}
+                />
+                {githubIssueLinks[resolvingIssue.key] && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    This note will be added as a comment to the GitHub issue.
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => {
+                    setResolvingIssue(null);
+                    setResolutionNote('');
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmResolveFeedback}
+                  disabled={resolvingFeedback === resolvingIssue.key}
+                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {resolvingFeedback === resolvingIssue.key ? 'Resolving...' : 'Mark Resolved'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     );
   }
@@ -164,7 +412,7 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <main className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-8">
+    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
       <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
@@ -239,6 +487,7 @@ export default function AdminFeedbackPage() {
                     <th className="px-4 py-2 text-left text-sm font-medium">Page</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Rating</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Message</th>
+                    <th className="px-4 py-2 text-left text-sm font-medium">Status</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Transaction</th>
                     <th className="px-4 py-2 text-left text-sm font-medium">Actions</th>
                   </tr>
@@ -269,8 +518,8 @@ export default function AdminFeedbackPage() {
                           {feedback.wallet.slice(0, 10)}...{feedback.wallet.slice(-4)}
                         </a>
                       </td>
-                      <td className="px-4 py-2 text-sm">
-                        {feedback.page}
+                      <td className="px-4 py-2 text-sm" title={feedback.page}>
+                        {formatPagePath(feedback.page)}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.rating ? (
@@ -285,6 +534,41 @@ export default function AdminFeedbackPage() {
                         <div className="truncate" title={feedback.message}>
                           {feedback.message}
                         </div>
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        {feedback.feedbackType === 'issue' ? (
+                          // Issues: Show resolved or pending
+                          feedback.resolved ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                              ✓ Resolved
+                              {feedback.resolvedAt && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  {new Date(feedback.resolvedAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                              ⏳ Pending
+                            </span>
+                          )
+                        ) : (
+                          // Feedback: Show responded or waiting response
+                          feedback.hasResponse ? (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                              ✓ Responded
+                              {feedback.responseAt && (
+                                <span className="ml-1 text-xs opacity-75">
+                                  {new Date(feedback.responseAt).toLocaleDateString()}
+                                </span>
+                              )}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                              📬 Waiting Response
+                            </span>
+                          )
+                        )}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.txHash ? (
@@ -302,12 +586,50 @@ export default function AdminFeedbackPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        <button
-                          onClick={() => handleRespond(feedback)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
-                        >
-                          Respond
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex gap-2">
+                            {feedback.feedbackType === 'issue' && !feedback.resolved && (
+                              <button
+                                onClick={() => handleResolveFeedback(feedback)}
+                                disabled={resolvingFeedback === feedback.key}
+                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                              >
+                                {resolvingFeedback === feedback.key ? 'Resolving...' : 'Mark Resolved'}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleRespond(feedback)}
+                              className={`px-3 py-1 text-white text-xs rounded transition-colors ${
+                                feedback.hasResponse
+                                  ? 'bg-gray-500 hover:bg-gray-600'
+                                  : 'bg-blue-600 hover:bg-blue-700'
+                              }`}
+                            >
+                              {feedback.hasResponse ? 'View Response' : 'Respond'}
+                            </button>
+                          </div>
+                          {githubIssueLinks[feedback.key] ? (
+                            <a
+                              href={githubIssueLinks[feedback.key].issueUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors text-center"
+                            >
+                              View Issue #{githubIssueLinks[feedback.key].issueNumber}
+                            </a>
+                          ) : (
+                            // Only show "Add to GitHub" for issues, not feedback
+                            feedback.feedbackType === 'issue' && (
+                              <button
+                                onClick={() => handleCreateGitHubIssue(feedback)}
+                                disabled={creatingGitHubIssue === feedback.key}
+                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                              >
+                                {creatingGitHubIssue === feedback.key ? 'Creating...' : 'Add to GitHub'}
+                              </button>
+                            )
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -332,14 +654,15 @@ export default function AdminFeedbackPage() {
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Respond to Feedback
+                {viewingResponse ? 'View Response' : 'Respond to Feedback'}
               </h2>
               <button
                 onClick={() => {
                   setRespondingTo(null);
                   setResponseMessage('');
+                  setViewingResponse(null);
                 }}
-                disabled={submittingResponse}
+                disabled={submittingResponse || loadingResponse}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -360,20 +683,61 @@ export default function AdminFeedbackPage() {
               </p>
             </div>
 
-            <div className="mb-4">
-              <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Your Response <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                id="response"
-                value={responseMessage}
-                onChange={(e) => setResponseMessage(e.target.value)}
-                rows={6}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder="Type your response to the user here..."
-                required
-              />
-            </div>
+            {loadingResponse ? (
+              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
+                <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto"></div>
+                <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading response...</p>
+              </div>
+            ) : viewingResponse ? (
+              <>
+                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Replying to:</strong>
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap mb-2">{respondingTo.message}</p>
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <span>From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)}</span>
+                    <span>•</span>
+                    <span>Page: {respondingTo.page}</span>
+                    <span>•</span>
+                    <span>{respondingTo.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}</span>
+                    {respondingTo.rating && (
+                      <>
+                        <span>•</span>
+                        <span className="text-yellow-500">
+                          {'★'.repeat(respondingTo.rating)}{'☆'.repeat(5 - respondingTo.rating)}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                    <strong>Admin Response:</strong>
+                  </p>
+                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
+                    By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
+                  </p>
+                </div>
+              </>
+            ) : (
+              <div className="mb-4">
+                <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Your Response <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="response"
+                  value={responseMessage}
+                  onChange={(e) => setResponseMessage(e.target.value)}
+                  rows={6}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  placeholder="Type your response to the user here..."
+                  required
+                />
+              </div>
+            )}
 
             <div className="flex gap-3">
               <button
@@ -381,19 +745,22 @@ export default function AdminFeedbackPage() {
                 onClick={() => {
                   setRespondingTo(null);
                   setResponseMessage('');
+                  setViewingResponse(null);
                 }}
-                disabled={submittingResponse}
+                disabled={submittingResponse || loadingResponse}
                 className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
               >
-                Cancel
+                {viewingResponse ? 'Close' : 'Cancel'}
               </button>
-              <button
-                onClick={handleSubmitResponse}
-                disabled={submittingResponse || !responseMessage.trim()}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submittingResponse ? 'Submitting...' : 'Send Response'}
-              </button>
+              {!viewingResponse && (
+                <button
+                  onClick={handleSubmitResponse}
+                  disabled={submittingResponse || !responseMessage.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingResponse ? 'Submitting...' : 'Send Response'}
+                </button>
+              )}
             </div>
           </div>
         </div>

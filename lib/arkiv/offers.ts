@@ -11,18 +11,22 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
 import { handleTransactionWithTimeout } from "./transaction-utils"
+import { getAvailabilityByKey, type WeeklyAvailability, serializeWeeklyAvailability, validateWeeklyAvailability } from "./availability"
 
 export const OFFER_TTL_SECONDS = 7200; // 2 hours default
 
 export type Offer = {
   key: string;
   wallet: string;
-  skill: string;
+  skill: string; // Legacy: kept for backward compatibility
+  skill_id?: string; // New: reference to Skill entity (preferred for beta)
+  skill_label?: string; // Derived from Skill entity (readonly, convenience)
   spaceId: string;
   createdAt: string;
   status: string;
   message: string;
   availabilityWindow: string;
+  availabilityKey?: string; // Optional reference to Availability entity
   isPaid: boolean; // free/paid flag
   cost?: string; // Cost amount (required if isPaid is true)
   paymentAddress?: string; // Payment receiving address (if paid)
@@ -39,9 +43,12 @@ export type Offer = {
  */
 export async function createOffer({
   wallet,
-  skill,
+  skill, // Legacy: kept for backward compatibility
+  skill_id, // New: reference to Skill entity (preferred for beta)
+  skill_label, // Derived from Skill entity (readonly, convenience)
   message,
   availabilityWindow,
+  availabilityKey,
   isPaid,
   cost,
   paymentAddress,
@@ -49,28 +56,51 @@ export async function createOffer({
   expiresIn,
 }: {
   wallet: string;
-  skill: string;
+  skill?: string; // Legacy: optional if skill_id provided
+  skill_id?: string; // New: preferred for beta
+  skill_label?: string; // Derived from Skill entity
   message: string;
-  availabilityWindow: string;
+  availabilityWindow: string | WeeklyAvailability; // Support both text and structured format
+  availabilityKey?: string; // Optional reference to Availability entity
   isPaid: boolean;
   cost?: string; // Required if isPaid is true
   paymentAddress?: string;
   privateKey: `0x${string}`;
   expiresIn?: number;
 }): Promise<{ key: string; txHash: string }> {
+  // Validation: require either skill (legacy) or skill_id (beta)
+  if (!skill && !skill_id) {
+    throw new Error('Either skill (legacy) or skill_id (beta) must be provided');
+  }
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const spaceId = 'local-dev';
   const status = 'active';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
-  const ttl = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
+  // Ensure ttl is always an integer (BigInt requirement)
+  const ttlRaw = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
+  const ttl = Math.floor(ttlRaw);
+
+  // Handle availabilityWindow: serialize WeeklyAvailability to JSON, or use string as-is
+  let availabilityWindowString: string;
+  if (typeof availabilityWindow === 'object' && availabilityWindow.version === '1.0') {
+    // Structured format: validate and serialize
+    const validation = validateWeeklyAvailability(availabilityWindow);
+    if (!validation.valid) {
+      throw new Error(`Invalid weekly availability: ${validation.error}`);
+    }
+    availabilityWindowString = serializeWeeklyAvailability(availabilityWindow);
+  } else {
+    // Legacy text format
+    availabilityWindowString = typeof availabilityWindow === 'string' ? availabilityWindow : String(availabilityWindow);
+  }
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
         message,
-        availabilityWindow,
+        availabilityWindow: availabilityWindowString,
         isPaid,
         cost: cost || undefined,
         paymentAddress: paymentAddress || undefined,
@@ -78,15 +108,19 @@ export async function createOffer({
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'offer' },
-        { key: 'wallet', value: wallet },
-        { key: 'skill', value: skill },
+        { key: 'wallet', value: wallet.toLowerCase() },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
         { key: 'status', value: status },
         { key: 'isPaid', value: String(isPaid) },
         { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
+        // Add skill fields (legacy for compatibility, new for beta)
+        ...(skill ? [{ key: 'skill', value: skill }] : []),
+        ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
+        ...(skill_label ? [{ key: 'skill_label', value: skill_label }] : []),
         ...(cost ? [{ key: 'cost', value: cost }] : []),
         ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
+        ...(availabilityKey ? [{ key: 'availabilityKey', value: availabilityKey }] : []),
       ],
       expiresIn: ttl,
     });
@@ -101,11 +135,11 @@ export async function createOffer({
       txHash,
     })),
     contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'offer_txhash' },
-      { key: 'offerKey', value: entityKey },
-      { key: 'wallet', value: wallet },
-      { key: 'spaceId', value: spaceId },
+      attributes: [
+        { key: 'type', value: 'offer_txhash' },
+        { key: 'offerKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
     ],
     expiresIn: ttl,
   });
@@ -121,27 +155,50 @@ export async function createOffer({
  */
 export async function listOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const publicClient = getPublicClient();
-  const query = publicClient.buildQuery();
-  const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
-  let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
-  }
-  
-  const [result, txHashResult] = await Promise.all([
-    queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'offer_txhash'))
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit)
-      .fetch(),
-  ]);
+  try {
+    const publicClient = getPublicClient();
+    const query = publicClient.buildQuery();
+    const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
+    let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
+    
+    if (params?.spaceId) {
+      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    }
+    
+    let result: any = null;
+    let txHashResult: any = null;
+    
+    try {
+      [result, txHashResult] = await Promise.all([
+        queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
+        publicClient.buildQuery()
+          .where(eq('type', 'offer_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+          .fetch(),
+      ]);
+    } catch (fetchError: any) {
+      console.error('[listOffers] Arkiv query failed:', {
+        message: fetchError?.message,
+        stack: fetchError?.stack,
+        error: fetchError
+      });
+      return []; // Return empty array on query failure
+    }
+
+    // Defensive check: ensure result and entities exist
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.warn('[listOffers] Invalid result structure, returning empty array', { 
+        result: result ? { hasEntities: !!result.entities, entitiesType: typeof result.entities, entitiesIsArray: Array.isArray(result.entities) } : 'null/undefined'
+      });
+      return [];
+    }
 
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -171,7 +228,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     }
   });
 
-  let offers = result.entities.map((entity: any) => {
+  let offers: Offer[] = (result.entities || []).map((entity: any): Offer => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -208,6 +265,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
+      availabilityKey: getAttr('availabilityKey') || undefined,
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
       cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
@@ -216,30 +274,76 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     };
   });
 
-  if (params?.skill) {
-    const skillLower = params.skill.toLowerCase();
-    offers = offers.filter(offer => offer.skill.toLowerCase().includes(skillLower));
-  }
+    if (params?.skill) {
+      const skillLower = params.skill.toLowerCase();
+      offers = offers.filter((offer: Offer) => offer.skill.toLowerCase().includes(skillLower));
+    }
 
-  // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-  const payloadBytes = JSON.stringify(offers).length;
-  
-  // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'listOffers',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 2, // Two parallel queries: offers + txhashes
-      createdAt: new Date().toISOString(),
+    // Fetch availability data for offers that reference availability entities
+    const offersWithAvailabilityKey = offers.filter((offer: Offer) => offer.availabilityKey);
+    if (offersWithAvailabilityKey.length > 0) {
+      const availabilityPromises = offersWithAvailabilityKey.map(async (offer: Offer) => {
+        if (!offer.availabilityKey) return null;
+        try {
+          const availability = await getAvailabilityByKey(offer.availabilityKey);
+          return { offerKey: offer.key, availability };
+        } catch (error) {
+          console.error(`Error fetching availability for offer ${offer.key}:`, error);
+          return null;
+        }
+      });
+
+      const availabilityResults = await Promise.all(availabilityPromises);
+      const availabilityMap = new Map<string, string>();
+      availabilityResults.forEach((result) => {
+        if (result && result.availability) {
+          // Use timeBlocks from availability entity as availabilityWindow
+          availabilityMap.set(result.offerKey, result.availability.timeBlocks);
+        }
+      });
+
+      // Update offers with availability data from referenced entities
+      offers = offers.map((offer: Offer) => {
+        if (offer.availabilityKey && availabilityMap.has(offer.key)) {
+          const updated: Offer = {
+            ...offer,
+            availabilityWindow: availabilityMap.get(offer.key) || offer.availabilityWindow,
+          };
+          return updated;
+        }
+        return offer;
+      });
+    }
+
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(offers).length;
+    
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'listOffers',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 2, // Two parallel queries: offers + txhashes
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
 
-  return offers;
+    return offers;
+  } catch (error: any) {
+    // CRITICAL: Catch ANY error and return empty array
+    // This ensures the function NEVER throws, making it safe for GraphQL resolvers
+    console.error('[listOffers] Unexpected error, returning empty array:', {
+      message: error?.message,
+      stack: error?.stack,
+      error: error?.toString()
+    });
+    return [];
+  }
 }
 
 /**
@@ -254,22 +358,29 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
   const [result, txHashResult] = await Promise.all([
     query
       .where(eq('type', 'offer'))
-      .where(eq('wallet', wallet))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
-      .where(eq('type', 'offer_txhash'))
-      .where(eq('wallet', wallet))
+        publicClient.buildQuery()
+          .where(eq('type', 'offer_txhash'))
+          .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
   ]);
 
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listOffersForWallet] Invalid result structure, returning empty array', { result });
+    return [];
+  }
+
   const txHashMap: Record<string, string> = {};
-  txHashResult.entities.forEach((entity: any) => {
+  const txHashEntities = txHashResult?.entities || [];
+  txHashEntities.forEach((entity: any) => {
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -299,7 +410,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
     }
   });
 
-  return result.entities.map((entity: any) => {
+  let offers: Offer[] = (result.entities || []).map((entity: any): Offer => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -336,6 +447,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
       availabilityWindow: payload.availabilityWindow || '',
+      availabilityKey: getAttr('availabilityKey') || undefined,
       isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
       cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
@@ -343,5 +455,43 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
   });
+
+  // Fetch availability data for offers that reference availability entities
+  const offersWithAvailabilityKey = offers.filter((offer: Offer) => offer.availabilityKey);
+  if (offersWithAvailabilityKey.length > 0) {
+    const availabilityPromises = offersWithAvailabilityKey.map(async (offer: Offer) => {
+      if (!offer.availabilityKey) return null;
+      try {
+        const availability = await getAvailabilityByKey(offer.availabilityKey);
+        return { offerKey: offer.key, availability };
+      } catch (error) {
+        console.error(`Error fetching availability for offer ${offer.key}:`, error);
+        return null;
+      }
+    });
+
+    const availabilityResults = await Promise.all(availabilityPromises);
+    const availabilityMap = new Map<string, string>();
+    availabilityResults.forEach((result) => {
+      if (result && result.availability) {
+        // Use timeBlocks from availability entity as availabilityWindow
+        availabilityMap.set(result.offerKey, result.availability.timeBlocks);
+      }
+    });
+
+    // Update offers with availability data from referenced entities
+    offers = offers.map((offer: Offer) => {
+      if (offer.availabilityKey && availabilityMap.has(offer.key)) {
+        const updated: Offer = {
+          ...offer,
+          availabilityWindow: availabilityMap.get(offer.key) || offer.availabilityWindow,
+        };
+        return updated;
+      }
+      return offer;
+    });
+  }
+
+  return offers;
 }
 

@@ -40,7 +40,11 @@ export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 /**
  * Get private key, throwing if not available
  * 
- * Used for API routes that need server-side entity creation
+ * Used for API routes that need server-side entity creation.
+ * This is the server-side signing wallet (ARKIV_PRIVATE_KEY env var).
+ * 
+ * IMPORTANT: This returns a private key (0x...), NOT a wallet address.
+ * Never use a wallet address as a private key - it will cause transaction failures.
  * 
  * @throws Error if ARKIV_PRIVATE_KEY is not set
  */
@@ -48,6 +52,12 @@ export function getPrivateKey(): `0x${string}` {
   if (!ARKIV_PRIVATE_KEY) {
     throw new Error("ARKIV_PRIVATE_KEY missing in environment. Required for server-side entity creation.");
   }
+  
+  // Safety check: Ensure this looks like a private key (64 hex chars after 0x)
+  if (!ARKIV_PRIVATE_KEY.startsWith('0x') || ARKIV_PRIVATE_KEY.length !== 66) {
+    throw new Error("ARKIV_PRIVATE_KEY appears to be invalid. Expected 0x followed by 64 hex characters.");
+  }
+  
   return ARKIV_PRIVATE_KEY;
 }
 

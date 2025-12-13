@@ -62,8 +62,8 @@ export async function createAdminResponse({
     attributes: [
       { key: 'type', value: 'admin_response' },
       { key: 'feedbackKey', value: feedbackKey },
-      { key: 'wallet', value: wallet },
-      { key: 'adminWallet', value: adminWallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'adminWallet', value: adminWallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
       { key: 'createdAt', value: createdAt },
     ],
@@ -77,11 +77,37 @@ export async function createAdminResponse({
     attributes: [
       { key: 'type', value: 'admin_response_txhash' },
       { key: 'responseKey', value: entityKey },
-      { key: 'wallet', value: wallet },
+      { key: 'wallet', value: wallet.toLowerCase() },
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn,
   });
+
+  // Create notification for the user
+  try {
+    const { createNotification } = await import('./notifications');
+    await createNotification({
+      wallet: wallet.toLowerCase(),
+      notificationType: 'admin_response',
+      sourceEntityType: 'admin_response',
+      sourceEntityKey: entityKey,
+      title: 'Admin Response',
+      message: message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim(),
+      link: '/notifications',
+      metadata: {
+        feedbackKey,
+        responseKey: entityKey,
+        adminWallet: adminWallet.toLowerCase(),
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn('[createAdminResponse] Failed to create notification:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block response creation
+    console.warn('[createAdminResponse] Error importing or creating notification:', err);
+  }
 
   return { key: entityKey, txHash };
 }

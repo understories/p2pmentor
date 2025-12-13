@@ -25,6 +25,7 @@ export function FloatingButtonCluster() {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [wallet, setWallet] = useState<string | null>(null);
+  const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const clusterRef = useRef<HTMLDivElement>(null);
 
   // Track wallet from localStorage
@@ -48,6 +49,30 @@ export function FloatingButtonCluster() {
       };
     }
   }, []);
+
+  // Check if profile exists
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (!wallet) {
+        setHasProfile(null);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
+        const data = await res.json();
+        setHasProfile(data.ok && data.profile !== null);
+      } catch (err) {
+        console.error('Error checking profile:', err);
+        setHasProfile(null);
+      }
+    };
+
+    checkProfile();
+    // Poll every 30 seconds to check for profile creation
+    const interval = setInterval(checkProfile, 30000);
+    return () => clearInterval(interval);
+  }, [wallet]);
 
   // Track mouse position for proximity-based scaling
   useEffect(() => {
@@ -183,6 +208,28 @@ export function FloatingButtonCluster() {
       tooltip: 'View on GitHub',
       ariaLabel: 'View source code on GitHub',
       className: 'bg-gray-900 dark:bg-gray-100',
+    },
+    {
+      id: 'docs',
+      href: '/docs',
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
+          />
+        </svg>
+      ),
+      tooltip: 'Beta docs',
+      ariaLabel: 'View beta documentation',
+      className: 'bg-amber-600 hover:bg-amber-700',
     },
     {
       id: 'feedback',

@@ -93,20 +93,78 @@ export const resolvers = {
     },
 
     asks: async (_: any, args: any) => {
-      const { skill, wallet, includeExpired = false, limit = 100 } = args;
-      
+      // CRITICAL: Wrap entire resolver to ensure we NEVER return null/undefined
+      // GraphQL will throw "Cannot return null for non-nullable field" if we do
       try {
-        let asks;
-        if (wallet) {
-          asks = await listAsksForWallet(wallet);
-        } else {
-          asks = await listAsks({ skill, includeExpired, limit });
+        const { skill, wallet, includeExpired = false, limit = 100 } = args;
+        
+        console.log('[GraphQL] asks resolver called with:', { skill, wallet, includeExpired, limit });
+        
+        let asks: any = null;
+        try {
+          console.log('[GraphQL] Calling listAsks...');
+          if (wallet) {
+            asks = await listAsksForWallet(wallet);
+          } else {
+            asks = await listAsks({ skill, includeExpired, limit });
+          }
+          console.log('[GraphQL] listAsks returned:', { count: asks?.length, type: typeof asks, isArray: Array.isArray(asks) });
+        } catch (fetchError: any) {
+          console.error('[GraphQL] Error fetching asks from Arkiv:', {
+            message: fetchError?.message,
+            stack: fetchError?.stack,
+            error: fetchError
+          });
+          // Return empty array immediately on fetch error
+          return [];
         }
 
-        return asks.map(transformAsk);
-      } catch (error) {
-        console.error('Error fetching asks:', error);
-        return [];
+        // Ensure we always return an array, never null
+        if (!asks || !Array.isArray(asks)) {
+          console.warn('[GraphQL] asks resolver: received non-array result, returning empty array', { 
+            asks, 
+            type: typeof asks,
+            isArray: Array.isArray(asks),
+            asksValue: asks ? JSON.stringify(asks).substring(0, 200) : 'null/undefined'
+          });
+          return [];
+        }
+
+        // Safely transform asks, filtering out any that fail to transform
+        try {
+          console.log('[GraphQL] Transforming asks...', { count: asks.length });
+          const transformed = asks
+            .map((ask) => {
+              try {
+                return transformAsk(ask);
+              } catch (transformError: any) {
+                console.error('[GraphQL] Error transforming ask:', {
+                  error: transformError?.message,
+                  ask: ask ? JSON.stringify(ask).substring(0, 100) : 'null'
+                });
+                return null;
+              }
+            })
+            .filter((ask) => ask !== null);
+
+          console.log('[GraphQL] Transformation complete:', { transformedCount: transformed.length });
+          return transformed;
+        } catch (transformError: any) {
+          console.error('[GraphQL] Error during transformation:', {
+            message: transformError?.message,
+            stack: transformError?.stack
+          });
+          return []; // Return empty array if transformation fails
+        }
+      } catch (error: any) {
+        // CRITICAL: Catch ANY error and return empty array
+        // This ensures GraphQL never sees null/undefined
+        console.error('[GraphQL] Unexpected error in asks resolver (outer catch):', {
+          message: error?.message,
+          stack: error?.stack,
+          error: error?.toString()
+        });
+        return []; // Always return array, never null
       }
     },
 
@@ -120,17 +178,45 @@ export const resolvers = {
       const { skill, wallet, includeExpired = false, limit = 100 } = args;
       
       try {
-        let offers;
-        if (wallet) {
-          offers = await listOffersForWallet(wallet);
-        } else {
-          offers = await listOffers({ skill, includeExpired, limit });
+        let offers: any = null;
+        try {
+          if (wallet) {
+            offers = await listOffersForWallet(wallet);
+          } else {
+            offers = await listOffers({ skill, includeExpired, limit });
+          }
+        } catch (fetchError) {
+          console.error('[GraphQL] Error fetching offers from Arkiv:', fetchError);
+          offers = null; // Explicitly set to null so we handle it below
         }
 
-        return offers.map(transformOffer);
+        // Ensure we always return an array, never null
+        if (!offers || !Array.isArray(offers)) {
+          console.warn('[GraphQL] offers resolver: received non-array result, returning empty array', { offers, type: typeof offers });
+          return [];
+        }
+
+        // Safely transform offers, filtering out any that fail to transform
+        try {
+          const transformed = offers
+            .map((offer) => {
+              try {
+                return transformOffer(offer);
+              } catch (transformError) {
+                console.error('[GraphQL] Error transforming offer:', transformError, offer);
+                return null;
+              }
+            })
+            .filter((offer) => offer !== null);
+
+          return transformed;
+        } catch (transformError) {
+          console.error('[GraphQL] Error during transformation:', transformError);
+          return []; // Return empty array if transformation fails
+        }
       } catch (error) {
-        console.error('Error fetching offers:', error);
-        return [];
+        console.error('[GraphQL] Unexpected error in offers resolver:', error);
+        return []; // Always return array, never null
       }
     },
 
