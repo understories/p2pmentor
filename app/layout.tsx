@@ -5,6 +5,7 @@ import { FloatingButtonCluster } from "@/components/FloatingButtonCluster";
 import { ConditionalAppShell } from "@/components/navigation/ConditionalAppShell";
 import { BackgroundImage } from "@/components/BackgroundImage";
 import { ClientPerfTracker } from "@/components/ClientPerfTracker";
+import { GlobalToggles } from "@/components/GlobalToggles";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -24,6 +25,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className="relative min-h-screen">
         <ThemeProvider>
+          <GlobalToggles />
           <BackgroundImage />
           <ClientPerfTracker />
           <ConditionalAppShell>

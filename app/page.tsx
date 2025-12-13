@@ -10,7 +10,6 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import './landing.css';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
 
 export default function Home() {
@@ -54,7 +53,6 @@ export default function Home() {
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
       <SunriseSunsetTimer />
-      <ThemeToggle />
       
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>

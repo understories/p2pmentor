@@ -10,8 +10,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import { getUnreadCount } from '@/lib/notifications';
@@ -31,8 +31,8 @@ export default function NotificationsPage() {
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Arkiv Builder Mode state
-  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+  // Arkiv Builder Mode state (global)
+  const arkivBuilderMode = useArkivBuilderMode();
   
   // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
@@ -614,7 +614,6 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />
@@ -631,25 +630,6 @@ export default function NotificationsPage() {
               )}
             </h1>
             <div className="flex gap-3 items-center">
-              {/* Arkiv Builder Mode Toggle */}
-              <div className="relative group">
-                <button
-                  onClick={() => setArkivBuilderMode(!arkivBuilderMode)}
-                  className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
-                    arkivBuilderMode
-                      ? 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500'
-                      : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20'
-                  }`}
-                  title="Arkiv Builder Mode"
-                >
-                  [A]
-                </button>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
-                  Arkiv Builder Mode
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                </div>
-              </div>
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className="text-sm text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 px-3 py-1.5 rounded-full border border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-colors"

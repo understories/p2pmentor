@@ -9,7 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
@@ -25,8 +24,8 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { listSessionsForWallet, type Session } from '@/lib/arkiv/sessions';
 import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
 import { calculateAverageRating } from '@/lib/arkiv/profile';
-import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -46,24 +45,7 @@ export default function MePage() {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
-  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
-
-  // Sync Arkiv Builder Mode to localStorage for sidebar access
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('arkiv_builder_mode', String(arkivBuilderMode));
-    }
-  }, [arkivBuilderMode]);
-
-  // Load Arkiv Builder Mode from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('arkiv_builder_mode');
-      if (saved === 'true') {
-        setArkivBuilderMode(true);
-      }
-    }
-  }, []);
+  const arkivBuilderMode = useArkivBuilderMode();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
@@ -316,10 +298,6 @@ export default function MePage() {
       <GardenLayer skills={gardenSkills} allSkills={allSystemSkills} />
       
       <div className="relative z-10 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <ThemeToggle />
-          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={setArkivBuilderMode} />
-        </div>
       <div className="max-w-2xl mx-auto">
         
         {/* Profile Avatar with EIS */}
