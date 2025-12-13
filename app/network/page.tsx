@@ -16,13 +16,14 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { CanopySection } from '@/components/network/CanopySection';
 import { ForestPulseStats } from '@/components/network/ForestPulseStats';
 import { QuickActions } from '@/components/network/QuickActions';
 import { LeafChipFilter } from '@/components/network/LeafChipFilter';
 import { SkillCluster } from '@/components/network/SkillCluster';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -55,6 +56,7 @@ export default function NetworkPage() {
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
   const [showContent, setShowContent] = useState(false); // Hide content by default
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     // Get user wallet
@@ -442,7 +444,28 @@ export default function NetworkPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <LoadingSpinner text="Loading network..." className="py-12" />
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadNetwork()`,
+                `Queries:`,
+                `1. GET /api/asks`,
+                `   → type='ask', status='active'`,
+                `2. GET /api/offers`,
+                `   → type='offer', status='active'`,
+                `3. GET /api/skills?status=active&limit=200`,
+                `   → type='skill', status='active'`,
+                `4. getProfileByWallet(...) for each unique wallet`,
+                `   → type='user_profile', wallet='...'`,
+                `Returns: Computed network graph data (asks, offers, matches, skills, profiles)`
+              ]}
+              label="Loading Network"
+            >
+              <LoadingSpinner text="Loading network..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading network..." className="py-12" />
+          )}
         </div>
       </div>
     );
@@ -450,7 +473,6 @@ export default function NetworkPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />

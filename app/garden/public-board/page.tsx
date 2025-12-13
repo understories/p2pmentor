@@ -25,6 +25,8 @@ import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import { GardenLayer } from '@/components/garden/GardenLayer';
@@ -41,6 +43,7 @@ function PublicGardenBoardContent() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     // Get current user's profile wallet (from localStorage 'wallet_address')
@@ -168,8 +171,6 @@ function PublicGardenBoardContent() {
       {/* Garden Layer - persistent garden showing user's skills */}
       {gardenSkills.length > 0 && <GardenLayer skills={gardenSkills} />}
 
-      {/* No BetaBanner on this page */}
-      <ThemeToggle />
       <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <BackButton />
         <div className="mb-6">
@@ -214,16 +215,41 @@ function PublicGardenBoardContent() {
         {/* Compose Button - Always "Plant a Note", always visible when user is logged in */}
         {userWallet && (
           <div className="mb-6">
-            <button
-              onClick={() => setShowComposeModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
-              style={{
-                boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <span>🌿</span>
-              <span>Plant a Note</span>
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Opens GardenNoteComposeModal to create garden note`,
+                  `POST /api/garden-notes { action: 'createNote', ... }`,
+                  `Creates: type='garden_note' entity`,
+                  `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', channel='public_garden_board', targetWallet (optional)`,
+                  `Payload: Full garden note data (message, tags, etc.)`,
+                  `TTL: 1 year (31536000 seconds)`
+                ]}
+                label="Plant a Note"
+              >
+                <button
+                  onClick={() => setShowComposeModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                  style={{
+                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <span>🌿</span>
+                  <span>Plant a Note</span>
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setShowComposeModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                style={{
+                  boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <span>🌿</span>
+                <span>Plant a Note</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -237,7 +263,24 @@ function PublicGardenBoardContent() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
-            <LoadingSpinner />
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `loadNotes()`,
+                  `Queries:`,
+                  `1. GET /api/garden-notes?channel=public_garden_board`,
+                  `   → type='garden_note', channel='public_garden_board'`,
+                  `2. getProfileByWallet(...) for each unique wallet`,
+                  `   → type='user_profile', wallet='...'`,
+                  `Returns: GardenNote[] (all public garden notes)`
+                ]}
+                label="Loading Garden Notes"
+              >
+                <LoadingSpinner />
+              </ArkivQueryTooltip>
+            ) : (
+              <LoadingSpinner />
+            )}
           </div>
         )}
 

@@ -18,11 +18,13 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
 import { BackgroundImage } from '@/components/BackgroundImage';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
@@ -40,6 +42,7 @@ export default function ProfileGardenNotesPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [filter, setFilter] = useState<'all' | 'to' | 'from'>('all');
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (wallet) {
@@ -166,8 +169,6 @@ export default function ProfileGardenNotesPage() {
       {/* Background art - no gradients, just the base background */}
       <BackgroundImage />
 
-      {/* No BetaBanner on this page */}
-      <ThemeToggle />
       <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <BackButton />
         <div className="mb-6">
@@ -237,16 +238,41 @@ export default function ProfileGardenNotesPage() {
 
           {/* Compose Button - Always "Plant a Note" */}
           {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-            <button
-              onClick={() => setShowComposeModal(true)}
-              className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
-              style={{
-                boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <span>🌿</span>
-              <span>Plant a Note</span>
-            </button>
+            arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Opens GardenNoteComposeModal to create garden note`,
+                  `POST /api/garden-notes { action: 'createNote', ... }`,
+                  `Creates: type='garden_note' entity`,
+                  `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', targetWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', channel (optional)`,
+                  `Payload: Full garden note data (message, tags, etc.)`,
+                  `TTL: 1 year (31536000 seconds)`
+                ]}
+                label="Plant a Note"
+              >
+                <button
+                  onClick={() => setShowComposeModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                  style={{
+                    boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <span>🌿</span>
+                  <span>Plant a Note</span>
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setShowComposeModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                style={{
+                  boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <span>🌿</span>
+                <span>Plant a Note</span>
+              </button>
+            )
           )}
         </div>
 
@@ -260,7 +286,26 @@ export default function ProfileGardenNotesPage() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
-            <LoadingSpinner />
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `loadNotes()`,
+                  `Queries:`,
+                  `1. GET /api/garden-notes?targetWallet=${wallet?.toLowerCase().slice(0, 8) || '...'}...`,
+                  `   → type='garden_note', targetWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                  `2. GET /api/garden-notes?authorWallet=${wallet?.toLowerCase().slice(0, 8) || '...'}...`,
+                  `   → type='garden_note', authorWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                  `3. getProfileByWallet(...) for each unique wallet`,
+                  `   → type='user_profile', wallet='...'`,
+                  `Returns: GardenNote[] (notes to/from this profile)`
+                ]}
+                label="Loading Garden Notes"
+              >
+                <LoadingSpinner />
+              </ArkivQueryTooltip>
+            ) : (
+              <LoadingSpinner />
+            )}
           </div>
         )}
 
