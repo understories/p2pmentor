@@ -25,6 +25,8 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { listSessionsForWallet, type Session } from '@/lib/arkiv/sessions';
 import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
 import { calculateAverageRating } from '@/lib/arkiv/profile';
+import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -44,6 +46,7 @@ export default function MePage() {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
+  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
@@ -292,7 +295,10 @@ export default function MePage() {
       <GardenLayer skills={gardenSkills} allSkills={allSystemSkills} />
       
       <div className="relative z-10 p-4">
-        <ThemeToggle />
+        <div className="flex justify-between items-center mb-4">
+          <ThemeToggle />
+          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={setArkivBuilderMode} />
+        </div>
       <div className="max-w-2xl mx-auto">
         
         {/* Profile Avatar with EIS */}
@@ -322,6 +328,22 @@ export default function MePage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono break-all">
                 {walletAddress}
               </p>
+              {/* Arkiv Builder Mode: Profile Entity Link */}
+              {arkivBuilderMode && profile?.key && (
+                <div className="mt-2">
+                  <ViewOnArkivLink
+                    entityKey={profile.key}
+                    txHash={profile.txHash}
+                    label="View Profile Entity"
+                    className="text-xs"
+                  />
+                  {profile.key && (
+                    <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
+                      Key: {profile.key.slice(0, 16)}...
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           ) : (
             <>
@@ -374,7 +396,23 @@ export default function MePage() {
           <div className="mb-6 space-y-4">
             {/* Profile Information Display */}
             <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm space-y-3">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Profile Information</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Profile Information</h3>
+                {/* Arkiv Builder Mode: Profile Query Tooltip */}
+                {arkivBuilderMode && (
+                  <div className="group/query relative">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-mono cursor-help border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-gray-50 dark:bg-gray-800">
+                      Query
+                    </div>
+                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left max-w-md">
+                      <div className="font-semibold mb-1">Profile Query:</div>
+                      <div>type='user_profile',</div>
+                      <div>wallet='{walletAddress?.slice(0, 8)}...'</div>
+                      <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
               
               {profile.username && (
                 <div>
@@ -503,6 +541,26 @@ export default function MePage() {
                 </div>
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
               </div>
+              {/* Arkiv Builder Mode: Show session entities */}
+              {arkivBuilderMode && sessions.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Session Entities:</div>
+                  {sessions.filter(s => s.status === 'completed' || (s.status === 'scheduled' && new Date(s.sessionDate || 0) < new Date())).slice(0, 3).map(session => (
+                    <div key={session.key} className="text-xs flex items-center gap-2 mt-1">
+                      <ViewOnArkivLink
+                        entityKey={session.key}
+                        txHash={session.txHash}
+                        label=""
+                        className="text-xs"
+                        icon="🔗"
+                      />
+                      <span className="text-gray-400 dark:text-gray-500 font-mono">
+                        {session.key.slice(0, 8)}...
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             
             {/* Upcoming Sessions */}
