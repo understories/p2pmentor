@@ -24,6 +24,31 @@ This document establishes engineering principles for p2pmentor development, ensu
 - `docs/` = Public documentation (committed to repo)
 - `refs/` = Internal documentation (gitignored, not committed)
 
+**⚠️ CRITICAL: NEVER BYPASS .gitignore FOR refs/ ⚠️**
+
+**ABSOLUTE PROHIBITION:**
+- ❌ **NEVER use `git add -f` to force-add files from `refs/`**
+- ❌ **NEVER use `git add --force` to bypass `.gitignore` for internal files**
+- ❌ **NEVER commit files from `refs/` directory to the repository**
+- ❌ **NEVER modify `.gitignore` to allow `refs/` files to be committed**
+
+**Why:**
+- `refs/` contains internal documentation, research, and planning that should remain private
+- Files in `refs/` are intentionally gitignored to keep them internal
+- Bypassing `.gitignore` exposes internal information to the public repository
+- This violates the separation between public (`docs/`) and internal (`refs/`) documentation
+
+**If a file in `refs/` needs to be public:**
+1. Move it to `docs/` directory (public location)
+2. Review it to ensure no internal-only information
+3. Then commit it normally (no `-f` flag needed)
+
+**If you accidentally force-added a file from `refs/`:**
+1. Immediately remove it: `git rm --cached refs/path/to/file`
+2. Commit the removal
+3. Verify it's not in the repo: `git ls-files | grep refs/`
+4. The file will remain locally but won't be tracked
+
 ### File Naming
 
 - **Public docs:** Clear, descriptive names (e.g., `PERFORMANCE_TESTING.md`)
@@ -508,6 +533,10 @@ Before pushing to production:
 - `refs/scripts/` directory (gitignored) - for test/utility scripts that shouldn't be committed
 - Not committed to repository
 - Shared via other channels if needed
+
+**⚠️ CRITICAL: NEVER FORCE-ADD refs/ FILES ⚠️**
+
+**ABSOLUTE RULE:** Never use `git add -f` or `git add --force` to bypass `.gitignore` for any file in `refs/`. If a file needs to be public, move it to `docs/` first, then commit normally.
 
 **Enforcement:**
 - All performance testing docs → `refs/docs/`
