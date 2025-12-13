@@ -358,8 +358,11 @@ export function SidebarNav() {
                   <div className="font-semibold mb-1">Arkiv Query:</div>
                   <div>listSessionsForWallet()</div>
                   <div className="text-gray-400">type='session',</div>
-                  <div className="text-gray-400">(mentorWallet='{wallet.slice(0, 8)}...'</div>
-                  <div className="text-gray-400">OR learnerWallet='{wallet.slice(0, 8)}...')</div>
+                  <div className="text-gray-400">profile_wallet='{wallet.slice(0, 8)}...'</div>
+                  <div className="text-gray-400">(as mentor OR learner)</div>
+                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                    Queries: mentorWallet OR learnerWallet
+                  </div>
                   <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
                 </div>
               )}

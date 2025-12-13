@@ -1099,8 +1099,8 @@ export default function NotificationsPage() {
                     </div>
                   )}
 
-                  {/* Show link for other notification types (but not app_feedback_submitted) */}
-                  {!isFeedbackNotification && notification.link && (
+                  {/* Show link for other notification types (but not app_feedback_submitted or admin_response) */}
+                  {!isFeedbackNotification && !isAdminResponseNotification && notification.link && (
                     <div className="mt-3">
                       <a
                         href={notification.link}

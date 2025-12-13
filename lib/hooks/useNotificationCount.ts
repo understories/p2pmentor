@@ -24,7 +24,9 @@ export function useNotificationCount(): number | null {
 
     const loadCount = async () => {
       try {
-        const res = await fetch(`/api/notifications?wallet=${wallet}&status=active`);
+        // Normalize wallet to lowercase for consistent querying (same as notifications page)
+        const normalizedWallet = wallet.toLowerCase().trim();
+        const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
         const data = await res.json();
         if (!data.ok) {
           setCount(0);
@@ -32,7 +34,8 @@ export function useNotificationCount(): number | null {
         }
         
         // Count unread notifications
-        // Check localStorage for notification preferences to determine read status
+        // Use the same logic as the notifications page: filter out archived notifications
+        // and count only unread ones
         const notifications = data.notifications || [];
         let unreadCount = 0;
         
@@ -42,15 +45,16 @@ export function useNotificationCount(): number | null {
           if (prefStr) {
             try {
               const pref = JSON.parse(prefStr);
-              if (!pref.read && !pref.archived) {
+              // Filter out archived notifications (same as notifications page)
+              if (!pref.archived && !pref.read) {
                 unreadCount++;
               }
             } catch (e) {
-              // If pref can't be parsed, treat as unread
+              // If pref can't be parsed, treat as unread (but not archived)
               unreadCount++;
             }
           } else {
-            // No preference stored, treat as unread
+            // No preference stored, treat as unread (same as notifications page)
             unreadCount++;
           }
         });

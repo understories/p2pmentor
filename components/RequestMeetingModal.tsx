@@ -240,23 +240,30 @@ export function RequestMeetingModal({
 
       // Success - handle both immediate success and pending confirmation
       setShowConfirmation(false);
-      if (data.pending) {
-        // Transaction submitted but confirmation pending
-        setError(''); // Clear any previous errors
-        alert(`Meeting request submitted! ${data.message || 'Confirmation is pending. Please check your sessions in a moment.'}`);
-      } else {
-        // Immediate success
-        if (data.txHash) {
-          const shortHash = data.txHash.slice(0, 10) + '...';
-          alert(`Meeting requested successfully! Transaction: ${shortHash}`);
-        }
-      }
-
+      setSubmitting(false); // Reset submitting state before closing
+      
+      // Close modal first, then show alert to avoid blocking state updates
       if (onSuccess) {
         onSuccess();
       }
       onClose();
       setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+      
+      // Show success message after modal is closed (non-blocking)
+      setTimeout(() => {
+        if (data.pending) {
+          // Transaction submitted but confirmation pending
+          alert(`Meeting request submitted! ${data.message || 'Confirmation is pending. Please check your sessions in a moment.'}`);
+        } else {
+          // Immediate success
+          if (data.txHash) {
+            const shortHash = data.txHash.slice(0, 10) + '...';
+            alert(`Meeting requested successfully! Transaction: ${shortHash}`);
+          } else {
+            alert('Meeting requested successfully!');
+          }
+        }
+      }, 100);
     } catch (err: any) {
       console.error('Error creating session:', err);
       const errorMessage = err.message || 'Failed to request meeting';
@@ -267,16 +274,23 @@ export function RequestMeetingModal({
           errorMessage.includes('Transaction submitted')) {
         // This is actually a partial success - transaction was submitted
         setError(''); // Clear error state
-        alert(`Meeting request submitted! The transaction is being processed. Please check your sessions in a few moments. If it doesn't appear, the transaction may still be confirming on the testnet.`);
-        // Close modal and reset form
+        setSubmitting(false); // Reset submitting state before closing
+        
+        // Close modal first, then show alert to avoid blocking state updates
         if (onSuccess) {
           onSuccess();
         }
         onClose();
         setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+        
+        // Show success message after modal is closed (non-blocking)
+        setTimeout(() => {
+          alert(`Meeting request submitted! The transaction is being processed. Please check your sessions in a few moments. If it doesn't appear, the transaction may still be confirming on the testnet.`);
+        }, 100);
       } else {
         // Real error
         setError(errorMessage);
+        setSubmitting(false);
       }
     } finally {
       setSubmitting(false);
