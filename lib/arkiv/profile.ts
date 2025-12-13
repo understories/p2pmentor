@@ -527,8 +527,10 @@ export async function listUserProfiles(params?: {
  * @returns User profile or null if not found
  */
 export async function getProfileByWallet(wallet: string): Promise<UserProfile | null> {
+  // Normalize wallet: trim and convert to lowercase for consistent querying
+  const normalizedWallet = wallet.trim().toLowerCase();
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const profiles = await listUserProfilesForWallet(wallet);
+  const profiles = await listUserProfilesForWallet(normalizedWallet);
   if (profiles.length === 0) return null;
   
   // Return the most recent profile (sorted by createdAt descending)

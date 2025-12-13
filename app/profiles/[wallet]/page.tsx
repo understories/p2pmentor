@@ -31,7 +31,22 @@ import type { Feedback } from '@/lib/arkiv/feedback';
 export default function ProfileDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const wallet = params.wallet as string;
+  const walletParam = params.wallet as string;
+  
+  // Normalize wallet from URL parameter
+  // Decode URL parameter and normalize wallet to lowercase for Arkiv queries
+  // Next.js params are already decoded, but we ensure proper normalization
+  let wallet = walletParam ? walletParam.trim() : '';
+  if (wallet) {
+    // Remove any URL encoding artifacts
+    try {
+      wallet = decodeURIComponent(wallet);
+    } catch (e) {
+      // If decoding fails, use as-is
+    }
+    // Normalize to lowercase and trim whitespace
+    wallet = wallet.toLowerCase().trim();
+  }
   
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asks, setAsks] = useState<Ask[]>([]);
@@ -50,19 +65,17 @@ export default function ProfileDetailPage() {
 
   useEffect(() => {
     if (wallet) {
-      // Normalize wallet to lowercase for Arkiv queries
-      const normalizedWallet = wallet.toLowerCase();
-      loadProfileData(normalizedWallet);
+      loadProfileData(wallet);
     }
     // Get current user's wallet and profile
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address.toLowerCase()).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address.toLowerCase().trim()).then(setUserProfile).catch(() => null);
       }
     }
-  }, [wallet]);
+  }, [walletParam]);
 
   const loadProfileData = async (walletAddress: string) => {
     try {
@@ -74,8 +87,10 @@ export default function ProfileDetailPage() {
       if (useGraphQL) {
         // Use GraphQL: Single query for profile, asks, offers, feedback
         // Sessions still via API (not yet in GraphQL schema)
+        // Normalize wallet for GraphQL query (GraphQL may need lowercase)
+        const normalizedWalletForQuery = walletAddress.toLowerCase().trim();
         const [graphqlData, sessionsRes] = await Promise.all([
-          fetchProfileDetail({ wallet: walletAddress }).catch(() => ({ profile: null, feedback: [] })),
+          fetchProfileDetail({ wallet: normalizedWalletForQuery }).catch(() => ({ profile: null, feedback: [] })),
           fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
         ]);
 
@@ -102,7 +117,7 @@ export default function ProfileDetailPage() {
             spaceId: 'local-dev', // Default space ID
           };
           setProfile(profileData);
-          setAsks(graphqlData.profile.asks.map(ask => ({
+          setAsks((graphqlData.profile.asks || []).map(ask => ({
             id: ask.id,
             key: ask.key,
             wallet: ask.wallet,
@@ -115,7 +130,7 @@ export default function ProfileDetailPage() {
             txHash: ask.txHash,
             spaceId: 'local-dev', // Default space ID
           })) as Ask[]);
-          setOffers(graphqlData.profile.offers.map(offer => ({
+          setOffers((graphqlData.profile.offers || []).map(offer => ({
             id: offer.id,
             key: offer.key,
             wallet: offer.wallet,
@@ -187,7 +202,11 @@ export default function ProfileDetailPage() {
           // Silently fail if metrics module not available
         });
 
-        setProfile(profileData);
+        if (!profileData) {
+          setError(`Profile not found for wallet: ${walletAddress}`);
+        } else {
+          setProfile(profileData);
+        }
         if (asksRes.ok) {
           setAsks(asksRes.asks || []);
         }
@@ -203,7 +222,7 @@ export default function ProfileDetailPage() {
       }
     } catch (err: any) {
       console.error('Error loading profile data:', err);
-      setError(err.message || 'Failed to load profile');
+      setError(err.message || `Failed to load profile for wallet: ${walletAddress}`);
     } finally {
       setLoading(false);
     }
@@ -323,7 +342,7 @@ export default function ProfileDetailPage() {
                 </div>
                 <div className="flex gap-2">
                   {/* Edit/View Toggle - only show if viewing own profile */}
-                  {userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && (
+                  {userWallet && userWallet.toLowerCase().trim() === wallet.toLowerCase().trim() && (
                     <div className="flex gap-2 items-center">
                       <button
                         onClick={() => setViewMode(viewMode === 'edit' ? 'view' : 'edit')}
@@ -347,8 +366,8 @@ export default function ProfileDetailPage() {
                     </div>
                   )}
                   {/* Action Buttons - only show if viewing someone else's profile OR viewing own profile in view mode */}
-                  {((userWallet && userWallet.toLowerCase() !== wallet.toLowerCase()) || 
-                    (userWallet && userWallet.toLowerCase() === wallet.toLowerCase() && viewMode === 'view')) && (
+                  {((userWallet && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim()) || 
+                    (userWallet && userWallet.toLowerCase().trim() === wallet.toLowerCase().trim() && viewMode === 'view')) && (
                     <div className="flex gap-2">
                       <button
                         onClick={() => {
