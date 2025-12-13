@@ -444,7 +444,9 @@ export default function NotificationsPage() {
 
   const loadFollowedSkills = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/learning-follow?profile_wallet=${wallet}`);
+      // Normalize wallet to lowercase for consistent querying
+      const normalizedWallet = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/learning-follow?profile_wallet=${encodeURIComponent(normalizedWallet)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.follows) {
