@@ -36,6 +36,10 @@ export default function NotificationsPage() {
   
   // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
+  
+  // Flag to prevent reloading preferences while a save operation is in progress
+  // This ensures that optimistic updates aren't overwritten by stale API responses
+  const isSavingPreferences = useRef<boolean>(false);
 
   useEffect(() => {
     // Get user wallet from localStorage
@@ -49,9 +53,12 @@ export default function NotificationsPage() {
       
       // Set up polling
       const interval = setInterval(() => {
-        loadNotificationPreferences(storedWallet).then(() => {
-          loadNotifications(storedWallet);
-        });
+        // Don't reload if a save operation is in progress
+        if (!isSavingPreferences.current) {
+          loadNotificationPreferences(storedWallet).then(() => {
+            loadNotifications(storedWallet);
+          });
+        }
       }, POLL_INTERVAL);
       
       return () => clearInterval(interval);
@@ -61,13 +68,20 @@ export default function NotificationsPage() {
   }, []);
 
   // Load notification preferences from Arkiv
+  // CRITICAL: Don't reload if a save operation is in progress to prevent overwriting optimistic updates
   const loadNotificationPreferences = async (wallet: string): Promise<void> => {
+    // Skip reload if a save operation is in progress
+    if (isSavingPreferences.current) {
+      return;
+    }
+    
     try {
       const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
       const data = await res.json();
       
       if (data.ok && data.preferences) {
         // Store preferences in ref for use during notification detection
+        // Merge with existing preferences to preserve any optimistic updates
         const prefMap = new Map<string, { read: boolean; archived: boolean }>();
         data.preferences.forEach((pref: any) => {
           prefMap.set(pref.notificationId, {
@@ -75,7 +89,23 @@ export default function NotificationsPage() {
             archived: pref.archived,
           });
         });
-        notificationPreferences.current = prefMap;
+        
+        // Merge with existing preferences (preserve optimistic updates if save is in progress)
+        // Only update preferences that aren't currently being saved
+        if (!isSavingPreferences.current) {
+          notificationPreferences.current = prefMap;
+        } else {
+          // If save is in progress, merge: keep optimistic updates, add new ones from API
+          data.preferences.forEach((pref: any) => {
+            // Only update if we don't have a pending optimistic update
+            if (!notificationPreferences.current.has(pref.notificationId)) {
+              notificationPreferences.current.set(pref.notificationId, {
+                read: pref.read,
+                archived: pref.archived,
+              });
+            }
+          });
+        }
         
         // Also update existing notifications with persisted read/archived state
         setNotifications(prev => {
@@ -160,6 +190,12 @@ export default function NotificationsPage() {
   const markAsRead = async (notificationId: string) => {
     if (!userWallet) return;
     
+    // Store previous state for revert
+    const currentPref = notificationPreferences.current.get(notificationId);
+    
+    // Set save flag to prevent reloads from overwriting optimistic updates
+    isSavingPreferences.current = true;
+    
     // Optimistic update
     setNotifications(prev =>
       prev.map(n =>
@@ -167,8 +203,7 @@ export default function NotificationsPage() {
       )
     );
     
-    // Update preferences ref
-    const currentPref = notificationPreferences.current.get(notificationId);
+    // Update preferences ref immediately (source of truth)
     notificationPreferences.current.set(notificationId, {
       read: true,
       archived: currentPref?.archived || false,
@@ -178,7 +213,7 @@ export default function NotificationsPage() {
     try {
       const notification = notifications.find(n => n.id === notificationId);
       if (notification) {
-        await fetch('/api/notifications/preferences', {
+        const response = await fetch('/api/notifications/preferences', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -189,6 +224,13 @@ export default function NotificationsPage() {
             archived: false,
           }),
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save preference');
+        }
+        
+        // Success: preferences are now persisted, keep the optimistic update
+        // The preferences ref already has the correct state, so no need to reload
       }
     } catch (err) {
       console.error('Error marking notification as read:', err);
@@ -204,11 +246,20 @@ export default function NotificationsPage() {
       } else {
         notificationPreferences.current.delete(notificationId);
       }
+    } finally {
+      // Always clear the save flag, even on error
+      isSavingPreferences.current = false;
     }
   };
 
   const markAsUnread = async (notificationId: string) => {
     if (!userWallet) return;
+    
+    // Store previous state for revert
+    const currentPref = notificationPreferences.current.get(notificationId);
+    
+    // Set save flag to prevent reloads from overwriting optimistic updates
+    isSavingPreferences.current = true;
     
     // Optimistic update
     setNotifications(prev =>
@@ -217,8 +268,7 @@ export default function NotificationsPage() {
       )
     );
     
-    // Update preferences ref
-    const currentPref = notificationPreferences.current.get(notificationId);
+    // Update preferences ref immediately (source of truth)
     notificationPreferences.current.set(notificationId, {
       read: false,
       archived: currentPref?.archived || false,
@@ -228,7 +278,7 @@ export default function NotificationsPage() {
     try {
       const notification = notifications.find(n => n.id === notificationId);
       if (notification) {
-        await fetch('/api/notifications/preferences', {
+        const response = await fetch('/api/notifications/preferences', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -239,6 +289,13 @@ export default function NotificationsPage() {
             archived: false,
           }),
         });
+        
+        if (!response.ok) {
+          throw new Error('Failed to save preference');
+        }
+        
+        // Success: preferences are now persisted, keep the optimistic update
+        // The preferences ref already has the correct state, so no need to reload
       }
     } catch (err) {
       console.error('Error marking notification as unread:', err);
@@ -254,6 +311,9 @@ export default function NotificationsPage() {
       } else {
         notificationPreferences.current.delete(notificationId);
       }
+    } finally {
+      // Always clear the save flag, even on error
+      isSavingPreferences.current = false;
     }
   };
 
@@ -266,10 +326,13 @@ export default function NotificationsPage() {
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
     
+    // Set save flag to prevent reloads from overwriting optimistic updates
+    isSavingPreferences.current = true;
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     
-    // Update preferences ref
+    // Update preferences ref immediately (source of truth)
     unreadNotifications.forEach(n => {
       const currentPref = notificationPreferences.current.get(n.id);
       notificationPreferences.current.set(n.id, {
@@ -280,7 +343,7 @@ export default function NotificationsPage() {
     
     // Persist to Arkiv
     try {
-      await fetch('/api/notifications/preferences', {
+      const response = await fetch('/api/notifications/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -293,6 +356,13 @@ export default function NotificationsPage() {
           })),
         }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save preferences');
+      }
+      
+      // Success: preferences are now persisted, keep the optimistic updates
+      // The preferences ref already has the correct state, so no need to reload
     } catch (err) {
       console.error('Error marking all as read:', err);
       // Revert on error
@@ -302,6 +372,9 @@ export default function NotificationsPage() {
       }));
       // Revert preferences ref
       notificationPreferences.current = previousPrefs;
+    } finally {
+      // Always clear the save flag, even on error
+      isSavingPreferences.current = false;
     }
   };
 
