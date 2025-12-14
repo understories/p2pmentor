@@ -387,10 +387,13 @@ export default function NotificationsPage() {
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
     
+    // Set save flag to prevent reloads from overwriting optimistic updates
+    isSavingPreferences.current = true;
+    
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: false })));
     
-    // Update preferences ref
+    // Update preferences ref immediately (source of truth)
     readNotifications.forEach(n => {
       const currentPref = notificationPreferences.current.get(n.id);
       notificationPreferences.current.set(n.id, {
@@ -401,7 +404,7 @@ export default function NotificationsPage() {
     
     // Persist to Arkiv
     try {
-      await fetch('/api/notifications/preferences', {
+      const response = await fetch('/api/notifications/preferences', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -414,6 +417,13 @@ export default function NotificationsPage() {
           })),
         }),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to save preferences');
+      }
+      
+      // Success: preferences are now persisted, keep the optimistic updates
+      // The preferences ref already has the correct state, so no need to reload
     } catch (err) {
       console.error('Error marking all as unread:', err);
       // Revert on error
@@ -423,6 +433,9 @@ export default function NotificationsPage() {
       }));
       // Revert preferences ref
       notificationPreferences.current = previousPrefs;
+    } finally {
+      // Always clear the save flag, even on error
+      isSavingPreferences.current = false;
     }
   };
 
