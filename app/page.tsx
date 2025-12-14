@@ -11,6 +11,7 @@ import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import './landing.css';
 import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
@@ -53,6 +54,7 @@ export default function Home() {
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
       <SunriseSunsetTimer />
+      <ThemeToggle />
       
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>

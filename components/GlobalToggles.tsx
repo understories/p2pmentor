@@ -50,16 +50,18 @@ export function GlobalToggles() {
     return null;
   }
 
-  // Show on mobile for landing and auth pages
-  const showOnMobile = pathname === '/' || pathname === '/auth';
-  const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
+  // Hide on landing and auth pages (they have their own ThemeToggle)
+  const hideOnPages = ['/', '/auth'];
+  if (hideOnPages.includes(pathname)) {
+    return null;
+  }
+
+  // Show on mobile for other pages
+  const mobileClass = 'hidden md:block';
 
   return (
     <div 
-      className={`${mobileClass} fixed top-4 z-50 flex items-center gap-2`}
-      style={{
-        right: 'clamp(2rem, calc(50% - 32rem), 4rem)', // Responsive: more space on right, stays near center on large screens
-      }}
+      className={`${mobileClass} fixed top-4 right-4 z-50 flex items-center gap-2`}
     >
       {/* Theme Toggle */}
       <button
