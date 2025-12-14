@@ -972,7 +972,7 @@ export default function SessionsPage() {
                     className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                      <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                       <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
                         Completed
                       </span>
@@ -1025,7 +1025,7 @@ export default function SessionsPage() {
                     className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">📅 {session.skill}</h3>
+                      <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                       <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
                         Cancelled
                       </span>
