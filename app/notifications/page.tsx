@@ -303,6 +303,13 @@ export default function NotificationsPage() {
         
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
+        
+        // Dispatch event to notify other components (e.g., navbar) of the change
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: userWallet }
+          }));
+        }
       }
     } catch (err) {
       console.error('Error marking notification as unread:', err);
