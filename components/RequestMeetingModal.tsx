@@ -218,6 +218,40 @@ export function RequestMeetingModal({
           ? (formData.requiresPayment ? formData.cost.trim() : undefined)
           : (offer?.cost || undefined));
 
+      // Get skill_id from offer/ask if available (Arkiv-native skill entity reference)
+      // This ensures sessions display the skill entity name_canonical, not just the skill name string
+      let skill_id: string | undefined = undefined;
+      if (offer?.skill_id) {
+        skill_id = offer.skill_id;
+      } else if (ask?.skill_id) {
+        skill_id = ask.skill_id;
+      } else {
+        // Try to resolve skill_id from skill name if not available from offer/ask
+        // This handles cases where session is created without an offer/ask context
+        // Try to resolve skill_id from skill name if not available from offer/ask
+        // This handles cases where session is created without an offer/ask context
+        try {
+          const { getSkillBySlug, listSkills } = await import('@/lib/arkiv/skill');
+          // First try by slug (normalized skill name)
+          const normalizedSkill = formData.skill.trim().toLowerCase().replace(/\s+/g, '-');
+          let skillEntity = await getSkillBySlug(normalizedSkill);
+          // If not found by slug, try searching by name_canonical
+          if (!skillEntity) {
+            const allSkills = await listSkills({ status: 'active', limit: 200 });
+            const foundSkill = allSkills.find(s => 
+              s.name_canonical.toLowerCase() === formData.skill.trim().toLowerCase()
+            );
+            skillEntity = foundSkill || null;
+          }
+          if (skillEntity) {
+            skill_id = skillEntity.key;
+          }
+        } catch (e) {
+          console.warn('[RequestMeetingModal] Could not resolve skill_id from skill name:', e);
+          // Continue without skill_id - will fall back to legacy skill name display
+        }
+      }
+
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,7 +260,8 @@ export function RequestMeetingModal({
             wallet: userWallet,
             mentorWallet,
             learnerWallet,
-            skill: formData.skill.trim(),
+            skill: formData.skill.trim(), // Legacy: kept for backward compatibility
+            skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
             sessionDate,
             duration: formData.duration || '60',
             notes: formData.notes.trim() || '',

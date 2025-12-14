@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
-          skill,
+          skill, // Legacy: kept for backward compatibility
+          skill_id: skill_id || undefined, // Arkiv-native: skill entity key (preferred)
           sessionDate,
           duration: durationInt,
           notes: notes || undefined,
