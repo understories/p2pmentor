@@ -1,5 +1,141 @@
 # Engineering Guidelines
 
+## ⚡ TLDR - Critical Rules (Review This First)
+
+### 🚨 MANDATORY BEFORE EVERY COMMIT/PUSH
+
+1. **BUILD MUST PASS** - ⚠️ NEVER push code that fails to build
+   - Run `npm run build` (or `pnpm run build`) before committing
+   - Fix all TypeScript errors, linting errors, and build failures
+   - Build verification is NON-NEGOTIABLE
+
+2. **NEVER COMMIT SECRETS** - ⚠️ CRITICAL SECURITY RULE
+   - No passwords, API keys, private keys, tokens in code
+   - No hardcoded credentials as fallbacks (e.g., `|| 'password'`)
+   - No secrets in commit messages, comments, or documentation
+   - Use environment variables only (scripts MUST fail if env vars missing)
+   - If secret committed: remove immediately, use `git filter-repo` to remove from history, rotate secret
+
+3. **NEVER COMMIT refs/ FILES** - ⚠️ ABSOLUTE PROHIBITION
+   - `refs/` = Internal documentation (gitignored, team-only)
+   - `docs/` = Public documentation (committed, visible to all)
+   - NEVER use `git add -f` to force-add files from `refs/`
+   - If file needs to be public: move to `docs/` first, then commit normally
+
+### 📁 Directory Structure
+
+- **`docs/`** = Public documentation (committed to repo)
+- **`refs/docs/`** = Internal documentation (gitignored, NEVER commit)
+- **`refs/scripts/`** = Internal test scripts (gitignored, NEVER commit)
+- **`scripts/`** = Public utility scripts (committed, must use env vars only)
+
+### 🔐 Security Checklist (Before Every Commit)
+
+- [ ] No secrets in code (grep for passwords, keys, tokens)
+- [ ] No hardcoded credentials as fallbacks
+- [ ] No secrets in commit messages
+- [ ] No secrets in documentation
+- [ ] All scripts use environment variables (fail if missing)
+- [ ] Build passes (`npm run build` succeeds)
+
+### 📝 Documentation Rules
+
+**Public (`docs/` - committed):**
+- User-facing guides, API docs, architecture docs
+- Clear, comprehensive, no internal-only info
+- No secrets or sensitive data
+
+**Internal (`refs/docs/` - NEVER committed):**
+- Sprint planning, internal research, security incidents
+- Performance testing procedures, test scripts
+- Any docs mentioning passwords, secrets, or internal processes
+- Decision-making processes, team coordination
+
+### 💻 Code Quality Standards
+
+1. **Clean Code:**
+   - Remove commented-out code, unused imports, debug logs
+   - No hardcoded test data or fabricated metrics
+   - All data must be real, verifiable, traceable
+
+2. **Commit Messages:**
+   - Short summary (50 chars or less)
+   - Detailed explanation if needed (what, why, breaking changes)
+   - Logical grouping (one feature per commit)
+   - NEVER mention secrets in commit messages
+
+3. **Comments:**
+   - Explain **why**, not **what** (code should be self-documenting)
+   - Clarify non-obvious business logic
+   - Document assumptions and constraints
+
+### 🔗 Arkiv-Native Patterns (CRITICAL)
+
+1. **Wallet Normalization:**
+   - ALWAYS normalize wallet addresses to lowercase: `wallet.toLowerCase()`
+   - Apply in both storage (entity creation) and queries
+   - Prevents case-sensitivity bugs
+
+2. **Query Patterns:**
+   - Use standard `buildQuery().where(eq(...))` structure
+   - Always validate result structure before processing
+   - Fetch main entities and `*_txhash` entities in parallel
+   - Gracefully handle query failures and transaction timeouts
+
+3. **Entity Creation:**
+   - Normalize wallet addresses in attributes
+   - Use attributes for queryable fields (type, wallet, spaceId, createdAt, status)
+   - Use payload for user-facing content (messages, descriptions, complex objects)
+   - Include `spaceId` (default: `'local-dev'`), `createdAt` (ISO string), `type` attribute
+   - Create parallel `*_txhash` entities for reliable querying
+
+4. **Error Handling:**
+   - Use `handleTransactionWithTimeout` for all entity creation
+   - Return empty arrays on query failures (don't throw)
+   - Handle transaction timeouts gracefully in API routes
+
+### ✅ Pre-Commit Checklist
+
+- [ ] **Build passes** (`npm run build` succeeds) ⚠️ MANDATORY
+- [ ] No secrets in code, commit messages, or documentation
+- [ ] No hardcoded credentials as fallbacks
+- [ ] Documentation is in correct location (public vs internal)
+- [ ] Code is clean (no commented code, unused imports, debug logs)
+- [ ] Commit message is clear and doesn't mention secrets
+- [ ] Wallet addresses normalized in Arkiv operations
+- [ ] Arkiv query patterns follow standard structure
+- [ ] Error handling is graceful and defensive
+
+### 🎯 Core Principles
+
+- **FLOSS:** Open source, transparent, community-friendly
+- **Ethereum Values:** Decentralization, transparency, trustlessness, permissionlessness
+- **Data Integrity:** All data real, verifiable, traceable (on-chain when important)
+- **Arkiv-Native:** Use Arkiv's query system properly, build composable tools, follow established patterns
+- **Minimal Changes:** Make minimal code changes, reuse existing code, don't break functionality
+
+### 📋 Quick Reference
+
+**Documentation Decision:**
+- External users/contributors? → `docs/` (commit)
+- Mentions passwords/secrets? → `refs/docs/` (NEVER commit)
+- Test script/procedure? → `refs/docs/` or `refs/scripts/` (NEVER commit)
+- Internal engineering notes? → `refs/docs/` (don't commit)
+
+**If Secret Committed:**
+1. Remove from code immediately
+2. Use `git filter-repo` to remove from ALL history
+3. Coordinate with team before force push
+4. Rotate/change secret immediately
+5. Document in `refs/docs/SECURITY_INCIDENT_*.md` (never commit)
+
+**If refs/ File Needs to be Public:**
+1. Move to `docs/` directory
+2. Review to ensure no internal-only information
+3. Commit normally (no `-f` flag needed)
+
+---
+
 ## Core Principles
 
 This document establishes engineering principles for p2pmentor development, ensuring code quality, transparency, and alignment with FLOSS and Ethereum values.
