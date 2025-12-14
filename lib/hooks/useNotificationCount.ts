@@ -89,7 +89,31 @@ export function useNotificationCount(): number | null {
     
     // Poll every 30 seconds to keep count updated (same interval as notifications page)
     const interval = setInterval(loadCount, 30000);
-    return () => clearInterval(interval);
+    
+    // Listen for preference updates from notifications page
+    const handlePreferenceUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ wallet?: string }>;
+      const currentWallet = typeof window !== 'undefined' 
+        ? localStorage.getItem('wallet_address')?.toLowerCase().trim()
+        : null;
+      
+      // Only refresh if the update is for the current wallet (or no wallet specified)
+      if (!customEvent.detail.wallet || 
+          customEvent.detail.wallet.toLowerCase().trim() === currentWallet) {
+        loadCount();
+      }
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('notification-preferences-updated', handlePreferenceUpdate);
+    }
+    
+    return () => {
+      clearInterval(interval);
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('notification-preferences-updated', handlePreferenceUpdate);
+      }
+    };
   }, []);
 
   return count;

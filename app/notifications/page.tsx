@@ -231,6 +231,13 @@ export default function NotificationsPage() {
         
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
+        
+        // Dispatch event to notify other components (e.g., navbar) of the change
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: userWallet }
+          }));
+        }
       }
     } catch (err) {
       console.error('Error marking notification as read:', err);
@@ -424,6 +431,13 @@ export default function NotificationsPage() {
       
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
+      
+      // Dispatch event to notify other components (e.g., navbar) of the change
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { wallet: userWallet }
+        }));
+      }
     } catch (err) {
       console.error('Error marking all as unread:', err);
       // Revert on error
@@ -1002,9 +1016,7 @@ export default function NotificationsPage() {
                   {/* Show full admin response details for admin_response notifications */}
                   {isAdminResponseNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {isLoadingAdminResponse && !adminResponse ? (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading response details...</div>
-                      ) : adminResponse ? (
+                      {adminResponse ? (
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div>
@@ -1067,9 +1079,7 @@ export default function NotificationsPage() {
                   {/* Show full feedback details for app_feedback_submitted notifications */}
                   {isFeedbackNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {isLoadingFeedback && !feedback ? (
-                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading feedback details...</div>
-                      ) : feedback ? (
+                      {feedback ? (
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div>
