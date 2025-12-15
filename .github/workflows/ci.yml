@@ -36,6 +36,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
 
       - name: Check formatting (Prettier)
         run: pnpm format:check
@@ -79,6 +81,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
 
       - name: Build application
         run: pnpm build
@@ -106,6 +110,8 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
