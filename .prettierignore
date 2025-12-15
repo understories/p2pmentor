@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+
+# Internal references
+refs/
+
+# Generated / lockfiles
+pnpm-lock.yaml
+
+# Subgraph (separate tooling)
+subgraph/
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+
+# Reference files (not our code)
+refs/
+
+# Subgraph (has its own tooling)
+subgraph/
+
+# Lock files
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+
