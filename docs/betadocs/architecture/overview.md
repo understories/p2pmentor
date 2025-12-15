@@ -49,3 +49,9 @@
 ```
 
 See [Arkiv Integration](../arkiv/overview.md) for detailed data layer architecture.
+
+## Decentralized Static Client
+
+We are building a fully decentralized, no-JavaScript version of p2pmentor that works entirely without centralized servers. This static client will be deployable on IPFS and accessible via ENS.
+
+See [Decentralized Static Client](decentralized-static-client.md) for details.
