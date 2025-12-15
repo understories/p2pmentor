@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "perf:network": "tsx scripts/perf/network_page.test.ts",
-    "seed:app-feedback": "tsx scripts/seed-app-feedback.ts"
+    "seed:app-feedback": "tsx scripts/seed-app-feedback.ts",
+    "build:static-data": "tsx scripts/build-static-data.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^0.4.4",
