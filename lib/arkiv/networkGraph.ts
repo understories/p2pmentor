@@ -1,16 +1,16 @@
 /**
  * Network graph data builder
- * 
+ *
  * Transforms asks and offers into graph nodes and links for visualization.
  * Used by the experimental forest view.
  */
 
-import { listAsks } from './asks';
-import { listOffers } from './offers';
-import { useGraphqlForNetwork } from '@/lib/graph/featureFlags';
-import type { Ask } from './asks';
-import type { Offer } from './offers';
-import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib/types';
+import { listAsks } from "./asks";
+import { listOffers } from "./offers";
+import { useGraphqlForNetwork } from "@/lib/graph/featureFlags";
+import type { Ask } from "./asks";
+import type { Offer } from "./offers";
+import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from "@/lib/types";
 
 type NetworkGraphParams = {
   skillFilter?: string;
@@ -21,12 +21,12 @@ type NetworkGraphParams = {
 
 /**
  * Build graph data using Arkiv JSON-RPC (direct calls)
- * 
+ *
  * This is the original implementation that directly queries Arkiv entities.
  * Used as fallback when GraphQL is disabled or fails.
  */
 async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise<NetworkGraphData> {
-  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
   const limitAsks = params.limitAsks ?? 25;
   const limitOffers = params.limitOffers ?? 25;
   const skillFilter = params.skillFilter?.toLowerCase().trim();
@@ -42,16 +42,16 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
 
   // Filter asks/offers based on expiration unless explicitly including expired
   const now = Date.now();
-  let activeAsks = asks
-    .filter(ask => {
+  const activeAsks = asks
+    .filter((ask) => {
       const created = new Date(ask.createdAt).getTime();
-      const expires = created + (ask.ttlSeconds * 1000);
+      const expires = created + ask.ttlSeconds * 1000;
       const isActive = expires > now;
 
       if (!includeExpired && !isActive) return false;
 
       if (skillFilter) {
-        const askSkill = ask.skill?.toLowerCase().trim() || '';
+        const askSkill = ask.skill?.toLowerCase().trim() || "";
         return askSkill.includes(skillFilter);
       }
       return true;
@@ -59,16 +59,16 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limitAsks);
 
-  let activeOffers = offers
-    .filter(offer => {
+  const activeOffers = offers
+    .filter((offer) => {
       const created = new Date(offer.createdAt).getTime();
-      const expires = created + (offer.ttlSeconds * 1000);
+      const expires = created + offer.ttlSeconds * 1000;
       const isActive = expires > now;
 
       if (!includeExpired && !isActive) return false;
 
       if (skillFilter) {
-        const offerSkill = offer.skill?.toLowerCase().trim() || '';
+        const offerSkill = offer.skill?.toLowerCase().trim() || "";
         return offerSkill.includes(skillFilter);
       }
       return true;
@@ -78,12 +78,12 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
 
   // Collect unique skills and normalize
   const skillSet = new Set<string>();
-  activeAsks.forEach(ask => {
+  activeAsks.forEach((ask) => {
     if (ask.skill) {
       skillSet.add(ask.skill.toLowerCase().trim());
     }
   });
-  activeOffers.forEach(offer => {
+  activeOffers.forEach((offer) => {
     if (offer.skill) {
       skillSet.add(offer.skill.toLowerCase().trim());
     }
@@ -94,11 +94,11 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   const nodeMap = new Map<string, NetworkGraphNode>();
 
   // Create skill nodes
-  skillSet.forEach(skillName => {
+  skillSet.forEach((skillName) => {
     const nodeId = `skill:${skillName}`;
     const node: NetworkGraphNode = {
       id: nodeId,
-      type: 'skill',
+      type: "skill",
       label: skillName,
       skillName: skillName,
     };
@@ -107,12 +107,12 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   });
 
   // Create ask nodes
-  activeAsks.forEach(ask => {
+  activeAsks.forEach((ask) => {
     const nodeId = `ask:${ask.key}`;
-    const skillName = ask.skill?.toLowerCase().trim() || 'unknown';
+    const skillName = ask.skill?.toLowerCase().trim() || "unknown";
     const node: NetworkGraphNode = {
       id: nodeId,
-      type: 'ask',
+      type: "ask",
       label: skillName,
       wallet: ask.wallet,
       skillName: skillName,
@@ -123,12 +123,12 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   });
 
   // Create offer nodes
-  activeOffers.forEach(offer => {
+  activeOffers.forEach((offer) => {
     const nodeId = `offer:${offer.key}`;
-    const skillName = offer.skill?.toLowerCase().trim() || 'unknown';
+    const skillName = offer.skill?.toLowerCase().trim() || "unknown";
     const node: NetworkGraphNode = {
       id: nodeId,
-      type: 'offer',
+      type: "offer",
       label: skillName,
       wallet: offer.wallet,
       skillName: skillName,
@@ -146,7 +146,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   const linkSet = new Set<string>(); // For deduplication
 
   // Ask-skill links
-  activeAsks.forEach(ask => {
+  activeAsks.forEach((ask) => {
     const askNodeId = `ask:${ask.key}`;
     const skillName = ask.skill?.toLowerCase().trim();
     if (skillName) {
@@ -156,7 +156,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
         links.push({
           source: askNodeId,
           target: skillNodeId,
-          type: 'ask-skill',
+          type: "ask-skill",
         });
         linkSet.add(linkKey);
       }
@@ -164,7 +164,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   });
 
   // Offer-skill links
-  activeOffers.forEach(offer => {
+  activeOffers.forEach((offer) => {
     const offerNodeId = `offer:${offer.key}`;
     const skillName = offer.skill?.toLowerCase().trim();
     if (skillName) {
@@ -174,7 +174,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
         links.push({
           source: offerNodeId,
           target: skillNodeId,
-          type: 'offer-skill',
+          type: "offer-skill",
         });
         linkSet.add(linkKey);
       }
@@ -182,11 +182,11 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   });
 
   // Match links (ask + offer with same skill, different wallets)
-  activeAsks.forEach(ask => {
+  activeAsks.forEach((ask) => {
     const askSkill = ask.skill?.toLowerCase().trim();
     if (!askSkill) return;
 
-    activeOffers.forEach(offer => {
+    activeOffers.forEach((offer) => {
       const offerSkill = offer.skill?.toLowerCase().trim();
       if (!offerSkill) return;
 
@@ -194,14 +194,14 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
       if (askSkill === offerSkill && ask.wallet.toLowerCase() !== offer.wallet.toLowerCase()) {
         const askNodeId = `ask:${ask.key}`;
         const offerNodeId = `offer:${offer.key}`;
-        
+
         // Ensure both nodes exist
         if (!nodeMap.has(askNodeId) || !nodeMap.has(offerNodeId)) return;
 
         // Create bidirectional link (only add once)
         const linkKey1 = `${askNodeId}-${offerNodeId}`;
         const linkKey2 = `${offerNodeId}-${askNodeId}`;
-        
+
         if (!linkSet.has(linkKey1) && !linkSet.has(linkKey2)) {
           // Simple match score based on recency
           const now = Date.now();
@@ -209,12 +209,12 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
           const offerAge = now - new Date(offer.createdAt).getTime();
           const maxAge = Math.max(askAge, offerAge);
           const hoursOld = maxAge / (1000 * 60 * 60);
-          const score = Math.max(0, 1 - (hoursOld / 24)); // Decay over 24 hours
+          const score = Math.max(0, 1 - hoursOld / 24); // Decay over 24 hours
 
           links.push({
             source: askNodeId,
             target: offerNodeId,
-            type: 'match',
+            type: "match",
             score: score,
           });
           linkSet.add(linkKey1);
@@ -227,10 +227,10 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
   const totalNodes = nodes.length;
   if (totalNodes > 100) {
     // Keep all skill nodes, then limit asks/offers proportionally
-    const skillNodes = nodes.filter(n => n.type === 'skill');
-    const entityNodes = nodes.filter(n => n.type !== 'skill');
+    const skillNodes = nodes.filter((n) => n.type === "skill");
+    const entityNodes = nodes.filter((n) => n.type !== "skill");
     const maxEntityNodes = 100 - skillNodes.length;
-    
+
     if (maxEntityNodes > 0 && entityNodes.length > maxEntityNodes) {
       // Sort by creation date (newest first) and take top N
       entityNodes.sort((a, b) => {
@@ -238,40 +238,43 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-      
+
       const keptEntityNodes = entityNodes.slice(0, maxEntityNodes);
-      const keptNodeIds = new Set([...skillNodes, ...keptEntityNodes].map(n => n.id));
-      
+      const keptNodeIds = new Set([...skillNodes, ...keptEntityNodes].map((n) => n.id));
+
       // Filter nodes and links to only include kept nodes
-      const filteredNodes = nodes.filter(n => keptNodeIds.has(n.id));
+      const filteredNodes = nodes.filter((n) => keptNodeIds.has(n.id));
       const filteredLinks = links.filter(
-        link => keptNodeIds.has(link.source) && keptNodeIds.has(link.target)
+        (link) => keptNodeIds.has(link.source) && keptNodeIds.has(link.target)
       );
-      
+
       const result = {
         nodes: filteredNodes,
         links: filteredLinks,
       };
-      
+
       // Record performance metrics
-      const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const durationMs =
+        typeof performance !== "undefined" ? performance.now() - startTime : Date.now() - startTime;
       const payloadBytes = JSON.stringify(result).length;
-      
+
       // Record performance sample (async, don't block)
-      import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-        recordPerfSample({
-          source: 'arkiv',
-          operation: 'buildNetworkGraphData',
-          route: '/network',
-          durationMs: Math.round(durationMs),
-          payloadBytes,
-          httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
-          createdAt: new Date().toISOString(),
+      import("@/lib/metrics/perf")
+        .then(({ recordPerfSample }) => {
+          recordPerfSample({
+            source: "arkiv",
+            operation: "buildNetworkGraphData",
+            route: "/network",
+            durationMs: Math.round(durationMs),
+            payloadBytes,
+            httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
+            createdAt: new Date().toISOString(),
+          });
+        })
+        .catch(() => {
+          // Silently fail if metrics module not available
         });
-      }).catch(() => {
-        // Silently fail if metrics module not available
-      });
-      
+
       return result;
     }
   }
@@ -280,56 +283,61 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
     nodes,
     links,
   };
-  
+
   // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+  const durationMs =
+    typeof performance !== "undefined" ? performance.now() - startTime : Date.now() - startTime;
   const payloadBytes = JSON.stringify(result).length;
-  
+
   // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'buildNetworkGraphData',
-      route: '/network',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
-      createdAt: new Date().toISOString(),
+  import("@/lib/metrics/perf")
+    .then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: "arkiv",
+        operation: "buildNetworkGraphData",
+        route: "/network",
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 4, // listAsks (2) + listOffers (2) = 4 total
+        createdAt: new Date().toISOString(),
+      });
+    })
+    .catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
 
   return result;
 }
 
 /**
  * Build graph data from asks and offers
- * 
+ *
  * Uses GraphQL API when enabled (via feature flag), falls back to JSON-RPC.
- * 
+ *
  * @param options - Filtering and limiting options
  * @returns Graph data with nodes and links
  */
-export async function buildNetworkGraphData(options?: NetworkGraphParams): Promise<NetworkGraphData> {
+export async function buildNetworkGraphData(
+  options?: NetworkGraphParams
+): Promise<NetworkGraphData> {
   if (!useGraphqlForNetwork()) {
     return buildNetworkGraphDataJsonRpc(options || {});
   }
 
   // Track performance for GraphQL path (same pattern as JSON-RPC path)
-  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const startTime = typeof performance !== "undefined" ? performance.now() : Date.now();
 
   try {
-    const { fetchNetworkOverview } = await import('@/lib/graph/networkQueries');
-    const { adaptNetworkOverviewToGraphData } = await import('@/lib/graph/networkAdapter');
-    
+    const { fetchNetworkOverview } = await import("@/lib/graph/networkQueries");
+    const { adaptNetworkOverviewToGraphData } = await import("@/lib/graph/networkAdapter");
+
     const overview = await fetchNetworkOverview({
       skillFilter: options?.skillFilter,
       limitAsks: options?.limitAsks,
       limitOffers: options?.limitOffers,
       includeExpired: options?.includeExpired,
     });
-    
+
     const result = adaptNetworkOverviewToGraphData(overview, {
       skillFilter: options?.skillFilter,
       limitAsks: options?.limitAsks,
@@ -338,53 +346,60 @@ export async function buildNetworkGraphData(options?: NetworkGraphParams): Promi
     });
 
     // Record performance metrics for GraphQL path (same pattern as JSON-RPC)
-    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const durationMs =
+      typeof performance !== "undefined" ? performance.now() - startTime : Date.now() - startTime;
     const payloadBytes = JSON.stringify(result).length;
-    
+
     // Record performance sample (async, don't block)
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'graphql',
-        operation: 'buildNetworkGraphData',
-        route: '/network',
-        durationMs: Math.round(durationMs),
-        payloadBytes,
-        httpRequests: 1, // Single GraphQL query
-        createdAt: new Date().toISOString(),
+    import("@/lib/metrics/perf")
+      .then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: "graphql",
+          operation: "buildNetworkGraphData",
+          route: "/network",
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 1, // Single GraphQL query
+          createdAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently fail if metrics module not available
       });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
 
     return result;
   } catch (err) {
     // Log + fallback to JSON-RPC for safety
-    console.error('[networkGraph] GraphQL path failed, falling back to JSON-RPC', err);
-    
+    console.error("[networkGraph] GraphQL path failed, falling back to JSON-RPC", err);
+
     // Track fallback event
-    const fallbackStartTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const fallbackStartTime = typeof performance !== "undefined" ? performance.now() : Date.now();
     const fallbackResult = await buildNetworkGraphDataJsonRpc(options || {});
-    const fallbackDurationMs = typeof performance !== 'undefined' ? performance.now() - fallbackStartTime : Date.now() - fallbackStartTime;
+    const fallbackDurationMs =
+      typeof performance !== "undefined"
+        ? performance.now() - fallbackStartTime
+        : Date.now() - fallbackStartTime;
     const fallbackPayloadBytes = JSON.stringify(fallbackResult).length;
-    
+
     // Record fallback performance sample
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'arkiv',
-        operation: 'buildNetworkGraphData',
-        route: '/network',
-        durationMs: Math.round(fallbackDurationMs),
-        payloadBytes: fallbackPayloadBytes,
-        httpRequests: 2, // JSON-RPC typically needs 2 requests (asks + offers)
-        status: 'success',
-        usedFallback: true, // Track that this was a fallback
-        createdAt: new Date().toISOString(),
+    import("@/lib/metrics/perf")
+      .then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: "arkiv",
+          operation: "buildNetworkGraphData",
+          route: "/network",
+          durationMs: Math.round(fallbackDurationMs),
+          payloadBytes: fallbackPayloadBytes,
+          httpRequests: 2, // JSON-RPC typically needs 2 requests (asks + offers)
+          status: "success",
+          usedFallback: true, // Track that this was a fallback
+          createdAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently fail if metrics module not available
       });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
-    
+
     return fallbackResult;
   }
 }
-

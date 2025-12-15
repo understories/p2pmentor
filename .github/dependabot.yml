@@ -1,0 +1,28 @@
+# Dependabot configuration for automated dependency updates
+# 
+# Checks npm dependencies weekly and auto-opens PRs for security updates.
+# Helps maintain security posture without manual monitoring.
+
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    # Open PRs for security updates immediately
+    open-pull-requests-limit: 10
+    # Group updates to reduce PR noise
+    groups:
+      security-updates:
+        dependency-type: "development"
+        update-types:
+          - "security"
+    # Labels for PRs
+    labels:
+      - "dependencies"
+      - "automated"
+    # Commit message format
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+

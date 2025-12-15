@@ -1,0 +1,161 @@
+# CI Pipeline - Runs on every push and PR
+# This ensures code quality before it reaches main
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel in-progress runs when a new commit is pushed
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
+
+      - name: Check formatting (Prettier)
+        run: pnpm format:check
+
+      - name: Lint (ESLint)
+        run: pnpm lint
+
+      - name: Type check (TypeScript)
+        run: pnpm typecheck
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    needs: quality # Only build if quality checks pass
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
+
+      - name: Build application
+        run: pnpm build
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: build # Run E2E after build succeeds
+    continue-on-error: true # Allow failures initially until tests are stable
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8.6.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: "0" # Disable husky in CI (not needed, hooks run locally)
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build application
+        run: pnpm build
+
+      - name: Start application
+        run: pnpm start &
+        env:
+          NEXT_PUBLIC_E2E_MOCKS: "true"
+
+      - name: Wait for server
+        run: |
+          timeout=60
+          counter=0
+          until curl -f http://localhost:3000 > /dev/null 2>&1; do
+            if [ $counter -ge $timeout ]; then
+              echo "Server failed to start within $timeout seconds"
+              exit 1
+            fi
+            echo "Waiting for server... ($counter/$timeout)"
+            sleep 2
+            counter=$((counter + 2))
+          done
+          echo "Server is ready!"
+
+      - name: Run E2E smoke tests (mocked)
+        run: pnpm e2e e2e/smoke.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: "http://localhost:3000"
+          NEXT_PUBLIC_E2E_MOCKS: "true"
+
+      - name: Run E2E real Arkiv tests (real services)
+        run: pnpm e2e e2e/arkiv-real.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: "http://localhost:3000"
+          NEXT_PUBLIC_E2E_MOCKS: "false"
+        continue-on-error: true # May fail if Arkiv/RPC unavailable - that's OK
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
