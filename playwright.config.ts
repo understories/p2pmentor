@@ -3,12 +3,15 @@ import { defineConfig, devices } from "@playwright/test";
 /**
  * Playwright E2E test configuration
  *
- * Runs end-to-end tests against the Next.js app with mocked web3 services.
+ * Runs end-to-end tests against the Next.js app.
+ * - Smoke tests (smoke.spec.ts): Fast, mocked checks
+ * - Real tests (arkiv-real.spec.ts): Full integration with real Arkiv/web3
  */
 
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || "http://localhost:3000";
 
-// Enable E2E mocks by default in test environment
+// Enable E2E mocks by default for smoke tests
+// Real tests (arkiv-real.spec.ts) will disable mocks explicitly
 if (!process.env.NEXT_PUBLIC_E2E_MOCKS) {
   process.env.NEXT_PUBLIC_E2E_MOCKS = "true";
 }

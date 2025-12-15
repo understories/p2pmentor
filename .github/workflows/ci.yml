@@ -133,11 +133,18 @@ jobs:
           done
           echo "Server is ready!"
 
-      - name: Run E2E tests
-        run: pnpm e2e
+      - name: Run E2E smoke tests (mocked)
+        run: pnpm e2e e2e/smoke.spec.ts
         env:
           PLAYWRIGHT_BASE_URL: "http://localhost:3000"
           NEXT_PUBLIC_E2E_MOCKS: "true"
+
+      - name: Run E2E real Arkiv tests (real services)
+        run: pnpm e2e e2e/arkiv-real.spec.ts
+        env:
+          PLAYWRIGHT_BASE_URL: "http://localhost:3000"
+          NEXT_PUBLIC_E2E_MOCKS: "false"
+        continue-on-error: true # May fail if Arkiv/RPC unavailable - that's OK
 
       - name: Upload test results
         if: failure()

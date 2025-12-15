@@ -2,14 +2,15 @@ import { test, expect } from "@playwright/test";
 import { server } from "./mocks/server";
 
 /**
- * Smoke test - verifies basic app functionality
+ * Smoke tests - fast, mocked checks for basic rendering
  *
- * This is the first E2E test to ensure the app loads and key elements render.
- * More comprehensive tests will be added as Phase 2 progresses.
+ * These tests use MSW mocks for speed and determinism.
+ * For real integration testing, see arkiv-real.spec.ts
  */
 
-// Setup MSW before tests
+// Setup MSW before tests (mocks enabled for smoke tests)
 test.beforeAll(() => {
+  process.env.NEXT_PUBLIC_E2E_MOCKS = "true";
   server.listen({ onUnhandledRequest: "bypass" });
 });
 
