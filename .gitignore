@@ -39,6 +39,8 @@ next-env.d.ts
 
 # static client build data (generated at build time, not committed)
 /static-data/
+/static-app/public/
+/static-app/data/
 
 # reference repos
 refs/

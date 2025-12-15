@@ -1,0 +1,19 @@
+# Hugo configuration for p2pmentor static client
+baseURL = "/"
+languageCode = "en-us"
+title = "p2pmentor (Decentralized)"
+theme = ""
+
+[params]
+  siteName = "p2pmentor (Decentralized)"
+  description = "Decentralized peer-to-peer mentorship platform - No JavaScript required"
+
+[permalinks]
+  profiles = "/profiles/:wallet/"
+  skills = "/skills/:slug/"
+  asks = "/asks/:key/"
+  offers = "/offers/:key/"
+
+[outputs]
+  home = ["HTML"]
+
