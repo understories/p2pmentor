@@ -69,6 +69,34 @@ export default function Home() {
           </Link>
         </div>
         
+        <div className="no-js-container" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <a 
+            href="/static" 
+            className="no-js-link"
+            style={{
+              display: 'inline-block',
+              padding: '0.75rem 1.5rem',
+              fontSize: '0.875rem',
+              textDecoration: 'none',
+              color: 'rgba(200, 255, 200, 0.8)',
+              border: '1px solid rgba(200, 255, 200, 0.3)',
+              borderRadius: '4px',
+              transition: 'all 0.2s',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(200, 255, 200, 0.6)';
+              e.currentTarget.style.color = 'rgba(200, 255, 200, 1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = 'rgba(200, 255, 200, 0.3)';
+              e.currentTarget.style.color = 'rgba(200, 255, 200, 0.8)';
+            }}
+          >
+            Load Without JavaScript
+          </a>
+        </div>
+        
         <div className="admin-link-container" style={{ marginTop: '1rem' }}>
           <Link 
             href="/admin/login"

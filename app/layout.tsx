@@ -6,6 +6,7 @@ import { ConditionalAppShell } from "@/components/navigation/ConditionalAppShell
 import { BackgroundImage } from "@/components/BackgroundImage";
 import { ClientPerfTracker } from "@/components/ClientPerfTracker";
 import { GlobalToggles } from "@/components/GlobalToggles";
+import { NoScriptRedirect } from "@/components/NoScriptRedirect";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body suppressHydrationWarning className="relative min-h-screen">
+        <NoScriptRedirect />
         <ThemeProvider>
           <GlobalToggles />
           <BackgroundImage />
