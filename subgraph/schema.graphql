@@ -70,7 +70,7 @@ type Session @entity {
   skill: SkillRef
   scheduledFor: BigInt
   durationMinutes: Int
-  status: String!              # pending / scheduled / completed / cancelled
+  status: String!              # pending / scheduled / completed / declined / cancelled
   paymentTxHash: String
   createdAt: BigInt!
 }
@@ -85,5 +85,6 @@ type Feedback @entity {
   technicalFeedback: String
   createdAt: BigInt!
 }
+
 
 

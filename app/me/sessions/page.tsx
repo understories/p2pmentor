@@ -398,7 +398,10 @@ export default function SessionsPage() {
   const pendingSessions = sessions.filter(s => s.status === 'pending');
   const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
   const completedSessions = sessions.filter(s => s.status === 'completed');
+  const declinedSessions = sessions.filter(s => s.status === 'declined');
   const cancelledSessions = sessions.filter(s => s.status === 'cancelled');
+  // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
+  const endedSessions = [...declinedSessions, ...cancelledSessions];
 
   // Find upcoming session (next scheduled session)
   const now = Date.now();
@@ -409,7 +412,7 @@ export default function SessionsPage() {
     })
     .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
 
-  const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0;
+  const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0 || endedSessions.length > 0;
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
@@ -757,7 +760,7 @@ export default function SessionsPage() {
                                 `Attributes: sessionKey='${session.key.slice(0, 12)}...', rejectedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
                                 `Payload: { rejectedAt: ISO timestamp }`,
                                 `TTL: Matches session expiration`,
-                                `Note: Sets session status to 'cancelled'`
+                                `Note: Sets session status to 'declined' (rejecting pending request)`
                               ]}
                               label="Reject Session"
                             >
@@ -1006,14 +1009,14 @@ export default function SessionsPage() {
           </div>
         )}
 
-        {/* Cancelled Sessions */}
-        {cancelledSessions.length > 0 && (
+        {/* Declined/Cancelled Sessions */}
+        {endedSessions.length > 0 && (
           <div className="mb-8">
             <h2 className="text-xl font-semibold mb-4 text-red-600 dark:text-red-400">
-              ❌ Cancelled ({cancelledSessions.length})
+              ❌ Declined/Cancelled ({endedSessions.length})
             </h2>
             <div className="space-y-4">
-              {cancelledSessions.map((session) => {
+              {endedSessions.map((session) => {
                 const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
                 const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
                 const otherProfile = profiles[otherWallet.toLowerCase()];
@@ -1027,7 +1030,7 @@ export default function SessionsPage() {
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
                       <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
-                        Cancelled
+                        {session.status === 'declined' ? 'Declined' : 'Cancelled'}
                       </span>
                     </div>
                     <p className="text-gray-700 dark:text-gray-300 mb-2">
