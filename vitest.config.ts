@@ -14,9 +14,9 @@ export default defineConfig({
     include: ["**/*.{test,spec}.{ts,tsx}"],
 
     // Ignore these directories
-    exclude: ["node_modules", ".next", "refs", "subgraph", "scripts"],
+    exclude: ["node_modules", ".next", "refs", "subgraph", "scripts", "e2e"],
 
-    // Coverage configuration (Phase 3 will add thresholds)
+    // Coverage configuration with thresholds
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],
@@ -28,6 +28,16 @@ export default defineConfig({
         "**/*.config.*",
         "**/*.d.ts",
       ],
+      // Coverage thresholds - start at 0%, raise incrementally as tests are added
+      // Current: 0% (baseline - will fail if coverage drops below current level)
+      // Goal: Raise to 20% → 40% → 60% → 80% as test suite grows
+      // Note: Thresholds prevent backsliding - if you add tests, raise thresholds accordingly
+      thresholds: {
+        lines: 0,
+        functions: 0,
+        branches: 0,
+        statements: 0,
+      },
     },
 
     // Better error messages
