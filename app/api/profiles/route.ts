@@ -49,14 +49,14 @@ export async function GET(request: Request) {
       builderMode,
       SPACE_ID,
     });
-    
+
     const allProfiles = await listUserProfiles({
       skill,
       seniority,
       spaceId,
       spaceIds,
     });
-    
+
     console.log('[Profiles API] Profiles returned from listUserProfiles:', {
       count: allProfiles.length,
       wallets: allProfiles.slice(0, 5).map(p => p.wallet),
@@ -107,7 +107,7 @@ export async function GET(request: Request) {
           activeProfiles.push(result.value.profile);
         }
       });
-      
+
       console.log('[Profiles API] Profile existence checks complete:', {
         totalChecked: uniqueProfiles.length,
         active: activeProfiles.length,
