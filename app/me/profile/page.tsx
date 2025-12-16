@@ -62,7 +62,7 @@ export default function ProfilePage() {
         setTimezone(profileData.timezone);
       }
       // If no profile timezone, timezone state already has auto-detected value from useEffect
-      
+
       // Day 2: For profile-less wallets, show selection mode (two buttons)
       if (!profileData) {
         setMode('select');
@@ -93,7 +93,7 @@ export default function ProfilePage() {
       }
 
       const quests = questsData.quests;
-      
+
       // Load progress for all quests in parallel
       const progressPromises = quests.map(async (quest: any) => {
         try {

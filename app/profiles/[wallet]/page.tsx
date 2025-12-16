@@ -214,14 +214,14 @@ export default function ProfileDetailPage() {
       // Fetch all active quests
       const questsRes = await fetch('/api/learner-quests');
       const questsData = await questsRes.json();
-      
+
       if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
         setLearnerQuestCompletion(null);
         return;
       }
 
       const quests = questsData.quests;
-      
+
       // Load progress for all quests in parallel
       const progressPromises = quests.map(async (quest: any) => {
         try {
