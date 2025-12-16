@@ -10,7 +10,6 @@
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CodeComparison } from '@/components/network/CodeComparison';
 import { IntegrationGuide } from '@/components/network/IntegrationGuide';
@@ -63,7 +62,6 @@ export default function NetworkComparePage() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100">
-      <ThemeToggle />
       <div className="min-h-screen flex flex-col">
         <header className="p-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex-shrink-0">
           <div className="flex items-center justify-between mb-3">

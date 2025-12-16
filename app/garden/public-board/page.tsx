@@ -19,7 +19,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { PageHeader } from '@/components/PageHeader';
 import { BackgroundImage } from '@/components/BackgroundImage';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { GardenNoteComposeModal } from '@/components/GardenNoteComposeModal';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';

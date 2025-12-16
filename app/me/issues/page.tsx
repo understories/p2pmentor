@@ -12,7 +12,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface UserIssue {
   key: string;
@@ -108,7 +107,6 @@ export default function UserIssuesPage() {
   if (loading) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <ThemeToggle />
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -123,7 +121,6 @@ export default function UserIssuesPage() {
   if (error) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <ThemeToggle />
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/me" />
@@ -139,7 +136,6 @@ export default function UserIssuesPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/me" />

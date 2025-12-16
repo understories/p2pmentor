@@ -10,8 +10,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
@@ -118,12 +116,6 @@ export default function BetaPage() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <ThemeToggle />
-        {mounted && (
-          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={handleArkivBuilderModeToggle} />
-        )}
-      </div>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/" />
