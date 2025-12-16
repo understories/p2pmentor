@@ -61,19 +61,16 @@ export function GlobalToggles() {
 
   return (
     <div 
-      className={`${mobileClass} fixed top-4 right-4 z-50 flex items-center gap-2`}
+      className={`${mobileClass} fixed top-4 right-4 z-50 flex flex-row items-center gap-2`}
     >
       {/* Theme Toggle */}
       <button
         onClick={handleThemeToggle}
-        className="p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+        className="p-3 rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
           backgroundColor: theme === 'dark' 
             ? 'rgba(5, 20, 5, 0.3)' 
             : 'rgba(240, 240, 240, 0.9)',
-          borderColor: theme === 'dark'
-            ? 'rgba(150, 255, 150, 0.3)'
-            : 'rgba(0, 0, 0, 0.1)',
           color: theme === 'dark'
             ? 'rgba(200, 255, 200, 0.9)'
             : '#495057',
@@ -96,14 +93,11 @@ export function GlobalToggles() {
 
       {/* Arkiv Builder Mode Toggle */}
       <div
-        className="p-2 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+        className="p-2 rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
         style={{
           backgroundColor: theme === 'dark' 
             ? 'rgba(5, 20, 5, 0.3)' 
             : 'rgba(240, 240, 240, 0.9)',
-          borderColor: theme === 'dark'
-            ? 'rgba(150, 255, 150, 0.3)'
-            : 'rgba(0, 0, 0, 0.1)',
           backdropFilter: 'blur(10px)',
         }}
       >
