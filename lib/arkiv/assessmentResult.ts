@@ -363,8 +363,61 @@ export async function completeAssessment({
     }
 
     // Build result object with correct verification URL
+    // Create a new entity with certification if passed (immutability pattern)
+    let finalEntityKey = entityKey;
+    let finalTxHash = txHash;
+
+    if (scoreData.passed && certificateIdBase) {
+      const certResult = await handleTransactionWithTimeout(async () => {
+        return await walletClient.createEntity({
+          payload: enc.encode(JSON.stringify({
+            wallet: normalizedWallet,
+            questId,
+            questType: 'language_assessment',
+            language: languageQuest.language,
+            proficiencyLevel: languageQuest.proficiencyLevel,
+            status,
+            sections: scoreData.sections,
+            totalScore: scoreData.totalScore,
+            totalPoints: scoreData.totalPoints,
+            percentage: scoreData.percentage,
+            passed: scoreData.passed,
+            certification: {
+              issued: true,
+              certificateId: certificateIdBase,
+              issuedAt: now,
+              verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
+            },
+            metadata: {
+              attemptNumber,
+              totalTimeSpent: scoreData.totalTimeSpent,
+              startedAt,
+              completedAt: now,
+            },
+          })),
+          contentType: 'application/json',
+          attributes: [
+            { key: 'type', value: 'learner_quest_assessment_result' },
+            { key: 'wallet', value: normalizedWallet },
+            { key: 'questId', value: questId },
+            { key: 'questType', value: 'language_assessment' },
+            { key: 'language', value: languageQuest.language },
+            { key: 'proficiencyLevel', value: languageQuest.proficiencyLevel },
+            { key: 'status', value: status },
+            { key: 'spaceId', value: spaceId },
+            { key: 'createdAt', value: now },
+            { key: 'completedAt', value: now },
+          ],
+          expiresIn: 31536000, // 1 year
+        });
+      });
+
+      finalEntityKey = certResult.entityKey;
+      finalTxHash = certResult.txHash;
+    }
+
     const assessmentResult: AssessmentResult = {
-      key: entityKey,
+      key: finalEntityKey,
       wallet: normalizedWallet,
       questId,
       questType: 'language_assessment',
@@ -381,7 +434,7 @@ export async function completeAssessment({
             issued: true,
             certificateId: certificateIdBase,
             issuedAt: now,
-            verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
+            verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${finalEntityKey}`,
           }
         : undefined,
       metadata: {
@@ -395,7 +448,7 @@ export async function completeAssessment({
       txHash,
     };
 
-    return { key: entityKey, txHash, result: assessmentResult };
+    return { key: finalEntityKey, txHash: finalTxHash, result: assessmentResult };
   } catch (error: any) {
     console.error('[completeAssessment] Error:', error);
     return null;
