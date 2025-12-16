@@ -562,7 +562,7 @@ export function SidebarNav() {
                 title="Asks"
               >
                 <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">🎓</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5">Asks</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Asks</span>
                 {isActive('/asks') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -588,7 +588,7 @@ export function SidebarNav() {
                 title="Offers"
               >
                 <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">💎</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5">Offers</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Offers</span>
                 {isActive('/offers') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -614,7 +614,7 @@ export function SidebarNav() {
                 title="Matches"
               >
                 <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">✨</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5">Matches</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Matches</span>
                 {isActive('/matches') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -672,7 +672,7 @@ export function SidebarNav() {
                           {levelToEmoji(skill.level)}
                         </span>
                         <span 
-                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200"
                           style={{
                             wordBreak: 'break-word',
                             overflowWrap: 'break-word',
