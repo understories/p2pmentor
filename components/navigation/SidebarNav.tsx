@@ -250,7 +250,8 @@ export function SidebarNav() {
     <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30 transition-all duration-300 ease-out overflow-hidden bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
       {/* Visual indicator - vertical line with emerald glow */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      <div className="relative flex flex-col items-start py-4 space-y-2 w-full px-3 min-w-[224px]">
+      <div className="relative flex flex-col items-start h-full w-full px-3 min-w-[224px] overflow-y-auto overflow-x-hidden">
+        <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
         {/* Constellation Lines */}
         <ConstellationLines
           itemCount={navItems.length}
@@ -821,9 +822,9 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Logout Button */}
+        {/* Logout Button - sticky at bottom to ensure visibility across browsers */}
         {wallet && (
-          <div className="pt-2 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+          <div className="mt-auto pt-2 pb-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full flex-shrink-0">
             <button
               onClick={async () => {
                 if (typeof window !== 'undefined') {
@@ -863,6 +864,7 @@ export function SidebarNav() {
             </button>
           </div>
         )}
+        </div>
       </div>
     </nav>
   );
