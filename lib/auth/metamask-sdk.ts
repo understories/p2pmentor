@@ -29,8 +29,6 @@ export function getMetaMaskSDK(): MetaMaskSDK {
       },
       // Enable mobile deep linking
       enableMobile: true,
-      // Use secure communication
-      communicationLayerPreference: 'socket',
     });
   }
   return sdkInstance;
