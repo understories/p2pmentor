@@ -410,6 +410,26 @@ export async function completeAssessment({
 
       finalEntityKey = certResult.entityKey;
       finalTxHash = certResult.txHash;
+
+      // Create txhash entity for certification result
+      try {
+        await handleTransactionWithTimeout(async () => {
+          return await walletClient.createEntity({
+            payload: enc.encode(JSON.stringify({})),
+            contentType: 'application/json',
+            attributes: [
+              { key: 'type', value: 'learner_quest_assessment_result_txhash' },
+              { key: 'resultKey', value: finalEntityKey },
+              { key: 'txHash', value: finalTxHash },
+              { key: 'spaceId', value: spaceId },
+              { key: 'createdAt', value: now },
+            ],
+            expiresIn: 31536000, // 1 year
+          });
+        });
+      } catch (error) {
+        console.warn('[completeAssessment] Failed to create certification txhash entity:', error);
+      }
     }
 
     const assessmentResult: AssessmentResult = {
