@@ -118,6 +118,26 @@ export default function SessionsPage() {
       const sessionsList = sessionsData.sessions || [];
       setSessions(sessionsList);
 
+      // Load feedbacks for all sessions
+      const feedbackPromises = sessionsList.map(async (session: Session) => {
+        try {
+          const feedbackRes = await fetch(`/api/feedback?sessionKey=${encodeURIComponent(session.key)}`);
+          if (feedbackRes.ok) {
+            const feedbackData = await feedbackRes.json();
+            return { sessionKey: session.key, feedbacks: feedbackData.feedbacks || [] };
+          }
+        } catch (e) {
+          console.error(`Failed to fetch feedback for session ${session.key}:`, e);
+        }
+        return { sessionKey: session.key, feedbacks: [] };
+      });
+      const feedbackResults = await Promise.all(feedbackPromises);
+      const feedbacksMap: Record<string, any[]> = {};
+      feedbackResults.forEach(({ sessionKey, feedbacks }) => {
+        feedbacksMap[sessionKey] = feedbacks;
+      });
+      setSessionFeedbacks(feedbacksMap);
+
       // Fetch user profile
       const profileRes = await fetch(`/api/profile?wallet=${encodeURIComponent(wallet)}`);
       if (profileRes.ok) {
@@ -1285,7 +1305,7 @@ export default function SessionsPage() {
                               </div>
                             )}
                             {sessionHasEnded ? (
-                              // Past session: show feedback button
+                              // Past session: show feedback button or display feedback
                               <div className="mt-4">
                                 {canGiveFeedback ? (
                                   <button
@@ -1295,9 +1315,47 @@ export default function SessionsPage() {
                                     💬 Leave Feedback
                                   </button>
                                 ) : hasGivenFeedback ? (
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                                    ✓ Feedback submitted
-                                  </p>
+                                  (() => {
+                                    const userFeedback = existingFeedbacks.find(
+                                      (f: any) => f.feedbackFrom.toLowerCase() === userWallet?.toLowerCase()
+                                    );
+                                    return userFeedback ? (
+                                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                                        <div className="flex items-center justify-between mb-2">
+                                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                            ✓ Your Feedback
+                                          </p>
+                                          {userFeedback.rating && (
+                                            <div className="text-lg">
+                                              {'⭐'.repeat(userFeedback.rating)}
+                                              <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                                                ({userFeedback.rating}/5)
+                                              </span>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {userFeedback.notes && (
+                                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                            {userFeedback.notes}
+                                          </p>
+                                        )}
+                                        {userFeedback.technicalDxFeedback && (
+                                          <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                              Technical DX Feedback:
+                                            </p>
+                                            <p className="text-sm text-gray-700 dark:text-gray-300">
+                                              {userFeedback.technicalDxFeedback}
+                                            </p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                                        ✓ Feedback submitted
+                                      </p>
+                                    );
+                                  })()
                                 ) : null}
                               </div>
                             ) : videoJoinUrl ? (
@@ -1402,9 +1460,47 @@ export default function SessionsPage() {
                         💬 Leave Feedback
                       </button>
                     ) : hasGivenFeedback ? (
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        ✓ Feedback submitted
-                      </p>
+                      (() => {
+                        const userFeedback = existingFeedbacks.find(
+                          (f: any) => f.feedbackFrom.toLowerCase() === userWallet?.toLowerCase()
+                        );
+                        return userFeedback ? (
+                          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                ✓ Your Feedback
+                              </p>
+                              {userFeedback.rating && (
+                                <div className="text-lg">
+                                  {'⭐'.repeat(userFeedback.rating)}
+                                  <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                                    ({userFeedback.rating}/5)
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {userFeedback.notes && (
+                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                {userFeedback.notes}
+                              </p>
+                            )}
+                            {userFeedback.technicalDxFeedback && (
+                              <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                  Technical DX Feedback:
+                                </p>
+                                <p className="text-sm text-gray-700 dark:text-gray-300">
+                                  {userFeedback.technicalDxFeedback}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            ✓ Feedback submitted
+                          </p>
+                        );
+                      })()
                     ) : !session.mentorConfirmed || !session.learnerConfirmed ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Waiting for both participants to confirm
@@ -1475,6 +1571,7 @@ export default function SessionsPage() {
             userWallet={userWallet}
             onSuccess={() => {
               if (userWallet) {
+                // Reload sessions and feedbacks
                 loadSessions(userWallet);
               }
             }}
