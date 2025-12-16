@@ -80,6 +80,31 @@ export async function POST(request: NextRequest) {
           expiresIn: parsedExpiresIn,
         });
 
+        // Create user-focused notification
+        if (key) {
+          try {
+            const { createNotification } = await import('@/lib/arkiv/notifications');
+            const skillName = skill_label || skill || 'a skill';
+            await createNotification({
+              wallet: targetWallet.toLowerCase(),
+              notificationType: 'entity_created',
+              sourceEntityType: 'ask',
+              sourceEntityKey: key,
+              title: 'Ask Created',
+              message: `You created an ask for "${skillName}"`,
+              link: '/asks',
+              metadata: {
+                askKey: key,
+                skill: skillName,
+                skill_id: skill_id || undefined,
+              },
+              privateKey: getPrivateKey(),
+            });
+          } catch (notifError) {
+            console.error('Failed to create notification for ask:', notifError);
+          }
+        }
+
         return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {
         // Handle transaction receipt timeout gracefully
