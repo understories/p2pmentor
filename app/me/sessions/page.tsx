@@ -895,7 +895,7 @@ export default function SessionsPage() {
                               <button
                                 onClick={() => handleConfirm(session)}
                                 disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
-                                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
                                 title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
                               >
                                 {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
@@ -905,7 +905,7 @@ export default function SessionsPage() {
                             <button
                               onClick={() => handleConfirm(session)}
                               disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
-                              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
                               title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
                             >
                               {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
