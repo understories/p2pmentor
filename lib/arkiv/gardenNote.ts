@@ -182,8 +182,8 @@ export async function createGardenNote({
       sourceEntityType: 'garden_note',
       sourceEntityKey: entityKey,
       title: 'Garden Note Posted',
-      message: targetWallet 
-        ? 'You posted a garden note' 
+      message: targetWallet
+        ? 'You posted a garden note'
         : 'You posted a garden note to the public board',
       link: targetWallet ? `/profiles/${targetWallet}` : '/garden/public-board',
       metadata: {
