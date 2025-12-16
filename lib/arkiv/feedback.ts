@@ -373,7 +373,7 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
       technicalDxFeedback: payload.technicalDxFeedback || undefined,
       spaceId: getAttr('spaceId') || 'local-dev',
       createdAt: getAttr('createdAt'),
-      txHash: txHash || entity.txHash || undefined,
+      txHash: txHash || undefined,
     };
   } catch (error: any) {
     console.error(`[getFeedbackByKey] Error getting feedback by key ${key}:`, error);
