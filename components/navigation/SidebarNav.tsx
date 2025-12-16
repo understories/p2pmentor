@@ -724,7 +724,7 @@ export function SidebarNav() {
                 >
                   <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">💌</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
