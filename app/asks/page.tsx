@@ -78,6 +78,7 @@ export default function AsksPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asks, setAsks] = useState<Ask[]>([]);
+  const [profileMap, setProfileMap] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -184,6 +185,31 @@ export default function AsksPage() {
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setAsks(sortedAsks);
+            
+            // Load profiles for all unique wallet addresses
+            const uniqueWallets = new Set<string>();
+            sortedAsks.forEach((ask: Ask) => {
+              uniqueWallets.add(ask.wallet.toLowerCase());
+            });
+            
+            const profilePromises = Array.from(uniqueWallets).map(async (w) => {
+              try {
+                const profile = await getProfileByWallet(w);
+                return { wallet: w, profile };
+              } catch (e) {
+                return { wallet: w, profile: null };
+              }
+            });
+            
+            const profileResults = await Promise.all(profilePromises);
+            const newProfileMap: Record<string, UserProfile> = {};
+            profileResults.forEach((result) => {
+              if (result.profile) {
+                newProfileMap[result.wallet] = result.profile;
+              }
+            });
+            setProfileMap(newProfileMap);
+            
             return; // Success, exit early
           }
         } catch (graphqlError) {
@@ -225,6 +251,30 @@ export default function AsksPage() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setAsks(sortedAsks);
+        
+        // Load profiles for all unique wallet addresses
+        const uniqueWallets = new Set<string>();
+        sortedAsks.forEach((ask: Ask) => {
+          uniqueWallets.add(ask.wallet.toLowerCase());
+        });
+        
+        const profilePromises = Array.from(uniqueWallets).map(async (w) => {
+          try {
+            const profile = await getProfileByWallet(w);
+            return { wallet: w, profile };
+          } catch (e) {
+            return { wallet: w, profile: null };
+          }
+        });
+        
+        const profileResults = await Promise.all(profilePromises);
+        const newProfileMap: Record<string, UserProfile> = {};
+        profileResults.forEach((result) => {
+          if (result.profile) {
+            newProfileMap[result.wallet] = result.profile;
+          }
+        });
+        setProfileMap(newProfileMap);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -348,6 +398,152 @@ export default function AsksPage() {
 
   const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
     return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
+  // Helper function to render ask card
+  const renderAskCard = (ask: Ask) => {
+    // Find similar asks (same skill, different wallet)
+    const similarAsks = asks.filter(
+      (a) =>
+        a.key !== ask.key &&
+        a.skill.toLowerCase() === ask.skill.toLowerCase() &&
+        a.wallet.toLowerCase() !== ask.wallet.toLowerCase()
+    ).slice(0, 3); // Limit to 3 similar asks
+
+    const askProfile = profileMap[ask.wallet.toLowerCase()];
+    const displayName = askProfile?.displayName || `${ask.wallet.slice(0, 6)}...${ask.wallet.slice(-4)}`;
+    const isMyAsk = walletAddress && ask.wallet.toLowerCase() === walletAddress.toLowerCase();
+
+    return (
+      <div key={ask.key} id={ask.key}>
+        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-300">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {ask.skill}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {formatDate(ask.createdAt)}
+              </p>
+            </div>
+            <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
+              {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
+            </span>
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+            {ask.message}
+          </p>
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+            {askProfile ? (
+              <Link
+                href={`/profiles/${ask.wallet}`}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline font-medium"
+              >
+                {displayName}
+              </Link>
+            ) : (
+              <span className="font-mono text-xs">{displayName}</span>
+            )}
+            <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
+            {arkivBuilderMode && ask.key && (
+              <div className="flex items-center gap-2">
+                <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                  {ask.key.slice(0, 12)}...
+                </span>
+              </div>
+            )}
+            {!arkivBuilderMode && (
+              <ViewOnArkivLink entityKey={ask.key} />
+            )}
+          </div>
+          {/* Offer to Help Button - only show if not own ask */}
+          {!isMyAsk && (
+            <div className="mt-4">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens RequestMeetingModal to create session`,
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`
+                  ]}
+                  label="Offer to Help"
+                >
+                  <button
+                    onClick={async () => {
+                      // Load profile for the ask's wallet
+                      const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                      setSelectedAskProfile(askProfile);
+                      setSelectedAsk(ask);
+                      setShowMeetingModal(true);
+                    }}
+                    className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                  >
+                    Offer to Help
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={async () => {
+                    // Load profile for the ask's wallet
+                    const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                    setSelectedAskProfile(askProfile);
+                    setSelectedAsk(ask);
+                    setShowMeetingModal(true);
+                  }}
+                  className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                >
+                  Offer to Help
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Similar Asks Section */}
+        {similarAsks.length > 0 && (
+          <div className="mt-3 ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {askEmojis.default} Others learning {ask.skill}:
+            </p>
+            <div className="space-y-2">
+              {similarAsks.map((similarAsk) => {
+                const similarProfile = profileMap[similarAsk.wallet.toLowerCase()];
+                const similarDisplayName = similarProfile?.displayName || `${similarAsk.wallet.slice(0, 6)}...${similarAsk.wallet.slice(-4)}`;
+                return (
+                  <Link
+                    key={similarAsk.key}
+                    href={`/asks#${similarAsk.key}`}
+                    className="block p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {similarAsk.message.substring(0, 60)}
+                      {similarAsk.message.length > 60 ? '...' : ''}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                      by {similarProfile ? (
+                        <Link
+                          href={`/profiles/${similarAsk.wallet}`}
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {similarDisplayName}
+                        </Link>
+                      ) : (
+                        similarDisplayName
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
@@ -611,126 +807,189 @@ export default function AsksPage() {
                 )
               }
             />
-          ) : (
-            asks.map((ask) => {
-              // Find similar asks (same skill, different wallet)
-              const similarAsks = asks.filter(
-                (a) =>
-                  a.key !== ask.key &&
-                  a.skill.toLowerCase() === ask.skill.toLowerCase() &&
-                  a.wallet.toLowerCase() !== ask.wallet.toLowerCase()
-              ).slice(0, 3); // Limit to 3 similar asks
-
-              return (
-                <div key={ask.key} id={ask.key}>
-                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-300">
-                <div className="flex justify-between items-start mb-3">
+          ) : (() => {
+            // Separate asks into "My Asks" and "Other Asks"
+            const myAsks = asks.filter((ask) => 
+              walletAddress && ask.wallet.toLowerCase() === walletAddress.toLowerCase()
+            );
+            const otherAsks = asks.filter((ask) => 
+              !walletAddress || ask.wallet.toLowerCase() !== walletAddress.toLowerCase()
+            );
+            
+            return (
+              <>
+                {/* My Asks Section */}
+                {myAsks.length > 0 && (
+                  <div className="mb-8">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                      My Asks ({myAsks.length})
+                    </h2>
+                    <div className="space-y-4">
+                      {myAsks.map((ask) => renderAskCard(ask))}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Other Asks Section */}
+                {otherAsks.length > 0 && (
                   <div>
-                    <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                      {ask.skill}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {formatDate(ask.createdAt)}
-                    </p>
-                  </div>
-                      <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
-                        {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
-                  </span>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
-                  {ask.message}
-                </p>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                  <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
-                  <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  {arkivBuilderMode && ask.key && (
-                    <div className="flex items-center gap-2">
-                      <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
-                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                        {ask.key.slice(0, 12)}...
-                      </span>
-                    </div>
-                  )}
-                  {!arkivBuilderMode && (
-                    <ViewOnArkivLink entityKey={ask.key} />
-                  )}
-                </div>
-                    {/* Offer to Help Button - only show if not own ask */}
-                    {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
-                      <div className="mt-4">
-                        {arkivBuilderMode ? (
-                          <ArkivQueryTooltip
-                            query={[
-                              `Opens RequestMeetingModal to create session`,
-                              `POST /api/sessions { action: 'createSession', ... }`,
-                              `Creates: type='session' entity`,
-                              `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
-                              `Payload: Full session data`,
-                              `TTL: sessionDate + duration + 1 hour buffer`
-                            ]}
-                            label="Offer to Help"
-                          >
-                            <button
-                              onClick={async () => {
-                                // Load profile for the ask's wallet
-                                const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                                setSelectedAskProfile(askProfile);
-                                setSelectedAsk(ask);
-                                setShowMeetingModal(true);
-                              }}
-                              className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
-                            >
-                              Offer to Help
-                            </button>
-                          </ArkivQueryTooltip>
-                        ) : (
-                          <button
-                            onClick={async () => {
-                              // Load profile for the ask's wallet
-                              const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                              setSelectedAskProfile(askProfile);
-                              setSelectedAsk(ask);
-                              setShowMeetingModal(true);
-                            }}
-                            className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
-                          >
-                            Offer to Help
-                          </button>
-                        )}
-                      </div>
+                    {myAsks.length > 0 && (
+                      <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        Other Asks ({otherAsks.length})
+                      </h2>
                     )}
-                  </div>
-
-                  {/* Similar Asks Section */}
-                  {similarAsks.length > 0 && (
-                    <div className="mt-3 ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        {askEmojis.default} Others learning {ask.skill}:
-                      </p>
-                      <div className="space-y-2">
-                        {similarAsks.map((similarAsk) => (
-                          <Link
-                            key={similarAsk.key}
-                            href={`/asks#${similarAsk.key}`}
-                            className="block p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-                          >
-                            <span className="font-medium text-blue-700 dark:text-blue-300">
-                              {similarAsk.message.substring(0, 60)}
-                              {similarAsk.message.length > 60 ? '...' : ''}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              by {similarAsk.wallet.slice(0, 6)}...{similarAsk.wallet.slice(-4)}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
+                    <div className="space-y-4">
+                      {otherAsks.map((ask) => renderAskCard(ask))}
                     </div>
-                  )}
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+    // Find similar asks (same skill, different wallet)
+    const similarAsks = asks.filter(
+      (a) =>
+        a.key !== ask.key &&
+        a.skill.toLowerCase() === ask.skill.toLowerCase() &&
+        a.wallet.toLowerCase() !== ask.wallet.toLowerCase()
+    ).slice(0, 3); // Limit to 3 similar asks
+
+    const askProfile = profileMap[ask.wallet.toLowerCase()];
+    const displayName = askProfile?.displayName || `${ask.wallet.slice(0, 6)}...${ask.wallet.slice(-4)}`;
+    const isMyAsk = walletAddress && ask.wallet.toLowerCase() === walletAddress.toLowerCase();
+
+    return (
+      <div key={ask.key} id={ask.key}>
+        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 transition-all duration-300">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {ask.skill}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {formatDate(ask.createdAt)}
+              </p>
+            </div>
+            <span className={`px-2 py-1 text-xs font-medium ${askColors.badge} rounded`}>
+              {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
+            </span>
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+            {ask.message}
+          </p>
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+            {askProfile ? (
+              <Link
+                href={`/profiles/${ask.wallet}`}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline font-medium"
+              >
+                {displayName}
+              </Link>
+            ) : (
+              <span className="font-mono text-xs">{displayName}</span>
+            )}
+            <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
+            {arkivBuilderMode && ask.key && (
+              <div className="flex items-center gap-2">
+                <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                  {ask.key.slice(0, 12)}...
+                </span>
               </div>
-              );
-            })
+            )}
+            {!arkivBuilderMode && (
+              <ViewOnArkivLink entityKey={ask.key} />
+            )}
+          </div>
+          {/* Offer to Help Button - only show if not own ask */}
+          {!isMyAsk && (
+            <div className="mt-4">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens RequestMeetingModal to create session`,
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`
+                  ]}
+                  label="Offer to Help"
+                >
+                  <button
+                    onClick={async () => {
+                      // Load profile for the ask's wallet
+                      const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                      setSelectedAskProfile(askProfile);
+                      setSelectedAsk(ask);
+                      setShowMeetingModal(true);
+                    }}
+                    className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                  >
+                    Offer to Help
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={async () => {
+                    // Load profile for the ask's wallet
+                    const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                    setSelectedAskProfile(askProfile);
+                    setSelectedAsk(ask);
+                    setShowMeetingModal(true);
+                  }}
+                  className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                >
+                  Offer to Help
+                </button>
+              )}
+            </div>
           )}
         </div>
+
+        {/* Similar Asks Section */}
+        {similarAsks.length > 0 && (
+          <div className="mt-3 ml-6 pl-4 border-l-2 border-blue-200 dark:border-blue-800">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {askEmojis.default} Others learning {ask.skill}:
+            </p>
+            <div className="space-y-2">
+              {similarAsks.map((similarAsk) => {
+                const similarProfile = profileMap[similarAsk.wallet.toLowerCase()];
+                const similarDisplayName = similarProfile?.displayName || `${similarAsk.wallet.slice(0, 6)}...${similarAsk.wallet.slice(-4)}`;
+                return (
+                  <Link
+                    key={similarAsk.key}
+                    href={`/asks#${similarAsk.key}`}
+                    className="block p-2 bg-blue-50 dark:bg-blue-900/20 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <span className="font-medium text-blue-700 dark:text-blue-300">
+                      {similarAsk.message.substring(0, 60)}
+                      {similarAsk.message.length > 60 ? '...' : ''}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                      by {similarProfile ? (
+                        <Link
+                          href={`/profiles/${similarAsk.wallet}`}
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {similarDisplayName}
+                        </Link>
+                      ) : (
+                        similarDisplayName
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
         {/* Request Meeting Modal (for Offer to Help) */}
         <RequestMeetingModal

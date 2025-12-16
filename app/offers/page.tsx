@@ -80,6 +80,7 @@ export default function OffersPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [profileMap, setProfileMap] = useState<Record<string, UserProfile>>({});
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -202,6 +203,31 @@ export default function OffersPage() {
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setOffers(sortedOffers);
+            
+            // Load profiles for all unique wallet addresses
+            const uniqueWallets = new Set<string>();
+            sortedOffers.forEach((offer: Offer) => {
+              uniqueWallets.add(offer.wallet.toLowerCase());
+            });
+            
+            const profilePromises = Array.from(uniqueWallets).map(async (w) => {
+              try {
+                const profile = await getProfileByWallet(w);
+                return { wallet: w, profile };
+              } catch (e) {
+                return { wallet: w, profile: null };
+              }
+            });
+            
+            const profileResults = await Promise.all(profilePromises);
+            const newProfileMap: Record<string, UserProfile> = {};
+            profileResults.forEach((result) => {
+              if (result.profile) {
+                newProfileMap[result.wallet] = result.profile;
+              }
+            });
+            setProfileMap(newProfileMap);
+            
             return; // Success, exit early
           }
         } catch (graphqlError) {
@@ -243,6 +269,30 @@ export default function OffersPage() {
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setOffers(sortedOffers);
+        
+        // Load profiles for all unique wallet addresses
+        const uniqueWallets = new Set<string>();
+        sortedOffers.forEach((offer: Offer) => {
+          uniqueWallets.add(offer.wallet.toLowerCase());
+        });
+        
+        const profilePromises = Array.from(uniqueWallets).map(async (w) => {
+          try {
+            const profile = await getProfileByWallet(w);
+            return { wallet: w, profile };
+          } catch (e) {
+            return { wallet: w, profile: null };
+          }
+        });
+        
+        const profileResults = await Promise.all(profilePromises);
+        const newProfileMap: Record<string, UserProfile> = {};
+        profileResults.forEach((result) => {
+          if (result.profile) {
+            newProfileMap[result.wallet] = result.profile;
+          }
+        });
+        setProfileMap(newProfileMap);
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -411,6 +461,181 @@ export default function OffersPage() {
 
   const getDisplayStatus = (status: string, createdAt: string, ttlSeconds: number): string => {
     return isExpired(createdAt, ttlSeconds) ? 'closed' : status;
+  };
+
+  // Helper function to render offer card
+  const renderOfferCard = (offer: Offer) => {
+    // Find similar offers (same skill, different wallet)
+    const similarOffers = offers.filter(
+      (o) =>
+        o.key !== offer.key &&
+        o.skill.toLowerCase() === offer.skill.toLowerCase() &&
+        o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
+    ).slice(0, 3); // Limit to 3 similar offers
+
+    const offerProfile = profileMap[offer.wallet.toLowerCase()];
+    const displayName = offerProfile?.displayName || `${offer.wallet.slice(0, 6)}...${offer.wallet.slice(-4)}`;
+    const isMyOffer = walletAddress && offer.wallet.toLowerCase() === walletAddress.toLowerCase();
+
+    return (
+      <div key={offer.key}>
+        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-start mb-3">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                {offer.skill}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {formatDate(offer.createdAt)}
+              </p>
+            </div>
+            <span className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}>
+              {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
+            </span>
+          </div>
+          <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+            {offer.message}
+          </p>
+          {offer.availabilityWindow && (
+            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                Availability:
+              </p>
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                {formatAvailabilityForDisplay(offer.availabilityWindow)}
+              </p>
+            </div>
+          )}
+          <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
+            <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
+              Payment:
+            </p>
+            <p className="text-sm text-purple-800 dark:text-purple-300">
+              {offer.isPaid ? (
+                <>
+                  <span className={`${offerColors.text} font-medium`}>💰 Requires payment</span>
+                  {offer.cost && (
+                    <span className="ml-2 text-purple-700 dark:text-purple-300">
+                      ({offer.cost})
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-blue-600 dark:text-blue-400 font-medium">🆓 Free</span>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+            {offerProfile ? (
+              <Link
+                href={`/profiles/${offer.wallet}`}
+                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline font-medium"
+              >
+                {displayName}
+              </Link>
+            ) : (
+              <span className="font-mono text-xs">{displayName}</span>
+            )}
+            <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
+            {arkivBuilderMode && offer.key && (
+              <div className="flex items-center gap-2">
+                <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} className="text-xs" />
+                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                  {offer.key.slice(0, 12)}...
+                </span>
+              </div>
+            )}
+            {!arkivBuilderMode && (
+              <ViewOnArkivLink entityKey={offer.key} />
+            )}
+          </div>
+          {/* Request Meeting Button - only show if not own offer */}
+          {!isMyOffer && (
+            <div className="mt-4">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens RequestMeetingModal to create session`,
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet='${offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`
+                  ]}
+                  label="Request Meeting"
+                >
+                  <button
+                    onClick={async () => {
+                      // Load profile for the offer's wallet
+                      const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                      setSelectedOfferProfile(offerProfile);
+                      setSelectedOffer(offer);
+                      setShowMeetingModal(true);
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Request Meeting
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={async () => {
+                    // Load profile for the offer's wallet
+                    const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                    setSelectedOfferProfile(offerProfile);
+                    setSelectedOffer(offer);
+                    setShowMeetingModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Request Meeting
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Similar Offers Section */}
+        {similarOffers.length > 0 && (
+          <div className="mt-3 ml-6 pl-4 border-l-2 border-green-200 dark:border-green-800">
+            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+              {offerEmojis.default} Others teaching {offer.skill}:
+            </p>
+            <div className="space-y-2">
+              {similarOffers.map((similarOffer) => {
+                const similarProfile = profileMap[similarOffer.wallet.toLowerCase()];
+                const similarDisplayName = similarProfile?.displayName || `${similarOffer.wallet.slice(0, 6)}...${similarOffer.wallet.slice(-4)}`;
+                return (
+                  <Link
+                    key={similarOffer.key}
+                    href={`/offers#${similarOffer.key}`}
+                    className="block p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                  >
+                    <span className="font-medium text-green-700 dark:text-green-300">
+                      {similarOffer.message.substring(0, 60)}
+                      {similarOffer.message.length > 60 ? '...' : ''}
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                      by {similarProfile ? (
+                        <Link
+                          href={`/profiles/${similarOffer.wallet}`}
+                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {similarDisplayName}
+                        </Link>
+                      ) : (
+                        similarDisplayName
+                      )}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading) {
