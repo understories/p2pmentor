@@ -629,6 +629,11 @@ export default function NotificationsPage() {
       return; // Already loaded or loading
     }
 
+    if (!feedbackKey) {
+      console.warn('[loadFeedbackDetails] No feedbackKey provided');
+      return;
+    }
+
     setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
     try {
       // Query feedback directly by key (works for any profile, not just current user)
@@ -637,13 +642,17 @@ export default function NotificationsPage() {
         const data = await res.json();
         if (data.ok && data.feedback) {
           setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
+        } else {
+          console.warn(`[loadFeedbackDetails] Feedback ${feedbackKey} not found in response:`, data);
         }
       } else if (res.status === 404) {
         // Feedback not found - might be from a different profile or deleted
-        console.warn(`Feedback ${feedbackKey} not found`);
+        console.warn(`[loadFeedbackDetails] Feedback ${feedbackKey} not found (404)`);
+      } else {
+        console.error(`[loadFeedbackDetails] Error fetching feedback ${feedbackKey}:`, res.status, res.statusText);
       }
     } catch (err) {
-      console.error('Error loading feedback details:', err);
+      console.error('[loadFeedbackDetails] Error loading feedback details:', err);
     } finally {
       setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
     }
@@ -694,6 +703,11 @@ export default function NotificationsPage() {
       return; // Already loaded or loading
     }
 
+    if (!responseKey) {
+      console.warn('[loadAdminResponseDetails] No responseKey provided');
+      return;
+    }
+
     setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: true }));
     try {
       // Query admin response directly by key (works for any profile, not just current user)
@@ -702,13 +716,17 @@ export default function NotificationsPage() {
         const data = await res.json();
         if (data.ok && data.response) {
           setAdminResponseDetails(prev => ({ ...prev, [responseKey]: data.response }));
+        } else {
+          console.warn(`[loadAdminResponseDetails] Admin response ${responseKey} not found in response:`, data);
         }
       } else if (res.status === 404) {
         // Admin response not found - might be from a different profile or deleted
-        console.warn(`Admin response ${responseKey} not found`);
+        console.warn(`[loadAdminResponseDetails] Admin response ${responseKey} not found (404)`);
+      } else {
+        console.error(`[loadAdminResponseDetails] Error fetching admin response ${responseKey}:`, res.status, res.statusText);
       }
     } catch (err) {
-      console.error('Error loading admin response details:', err);
+      console.error('[loadAdminResponseDetails] Error loading admin response details:', err);
     } finally {
       setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: false }));
     }
@@ -891,23 +909,33 @@ export default function NotificationsPage() {
                 }
               }
 
-              // Use sourceEntityKey (from notification) or feedbackKey (from metadata) as fallback
+              // Use sourceEntityKey (from notification metadata - added at line 171) or feedbackKey (from metadata) as fallback
+              // sourceEntityKey is added to metadata when converting from Arkiv notification to client Notification format
               const feedbackKey = notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey;
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
               const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
 
               // For admin_response, use sourceEntityKey (the response key) or responseKey from metadata
+              // sourceEntityKey is added to metadata when converting from Arkiv notification to client Notification format
               const responseKey = notification.metadata?.sourceEntityKey || notification.metadata?.responseKey;
               const adminResponse = responseKey ? adminResponseDetails[responseKey] : null;
               const isLoadingAdminResponse = responseKey ? loadingAdminResponse[responseKey] : false;
 
               // Load feedback details if needed
               if (isFeedbackNotification && feedbackKey && !feedback && !isLoadingFeedback) {
+                // Debug: log the key being used
+                if (arkivBuilderMode) {
+                  console.log('[Notifications] Loading feedback details for key:', feedbackKey, 'from notification:', notification.id);
+                }
                 loadFeedbackDetails(feedbackKey);
               }
 
               // Load admin response details if needed
               if (isAdminResponseNotification && responseKey && !adminResponse && !isLoadingAdminResponse) {
+                // Debug: log the key being used
+                if (arkivBuilderMode) {
+                  console.log('[Notifications] Loading admin response details for key:', responseKey, 'from notification:', notification.id);
+                }
                 loadAdminResponseDetails(responseKey);
               }
 
@@ -1081,7 +1109,9 @@ export default function NotificationsPage() {
                   {/* Show full admin response details for admin_response notifications */}
                   {isAdminResponseNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {adminResponse ? (
+                      {isLoadingAdminResponse ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading response details...</div>
+                      ) : adminResponse ? (
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div>
@@ -1144,7 +1174,9 @@ export default function NotificationsPage() {
                   {/* Show full feedback details for app_feedback_submitted notifications */}
                   {isFeedbackNotification && (
                     <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                      {feedback ? (
+                      {isLoadingFeedback ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">Loading feedback details...</div>
+                      ) : feedback ? (
                         <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                             <div>
