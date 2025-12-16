@@ -274,7 +274,7 @@ export function FloatingButtonCluster() {
             <div
               className={`
                 relative flex items-center justify-center
-                w-10 h-10 rounded-full
+                w-11 h-11 rounded-full
                 shadow-lg hover:shadow-xl
                 transition-all duration-300 ease-out
                 cursor-pointer
