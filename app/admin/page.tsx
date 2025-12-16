@@ -159,6 +159,7 @@ export default function AdminDashboard() {
   const [navigationMetricsLoading, setNavigationMetricsLoading] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [buildStatus, setBuildStatus] = useState<{ lastBuild?: string; fileCount?: number; entityCounts?: any } | null>(null);
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | 'all'>('beta-launch');
 
   useEffect(() => {
     // Check authentication
@@ -179,6 +180,12 @@ export default function AdminDashboard() {
       const savedMethod = localStorage.getItem('admin_test_method');
       if (savedMethod && ['arkiv', 'graphql', 'both'].includes(savedMethod)) {
         setTestMethod(savedMethod as 'arkiv' | 'graphql' | 'both');
+      }
+
+      // Load spaceId preference
+      const savedSpaceId = localStorage.getItem('admin_space_id');
+      if (savedSpaceId && (savedSpaceId === 'all' || ['beta-launch', 'local-dev', 'local-dev-seed'].includes(savedSpaceId))) {
+        setSelectedSpaceId(savedSpaceId as string | 'all');
       }
       
       // Load section expansion states
@@ -231,15 +238,30 @@ export default function AdminDashboard() {
       if (savedNavigationMetricsExpanded !== null) {
         setNavigationMetricsExpanded(savedNavigationMetricsExpanded === 'true');
       }
+    }
+  }, [authenticated]);
 
-      // Fetch performance summary - get all operations aggregated by route for page-level view
-      fetch('/api/admin/perf-samples?summary=true')
+  // Helper function to build spaceId query params
+  const buildSpaceIdParams = () => {
+    return selectedSpaceId === 'all'
+      ? '&spaceIds=beta-launch,local-dev,local-dev-seed'
+      : `&spaceId=${selectedSpaceId}`;
+  };
+
+  // Reload data when spaceId changes
+  useEffect(() => {
+    if (!authenticated) return;
+
+    const spaceIdParams = buildSpaceIdParams();
+
+    // Fetch performance summary - get all operations aggregated by route for page-level view
+    fetch(`/api/admin/perf-samples?summary=true${spaceIdParams}`)
         .then(res => res.json())
         .then(data => setPerfSummary(data))
         .catch(err => console.error('Failed to fetch perf summary:', err));
 
       // Fetch recent samples (from Arkiv entities if available)
-      fetch('/api/admin/perf-samples?limit=20')
+      fetch(`/api/admin/perf-samples?limit=20${spaceIdParams}`)
         .then(res => res.json())
         .then(data => {
           setPerfSamples(data.samples || []);
@@ -345,8 +367,7 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch build status:', err));
-    }
-  }, [authenticated]);
+  }, [authenticated, selectedSpaceId]);
 
   const handleCreateSnapshot = async (e?: React.MouseEvent) => {
     if (e) {
@@ -472,7 +493,28 @@ export default function AdminDashboard() {
               Performance metrics, feedback, and usage statistics
             </p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-4">
+            {/* SpaceId Selector */}
+            <div className="flex items-center gap-2">
+              <label htmlFor="spaceId" className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                Space:
+              </label>
+              <select
+                id="spaceId"
+                value={selectedSpaceId}
+                onChange={(e) => {
+                  const newSpaceId = e.target.value as string | 'all';
+                  setSelectedSpaceId(newSpaceId);
+                  localStorage.setItem('admin_space_id', newSpaceId);
+                }}
+                className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="beta-launch">Beta Launch</option>
+                <option value="local-dev">Local Dev</option>
+                <option value="local-dev-seed">Seed Data</option>
+                <option value="all">All Spaces</option>
+              </select>
+            </div>
             <Link
               href="/"
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
