@@ -1,0 +1,77 @@
+/**
+ * Seed Spanish A1 Language Assessment Quest
+ *
+ * Loads question bank from JSON and creates quest entity on Arkiv.
+ *
+ * Usage:
+ *   ARKIV_PRIVATE_KEY=0x... tsx scripts/seed-spanish-a1-quest.ts
+ */
+
+import fs from 'fs';
+import path from 'path';
+import { createLanguageAssessmentQuest } from '@/lib/arkiv/languageQuest';
+import { getPrivateKey } from '@/lib/config';
+
+async function seedSpanishA1Quest() {
+  const privateKey = getPrivateKey();
+  if (!privateKey) {
+    console.error('Error: ARKIV_PRIVATE_KEY environment variable is required');
+    process.exit(1);
+  }
+
+  // Load question bank from JSON
+  const questionBankPath = path.join(process.cwd(), 'static-data/language-quests/spanish-a1-questions.json');
+  if (!fs.existsSync(questionBankPath)) {
+    console.error(`Error: Question bank not found at ${questionBankPath}`);
+    process.exit(1);
+  }
+
+  const questionBank = JSON.parse(fs.readFileSync(questionBankPath, 'utf-8'));
+
+  // Calculate totals from sections
+  const totalQuestions = questionBank.sections.reduce((sum: number, section: any) => sum + section.questions.length, 0);
+  const totalPoints = questionBank.sections.reduce((sum: number, section: any) => sum + section.points, 0);
+
+  console.log(`\n📚 Seeding Spanish A1 Language Assessment Quest`);
+  console.log(`   Language: ${questionBank.language}`);
+  console.log(`   Proficiency Level: ${questionBank.proficiencyLevel}`);
+  console.log(`   Sections: ${questionBank.sections.length}`);
+  console.log(`   Total Questions: ${totalQuestions}`);
+  console.log(`   Total Points: ${totalPoints}`);
+  console.log(`   Passing Score: ${questionBank.passingScore} (${Math.round((questionBank.passingScore / totalPoints) * 100)}%)`);
+  console.log(`   Time Limit: ${questionBank.timeLimit}s (${Math.round(questionBank.timeLimit / 60)} minutes)\n`);
+
+  const result = await createLanguageAssessmentQuest({
+    questId: 'spanish_a1',
+    title: questionBank.certificationName,
+    description: `Test your ${questionBank.proficiencyLevel} level Spanish proficiency. This assessment covers reading comprehension, grammar, vocabulary, and everyday communication.`,
+    source: 'p2pmentor',
+    language: questionBank.language,
+    proficiencyLevel: questionBank.proficiencyLevel,
+    sections: questionBank.sections,
+    metadata: {
+      totalQuestions,
+      totalPoints,
+      passingScore: questionBank.passingScore,
+      timeLimit: questionBank.timeLimit,
+      certificationName: questionBank.certificationName,
+    },
+    privateKey,
+  });
+
+  if (result) {
+    console.log('✅ Successfully created Spanish A1 quest!');
+    console.log(`   Entity Key: ${result.key}`);
+    console.log(`   Transaction Hash: ${result.txHash}`);
+    console.log(`\n   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${result.key}`);
+  } else {
+    console.error('❌ Failed to create quest');
+    process.exit(1);
+  }
+}
+
+seedSpanishA1Quest().catch((error) => {
+  console.error('Error seeding quest:', error);
+  process.exit(1);
+});
+
