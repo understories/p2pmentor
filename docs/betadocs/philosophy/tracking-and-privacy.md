@@ -383,7 +383,83 @@ Before picking charts, decide what's *allowed*:
 
 ---
 
-### 2.7 On-Chain Entity Counts
+### 2.7 Navigation Metrics
+
+**What:** Privacy-preserving aggregated navigation and click tracking.
+
+**Data Collected:**
+- Navigation patterns: Page-to-page transitions (e.g., `/network→/profiles`)
+- Click patterns: Button and link clicks aggregated by page and element type (e.g., `click:/network:button`)
+- Action completion: Clicks leading to entity creation (profile, ask, offer, session)
+- All data aggregated locally before submission (no individual tracking)
+
+**Privacy Protection:**
+- Data aggregated in browser before submission (local aggregation)
+- No wallet addresses in navigation metrics
+- No IP addresses
+- No device fingerprints
+- No individual user click sequences
+- No per-wallet navigation history
+- Only aggregate counts stored
+
+**What We DON'T Collect:**
+- ❌ Individual user click sequences
+- ❌ Per-wallet navigation history
+- ❌ Cross-session user tracking
+- ❌ IP addresses
+- ❌ Device fingerprints
+- ❌ Cookie-based session tracking
+
+**Example Data:**
+```json
+{
+  "aggregates": [
+    {
+      "pattern": "/network→/profiles",
+      "count": 45
+    },
+    {
+      "pattern": "click:/network:button",
+      "count": 120
+    },
+    {
+      "pattern": "action:profile_created:clicks:3",
+      "count": 1
+    }
+  ],
+  "page": "/network",
+  "createdAt": "2024-01-15T10:30:00.000Z"
+}
+```
+
+**Where It Lives:**
+- Stored as Arkiv entities with type `navigation_metric`
+- Verifiable on-chain via transaction hash
+- Expires after 90 days
+- Queryable via `/api/navigation-metrics`
+
+**Why:**
+- Understand navigation patterns (most common paths)
+- Measure clicks to action completion (funnel analysis)
+- Identify UI pain points (where users click most)
+- Privacy-preserving: only aggregates, no individual tracking
+- All data verifiable on-chain
+
+**How It Works:**
+1. Client-side tracking: NavigationTracker component aggregates clicks and navigation locally
+2. Batch submission: Aggregated data submitted every 30 seconds or on page unload
+3. Arkiv storage: Each batch creates a `navigation_metric` entity
+4. Analysis: Metrics can be queried to understand aggregate patterns
+
+**Privacy Considerations:**
+- All data aggregated before submission (privacy by design)
+- No way to identify individual users from navigation metrics
+- External links open in new tab (we only track click action, not external site behavior)
+- Users can verify all data on Arkiv Explorer
+
+---
+
+### 2.8 On-Chain Entity Counts
 
 **What:** Counts of on-chain entities (profiles, asks, offers, sessions).
 
@@ -444,6 +520,12 @@ Visit: `/api/admin/metric-aggregates?limit=10&period=daily`
 
 This returns the most recent daily metric aggregates.
 
+### 3.4 View Live Navigation Metrics
+
+Visit: `/api/navigation-metrics` (POST only, no GET endpoint)
+
+Navigation metrics are submitted via POST requests from the client. To view stored metrics, query Arkiv directly for entities with `type='navigation_metric'`.
+
 ---
 
 ## 4. Data Storage & Verification
@@ -491,6 +573,7 @@ Every metric entity includes a `txHash` field. You can:
 
 - **Client Performance Metrics:** 90 days
 - **DX Metrics:** 90 days
+- **Navigation Metrics:** 90 days
 - **Retention Cohorts:** 1 year
 - **Metric Aggregates:** Permanent (aggregates, not raw data)
 - **User Feedback:** Permanent (user-submitted data)

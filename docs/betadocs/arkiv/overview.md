@@ -147,5 +147,7 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 
 - [Data Model](data-model.md) - Complete entity schemas
 - [Entity Overview](entity-overview.md) - Detailed schema documentation
+- [Builder Mode](builder-mode.md) - Developer-focused query visibility
+- [Learner Quests](learner-quests.md) - Curated reading lists and progress tracking
 - [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
 - [Arkiv Integration](../architecture/arkiv-integration.md) - Architecture details

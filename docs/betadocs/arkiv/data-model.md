@@ -271,6 +271,9 @@
 - `garden_note`: Public garden notes
 - `onboarding_event`: Onboarding tracking
 - `client_perf_metric`: Client-side performance metrics
+- `navigation_metric`: Aggregated navigation and click tracking
+- `learner_quest`: Curated reading list definitions
+- `learner_quest_progress`: User progress through quests
 - `perf_snapshot`: Performance snapshots
 - `retention_cohort`: User retention cohort metrics
 - `metric_aggregate`: Aggregated metrics
