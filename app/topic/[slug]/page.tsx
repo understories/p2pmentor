@@ -28,6 +28,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatSessionTitle } from '@/lib/sessions/display';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { GardenBoard } from '@/components/garden/GardenBoard';
 
 type Match = {
   ask: Ask;
@@ -55,6 +56,7 @@ export default function TopicDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userWallet, setUserWallet] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rsvping, setRsvping] = useState<string | null>(null);
@@ -68,10 +70,15 @@ export default function TopicDetailPage() {
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
-    // Get user wallet first
+    // Get user wallet and profile first
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
+      if (address) {
+        getProfileByWallet(address.toLowerCase().trim())
+          .then(setUserProfile)
+          .catch(() => null);
+      }
     }
   }, []);
 
@@ -973,6 +980,18 @@ export default function TopicDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Garden Board - Filter by skill name tag */}
+        {skill && (
+          <GardenBoard
+            tags={[skill.name_canonical]}
+            title={`${skill.name_canonical} Garden Board`}
+            description={`Notes and discussions about ${skill.name_canonical}`}
+            userWallet={userWallet}
+            userProfile={userProfile}
+            skillName={skill.name_canonical}
+          />
         )}
       </div>
     </div>

@@ -28,6 +28,7 @@ import { listFeedbackForWallet } from '@/lib/arkiv/feedback';
 import { listAsksForWallet } from '@/lib/arkiv/asks';
 import { listOffersForWallet } from '@/lib/arkiv/offers';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
+import { GardenBoard } from '@/components/garden/GardenBoard';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -299,12 +300,12 @@ export default function ProfileDetailPage() {
                   )}
                 </div>
 
-        {/* Action Buttons - only show if viewing someone else's profile */}
-        {userWallet && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
+        {/* Action Buttons - only show if viewing someone else's profile and profile is loaded */}
+        {userWallet && profile && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
           <div className="mb-6 flex justify-center gap-2">
                       <button
                         onClick={() => {
-                setSelectedOffer(null);
+                          setSelectedOffer(null);
                           setShowMeetingModal(true);
                           setMeetingMode('request');
                         }}
@@ -1003,6 +1004,16 @@ export default function ProfileDetailPage() {
             setSelectedOffer(null); // Clear selected offer after success
             setMeetingMode('request'); // Reset to default
           }}
+        />
+
+        {/* Garden Board - Filter by targetWallet */}
+        <GardenBoard
+          targetWallet={wallet}
+          title={`${profile.displayName || 'Profile'}'s Garden Board`}
+          description={`Notes and messages for ${profile.displayName || 'this profile'}`}
+          userWallet={userWallet}
+          userProfile={userProfile}
+          targetProfile={profile}
         />
 
         {/* Garden Note Modal */}
