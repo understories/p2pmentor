@@ -29,6 +29,7 @@ import { formatSessionTitle } from '@/lib/sessions/display';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { GardenBoard } from '@/components/garden/GardenBoard';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 
 type Match = {
   ask: Ask;
@@ -60,6 +61,8 @@ export default function TopicDetailPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rsvping, setRsvping] = useState<string | null>(null);
+  const [isJoined, setIsJoined] = useState(false);
+  const [submittingFollow, setSubmittingFollow] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -87,6 +90,31 @@ export default function TopicDetailPage() {
       loadTopicData();
     }
   }, [slug, userWallet]);
+
+  // Load membership status when skill and userWallet are available
+  useEffect(() => {
+    if (skill?.key && userWallet) {
+      loadMembershipStatus();
+    }
+  }, [skill?.key, userWallet]);
+
+  const loadMembershipStatus = async () => {
+    if (!skill?.key || !userWallet) return;
+
+    try {
+      // listLearningFollows handles soft-delete pattern (returns most recent entity per profile+skill)
+      // If active: true is passed, it only returns follows where most recent entity is active
+      const follows = await listLearningFollows({
+        profile_wallet: userWallet.toLowerCase(),
+        skill_id: skill.key,
+        active: true
+      });
+      setIsJoined(follows.length > 0);
+    } catch (error) {
+      console.error('Error loading membership status:', error);
+      setIsJoined(false);
+    }
+  };
 
   const loadTopicData = async () => {
     try {
@@ -526,7 +554,74 @@ export default function TopicDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              {userWallet && (
+              {userWallet && skill?.key && (
+                <>
+                  <ArkivQueryTooltip
+                    query={[
+                      `POST /api/learning-follow { action: '${isJoined ? 'unfollow' : 'follow'}', ... }`,
+                      isJoined
+                        ? `Creates: type='learning_follow' entity (active=false)`
+                        : `Creates: type='learning_follow' entity (active=true)`,
+                      `Attributes: profile_wallet='${userWallet.toLowerCase().slice(0, 8)}...', skill_id='${skill.key.slice(0, 12)}...', active=${!isJoined}`,
+                      `Payload: Full learning follow data`,
+                      `TTL: 1 year (31536000 seconds)`
+                    ]}
+                    label={isJoined ? 'Leave Community' : 'Join Community'}
+                  >
+                    <button
+                      onClick={async () => {
+                        if (!userWallet || !skill?.key || submittingFollow) return;
+
+                        const action = isJoined ? 'unfollow' : 'follow';
+                        setSubmittingFollow(true);
+                        try {
+                          const res = await fetch('/api/learning-follow', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              action,
+                              profile_wallet: userWallet,
+                              skill_id: skill.key,
+                            }),
+                          });
+
+                          const data = await res.json();
+                          if (data.ok) {
+                            // Wait for Arkiv to index the new entity (especially important for joins)
+                            await new Promise(resolve => setTimeout(resolve, 1500));
+                            await loadMembershipStatus();
+                          } else {
+                            alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                          }
+                        } catch (error: any) {
+                          console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                          alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
+                        } finally {
+                          setSubmittingFollow(false);
+                        }
+                      }}
+                      disabled={submittingFollow}
+                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                        isJoined
+                          ? 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
+                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                      }`}
+                    >
+                      {submittingFollow
+                        ? (isJoined ? 'Leaving...' : 'Joining...')
+                        : (isJoined ? 'Leave Community' : 'Join Community')
+                      }
+                    </button>
+                  </ArkivQueryTooltip>
+                  <button
+                    onClick={() => setShowScheduleModal(true)}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  >
+                    📅 Schedule Meeting
+                  </button>
+                </>
+              )}
+              {!userWallet && (
                 <button
                   onClick={() => setShowScheduleModal(true)}
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
