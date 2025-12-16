@@ -543,10 +543,10 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Asks, Offers, Matches - below Network, side by side */}
+        {/* Asks, Offers, Matches - below Network, vertical when closed, horizontal when open */}
         {level >= 1 && (
           <div className="mt-2 w-full">
-            <div className="flex flex-row gap-0.5 group-hover:gap-2 transition-all duration-300">
+            <div className="flex flex-col group-hover:flex-row gap-0.5 group-hover:gap-2 transition-all duration-300">
               <Link
                 href="/asks"
                 className={`
