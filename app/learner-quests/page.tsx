@@ -40,6 +40,7 @@ type LearnerQuest = {
   title: string;
   description: string;
   source: string;
+  questType: 'reading_list' | 'language_assessment';
   materials: LearnerQuestMaterial[];
   metadata: {
     totalMaterials: number;

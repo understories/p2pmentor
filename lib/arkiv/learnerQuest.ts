@@ -27,6 +27,7 @@ export type LearnerQuest = {
   title: string;
   description: string;
   source: string;
+  questType: 'reading_list' | 'language_assessment';
   materials: LearnerQuestMaterial[];
   metadata: {
     totalMaterials: number;
@@ -60,6 +61,7 @@ export async function createLearnerQuest({
   description,
   source,
   materials,
+  questType = 'reading_list',
   privateKey,
   spaceId = 'local-dev',
 }: {
@@ -68,6 +70,7 @@ export async function createLearnerQuest({
   description: string;
   source: string;
   materials: LearnerQuestMaterial[];
+  questType?: 'reading_list' | 'language_assessment';
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string } | null> {
@@ -97,6 +100,7 @@ export async function createLearnerQuest({
           { key: 'title', value: title },
           { key: 'description', value: description },
           { key: 'source', value: source },
+          { key: 'questType', value: questType },
           { key: 'status', value: 'active' },
           { key: 'spaceId', value: spaceId },
           { key: 'createdAt', value: createdAt },
@@ -137,13 +141,23 @@ export async function createLearnerQuest({
  * List all active learner quests
  *
  * Returns all active quest definitions, sorted by most recent first.
+ * Optionally filter by quest type.
  */
-export async function listLearnerQuests(): Promise<LearnerQuest[]> {
+export async function listLearnerQuests(options?: {
+  questType?: 'reading_list' | 'language_assessment';
+}): Promise<LearnerQuest[]> {
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    let query = publicClient.buildQuery()
       .where(eq('type', 'learner_quest'))
-      .where(eq('status', 'active'))
+      .where(eq('status', 'active'));
+
+    // Filter by quest type if specified
+    if (options?.questType) {
+      query = query.where(eq('questType', options.questType));
+    }
+
+    const result = await query
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -249,12 +263,16 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
+          // Default to 'reading_list' for backward compatibility
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment';
+
           return {
             key: entity.key,
             questId: getAttr(entity, 'questId'),
             title: getAttr(entity, 'title'),
             description: getAttr(entity, 'description'),
             source: getAttr(entity, 'source'),
+            questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
             materials: payload.materials || [],
             metadata: payload.metadata || {},
