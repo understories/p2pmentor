@@ -65,6 +65,7 @@ export async function createSession({
   requiresPayment,
   paymentAddress,
   cost,
+  requesterWallet,
   privateKey,
 }: {
   mentorWallet: string;
@@ -77,6 +78,7 @@ export async function createSession({
   requiresPayment?: boolean; // Whether this session requires payment
   paymentAddress?: string; // Payment receiving address (if paid)
   cost?: string; // Cost amount (if paid)
+  requesterWallet?: string; // Wallet of the requester (will be auto-confirmed)
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   // Normalize wallet addresses to lowercase for consistency
@@ -185,6 +187,49 @@ export async function createSession({
     // If txHash entity creation fails but we have the main entity, log and continue
     // The main session entity is more important
     console.warn('Failed to create session_txhash entity, but session was created:', error);
+  }
+
+  // Auto-confirm requester if provided
+  if (requesterWallet) {
+    const requesterWalletNormalized = requesterWallet.toLowerCase();
+
+    // Verify requester is part of the session
+    const isMentor = normalizedMentorWallet === requesterWalletNormalized;
+    const isLearner = normalizedLearnerWallet === requesterWalletNormalized;
+
+    if (!isMentor && !isLearner) {
+      console.warn('[createSession] Requester wallet is not part of session, skipping auto-confirmation');
+    } else {
+      try {
+        const confirmationEnc = new TextEncoder();
+        const confirmationCreatedAt = new Date().toISOString();
+
+        // Calculate expiration same as session
+        const confirmationExpiresIn = expiresInSecondsInt;
+
+        await walletClient.createEntity({
+          payload: confirmationEnc.encode(JSON.stringify({
+            confirmedAt: confirmationCreatedAt,
+          })),
+          contentType: 'application/json',
+          attributes: [
+            { key: 'type', value: 'session_confirmation' },
+            { key: 'sessionKey', value: entityKey },
+            { key: 'confirmedBy', value: requesterWalletNormalized },
+            { key: 'mentorWallet', value: normalizedMentorWallet },
+            { key: 'learnerWallet', value: normalizedLearnerWallet },
+            { key: 'spaceId', value: spaceId },
+            { key: 'createdAt', value: confirmationCreatedAt },
+          ],
+          expiresIn: confirmationExpiresIn,
+        });
+
+        console.log('[createSession] Auto-confirmed session for requester:', requesterWalletNormalized);
+      } catch (confirmationError: any) {
+        // Don't fail session creation if confirmation fails
+        console.warn('[createSession] Failed to auto-confirm requester:', confirmationError);
+      }
+    }
   }
 
   // Create notification for the recipient (mentor or learner who didn't create the session)

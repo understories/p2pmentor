@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, mode } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -54,6 +54,26 @@ export async function POST(request: NextRequest) {
           ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
           : undefined;
 
+        // Determine requester from context
+        // - Request mode (from offer): learner is requester
+        // - Offer mode (from ask): mentor is requester
+        // - Peer mode: userWallet (initiator) is requester
+        // - Default: learner is requester (most common case)
+        let requesterWallet: string | undefined;
+        if (mode === 'offer') {
+          // Offering to help: mentor is requester
+          requesterWallet = mentorWallet.toLowerCase();
+        } else if (mode === 'peer') {
+          // Peer learning: userWallet (initiator) is requester
+          requesterWallet = wallet?.toLowerCase();
+        } else if (offerKey) {
+          // Request mode (from offer): learner is requester
+          requesterWallet = learnerWallet.toLowerCase();
+        } else {
+          // Default: learner is requester (most common case)
+          requesterWallet = learnerWallet.toLowerCase();
+        }
+
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
@@ -65,6 +85,7 @@ export async function POST(request: NextRequest) {
           requiresPayment: requiresPayment || undefined,
           paymentAddress: paymentAddress || undefined,
           cost: cost || undefined,
+          requesterWallet, // Auto-confirm requester
           privateKey: getPrivateKey(),
         });
 

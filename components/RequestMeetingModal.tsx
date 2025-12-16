@@ -283,6 +283,7 @@ export function RequestMeetingModal({
             paymentAddress,
             cost,
             offerKey: offer?.key, // Pass offer key if meeting is requested on an offer
+            mode, // Pass mode to determine requester
           }),
       });
 
@@ -306,14 +307,15 @@ export function RequestMeetingModal({
       setTimeout(() => {
         if (data.pending) {
           // Transaction submitted but confirmation pending
-          alert(`Meeting request submitted! ${data.message || 'Confirmation is pending. Please check your sessions in a moment.'}`);
+          alert(`Meeting request submitted! Waiting for ${profile.displayName || 'the other party'} to confirm.`);
         } else {
           // Immediate success
+          const otherPartyName = profile.displayName || 'the other party';
           if (data.txHash) {
             const shortHash = data.txHash.slice(0, 10) + '...';
-            alert(`Meeting requested successfully! Transaction: ${shortHash}`);
+            alert(`Meeting requested successfully! Waiting for ${otherPartyName} to confirm. Transaction: ${shortHash}`);
           } else {
-            alert('Meeting requested successfully!');
+            alert(`Meeting requested successfully! Waiting for ${otherPartyName} to confirm.`);
           }
         }
       }, 100);
@@ -338,7 +340,8 @@ export function RequestMeetingModal({
         
         // Show success message after modal is closed (non-blocking)
         setTimeout(() => {
-          alert(`Meeting request submitted! The transaction is being processed. Please check your sessions in a few moments. If it doesn't appear, the transaction may still be confirming on the testnet.`);
+          const otherPartyName = profile.displayName || 'the other party';
+          alert(`Meeting request submitted! Waiting for ${otherPartyName} to confirm. The transaction is being processed. Please check your sessions in a few moments.`);
         }, 100);
       } else {
         // Real error
