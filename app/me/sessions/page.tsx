@@ -1191,7 +1191,7 @@ export default function SessionsPage() {
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         ✓ Feedback submitted
                       </p>
-                    ) : !isConfirmed ? (
+                    ) : !session.mentorConfirmed || !session.learnerConfirmed ? (
                       <p className="text-sm text-gray-500 dark:text-gray-400">
                         Waiting for both participants to confirm
                       </p>

@@ -20,14 +20,20 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForProfile } from '@/lib/graph/featureFlags';
 import { fetchProfileDetail } from '@/lib/graph/profileQueries';
-import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { formatAvailabilityForDisplay, listAvailabilityForWallet } from '@/lib/arkiv/availability';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { listSessionsForWallet } from '@/lib/arkiv/sessions';
+import { listFeedbackForWallet } from '@/lib/arkiv/feedback';
+import { listAsksForWallet } from '@/lib/arkiv/asks';
+import { listOffersForWallet } from '@/lib/arkiv/offers';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { Feedback } from '@/lib/arkiv/feedback';
+import type { Availability } from '@/lib/arkiv/availability';
 
 export default function ProfileDetailPage() {
   const params = useParams();
@@ -54,6 +60,8 @@ export default function ProfileDetailPage() {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [availability, setAvailability] = useState<Availability[]>([]);
+  const [skillsLearningCount, setSkillsLearningCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -84,109 +92,32 @@ export default function ProfileDetailPage() {
       setLoading(true);
       setError('');
 
-      const useGraphQL = await useGraphqlForProfile();
+      // Normalize wallet address for consistent querying (arkiv-native pattern)
+      const normalizedWallet = walletAddress.toLowerCase().trim();
 
-      if (useGraphQL) {
-        // Use GraphQL: Single query for profile, asks, offers, feedback
-        // Sessions still via API (not yet in GraphQL schema)
-        // Normalize wallet for GraphQL query (GraphQL may need lowercase)
-        const normalizedWalletForQuery = walletAddress.toLowerCase().trim();
-        const [graphqlData, sessionsRes] = await Promise.all([
-          fetchProfileDetail({ wallet: normalizedWalletForQuery }).catch(() => ({ profile: null, feedback: [] })),
-          fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
-        ]);
-
-        // Transform GraphQL response to match existing state structure
-        if (graphqlData.profile) {
-          const profileData: UserProfile = {
-            wallet: graphqlData.profile.wallet,
-            displayName: graphqlData.profile.displayName || 'Anonymous',
-            username: graphqlData.profile.username ? graphqlData.profile.username : undefined,
-            bio: graphqlData.profile.bio ? graphqlData.profile.bio : undefined,
-            bioShort: graphqlData.profile.bioShort ? graphqlData.profile.bioShort : undefined,
-            bioLong: graphqlData.profile.bioLong ? graphqlData.profile.bioLong : undefined,
-            timezone: graphqlData.profile.timezone,
-            seniority: (graphqlData.profile.seniority && ['beginner', 'intermediate', 'advanced', 'expert'].includes(graphqlData.profile.seniority)) 
-              ? graphqlData.profile.seniority as 'beginner' | 'intermediate' | 'advanced' | 'expert'
-              : undefined,
-            skills: Array.isArray(graphqlData.profile.skills) ? graphqlData.profile.skills.join(', ') : '',
-            skillsArray: Array.isArray(graphqlData.profile.skills) ? graphqlData.profile.skills : undefined,
-            availabilityWindow: graphqlData.profile.availabilityWindow ? graphqlData.profile.availabilityWindow : undefined,
-            createdAt: graphqlData.profile.createdAt ? new Date(Number(graphqlData.profile.createdAt)).toISOString() : undefined,
-            profileImage: undefined, // Not in GraphQL schema yet
-            key: graphqlData.profile.id,
-            txHash: undefined,
-            spaceId: 'local-dev', // Default space ID
-          };
-          setProfile(profileData);
-          setAsks((graphqlData.profile.asks || []).map(ask => ({
-            id: ask.id,
-            key: ask.key,
-            wallet: ask.wallet,
-            skill: ask.skill,
-            message: ask.message,
-            status: ask.status,
-            createdAt: ask.createdAt,
-            expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
-            ttlSeconds: ask.ttlSeconds,
-            txHash: ask.txHash,
-            spaceId: 'local-dev', // Default space ID
-          })) as Ask[]);
-          setOffers((graphqlData.profile.offers || []).map(offer => ({
-            id: offer.id,
-            key: offer.key,
-            wallet: offer.wallet,
-            skill: offer.skill,
-            message: offer.message,
-            availabilityWindow: offer.availabilityWindow,
-            isPaid: offer.isPaid,
-            cost: offer.cost,
-            paymentAddress: offer.paymentAddress,
-            status: offer.status,
-            createdAt: offer.createdAt,
-            expiresAt: offer.expiresAt ? Number(offer.expiresAt) : null,
-            ttlSeconds: offer.ttlSeconds,
-            txHash: offer.txHash,
-            spaceId: 'local-dev', // Default space ID
-          })) as Offer[]);
-        }
-        setFeedbacks(graphqlData.feedback.map(fb => ({
-          key: fb.key,
-          sessionKey: fb.sessionKey,
-          mentorWallet: fb.mentorWallet,
-          learnerWallet: fb.learnerWallet,
-          feedbackFrom: fb.feedbackFrom,
-          feedbackTo: fb.feedbackTo,
-          rating: fb.rating ?? undefined,
-          notes: fb.notes ?? undefined,
-          technicalDxFeedback: fb.technicalDxFeedback ?? undefined,
-          spaceId: 'local-dev', // Default space ID
-          createdAt: fb.createdAt,
-          txHash: fb.txHash ?? undefined,
-        })) as Feedback[]);
-        if (sessionsRes.ok) {
-          setSessions(sessionsRes.sessions || []);
-        }
-      } else {
-        // Fallback to JSON-RPC: Load profile, asks, offers, sessions, and feedback in parallel
+      // Use arkiv-native queries directly (same pattern as dashboard)
+      // This ensures we're using the same query logic and getting the same data
         const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
         
-        const [profileData, asksRes, offersRes, sessionsRes, feedbackRes] = await Promise.all([
-          getProfileByWallet(walletAddress).catch(() => null),
-          fetch(`/api/asks?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
-          fetch(`/api/offers?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
-          fetch(`/api/sessions?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
-          fetch(`/api/feedback?wallet=${encodeURIComponent(walletAddress)}`).then(r => r.json()).catch(() => ({ ok: false, feedbacks: [] })),
-        ]);
-        
-        // Record performance metrics for JSON-RPC path
+      const [profileData, asksData, offersData, sessionsData, feedbackData, availabilityData, learningFollowsData] = await Promise.all([
+        getProfileByWallet(normalizedWallet).catch(() => null),
+        listAsksForWallet(normalizedWallet).catch(() => []),
+        listOffersForWallet(normalizedWallet).catch(() => []),
+        listSessionsForWallet(normalizedWallet).catch(() => []),
+        listFeedbackForWallet(normalizedWallet).catch(() => []),
+        listAvailabilityForWallet(normalizedWallet).catch(() => []),
+        listLearningFollows({ profile_wallet: normalizedWallet, active: true }).catch(() => []),
+      ]);
+
+      // Record performance metrics
         const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
         const payloadBytes = JSON.stringify({
           profile: profileData,
-          asks: asksRes.ok ? asksRes.asks : [],
-          offers: offersRes.ok ? offersRes.offers : [],
-          sessions: sessionsRes.ok ? sessionsRes.sessions : [],
-          feedback: feedbackRes.ok ? feedbackRes.feedbacks : [],
+        asks: asksData,
+        offers: offersData,
+        sessions: sessionsData,
+        feedback: feedbackData,
+        availability: availabilityData,
         }).length;
         
         // Record performance sample (async, don't block)
@@ -197,7 +128,7 @@ export default function ProfileDetailPage() {
             route: '/profiles/[wallet]',
             durationMs: Math.round(durationMs),
             payloadBytes,
-            httpRequests: 5, // 5 parallel API calls
+          httpRequests: 6, // 6 parallel arkiv queries
             createdAt: new Date().toISOString(),
           });
         }).catch(() => {
@@ -205,21 +136,23 @@ export default function ProfileDetailPage() {
         });
 
         if (!profileData) {
-          setError(`Profile not found for wallet: ${walletAddress}`);
+        setError(`Profile not found for wallet: ${normalizedWallet}`);
         } else {
           setProfile(profileData);
         }
-        if (asksRes.ok) {
-          setAsks(asksRes.asks || []);
-        }
-        if (offersRes.ok) {
-          setOffers(offersRes.offers || []);
-        }
-        if (sessionsRes.ok) {
-          setSessions(sessionsRes.sessions || []);
-        }
-        if (feedbackRes.ok) {
-          setFeedbacks(feedbackRes.feedbacks || []);
+
+      setAsks(asksData);
+      setOffers(offersData);
+      setSessions(sessionsData);
+      setFeedbacks(feedbackData);
+      setSkillsLearningCount(learningFollowsData.length);
+      
+      // Set availability - use the most recent one if available
+      if (availabilityData.length > 0) {
+        setAvailability(availabilityData);
+        // Update profile availabilityWindow from availability entity if not already set
+        if (!profileData?.availabilityWindow && availabilityData[0].timeBlocks) {
+          // Profile will be updated above, but we can enhance it with availability data
         }
       }
     } catch (err: any) {
@@ -320,72 +253,58 @@ export default function ProfileDetailPage() {
           <BackButton href="/profiles" />
         </div>
 
-        {/* Profile Header */}
-        <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-start gap-6">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border-2 border-green-300/30 dark:border-green-500/20 flex-shrink-0">
-              <EmojiIdentitySeed profile={profile} size="xl" showGlow={true} />
+        {/* Profile Avatar with EIS - Matching Dashboard Format */}
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative mb-3">
+            <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 border-2 border-emerald-300 dark:border-emerald-600 flex items-center justify-center shadow-lg">
+              <EmojiIdentitySeed 
+                profile={profile} 
+                size="xl" 
+                showGlow={true}
+                className="drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]"
+              />
             </div>
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h1 className="text-3xl font-semibold mb-2">
+            {/* Subtle glow ring */}
+            <div 
+              className="absolute inset-0 rounded-full opacity-30 pointer-events-none"
+              style={{
+                boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.1)',
+              }}
+            />
+          </div>
+          <h1 className="text-2xl font-semibold mb-1 text-gray-900 dark:text-gray-100">
                     {profile.displayName || 'Anonymous'}
                   </h1>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono break-all">
+            {wallet}
+          </p>
                   {profile.username && (
-                    <p className="text-lg text-gray-600 dark:text-gray-400 mb-3">@{profile.username}</p>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">@{profile.username}</p>
                   )}
-                  {arkivBuilderMode && profile.key && (
-                    <div className="mt-2 flex items-center gap-2">
+          {/* Arkiv Builder Mode: Profile Entity Link */}
+          {arkivBuilderMode && profile?.key && (
+            <div className="mt-2">
                       <ViewOnArkivLink
                         entityKey={profile.key}
                         txHash={profile.txHash}
                         label="View Profile Entity"
                         className="text-xs"
                       />
-                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+              {profile.key && (
+                <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
                         Key: {profile.key.slice(0, 16)}...
-                      </span>
                     </div>
                   )}
-                  {!arkivBuilderMode && profile.txHash && (
-                    <div className="mt-2">
-                      <ViewOnArkivLink entityKey={profile.key} />
                     </div>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  {/* Edit/View Toggle - only show if viewing own profile */}
-                  {userWallet && userWallet.toLowerCase().trim() === wallet.toLowerCase().trim() && (
-                    <div className="flex gap-2 items-center">
-                      <button
-                        onClick={() => setViewMode(viewMode === 'edit' ? 'view' : 'edit')}
-                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                          viewMode === 'edit'
-                            ? 'bg-green-600 text-white'
-                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-                        }`}
-                        title={viewMode === 'edit' ? 'Switch to view mode (as others see it)' : 'Switch to edit mode'}
-                      >
-                        {viewMode === 'edit' ? '👁️ View as Others' : '✏️ Edit Mode'}
-                      </button>
-                      {viewMode === 'edit' && (
-                        <Link
-                          href="/me?edit=profile"
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Edit Profile
-                        </Link>
-                      )}
-                    </div>
-                  )}
-                  {/* Action Buttons - only show if viewing someone else's profile OR viewing own profile in view mode */}
-                  {((userWallet && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim()) || 
-                    (userWallet && userWallet.toLowerCase().trim() === wallet.toLowerCase().trim() && viewMode === 'view')) && (
-                    <div className="flex gap-2">
+
+        {/* Action Buttons - only show if viewing someone else's profile */}
+        {userWallet && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
+          <div className="mb-6 flex justify-center gap-2">
                       <button
                         onClick={() => {
-                          setSelectedOffer(null); // General request, not tied to specific offer
+                setSelectedOffer(null);
                           setShowMeetingModal(true);
                           setMeetingMode('request');
                         }}
@@ -413,91 +332,257 @@ export default function ProfileDetailPage() {
                       </button>
                     </div>
                   )}
+
+        {/* Bio Display */}
+        {profile.bioShort && (
+          <div className="mb-6 text-center">
+            <p className="text-gray-700 dark:text-gray-300">{profile.bioShort}</p>
+                </div>
+        )}
+
+        {/* Profile Information Display - Above Stats (matching dashboard) */}
+        <div className="mb-8 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm space-y-3">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Profile Information</h3>
+            {/* Arkiv Builder Mode: Profile Query Tooltip */}
+            {arkivBuilderMode && (
+              <div className="group/query relative">
+                <div className="text-xs text-gray-500 dark:text-gray-400 font-mono cursor-help border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-gray-50 dark:bg-gray-800">
+                  Query
+                </div>
+                <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left max-w-md">
+                  <div className="font-semibold mb-1">Profile Query:</div>
+                  <div>getProfileByWallet('{wallet.slice(0, 8)}...')</div>
+                  <div>Query: type='user_profile',</div>
+                  <div>wallet='{wallet.slice(0, 8)}...'</div>
+                  <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
               </div>
-              {profile.bioShort && (
-                <p className="text-gray-700 dark:text-gray-300 mb-3">{profile.bioShort}</p>
-              )}
-              {profile.bioLong && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">{profile.bioLong}</p>
-              )}
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                <p><strong>Wallet:</strong> {shortenWallet(profile.wallet)}</p>
-                {profile.timezone && <p><strong>Timezone:</strong> {profile.timezone}</p>}
-                {profile.seniority && <p><strong>Level:</strong> {profile.seniority}</p>}
+            )}
+          </div>
+
+          {profile.username && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Username</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">@{profile.username}</p>
+            </div>
+          )}
+
+          {profile.bio && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Bio</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
               </div>
+        )}
+
+          {profile.bioLong && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">About</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.bioLong}</p>
             </div>
+          )}
+
+          {(profile as any).exploringStatement && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Exploring</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{(profile as any).exploringStatement}</p>
+            </div>
+          )}
+
+          {profile.timezone && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Timezone</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.timezone}</p>
           </div>
+          )}
+
+          {profile.seniority && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Seniority</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{profile.seniority}</p>
         </div>
+          )}
 
-        {/* Skills */}
-        {profile.skillsArray && profile.skillsArray.length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.skillsArray.map((skill, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 text-sm font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-lg"
-                >
-                  {skill}
-                </span>
-              ))}
+          {profile.languages && profile.languages.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Languages</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.languages.join(', ')}</p>
             </div>
+          )}
+
+          {profile.domainsOfInterest && profile.domainsOfInterest.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Domains of Interest</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.domainsOfInterest.join(', ')}</p>
           </div>
         )}
 
-        {/* Availability */}
-        {profile.availabilityWindow && (
-          <div className="mb-8 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <h2 className="text-2xl font-semibold mb-3">Availability</h2>
-            <p className="text-gray-700 dark:text-gray-300">{profile.availabilityWindow}</p>
+          {profile.mentorRoles && profile.mentorRoles.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mentor Roles</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.mentorRoles.join(', ')}</p>
           </div>
         )}
 
-        {/* Contact Links */}
+          {profile.learnerRoles && profile.learnerRoles.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Learner Roles</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.learnerRoles.join(', ')}</p>
+            </div>
+          )}
+
         {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Contact</h2>
-            <div className="flex flex-wrap gap-4">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Links</p>
+              <div className="flex flex-wrap gap-2">
               {profile.contactLinks.twitter && (
-                <a
-                  href={`https://twitter.com/${profile.contactLinks.twitter.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Twitter: {profile.contactLinks.twitter}
+                  <a href={profile.contactLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Twitter
                 </a>
               )}
               {profile.contactLinks.github && (
-                <a
-                  href={`https://github.com/${profile.contactLinks.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  GitHub: {profile.contactLinks.github}
+                  <a href={profile.contactLinks.github} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    GitHub
                 </a>
               )}
               {profile.contactLinks.telegram && (
-                <a
-                  href={`https://t.me/${profile.contactLinks.telegram.replace('@', '')}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Telegram: {profile.contactLinks.telegram}
+                  <a href={profile.contactLinks.telegram} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Telegram
                 </a>
               )}
               {profile.contactLinks.discord && (
-                <span className="text-gray-600 dark:text-gray-400">
-                  Discord: {profile.contactLinks.discord}
+                  <a href={profile.contactLinks.discord} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                    Discord
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
+          {profile.skillsArray && profile.skillsArray.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skills</p>
+              <div className="flex flex-wrap gap-2">
+                {profile.skillsArray.map((skill, idx) => (
+                  <span key={idx} className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                    {skill}
                 </span>
+                ))}
+              </div>
+            </div>
               )}
+
+          <div>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Wallet</p>
+            <p className="text-sm font-mono text-gray-700 dark:text-gray-300">{shortenWallet(profile.wallet)}</p>
             </div>
           </div>
-        )}
+
+        {/* Profile Stats - Matching Dashboard Format Exactly */}
+        {(() => {
+          // Calculate session stats (same logic as dashboard)
+          const now = Date.now();
+          const completedSessions = sessions.filter(s => {
+            if (s.status === 'completed') return true;
+            // Also count past scheduled sessions as completed
+            if (s.status === 'scheduled') {
+              const sessionTime = new Date(s.sessionDate).getTime();
+              const sessionEnd = sessionTime + (s.duration || 60) * 60 * 1000;
+              return sessionEnd < now;
+            }
+            return false;
+          }).length;
+          
+          const upcomingSessions = sessions.filter(s => {
+            if (s.status !== 'scheduled') return false;
+            const sessionTime = new Date(s.sessionDate).getTime();
+            return sessionTime > now;
+          }).length;
+
+          // Calculate average rating (same logic as dashboard)
+          const receivedFeedback = feedbacks.filter(f => 
+            f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+          );
+          const ratings = receivedFeedback
+            .map(f => f.rating)
+            .filter((r): r is number => r !== undefined && r > 0);
+          const avgRating = ratings.length > 0
+            ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length)
+            : 0;
+
+          return (
+            <div className="mb-6 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {/* Sessions Completed */}
+                <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
+                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                    {completedSessions}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+                </div>
+                
+                {/* Upcoming Sessions */}
+                <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center cursor-help">
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {upcomingSessions}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+                </div>
+                
+                {/* Average Rating */}
+                <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center cursor-help">
+                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                    {avgRating.toFixed(1)} ⭐
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
+                </div>
+                
+                {/* Skills Learning */}
+                <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center cursor-help">
+                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                    {skillsLearningCount}
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Availability */}
+        {(() => {
+          // Use availability entity if available, otherwise fall back to profile.availabilityWindow
+          const availabilityDisplay = availability.length > 0
+            ? availability[0].timeBlocks
+            : profile.availabilityWindow;
+
+          if (!availabilityDisplay) return null;
+
+          return (
+            <div className="mb-8 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `listAvailabilityForWallet('${wallet.toLowerCase()}')`,
+                    `Query: type='availability', wallet='${wallet.toLowerCase()}'`,
+                    `Filters out: availability_deletion markers`,
+                    `Returns: Availability[] (${availability.length} availability entities)`,
+                    `Each availability is a type='availability' entity on Arkiv`
+                  ]}
+                  label="Availability"
+                >
+                  <h2 className="text-2xl font-semibold mb-3">Availability</h2>
+                </ArkivQueryTooltip>
+              ) : (
+                <h2 className="text-2xl font-semibold mb-3">Availability</h2>
+              )}
+              <p className="text-gray-700 dark:text-gray-300">
+                {formatAvailabilityForDisplay(availabilityDisplay, profile.timezone)}
+              </p>
+            </div>
+          );
+        })()}
+
 
         {/* Offers (Teaching) */}
         {offers.length > 0 && (
@@ -505,7 +590,7 @@ export default function ProfileDetailPage() {
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
                 query={[
-                  `GET /api/offers?wallet=${wallet.toLowerCase()}`,
+                  `listOffersForWallet('${wallet.toLowerCase()}')`,
                   `Query: type='offer', wallet='${wallet.toLowerCase()}'`,
                   `Returns: Offer[] (${offers.length} offers)`,
                   `Each offer is a type='offer' entity on Arkiv`
@@ -606,7 +691,7 @@ export default function ProfileDetailPage() {
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
                 query={[
-                  `GET /api/asks?wallet=${wallet.toLowerCase()}`,
+                  `listAsksForWallet('${wallet.toLowerCase()}')`,
                   `Query: type='ask', wallet='${wallet.toLowerCase()}'`,
                   `Returns: Ask[] (${asks.length} asks)`,
                   `Each ask is a type='ask' entity on Arkiv`
@@ -696,7 +781,7 @@ export default function ProfileDetailPage() {
               {arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
-                    `GET /api/sessions?wallet=${wallet.toLowerCase()}`,
+                    `listSessionsForWallet('${wallet.toLowerCase()}')`,
                     `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
                     `Returns: Session[] (${sessions.length} sessions)`,
                     `Each session is a type='session' entity on Arkiv`
@@ -819,11 +904,11 @@ export default function ProfileDetailPage() {
               {arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
-                    `GET /api/feedback?wallet=${wallet.toLowerCase()}`,
-                    `Query: type='feedback', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                    `listFeedbackForWallet('${wallet.toLowerCase()}')`,
+                    `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
                     `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
                     `Returns: Feedback[] (${receivedFeedback.length} feedbacks)`,
-                    `Each feedback is a type='feedback' entity on Arkiv`
+                    `Each feedback is a type='session_feedback' entity on Arkiv`
                   ]}
                   label="Feedback & Ratings"
                 >
