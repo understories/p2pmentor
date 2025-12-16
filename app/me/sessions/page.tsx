@@ -578,8 +578,10 @@ export default function SessionsPage() {
           const otherProfile = profiles[otherWallet.toLowerCase()];
           const sessionTime = formatSessionDate(upcomingSession.sessionDate);
           const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
-          const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
-          const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+          const remaining = sessionDateTime - now;
+          const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
+          const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+          const minutesUntil = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
           // Check if this is a community gathering session
           const gatheringKey = upcomingSession.gatheringKey ||
@@ -600,7 +602,11 @@ export default function SessionsPage() {
                   📅 Next Session
                 </h3>
                 <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                  {daysUntil > 0
+                    ? `${daysUntil}d ${hoursUntil}h ${minutesUntil}m left`
+                    : hoursUntil > 0
+                    ? `${hoursUntil}h ${minutesUntil}m left`
+                    : `${minutesUntil}m left`}
                 </span>
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">

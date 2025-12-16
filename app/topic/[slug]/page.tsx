@@ -654,8 +654,10 @@ export default function TopicDetailPage() {
                 const sessionTime = formatSessionDate(session.sessionDate);
                 const sessionDateTime = new Date(session.sessionDate).getTime();
                 const now = Date.now();
-                const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
-                const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+                const remaining = sessionDateTime - now;
+                const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutesUntil = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
                 // Extract gatheringKey from session (for community sessions)
                 const gatheringKey = (session as any).gatheringKey || 
