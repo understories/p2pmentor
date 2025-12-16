@@ -252,14 +252,16 @@ export function SidebarNav() {
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300">
         <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
-        {/* Constellation Lines */}
-        <ConstellationLines
-          itemCount={navItems.length}
-          itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
-          containerHeight={navItems.length * 48}
-          activeIndex={activeIndex >= 0 ? activeIndex : undefined}
-          hoveredIndex={hoveredIndex}
-        />
+        {/* Constellation Lines - only show when sidebar is expanded */}
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <ConstellationLines
+            itemCount={navItems.length}
+            itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
+            containerHeight={navItems.length * 48}
+            activeIndex={activeIndex >= 0 ? activeIndex : undefined}
+            hoveredIndex={hoveredIndex}
+          />
+        </div>
         
         {navItems.map((item, index) => {
           const active = isActive(item.href);
@@ -274,7 +276,7 @@ export function SidebarNav() {
                 href={item.href}
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 px-1 group-hover:px-3
+                  w-full py-2.5 pl-2 pr-1 group-hover:px-3
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${active
@@ -312,7 +314,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+              <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                 <span className="text-sm font-medium leading-tight">
                   {item.label}
                 </span>
@@ -334,7 +336,7 @@ export function SidebarNav() {
               </Link>
               {/* Arkiv Builder Mode: Query Tooltip */}
               {arkivBuilderMode && (
-                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] font-mono text-left whitespace-nowrap max-w-md">
                   <div className="font-semibold mb-1">Arkiv Queries:</div>
                   {item.href === '/me' && wallet && (
                     <>
@@ -387,7 +389,7 @@ export function SidebarNav() {
                     </span>
                   )}
                 </span>
-                <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
+                <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
                 {(isActive('/me/sessions') || pendingConfirmationsCount > 0) && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -400,7 +402,7 @@ export function SidebarNav() {
               </Link>
               {/* Arkiv Builder Mode: Query Tooltip */}
               {arkivBuilderMode && wallet && (
-                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/sessions:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/sessions:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] font-mono text-left whitespace-nowrap max-w-md">
                   <div className="font-semibold mb-1">Arkiv Query:</div>
                   <div>listSessionsForWallet()</div>
                   <div className="text-gray-400">type='session',</div>
@@ -476,17 +478,17 @@ export function SidebarNav() {
                         >
                           <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">📖</span>
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {skillName}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {dateStr} {timeStr}
                             </span>
                           </div>
                         </div>
                         {/* Arkiv Builder Mode: Session Entity Tooltip */}
                         {arkivBuilderMode && session.key && (
-                          <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/session:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
+                          <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/session:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] font-mono text-left whitespace-nowrap max-w-md">
                             <div className="font-semibold mb-1">Session Entity:</div>
                             <div className="text-gray-400">Key: {session.key.slice(0, 16)}...</div>
                             {session.txHash && (
@@ -515,19 +517,19 @@ export function SidebarNav() {
           <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <Link
               href="/network"
-              className={`
-                relative flex flex-row items-center gap-3
-                w-full py-2.5 px-1 group-hover:px-3
-                rounded-lg
-                transition-all duration-150 ease-out
-                ${isActive('/network')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
-              `}
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2.5 pl-2 pr-1 group-hover:px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/network')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
             >
               <span className="text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">🌐</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
               {isActive('/network') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -738,7 +740,7 @@ export function SidebarNav() {
                 >
                   <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">👤</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -754,7 +756,7 @@ export function SidebarNav() {
                 >
                   <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">🌱</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -770,7 +772,7 @@ export function SidebarNav() {
                 >
                   <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">📚</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -788,16 +790,16 @@ export function SidebarNav() {
           <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <Link
               href="/notifications"
-              className={`
-                relative flex flex-row items-center gap-3
-                w-full py-2.5 px-1 group-hover:px-3
-                rounded-lg
-                transition-all duration-150 ease-out
-                ${isActive('/notifications')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                }
-              `}
+                className={`
+                  relative flex flex-row items-center gap-3
+                  w-full py-2.5 pl-2 pr-1 group-hover:px-3
+                  rounded-lg
+                  transition-all duration-150 ease-out
+                  ${isActive('/notifications')
+                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }
+                `}
             >
               <span className="relative text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">
                 🔔
@@ -807,7 +809,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
               {isActive('/notifications') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -855,11 +857,11 @@ export function SidebarNav() {
                   window.location.href = '/auth';
                 }
               }}
-              className="w-full flex flex-row items-center gap-3 py-2.5 px-1 group-hover:px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
+              className="w-full flex flex-row items-center gap-3 py-2.5 pl-2 pr-1 group-hover:px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
               title="Disconnect wallet and logout"
             >
               <span className="text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">⚡</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
             </button>
           </div>
         )}
