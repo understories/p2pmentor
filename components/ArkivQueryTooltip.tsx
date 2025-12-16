@@ -3,9 +3,12 @@
  * 
  * Shows Arkiv query information in a tooltip, similar to profile page.
  * Used in Arkiv Builder Mode to teach builders about queries.
+ * Only shows tooltip when Arkiv Builder Mode is enabled.
  */
 
 'use client';
+
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 interface ArkivQueryTooltipProps {
   query: string[];
@@ -14,6 +17,13 @@ interface ArkivQueryTooltipProps {
 }
 
 export function ArkivQueryTooltip({ query, label = 'Arkiv Query', children }: ArkivQueryTooltipProps) {
+  const arkivBuilderMode = useArkivBuilderMode();
+
+  // If builder mode is disabled, just render children without tooltip wrapper
+  if (!arkivBuilderMode) {
+    return <>{children}</>;
+  }
+
   return (
     <div className="group/query relative">
       {children}

@@ -89,24 +89,20 @@ export default function ExploreSkillsPage() {
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          {arkivBuilderMode ? (
-            <ArkivQueryTooltip
-              query={[
-                `GET /api/skills/explore`,
-                `Queries:`,
-                `1. GET /api/skills?status=active&limit=200`,
-                `   → type='skill', status='active'`,
-                `2. listLearningFollows({ profile_wallet: "${walletAddress?.toLowerCase() || '...'}", active: true })`,
-                `   → type='learning_follow', profile_wallet='${walletAddress?.toLowerCase() || '...'}'`,
-                `Returns: Skill[] with profileCount (how many profiles have each skill)`
-              ]}
-              label="Loading Skills"
-            >
-              <LoadingSpinner text="Loading skills..." className="py-12" />
-            </ArkivQueryTooltip>
-          ) : (
+          <ArkivQueryTooltip
+            query={[
+              `GET /api/skills/explore`,
+              `Queries:`,
+              `1. GET /api/skills?status=active&limit=200`,
+              `   → type='skill', status='active'`,
+              `2. listLearningFollows({ profile_wallet: "${walletAddress?.toLowerCase() || '...'}", active: true })`,
+              `   → type='learning_follow', profile_wallet='${walletAddress?.toLowerCase() || '...'}'`,
+              `Returns: Skill[] with profileCount (how many profiles have each skill)`
+            ]}
+            label="Loading Skills"
+          >
             <LoadingSpinner text="Loading skills..." className="py-12" />
-          )}
+          </ArkivQueryTooltip>
         </div>
       </div>
     );
