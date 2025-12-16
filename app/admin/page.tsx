@@ -1708,8 +1708,8 @@ export default function AdminDashboard() {
                             </tr>
                           </thead>
                           <tbody>
-                            {navigationMetricsData.slice(0, 20).map((metric, idx) => {
-                              const totalCount = metric.aggregates.reduce((sum, agg) => sum + agg.count, 0);
+                            {navigationMetricsData.slice(0, 20).map((metric: any, idx: number) => {
+                              const totalCount = metric.aggregates.reduce((sum: number, agg: { pattern: string; count: number }) => sum + agg.count, 0);
                               return (
                                 <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                   <td className="px-3 py-2 font-mono text-xs">{metric.page || '-'}</td>
