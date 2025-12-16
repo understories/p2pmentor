@@ -69,9 +69,10 @@ export default function MatchesPage() {
       setLoading(true);
       
       // Load asks, offers, and skills in parallel
+      const builderParams = arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : '';
       const [asksRes, offersRes, skillsRes] = await Promise.all([
-        fetch('/api/asks').then(r => r.json()),
-        fetch('/api/offers').then(r => r.json()),
+        fetch(`/api/asks${builderParams}`).then(r => r.json()),
+        fetch(`/api/offers${builderParams}`).then(r => r.json()),
         fetch('/api/skills?status=active&limit=200').then(r => r.json()),
       ]);
 

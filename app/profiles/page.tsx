@@ -42,6 +42,10 @@ export default function ProfilesPage() {
       const params = new URLSearchParams();
       if (skill) params.set('skill', skill);
       if (includeArchived) params.set('includeArchived', 'true');
+      if (arkivBuilderMode) {
+        params.set('builderMode', 'true');
+        params.set('spaceIds', 'beta-launch,local-dev,local-dev-seed');
+      }
       const url = `/api/profiles${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();

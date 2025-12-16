@@ -223,7 +223,7 @@ export default function AsksPage() {
       
       const [profileData, asksRes] = await Promise.all([
         getProfileByWallet(wallet).catch(() => null),
-        fetch('/api/asks').then(r => r.json()),
+        fetch(`/api/asks${arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : ''}`).then(r => r.json()),
       ]);
       
       const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;

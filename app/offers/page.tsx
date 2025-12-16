@@ -241,7 +241,7 @@ export default function OffersPage() {
         
         const [profileData, offersRes] = await Promise.all([
           getProfileByWallet(wallet).catch(() => null),
-          fetch('/api/offers').then(r => r.json()),
+          fetch(`/api/offers${arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : ''}`).then(r => r.json()),
         ]);
         
         const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
