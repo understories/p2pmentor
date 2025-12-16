@@ -7,6 +7,7 @@
  * Usage: npx tsx scripts/seed-learner-quest.ts
  */
 
+import 'dotenv/config';
 import { createLearnerQuest } from '../lib/arkiv/learnerQuest';
 import { WEB3PRIVACY_FOUNDATIONS_QUEST } from '../lib/arkiv/learnerQuestData';
 import { getPrivateKey } from '../lib/config';
