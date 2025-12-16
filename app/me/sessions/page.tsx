@@ -1284,7 +1284,24 @@ export default function SessionsPage() {
                                 )}
                               </div>
                             )}
-                            {videoJoinUrl ? (
+                            {sessionHasEnded ? (
+                              // Past session: show feedback button
+                              <div className="mt-4">
+                                {canGiveFeedback ? (
+                                  <button
+                                    onClick={() => setFeedbackSession(session)}
+                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                                  >
+                                    💬 Leave Feedback
+                                  </button>
+                                ) : hasGivenFeedback ? (
+                                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                                    ✓ Feedback submitted
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : videoJoinUrl ? (
+                              // Upcoming session: show join link
                               <div className="mt-4">
                                 <a
                                   href={videoJoinUrl}
