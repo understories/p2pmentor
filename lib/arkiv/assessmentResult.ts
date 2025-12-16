@@ -281,57 +281,19 @@ export async function completeAssessment({
           { key: 'createdAt', value: now },
           { key: 'completedAt', value: now },
         ],
-      });
-    });
-
-    // Now that we have entityKey, update the payload with certification if passed
-    if (scoreData.passed) {
-      const certificateId = `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`;
-      
-      // Update the entity payload with certification (create new entity with updated payload)
-      await handleTransactionWithTimeout(async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({
-            wallet: normalizedWallet,
-            questId,
-            questType: 'language_assessment',
-            language: languageQuest.language,
-            proficiencyLevel: languageQuest.proficiencyLevel,
-            status,
-            sections: scoreData.sections,
-            totalScore: scoreData.totalScore,
-            totalPoints: scoreData.totalPoints,
-            percentage: scoreData.percentage,
-            passed: scoreData.passed,
-            certification: {
-              issued: true,
-              certificateId,
-              issuedAt: now,
-              verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
-            },
-            metadata: {
-              attemptNumber,
-              totalTimeSpent: scoreData.totalTimeSpent,
-              startedAt,
-              completedAt: now,
-            },
-          })),
-          contentType: 'application/json',
-          attributes: [
-            { key: 'type', value: 'learner_quest_assessment_result' },
-            { key: 'wallet', value: normalizedWallet },
-            { key: 'questId', value: questId },
-            { key: 'questType', value: 'language_assessment' },
-            { key: 'language', value: languageQuest.language },
-            { key: 'proficiencyLevel', value: languageQuest.proficiencyLevel },
-            { key: 'status', value: status },
-            { key: 'spaceId', value: spaceId },
-            { key: 'createdAt', value: now },
-            { key: 'completedAt', value: now },
-          ],
         expiresIn: 31536000, // 1 year
       });
     });
+
+    // Build result object with correct verification URL
+    // Create a new entity with certification if passed (immutability pattern)
+    let finalEntityKey = entityKey;
+    let finalTxHash = txHash;
+
+    // Generate certificate ID if passed
+    const certificateIdBase = scoreData.passed
+      ? `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`
+      : undefined;
 
     // Create txhash entity
     try {
@@ -352,16 +314,6 @@ export async function completeAssessment({
     } catch (error) {
       console.warn('[completeAssessment] Failed to create txhash entity:', error);
     }
-
-    // Build result object with correct verification URL
-    // Create a new entity with certification if passed (immutability pattern)
-    let finalEntityKey = entityKey;
-    let finalTxHash = txHash;
-
-    // Generate certificate ID if passed
-    const certificateIdBase = scoreData.passed
-      ? `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`
-      : undefined;
 
     if (scoreData.passed && certificateIdBase) {
       const certResult = await handleTransactionWithTimeout(async () => {
@@ -461,7 +413,7 @@ export async function completeAssessment({
       },
       createdAt: now,
       completedAt: now,
-      txHash,
+      txHash: finalTxHash,
     };
 
     return { key: finalEntityKey, txHash: finalTxHash, result: assessmentResult };
