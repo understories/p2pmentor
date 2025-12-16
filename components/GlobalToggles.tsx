@@ -50,13 +50,8 @@ export function GlobalToggles() {
     return null;
   }
 
-  // Hide on landing, auth, and beta pages (they have their own ThemeToggle)
-  // Use startsWith to handle trailing slashes and query params
-  if (pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/beta')) {
-    return null;
-  }
-
-  // Show on mobile for other pages
+  // Show on all pages (including /, /auth, /beta)
+  // Show on mobile for all pages
   const mobileClass = 'hidden md:block';
 
   return (

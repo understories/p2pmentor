@@ -8,10 +8,40 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import './landing.css';
 import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
+
+function ArkivBuilderModeToggleWrapper() {
+  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('arkiv_builder_mode');
+      setArkivBuilderMode(saved === 'true');
+    }
+  }, []);
+
+  const handleToggle = (enabled: boolean) => {
+    setArkivBuilderMode(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('arkiv_builder_mode', enabled ? 'true' : 'false');
+      window.dispatchEvent(new CustomEvent('arkiv-builder-mode-changed', { detail: { enabled } }));
+    }
+  };
+
+  if (!mounted) return null;
+
+  return (
+    <div className="fixed top-4 right-20 z-50">
+      <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={handleToggle} />
+    </div>
+  );
+}
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
@@ -55,6 +85,7 @@ export default function Home() {
       <div className="trees-back" ref={treesContainerRef}></div>
       <SunriseSunsetTimer />
       <ThemeToggle />
+      <ArkivBuilderModeToggleWrapper />
       
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>

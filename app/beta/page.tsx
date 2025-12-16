@@ -7,16 +7,35 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    setMounted(true);
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('arkiv_builder_mode');
+      setArkivBuilderMode(saved === 'true');
+    }
+  }, []);
+
+  const handleArkivBuilderModeToggle = (enabled: boolean) => {
+    setArkivBuilderMode(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('arkiv_builder_mode', enabled ? 'true' : 'false');
+      window.dispatchEvent(new CustomEvent('arkiv-builder-mode-changed', { detail: { enabled } }));
+    }
+  };
 
   // Get beta code from environment variable (client-side accessible)
   const expectedCode = process.env.NEXT_PUBLIC_BETA_INVITE_CODE?.toLowerCase().trim() || '';
@@ -99,7 +118,12 @@ export default function BetaPage() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <ThemeToggle />
+      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
+        <ThemeToggle />
+        {mounted && (
+          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={handleArkivBuilderModeToggle} />
+        )}
+      </div>
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/" />
