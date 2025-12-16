@@ -13,8 +13,6 @@ import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { mendoza } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
-import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 
 export default function AuthPage() {
@@ -23,7 +21,6 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
   const [addingNetwork, setAddingNetwork] = useState(false);
-  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   const router = useRouter();
 
   // Check if user has already passed invite gate
@@ -39,19 +36,7 @@ export default function AuthPage() {
   // Set mounted state for client-side rendering
   useEffect(() => {
     setMounted(true);
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('arkiv_builder_mode');
-      setArkivBuilderMode(saved === 'true');
-    }
   }, []);
-
-  const handleArkivBuilderModeToggle = (enabled: boolean) => {
-    setArkivBuilderMode(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('arkiv_builder_mode', enabled ? 'true' : 'false');
-      window.dispatchEvent(new CustomEvent('arkiv-builder-mode-changed', { detail: { enabled } }));
-    }
-  };
 
   const handleMetaMaskConnect = async () => {
     setIsConnecting(true);
@@ -239,12 +224,6 @@ export default function AuthPage() {
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 text-gray-900 dark:text-gray-100">
-      <div className="fixed top-4 right-4 z-50 flex items-center gap-2">
-        <ThemeToggle />
-        {mounted && (
-          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={handleArkivBuilderModeToggle} />
-        )}
-      </div>
       <div className="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
         <div className="mb-4">
           <BackButton href="/beta" />
