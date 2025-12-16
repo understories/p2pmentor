@@ -247,6 +247,8 @@ export default function TopicDetailPage() {
       }
 
       // Also load sessions linked to virtual gatherings for this community
+      // Arkiv-native approach: Group RSVP sessions by gatheringKey to avoid duplicates
+      // Each gathering has multiple RSVP sessions (one per person), but we only want to display the gathering once
       let gatheringSessions: Session[] = [];
       if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
@@ -256,7 +258,7 @@ export default function TopicDetailPage() {
           
           if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
             // Filter sessions that match gathering keys for this community
-            gatheringSessions = gatheringSessionsRes.sessions.filter((s: Session) => {
+            const allGatheringSessions = gatheringSessionsRes.sessions.filter((s: Session) => {
               const notes = s.notes || '';
               const gatheringKey = (s as any).gatheringKey;
               // Check if session notes contains gatheringKey for any of our gatherings
@@ -266,6 +268,23 @@ export default function TopicDetailPage() {
                 notes.includes(key)
               );
             });
+            
+            // Arkiv-native deduplication: Group by gatheringKey and keep only one session per gathering
+            // This ensures each gathering is displayed only once, even though there are multiple RSVP sessions
+            const sessionsByGathering = new Map<string, Session>();
+            allGatheringSessions.forEach((s: Session) => {
+              const notes = s.notes || '';
+              const gatheringKey = (s as any).gatheringKey || 
+                notes.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+                (notes.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => notes.includes(k)) : null);
+              
+              if (gatheringKey && !sessionsByGathering.has(gatheringKey)) {
+                // Keep the first session for each gathering (they all have the same gathering info)
+                sessionsByGathering.set(gatheringKey, s);
+              }
+            });
+            
+            gatheringSessions = Array.from(sessionsByGathering.values());
           }
         } catch (err) {
           console.warn('Error loading gathering sessions:', err);
