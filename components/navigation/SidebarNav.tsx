@@ -762,11 +762,11 @@ export function SidebarNav() {
                     Learner Communities
                   </span>
                 </Link>
-                {/* Learner Quests - same size as skills */}
+                {/* Learning Quests - same size as skills */}
                 <Link
                   href="/learner-quests"
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
-                  title="Learner Quests"
+                  title="Learning Quests"
                 >
                   <span className="text-lg flex-shrink-0">📚</span>
                   <span
@@ -775,7 +775,7 @@ export function SidebarNav() {
                       lineHeight: '1.3',
                     }}
                   >
-                    Learner Quests
+                    Learning Quests
                   </span>
                 </Link>
               </div>

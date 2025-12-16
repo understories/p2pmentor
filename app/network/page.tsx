@@ -508,7 +508,7 @@ export default function NetworkPage() {
             href="/learner-quests"
             className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
           >
-            Learner Quests
+            Learning Quests
           </Link>
         </div>
 

@@ -675,7 +675,7 @@ export default function MePage() {
                 href="/learner-quests"
                 className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
               >
-                Learner Quests
+                Learning Quests
               </Link>
             </div>
           )}
@@ -858,9 +858,12 @@ export default function MePage() {
               >
                 🔍 Explore Other Skills
               </Link>
-              <div className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-50 cursor-not-allowed text-center">
-                Learning Quests (Coming Soon)
-              </div>
+              <Link
+                href="/learner-quests"
+                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                Learning Quests
+              </Link>
             </div>
           )}
         </div>
