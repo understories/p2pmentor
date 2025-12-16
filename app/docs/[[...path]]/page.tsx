@@ -331,7 +331,7 @@ export default function DocsPage() {
         {/* Mobile menu button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg"
           aria-label="Toggle navigation"
         >
           <svg
@@ -351,10 +351,10 @@ export default function DocsPage() {
         {/* Sidebar */}
         <aside
           className={`
-            w-64 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 p-4 overflow-y-auto
+            w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 overflow-y-auto
             fixed left-0 top-0 bottom-0 z-40
             transition-transform duration-300 ease-in-out
-            md:translate-x-0
+            md:translate-x-0 md:bg-gray-50 md:dark:bg-gray-950
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           `}
         >
