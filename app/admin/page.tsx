@@ -10,6 +10,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 
 interface PerfSummary {
   graphql?: {
@@ -117,6 +120,7 @@ interface GraphQLFlagsResponse {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [perfSummary, setPerfSummary] = useState<PerfSummary | null>(null);
@@ -525,79 +529,103 @@ export default function AdminDashboard() {
                     {testMethod === 'arkiv' ? 'Arkiv' : testMethod === 'graphql' ? 'GraphQL' : 'Both'}
                   </button>
                 </div>
-                <button
-                  onClick={async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    if (testingPerformance) {
-                      console.log('[Admin] Test already in progress');
-                      return;
-                    }
-                    
-                    setTestingPerformance(true);
-                    console.log('[Admin] Starting performance test with method:', testMethod);
-                    
-                    try {
-                      const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
-                      console.log('[Admin] Performance test response status:', res.status);
+                <ArkivQueryTooltip
+                  query={[
+                    `GET /api/admin/perf-samples?seed=true&method=${testMethod}`,
+                    'Creates: type="perf_sample" entities',
+                    'Attributes: operation, method, timestamp, spaceId',
+                    'Payload: durationMs, payloadBytes, httpRequests, page',
+                    'TTL: 90 days (7776000 seconds)',
+                    'Creates parallel: perf_sample_txhash entities'
+                  ]}
+                  label="Test Query Performance Action"
+                >
+                  <button
+                    onClick={async (e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
                       
-                      if (!res.ok) {
-                        const errorText = await res.text();
-                        throw new Error(`HTTP ${res.status}: ${errorText}`);
+                      if (testingPerformance) {
+                        console.log('[Admin] Test already in progress');
+                        return;
                       }
                       
-                      const data = await res.json();
-                      console.log('[Admin] Performance test data:', data);
+                      setTestingPerformance(true);
+                      console.log('[Admin] Starting performance test with method:', testMethod);
                       
-                      if (data.success) {
-                        // Refresh performance data after test
-                        const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
-                        const summaryData = await summaryRes.json();
-                        console.log('[Admin] Summary data:', summaryData);
-                        if (summaryData) {
-                          setPerfSummary(summaryData);
+                      try {
+                        const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
+                        console.log('[Admin] Performance test response status:', res.status);
+
+                        if (!res.ok) {
+                          const errorText = await res.text();
+                          throw new Error(`HTTP ${res.status}: ${errorText}`);
                         }
-                        // Also refresh samples list
-                        const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
-                        const samplesData = await samplesRes.json();
-                        console.log('[Admin] Samples data:', samplesData);
-                        if (samplesData.samples) {
-                          setPerfSamples(samplesData.samples);
+
+                        const data = await res.json();
+                        console.log('[Admin] Performance test data:', data);
+
+                        if (data.success) {
+                          // Refresh performance data after test
+                          const summaryRes = await fetch('/api/admin/perf-samples?summary=true&summaryOperation=buildNetworkGraphData');
+                          const summaryData = await summaryRes.json();
+                          console.log('[Admin] Summary data:', summaryData);
+                          if (summaryData) {
+                            setPerfSummary(summaryData);
+                          }
+                          // Also refresh samples list
+                          const samplesRes = await fetch('/api/admin/perf-samples?limit=10');
+                          const samplesData = await samplesRes.json();
+                          console.log('[Admin] Samples data:', samplesData);
+                          if (samplesData.samples) {
+                            setPerfSamples(samplesData.samples);
+                          }
+                          alert(`Performance test completed! ${data.entitiesCreated} entities created. Check Mendoza explorer to verify.`);
+                        } else {
+                          alert(`Test failed: ${data.error || 'Unknown error'}`);
                         }
-                        alert(`Performance test completed! ${data.entitiesCreated} entities created. Check Mendoza explorer to verify.`);
-                      } else {
-                        alert(`Test failed: ${data.error || 'Unknown error'}`);
+                      } catch (err: any) {
+                        console.error('[Admin] Error running performance test:', err);
+                        alert(`Failed to run performance test: ${err.message || 'Unknown error'}`);
+                      } finally {
+                        setTestingPerformance(false);
                       }
-                    } catch (err: any) {
-                      console.error('[Admin] Error running performance test:', err);
-                      alert(`Failed to run performance test: ${err.message || 'Unknown error'}`);
-                    } finally {
-                      setTestingPerformance(false);
-                    }
-                  }}
-                  disabled={testingPerformance}
-                  className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
-                    testingPerformance 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                    }}
+                    disabled={testingPerformance}
+                    className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                      testingPerformance
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-blue-600 hover:bg-blue-700'
-                  }`}
-                  title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
+                    }`}
+                    title={`Test query performance using ${testMethod === 'both' ? 'both Arkiv and GraphQL' : testMethod === 'graphql' ? 'GraphQL' : 'Arkiv JSON-RPC'} methods. Results will appear in the dashboard.`}
+                  >
+                    {testingPerformance ? 'Testing...' : 'Test Query Performance'}
+                  </button>
+                </ArkivQueryTooltip>
+                <ArkivQueryTooltip
+                  query={[
+                    'POST /api/admin/perf-snapshots',
+                    'Creates: type="perf_snapshot" entity',
+                    'Attributes: operation, method, timestamp, spaceId',
+                    'Payload: graphql metrics, arkiv metrics, pageLoadTimes',
+                    'TTL: 1 year (31536000 seconds)',
+                    'Creates parallel: perf_snapshot_txhash entity'
+                  ]}
+                  label="Create Snapshot Action"
                 >
-                  {testingPerformance ? 'Testing...' : 'Test Query Performance'}
-                </button>
-                <button
-                  onClick={(e) => handleCreateSnapshot(e)}
-                  disabled={creatingSnapshot}
-                  className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
-                    creatingSnapshot 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                  <button
+                    onClick={(e) => handleCreateSnapshot(e)}
+                    disabled={creatingSnapshot}
+                    className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                      creatingSnapshot
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-green-600 hover:bg-green-700'
-                  }`}
-                  title="Create a snapshot of current performance data for historical comparison"
-                >
-                  {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
-                </button>
+                    }`}
+                    title="Create a snapshot of current performance data for historical comparison"
+                  >
+                    {creatingSnapshot ? 'Creating...' : 'Create Snapshot'}
+                  </button>
+                </ArkivQueryTooltip>
                 {lastSnapshotCheck && lastSnapshotCheck.shouldCreate && (
                   <span className="text-xs text-amber-600 dark:text-amber-400 px-2 py-1 bg-amber-50 dark:bg-amber-900/20 rounded">
                     Auto-snapshot due (last: {lastSnapshotCheck.hoursAgo?.toFixed(1)}h ago)
@@ -755,13 +783,23 @@ export default function AdminDashboard() {
             {queryPerformanceExpanded && (
             <div className="p-6">
             {perfSummary ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {perfSummary.graphql && (
-                    <div>
-                      <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">
-                        GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={perfSummary.graphql.samples})</span>
-                      </h3>
+              <ArkivQueryTooltip
+                query={[
+                  'GET /api/admin/perf-samples?summary=true',
+                  'Query: listPerfSamples({ summary: true })',
+                  'Returns: PerfSummary with aggregated metrics',
+                  'Entity Type: perf_sample',
+                  'TTL: 90 days'
+                ]}
+                label="Performance Summary Data"
+              >
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {perfSummary.graphql && (
+                      <div>
+                        <h3 className="font-medium mb-2 text-gray-900 dark:text-gray-50">
+                          GraphQL <span className="text-xs font-normal text-gray-500 dark:text-gray-400">(n={perfSummary.graphql.samples})</span>
+                        </h3>
                       <div className="space-y-1 text-sm">
                         <div>Avg Duration: {perfSummary.graphql.avgDurationMs.toFixed(2)}ms</div>
                         <div>Avg Payload: {perfSummary.graphql.avgPayloadBytes ? (perfSummary.graphql.avgPayloadBytes / 1024).toFixed(2) : 'N/A'} KB</div>
@@ -813,6 +851,7 @@ export default function AdminDashboard() {
                   )}
                 </div>
               </div>
+              </ArkivQueryTooltip>
             ) : (
               <p className="text-gray-600 dark:text-gray-400">No performance data yet. Metrics will appear as requests are made.</p>
             )}
@@ -932,52 +971,61 @@ export default function AdminDashboard() {
             </div>
             {recentSamplesExpanded && (
             <div className="p-6">
-            <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-              {perfSamples.length > 0 ? (
-                <table className="w-full">
-                  <thead className="bg-gray-100 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Source</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Operation</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Duration (ms)</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Payload (KB)</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">HTTP Req</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Verify</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {perfSamples.slice(0, 10).map((sample, idx) => (
-                      <tr key={idx} className="border-t border-gray-200 dark:border-gray-700">
-                        <td className="px-4 py-2 text-sm font-mono text-xs">{sample.source}</td>
-                        <td className="px-4 py-2 text-sm font-mono text-xs">{sample.operation}</td>
-                        <td className="px-4 py-2 text-sm">{sample.durationMs}</td>
-                        <td className="px-4 py-2 text-sm">{sample.payloadBytes ? (sample.payloadBytes / 1024).toFixed(2) : 'N/A'}</td>
-                        <td className="px-4 py-2 text-sm">{sample.httpRequests || 'N/A'}</td>
-                        <td className="px-4 py-2 text-sm">
-                          {sample.txHash ? (
-                            <a
-                              href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${sample.txHash}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:underline"
-                              title="Verify on-chain"
-                            >
-                              🔗
-                            </a>
-                          ) : (
-                            <span className="text-gray-400" title="Not stored on-chain">—</span>
-                          )}
-                        </td>
+            <ArkivQueryTooltip
+              query={[
+                'GET /api/admin/perf-samples?limit=20',
+                'Query: listPerfSamples({ limit: 20 })',
+                'Returns: PerfSample[]',
+                'Entity Type: perf_sample',
+                'TTL: 90 days'
+              ]}
+              label="Recent Performance Samples Query"
+            >
+              <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                {perfSamples.length > 0 ? (
+                  <table className="w-full">
+                    <thead className="bg-gray-100 dark:bg-gray-800">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Source</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Operation</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Duration (ms)</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Payload (KB)</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">HTTP Req</th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-gray-700 dark:text-gray-300">Verify</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <div className="p-6 text-gray-600 dark:text-gray-400 text-sm">
-                  No performance samples yet. Metrics will appear as requests are made.
-                </div>
-              )}
-            </div>
+                    </thead>
+                    <tbody>
+                      {perfSamples.slice(0, 10).map((sample, idx) => (
+                        <tr key={idx} className="border-t border-gray-200 dark:border-gray-700">
+                          <td className="px-4 py-2 text-sm font-mono text-xs">{sample.source}</td>
+                          <td className="px-4 py-2 text-sm font-mono text-xs">{sample.operation}</td>
+                          <td className="px-4 py-2 text-sm">{sample.durationMs}</td>
+                          <td className="px-4 py-2 text-sm">{sample.payloadBytes ? (sample.payloadBytes / 1024).toFixed(2) : 'N/A'}</td>
+                          <td className="px-4 py-2 text-sm">{sample.httpRequests || 'N/A'}</td>
+                          <td className="px-4 py-2 text-sm">
+                            {sample.txHash ? (
+                              <ViewOnArkivLink
+                                txHash={sample.txHash}
+                                entityKey={sample.key}
+                                label=""
+                                icon=""
+                                className="text-xs"
+                              />
+                            ) : (
+                              <span className="text-gray-400" title="Not stored on-chain">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <div className="p-6 text-gray-600 dark:text-gray-400 text-sm">
+                    No performance samples yet. Metrics will appear as requests are made.
+                  </div>
+                )}
+              </div>
+            </ArkivQueryTooltip>
             </div>
             )}
           </div>
@@ -1004,9 +1052,19 @@ export default function AdminDashboard() {
             <div className="p-6">
             <div className="bg-white dark:bg-gray-700 rounded-lg p-6 border border-gray-200 dark:border-gray-600">
               {snapshots.length > 0 ? (
-                <div className="space-y-4">
-                  {snapshots.map((snapshot, idx) => (
-                    <div key={snapshot.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
+                <ArkivQueryTooltip
+                  query={[
+                    'GET /api/admin/perf-snapshots?limit=20',
+                    'Query: listPerfSnapshots({ limit: 20 })',
+                    'Returns: PerfSnapshot[]',
+                    'Entity Type: perf_snapshot',
+                    'TTL: 1 year'
+                  ]}
+                  label="Performance Snapshots Query"
+                >
+                  <div className="space-y-4">
+                    {snapshots.map((snapshot, idx) => (
+                      <div key={snapshot.key} className="border-b border-gray-200 dark:border-gray-700 last:border-0 pb-4 last:pb-0">
                       <div className="flex items-center justify-between mb-3">
                         <div>
                           <div className="font-medium text-gray-900 dark:text-gray-50">
@@ -1030,14 +1088,11 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         {snapshot.txHash && (
-                          <a
-                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${snapshot.txHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                          >
-                            🔗 Verify
-                          </a>
+                          <ViewOnArkivLink
+                            txHash={snapshot.txHash}
+                            entityKey={snapshot.key}
+                            label="View on Arkiv"
+                          />
                         )}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -1095,7 +1150,8 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   ))}
-                </div>
+                  </div>
+                </ArkivQueryTooltip>
               ) : (
                 <p className="text-gray-600 dark:text-gray-400 text-sm">No snapshots yet. Create one to start tracking performance over time.</p>
               )}
@@ -1160,10 +1216,21 @@ export default function AdminDashboard() {
                   All metrics stored as Arkiv entities for transparency.
                 </p>
                 {clientPerfLoading ? (
-                  <div className="text-center py-4">
-                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading metrics...</p>
-                  </div>
+                  <ArkivQueryTooltip
+                    query={[
+                      'GET /api/client-perf?limit=50',
+                      'Query: listClientPerfMetrics({ limit: 50 })',
+                      'Returns: ClientPerfMetric[]',
+                      'Entity Type: client_perf_metric',
+                      'TTL: 90 days'
+                    ]}
+                    label="Client Performance Query"
+                  >
+                    <div className="text-center py-4">
+                      <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading metrics...</p>
+                    </div>
+                  </ArkivQueryTooltip>
                 ) : clientPerfData.length > 0 ? (
                   <div className="space-y-4">
                     {/* Summary Stats */}
@@ -1454,10 +1521,21 @@ export default function AdminDashboard() {
                   Weekly cohorts computed via Vercel Cron.
                 </p>
                 {retentionLoading ? (
-                  <div className="text-center py-4">
-                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading retention data...</p>
-                  </div>
+                  <ArkivQueryTooltip
+                    query={[
+                      'GET /api/admin/retention-cohorts?limit=20&period=weekly',
+                      'Query: listRetentionCohorts({ limit: 20, period: "weekly" })',
+                      'Returns: RetentionCohort[]',
+                      'Entity Type: retention_cohort',
+                      'TTL: Permanent (no expiration)'
+                    ]}
+                    label="Retention Cohorts Query"
+                  >
+                    <div className="text-center py-4">
+                      <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading retention data...</p>
+                    </div>
+                  </ArkivQueryTooltip>
                 ) : retentionData.length > 0 ? (
                   <div className="space-y-4">
                     {/* Cohort Table */}
@@ -1549,10 +1627,21 @@ export default function AdminDashboard() {
                   Computed daily via Vercel Cron.
                 </p>
                 {aggregatesLoading ? (
-                  <div className="text-center py-4">
-                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading aggregates...</p>
-                  </div>
+                  <ArkivQueryTooltip
+                    query={[
+                      'GET /api/admin/metric-aggregates?limit=50&period=daily',
+                      'Query: listMetricAggregates({ limit: 50, period: "daily" })',
+                      'Returns: MetricAggregate[]',
+                      'Entity Type: metric_aggregate',
+                      'TTL: Permanent (no expiration)'
+                    ]}
+                    label="Metric Aggregates Query"
+                  >
+                    <div className="text-center py-4">
+                      <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading aggregates...</p>
+                    </div>
+                  </ArkivQueryTooltip>
                 ) : aggregatesData.length > 0 ? (
                   <div className="space-y-4">
                     {/* Aggregates Table */}
@@ -1644,10 +1733,21 @@ export default function AdminDashboard() {
                   Expires after 90 days.
                 </p>
                 {navigationMetricsLoading ? (
-                  <div className="text-center py-4">
-                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading navigation metrics...</p>
-                  </div>
+                  <ArkivQueryTooltip
+                    query={[
+                      'GET /api/admin/navigation-metrics?limit=100',
+                      'Query: listNavigationMetrics({ limit: 100 })',
+                      'Returns: NavigationMetric[]',
+                      'Entity Type: navigation_metric',
+                      'TTL: 90 days'
+                    ]}
+                    label="Navigation Metrics Query"
+                  >
+                    <div className="text-center py-4">
+                      <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading navigation metrics...</p>
+                    </div>
+                  </ArkivQueryTooltip>
                 ) : navigationMetricsData.length > 0 ? (
                   <div className="space-y-4">
                     {/* Aggregate summary */}
@@ -1884,7 +1984,20 @@ export default function AdminDashboard() {
                               const totalCount = metric.aggregates.reduce((sum: number, agg: { pattern: string; count: number }) => sum + agg.count, 0);
                               return (
                                 <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                  <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{metric.page || '-'}</td>
+                                  <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">
+                                    <div className="flex items-center gap-2">
+                                      <span>{metric.page || '-'}</span>
+                                      {metric.txHash && (
+                                        <ViewOnArkivLink
+                                          txHash={metric.txHash}
+                                          entityKey={metric.key}
+                                          label=""
+                                          icon=""
+                                          className="text-xs"
+                                        />
+                                      )}
+                                    </div>
+                                  </td>
                                   <td className="px-3 py-2 text-xs">
                                     <details className="cursor-pointer">
                                       <summary className="text-blue-600 dark:text-blue-400 hover:underline">
@@ -1988,6 +2101,15 @@ export default function AdminDashboard() {
                                 <span key={i}>★</span>
                               ))}
                             </span>
+                          )}
+                          {feedback.txHash && (
+                            <ViewOnArkivLink
+                              txHash={feedback.txHash}
+                              entityKey={feedback.key}
+                              label=""
+                              icon=""
+                              className="ml-2"
+                            />
                           )}
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
