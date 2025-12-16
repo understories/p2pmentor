@@ -686,6 +686,60 @@ export function SidebarNav() {
                     Public Board
                   </span>
                 </Link>
+                {/* Browse Profiles - same size as skills */}
+                <Link
+                  href="/profiles"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  title="Browse Profiles"
+                >
+                  <span className="text-lg flex-shrink-0">👤</span>
+                  <span
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    style={{
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.3',
+                    }}
+                  >
+                    Browse Profiles
+                  </span>
+                </Link>
+                {/* Learner Communities - same size as skills */}
+                <Link
+                  href="/skills/explore"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  title="Learner Communities"
+                >
+                  <span className="text-lg flex-shrink-0">🌱</span>
+                  <span
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    style={{
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.3',
+                    }}
+                  >
+                    Learner Communities
+                  </span>
+                </Link>
+                {/* Learner Quests - same size as skills */}
+                <Link
+                  href="/learner-quests"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  title="Learner Quests"
+                >
+                  <span className="text-lg flex-shrink-0">📚</span>
+                  <span
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    style={{
+                      wordBreak: 'break-word',
+                      overflowWrap: 'break-word',
+                      lineHeight: '1.3',
+                    }}
+                  >
+                    Learner Quests
+                  </span>
+                </Link>
               </div>
             </div>
           );
