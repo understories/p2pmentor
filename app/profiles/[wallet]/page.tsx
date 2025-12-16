@@ -879,18 +879,67 @@ export default function ProfileDetailPage() {
               {/* Stats */}
               {(sessionsCompleted > 0 || sessionsGiven > 0 || sessionsReceived > 0) && (
                 <div className="mb-6 grid grid-cols-3 gap-4">
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
-                  </div>
-                  <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
-                  </div>
-                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
-                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
-                  </div>
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listSessionsForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                        `Filtered: status='completed'`,
+                        `Returns: ${sessionsCompleted} completed sessions`
+                      ]}
+                      label="Completed Sessions"
+                    >
+                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
+                    </div>
+                  )}
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listSessionsForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='session', mentorWallet='${wallet.toLowerCase()}'`,
+                        `Returns: ${sessionsGiven} sessions given as mentor`
+                      ]}
+                      label="Sessions Given"
+                    >
+                      <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
+                    </div>
+                  )}
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listSessionsForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='session', learnerWallet='${wallet.toLowerCase()}'`,
+                        `Returns: ${sessionsReceived} sessions received as learner`
+                      ]}
+                      label="Sessions Received"
+                    >
+                      <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
+                    </div>
+                  )}
                 </div>
               )}
 
