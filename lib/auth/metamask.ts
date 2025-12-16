@@ -14,6 +14,7 @@ import {
 } from "@arkiv-network/sdk";
 import { mendoza } from "@arkiv-network/sdk/chains";
 import "viem/window";
+import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
 
 /**
  * Switch to Mendoza chain in MetaMask
@@ -94,17 +95,40 @@ export async function disconnectWallet(): Promise<void> {
 
 /**
  * Connect to MetaMask and return the connected wallet address
- * 
+ *
  * Automatically switches to Mendoza testnet chain.
+ * Uses MetaMask SDK for mobile support, falls back to direct window.ethereum for desktop.
  * Forces account selection by revoking existing permissions first (if any),
  * then requesting permissions, which ensures the account selection dialog appears.
- * 
+ *
  * @returns Wallet address (0x... format)
  * @throws Error if MetaMask is not installed
- * 
+ *
  * Reference: refs/mentor-graph/src/wallet.ts
+ * Reference: refs/metamask-mobile-integration-plan.md
  */
 export async function connectWallet(): Promise<`0x${string}`> {
+  // Try SDK first (works on both desktop and mobile)
+  if (isSDKAvailable()) {
+    try {
+      const address = await connectWithSDK();
+      // Switch to Mendoza chain after connection
+      if (window.ethereum) {
+        try {
+          await switchToMendozaChain();
+        } catch (error) {
+          // Chain switching is not critical - user can switch manually
+          console.warn('Failed to switch to Mendoza chain:', error);
+        }
+      }
+      return address;
+    } catch (error) {
+      // SDK failed - fall back to direct window.ethereum (desktop extension)
+      console.warn('MetaMask SDK connection failed, falling back to direct connection:', error);
+    }
+  }
+
+  // Fallback to direct window.ethereum (desktop extension)
   if (!window.ethereum) {
     throw new Error("MetaMask not installed");
   }
@@ -115,10 +139,10 @@ export async function connectWallet(): Promise<`0x${string}`> {
   // Check if we have a stored wallet address in localStorage
   // If not, this is a fresh login, so we should revoke permissions first
   // to ensure account selection dialog appears
-  const storedWallet = typeof window !== 'undefined' 
-    ? localStorage.getItem('wallet_address') 
+  const storedWallet = typeof window !== 'undefined'
+    ? localStorage.getItem('wallet_address')
     : null;
-  
+
   if (!storedWallet) {
     // Fresh login - revoke existing permissions to force account selection
     try {
