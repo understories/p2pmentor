@@ -250,7 +250,7 @@ export function SidebarNav() {
     <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30 transition-all duration-300 ease-out overflow-hidden bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
       {/* Visual indicator - vertical line with emerald glow */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      <div className="relative flex flex-col items-start h-full w-full px-3 min-w-[224px] overflow-y-auto overflow-x-hidden">
+      <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-hidden transition-all duration-300">
         <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
         {/* Constellation Lines */}
         <ConstellationLines
@@ -274,7 +274,7 @@ export function SidebarNav() {
                 href={item.href}
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 px-3
+                  w-full py-2.5 px-1 group-hover:px-3
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${active
@@ -304,7 +304,7 @@ export function SidebarNav() {
                   }
                 }}
               >
-              <span className="relative text-xl flex-shrink-0">
+              <span className="relative text-xl flex-shrink-0 flex items-center justify-center w-4">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -365,7 +365,7 @@ export function SidebarNav() {
                 href="/me/sessions"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 px-3
+                  w-full py-2.5 px-1 group-hover:px-3
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/me/sessions')
@@ -379,7 +379,7 @@ export function SidebarNav() {
                   boxShadow: `0 0 8px ${navTokens.node.hover.glow}`,
                 } : undefined}
               >
-                <span className="text-xl flex-shrink-0 relative">
+                <span className="text-xl flex-shrink-0 relative flex items-center justify-center w-4">
                   📅
                   {pendingConfirmationsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
@@ -474,7 +474,7 @@ export function SidebarNav() {
                           className="flex flex-row items-center gap-2 p-2 rounded-lg"
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
-                          <span className="text-base flex-shrink-0">📖</span>
+                          <span className="text-base flex-shrink-0 flex items-center justify-center w-4">📖</span>
                           <div className="flex flex-col gap-0.5">
                             <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {skillName}
@@ -517,7 +517,7 @@ export function SidebarNav() {
               href="/network"
               className={`
                 relative flex flex-row items-center gap-3
-                w-full py-2.5 px-3
+                w-full py-2.5 px-1 group-hover:px-3
                 rounded-lg
                 transition-all duration-150 ease-out
                 ${isActive('/network')
@@ -526,7 +526,7 @@ export function SidebarNav() {
                 }
               `}
             >
-              <span className="text-xl flex-shrink-0">🌐</span>
+              <span className="text-xl flex-shrink-0 flex items-center justify-center w-4">🌐</span>
               <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
               {isActive('/network') && (
                 <div 
@@ -559,7 +559,7 @@ export function SidebarNav() {
                 `}
                 title="Asks"
               >
-                <span className="text-base flex-shrink-0">🎓</span>
+                <span className="text-base flex-shrink-0 flex items-center justify-center w-4">🎓</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5">Asks</span>
                 {isActive('/asks') && (
                   <div 
@@ -585,7 +585,7 @@ export function SidebarNav() {
                 `}
                 title="Offers"
               >
-                <span className="text-base flex-shrink-0">💎</span>
+                <span className="text-base flex-shrink-0 flex items-center justify-center w-4">💎</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5">Offers</span>
                 {isActive('/offers') && (
                   <div 
@@ -611,7 +611,7 @@ export function SidebarNav() {
                 `}
                 title="Matches"
               >
-                <span className="text-base flex-shrink-0">✨</span>
+                <span className="text-base flex-shrink-0 flex items-center justify-center w-4">✨</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5">Matches</span>
                 {isActive('/matches') && (
                   <div 
@@ -666,7 +666,7 @@ export function SidebarNav() {
                     const skillTitle = `${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`;
                     const skillContent = (
                       <>
-                        <span className="text-lg flex-shrink-0">
+                        <span className="text-lg flex-shrink-0 flex items-center justify-center w-4">
                           {levelToEmoji(skill.level)}
                         </span>
                         <span 
@@ -720,8 +720,8 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
                   title="Public Garden Board"
                 >
-                  <span className="text-lg flex-shrink-0">💌</span>
-                  <span
+                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4">💌</span>
+                  <span 
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
@@ -736,7 +736,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Browse Profiles"
                 >
-                  <span className="text-lg flex-shrink-0">👤</span>
+                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4">👤</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -752,7 +752,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learner Communities"
                 >
-                  <span className="text-lg flex-shrink-0">🌱</span>
+                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4">🌱</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -768,7 +768,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learning Quests"
                 >
-                  <span className="text-lg flex-shrink-0">📚</span>
+                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4">📚</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -790,7 +790,7 @@ export function SidebarNav() {
               href="/notifications"
               className={`
                 relative flex flex-row items-center gap-3
-                w-full py-2.5 px-3
+                w-full py-2.5 px-1 group-hover:px-3
                 rounded-lg
                 transition-all duration-150 ease-out
                 ${isActive('/notifications')
@@ -799,7 +799,7 @@ export function SidebarNav() {
                 }
               `}
             >
-              <span className="relative text-xl flex-shrink-0">
+              <span className="relative text-xl flex-shrink-0 flex items-center justify-center w-4">
                 🔔
                 {notificationCount !== null && notificationCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -855,7 +855,7 @@ export function SidebarNav() {
                   window.location.href = '/auth';
                 }
               }}
-              className="w-full flex flex-row items-center gap-3 py-2.5 px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
+              className="w-full flex flex-row items-center gap-3 py-2.5 px-1 group-hover:px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
               title="Disconnect wallet and logout"
             >
               <span className="text-xl flex-shrink-0">⚡</span>
