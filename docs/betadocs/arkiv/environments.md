@@ -2,7 +2,7 @@
 
 ## Overview
 
-p2pmentor uses a single signing wallet (configured via `ARKIV_PRIVATE_KEY`) to sign all server-side entity creation transactions. Changing the private key creates a different signing wallet, which effectively creates a separate data environment on Arkiv.
+p2pmentor uses a single signing wallet (configured via `ARKIV_PRIVATE_KEY`) to sign all server-side entity creation transactions. For data isolation between environments, use `spaceId` attributes on entities, not different signing wallets.
 
 ## How It Works
 
@@ -55,81 +55,137 @@ The signing wallet address is not used in queries. All queries filter by the `wa
 
 ## Creating Different Environments
 
-### Changing the Signing Wallet
+### Use SpaceId for Data Isolation
 
-To create a separate data environment:
+**Important:** Changing the signing wallet does NOT provide data isolation. Queries filter by entity attributes (like `spaceId` and `wallet`), not by which wallet signed the transaction.
 
-1. Set a different `ARKIV_PRIVATE_KEY` environment variable
-2. This creates a different signing wallet address
-3. All new entities are signed by this new wallet
-4. Existing entities remain on Arkiv (signed by previous wallet)
-5. Queries continue to work because they filter by user wallet addresses
-
-### Data Isolation
-
-Different signing wallets create separate transaction histories:
-
-- Entities signed by wallet A are separate from entities signed by wallet B
-- Both sets of entities exist on Arkiv simultaneously
-- Queries return entities based on user wallet addresses, regardless of signing wallet
-- No data is lost or overwritten
-
-### Use Cases
+To create separate data environments, use different `spaceId` values:
 
 **Development Environment:**
 ```bash
-ARKIV_PRIVATE_KEY=0xdev123... npm run dev
-```
-
-**Staging Environment:**
-```bash
-ARKIV_PRIVATE_KEY=0xstaging456... npm run build
+BETA_SPACE_ID=local-dev npm run dev
 ```
 
 **Production Environment:**
 ```bash
-ARKIV_PRIVATE_KEY=0xprod789... npm run build
+BETA_SPACE_ID=beta-launch npm run build
 ```
 
-Each environment uses a different signing wallet, creating separate entity sets on Arkiv.
+**Seed/Example Data:**
+```bash
+BETA_SPACE_ID=local-dev-seed npm run seed
+```
+
+Each environment uses a different `spaceId`, and queries filter by `spaceId` to show only relevant data.
+
+### Why SpaceId, Not Signing Wallet?
+
+**Signing Wallet:**
+- Only used to sign transactions (technical detail)
+- Not stored in entity attributes
+- Not used in queries
+- Changing it doesn't hide old data
+
+**SpaceId:**
+- Stored as an attribute on every entity
+- Can be filtered in queries
+- Provides real data isolation
+- Changing it effectively creates separate environments
+
+### Example: The Difference
+
+**Scenario:** You want to separate development data from production data.
+
+**❌ Wrong Approach (Changing Signing Wallet):**
+```bash
+# Development
+ARKIV_PRIVATE_KEY=0xdev123... npm run dev
+# Creates entities signed by wallet 0xdev123...
+
+# Production
+ARKIV_PRIVATE_KEY=0xprod789... npm run build
+# Creates entities signed by wallet 0xprod789...
+```
+
+**Problem:** Queries still return ALL entities because they don't filter by signing wallet:
+```typescript
+const profiles = await listUserProfiles();
+// Returns ALL profiles (dev + prod), regardless of signing wallet
+```
+
+**✅ Correct Approach (Using SpaceId):**
+```bash
+# Development
+BETA_SPACE_ID=local-dev npm run dev
+# Creates entities with spaceId: 'local-dev'
+
+# Production
+BETA_SPACE_ID=beta-launch npm run build
+# Creates entities with spaceId: 'beta-launch'
+```
+
+**Solution:** Queries filter by `spaceId`:
+```typescript
+const profiles = await listUserProfiles({ spaceId: 'beta-launch' });
+// Returns ONLY profiles with spaceId: 'beta-launch'
+```
+
+### Changing the Signing Wallet
+
+Changing `ARKIV_PRIVATE_KEY` creates a different signing wallet, but this does NOT provide data isolation:
+
+1. Different signing wallets create separate transaction histories on Arkiv
+2. Queries still return all entities (they filter by `spaceId` and `wallet`, not signing wallet)
+3. Old entities remain visible because queries don't filter by signing wallet
+4. Use `spaceId` instead for data isolation
+
+**When to change signing wallet:**
+- Security rotation (mainnet)
+- Separate transaction cost tracking
+- Auditing which wallet signed specific transactions
+
+**Not for:**
+- Data isolation (use `spaceId`)
+- Environment separation (use `spaceId`)
+- Hiding development data (use `spaceId`)
 
 ## Seeding Data
 
 ### Seed Scripts
 
-Seed scripts use the signing wallet to create initial data:
+Seed scripts use the signing wallet to create initial data, but use `spaceId` to separate seeds:
 
 ```typescript
 // scripts/seed-learner-quest.ts
 const privateKey = getPrivateKey(); // From ARKIV_PRIVATE_KEY
 await createLearnerQuest({
   questId: 'web3privacy_foundations',
+  spaceId: 'local-dev-seed', // Use spaceId to separate seed data
   // ...
   privateKey,
 });
 ```
 
-Running seed scripts with different `ARKIV_PRIVATE_KEY` values creates quest entities signed by different wallets, effectively creating separate data seeds.
-
 ### Multiple Seeds
 
-You can maintain multiple data seeds:
+You can maintain multiple data seeds using different `spaceId` values:
 
-1. **Seed A**: `ARKIV_PRIVATE_KEY=0xseedA...` → Creates entities signed by wallet A
-2. **Seed B**: `ARKIV_PRIVATE_KEY=0xseedB...` → Creates entities signed by wallet B
-3. **Seed C**: `ARKIV_PRIVATE_KEY=0xseedC...` → Creates entities signed by wallet C
+1. **Seed A**: `BETA_SPACE_ID=seed-a` → Creates entities with `spaceId: 'seed-a'`
+2. **Seed B**: `BETA_SPACE_ID=seed-b` → Creates entities with `spaceId: 'seed-b'`
+3. **Production**: `BETA_SPACE_ID=beta-launch` → Creates entities with `spaceId: 'beta-launch'`
 
-All seeds coexist on Arkiv. Users see the same data because queries filter by user wallet addresses, not signing wallet.
+All seeds coexist on Arkiv. Queries filter by `spaceId` to show only the relevant seed data.
 
 ## Important Considerations
 
 ### Space ID
 
-Currently, all entities use `spaceId: 'local-dev'`. This is separate from the signing wallet:
+All entities include a `spaceId` attribute. This is the primary mechanism for data isolation:
 
-- Different signing wallets can use the same `spaceId`
-- `spaceId` provides additional data isolation if needed
-- Future versions may support multiple `spaceId` values
+- `spaceId` is stored as an attribute on every entity
+- Queries can filter by `spaceId` to show only relevant data
+- Different environments should use different `spaceId` values
+- The signing wallet is independent of `spaceId` (just signs transactions)
 
 ### User Wallet Addresses
 
@@ -173,12 +229,32 @@ Queries filter by entity attributes (user wallet, type, etc.), not by signing wa
 
 ## Summary
 
+### For Data Isolation: Use SpaceId
+
+- Different `BETA_SPACE_ID` values create separate data environments
+- Queries filter by `spaceId` attribute to show only relevant data
+- Changing `spaceId` effectively creates a new data environment
+- All entity sets coexist on Arkiv, but queries filter them by `spaceId`
+
+### Signing Wallet: Technical Detail Only
+
 - Different `ARKIV_PRIVATE_KEY` values create different signing wallets
-- Different signing wallets create separate transaction histories on Arkiv
-- Queries filter by user wallet addresses, not signing wallet
-- All entity sets coexist on Arkiv
-- Changing signing wallet creates a new data environment without affecting existing data
-- Seed scripts create initial data using the current signing wallet
+- Signing wallet is used to sign transactions (technical detail)
+- Signing wallet is NOT used in queries
+- Changing signing wallet does NOT provide data isolation
+- Use `spaceId` instead for environment separation
+
+### Best Practice
+
+**For environment separation:**
+- ✅ Use `BETA_SPACE_ID` environment variable
+- ✅ Set different `spaceId` values per environment
+- ✅ Queries filter by `spaceId` automatically
+
+**For signing transactions:**
+- Use `ARKIV_PRIVATE_KEY` (one wallet is sufficient)
+- Only change if needed for security rotation or cost tracking
+- Does not affect data visibility or isolation
 
 ## Related Documentation
 
