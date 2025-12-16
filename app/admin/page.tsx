@@ -148,6 +148,9 @@ export default function AdminDashboard() {
   const [aggregatesData, setAggregatesData] = useState<any[]>([]);
   const [aggregatesLoading, setAggregatesLoading] = useState(false);
   const [staticClientExpanded, setStaticClientExpanded] = useState(false);
+  const [betaCodeUsageExpanded, setBetaCodeUsageExpanded] = useState(false);
+  const [betaCodeUsageData, setBetaCodeUsageData] = useState<any>(null);
+  const [betaCodeUsageLoading, setBetaCodeUsageLoading] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [buildStatus, setBuildStatus] = useState<{ lastBuild?: string; fileCount?: number; entityCounts?: any } | null>(null);
 
@@ -211,6 +214,11 @@ export default function AdminDashboard() {
       const savedStaticClientExpanded = localStorage.getItem('admin_static_client_expanded');
       if (savedStaticClientExpanded !== null) {
         setStaticClientExpanded(savedStaticClientExpanded === 'true');
+      }
+
+      const savedBetaCodeUsageExpanded = localStorage.getItem('admin_beta_code_usage_expanded');
+      if (savedBetaCodeUsageExpanded !== null) {
+        setBetaCodeUsageExpanded(savedBetaCodeUsageExpanded === 'true');
       }
 
       // Fetch performance summary - get all operations aggregated by route for page-level view
@@ -1235,6 +1243,169 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 dark:text-gray-400">No client performance metrics available yet.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Beta Code Usage */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Beta Code Usage
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !betaCodeUsageExpanded;
+                  setBetaCodeUsageExpanded(newState);
+                  localStorage.setItem('admin_beta_code_usage_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && !betaCodeUsageData && !betaCodeUsageLoading) {
+                    setBetaCodeUsageLoading(true);
+                    fetch('/api/admin/beta-code-usage')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setBetaCodeUsageData(data);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch beta code usage:', err))
+                      .finally(() => setBetaCodeUsageLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {betaCodeUsageExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {betaCodeUsageExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Track beta code usage and limits. All data stored as Arkiv entities for transparency.
+                </p>
+                {betaCodeUsageLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading beta code usage...</p>
+                  </div>
+                ) : betaCodeUsageData ? (
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Codes</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalCodes}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Usage</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {betaCodeUsageData.summary.totalUsage} / {betaCodeUsageData.summary.totalLimit}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {betaCodeUsageData.summary.utilizationRate.toFixed(1)}% utilized
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Unique Wallets</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalWallets}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Available</div>
+                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">{betaCodeUsageData.summary.codesAvailable}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {betaCodeUsageData.summary.codesAtLimit} at limit
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Codes Table */}
+                    {betaCodeUsageData.codes && betaCodeUsageData.codes.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                          <thead className="bg-gray-100 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Code</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Usage</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Limit</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Status</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Wallets</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Created</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Verify</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {betaCodeUsageData.codes.map((code: any, idx: number) => {
+                              const usagePercent = code.limit > 0 ? (code.usageCount / code.limit) * 100 : 0;
+                              const isAtLimit = code.usageCount >= code.limit;
+                              return (
+                                <tr key={code.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                  <td className="px-3 py-2 font-mono text-xs font-medium">{code.code}</td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className={isAtLimit ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+                                        {code.usageCount}
+                                      </span>
+                                      <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                          className={`h-full ${
+                                            isAtLimit
+                                              ? 'bg-red-500'
+                                              : usagePercent > 80
+                                              ? 'bg-amber-500'
+                                              : 'bg-green-500'
+                                          }`}
+                                          style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">{code.limit}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      isAtLimit
+                                        ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                                        : usagePercent > 80
+                                        ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                                        : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                                    }`}>
+                                      {isAtLimit ? 'At Limit' : usagePercent > 80 ? 'Near Limit' : 'Available'}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                      {code.walletCount || 0} wallet{code.walletCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(code.createdAt).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {code.txHash ? (
+                                      <a
+                                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${code.txHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
+                                        title="Verify on-chain"
+                                      >
+                                        🔗
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">No beta codes found.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No beta code usage data available.</p>
                 )}
               </div>
             )}
