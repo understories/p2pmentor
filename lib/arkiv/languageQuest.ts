@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { getLearnerQuest } from "./learnerQuest";
 
 export type QuestionType = 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false' | 'sentence_order';
 
@@ -313,6 +314,292 @@ export function parseLanguageAssessmentQuest(quest: any): LanguageAssessmentQues
   } catch (error: any) {
     console.error('[parseLanguageAssessmentQuest] Error:', error);
     return null;
+  }
+}
+
+/**
+ * Submit an answer to an assessment question
+ *
+ * Creates a learner_quest_progress entity with the answer.
+ */
+export async function submitAssessmentAnswer({
+  wallet,
+  questId,
+  sectionId,
+  questionId,
+  answer,
+  timeSpent,
+  privateKey,
+  spaceId = 'local-dev',
+}: {
+  wallet: string;
+  questId: string;
+  sectionId: string;
+  questionId: string;
+  answer: string | string[];
+  timeSpent: number;
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}): Promise<{ key: string; txHash: string; correct: boolean; score: number } | null> {
+  try {
+    // First, get the quest to validate the answer
+    const quest = await getLearnerQuest(questId);
+    if (!quest || quest.questType !== 'language_assessment') {
+      throw new Error('Quest not found or not a language assessment');
+    }
+
+    // Parse the language assessment data from the quest
+    // We need to fetch the full entity to get the payload
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'learner_quest'))
+      .where(eq('questId', questId))
+      .where(eq('status', 'active'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    if (!result?.entities || result.entities.length === 0) {
+      throw new Error('Quest entity not found');
+    }
+
+    const entity = result.entities[0];
+    const decoded = entity.payload instanceof Uint8Array
+      ? new TextDecoder().decode(entity.payload)
+      : typeof entity.payload === 'string'
+      ? entity.payload
+      : JSON.stringify(entity.payload);
+    const payload = JSON.parse(decoded);
+
+    if (payload.questType !== 'language_assessment') {
+      throw new Error('Quest is not a language assessment');
+    }
+
+    const languageQuest = payload as LanguageAssessmentQuest;
+
+    // Find the question
+    const section = languageQuest.sections.find(s => s.id === sectionId);
+    if (!section) {
+      throw new Error(`Section ${sectionId} not found`);
+    }
+
+    const question = section.questions.find(q => q.id === questionId);
+    if (!question) {
+      throw new Error(`Question ${questionId} not found in section ${sectionId}`);
+    }
+
+    // Validate answer
+    let correct = false;
+    if (question.type === 'multiple_choice') {
+      // Answer is the option ID
+      const selectedOption = question.options?.find(o => o.id === answer);
+      correct = selectedOption?.correct || false;
+    } else if (question.type === 'fill_blank') {
+      correct = question.correctAnswer === answer;
+    } else if (question.type === 'matching') {
+      // Answer is array of "left-right" strings
+      const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
+      const userAnswers = Array.isArray(answer) ? answer : [answer];
+      correct = JSON.stringify(correctAnswers.sort()) === JSON.stringify(userAnswers.sort());
+    } else if (question.type === 'true_false') {
+      correct = question.correctAnswer === answer;
+    } else if (question.type === 'sentence_order') {
+      // Answer is array of ordered sentences
+      const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
+      const userAnswers = Array.isArray(answer) ? answer : [answer];
+      correct = JSON.stringify(correctAnswers) === JSON.stringify(userAnswers);
+    }
+
+    const score = correct ? question.points : 0;
+
+    // Create progress entity
+    const walletClient = getWalletClientFromPrivateKey(privateKey);
+    if (!walletClient) {
+      throw new Error('Failed to get wallet client');
+    }
+
+    const enc = new TextEncoder();
+    const now = new Date().toISOString();
+    const normalizedWallet = wallet.toLowerCase();
+
+    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+      return await walletClient.createEntity({
+        payload: enc.encode(JSON.stringify({
+          wallet: normalizedWallet,
+          questId,
+          sectionId,
+          questionId,
+          answer: Array.isArray(answer) ? answer : [answer],
+          correct,
+          score,
+          timeSpent,
+          answeredAt: now,
+        })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'learner_quest_progress' },
+          { key: 'wallet', value: normalizedWallet },
+          { key: 'questId', value: questId },
+          { key: 'sectionId', value: sectionId },
+          { key: 'questionId', value: questionId },
+          { key: 'spaceId', value: spaceId },
+          { key: 'createdAt', value: now },
+        ],
+        expiresIn: 31536000, // 1 year
+      });
+    });
+
+    // Create txhash entity
+    try {
+      await handleTransactionWithTimeout(async () => {
+        return await walletClient.createEntity({
+          payload: enc.encode(JSON.stringify({})),
+          contentType: 'application/json',
+          attributes: [
+            { key: 'type', value: 'learner_quest_progress_txhash' },
+            { key: 'progressKey', value: entityKey },
+            { key: 'txHash', value: txHash },
+            { key: 'spaceId', value: spaceId },
+            { key: 'createdAt', value: now },
+          ],
+          expiresIn: 31536000, // 1 year
+        });
+      });
+    } catch (error) {
+      console.warn('[submitAssessmentAnswer] Failed to create txhash entity:', error);
+    }
+
+    return { key: entityKey, txHash, correct, score };
+  } catch (error: any) {
+    console.error('[submitAssessmentAnswer] Error:', error);
+    return null;
+  }
+}
+
+/**
+ * Get assessment progress for a user
+ *
+ * Returns all answers for a language assessment quest.
+ */
+export async function getAssessmentProgress({
+  wallet,
+  questId,
+}: {
+  wallet: string;
+  questId: string;
+}): Promise<Record<string, {
+  sectionId: string;
+  questionId: string;
+  answer: string | string[];
+  correct: boolean;
+  score: number;
+  timeSpent: number;
+  answeredAt: string;
+  key: string;
+  txHash?: string;
+}>> {
+  try {
+    const publicClient = getPublicClient();
+    const normalizedWallet = wallet.toLowerCase();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'learner_quest_progress'))
+      .where(eq('wallet', normalizedWallet))
+      .where(eq('questId', questId))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1000)
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return {};
+    }
+
+    // Helper to get attribute value
+    const getAttr = (entity: any, key: string): string => {
+      const attrs = entity.attributes || {};
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    // Map entities to progress objects
+    const allProgress = result.entities
+      .map((entity: any) => {
+        try {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          const payload = JSON.parse(decoded);
+
+          const sectionId = getAttr(entity, 'sectionId');
+          const questionId = getAttr(entity, 'questionId');
+
+          if (!sectionId || !questionId) {
+            return null; // Skip non-assessment progress entries
+          }
+
+          return {
+            sectionId,
+            questionId,
+            answer: payload.answer,
+            correct: payload.correct || false,
+            score: payload.score || 0,
+            timeSpent: payload.timeSpent || 0,
+            answeredAt: payload.answeredAt || getAttr(entity, 'createdAt'),
+            key: entity.key,
+            txHash: (entity as any).txHash || undefined,
+          };
+        } catch (e) {
+          console.error('[getAssessmentProgress] Error decoding payload:', e);
+          return null;
+        }
+      })
+      .filter(Boolean) as Array<{
+        sectionId: string;
+        questionId: string;
+        answer: string | string[];
+        correct: boolean;
+        score: number;
+        timeSpent: number;
+        answeredAt: string;
+        key: string;
+        txHash?: string;
+      }>;
+
+    // Sort by most recent first
+    allProgress.sort((a, b) =>
+      new Date(b.answeredAt).getTime() - new Date(a.answeredAt).getTime()
+    );
+
+    // Deduplicate by questionId (most recent answer wins)
+    const progressMap: Record<string, {
+      sectionId: string;
+      questionId: string;
+      answer: string | string[];
+      correct: boolean;
+      score: number;
+      timeSpent: number;
+      answeredAt: string;
+      key: string;
+      txHash?: string;
+    }> = {};
+
+    for (const progress of allProgress) {
+      const key = `${progress.sectionId}:${progress.questionId}`;
+      if (!progressMap[key]) {
+        progressMap[key] = progress;
+      }
+    }
+
+    return progressMap;
+  } catch (error: any) {
+    console.error('[getAssessmentProgress] Error:', error);
+    return {};
   }
 }
 

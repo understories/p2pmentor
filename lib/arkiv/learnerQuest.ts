@@ -46,9 +46,18 @@ export type LearnerQuestProgress = {
   key: string;
   wallet: string;
   questId: string;
-  materialId: string;
-  status: 'read' | 'in_progress' | 'not_started';
+  // For reading_list quests:
+  materialId?: string;
+  status?: 'read' | 'in_progress' | 'not_started';
   readAt?: string;
+  // For language_assessment quests:
+  sectionId?: string;
+  questionId?: string;
+  answer?: string | string[];
+  correct?: boolean;
+  score?: number;
+  timeSpent?: number;
+  answeredAt?: string;
   createdAt: string;
   txHash?: string;
 };
@@ -463,11 +472,14 @@ export async function getLearnerQuestProgress({
 
     // Deduplicate by materialId (soft-delete pattern)
     // Most recent entity per material determines current status
+    // Only process reading_list progress (has materialId)
     const progressMap = new Map<string, LearnerQuestProgress>();
     for (const progress of allProgress) {
-      const key = progress.materialId;
-      if (!progressMap.has(key)) {
-        progressMap.set(key, progress);
+      if (progress.materialId) {
+        const key = progress.materialId;
+        if (!progressMap.has(key)) {
+          progressMap.set(key, progress);
+        }
       }
     }
 
