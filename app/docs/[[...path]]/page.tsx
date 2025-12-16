@@ -328,25 +328,6 @@ export default function DocsPage() {
   return (
     <>
       <div className="flex min-h-screen">
-        {/* Mobile menu button */}
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="md:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg"
-          aria-label="Toggle navigation"
-        >
-          <svg
-            className="w-6 h-6 text-gray-700 dark:text-gray-300"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            {sidebarOpen ? (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            ) : (
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            )}
-          </svg>
-        </button>
 
         {/* Sidebar */}
         <aside
@@ -382,24 +363,44 @@ export default function DocsPage() {
               renderTableOfContents()
             ) : (
               <>
-                {/* Previous/Next Navigation */}
+                {/* Mobile Navigation Bar (menu + previous/next) */}
                 {(() => {
                   const nav = getNavigationPages();
-                  if (!nav.prev && !nav.next) return null;
                   return (
-                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent overflow-x-hidden">
-                      <div className="w-full max-w-4xl mx-auto px-4 md:px-0 py-2 md:py-0 flex items-center justify-between gap-4 md:pb-4">
+                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
+                      <div className="w-full max-w-4xl mx-auto px-2 md:px-0 py-2 md:py-0 flex items-center gap-2 md:gap-4 md:pb-4 overflow-x-hidden">
+                        {/* Mobile menu button - only show on mobile */}
+                        <button
+                          onClick={() => setSidebarOpen(!sidebarOpen)}
+                          className="md:hidden flex-shrink-0 p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg"
+                          aria-label="Toggle navigation"
+                        >
+                          <svg
+                            className="w-5 h-5 text-gray-700 dark:text-gray-300"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            {sidebarOpen ? (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            ) : (
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                            )}
+                          </svg>
+                        </button>
+
+                        {/* Previous link */}
                         {nav.prev ? (
                           <Link
                             href={`/docs/${nav.prev.path}`}
-                            className="group flex items-center gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex-1 min-w-0"
+                            className="group flex items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-0 flex-1"
                           >
                             <svg className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                             </svg>
                             <div className="flex flex-col min-w-0">
                               <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Previous</span>
-                              <span className="truncate max-w-[120px] md:max-w-[300px] font-medium text-xs md:text-sm">
+                              <span className="truncate font-medium text-xs md:text-sm">
                                 {nav.prev.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </span>
                             </div>
@@ -407,14 +408,16 @@ export default function DocsPage() {
                         ) : (
                           <div className="flex-1" />
                         )}
+
+                        {/* Next link */}
                         {nav.next && (
                           <Link
                             href={`/docs/${nav.next.path}`}
-                            className="group flex items-center gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex-1 min-w-0 justify-end"
+                            className="group flex items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-0 flex-1 justify-end"
                           >
                             <div className="flex flex-col text-right min-w-0">
                               <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Next</span>
-                              <span className="truncate max-w-[120px] md:max-w-[300px] font-medium text-xs md:text-sm">
+                              <span className="truncate font-medium text-xs md:text-sm">
                                 {nav.next.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
                               </span>
                             </div>
