@@ -107,6 +107,22 @@ export function SidebarNav() {
             loadSessionsAndProfile(storedWallet);
           }
         });
+
+      // Poll for session updates every 30 seconds to reflect confirmations
+      // This ensures the sidebar updates automatically when sessions are confirmed
+      // without requiring manual page refresh
+      let interval: NodeJS.Timeout | null = null;
+      if (storedWallet) {
+        interval = setInterval(() => {
+          loadSessionsAndProfile(storedWallet);
+        }, 30000); // 30 seconds - same interval as notifications polling
+      }
+
+      return () => {
+        if (interval) {
+          clearInterval(interval);
+        }
+      };
     }
   }, []); // Empty deps - only run on mount
 
