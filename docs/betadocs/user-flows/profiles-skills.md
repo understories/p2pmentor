@@ -10,7 +10,7 @@ Skills stored as part of the profile payload (`skills` array). Simple tagging ra
 
 ## Design intent
 
-Lightweight and quick to complete. Enough information for meaningful matching.
+Lightweight and quick to complete. Enough information for meaningful matching. Profiles describe who you are. Skills describe what you are learning or offering, not credentials or authority.
 
 ## Profile updates
 

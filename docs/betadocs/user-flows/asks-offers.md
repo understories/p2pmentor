@@ -10,7 +10,7 @@ Teaching signals with skill, experience, and availability window. Time to live (
 
 ## Matching logic
 
-Simple skill-based matching for beta. Client side filtering with room to move matching to the server later.
+Simple skill-based matching for beta. Client side filtering with room to move matching to the server later. Matching is intentionally simple in beta. No ranking, scoring, or hidden prioritization is applied.
 
 ## Entity structure
 

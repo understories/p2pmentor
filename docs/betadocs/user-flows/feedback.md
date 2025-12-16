@@ -1,5 +1,7 @@
 # Feedback and Learning Loops
 
+Feedback is permanent, contextual, and attributable. It is not anonymous and not editable.
+
 ## Session feedback
 
 `session_feedback` entities keyed by session. Users can leave structured feedback on sessions. Feedback stored on Arkiv for future analysis and learning.

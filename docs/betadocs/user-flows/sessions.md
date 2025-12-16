@@ -18,4 +18,4 @@ Jitsi room created when both parties confirm. Room info stored in `session_jitsi
 
 ## Lifecycle
 
-Expiration: `sessionDate + duration + 1 hour buffer`. Statuses: `pending`, `scheduled`, `in-progress`, `completed`, `cancelled`.
+Expiration: `sessionDate + duration + 1 hour buffer`. Statuses: `pending`, `scheduled`, `in-progress`, `completed`, `cancelled`. Session state is derived from multiple entities. No single field represents truth.

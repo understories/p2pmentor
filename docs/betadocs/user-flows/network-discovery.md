@@ -6,7 +6,7 @@ Consolidated view of relevant asks and offers. Filters by skill and status. Show
 
 ## Design
 
-Text-first list view for beta instead of complex graph visualization. Future iterations may add full graph canvas built on the same data.
+Text-first list view for beta instead of complex graph visualization. Future iterations may add full graph canvas built on the same data. The list view is a deliberate beta choice to keep matching legible and auditable.
 
 ## Matching
 

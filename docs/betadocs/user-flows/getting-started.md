@@ -27,7 +27,7 @@ p2pmentor uses your wallet address as your identity. You have two options:
 2. Use your device's biometric authentication (fingerprint, face ID, etc.)
 3. A wallet is automatically created for you
 
-**Important:** This is a testnet. Do not use a wallet with real funds. Only use test wallets or the example wallet option.
+**Important:** This is a testnet. Wallets and passkeys are for identity and signing only. No real funds are required or expected.
 
 ## Step 3: Create Your Profile
 

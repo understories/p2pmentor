@@ -1,5 +1,7 @@
 # User Flows Overview
 
+These flows describe the intended beta experience. They reflect how the system behaves today, not future plans. Each step maps directly to Arkiv entities and on-chain state.
+
 Core mentorship flows in the beta:
 
 1. [Getting Started Tutorial](getting-started.md) - Step-by-step guide for new users
