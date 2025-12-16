@@ -9,7 +9,7 @@
 
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const NetworkForestGraph = dynamic(
@@ -49,12 +49,11 @@ export default function NetworkForestPage() {
             <p className="text-sm text-gray-600 dark:text-gray-400">
               The forest view is experimental and currently optimized for desktop.
             </p>
-            <Link 
-              href="/network" 
-              className="inline-block text-sm text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline"
-            >
-              Back to network list
-            </Link>
+            <BackButton
+              href="/network"
+              label="Back to network list"
+              className="inline-block text-sm text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline border-0 bg-transparent p-0"
+            />
           </div>
         </div>
       </main>
@@ -72,12 +71,11 @@ export default function NetworkForestPage() {
               Visualizing asks, offers, and skills as a glowing forest. Desktop only. Testnet data.
             </p>
           </div>
-          <Link 
-            href="/network" 
-            className="text-sm text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline"
-          >
-            Back to network list
-          </Link>
+          <BackButton
+            href="/network"
+            label="Back to network list"
+            className="text-sm text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline border-0 bg-transparent p-0"
+          />
         </header>
         <section className="flex-1 relative">
           <NetworkForestGraph />

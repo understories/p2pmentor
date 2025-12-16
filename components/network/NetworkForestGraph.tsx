@@ -13,6 +13,7 @@ import type { NetworkGraphData, NetworkGraphNode, NetworkGraphLink } from '@/lib
 import type { UserProfile } from '@/lib/arkiv/profile';
 import { useRouter } from 'next/navigation';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { BackButton } from '@/components/BackButton';
 import { GraphQLIndicator } from './GraphQLIndicator';
 
 export default function NetworkForestGraph() {
@@ -192,12 +193,7 @@ export default function NetworkForestGraph() {
             <p className="text-sm text-red-400 dark:text-red-500 mb-4">
               {error}
             </p>
-            <a
-              href="/network"
-              className="text-sm text-emerald-400 hover:text-emerald-300 underline"
-            >
-              Back to network list
-            </a>
+            <BackButton href="/network" label="Back to network list" className="text-sm text-emerald-400 hover:text-emerald-300 underline border-0 bg-transparent p-0" />
           </div>
         </div>
       )}

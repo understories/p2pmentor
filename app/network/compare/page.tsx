@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
+import { BackButton } from '@/components/BackButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { CodeComparison } from '@/components/network/CodeComparison';
@@ -73,12 +73,11 @@ export default function NetworkComparePage() {
                 Toggle between Arkiv JSON-RPC and GraphQL API paths
               </p>
             </div>
-            <Link 
-              href="/network" 
-              className="text-xs text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline"
-            >
-              Back to network
-            </Link>
+            <BackButton
+              href="/network"
+              label="Back to network"
+              className="text-xs text-emerald-500 dark:text-emerald-400 hover:text-emerald-600 dark:hover:text-emerald-300 underline border-0 bg-transparent p-0"
+            />
           </div>
           
           {/* Toggle */}
