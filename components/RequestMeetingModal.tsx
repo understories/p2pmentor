@@ -18,6 +18,7 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { SkillSelector } from '@/components/SkillSelector';
 
 type MeetingMode = 'request' | 'offer' | 'peer';
 
@@ -50,6 +51,7 @@ export function RequestMeetingModal({
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [formData, setFormData] = useState({
     skill: '',
+    skill_id: '', // Arkiv-native: skill entity key (preferred)
     date: '',
     time: '',
     duration: '60',
@@ -65,9 +67,14 @@ export function RequestMeetingModal({
     if (profile && isOpen) {
       // If there's a specific offer or ask, use its skill; otherwise use profile's first skill
       const skill = offer?.skill || ask?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
+      const skill_id = offer?.skill_id || ask?.skill_id || undefined;
+      
+      // For peer learning mode, don't pre-fill skill - user must select from SkillSelector
+      // For other modes, pre-fill if available
       setFormData(prev => ({
         ...prev,
-        skill: skill,
+        skill: mode === 'peer' ? '' : skill, // Don't pre-fill for peer learning
+        skill_id: mode === 'peer' ? '' : (skill_id || ''), // Don't pre-fill for peer learning
         date: '',
         time: '',
         duration: '60',
@@ -78,7 +85,7 @@ export function RequestMeetingModal({
         cost: '',
       }));
     }
-  }, [profile, offer, ask, isOpen]);
+  }, [profile, offer, ask, isOpen, mode]);
 
   if (!isOpen || !profile) return null;
 
@@ -89,6 +96,12 @@ export function RequestMeetingModal({
       return;
     }
 
+    // For peer learning, require skill_id (skill entity selection)
+    if (mode === 'peer' && !formData.skill_id) {
+      setError('Please select a skill from the skill list');
+      return;
+    }
+    
     if (!formData.date || !formData.time || !formData.skill) {
       setError('Please fill in date, time, and skill');
       return;
@@ -218,17 +231,18 @@ export function RequestMeetingModal({
           ? (formData.requiresPayment ? formData.cost.trim() : undefined)
           : (offer?.cost || undefined));
 
-      // Get skill_id from offer/ask if available (Arkiv-native skill entity reference)
-      // This ensures sessions display the skill entity name_canonical, not just the skill name string
+      // Get skill_id from offer/ask if available, or use formData.skill_id (for peer learning)
+      // Arkiv-native skill entity reference ensures sessions display the skill entity name_canonical
       let skill_id: string | undefined = undefined;
       if (offer?.skill_id) {
         skill_id = offer.skill_id;
       } else if (ask?.skill_id) {
         skill_id = ask.skill_id;
+      } else if (formData.skill_id) {
+        // Use skill_id from form (for peer learning mode with SkillSelector)
+        skill_id = formData.skill_id;
       } else {
-        // Try to resolve skill_id from skill name if not available from offer/ask
-        // This handles cases where session is created without an offer/ask context
-        // Try to resolve skill_id from skill name if not available from offer/ask
+        // Try to resolve skill_id from skill name if not available (legacy fallback)
         // This handles cases where session is created without an offer/ask context
         try {
           const { getSkillBySlug, listSkills } = await import('@/lib/arkiv/skill');
@@ -268,6 +282,7 @@ export function RequestMeetingModal({
             requiresPayment,
             paymentAddress,
             cost,
+            offerKey: offer?.key, // Pass offer key if meeting is requested on an offer
           }),
       });
 
@@ -285,7 +300,7 @@ export function RequestMeetingModal({
         onSuccess();
       }
       onClose();
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
       
       // Show success message after modal is closed (non-blocking)
       setTimeout(() => {
@@ -319,7 +334,7 @@ export function RequestMeetingModal({
           onSuccess();
         }
         onClose();
-        setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+        setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
         
         // Show success message after modal is closed (non-blocking)
         setTimeout(() => {
@@ -339,7 +354,7 @@ export function RequestMeetingModal({
     if (!submitting) {
       setError('');
       setShowConfirmation(false);
-      setFormData({ skill: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
       onClose();
     }
   };
@@ -497,17 +512,31 @@ export function RequestMeetingModal({
               <label htmlFor="skill" className="block text-sm font-medium mb-1">
                 Skill *
               </label>
-              <input
-                id="skill"
-                type="text"
-                value={formData.skill}
-                onChange={(e) => setFormData({ ...formData, skill: e.target.value })}
-                placeholder="e.g. solidity, react, design"
-                required
-                readOnly={!!offer || !!ask}
-                disabled={!!offer || !!ask}
-                className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${(offer || ask) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
-              />
+              {/* Use SkillSelector for peer learning mode (arkiv-native: skill entity selection) */}
+              {mode === 'peer' && !offer && !ask ? (
+                <SkillSelector
+                  value={formData.skill_id}
+                  onChange={(skillId, skillName) => {
+                    setFormData({ ...formData, skill_id: skillId, skill: skillName });
+                  }}
+                  placeholder="Select a skill..."
+                  allowCreate={false}
+                  className="mb-2"
+                  required
+                />
+              ) : (
+                <input
+                  id="skill"
+                  type="text"
+                  value={formData.skill}
+                  onChange={(e) => setFormData({ ...formData, skill: e.target.value })}
+                  placeholder="e.g. solidity, react, design"
+                  required
+                  readOnly={!!offer || !!ask}
+                  disabled={!!offer || !!ask}
+                  className={`w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent ${(offer || ask) ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
+                />
+              )}
               {(offer || ask) && (
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                   Skill is set by the {offer ? 'offer' : 'ask'} and cannot be changed

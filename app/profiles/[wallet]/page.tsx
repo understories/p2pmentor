@@ -996,7 +996,7 @@ export default function ProfileDetailPage() {
           userWallet={userWallet}
           userProfile={userProfile}
           offer={selectedOffer} // Pass the specific offer that was clicked, or null for general request
-          mode={meetingMode}
+          mode={meetingMode} // Pass the meeting mode (request, offer, or peer)
           onSuccess={() => {
             // Optionally reload data or show success message
             console.log('Meeting requested successfully');
