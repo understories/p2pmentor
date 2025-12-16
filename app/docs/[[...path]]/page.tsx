@@ -375,8 +375,8 @@ export default function DocsPage() {
         )}
 
         {/* Main content */}
-        <main className="flex-1 md:ml-64">
-          <article className="max-w-4xl mx-auto px-4 md:px-8 pt-16 md:pt-8 pb-8 md:pb-12">
+        <main className="flex-1 md:ml-64 overflow-x-hidden">
+          <article className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-16 md:pt-8 pb-8 md:pb-12 overflow-x-hidden">
             {/* Show table of contents for root /docs */}
             {!currentPath ? (
               renderTableOfContents()
@@ -387,8 +387,8 @@ export default function DocsPage() {
                   const nav = getNavigationPages();
                   if (!nav.prev && !nav.next) return null;
                   return (
-                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
-                      <div className="max-w-4xl mx-auto px-4 md:px-0 py-2 md:py-0 flex items-center justify-between gap-4 md:pb-4">
+                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent overflow-x-hidden">
+                      <div className="w-full max-w-4xl mx-auto px-4 md:px-0 py-2 md:py-0 flex items-center justify-between gap-4 md:pb-4">
                         {nav.prev ? (
                           <Link
                             href={`/docs/${nav.prev.path}`}
@@ -429,7 +429,7 @@ export default function DocsPage() {
                 })()}
                 
                 {/* Markdown content */}
-                <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-headings:scroll-mt-20">
+                <div className="prose prose-lg dark:prose-invert max-w-full prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-headings:scroll-mt-20 break-words overflow-wrap-anywhere">
                   <style jsx global>{`
                     .anchor-link {
                       text-decoration: none;
@@ -449,9 +449,29 @@ export default function DocsPage() {
                     .anchor-link:hover::after {
                       opacity: 1;
                     }
+                    .prose {
+                      max-width: 100%;
+                      overflow-wrap: break-word;
+                      word-wrap: break-word;
+                      word-break: break-word;
+                    }
+                    .prose pre {
+                      overflow-x: auto;
+                      max-width: 100%;
+                    }
+                    .prose code {
+                      word-break: break-word;
+                      overflow-wrap: break-word;
+                    }
+                    .prose table {
+                      display: block;
+                      overflow-x: auto;
+                      width: 100%;
+                    }
                     @media (max-width: 768px) {
                       .prose {
                         font-size: 1rem;
+                        padding: 0;
                       }
                       .prose h1 {
                         font-size: 2rem !important;
@@ -461,6 +481,10 @@ export default function DocsPage() {
                       }
                       .prose h3 {
                         font-size: 1.25rem !important;
+                      }
+                      .prose p, .prose li, .prose td, .prose th {
+                        word-break: break-word;
+                        overflow-wrap: break-word;
                       }
                     }
                   `}</style>
