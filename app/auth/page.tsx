@@ -63,6 +63,8 @@ export default function AuthPage() {
         localStorage.setItem('wallet_address', address);
         // Store wallet type for unified wallet client getter
         setWalletType(address, 'metamask');
+        // Store connection method for reconnection handling
+        localStorage.setItem('wallet_connection_method', 'metamask');
       }
       
       // Check if user has profile for this profile wallet - redirect to onboarding if not
@@ -100,7 +102,18 @@ export default function AuthPage() {
         });
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect wallet');
+      // Provide clear error messages based on error type
+      let errorMessage = 'Failed to connect wallet';
+      if (err instanceof Error) {
+        if (err.message.includes('cancelled') || err.message.includes('rejected')) {
+          errorMessage = 'Connection cancelled. Please try again when ready.';
+        } else if (err.message.includes('not installed')) {
+          errorMessage = 'MetaMask not found. Please install MetaMask or use the mobile app.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
       setIsConnecting(false);
     }
   };

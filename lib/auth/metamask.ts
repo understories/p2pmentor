@@ -101,40 +101,58 @@ export async function disconnectWallet(): Promise<void> {
  * Forces account selection by revoking existing permissions first (if any),
  * then requesting permissions, which ensures the account selection dialog appears.
  *
+ * Handles different connection scenarios:
+ * - Desktop extension (window.ethereum available)
+ * - Mobile app (via SDK deep linking)
+ * - MetaMask browser (window.ethereum available on mobile)
+ * - Reconnection after deep link redirect
+ *
  * @returns Wallet address (0x... format)
- * @throws Error if MetaMask is not installed
+ * @throws Error if MetaMask is not installed or connection fails
  *
  * Reference: refs/mentor-graph/src/wallet.ts
  * Reference: refs/metamask-mobile-integration-plan.md
  */
 export async function connectWallet(): Promise<`0x${string}`> {
   // Try SDK first (works on both desktop and mobile)
+  // SDK automatically handles deep linking on mobile
   if (isSDKAvailable()) {
     try {
       const address = await connectWithSDK();
       // Switch to Mendoza chain after connection
+      // Note: On mobile, chain switching happens in the MetaMask app
       if (window.ethereum) {
         try {
           await switchToMendozaChain();
         } catch (error) {
           // Chain switching is not critical - user can switch manually
+          // On mobile, user may need to switch in MetaMask app
           console.warn('Failed to switch to Mendoza chain:', error);
         }
       }
       return address;
-    } catch (error) {
-      // SDK failed - fall back to direct window.ethereum (desktop extension)
+    } catch (error: any) {
+      // SDK failed - check if it's a user cancellation
+      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+        throw new Error('Connection cancelled by user');
+      }
+      // SDK failed - fall back to direct window.ethereum (desktop extension or MetaMask browser)
       console.warn('MetaMask SDK connection failed, falling back to direct connection:', error);
     }
   }
 
-  // Fallback to direct window.ethereum (desktop extension)
+  // Fallback to direct window.ethereum (desktop extension or MetaMask browser)
   if (!window.ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error("MetaMask not installed. Please install MetaMask or use the mobile app.");
   }
 
   // First switch to the correct chain
-  await switchToMendozaChain();
+  try {
+    await switchToMendozaChain();
+  } catch (error) {
+    // Chain switching failure is not critical - continue with connection
+    console.warn('Failed to switch to Mendoza chain, continuing with connection:', error);
+  }
 
   // Check if we have a stored wallet address in localStorage
   // If not, this is a fresh login, so we should revoke permissions first
@@ -171,21 +189,34 @@ export async function connectWallet(): Promise<`0x${string}`> {
         },
       ],
     });
-  } catch (error) {
-    // If user denies or wallet_requestPermissions fails, fall back to eth_requestAccounts
+  } catch (error: any) {
+    // If user denies, throw a clear error
+    if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+      throw new Error('Connection cancelled by user');
+    }
+    // If wallet_requestPermissions fails, fall back to eth_requestAccounts
     // This maintains backward compatibility
   }
 
   // Then request accounts (this will use the selected account)
-  const accounts = await window.ethereum.request({
-    method: "eth_requestAccounts",
-  }) as string[];
+  try {
+    const accounts = await window.ethereum.request({
+      method: "eth_requestAccounts",
+    }) as string[];
 
-  if (!accounts || accounts.length === 0) {
-    throw new Error("No accounts returned from MetaMask");
+    if (!accounts || accounts.length === 0) {
+      throw new Error("No accounts returned from MetaMask");
+    }
+
+    return accounts[0] as `0x${string}`;
+  } catch (error: any) {
+    // Handle user cancellation
+    if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+      throw new Error('Connection cancelled by user');
+    }
+    // Re-throw other errors
+    throw error;
   }
-
-  return accounts[0] as `0x${string}`;
 }
 
 /**
