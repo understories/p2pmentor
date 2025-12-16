@@ -7,6 +7,7 @@ import { BackgroundImage } from "@/components/BackgroundImage";
 import { ClientPerfTracker } from "@/components/ClientPerfTracker";
 import { GlobalToggles } from "@/components/GlobalToggles";
 import { ArkivModeBanner } from "@/components/ArkivModeBanner";
+import { NavigationTracker } from "@/components/NavigationTracker";
 import { NoScriptRedirect } from "@/components/NoScriptRedirect";
 
 export const metadata: Metadata = {
@@ -30,6 +31,7 @@ export default function RootLayout({
         <ThemeProvider>
           <GlobalToggles />
           <ArkivModeBanner />
+          <NavigationTracker />
           <BackgroundImage />
           <ClientPerfTracker />
           <ConditionalAppShell>
