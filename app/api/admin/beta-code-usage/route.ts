@@ -23,13 +23,16 @@ export async function GET() {
     const betaCodes = await listAllBetaCodeUsage();
     
     // Get beta access records for each code to see wallet usage
+    // Ensure code is normalized (Arkiv-native pattern: always normalize for queries)
     const codesWithAccess = await Promise.all(
       betaCodes.map(async (code) => {
-        const accessRecords = await listBetaAccessByCode(code.code);
+        // Normalize code to ensure consistent querying (defensive)
+        const normalizedCode = code.code.toLowerCase().trim();
+        const accessRecords = await listBetaAccessByCode(normalizedCode);
         return {
           ...code,
           walletCount: accessRecords.length,
-          wallets: accessRecords.map(a => a.wallet),
+          wallets: accessRecords.map(a => a.wallet.toLowerCase()), // Ensure wallets are normalized
           accessRecords: accessRecords.slice(0, 10), // Limit to first 10 for display
         };
       })

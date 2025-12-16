@@ -56,13 +56,32 @@ export default function AuthPage() {
       }
       
       // Check if user has profile for this profile wallet - redirect to onboarding if not
+      // Only create beta access record for NEW users (level === 0) to avoid double-counting
       import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
         calculateOnboardingLevel(address).then(level => {
           if (level === 0) {
-            // No profile for this profile wallet - redirect to onboarding
+            // No profile for this profile wallet - new user, create beta access record
+            // This tracks which profile wallets have used which beta codes (only for new users)
+            const betaCode = localStorage.getItem('beta_invite_code');
+            if (betaCode) {
+              // Create beta access record asynchronously (don't block auth flow)
+              fetch('/api/beta-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  code: betaCode,
+                  action: 'createAccess',
+                  wallet: address.toLowerCase(), // Use profile wallet, not signing wallet
+                }),
+              }).catch(err => {
+                // Don't block auth flow if beta access creation fails
+                console.warn('[auth] Failed to create beta access record:', err);
+              });
+            }
+            // Redirect to onboarding for new users
             router.push('/onboarding');
           } else {
-            // Has profile - go to dashboard
+            // Has profile - existing user, don't create beta access (already counted)
             router.push('/me');
           }
         }).catch(() => {
@@ -143,13 +162,32 @@ export default function AuthPage() {
         localStorage.setItem('wallet_address', data.address);
       }
       // Check if user has profile for this profile wallet - redirect to onboarding if not
+      // Only create beta access record for NEW users (level === 0) to avoid double-counting
       import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
         calculateOnboardingLevel(data.address).then(level => {
           if (level === 0) {
-            // No profile for this profile wallet - redirect to onboarding
+            // No profile for this profile wallet - new user, create beta access record
+            // This tracks which profile wallets have used which beta codes (only for new users)
+            const betaCode = localStorage.getItem('beta_invite_code');
+            if (betaCode) {
+              // Create beta access record asynchronously (don't block auth flow)
+              fetch('/api/beta-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  code: betaCode,
+                  action: 'createAccess',
+                  wallet: data.address.toLowerCase(), // Use profile wallet, not signing wallet
+                }),
+              }).catch(err => {
+                // Don't block auth flow if beta access creation fails
+                console.warn('[auth] Failed to create beta access record:', err);
+              });
+            }
+            // Redirect to onboarding for new users
             router.push('/onboarding');
           } else {
-            // Has profile - go to dashboard
+            // Has profile - existing user, don't create beta access (already counted)
             router.push('/me');
           }
         }).catch(() => {
@@ -272,7 +310,7 @@ export default function AuthPage() {
         {/* Privacy & Data Link */}
         <div className="mt-4 flex justify-center">
           <a
-            href="/docs/tracking-and-privacy"
+            href="/docs/philosophy/tracking-and-privacy"
             className="group inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
             title="Understand and verify what p2pmentor tracks about users and usage"
           >
