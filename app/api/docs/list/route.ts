@@ -16,15 +16,15 @@ interface DocFile {
  */
 const SECTION_ORDER: Record<string, number> = {
   'introduction': 1,
-  'philosophy': 2,
-  'history': 3,
-  'architecture': 4,
+  'architecture': 2,
+  'philosophy': 3,
+  'user-flows': 4,
   'arkiv': 5,
   'modules': 6,
   'practices': 7,
-  'user-flows': 8,
-  'integrations': 9,
-  'meta': 10,
+  'integrations': 8,
+  'meta': 9,
+  'history': 10,
 };
 
 const FILE_ORDER: Record<string, Record<string, number>> = {
@@ -35,10 +35,11 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
   // Introduction section
   'introduction': {
     'README': 1,
-    'introduction': 2,
-    'overview': 3,
-    'getting-started': 4,
-    'roadmap': 5,
+    'documentation-tour': 2,
+    'introduction': 3,
+    'overview': 4,
+    'getting-started': 5,
+    'roadmap': 6,
   },
   // Philosophy section
   'philosophy': {
