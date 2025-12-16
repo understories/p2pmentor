@@ -41,11 +41,25 @@ export async function GET(request: Request) {
     }
 
     // List all profiles with optional filters
+    console.log('[Profiles API] Querying profiles:', {
+      skill,
+      seniority,
+      spaceId,
+      spaceIds,
+      builderMode,
+      SPACE_ID,
+    });
+    
     const allProfiles = await listUserProfiles({
       skill,
       seniority,
       spaceId,
       spaceIds,
+    });
+    
+    console.log('[Profiles API] Profiles returned from listUserProfiles:', {
+      count: allProfiles.length,
+      wallets: allProfiles.slice(0, 5).map(p => p.wallet),
     });
 
     // Get unique profiles by wallet (most recent for each wallet)
@@ -92,6 +106,12 @@ export async function GET(request: Request) {
           // Fail open: if check fails, include in active
           activeProfiles.push(result.value.profile);
         }
+      });
+      
+      console.log('[Profiles API] Profile existence checks complete:', {
+        totalChecked: uniqueProfiles.length,
+        active: activeProfiles.length,
+        archived: archivedProfiles.length,
       });
     } else {
       // Include all profiles when archived is requested

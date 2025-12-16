@@ -417,11 +417,43 @@ export async function listUserProfiles(params?: {
     queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
   }
   
-  const result = await queryBuilder
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(limit)
-    .fetch();
+  let result: any = null;
+  try {
+    result = await queryBuilder
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(limit)
+      .fetch();
+  } catch (fetchError: any) {
+    console.error('[listUserProfiles] Arkiv query failed:', {
+      message: fetchError?.message,
+      stack: fetchError?.stack,
+      error: fetchError,
+      spaceId: params?.spaceId,
+      spaceIds: params?.spaceIds,
+      limit,
+    });
+    return []; // Return empty array on query failure
+  }
+
+  // Defensive check: ensure result and entities exist
+  if (!result || !result.entities || !Array.isArray(result.entities)) {
+    console.warn('[listUserProfiles] Invalid result structure:', {
+      result,
+      hasEntities: !!result?.entities,
+      isArray: Array.isArray(result?.entities),
+      spaceId: params?.spaceId,
+      spaceIds: params?.spaceIds,
+    });
+    return [];
+  }
+
+  console.log('[listUserProfiles] Query successful:', {
+    entityCount: result.entities.length,
+    spaceId: params?.spaceId,
+    spaceIds: params?.spaceIds,
+    limit,
+  });
 
   let profiles = result.entities.map((entity: any) => {
     let payload: any = {};
@@ -509,13 +541,20 @@ export async function listUserProfiles(params?: {
   
   // Filter by spaceIds client-side if multiple requested
   if (params?.spaceIds && params.spaceIds.length > 0) {
+    const beforeFilter = profiles.length;
     profiles = profiles.filter((profile: UserProfile) => params.spaceIds!.includes(profile.spaceId));
+    console.log('[listUserProfiles] Filtered by spaceIds:', {
+      beforeFilter,
+      afterFilter: profiles.length,
+      requestedSpaceIds: params.spaceIds,
+      foundSpaceIds: [...new Set(profiles.map((p: UserProfile) => p.spaceId))],
+    });
   }
 
   // Client-side skill filtering (Arkiv-native: skills stored in payload, not queryable via attributes)
   if (params?.skill) {
     const skillFilter = params.skill.toLowerCase().trim();
-    profiles = profiles.filter(profile => {
+    profiles = profiles.filter((profile: UserProfile) => {
       // Check skillsArray (legacy) - match by name
       if (profile.skillsArray && Array.isArray(profile.skillsArray)) {
         return profile.skillsArray.some(skill => skill.toLowerCase().includes(skillFilter));
