@@ -237,9 +237,6 @@ export async function completeAssessment({
 
     const now = new Date().toISOString();
     const status = scoreData.passed ? 'passed' : 'failed';
-    const certificateId = scoreData.passed
-      ? `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`
-      : undefined;
 
     const walletClient = getWalletClientFromPrivateKey(privateKey);
     if (!walletClient) {
@@ -262,14 +259,8 @@ export async function completeAssessment({
           totalPoints: scoreData.totalPoints,
           percentage: scoreData.percentage,
           passed: scoreData.passed,
-          certification: scoreData.passed && certificateId
-            ? {
-                issued: true,
-                certificateId,
-                issuedAt: now,
-                verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
-              }
-            : undefined,
+          // Certification will be added in second entity if passed
+          certification: undefined,
           metadata: {
             attemptNumber,
             totalTimeSpent: scoreData.totalTimeSpent,
@@ -366,6 +357,11 @@ export async function completeAssessment({
     // Create a new entity with certification if passed (immutability pattern)
     let finalEntityKey = entityKey;
     let finalTxHash = txHash;
+
+    // Generate certificate ID if passed
+    const certificateIdBase = scoreData.passed
+      ? `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`
+      : undefined;
 
     if (scoreData.passed && certificateIdBase) {
       const certResult = await handleTransactionWithTimeout(async () => {
