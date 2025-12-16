@@ -42,6 +42,7 @@ function PublicGardenBoardContent() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
+  const [skillProfileCounts, setSkillProfileCounts] = useState<Record<string, number>>({});
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -79,7 +80,27 @@ function PublicGardenBoardContent() {
 
   useEffect(() => {
     loadNotes();
+    loadSkillProfileCounts();
   }, []);
+
+  const loadSkillProfileCounts = async () => {
+    try {
+      const res = await fetch('/api/skills/explore');
+      const data = await res.json();
+
+      if (data.ok && data.skills) {
+        const countsMap: Record<string, number> = {};
+        data.skills.forEach((skill: any) => {
+          // Map by skill name (case-insensitive) for matching
+          const normalizedName = skill.name_canonical.toLowerCase().trim();
+          countsMap[normalizedName] = skill.profileCount;
+        });
+        setSkillProfileCounts(countsMap);
+      }
+    } catch (err) {
+      console.error('Error loading skill profile counts:', err);
+    }
+  };
 
   // Open modal if create=true in URL (from FAB)
   useEffect(() => {
@@ -168,7 +189,12 @@ function PublicGardenBoardContent() {
       <BackgroundImage />
       
       {/* Garden Layer - persistent garden showing user's skills */}
-      {gardenSkills.length > 0 && <GardenLayer skills={gardenSkills} />}
+      {gardenSkills.length > 0 && (
+        <GardenLayer
+          skills={gardenSkills}
+          skillProfileCounts={skillProfileCounts}
+        />
+      )}
 
       <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <BackButton />

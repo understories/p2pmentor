@@ -11,10 +11,13 @@
 
 import { useMemo } from 'react';
 import { GardenSkill, assignSkillsToSlots, levelToEmoji } from '@/lib/garden/types';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 interface GardenLayerProps {
   skills: GardenSkill[]; // User's skills (for glowing)
   allSkills?: GardenSkill[]; // All skills in system (for background display)
+  skillProfileCounts?: Record<string, number>; // Profile counts by skill name (normalized)
   showIdentitySeed?: boolean; // Show central 🌱 for identity step
   animateNew?: string; // ID of newly added skill to animate
   className?: string;
@@ -25,12 +28,15 @@ interface GardenLayerProps {
 export function GardenLayer({ 
   skills, // User's skills (for glowing)
   allSkills, // All skills in system (for background display)
+  skillProfileCounts = {}, // Profile counts by skill name (normalized)
   showIdentitySeed = false,
   animateNew,
   className = '',
   onSeedClick,
   showSeedTooltip = false,
 }: GardenLayerProps) {
+  const arkivBuilderMode = useArkivBuilderMode();
+
   // Use allSkills if provided, otherwise fall back to user's skills
   const skillsToDisplay = allSkills || skills;
   
@@ -160,20 +166,60 @@ export function GardenLayer({
                   </span>
                 )}
                 {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
-                  <span 
-                    className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
-                    style={{
-                      maxWidth: '70px',
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
-                      lineHeight: '1.3',
-                      minHeight: '28px',
-                      display: 'inline-block',
-                    }}
-                    title={skill.name}
-                  >
-                    {skill.name}
-                  </span>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span
+                      className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                      style={{
+                        maxWidth: '70px',
+                        wordBreak: 'break-word',
+                        overflowWrap: 'break-word',
+                        lineHeight: '1.3',
+                        minHeight: '28px',
+                        display: 'inline-block',
+                      }}
+                      title={skill.name}
+                    >
+                      {skill.name}
+                    </span>
+                    {(() => {
+                      const normalizedName = skill.name.toLowerCase().trim();
+                      const profileCount = skillProfileCounts[normalizedName] ?? 0;
+                      const countText = `${profileCount} ${profileCount === 1 ? 'profile' : 'profiles'}`;
+
+                      if (profileCount > 0) {
+                        const content = (
+                          <span className="text-[9px] md:text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            {countText}
+                          </span>
+                        );
+
+                        if (arkivBuilderMode) {
+                          return (
+                            <ArkivQueryTooltip
+                              query={[
+                                `GET /api/skills/explore`,
+                                `Queries:`,
+                                `1. listSkills({ status: 'active', limit: 500 })`,
+                                `   → type='skill', status='active'`,
+                                `2. listUserProfiles()`,
+                                `   → type='user_profile'`,
+                                `3. Count profiles with skill:`,
+                                `   - Check skill_ids array (new format)`,
+                                `   - Check skillsArray (legacy format)`,
+                                `   - Check skills string (legacy format)`,
+                                `Returns: Skill[] with profileCount for "${skill.name}"`
+                              ]}
+                              label={countText}
+                            >
+                              {content}
+                            </ArkivQueryTooltip>
+                          );
+                        }
+                        return content;
+                      }
+                      return null;
+                    })()}
+                  </div>
                 )}
               </div>
             )
