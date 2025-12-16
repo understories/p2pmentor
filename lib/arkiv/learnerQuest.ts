@@ -184,7 +184,7 @@ export async function listLearnerQuests(): Promise<LearnerQuest[]> {
             materials: payload.materials || [],
             metadata: payload.metadata || {},
             createdAt: getAttr(entity, 'createdAt'),
-            txHash: entity.txHash || undefined,
+            txHash: (entity as any).txHash || undefined,
           } as LearnerQuest;
         } catch (e) {
           console.error('[listLearnerQuests] Error decoding payload:', e);
@@ -259,7 +259,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             materials: payload.materials || [],
             metadata: payload.metadata || {},
             createdAt: getAttr(entity, 'createdAt'),
-            txHash: entity.txHash || undefined,
+            txHash: (entity as any).txHash || undefined,
           } as LearnerQuest;
         } catch (e) {
           console.error('[getLearnerQuest] Error decoding payload:', e);
@@ -418,7 +418,7 @@ export async function getLearnerQuestProgress({
             status: getAttr(entity, 'status') as 'read' | 'in_progress' | 'not_started',
             readAt: payload.readAt,
             createdAt: getAttr(entity, 'createdAt'),
-            txHash: entity.txHash,
+            txHash: (entity as any).txHash || undefined,
           };
         } catch (e) {
           console.error('[getLearnerQuestProgress] Error decoding payload:', e);
