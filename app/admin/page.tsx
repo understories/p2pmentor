@@ -1719,7 +1719,7 @@ export default function AdminDashboard() {
                                         {metric.aggregates.length} pattern{metric.aggregates.length !== 1 ? 's' : ''}
                                       </summary>
                                       <div className="mt-2 space-y-1">
-                                        {metric.aggregates.map((agg, aggIdx) => (
+                                        {metric.aggregates.map((agg: { pattern: string; count: number }, aggIdx: number) => (
                                           <div key={aggIdx} className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
                                             {agg.pattern}: {agg.count}
                                           </div>
