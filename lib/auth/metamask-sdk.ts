@@ -27,8 +27,7 @@ export function getMetaMaskSDK(): MetaMaskSDK {
         name: 'p2pmentor',
         url: typeof window !== 'undefined' ? window.location.origin : 'https://www.p2pmentor.com',
       },
-      // Enable mobile deep linking
-      enableMobile: true,
+      // SDK automatically detects mobile and handles deep linking
     });
   }
   return sdkInstance;

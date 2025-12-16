@@ -14,6 +14,8 @@ import { connectWallet } from '@/lib/auth/metamask';
 import { mendoza } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
+import { isMobileBrowser, isMetaMaskBrowser, isMetaMaskAvailable, getMobilePlatform } from '@/lib/auth/mobile-detection';
+import { openMetaMaskApp, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -21,6 +23,9 @@ export default function AuthPage() {
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
   const [addingNetwork, setAddingNetwork] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMetaMaskMobileBrowser, setIsMetaMaskMobileBrowser] = useState(false);
+  const [hasMetaMask, setHasMetaMask] = useState(false);
   const router = useRouter();
 
   // Check if user has already passed invite gate
@@ -36,6 +41,12 @@ export default function AuthPage() {
   // Set mounted state for client-side rendering
   useEffect(() => {
     setMounted(true);
+    // Detect mobile and MetaMask availability
+    if (typeof window !== 'undefined') {
+      setIsMobile(isMobileBrowser());
+      setIsMetaMaskMobileBrowser(isMetaMaskBrowser());
+      setHasMetaMask(isMetaMaskAvailable());
+    }
   }, []);
 
   const handleMetaMaskConnect = async () => {
@@ -259,13 +270,49 @@ export default function AuthPage() {
         )}
 
         <div className="flex flex-col gap-4 mb-6">
-          <button
-            onClick={handleMetaMaskConnect}
-            disabled={isConnecting || loadingExample}
-            className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
-          >
-            {isConnecting ? 'Connecting...' : 'Connect with MetaMask'}
-          </button>
+          {/* Mobile-specific connection flow */}
+          {mounted && isMobile && !isMetaMaskMobileBrowser && !hasMetaMask ? (
+            <>
+              <button
+                onClick={() => {
+                  const currentUrl = typeof window !== 'undefined' ? window.location.href : undefined;
+                  openMetaMaskApp(currentUrl);
+                }}
+                disabled={isConnecting || loadingExample}
+                className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
+              >
+                {isConnecting ? 'Opening MetaMask...' : 'Open MetaMask App'}
+              </button>
+              <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                Don't have MetaMask?{' '}
+                {getMetaMaskInstallUrl() ? (
+                  <a
+                    href={getMetaMaskInstallUrl()!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    Install MetaMask
+                  </a>
+                ) : (
+                  <span>Install MetaMask from your app store</span>
+                )}
+              </p>
+              <div className="flex items-center gap-3 my-2">
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
+                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+              </div>
+            </>
+          ) : (
+            <button
+              onClick={handleMetaMaskConnect}
+              disabled={isConnecting || loadingExample}
+              className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
+            >
+              {isConnecting ? 'Connecting...' : 'Connect with MetaMask'}
+            </button>
+          )}
 
           {mounted && (
             <>
