@@ -67,7 +67,7 @@ export function FloatingActionButton() {
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40"
+          className="fixed inset-0 z-40 bg-black/20 dark:bg-black/40 md:hidden"
           onClick={() => setIsOpen(false)}
           style={{
             transition: 'opacity 150ms ease-out',
@@ -75,8 +75,8 @@ export function FloatingActionButton() {
         />
       )}
 
-      {/* FAB Container - positioned above FloatingButtonCluster */}
-      <div className="fixed bottom-24 right-6 z-50 md:bottom-6 md:left-24">
+      {/* FAB Container - positioned above FloatingButtonCluster, hidden on desktop */}
+      <div className="fixed bottom-24 right-6 z-50 md:hidden">
         {/* Action Buttons - Grow from seed */}
         {isOpen && actions.length > 0 && (
           <div
