@@ -149,6 +149,21 @@ export async function createFeedback({
     expiresIn,
   });
 
+  // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
+  walletClient.createEntity({
+    payload: enc.encode(JSON.stringify({ txHash })),
+    contentType: 'application/json',
+    attributes: [
+      { key: 'type', value: 'session_feedback_txhash' },
+      { key: 'feedbackKey', value: entityKey },
+      { key: 'spaceId', value: spaceId },
+      { key: 'createdAt', value: createdAt },
+    ],
+    expiresIn,
+  }).catch((error: any) => {
+    console.warn('[createFeedback] Failed to create session_feedback_txhash entity:', error);
+  });
+
   return { key: entityKey, txHash };
 }
 
