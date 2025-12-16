@@ -107,33 +107,54 @@ export default function AuthPage() {
     try {
       const chainIdHex = `0x${mendoza.id.toString(16)}`;
 
-      try {
-        // Try to switch to the chain first
-        await window.ethereum.request({
-          method: 'wallet_switchEthereumChain',
-          params: [{ chainId: chainIdHex }],
-        });
-      } catch (switchError: any) {
-        // Chain doesn't exist, add it
-        if (switchError?.code === 4902) {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: chainIdHex,
-                chainName: mendoza.name,
-                nativeCurrency: mendoza.nativeCurrency,
-                rpcUrls: mendoza.rpcUrls.default.http,
-                blockExplorerUrls: [mendoza.blockExplorers.default.url],
-              },
-            ],
-          });
+      // Always call wallet_addEthereumChain directly - MetaMask will handle:
+      // - If network doesn't exist: Show add network prompt
+      // - If network already exists: Show appropriate message or switch to it
+      // This ensures MetaMask always opens and handles the state appropriately
+      await window.ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [
+          {
+            chainId: chainIdHex,
+            chainName: mendoza.name,
+            nativeCurrency: mendoza.nativeCurrency,
+            rpcUrls: mendoza.rpcUrls.default.http,
+            blockExplorerUrls: [mendoza.blockExplorers.default.url],
+          },
+        ],
+      });
+
+      // If we get here, the network was added or already exists
+      // The app should continue to work in both cases
+    } catch (err: any) {
+      // Handle errors gracefully - MetaMask will handle the network state
+      // Error code 4001 = User rejected the request (user cancelled)
+      if (err?.code === 4001) {
+        // User cancelled - this is fine, just clear the error
+        setError('');
+      } else {
+        // Other errors: network already exists, or other issues
+        // MetaMask handles "already exists" cases - we don't need to show an error
+        // The network is either already added (good) or was just added (good)
+        // Only show error for truly unexpected issues
+        const errorMessage = err?.message || '';
+        const errorCode = err?.code;
+
+        // Don't show error if:
+        // - Network already exists (various error messages/codes)
+        // - User cancelled (already handled above)
+        // - Any error that suggests the network is already configured
+        if (errorCode !== 4001 &&
+            !errorMessage.toLowerCase().includes('already') &&
+            !errorMessage.toLowerCase().includes('exists') &&
+            !errorMessage.toLowerCase().includes('duplicate')) {
+          // Only show unexpected errors
+          setError(errorMessage || 'Failed to add Mendoza testnet');
         } else {
-          throw switchError;
+          // Network is already added or user cancelled - clear error
+          setError('');
         }
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to add Mendoza testnet');
     } finally {
       setAddingNetwork(false);
     }

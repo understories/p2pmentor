@@ -50,9 +50,9 @@ export function GlobalToggles() {
     return null;
   }
 
-  // Hide on landing and auth pages (they have their own ThemeToggle)
+  // Hide on landing, auth, and beta pages (they have their own ThemeToggle)
   // Use startsWith to handle trailing slashes and query params
-  if (pathname === '/' || pathname.startsWith('/auth')) {
+  if (pathname === '/' || pathname.startsWith('/auth') || pathname.startsWith('/beta')) {
     return null;
   }
 
