@@ -1665,10 +1665,123 @@ export default function AdminDashboard() {
                         .sort((a, b) => b[1] - a[1])
                         .slice(0, 20);
 
+                      // Categorize patterns for visualization
+                      const clickPatterns = topPatterns.filter(([p]) => p.startsWith('click:'));
+                      const navPatterns = topPatterns.filter(([p]) => p.includes('→') || (!p.startsWith('click:') && !p.startsWith('action:')));
+                      const actionPatterns = topPatterns.filter(([p]) => p.startsWith('action:'));
+
                       return (
-                        <div className="mb-6">
+                        <div className="mb-6 space-y-6">
+                          {/* Visual Summary Cards */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Patterns</div>
+                              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{topPatterns.length}</div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Total Events</div>
+                              <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                                {topPatterns.reduce((sum, [, count]) => sum + count, 0)}
+                              </div>
+                            </div>
+                            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                              <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Top Pattern</div>
+                              <div className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate" title={topPatterns[0]?.[0]}>
+                                {topPatterns[0]?.[0] || 'N/A'}
+                              </div>
+                              <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                                {topPatterns[0]?.[1] || 0} events
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Pattern Type Breakdown */}
+                          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <h5 className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-3">Pattern Type Breakdown</h5>
+                            <div className="space-y-3">
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-gray-700 dark:text-gray-300">Click Patterns</span>
+                                  <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                    {clickPatterns.reduce((sum, [, count]) => sum + count, 0)}
+                                  </span>
+                                </div>
+                                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-blue-500 dark:bg-blue-600 rounded-full"
+                                    style={{ width: `${(clickPatterns.reduce((sum, [, count]) => sum + count, 0) / topPatterns.reduce((sum, [, count]) => sum + count, 1)) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs text-gray-700 dark:text-gray-300">Navigation Patterns</span>
+                                  <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                    {navPatterns.reduce((sum, [, count]) => sum + count, 0)}
+                                  </span>
+                                </div>
+                                <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-500 dark:bg-emerald-600 rounded-full"
+                                    style={{ width: `${(navPatterns.reduce((sum, [, count]) => sum + count, 0) / topPatterns.reduce((sum, [, count]) => sum + count, 1)) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                              {actionPatterns.length > 0 && (
+                                <div>
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs text-gray-700 dark:text-gray-300">Action Completions</span>
+                                    <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">
+                                      {actionPatterns.reduce((sum, [, count]) => sum + count, 0)}
+                                    </span>
+                                  </div>
+                                  <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-purple-500 dark:bg-purple-600 rounded-full"
+                                      style={{ width: `${(actionPatterns.reduce((sum, [, count]) => sum + count, 0) / topPatterns.reduce((sum, [, count]) => sum + count, 1)) * 100}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Top 10 Patterns Bar Chart */}
+                          <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <h5 className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-3">Top 10 Patterns (Visual)</h5>
+                            <div className="space-y-2">
+                              {topPatterns.slice(0, 10).map(([pattern, count], idx) => {
+                                const maxCount = topPatterns[0]?.[1] || 1;
+                                const percentage = (count / maxCount) * 100;
+                                const isClick = pattern.startsWith('click:');
+                                const isAction = pattern.startsWith('action:');
+                                const barColor = isAction
+                                  ? 'bg-purple-500 dark:bg-purple-600'
+                                  : isClick
+                                  ? 'bg-blue-500 dark:bg-blue-600'
+                                  : 'bg-emerald-500 dark:bg-emerald-600';
+                                return (
+                                  <div key={pattern} className="space-y-1">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-mono text-gray-900 dark:text-gray-100 truncate flex-1 mr-2" title={pattern}>
+                                        {pattern.length > 40 ? `${pattern.slice(0, 40)}...` : pattern}
+                                      </span>
+                                      <span className="text-xs font-semibold text-gray-900 dark:text-gray-100 whitespace-nowrap">{count}</span>
+                                    </div>
+                                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                      <div
+                                        className={`h-full ${barColor} rounded-full transition-all duration-300`}
+                                        style={{ width: `${percentage}%` }}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
                           <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">
-                            Top Navigation Patterns (Aggregated)
+                            Top Navigation Patterns (Aggregated) - Full Table
                           </h4>
                           <div className="overflow-x-auto">
                             <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
