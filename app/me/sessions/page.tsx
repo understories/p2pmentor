@@ -21,7 +21,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { formatSessionTitle } from '@/lib/sessions/display';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
-import { canGiveFeedbackForSessionSync } from '@/lib/feedback/canGiveFeedback';
+import { canGiveFeedbackForSessionSync, hasSessionEnded } from '@/lib/feedback/canGiveFeedback';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -77,6 +77,8 @@ export default function SessionsPage() {
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
   const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
   const [sessionTypeFilter, setSessionTypeFilter] = useState<'all' | 'p2p' | 'community'>('all');
+  const [timeFilter, setTimeFilter] = useState<'all' | 'upcoming' | 'past'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -500,18 +502,59 @@ export default function SessionsPage() {
     return sessionList.filter(s => !isCommunitySession(s));
   };
 
-  // Group sessions by status, then apply type filter
-  const pendingSessions = filterSessionsByType(sessions.filter(s => s.status === 'pending'));
-  const scheduledSessions = filterSessionsByType(sessions.filter(s => s.status === 'scheduled'));
-  const completedSessions = filterSessionsByType(sessions.filter(s => s.status === 'completed'));
-  const declinedSessions = filterSessionsByType(sessions.filter(s => s.status === 'declined'));
-  const cancelledSessions = filterSessionsByType(sessions.filter(s => s.status === 'cancelled'));
+  // Filter sessions by time (upcoming vs past)
+  const filterSessionsByTime = (sessionList: Session[]): Session[] => {
+    if (timeFilter === 'all') return sessionList;
+    const now = Date.now();
+    if (timeFilter === 'upcoming') {
+      return sessionList.filter(s => {
+        const sessionTime = new Date(s.sessionDate).getTime();
+        return sessionTime > now;
+      });
+    }
+    // past: filter sessions that have ended
+    return sessionList.filter(s => {
+      const sessionTime = new Date(s.sessionDate).getTime();
+      const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+      const buffer = 60 * 60 * 1000; // 1 hour buffer
+      const sessionEnd = sessionTime + duration + buffer;
+      return now >= sessionEnd || s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled';
+    });
+  };
+
+  // Filter sessions by status (pending vs confirmed)
+  const filterSessionsByStatus = (sessionList: Session[]): Session[] => {
+    if (statusFilter === 'all') return sessionList;
+    if (statusFilter === 'pending') {
+      return sessionList.filter(s => s.status === 'pending' || !s.mentorConfirmed || !s.learnerConfirmed);
+    }
+    // confirmed: both mentor and learner confirmed, and status is scheduled or completed
+    return sessionList.filter(s => s.mentorConfirmed && s.learnerConfirmed && (s.status === 'scheduled' || s.status === 'completed'));
+  };
+
+  // Apply all filters
+  const applyAllFilters = (sessionList: Session[]): Session[] => {
+    let filtered = sessionList;
+    filtered = filterSessionsByType(filtered);
+    filtered = filterSessionsByTime(filtered);
+    filtered = filterSessionsByStatus(filtered);
+    return filtered;
+  };
+
+  // Group sessions by status, then apply all filters
+  const allSessionsFiltered = applyAllFilters(sessions);
+  const pendingSessions = allSessionsFiltered.filter(s => s.status === 'pending');
+  const scheduledSessions = allSessionsFiltered.filter(s => s.status === 'scheduled');
+  const completedSessions = allSessionsFiltered.filter(s => s.status === 'completed');
+  const declinedSessions = allSessionsFiltered.filter(s => s.status === 'declined');
+  const cancelledSessions = allSessionsFiltered.filter(s => s.status === 'cancelled');
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
-  // Find upcoming session (next scheduled session)
+  // Find upcoming session (next scheduled session) - use original sessions before filtering
   const now = Date.now();
-  const upcomingSession = scheduledSessions
+  const allScheduledSessions = sessions.filter(s => s.status === 'scheduled');
+  const upcomingSession = allScheduledSessions
     .filter(s => {
       const sessionTime = new Date(s.sessionDate).getTime();
       return sessionTime > now;
@@ -532,39 +575,120 @@ export default function SessionsPage() {
           description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
         />
 
-        {/* Session Type Filter - Similar to network page */}
-        <div className="mb-6 flex items-center gap-2">
-          <span className="text-sm text-gray-600 dark:text-gray-400">Filter:</span>
-          <button
-            onClick={() => setSessionTypeFilter('all')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              sessionTypeFilter === 'all'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setSessionTypeFilter('p2p')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              sessionTypeFilter === 'p2p'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            P2P
-          </button>
-          <button
-            onClick={() => setSessionTypeFilter('community')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-              sessionTypeFilter === 'community'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-            }`}
-          >
-            Community
-          </button>
+        {/* Filters - Best practice: grouped logically with clear labels */}
+        <div className="mb-6 space-y-4">
+          <div className="flex flex-wrap items-center gap-4">
+            {/* Type Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Type:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSessionTypeFilter('all')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    sessionTypeFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setSessionTypeFilter('p2p')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    sessionTypeFilter === 'p2p'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  P2P
+                </button>
+                <button
+                  onClick={() => setSessionTypeFilter('community')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    sessionTypeFilter === 'community'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Community
+                </button>
+              </div>
+            </div>
+
+            {/* Time Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Time:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTimeFilter('all')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    timeFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setTimeFilter('upcoming')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    timeFilter === 'upcoming'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Upcoming
+                </button>
+                <button
+                  onClick={() => setTimeFilter('past')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    timeFilter === 'past'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Past
+                </button>
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    statusFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setStatusFilter('pending')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    statusFilter === 'pending'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Pending
+                </button>
+                <button
+                  onClick={() => setStatusFilter('confirmed')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    statusFilter === 'confirmed'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Confirmed
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -985,6 +1109,18 @@ export default function SessionsPage() {
                 const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
                 const otherProfile = profiles[otherWallet.toLowerCase()];
                 const sessionTime = formatSessionDate(session.sessionDate);
+                const sessionHasEnded = hasSessionEnded(session);
+
+                // Check if user can give feedback for past scheduled sessions
+                const existingFeedbacks = sessionFeedbacks[session.key] || [];
+                const canGiveFeedback = userWallet && sessionHasEnded && canGiveFeedbackForSessionSync(
+                  session,
+                  userWallet,
+                  existingFeedbacks
+                );
+                const hasGivenFeedback = userWallet && existingFeedbacks.some(
+                  (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
+                );
 
                 // Check if this is a community gathering session
                 const gatheringKey = session.gatheringKey ||
