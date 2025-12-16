@@ -406,9 +406,11 @@ export async function listUserProfiles(params?: {
   }
   
   // Support multiple spaceIds (builder mode) or single spaceId
+  let limit = 100; // Default limit
   if (params?.spaceIds && params.spaceIds.length > 0) {
     // Query all, filter client-side (Arkiv doesn't support OR queries)
-    queryBuilder = queryBuilder.limit(500);
+    // Use higher limit when querying multiple spaceIds to ensure we get all profiles
+    limit = 500;
   } else {
     // Use provided spaceId or default to SPACE_ID from config
     const spaceId = params?.spaceId || SPACE_ID;
@@ -418,7 +420,7 @@ export async function listUserProfiles(params?: {
   const result = await queryBuilder
     .withAttributes(true)
     .withPayload(true)
-    .limit(100)
+    .limit(limit)
     .fetch();
 
   let profiles = result.entities.map((entity: any) => {
