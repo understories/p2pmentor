@@ -6,6 +6,7 @@ import { ConditionalAppShell } from "@/components/navigation/ConditionalAppShell
 import { BackgroundImage } from "@/components/BackgroundImage";
 import { ClientPerfTracker } from "@/components/ClientPerfTracker";
 import { GlobalToggles } from "@/components/GlobalToggles";
+import { ArkivModeBanner } from "@/components/ArkivModeBanner";
 import { NoScriptRedirect } from "@/components/NoScriptRedirect";
 
 export const metadata: Metadata = {
@@ -28,6 +29,7 @@ export default function RootLayout({
         <NoScriptRedirect />
         <ThemeProvider>
           <GlobalToggles />
+          <ArkivModeBanner />
           <BackgroundImage />
           <ClientPerfTracker />
           <ConditionalAppShell>
