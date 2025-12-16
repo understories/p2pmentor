@@ -27,6 +27,7 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [timezone, setTimezone] = useState<string>('');
+  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
@@ -69,11 +70,57 @@ export default function ProfilePage() {
         // If profile exists, show edit mode (form is visible)
         setMode('create');
       }
+
+      // Load learner quest completion percentage
+      loadLearnerQuestCompletion(wallet);
     } catch (err) {
       console.error('Error loading profile:', err);
       setError('Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadLearnerQuestCompletion = async (walletAddress: string) => {
+    try {
+      // Fetch all active quests
+      const questsRes = await fetch('/api/learner-quests');
+      const questsData = await questsRes.json();
+      
+      if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
+        setLearnerQuestCompletion(null);
+        return;
+      }
+
+      const quests = questsData.quests;
+      
+      // Load progress for all quests in parallel
+      const progressPromises = quests.map(async (quest: any) => {
+        try {
+          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+          const data = await res.json();
+
+          if (data.ok && data.progress) {
+            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+            const totalMaterials = quest.materials.length;
+            return { readCount, totalMaterials };
+          }
+          return { readCount: 0, totalMaterials: quest.materials.length };
+        } catch (err) {
+          console.error(`Error loading progress for quest ${quest.questId}:`, err);
+          return { readCount: 0, totalMaterials: quest.materials.length };
+        }
+      });
+
+      const results = await Promise.all(progressPromises);
+      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
+      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
+      const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
+
+      setLearnerQuestCompletion({ percent, readCount: totalRead, totalMaterials });
+    } catch (err) {
+      console.error('Error loading learner quest completion:', err);
+      setLearnerQuestCompletion(null);
     }
   };
 
@@ -481,6 +528,11 @@ export default function ProfilePage() {
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Editing existing profile</p>
                 <p className="font-medium">{profile.displayName}</p>
                 {profile.bioShort && <p className="text-sm mt-2">{profile.bioShort}</p>}
+                {learnerQuestCompletion && (
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                    Learning Quests: {learnerQuestCompletion.percent}% complete ({learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials)
+                  </p>
+                )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Changes will create a new profile entity on Arkiv.
                 </p>

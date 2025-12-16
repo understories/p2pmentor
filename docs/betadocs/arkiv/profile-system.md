@@ -72,6 +72,7 @@ type UserProfile = {
   lastActiveTimestamp?: string;
   communityAffiliations?: string[];
   reputationScore?: number;
+  learnerQuestCompletion?: { percent: number; readCount: number; totalMaterials: number };
   spaceId: string;
   createdAt?: string;
   txHash?: string;
@@ -637,9 +638,23 @@ Currently transitioning from skill name strings to skill entity keys. Consider:
 - Validation that skill_ids reference valid skill entities
 - Fallback to skill names if skill entity not found
 
+## Profile Display Features
+
+### Learner Quest Completion
+
+User profiles display learner quest completion percentage on both public profile pages (`/profiles/[wallet]`) and edit profile pages (`/me/profile`). The completion percentage is calculated across all active learner quests:
+
+- Fetches all active quests from `/api/learner-quests`
+- Loads progress for each quest in parallel
+- Calculates total read materials across all quests
+- Displays as: `X% complete (Y / Z materials)`
+
+The completion data is loaded asynchronously and does not block profile loading. If no quests exist or loading fails, the completion information is not displayed.
+
 ## Related Documentation
 
 - [Profile Entity](../arkiv/profile.md)
+- [Learner Quests](./learner-quests.md)
 - [Engineering Guidelines](../../ENGINEERING_GUIDELINES.md)
 - [Arkiv Query Patterns](../../ARKIV_BUILDER_MODE.md)
 - [Notification System](./notification-system.md)

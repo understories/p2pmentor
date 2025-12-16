@@ -9,6 +9,7 @@ Learner Quests are curated reading lists that help users explore foundational do
 - Display curated reading materials with descriptions
 - Track read status when users click external links
 - Show progress (X/Y materials read)
+- Display completion percentage on user profiles (public and edit views)
 - Store progress as Arkiv entities (verifiable, transparent)
 - Privacy-preserving (wallet-based, no additional PII)
 

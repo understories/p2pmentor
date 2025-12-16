@@ -63,6 +63,7 @@ export default function ProfileDetailPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
+  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -156,6 +157,9 @@ export default function ProfileDetailPage() {
           // Profile will be updated above, but we can enhance it with availability data
         }
       }
+
+      // Load learner quest completion percentage
+      loadLearnerQuestCompletion(normalizedWallet);
     } catch (err: any) {
       console.error('Error loading profile data:', err);
       setError(err.message || `Failed to load profile for wallet: ${walletAddress}`);
@@ -202,6 +206,49 @@ export default function ProfileDetailPage() {
       return `${minutes}m`;
     } else {
       return '<1m';
+    }
+  };
+
+  const loadLearnerQuestCompletion = async (walletAddress: string) => {
+    try {
+      // Fetch all active quests
+      const questsRes = await fetch('/api/learner-quests');
+      const questsData = await questsRes.json();
+      
+      if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
+        setLearnerQuestCompletion(null);
+        return;
+      }
+
+      const quests = questsData.quests;
+      
+      // Load progress for all quests in parallel
+      const progressPromises = quests.map(async (quest: any) => {
+        try {
+          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+          const data = await res.json();
+
+          if (data.ok && data.progress) {
+            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+            const totalMaterials = quest.materials.length;
+            return { readCount, totalMaterials };
+          }
+          return { readCount: 0, totalMaterials: quest.materials.length };
+        } catch (err) {
+          console.error(`Error loading progress for quest ${quest.questId}:`, err);
+          return { readCount: 0, totalMaterials: quest.materials.length };
+        }
+      });
+
+      const results = await Promise.all(progressPromises);
+      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
+      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
+      const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
+
+      setLearnerQuestCompletion({ percent, readCount: totalRead, totalMaterials });
+    } catch (err) {
+      console.error('Error loading learner quest completion:', err);
+      setLearnerQuestCompletion(null);
     }
   };
 
@@ -472,6 +519,15 @@ export default function ProfileDetailPage() {
               </div>
             </div>
               )}
+
+          {learnerQuestCompletion && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Learning Quests</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                {learnerQuestCompletion.percent}% complete ({learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials)
+              </p>
+            </div>
+          )}
 
           <div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Wallet</p>
