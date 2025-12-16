@@ -104,6 +104,26 @@ export async function createSkill({
     console.warn('[skill] Failed to create skill_txhash entity, but skill was created:', error);
   }
 
+  // Automatically add creator as a member of the community (if created_by_profile is provided)
+  // This ensures the creator sees "Leave" instead of "Join" immediately after creation
+  if (created_by_profile) {
+    try {
+      const { createLearningFollow } = await import('./learningFollow');
+      const normalizedWallet = created_by_profile.toLowerCase();
+      await createLearningFollow({
+        profile_wallet: normalizedWallet,
+        skill_id: entityKey,
+        mode: 'learning',
+        privateKey,
+        spaceId,
+      });
+    } catch (error: any) {
+      // Don't block skill creation if follow creation fails
+      // This is a non-critical operation - user can manually join if needed
+      console.warn('[createSkill] Failed to automatically add creator as member, but skill was created:', error);
+    }
+  }
+
   // Create notifications for all profiles when a new skill is created
   // This invites everyone to join the new learning community
   try {

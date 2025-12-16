@@ -33,12 +33,18 @@ export async function ensureSkillEntity(skillName: string): Promise<{ key: strin
     }
 
     // Skill doesn't exist - create it
+    // Get wallet address from localStorage if available (for auto-adding creator as member)
+    const walletAddress = typeof window !== 'undefined'
+      ? localStorage.getItem('wallet_address')
+      : null;
+
     const res = await fetch('/api/skills', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         name_canonical: skillName.trim(),
         description: undefined,
+        created_by_profile: walletAddress || undefined, // Pass wallet so creator is auto-added as member
       }),
     });
 

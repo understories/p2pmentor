@@ -193,7 +193,7 @@ export async function listLearningFollows({
       };
     });
 
-    // Apply filters
+    // Apply wallet and skill filters first
     if (profile_wallet) {
       const normalizedWallet = profile_wallet.toLowerCase();
       follows = follows.filter(f => f.profile_wallet.toLowerCase() === normalizedWallet);
@@ -201,12 +201,40 @@ export async function listLearningFollows({
     if (skill_id) {
       follows = follows.filter(f => f.skill_id === skill_id);
     }
-    if (active !== undefined) {
-      follows = follows.filter(f => f.active === active);
-    }
 
     // Sort by most recent first
-    return follows.sort((a, b) => 
+    follows = follows.sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+
+    // Handle soft-delete pattern: Since Arkiv is immutable, unfollow creates a new entity with active=false
+    // but the old entity with active=true still exists. We need to deduplicate by taking the most recent
+    // entity for each profile_wallet + skill_id combination (most recent entity = current state).
+    //
+    // Group by profile_wallet + skill_id and take the most recent entity for each combination
+    const followMap = new Map<string, LearningFollow>();
+    for (const follow of follows) {
+      const key = `${follow.profile_wallet.toLowerCase()}:${follow.skill_id}`;
+      const existing = followMap.get(key);
+      if (!existing || new Date(follow.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+        followMap.set(key, follow);
+      }
+    }
+
+    // Get deduplicated follows (most recent per profile+skill)
+    const currentFollows = Array.from(followMap.values());
+
+    // Now apply active filter if specified
+    if (active !== undefined) {
+      const filtered = currentFollows.filter(f => f.active === active);
+      // Sort again after filtering
+      return filtered.sort((a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    }
+
+    // Return sorted by most recent first
+    return currentFollows.sort((a, b) =>
       new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {

@@ -183,6 +183,11 @@ export function SkillSelector({
 
     try {
       setLoading(true);
+      // Get wallet address from localStorage to pass as creator
+      const walletAddress = typeof window !== 'undefined'
+        ? localStorage.getItem('wallet_address')
+        : null;
+
       // Create new skill entity on Arkiv
       const res = await fetch('/api/skills', {
         method: 'POST',
@@ -190,6 +195,7 @@ export function SkillSelector({
         body: JSON.stringify({
           name_canonical: searchTerm.trim(),
           description: undefined, // Can be added later
+          created_by_profile: walletAddress || undefined, // Pass wallet so creator is auto-added as member
         }),
       });
 
