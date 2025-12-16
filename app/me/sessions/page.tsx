@@ -24,6 +24,9 @@ import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
+import type { VirtualGathering } from '@/lib/arkiv/virtualGathering';
+import { getProfileByWallet } from '@/lib/arkiv/profile';
+import Link from 'next/link';
 
 function shortenWallet(wallet: string): string {
   if (!wallet || wallet.length < 10) return wallet;
@@ -61,6 +64,8 @@ export default function SessionsPage() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
+  const [gatherings, setGatherings] = useState<Record<string, VirtualGathering>>({}); // gatheringKey -> gathering
+  const [rsvpWallets, setRsvpWallets] = useState<Record<string, string[]>>({}); // gatheringKey -> array of wallet addresses
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -145,6 +150,86 @@ export default function SessionsPage() {
         }
       });
       setProfiles(profileMap);
+
+      // For community gathering sessions, fetch gathering info and RSVP wallets
+      const communitySessions = sessionsList.filter((s: Session) =>
+        s.gatheringKey || s.skill === 'virtual_gathering_rsvp' || s.notes?.includes('virtual_gathering_rsvp:')
+      );
+
+      if (communitySessions.length > 0) {
+        const gatheringKeys = new Set<string>();
+        communitySessions.forEach((s: Session) => {
+          const gatheringKey = s.gatheringKey ||
+            (s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
+            (s.notes?.includes('virtual_gathering_rsvp:') ? s.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
+          if (gatheringKey) {
+            gatheringKeys.add(gatheringKey);
+          }
+        });
+
+        // Fetch gathering information and RSVP wallets for each gathering
+        const gatheringPromises = Array.from(gatheringKeys).map(async (gatheringKey) => {
+          try {
+            // Fetch gathering info and RSVP wallets in parallel
+            const [gathering, rsvpRes] = await Promise.all([
+              (async () => {
+                const { getVirtualGatheringByKey } = await import('@/lib/arkiv/virtualGathering');
+                return await getVirtualGatheringByKey(gatheringKey);
+              })(),
+              fetch(`/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gatheringKey)}`).then(r => r.json()).catch(() => ({ ok: false, rsvpWallets: [] })),
+            ]);
+
+            return {
+              gatheringKey,
+              gathering: gathering || null,
+              rsvpWallets: rsvpRes?.rsvpWallets || [],
+            };
+          } catch (err) {
+            console.warn(`Error fetching gathering ${gatheringKey}:`, err);
+            return { gatheringKey, gathering: null, rsvpWallets: [] };
+          }
+        });
+
+        const gatheringResults = await Promise.all(gatheringPromises);
+        const gatheringsMap: Record<string, VirtualGathering> = {};
+        const rsvpWalletsMap: Record<string, string[]> = {};
+
+        gatheringResults.forEach(({ gatheringKey, gathering, rsvpWallets: wallets }) => {
+          if (gathering) {
+            gatheringsMap[gatheringKey] = gathering;
+          }
+          if (wallets && wallets.length > 0) {
+            rsvpWalletsMap[gatheringKey] = wallets;
+          }
+        });
+
+        setGatherings(gatheringsMap);
+        setRsvpWallets(rsvpWalletsMap);
+
+        // Load profiles for all RSVP wallets
+        const allRsvpWallets = new Set<string>();
+        Object.values(rsvpWalletsMap).forEach(wallets => {
+          wallets.forEach(wallet => allRsvpWallets.add(wallet));
+        });
+
+        const rsvpProfilePromises = Array.from(allRsvpWallets).map(async (wallet) => {
+          try {
+            const profile = await getProfileByWallet(wallet);
+            return { wallet, profile };
+          } catch {
+            return { wallet, profile: null };
+          }
+        });
+
+        const rsvpProfileResults = await Promise.all(rsvpProfilePromises);
+        const updatedProfiles = { ...profileMap };
+        rsvpProfileResults.forEach(({ wallet, profile }) => {
+          if (profile) {
+            updatedProfiles[wallet.toLowerCase()] = profile;
+          }
+        });
+        setProfiles(updatedProfiles);
+      }
     } catch (err: any) {
       console.error('Error loading sessions:', err);
       setError(err.message || 'Failed to load sessions');
@@ -440,6 +525,18 @@ export default function SessionsPage() {
           const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
           const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
 
+          // Check if this is a community gathering session
+          const gatheringKey = upcomingSession.gatheringKey ||
+            (upcomingSession.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
+            (upcomingSession.notes?.includes('virtual_gathering_rsvp:') ? upcomingSession.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
+          const isCommunityGathering = gatheringKey && (upcomingSession.skill === 'virtual_gathering_rsvp' || upcomingSession.notes?.includes('virtual_gathering_rsvp:'));
+          const gathering = gatheringKey ? gatherings[gatheringKey] : null;
+
+          // Use gathering's videoJoinUrl if available (for community gatherings)
+          const videoJoinUrl = isCommunityGathering && gathering?.videoJoinUrl
+            ? gathering.videoJoinUrl
+            : upcomingSession.videoJoinUrl;
+
           return (
             <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
               <div className="flex items-center justify-between mb-2">
@@ -451,14 +548,20 @@ export default function SessionsPage() {
                 </span>
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
-                <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong> with {otherProfile?.displayName || shortenWallet(otherWallet)}
+                <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong>
+                {!isCommunityGathering && ` with ${otherProfile?.displayName || shortenWallet(otherWallet)}`}
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-400">
                 {sessionTime.date} at {sessionTime.time}
               </p>
-              {upcomingSession.videoJoinUrl && (
+              {isCommunityGathering && gathering && gathering.rsvpCount !== undefined && (
+                <p className="text-sm text-blue-600 dark:text-blue-300">
+                  {gathering.rsvpCount} {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
+                </p>
+              )}
+              {videoJoinUrl && (
                 <a
-                  href={upcomingSession.videoJoinUrl}
+                  href={videoJoinUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-2 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
@@ -821,6 +924,22 @@ export default function SessionsPage() {
                 const otherProfile = profiles[otherWallet.toLowerCase()];
                 const sessionTime = formatSessionDate(session.sessionDate);
 
+                // Check if this is a community gathering session
+                const gatheringKey = session.gatheringKey ||
+                  (session.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
+                  (session.notes?.includes('virtual_gathering_rsvp:') ? session.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
+                const isCommunityGathering = gatheringKey && (session.skill === 'virtual_gathering_rsvp' || session.notes?.includes('virtual_gathering_rsvp:'));
+                const gathering = gatheringKey ? gatherings[gatheringKey] : null;
+                const gatheringRsvpWallets = gatheringKey ? (rsvpWallets[gatheringKey] || []) : [];
+                const rsvpProfiles = gatheringRsvpWallets
+                  .map(wallet => profiles[wallet.toLowerCase()])
+                  .filter(Boolean) as UserProfile[];
+
+                // Use gathering's videoJoinUrl if available (for community gatherings)
+                const videoJoinUrl = isCommunityGathering && gathering?.videoJoinUrl
+                  ? gathering.videoJoinUrl
+                  : session.videoJoinUrl;
+
                 return (
                   <div
                     key={session.key}
@@ -833,6 +952,11 @@ export default function SessionsPage() {
                           <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                             Scheduled
                           </span>
+                          {isCommunityGathering && (
+                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                              Community gathering
+                            </span>
+                          )}
                           {arkivBuilderMode && session.key && (
                             <div className="flex items-center gap-2 ml-auto">
                               <ViewOnArkivLink
@@ -847,79 +971,146 @@ export default function SessionsPage() {
                             </div>
                           )}
                         </div>
-                        <p className="text-gray-700 dark:text-gray-300 mb-2">
-                          <strong>With:</strong>{' '}
-                          {otherProfile?.displayName || shortenWallet(otherWallet)}
-                        </p>
-                        <p className="text-gray-600 dark:text-gray-400 mb-2">
-                          <strong>Date:</strong> {sessionTime.date}
-                        </p>
-                        <p className="text-gray-600 dark:text-gray-400 mb-2">
-                          <strong>Time:</strong> {sessionTime.time}
-                        </p>
-                        {session.duration && (
-                          <p className="text-gray-600 dark:text-gray-400 mb-2">
-                            <strong>Duration:</strong> {session.duration} minutes
-                          </p>
-                        )}
-                        {session.notes && (
-                          <div className="mt-3">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
-                          </div>
-                        )}
-                        {session.paymentTxHash && (
-                          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              💰 Payment Transaction:
+                        {isCommunityGathering ? (
+                          <>
+                            {/* Community gathering display - same as topic page */}
+                            <p className="text-gray-700 dark:text-gray-300 mb-2">
+                              <strong>Date:</strong> {sessionTime.date}
                             </p>
-                            <div className="flex items-center gap-2">
-                              <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
-                              </code>
-                              <a
-                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                View
-                              </a>
-                            </div>
-                            {session.paymentValidated ? (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
-                              </p>
-                            ) : (
-                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                ⏳ Payment not yet validated
+                            <p className="text-gray-600 dark:text-gray-400 mb-2">
+                              <strong>Time:</strong> {sessionTime.time}
+                            </p>
+                            {session.duration && (
+                              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                <strong>Duration:</strong> {session.duration} minutes
                               </p>
                             )}
-                          </div>
-                        )}
-                        {session.videoJoinUrl ? (
-                          <div className="mt-4">
-                            <a
-                              href={session.videoJoinUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                            >
-                              🎥 Join Jitsi Meeting
-                            </a>
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                              Room: {session.videoRoomName || 'N/A'}
-                            </p>
-                          </div>
+                            {gathering && gathering.rsvpCount !== undefined && (
+                              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                <strong>RSVPs:</strong> {gathering.rsvpCount} {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
+                              </p>
+                            )}
+                            {videoJoinUrl && (
+                              <div className="mt-4">
+                                <a
+                                  href={videoJoinUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                                >
+                                  🎥 Join Meeting
+                                </a>
+                              </div>
+                            )}
+                            {/* RSVP'd Profiles List */}
+                            {gatheringRsvpWallets.length > 0 && (
+                              <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
+                                <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">
+                                  {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
+                                </p>
+                                <div className="flex flex-wrap gap-2">
+                                  {rsvpProfiles.map((profile) => (
+                                    <Link
+                                      key={profile.wallet}
+                                      href={`/profiles/${profile.wallet}`}
+                                      className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-700 transition-colors"
+                                    >
+                                      {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
+                                    </Link>
+                                  ))}
+                                  {/* Show wallets without profiles */}
+                                  {gatheringRsvpWallets
+                                    .filter(wallet => !profiles[wallet.toLowerCase()])
+                                    .map((wallet) => (
+                                      <span
+                                        key={wallet}
+                                        className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200"
+                                      >
+                                        {wallet.slice(0, 8)}...{wallet.slice(-4)}
+                                      </span>
+                                    ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
                         ) : (
-                          <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                            ⏳ Jitsi link will appear once both parties confirm
-                            {session.mentorConfirmed && session.learnerConfirmed && (
-                              <span className="block mt-1 text-orange-600 dark:text-orange-400">
-                                (Both confirmed - link may be generating...)
-                              </span>
+                          <>
+                            {/* Regular session display */}
+                            <p className="text-gray-700 dark:text-gray-300 mb-2">
+                              <strong>With:</strong>{' '}
+                              {otherProfile?.displayName || shortenWallet(otherWallet)}
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 mb-2">
+                              <strong>Date:</strong> {sessionTime.date}
+                            </p>
+                            <p className="text-gray-600 dark:text-gray-400 mb-2">
+                              <strong>Time:</strong> {sessionTime.time}
+                            </p>
+                            {session.duration && (
+                              <p className="text-gray-600 dark:text-gray-400 mb-2">
+                                <strong>Duration:</strong> {session.duration} minutes
+                              </p>
                             )}
-                          </div>
+                            {session.notes && (
+                              <div className="mt-3">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
+                              </div>
+                            )}
+                            {session.paymentTxHash && (
+                              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
+                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                  💰 Payment Transaction:
+                                </p>
+                                <div className="flex items-center gap-2">
+                                  <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
+                                    {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
+                                  </code>
+                                  <a
+                                    href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                                  >
+                                    View
+                                  </a>
+                                </div>
+                                {session.paymentValidated ? (
+                                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
+                                    ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
+                                  </p>
+                                ) : (
+                                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                                    ⏳ Payment not yet validated
+                                  </p>
+                                )}
+                              </div>
+                            )}
+                            {videoJoinUrl ? (
+                              <div className="mt-4">
+                                <a
+                                  href={videoJoinUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                                >
+                                  🎥 Join Jitsi Meeting
+                                </a>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                  Room: {session.videoRoomName || 'N/A'}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                                ⏳ Jitsi link will appear once both parties confirm
+                                {session.mentorConfirmed && session.learnerConfirmed && (
+                                  <span className="block mt-1 text-orange-600 dark:text-orange-400">
+                                    (Both confirmed - link may be generating...)
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </>
                         )}
                       </div>
                     </div>
