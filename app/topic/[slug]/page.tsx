@@ -697,7 +697,11 @@ export default function TopicDetailPage() {
                         )}
                       </div>
                       <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
+                        {daysUntil > 0
+                          ? `${daysUntil}d ${hoursUntil}h ${minutesUntil}m left`
+                          : hoursUntil > 0
+                          ? `${hoursUntil}h ${minutesUntil}m left`
+                          : `${minutesUntil}m left`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
