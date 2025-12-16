@@ -23,6 +23,17 @@ export function NavigationTracker() {
   const previousPath = useRef<string>('');
   const localAggregates = useRef<Map<string, number>>(new Map());
   const clickCount = useRef<number>(0);
+  const pageClickCount = useRef<number>(0);
+
+  // Expose click count for action completion tracking
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__getPageClickCount = () => pageClickCount.current;
+      (window as any).__resetPageClickCount = () => {
+        pageClickCount.current = 0;
+      };
+    }
+  }, []);
 
   useEffect(() => {
     // Only track in production or when explicitly enabled
@@ -41,6 +52,9 @@ export function NavigationTracker() {
     }
     previousPath.current = pathname;
 
+    // Reset page click count on navigation
+    pageClickCount.current = 0;
+
     // Track clicks via event delegation
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -54,6 +68,7 @@ export function NavigationTracker() {
 
       if (isButton || isLink || isSubmit) {
         clickCount.current += 1;
+        pageClickCount.current += 1;
         const clickKey = `click:${pathname}:${tagName}`;
         const currentCount = localAggregates.current.get(clickKey) || 0;
         localAggregates.current.set(clickKey, currentCount + 1);

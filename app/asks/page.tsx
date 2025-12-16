@@ -268,6 +268,10 @@ export default function AsksPage() {
 
       const data = await res.json();
       if (data.ok) {
+        // Track action completion
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('ask_created');
+
         if (data.pending) {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
           setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });

@@ -21,8 +21,30 @@ import type { NavigationMetric } from '@/lib/metrics/navigation';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { aggregates, page, createdAt } = body;
+    const { aggregates, page, createdAt, actionType, clicksToComplete } = body;
 
+    // Handle action completion metrics (Phase 2)
+    if (actionType && typeof clicksToComplete === 'number') {
+      // Store as navigation metric with action completion pattern
+      const metric: NavigationMetric = {
+        aggregates: [{
+          pattern: `action:${actionType}:clicks:${clicksToComplete}`,
+          count: 1,
+        }],
+        page: page || 'unknown',
+        createdAt: createdAt || new Date().toISOString(),
+      };
+
+      const { key, txHash } = await createNavigationMetric({
+        metric,
+        privateKey: getPrivateKey(),
+        spaceId: 'local-dev',
+      });
+
+      return NextResponse.json({ ok: true, key, txHash });
+    }
+
+    // Handle navigation aggregates (Phase 1)
     if (!Array.isArray(aggregates) || !page || !createdAt) {
       return NextResponse.json(
         { ok: false, error: 'aggregates (array), page, and createdAt are required' },

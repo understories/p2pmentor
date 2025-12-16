@@ -331,6 +331,10 @@ export default function OffersPage() {
 
       const data = await res.json();
       if (data.ok) {
+        // Track action completion
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('offer_created');
+
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
           setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });

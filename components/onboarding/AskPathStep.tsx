@@ -115,6 +115,10 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
 
       const data = await res.json();
       if (data.ok) {
+        // Track action completion
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('ask_created');
+
         onComplete();
       } else {
         throw new Error(data.error || 'Failed to create ask');

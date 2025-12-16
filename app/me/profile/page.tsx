@@ -243,6 +243,12 @@ export default function ProfilePage() {
         throw new Error(result.error || 'Failed to create profile');
       }
 
+      // Track action completion
+      if (result.ok) {
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('profile_created');
+      }
+
       // Check if transaction is pending
       if (result.pending) {
         setSuccess('Profile creation submitted! Transaction is being processed. Please refresh in a moment.');

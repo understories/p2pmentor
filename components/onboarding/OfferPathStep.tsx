@@ -117,6 +117,10 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
 
       const data = await res.json();
       if (data.ok) {
+        // Track action completion
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('offer_created');
+
         onComplete();
       } else {
         throw new Error(data.error || 'Failed to create offer');

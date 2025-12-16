@@ -292,6 +292,12 @@ export function RequestMeetingModal({
         throw new Error(data.error || 'Failed to create session');
       }
 
+      // Track action completion
+      if (data.ok) {
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('session_created');
+      }
+
       // Success - handle both immediate success and pending confirmation
       setShowConfirmation(false);
       setSubmitting(false); // Reset submitting state before closing

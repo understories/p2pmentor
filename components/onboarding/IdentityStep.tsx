@@ -55,6 +55,10 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
 
       const data = await res.json();
       if (data.ok) {
+        // Track action completion
+        const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
+        trackActionCompletion('profile_created');
+
         // Small delay for visual feedback (seed "pops")
         setTimeout(() => {
           onComplete();
