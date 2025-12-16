@@ -96,7 +96,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-gray-200/30 dark:border-gray-700/30 safe-area-inset-top bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm"
+      className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-gray-200/30 dark:border-emerald-900/30 safe-area-inset-top bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0)',
       }}
