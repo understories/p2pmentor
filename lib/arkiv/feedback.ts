@@ -282,8 +282,102 @@ export async function listFeedbackForWallet(wallet: string): Promise<Feedback[]>
     }
   });
 
-  return feedbacks.sort((a, b) => 
+  return feedbacks.sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+}
+
+/**
+ * Get a single session feedback by key
+ * 
+ * @param key - Session feedback entity key
+ * @returns Feedback or null if not found
+ */
+export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
+  const publicClient = getPublicClient();
+  
+  try {
+    // Query by key using where clause
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'session_feedback'))
+      .where(eq('key', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    if (!result || !result.entities || result.entities.length === 0) {
+      return null;
+    }
+
+    const entity = result.entities[0];
+    
+    // Fetch txHash in parallel
+    const txHashResult = await publicClient.buildQuery()
+      .where(eq('type', 'session_feedback_txhash'))
+      .where(eq('feedbackKey', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    // Build txHash
+    let txHash: string | undefined;
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+      try {
+        const txHashEntity = txHashResult.entities[0];
+        const txHashPayload = txHashEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(txHashEntity.payload)
+          : typeof txHashEntity.payload === 'string'
+          ? txHashEntity.payload
+          : JSON.stringify(txHashEntity.payload);
+        const decoded = JSON.parse(txHashPayload);
+        txHash = decoded.txHash;
+      } catch (e) {
+        console.error('Error decoding txHash:', e);
+      }
+    }
+
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('Error decoding feedback payload:', e);
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    return {
+      key: entity.key,
+      sessionKey: getAttr('sessionKey'),
+      mentorWallet: getAttr('mentorWallet'),
+      learnerWallet: getAttr('learnerWallet'),
+      feedbackFrom: getAttr('feedbackFrom'),
+      feedbackTo: getAttr('feedbackTo'),
+      rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
+      notes: payload.notes || undefined,
+      technicalDxFeedback: payload.technicalDxFeedback || undefined,
+      spaceId: getAttr('spaceId') || 'local-dev',
+      createdAt: getAttr('createdAt'),
+      txHash: txHash || entity.txHash || undefined,
+    };
+  } catch (error: any) {
+    console.error(`[getFeedbackByKey] Error getting feedback by key ${key}:`, error);
+    return null;
+  }
 }
 

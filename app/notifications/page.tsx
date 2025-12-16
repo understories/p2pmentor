@@ -614,6 +614,10 @@ export default function NotificationsPage() {
   const [feedbackDetails, setFeedbackDetails] = useState<Record<string, any>>({});
   const [loadingFeedback, setLoadingFeedback] = useState<Record<string, boolean>>({});
 
+  // State for session feedback details (for entity_created notifications with sourceEntityType='session_feedback')
+  const [sessionFeedbackDetails, setSessionFeedbackDetails] = useState<Record<string, any>>({});
+  const [loadingSessionFeedback, setLoadingSessionFeedback] = useState<Record<string, boolean>>({});
+
   // State for admin response details (for admin_response notifications)
   const [adminResponseDetails, setAdminResponseDetails] = useState<Record<string, any>>({});
   const [loadingAdminResponse, setLoadingAdminResponse] = useState<Record<string, boolean>>({});
@@ -655,6 +659,41 @@ export default function NotificationsPage() {
       console.error('[loadFeedbackDetails] Error loading feedback details:', err);
     } finally {
       setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Load session feedback details for entity_created notifications with sourceEntityType='session_feedback'
+  const loadSessionFeedbackDetails = async (feedbackKey: string) => {
+    if (sessionFeedbackDetails[feedbackKey] || loadingSessionFeedback[feedbackKey]) {
+      return; // Already loaded or loading
+    }
+
+    if (!feedbackKey) {
+      console.warn('[loadSessionFeedbackDetails] No feedbackKey provided');
+      return;
+    }
+
+    setLoadingSessionFeedback(prev => ({ ...prev, [feedbackKey]: true }));
+    try {
+      // Query session feedback directly by key
+      const res = await fetch(`/api/feedback?key=${encodeURIComponent(feedbackKey)}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.feedback) {
+          setSessionFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
+        } else {
+          console.warn(`[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found in response:`, data);
+        }
+      } else if (res.status === 404) {
+        // Feedback not found - might be from a different profile or deleted
+        console.warn(`[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found (404)`);
+      } else {
+        console.error(`[loadSessionFeedbackDetails] Error fetching session feedback ${feedbackKey}:`, res.status, res.statusText);
+      }
+    } catch (err) {
+      console.error('[loadSessionFeedbackDetails] Error loading session feedback details:', err);
+    } finally {
+      setLoadingSessionFeedback(prev => ({ ...prev, [feedbackKey]: false }));
     }
   };
 
@@ -900,6 +939,7 @@ export default function NotificationsPage() {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
               const isAdminResponseNotification = notification.type === 'admin_response';
               const isSessionFeedbackNeeded = notification.type === 'session_completed_feedback_needed';
+              const isSessionFeedbackSubmitted = notification.type === 'entity_created' && notification.metadata?.sourceEntityType === 'session_feedback';
 
               // For session feedback notifications, load session details
               if (isSessionFeedbackNeeded) {
@@ -915,6 +955,11 @@ export default function NotificationsPage() {
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
               const isLoadingFeedback = feedbackKey ? loadingFeedback[feedbackKey] : false;
 
+              // For session feedback submitted, use sourceEntityKey (the feedback key)
+              const sessionFeedbackKey = isSessionFeedbackSubmitted ? (notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey) : null;
+              const sessionFeedback = sessionFeedbackKey ? sessionFeedbackDetails[sessionFeedbackKey] : null;
+              const isLoadingSessionFeedback = sessionFeedbackKey ? loadingSessionFeedback[sessionFeedbackKey] : false;
+
               // For admin_response, use sourceEntityKey (the response key) or responseKey from metadata
               // sourceEntityKey is added to metadata when converting from Arkiv notification to client Notification format
               const responseKey = notification.metadata?.sourceEntityKey || notification.metadata?.responseKey;
@@ -928,6 +973,15 @@ export default function NotificationsPage() {
                   console.log('[Notifications] Loading feedback details for key:', feedbackKey, 'from notification:', notification.id);
                 }
                 loadFeedbackDetails(feedbackKey);
+              }
+
+              // Load session feedback details if needed
+              if (isSessionFeedbackSubmitted && sessionFeedbackKey && !sessionFeedback && !isLoadingSessionFeedback) {
+                // Debug: log the key being used
+                if (arkivBuilderMode) {
+                  console.log('[Notifications] Loading session feedback details for key:', sessionFeedbackKey, 'from notification:', notification.id);
+                }
+                loadSessionFeedbackDetails(sessionFeedbackKey);
               }
 
               // Load admin response details if needed
@@ -1272,8 +1326,8 @@ export default function NotificationsPage() {
                     </div>
                   )}
 
-                  {/* Show link for other notification types (but not app_feedback_submitted or admin_response) */}
-                  {!isFeedbackNotification && !isAdminResponseNotification && notification.link && (
+                  {/* Show link for other notification types (but not app_feedback_submitted, session_feedback_submitted, or admin_response) */}
+                  {!isFeedbackNotification && !isSessionFeedbackSubmitted && !isAdminResponseNotification && notification.link && (
                     <div className="mt-3">
                       <a
                         href={notification.link}

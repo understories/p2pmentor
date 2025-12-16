@@ -121,8 +121,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const sessionKey = searchParams.get('sessionKey');
     const wallet = searchParams.get('wallet');
+    const key = searchParams.get('key');
 
-    if (sessionKey) {
+    // Get single feedback by key
+    if (key) {
+      const { getFeedbackByKey } = await import('@/lib/arkiv/feedback');
+      const feedback = await getFeedbackByKey(key);
+      if (feedback) {
+        return NextResponse.json({ ok: true, feedback });
+      } else {
+        return NextResponse.json(
+          { ok: false, error: 'Feedback not found' },
+          { status: 404 }
+        );
+      }
+    } else if (sessionKey) {
       const feedbacks = await listFeedbackForSession(sessionKey);
       return NextResponse.json({ ok: true, feedbacks });
     } else if (wallet) {
@@ -130,7 +143,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, feedbacks });
     } else {
       return NextResponse.json(
-        { ok: false, error: 'sessionKey or wallet parameter is required' },
+        { ok: false, error: 'key, sessionKey, or wallet parameter is required' },
         { status: 400 }
       );
     }
