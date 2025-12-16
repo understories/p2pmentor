@@ -41,9 +41,15 @@ next-env.d.ts
 /static-data/
 /static-app/public/
 /static-app/data/
+# Exception: language quest question banks are source data, should be committed
+!/static-data/language-quests/
+!/static-data/language-quests/*.json
 
 # reference repos
 refs/
+# Exception: implementation plans should be committed
+!/refs/*-implementation-plan.md
+!/refs/*-plan.md
 
 # testing and issue tracking docs (temporary)
 docs/TESTING_*.md
