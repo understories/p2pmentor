@@ -7,6 +7,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
 import { FloatingActionButton } from './FloatingActionButton';
@@ -16,16 +17,24 @@ interface AppShellProps {
 }
 
 export function AppShell({ children }: AppShellProps) {
+  const [sidebarHovered, setSidebarHovered] = useState(false);
+
   return (
     <>
-      {/* Desktop Sidebar */}
-      <SidebarNav />
+      {/* Desktop Sidebar - hover detection */}
+      <div
+        onMouseEnter={() => setSidebarHovered(true)}
+        onMouseLeave={() => setSidebarHovered(false)}
+        className="hidden md:block"
+      >
+        <SidebarNav />
+      </div>
 
       {/* Mobile Top Nav */}
       <BottomNav />
 
-      {/* Main Content Area */}
-      <main className="md:ml-56 pt-14 md:pt-0 pb-4 min-h-screen">
+      {/* Main Content Area - adjusts margin when sidebar is hovered */}
+      <main className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out`}>
         {children}
       </main>
 

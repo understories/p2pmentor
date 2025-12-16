@@ -216,8 +216,10 @@ export function SidebarNav() {
   });
 
   return (
-    <nav className="hidden md:flex fixed left-0 top-0 bottom-0 w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30">
-      <div className="relative flex flex-col items-start py-4 space-y-2 w-full px-3">
+    <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30 transition-all duration-300 ease-out overflow-hidden bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
+      {/* Visual indicator - vertical line with emerald glow */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="relative flex flex-col items-start py-4 space-y-2 w-full px-3 min-w-[224px]">
         {/* Constellation Lines */}
         <ConstellationLines
           itemCount={navItems.length}
@@ -243,6 +245,7 @@ export function SidebarNav() {
                   w-full py-2.5 px-3
                   rounded-lg
                   transition-all duration-150 ease-out
+                  opacity-0 group-hover:opacity-100 transition-opacity duration-200
                   ${active
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -270,7 +273,7 @@ export function SidebarNav() {
                   }
                 }}
               >
-              <span className="relative text-xl flex-shrink-0">
+              <span className="relative text-xl flex-shrink-0 opacity-100 group-hover:opacity-100">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -278,7 +281,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <div className="flex flex-col">
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                 <span className="text-sm font-medium leading-tight">
                   {item.label}
                 </span>
@@ -340,8 +343,8 @@ export function SidebarNav() {
                   }
                 `}
               >
-                <span className="text-xl flex-shrink-0">📅</span>
-                <span className="text-sm font-medium leading-tight">Sessions</span>
+                <span className="text-xl flex-shrink-0 opacity-100">📅</span>
+                <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
                 {isActive('/me/sessions') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -430,10 +433,10 @@ export function SidebarNav() {
                         >
                           <span className="text-base flex-shrink-0">📖</span>
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {skillName}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {dateStr} {timeStr}
                             </span>
                           </div>
@@ -675,11 +678,9 @@ export function SidebarNav() {
                   title="Public Garden Board"
                 >
                   <span className="text-lg flex-shrink-0">💌</span>
-                  <span 
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                  <span
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
                       lineHeight: '1.3',
                     }}
                   >
@@ -689,15 +690,13 @@ export function SidebarNav() {
                 {/* Browse Profiles - same size as skills */}
                 <Link
                   href="/profiles"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Browse Profiles"
                 >
                   <span className="text-lg flex-shrink-0">👤</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
                       lineHeight: '1.3',
                     }}
                   >
@@ -707,15 +706,13 @@ export function SidebarNav() {
                 {/* Learner Communities - same size as skills */}
                 <Link
                   href="/skills/explore"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learner Communities"
                 >
                   <span className="text-lg flex-shrink-0">🌱</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
                       lineHeight: '1.3',
                     }}
                   >
@@ -725,15 +722,13 @@ export function SidebarNav() {
                 {/* Learner Quests - same size as skills */}
                 <Link
                   href="/learner-quests"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learner Quests"
                 >
                   <span className="text-lg flex-shrink-0">📚</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
-                      wordBreak: 'break-word',
-                      overflowWrap: 'break-word',
                       lineHeight: '1.3',
                     }}
                   >
@@ -769,7 +764,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium leading-tight">Notifications</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
               {isActive('/notifications') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -821,7 +816,7 @@ export function SidebarNav() {
               title="Disconnect wallet and logout"
             >
               <span className="text-xl flex-shrink-0">⚡</span>
-              <span className="text-sm font-medium leading-tight">Logout</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
             </button>
           </div>
         )}
