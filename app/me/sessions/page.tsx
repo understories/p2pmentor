@@ -76,6 +76,7 @@ export default function SessionsPage() {
   const [validatingPayment, setValidatingPayment] = useState<string | null>(null);
   const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
   const [sessionFeedbacks, setSessionFeedbacks] = useState<Record<string, any[]>>({});
+  const [sessionTypeFilter, setSessionTypeFilter] = useState<'all' | 'p2p' | 'community'>('all');
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -480,12 +481,31 @@ export default function SessionsPage() {
     );
   }
 
-  // Group sessions by status
-  const pendingSessions = sessions.filter(s => s.status === 'pending');
-  const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
-  const completedSessions = sessions.filter(s => s.status === 'completed');
-  const declinedSessions = sessions.filter(s => s.status === 'declined');
-  const cancelledSessions = sessions.filter(s => s.status === 'cancelled');
+  // Helper function to check if a session is a community session (arkiv-native: checks gatheringKey field)
+  const isCommunitySession = (s: Session): boolean => {
+    return Boolean(
+      s.gatheringKey || 
+      s.skill === 'virtual_gathering_rsvp' || 
+      s.notes?.includes('virtual_gathering_rsvp:')
+    );
+  };
+
+  // Filter sessions by type (p2p vs community) - arkiv-native: uses gatheringKey from session entity
+  const filterSessionsByType = (sessionList: Session[]): Session[] => {
+    if (sessionTypeFilter === 'all') return sessionList;
+    if (sessionTypeFilter === 'community') {
+      return sessionList.filter(isCommunitySession);
+    }
+    // p2p: filter out community sessions
+    return sessionList.filter(s => !isCommunitySession(s));
+  };
+
+  // Group sessions by status, then apply type filter
+  const pendingSessions = filterSessionsByType(sessions.filter(s => s.status === 'pending'));
+  const scheduledSessions = filterSessionsByType(sessions.filter(s => s.status === 'scheduled'));
+  const completedSessions = filterSessionsByType(sessions.filter(s => s.status === 'completed'));
+  const declinedSessions = filterSessionsByType(sessions.filter(s => s.status === 'declined'));
+  const cancelledSessions = filterSessionsByType(sessions.filter(s => s.status === 'cancelled'));
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
@@ -511,6 +531,41 @@ export default function SessionsPage() {
           title="Sessions"
           description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
         />
+
+        {/* Session Type Filter - Similar to network page */}
+        <div className="mb-6 flex items-center gap-2">
+          <span className="text-sm text-gray-600 dark:text-gray-400">Filter:</span>
+          <button
+            onClick={() => setSessionTypeFilter('all')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              sessionTypeFilter === 'all'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setSessionTypeFilter('p2p')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              sessionTypeFilter === 'p2p'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            P2P
+          </button>
+          <button
+            onClick={() => setSessionTypeFilter('community')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+              sessionTypeFilter === 'community'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+            }`}
+          >
+            Community
+          </button>
+        </div>
 
         {error && (
           <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
