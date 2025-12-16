@@ -1,8 +1,8 @@
 /**
  * MetaMask authentication utilities
- * 
+ *
  * Based on mentor-graph implementation with improvements.
- * 
+ *
  * Reference: refs/mentor-graph/src/wallet.ts
  */
 
@@ -18,9 +18,9 @@ import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
 
 /**
  * Switch to Mendoza chain in MetaMask
- * 
+ *
  * If the chain doesn't exist in MetaMask, it will be added automatically.
- * 
+ *
  * @throws Error if MetaMask is not installed
  */
 async function switchToMendozaChain() {
@@ -64,9 +64,9 @@ async function switchToMendozaChain() {
 
 /**
  * Disconnect MetaMask wallet by revoking permissions
- * 
+ *
  * This forces MetaMask to show the account selection dialog on next connection.
- * 
+ *
  * @throws Error if MetaMask is not installed
  */
 export async function disconnectWallet(): Promise<void> {
@@ -114,35 +114,58 @@ export async function disconnectWallet(): Promise<void> {
  * Reference: refs/metamask-mobile-integration-plan.md
  */
 export async function connectWallet(): Promise<`0x${string}`> {
+  console.log('[MetaMask] Starting wallet connection', {
+    hasWindowEthereum: typeof window !== 'undefined' && !!window.ethereum,
+    isSDKAvailable: isSDKAvailable(),
+    currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
+  });
+
   // Try SDK first (works on both desktop and mobile)
   // SDK automatically handles deep linking on mobile
   if (isSDKAvailable()) {
+    console.log('[MetaMask] Attempting connection via SDK');
     try {
       const address = await connectWithSDK();
+      console.log('[MetaMask] SDK connection successful', {
+        address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      });
+
       // Switch to Mendoza chain after connection
       // Note: On mobile, chain switching happens in the MetaMask app
       if (window.ethereum) {
         try {
+          console.log('[MetaMask] Attempting to switch to Mendoza chain');
           await switchToMendozaChain();
+          console.log('[MetaMask] Successfully switched to Mendoza chain');
         } catch (error) {
           // Chain switching is not critical - user can switch manually
           // On mobile, user may need to switch in MetaMask app
-          console.warn('Failed to switch to Mendoza chain:', error);
+          console.warn('[MetaMask] Failed to switch to Mendoza chain:', error);
         }
       }
       return address;
     } catch (error: any) {
+      console.warn('[MetaMask] SDK connection failed', {
+        error: error?.message || 'Unknown error',
+        code: error?.code,
+        willFallback: !(error?.code === 4001 || error?.message?.includes('User rejected')),
+      });
+
       // SDK failed - check if it's a user cancellation
       if (error?.code === 4001 || error?.message?.includes('User rejected')) {
         throw new Error('Connection cancelled by user');
       }
       // SDK failed - fall back to direct window.ethereum (desktop extension or MetaMask browser)
-      console.warn('MetaMask SDK connection failed, falling back to direct connection:', error);
+      console.warn('[MetaMask] Falling back to direct window.ethereum connection');
     }
+  } else {
+    console.log('[MetaMask] SDK not available, using direct window.ethereum');
   }
 
   // Fallback to direct window.ethereum (desktop extension or MetaMask browser)
+  console.log('[MetaMask] Using direct window.ethereum connection');
   if (!window.ethereum) {
+    console.error('[MetaMask] window.ethereum not available');
     throw new Error("MetaMask not installed. Please install MetaMask or use the mobile app.");
   }
 
@@ -200,16 +223,30 @@ export async function connectWallet(): Promise<`0x${string}`> {
 
   // Then request accounts (this will use the selected account)
   try {
+    console.log('[MetaMask] Requesting accounts via window.ethereum.request');
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts",
     }) as string[];
 
+    console.log('[MetaMask] Accounts received from window.ethereum', {
+      count: accounts?.length || 0,
+      firstAccount: accounts?.[0] ? `${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}` : 'None',
+    });
+
     if (!accounts || accounts.length === 0) {
+      console.error('[MetaMask] No accounts returned from window.ethereum');
       throw new Error("No accounts returned from MetaMask");
     }
 
+    console.log('[MetaMask] Direct connection successful');
     return accounts[0] as `0x${string}`;
   } catch (error: any) {
+    console.error('[MetaMask] Direct connection failed', {
+      error: error?.message || 'Unknown error',
+      code: error?.code,
+      stack: error?.stack,
+    });
+
     // Handle user cancellation
     if (error?.code === 4001 || error?.message?.includes('User rejected')) {
       throw new Error('Connection cancelled by user');
@@ -221,11 +258,11 @@ export async function connectWallet(): Promise<`0x${string}`> {
 
 /**
  * Create Arkiv clients (public and wallet) from MetaMask
- * 
+ *
  * @param account - Wallet address from MetaMask
  * @returns Object with publicClient and walletClient
  * @throws Error if MetaMask is not installed
- * 
+ *
  * Reference: refs/mentor-graph/src/wallet.ts
  */
 export function createArkivClients(account?: `0x${string}`) {

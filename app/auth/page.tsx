@@ -1,8 +1,8 @@
 /**
  * Authentication page
- * 
+ *
  * Allows users to connect with MetaMask or use example wallet login.
- * 
+ *
  * Reference: refs/mentor-graph/pages/index.tsx
  */
 
@@ -43,19 +43,67 @@ export default function AuthPage() {
     setMounted(true);
     // Detect mobile and MetaMask availability
     if (typeof window !== 'undefined') {
-      setIsMobile(isMobileBrowser());
-      setIsMetaMaskMobileBrowser(isMetaMaskBrowser());
-      setHasMetaMask(isMetaMaskAvailable());
+      const isMobileDetected = isMobileBrowser();
+      const isMetaMaskBrowserDetected = isMetaMaskBrowser();
+      const hasMetaMaskDetected = isMetaMaskAvailable();
+
+      console.log('[Auth Page] Initialization', {
+        isMobile: isMobileDetected,
+        isMetaMaskBrowser: isMetaMaskBrowserDetected,
+        hasMetaMask: hasMetaMaskDetected,
+        currentUrl: window.location.href,
+        referrer: document.referrer,
+        userAgent: window.navigator.userAgent,
+      });
+
+      setIsMobile(isMobileDetected);
+      setIsMetaMaskMobileBrowser(isMetaMaskBrowserDetected);
+      setHasMetaMask(hasMetaMaskDetected);
+
+      // Check if we're returning from a MetaMask redirect on mobile
+      // MetaMask SDK redirects back to the browser after wallet selection
+      // Clean up URL parameters if present
+      const urlParams = new URLSearchParams(window.location.search);
+      const hasMetaMaskParam = urlParams.has('metamask');
+      const hasEthereumParam = urlParams.has('ethereum');
+      const hasRedirectParam = urlParams.has('redirect');
+
+      if (hasMetaMaskParam || hasEthereumParam || hasRedirectParam) {
+        console.log('[Auth Page] Detected redirect parameters', {
+          hasMetaMaskParam,
+          hasEthereumParam,
+          hasRedirectParam,
+          allParams: Object.fromEntries(urlParams.entries()),
+          currentUrl: window.location.href,
+        });
+
+        // Clear the query params to clean up the URL
+        // The SDK should handle the connection automatically, but if not,
+        // the user can click "Connect" again and it should work
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+        console.log('[Auth Page] Cleaned URL to:', cleanUrl);
+      }
     }
   }, []);
 
   const handleMetaMaskConnect = async () => {
+    console.log('[Auth Page] handleMetaMaskConnect called', {
+      currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
+      isMobile,
+      isMetaMaskMobileBrowser,
+      hasMetaMask,
+    });
+
     setIsConnecting(true);
     setError('');
-    
+
     try {
       const address = await connectWallet();
-      
+      console.log('[Auth Page] Wallet connected successfully', {
+        address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      });
+
       // Store profile wallet address in localStorage for session persistence
       // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
       // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
@@ -66,7 +114,7 @@ export default function AuthPage() {
         // Store connection method for reconnection handling
         localStorage.setItem('wallet_connection_method', 'metamask');
       }
-      
+
       // Check if user has profile for this profile wallet - redirect to onboarding if not
       // Only create beta access record for NEW users (level === 0) to avoid double-counting
       import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
@@ -102,6 +150,13 @@ export default function AuthPage() {
         });
       });
     } catch (err) {
+      console.error('[Auth Page] Connection error', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorObject: err,
+        stack: err instanceof Error ? err.stack : undefined,
+        currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
+      });
+
       // Provide clear error messages based on error type
       let errorMessage = 'Failed to connect wallet';
       if (err instanceof Error) {
