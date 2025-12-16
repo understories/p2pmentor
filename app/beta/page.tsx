@@ -15,25 +15,7 @@ export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const router = useRouter();
-
-  useEffect(() => {
-    setMounted(true);
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('arkiv_builder_mode');
-      setArkivBuilderMode(saved === 'true');
-    }
-  }, []);
-
-  const handleArkivBuilderModeToggle = (enabled: boolean) => {
-    setArkivBuilderMode(enabled);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('arkiv_builder_mode', enabled ? 'true' : 'false');
-      window.dispatchEvent(new CustomEvent('arkiv-builder-mode-changed', { detail: { enabled } }));
-    }
-  };
 
   // Get beta code from environment variable (client-side accessible)
   const expectedCode = process.env.NEXT_PUBLIC_BETA_INVITE_CODE?.toLowerCase().trim() || '';

@@ -60,8 +60,9 @@ export function GlobalToggles() {
   }
 
   // Show on all pages (including /, /auth, /beta)
-  // Show on mobile for all pages
-  const mobileClass = 'hidden md:block';
+  // Show on mobile for landing and beta pages, desktop only for others
+  const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth';
+  const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
 
   return (
     <div 
