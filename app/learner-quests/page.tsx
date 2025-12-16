@@ -307,13 +307,7 @@ export default function LearnerQuestsPage() {
       <BetaGate>
         <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
           <div className="max-w-4xl mx-auto">
-            <BackButton href="/me" />
-            <button
-              onClick={handleBackToList}
-              className="mb-4 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-            >
-              ← Back to all quests
-            </button>
+            <BackButton />
 
             <div className="mb-8">
               <h1 className="text-3xl font-semibold mb-2">{selectedQuest.title}</h1>
