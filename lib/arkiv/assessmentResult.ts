@@ -315,6 +315,10 @@ export async function completeAssessment({
     }
 
     // Build result object
+    const certificateId = scoreData.passed
+      ? `cert_${questId}_${normalizedWallet.slice(2, 10)}_${now.slice(0, 10).replace(/-/g, '')}`
+      : undefined;
+
     const assessmentResult: AssessmentResult = {
       key: entityKey,
       wallet: normalizedWallet,
