@@ -21,6 +21,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { formatSessionTitle } from '@/lib/sessions/display';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { canGiveFeedbackForSessionSync } from '@/lib/feedback/canGiveFeedback';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -1151,14 +1152,16 @@ export default function SessionsPage() {
                 const otherProfile = profiles[otherWallet.toLowerCase()];
                 const sessionTime = formatSessionDate(session.sessionDate);
 
-                // Check if user can give feedback
-                const isConfirmed = session.mentorConfirmed && session.learnerConfirmed;
-                const isValidStatus = session.status === 'completed' || session.status === 'scheduled';
+                // Check if user can give feedback (using reusable utility)
                 const existingFeedbacks = sessionFeedbacks[session.key] || [];
+                const canGiveFeedback = userWallet && canGiveFeedbackForSessionSync(
+                  session,
+                  userWallet,
+                  existingFeedbacks
+                );
                 const hasGivenFeedback = userWallet && existingFeedbacks.some(
                   (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
                 );
-                const canGiveFeedback = userWallet && isConfirmed && isValidStatus && !hasGivenFeedback;
 
                 return (
                   <div

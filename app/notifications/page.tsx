@@ -1,6 +1,6 @@
 /**
  * Notifications page
- * 
+ *
  * Enhanced notifications with Arkiv-native persistence, filtering, and customization.
  * Uses client-side polling to detect new items and stores read/unread state on-chain.
  */
@@ -11,10 +11,12 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { FeedbackModal } from '@/components/FeedbackModal';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import { getUnreadCount } from '@/lib/notifications';
+import type { Session } from '@/lib/arkiv/sessions';
 
 const POLL_INTERVAL = 30000; // 30 seconds
 
@@ -25,18 +27,18 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [userWallet, setUserWallet] = useState<string | null>(null);
-  
+
   // Filtering state
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
-  
+
   // Arkiv Builder Mode state (global)
   const arkivBuilderMode = useArkivBuilderMode();
-  
+
   // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
-  
+
   // Flag to prevent reloading preferences while a save operation is in progress
   // This ensures that optimistic updates aren't overwritten by stale API responses
   const isSavingPreferences = useRef<boolean>(false);
@@ -50,7 +52,7 @@ export default function NotificationsPage() {
       loadNotificationPreferences(storedWallet).then(() => {
         loadNotifications(storedWallet);
       });
-      
+
       // Set up polling
       const interval = setInterval(() => {
         // Don't reload if a save operation is in progress
@@ -60,7 +62,7 @@ export default function NotificationsPage() {
           });
         }
       }, POLL_INTERVAL);
-      
+
       return () => clearInterval(interval);
     } else {
       setLoading(false);
@@ -74,11 +76,11 @@ export default function NotificationsPage() {
     if (isSavingPreferences.current) {
       return;
     }
-    
+
     try {
       const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
       const data = await res.json();
-      
+
       if (data.ok && data.preferences) {
         // Store preferences in ref for use during notification detection
         // Merge with existing preferences to preserve any optimistic updates
@@ -89,7 +91,7 @@ export default function NotificationsPage() {
             archived: pref.archived,
           });
         });
-        
+
         // Merge with existing preferences (preserve optimistic updates if save is in progress)
         // Only update preferences that aren't currently being saved
         if (!isSavingPreferences.current) {
@@ -106,7 +108,7 @@ export default function NotificationsPage() {
             }
           });
         }
-        
+
         // Also update existing notifications with persisted read/archived state
         setNotifications(prev => {
           return prev.map(n => {
@@ -133,14 +135,14 @@ export default function NotificationsPage() {
       const normalizedWallet = wallet.toLowerCase().trim();
       const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
       const data = await res.json();
-      
+
       if (!data.ok) {
         throw new Error(data.error || 'Failed to load notifications');
       }
 
       // Notifications are now Arkiv entities, query directly
       const arkivNotifications = data.notifications || [];
-      
+
       // Convert Arkiv notification entities to client Notification format
       // and apply preferences for read/archived state
       const notificationsWithPreferences = arkivNotifications
@@ -148,12 +150,12 @@ export default function NotificationsPage() {
           // Use notification key as ID (Arkiv-native)
           const notificationId = n.key;
           const pref = notificationPreferences.current.get(notificationId);
-          
+
           // Filter out archived notifications
           if (pref?.archived) {
             return null;
           }
-          
+
           // Convert to client Notification format
           return {
             id: notificationId,
@@ -176,10 +178,10 @@ export default function NotificationsPage() {
         .filter((n: Notification | null): n is Notification => n !== null);
 
       // Update state with notifications from Arkiv
-      setNotifications(notificationsWithPreferences.sort((a: Notification, b: Notification) => 
+      setNotifications(notificationsWithPreferences.sort((a: Notification, b: Notification) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       ));
-      
+
       setLoading(false);
     } catch (err: any) {
       console.error('Error loading notifications:', err);
@@ -189,26 +191,26 @@ export default function NotificationsPage() {
 
   const markAsRead = async (notificationId: string) => {
     if (!userWallet) return;
-    
+
     // Store previous state for revert
     const currentPref = notificationPreferences.current.get(notificationId);
-    
+
     // Set save flag to prevent reloads from overwriting optimistic updates
     isSavingPreferences.current = true;
-    
+
     // Optimistic update
     setNotifications(prev =>
       prev.map(n =>
         n.id === notificationId ? { ...n, read: true } : n
       )
     );
-    
+
     // Update preferences ref immediately (source of truth)
     notificationPreferences.current.set(notificationId, {
       read: true,
       archived: currentPref?.archived || false,
     });
-    
+
     // Persist to Arkiv
     try {
       const notification = notifications.find(n => n.id === notificationId);
@@ -224,14 +226,14 @@ export default function NotificationsPage() {
             archived: false,
           }),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to save preference');
         }
-        
+
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
-        
+
         // Dispatch event to notify other components (e.g., navbar) of the change
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -261,26 +263,26 @@ export default function NotificationsPage() {
 
   const markAsUnread = async (notificationId: string) => {
     if (!userWallet) return;
-    
+
     // Store previous state for revert
     const currentPref = notificationPreferences.current.get(notificationId);
-    
+
     // Set save flag to prevent reloads from overwriting optimistic updates
     isSavingPreferences.current = true;
-    
+
     // Optimistic update
     setNotifications(prev =>
       prev.map(n =>
         n.id === notificationId ? { ...n, read: false } : n
       )
     );
-    
+
     // Update preferences ref immediately (source of truth)
     notificationPreferences.current.set(notificationId, {
       read: false,
       archived: currentPref?.archived || false,
     });
-    
+
     // Persist to Arkiv
     try {
       const notification = notifications.find(n => n.id === notificationId);
@@ -296,14 +298,14 @@ export default function NotificationsPage() {
             archived: false,
           }),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to save preference');
         }
-        
+
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
-        
+
         // Dispatch event to notify other components (e.g., navbar) of the change
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -333,19 +335,19 @@ export default function NotificationsPage() {
 
   const markAllAsRead = async () => {
     if (!userWallet) return;
-    
+
     const unreadNotifications = notifications.filter(n => !n.read);
     if (unreadNotifications.length === 0) return;
-    
+
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
-    
+
     // Set save flag to prevent reloads from overwriting optimistic updates
     isSavingPreferences.current = true;
-    
+
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    
+
     // Update preferences ref immediately (source of truth)
     unreadNotifications.forEach(n => {
       const currentPref = notificationPreferences.current.get(n.id);
@@ -354,7 +356,7 @@ export default function NotificationsPage() {
         archived: currentPref?.archived || false,
       });
     });
-    
+
     // Persist to Arkiv
     try {
       const response = await fetch('/api/notifications/preferences', {
@@ -370,11 +372,11 @@ export default function NotificationsPage() {
           })),
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to save preferences');
       }
-      
+
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
     } catch (err) {
@@ -394,19 +396,19 @@ export default function NotificationsPage() {
 
   const markAllAsUnread = async () => {
     if (!userWallet) return;
-    
+
     const readNotifications = notifications.filter(n => n.read);
     if (readNotifications.length === 0) return;
-    
+
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
-    
+
     // Set save flag to prevent reloads from overwriting optimistic updates
     isSavingPreferences.current = true;
-    
+
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: false })));
-    
+
     // Update preferences ref immediately (source of truth)
     readNotifications.forEach(n => {
       const currentPref = notificationPreferences.current.get(n.id);
@@ -415,7 +417,7 @@ export default function NotificationsPage() {
         archived: currentPref?.archived || false,
       });
     });
-    
+
     // Persist to Arkiv
     try {
       const response = await fetch('/api/notifications/preferences', {
@@ -431,14 +433,14 @@ export default function NotificationsPage() {
           })),
         }),
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to save preferences');
       }
-      
+
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
-      
+
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -462,13 +464,13 @@ export default function NotificationsPage() {
 
   const deleteNotification = async (notificationId: string) => {
     if (!userWallet) return;
-    
+
     // Store previous state for revert
     const previousPref = notificationPreferences.current.get(notificationId);
-    
+
     // Optimistic update
     setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    
+
     // Update preferences ref (mark as archived)
     const notification = notifications.find(n => n.id === notificationId);
     if (notification) {
@@ -477,7 +479,7 @@ export default function NotificationsPage() {
         archived: true,
       });
     }
-    
+
     // Persist to Arkiv (mark as archived)
     try {
       if (notification) {
@@ -543,6 +545,8 @@ export default function NotificationsPage() {
         return '🌱';
       case 'community_meeting_scheduled':
         return '📅';
+      case 'session_completed_feedback_needed':
+        return '⭐';
       default:
         return '🔔';
     }
@@ -614,6 +618,11 @@ export default function NotificationsPage() {
   const [adminResponseDetails, setAdminResponseDetails] = useState<Record<string, any>>({});
   const [loadingAdminResponse, setLoadingAdminResponse] = useState<Record<string, boolean>>({});
 
+  // State for session feedback modal
+  const [feedbackSession, setFeedbackSession] = useState<Session | null>(null);
+  const [sessionDetails, setSessionDetails] = useState<Record<string, Session>>({});
+  const [loadingSession, setLoadingSession] = useState<Record<string, boolean>>({});
+
   // Load feedback details for app_feedback_submitted notifications
   const loadFeedbackDetails = async (feedbackKey: string) => {
     if (feedbackDetails[feedbackKey] || loadingFeedback[feedbackKey]) {
@@ -637,6 +646,45 @@ export default function NotificationsPage() {
       console.error('Error loading feedback details:', err);
     } finally {
       setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+    }
+  };
+
+  // Load session details for session_completed_feedback_needed notifications
+  const loadSessionDetails = async (sessionKey: string) => {
+    if (sessionDetails[sessionKey] || loadingSession[sessionKey]) {
+      return; // Already loaded or loading
+    }
+
+    setLoadingSession(prev => ({ ...prev, [sessionKey]: true }));
+    try {
+      // Load all sessions and find the one matching the key
+      const res = await fetch(`/api/sessions?wallet=${encodeURIComponent(userWallet || '')}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.ok && data.sessions) {
+          const session = data.sessions.find((s: Session) => s.key === sessionKey);
+          if (session) {
+            setSessionDetails(prev => ({ ...prev, [sessionKey]: session }));
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading session details:', err);
+    } finally {
+      setLoadingSession(prev => ({ ...prev, [sessionKey]: false }));
+    }
+  };
+
+  // Handle opening feedback modal for a session
+  const handleOpenFeedback = async (sessionKey: string) => {
+    // Load session if not already loaded
+    if (!sessionDetails[sessionKey] && !loadingSession[sessionKey]) {
+      await loadSessionDetails(sessionKey);
+    }
+
+    const session = sessionDetails[sessionKey];
+    if (session) {
+      setFeedbackSession(session);
     }
   };
 
@@ -682,10 +730,10 @@ export default function NotificationsPage() {
     // Filter by read/unread status
     if (filterType === 'unread' && n.read) return false;
     if (filterType === 'read' && !n.read) return false;
-    
+
     // Filter by notification type
     if (filterNotificationType !== 'all' && n.type !== filterNotificationType) return false;
-    
+
     return true;
   });
 
@@ -725,7 +773,7 @@ export default function NotificationsPage() {
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
-        
+
         <div className="mb-6">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-3xl font-semibold">
@@ -804,6 +852,7 @@ export default function NotificationsPage() {
                     <option value="new_garden_note">💌 New Garden Note</option>
                     <option value="new_skill_created">🌱 New Skill Created</option>
                     <option value="community_meeting_scheduled">📅 Community Meeting</option>
+                    <option value="session_completed_feedback_needed">⭐ Session Feedback Needed</option>
                   </select>
                 </div>
               </div>
@@ -817,7 +866,7 @@ export default function NotificationsPage() {
         {filteredNotifications.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600 dark:text-gray-400 text-lg">
-              {notifications.length === 0 
+              {notifications.length === 0
                 ? 'No notifications yet'
                 : 'No notifications match your filters'}
             </p>
@@ -832,7 +881,16 @@ export default function NotificationsPage() {
             {filteredNotifications.map((notification) => {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
               const isAdminResponseNotification = notification.type === 'admin_response';
-              
+              const isSessionFeedbackNeeded = notification.type === 'session_completed_feedback_needed';
+
+              // For session feedback notifications, load session details
+              if (isSessionFeedbackNeeded) {
+                const sessionKey = notification.metadata?.sessionKey;
+                if (sessionKey && !sessionDetails[sessionKey] && !loadingSession[sessionKey]) {
+                  loadSessionDetails(sessionKey);
+                }
+              }
+
               // Use sourceEntityKey (from notification) or feedbackKey (from metadata) as fallback
               const feedbackKey = notification.metadata?.sourceEntityKey || notification.metadata?.feedbackKey;
               const feedback = feedbackKey ? feedbackDetails[feedbackKey] : null;
@@ -879,7 +937,7 @@ export default function NotificationsPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-500">
                         {formatTime(notification.timestamp)}
                       </p>
-                      
+
                       {/* Arkiv Builder Mode: Query Information Tooltip */}
                       {arkivBuilderMode && (
                         <div className="mt-2 group/query relative">
@@ -958,7 +1016,7 @@ export default function NotificationsPage() {
                       <div className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2">
                         Arkiv Entities:
                       </div>
-                      
+
                       {/* Notification Entity */}
                       <div className="flex items-center gap-2 text-xs">
                         <span className="text-gray-500 dark:text-gray-400">Notification:</span>
@@ -977,7 +1035,7 @@ export default function NotificationsPage() {
                           </span>
                         )}
                       </div>
-                      
+
                       {/* Source Entity */}
                       {notification.metadata?.sourceEntityKey && (
                         <div className="flex items-center gap-2 text-xs">
@@ -995,7 +1053,7 @@ export default function NotificationsPage() {
                           </span>
                         </div>
                       )}
-                      
+
                       {/* Entity Keys Display */}
                       <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
@@ -1205,6 +1263,28 @@ export default function NotificationsPage() {
           </div>
         )}
       </div>
+
+      {/* Feedback Modal */}
+      {feedbackSession && userWallet && (
+        <FeedbackModal
+          isOpen={!!feedbackSession}
+          onClose={() => {
+            setFeedbackSession(null);
+            // Reload notifications to update feedback status
+            if (userWallet) {
+              loadNotifications(userWallet);
+            }
+          }}
+          session={feedbackSession}
+          userWallet={userWallet}
+          onSuccess={() => {
+            // Reload notifications after successful feedback submission
+            if (userWallet) {
+              loadNotifications(userWallet);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
