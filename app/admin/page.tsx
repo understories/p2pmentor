@@ -150,6 +150,9 @@ export default function AdminDashboard() {
   const [betaCodeUsageExpanded, setBetaCodeUsageExpanded] = useState(false);
   const [betaCodeUsageData, setBetaCodeUsageData] = useState<any>(null);
   const [betaCodeUsageLoading, setBetaCodeUsageLoading] = useState(false);
+  const [navigationMetricsExpanded, setNavigationMetricsExpanded] = useState(false);
+  const [navigationMetricsData, setNavigationMetricsData] = useState<any[]>([]);
+  const [navigationMetricsLoading, setNavigationMetricsLoading] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [buildStatus, setBuildStatus] = useState<{ lastBuild?: string; fileCount?: number; entityCounts?: any } | null>(null);
 
@@ -218,6 +221,11 @@ export default function AdminDashboard() {
       const savedBetaCodeUsageExpanded = localStorage.getItem('admin_beta_code_usage_expanded');
       if (savedBetaCodeUsageExpanded !== null) {
         setBetaCodeUsageExpanded(savedBetaCodeUsageExpanded === 'true');
+      }
+
+      const savedNavigationMetricsExpanded = localStorage.getItem('admin_navigation_metrics_expanded');
+      if (savedNavigationMetricsExpanded !== null) {
+        setNavigationMetricsExpanded(savedNavigationMetricsExpanded === 'true');
       }
 
       // Fetch performance summary - get all operations aggregated by route for page-level view
@@ -1594,6 +1602,155 @@ export default function AdminDashboard() {
                   </div>
                 ) : (
                   <p className="text-sm text-gray-600 dark:text-gray-400">No daily aggregates available yet. Aggregates are computed daily.</p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Navigation Metrics */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Navigation Metrics
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !navigationMetricsExpanded;
+                  setNavigationMetricsExpanded(newState);
+                  localStorage.setItem('admin_navigation_metrics_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && navigationMetricsData.length === 0 && !navigationMetricsLoading) {
+                    setNavigationMetricsLoading(true);
+                    fetch('/api/admin/navigation-metrics?limit=100')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setNavigationMetricsData(data.metrics || []);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch navigation metrics:', err))
+                      .finally(() => setNavigationMetricsLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {navigationMetricsExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {navigationMetricsExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Privacy-preserving aggregated navigation and click tracking. Data aggregated locally before submission (no individual tracking).
+                  Expires after 90 days.
+                </p>
+                {navigationMetricsLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading navigation metrics...</p>
+                  </div>
+                ) : navigationMetricsData.length > 0 ? (
+                  <div className="space-y-4">
+                    {/* Aggregate summary */}
+                    {(() => {
+                      // Aggregate all patterns across all metrics
+                      const patternMap = new Map<string, number>();
+                      navigationMetricsData.forEach((metric: any) => {
+                        metric.aggregates.forEach((agg: { pattern: string; count: number }) => {
+                          const current = patternMap.get(agg.pattern) || 0;
+                          patternMap.set(agg.pattern, current + agg.count);
+                        });
+                      });
+
+                      const topPatterns = Array.from(patternMap.entries())
+                        .sort((a, b) => b[1] - a[1])
+                        .slice(0, 20);
+
+                      return (
+                        <div className="mb-6">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">
+                            Top Navigation Patterns (Aggregated)
+                          </h4>
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                              <thead className="bg-gray-100 dark:bg-gray-800">
+                                <tr>
+                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Pattern</th>
+                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Total Count</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {topPatterns.map(([pattern, count], idx) => (
+                                  <tr key={pattern} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                    <td className="px-3 py-2 font-mono text-xs">{pattern}</td>
+                                    <td className="px-3 py-2 font-semibold">{count}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Recent Metrics Table */}
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-50 mb-3">
+                        Recent Metrics Batches
+                      </h4>
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                          <thead className="bg-gray-100 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Page</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Patterns</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Total Count</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Created</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {navigationMetricsData.slice(0, 20).map((metric, idx) => {
+                              const totalCount = metric.aggregates.reduce((sum, agg) => sum + agg.count, 0);
+                              return (
+                                <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                  <td className="px-3 py-2 font-mono text-xs">{metric.page || '-'}</td>
+                                  <td className="px-3 py-2 text-xs">
+                                    <details className="cursor-pointer">
+                                      <summary className="text-blue-600 dark:text-blue-400 hover:underline">
+                                        {metric.aggregates.length} pattern{metric.aggregates.length !== 1 ? 's' : ''}
+                                      </summary>
+                                      <div className="mt-2 space-y-1">
+                                        {metric.aggregates.map((agg, aggIdx) => (
+                                          <div key={aggIdx} className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
+                                            {agg.pattern}: {agg.count}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </details>
+                                  </td>
+                                  <td className="px-3 py-2 font-semibold">{totalCount}</td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(metric.createdAt).toLocaleString()}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* JSON Data */}
+                    <details className="mt-4">
+                      <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100">
+                        View Raw JSON Data (Machine Readable)
+                      </summary>
+                      <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-x-auto border border-gray-200 dark:border-gray-700">
+                        {JSON.stringify(navigationMetricsData, null, 2)}
+                      </pre>
+                    </details>
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No navigation metrics available yet. Metrics are collected automatically from user interactions.</p>
                 )}
               </div>
             )}

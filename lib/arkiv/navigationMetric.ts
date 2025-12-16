@@ -7,7 +7,8 @@
  * Reference: refs/click-navigation-tracking-plan.md
  */
 
-import { getWalletClientFromPrivateKey } from './client';
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import type { NavigationMetric } from '@/lib/metrics/navigation';
 
@@ -82,5 +83,135 @@ export async function createNavigationMetric({
   }
 
   return { key: entityKey, txHash };
+}
+
+/**
+ * List navigation metrics from Arkiv
+ */
+export async function listNavigationMetrics({
+  page,
+  limit = 100,
+  since,
+}: {
+  page?: string;
+  limit?: number;
+  since?: string;
+} = {}): Promise<NavigationMetricEntity[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    // Fetch metric entities and txHash entities in parallel
+    const [result, txHashResult] = await Promise.all([
+      publicClient.buildQuery()
+        .where(eq('type', 'navigation_metric'))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit || 100)
+        .fetch(),
+      publicClient.buildQuery()
+        .where(eq('type', 'navigation_metric_txhash'))
+        .withAttributes(true)
+        .withPayload(true)
+        .fetch(),
+    ]);
+
+    if (!result || !result.entities || !Array.isArray(result.entities)) {
+      console.error('Invalid result from Arkiv query for navigation_metrics:', result);
+      return [];
+    }
+
+    // Build txHash map
+    const txHashMap: Record<string, string> = {};
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities)) {
+      txHashResult.entities.forEach((entity: any) => {
+        const attrs = entity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const metricKey = getAttr('metricKey');
+        if (metricKey) {
+          try {
+            const payload = entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
+            const decoded = JSON.parse(payload);
+            if (decoded.txHash) {
+              txHashMap[metricKey] = decoded.txHash;
+            }
+          } catch (e) {
+            console.error('Error decoding txHash payload:', e);
+          }
+        }
+      });
+    }
+
+    // Parse entities
+    const metrics: NavigationMetricEntity[] = [];
+    result.entities.forEach((entity: any) => {
+      try {
+        const attrs = entity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+
+        const entityPage = getAttr('page');
+        const createdAt = getAttr('createdAt');
+
+        // Filter by page if specified
+        if (page && entityPage !== page) {
+          return;
+        }
+
+        // Filter by since date if specified
+        if (since && createdAt < since) {
+          return;
+        }
+
+        // Parse payload
+        let payload: any = {};
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+
+        const aggregates = payload.aggregates || [];
+        if (!Array.isArray(aggregates)) {
+          return;
+        }
+
+        metrics.push({
+          key: entity.key,
+          aggregates,
+          page: entityPage,
+          createdAt,
+          txHash: txHashMap[entity.key],
+        });
+      } catch (e) {
+        console.error('Error parsing navigation metric entity:', e);
+      }
+    });
+
+    // Sort by createdAt descending (most recent first)
+    metrics.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return metrics;
+  } catch (error: any) {
+    console.error('[listNavigationMetrics] Error:', error);
+    return [];
+  }
 }
 
