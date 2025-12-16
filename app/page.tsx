@@ -68,23 +68,42 @@ export default function Home() {
         </div>
         
         <div className="no-js-container" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-          <span 
-            className="no-js-link"
-            style={{
-              display: 'inline-block',
-              padding: '0.75rem 1.5rem',
-              fontSize: '0.875rem',
-              textDecoration: 'none',
-              color: 'rgba(200, 255, 200, 0.4)',
-              border: '1px solid rgba(200, 255, 200, 0.2)',
-              borderRadius: '4px',
-              opacity: 0.6,
-              cursor: 'not-allowed',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
-            }}
-          >
-            Load Without JavaScript (Coming Soon)
-          </span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span
+              className="no-js-link"
+              style={{
+                display: 'inline-block',
+                padding: '0.75rem 1.5rem',
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+                color: 'rgba(200, 255, 200, 0.4)',
+                border: '1px solid rgba(200, 255, 200, 0.2)',
+                borderRadius: '4px',
+                opacity: 0.6,
+                cursor: 'not-allowed',
+                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
+              }}
+            >
+              Load Without JavaScript (Coming Soon)
+            </span>
+            <Link
+              href="/docs/architecture/decentralized-static-client"
+              title="Learn more about the decentralized static client"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                color: 'rgba(200, 255, 200, 0.6)',
+                textDecoration: 'none',
+                opacity: 0.7,
+                transition: 'opacity 0.2s',
+                cursor: 'pointer',
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+            >
+              <span style={{ fontSize: '0.875rem' }}>→</span>
+            </Link>
+          </div>
         </div>
         
         <div className="admin-link-container" style={{ marginTop: '1rem' }}>
