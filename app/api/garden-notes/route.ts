@@ -140,6 +140,30 @@ export async function POST(request: NextRequest) {
       publishConsent: true, // Already validated above
     });
 
+    // Create user-focused notification
+    if (key) {
+      try {
+        const { createNotification } = await import('@/lib/arkiv/notifications');
+        await createNotification({
+          wallet: authorWallet.toLowerCase(),
+          notificationType: 'entity_created',
+          sourceEntityType: 'garden_note',
+          sourceEntityKey: key,
+          title: 'Garden Note Posted',
+          message: targetWallet ? 'You posted a garden note' : 'You posted a garden note to the public board',
+          link: targetWallet ? `/profiles/${targetWallet}` : '/garden/public-board',
+          metadata: {
+            gardenNoteKey: key,
+            targetWallet: targetWallet || undefined,
+            tags: Array.isArray(tags) ? tags : [],
+          },
+          privateKey: getPrivateKey(),
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification for garden note:', notifError);
+      }
+    }
+
     return NextResponse.json({ 
       ok: true, 
       key, 

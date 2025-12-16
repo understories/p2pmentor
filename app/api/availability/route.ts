@@ -50,6 +50,29 @@ export async function POST(request: NextRequest) {
         spaceId: spaceId || 'local-dev',
       });
 
+      // Create user-focused notification
+      if (key) {
+        try {
+          const { createNotification } = await import('@/lib/arkiv/notifications');
+          await createNotification({
+            wallet: wallet.toLowerCase(),
+            notificationType: 'entity_created',
+            sourceEntityType: 'availability',
+            sourceEntityKey: key,
+            title: 'Availability Set',
+            message: 'You set your availability',
+            link: '/me/availability',
+            metadata: {
+              availabilityKey: key,
+              timezone: timezone,
+            },
+            privateKey: getPrivateKey(),
+          });
+        } catch (notifError) {
+          console.error('Failed to create notification for availability:', notifError);
+        }
+      }
+
       return NextResponse.json({ ok: true, key, txHash });
     } catch (error: any) {
       // Handle transaction receipt timeout gracefully

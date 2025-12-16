@@ -127,6 +127,31 @@ export async function POST(request: NextRequest) {
         privateKey,
       });
 
+      // Create user-focused notification
+      if (key) {
+        try {
+          const { createNotification } = await import('@/lib/arkiv/notifications');
+          await createNotification({
+            wallet: organizerWallet.toLowerCase(),
+            notificationType: 'entity_created',
+            sourceEntityType: 'virtual_gathering',
+            sourceEntityKey: key,
+            title: 'Community Gathering Created',
+            message: `You created a community gathering: "${title}"`,
+            link: `/topic/${community}`,
+            metadata: {
+              gatheringKey: key,
+              community: community,
+              title: title,
+              sessionDate: sessionDate,
+            },
+            privateKey: getPrivateKey(),
+          });
+        } catch (notifError) {
+          console.error('Failed to create notification for virtual gathering:', notifError);
+        }
+      }
+
       return NextResponse.json({
         ok: true,
         gathering: {
