@@ -66,11 +66,6 @@ export function GlobalToggles() {
   return (
     <div 
       className={`${mobileClass} fixed top-4 right-4 z-50 flex flex-row items-center gap-2`}
-      style={{
-        // Adjust top position when banner is visible to prevent overlap
-        top: arkivBuilderMode ? '80px' : '1rem',
-        transition: 'top 0.2s ease-out',
-      }}
     >
       {/* Theme Toggle */}
       <button
@@ -100,23 +95,21 @@ export function GlobalToggles() {
         </span>
       </button>
 
-      {/* Arkiv Builder Mode Toggle - hidden when banner is visible (banner has its own toggle) */}
-      {!arkivBuilderMode && (
-        <div
-          className="p-2 rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
-          style={{
-            backgroundColor: theme === 'dark'
-              ? 'rgba(5, 20, 5, 0.3)'
-              : 'rgba(240, 240, 240, 0.9)',
-            backdropFilter: 'blur(10px)',
-          }}
-        >
-          <ArkivBuilderModeToggle
-            enabled={arkivBuilderMode}
-            onToggle={handleArkivBuilderModeToggle}
-          />
-        </div>
-      )}
+      {/* Arkiv Builder Mode Toggle - always visible, side by side with theme toggle */}
+      <div
+        className="rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+        style={{
+          backgroundColor: theme === 'dark'
+            ? 'rgba(5, 20, 5, 0.3)'
+            : 'rgba(240, 240, 240, 0.9)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <ArkivBuilderModeToggle
+          enabled={arkivBuilderMode}
+          onToggle={handleArkivBuilderModeToggle}
+        />
+      </div>
     </div>
   );
 }

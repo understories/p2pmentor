@@ -68,9 +68,7 @@ export function ArkivModeBanner() {
             {collapsed ? '▼' : '▲'}
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <ArkivBuilderModeToggle enabled={arkivBuilderModeState} onToggle={handleToggle} />
-        </div>
+        {/* Toggle removed from banner - now always in GlobalToggles for consistency */}
       </div>
       {!collapsed && (
         <div className="max-w-7xl mx-auto mt-2 text-sm text-emerald-800 dark:text-emerald-200">
