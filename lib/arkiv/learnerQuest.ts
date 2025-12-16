@@ -28,12 +28,15 @@ export type LearnerQuest = {
   description: string;
   source: string;
   questType: 'reading_list' | 'language_assessment';
-  materials: LearnerQuestMaterial[];
-  metadata: {
+  // For reading_list quests:
+  materials?: LearnerQuestMaterial[];
+  metadata?: {
     totalMaterials: number;
     categories: string[];
     lastUpdated: string;
   };
+  // For language_assessment quests (stored in payload, not directly accessible here):
+  // Use parseLanguageAssessmentQuest() from languageQuest.ts to extract
   createdAt: string;
   status: 'active' | 'archived';
   txHash?: string;
@@ -266,7 +269,9 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
           // Default to 'reading_list' for backward compatibility
           const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment';
 
-          return {
+          // For reading_list quests, payload contains materials
+          // For language_assessment quests, payload contains the full LanguageAssessmentQuest structure
+          const quest: LearnerQuest = {
             key: entity.key,
             questId: getAttr(entity, 'questId'),
             title: getAttr(entity, 'title'),
@@ -274,11 +279,17 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             source: getAttr(entity, 'source'),
             questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            materials: payload.materials || [],
-            metadata: payload.metadata || {},
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
-          } as LearnerQuest;
+          };
+
+          // Only include materials/metadata for reading_list quests
+          if (questType === 'reading_list') {
+            quest.materials = payload.materials || [];
+            quest.metadata = payload.metadata || {};
+          }
+
+          return quest;
         } catch (e) {
           console.error('[getLearnerQuest] Error decoding payload:', e);
           return null;

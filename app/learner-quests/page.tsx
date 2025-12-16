@@ -489,23 +489,36 @@ export default function LearnerQuestsPage() {
                       {quest.description}
                     </p>
 
-                    {/* Progress */}
-                    <div className="mb-4">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          {progress.readCount} / {progress.totalMaterials} materials
-                        </span>
-                        <span className="text-sm text-gray-500 dark:text-gray-400">
-                          {progress.progressPercent}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                        <div
-                          className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${progress.progressPercent}%` }}
-                        />
-                      </div>
+                    {/* Quest Type Badge */}
+                    <div className="mb-2">
+                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
+                        quest.questType === 'language_assessment'
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
+                      }`}>
+                        {quest.questType === 'language_assessment' ? 'Language Assessment' : 'Reading List'}
+                      </span>
                     </div>
+
+                    {/* Progress (only for reading_list quests) */}
+                    {quest.questType === 'reading_list' && (
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {progress.readCount} / {progress.totalMaterials} materials
+                          </span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                            {progress.progressPercent}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                            style={{ width: `${progress.progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
                     {/* Source */}
                     <p className="text-xs text-gray-500 dark:text-gray-400">
