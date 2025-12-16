@@ -939,7 +939,7 @@ export default function NotificationsPage() {
               const isFeedbackNotification = notification.type === 'app_feedback_submitted';
               const isAdminResponseNotification = notification.type === 'admin_response';
               const isSessionFeedbackNeeded = notification.type === 'session_completed_feedback_needed';
-              const isSessionFeedbackSubmitted = notification.type === 'entity_created' && notification.metadata?.sourceEntityType === 'session_feedback';
+              const isSessionFeedbackSubmitted = (notification.type === 'entity_created' as any) && notification.metadata?.sourceEntityType === 'session_feedback';
 
               // For session feedback notifications, load session details
               if (isSessionFeedbackNeeded) {
