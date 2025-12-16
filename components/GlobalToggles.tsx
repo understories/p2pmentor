@@ -51,8 +51,8 @@ export function GlobalToggles() {
   }
 
   // Hide on landing and auth pages (they have their own ThemeToggle)
-  const hideOnPages = ['/', '/auth'];
-  if (hideOnPages.includes(pathname)) {
+  // Use startsWith to handle trailing slashes and query params
+  if (pathname === '/' || pathname.startsWith('/auth')) {
     return null;
   }
 

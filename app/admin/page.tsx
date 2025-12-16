@@ -10,7 +10,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface PerfSummary {
   graphql?: {
@@ -435,7 +434,6 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         {/* Security Warning Banner */}
         <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
