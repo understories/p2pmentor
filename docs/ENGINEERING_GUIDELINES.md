@@ -22,6 +22,14 @@
    - NEVER use `git add -f` to force-add files from `refs/`
    - If file needs to be public: move to `docs/` first, then commit normally
 
+4. **KEEP TREE CLEAN - NO WHITESPACE-ONLY CHANGES** - ⚠️ MANDATORY
+   - Run `git diff --check` before every commit to detect whitespace issues
+   - NEVER commit files with only whitespace changes (trailing spaces, blank lines at EOF)
+   - Fix trailing whitespace in files with actual code changes
+   - Restore whitespace-only files: `git checkout -- <file>` before committing
+   - Check regularly: `git diff --check` should return no output before committing
+   - This keeps the git history clean and makes reviews easier
+
 ### 📁 Directory Structure
 
 - **`docs/`** = Public documentation (committed to repo)
@@ -37,6 +45,7 @@
 - [ ] No secrets in documentation
 - [ ] All scripts use environment variables (fail if missing)
 - [ ] Build passes (`npm run build` succeeds)
+- [ ] **No whitespace-only changes** (`git diff --check` returns no output)
 
 ### 📝 Documentation Rules
 
