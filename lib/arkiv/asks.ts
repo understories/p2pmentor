@@ -11,6 +11,7 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
 import { handleTransactionWithTimeout } from "./transaction-utils"
+import { SPACE_ID } from "@/lib/config"
 
 export const ASK_TTL_SECONDS = 3600; // 1 hour default
 
@@ -59,7 +60,7 @@ export async function createAsk({
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const status = 'open';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
@@ -123,10 +124,10 @@ export async function createAsk({
 /**
  * List all open asks
  * 
- * @param params - Optional filters (skill, spaceId)
+ * @param params - Optional filters (skill, spaceId, spaceIds)
  * @returns Array of asks
  */
-export async function listAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
+export async function listAsks(params?: { skill?: string; spaceId?: string; spaceIds?: string[]; limit?: number; includeExpired?: boolean }): Promise<Ask[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   
   try {
@@ -135,8 +136,14 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
     const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
     let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
     
-    if (params?.spaceId) {
-      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (params?.spaceIds && params.spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(limit);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const spaceId = params?.spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
     }
     
     let result: any = null;
@@ -241,6 +248,11 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; limi
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
   });
+
+    // Filter by spaceIds client-side if multiple requested
+    if (params?.spaceIds && params.spaceIds.length > 0) {
+      asks = asks.filter((ask: Ask) => params.spaceIds!.includes(ask.spaceId));
+    }
 
     if (params?.skill) {
       const skillLower = params.skill.toLowerCase();

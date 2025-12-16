@@ -1,16 +1,16 @@
 /**
  * Sessions API route
- * 
+ *
  * Handles session creation, listing, and confirmation.
- * 
+ *
  * Based on mentor-graph implementation, adapted for Next.js App Router.
- * 
+ *
  * Reference: refs/mentor-graph/pages/api/me.ts (createSession action)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, submitPayment, validatePayment } from '@/lib/arkiv/sessions';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 import { validateTransaction } from '@/lib/payments';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
@@ -94,11 +94,11 @@ export async function POST(request: NextRequest) {
           try {
             const { createNotification } = await import('@/lib/arkiv/notifications');
             const { getProfileByWallet } = await import('@/lib/arkiv/profile');
-            
+
             // Get learner profile for notification message
             const learnerProfile = await getProfileByWallet(learnerWallet).catch(() => null);
             const learnerName = learnerProfile?.displayName || learnerWallet.slice(0, 6) + '...' + learnerWallet.slice(-4);
-            
+
             await createNotification({
               wallet: mentorWallet.toLowerCase(), // Notify the offer owner (mentor)
               notificationType: 'meeting_request',
@@ -155,8 +155,8 @@ export async function POST(request: NextRequest) {
         if (error.message?.includes('confirmation pending') || error.message?.includes('Transaction submitted')) {
           // Transaction was submitted but receipt not available - this is OK for testnets
           // Return success with a note that confirmation is pending
-          return NextResponse.json({ 
-            ok: true, 
+          return NextResponse.json({
+            ok: true,
             key: null, // Entity key not available yet
             txHash: null, // TxHash not available yet
             pending: true,
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
 
       // First validate the transaction on-chain
       const validationResult = await validateTransaction(paymentTxHash);
-      
+
       if (!validationResult.valid) {
         return NextResponse.json(
           { ok: false, error: validationResult.error || 'Transaction validation failed' },
@@ -271,7 +271,27 @@ export async function GET(request: Request) {
     const learnerWallet = searchParams.get('learnerWallet') || undefined;
     const skill = searchParams.get('skill') || undefined;
     const status = searchParams.get('status') || undefined;
-    const spaceId = searchParams.get('spaceId') || undefined;
+
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
 
     if (wallet) {
       // List sessions for specific wallet
@@ -285,6 +305,7 @@ export async function GET(request: Request) {
         skill,
         status,
         spaceId,
+        spaceIds,
       });
       return NextResponse.json({ ok: true, sessions });
     }

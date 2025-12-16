@@ -1,29 +1,51 @@
 /**
  * Profiles API route
- * 
+ *
  * Handles profile listing with optional filters.
- * 
+ *
  * Based on mentor-graph implementation, adapted for Next.js App Router.
- * 
+ *
  * Reference: refs/mentor-graph/pages/api/profiles.ts
  */
 
 import { NextResponse } from 'next/server';
 import { listUserProfiles, checkProfileExistence } from '@/lib/arkiv/profile';
+import { SPACE_ID } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get('skill') || undefined;
     const seniority = searchParams.get('seniority') || undefined;
-    const spaceId = searchParams.get('spaceId') || undefined;
     const includeArchived = searchParams.get('includeArchived') === 'true';
+
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
 
     // List all profiles with optional filters
     const allProfiles = await listUserProfiles({
       skill,
       seniority,
       spaceId,
+      spaceIds,
     });
 
     // Get unique profiles by wallet (most recent for each wallet)
@@ -76,8 +98,8 @@ export async function GET(request: Request) {
       activeProfiles = uniqueProfiles;
     }
 
-    return NextResponse.json({ 
-      ok: true, 
+    return NextResponse.json({
+      ok: true,
       profiles: activeProfiles,
       archived: includeArchived ? archivedProfiles : undefined,
       stats: {

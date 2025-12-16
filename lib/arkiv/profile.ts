@@ -9,7 +9,7 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
 import { getWalletClient } from "@/lib/wallet/getWalletClient"
-import { CURRENT_WALLET } from "../config"
+import { CURRENT_WALLET, SPACE_ID } from "../config"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 import { selectRandomEmoji } from "@/lib/profile/identitySeed"
 
@@ -127,7 +127,7 @@ export async function createUserProfileClient({
   // Use unified wallet client getter (supports both MetaMask and Passkey)
   const walletClient = await getWalletClient(account);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const createdAt = new Date().toISOString();
   const lastActiveTimestamp = new Date().toISOString();
 
@@ -282,7 +282,7 @@ export async function createUserProfile({
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const createdAt = new Date().toISOString();
   const lastActiveTimestamp = new Date().toISOString();
 
@@ -380,13 +380,14 @@ export async function createUserProfile({
  * 
  * Reference: refs/mentor-graph/src/arkiv/profiles.ts (listUserProfiles)
  * 
- * @param params - Optional filters (skill, seniority, spaceId)
+ * @param params - Optional filters (skill, seniority, spaceId, spaceIds)
  * @returns Array of user profiles
  */
 export async function listUserProfiles(params?: { 
   skill?: string; 
   seniority?: string;
   spaceId?: string;
+  spaceIds?: string[];
 }): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
@@ -404,8 +405,14 @@ export async function listUserProfiles(params?: {
     queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
   }
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+  // Support multiple spaceIds (builder mode) or single spaceId
+  if (params?.spaceIds && params.spaceIds.length > 0) {
+    // Query all, filter client-side (Arkiv doesn't support OR queries)
+    queryBuilder = queryBuilder.limit(500);
+  } else {
+    // Use provided spaceId or default to SPACE_ID from config
+    const spaceId = params?.spaceId || SPACE_ID;
+    queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
   }
   
   const result = await queryBuilder
@@ -498,6 +505,11 @@ export async function listUserProfiles(params?: {
     };
   });
   
+  // Filter by spaceIds client-side if multiple requested
+  if (params?.spaceIds && params.spaceIds.length > 0) {
+    profiles = profiles.filter((profile: UserProfile) => params.spaceIds!.includes(profile.spaceId));
+  }
+
   // Client-side skill filtering (Arkiv-native: skills stored in payload, not queryable via attributes)
   if (params?.skill) {
     const skillFilter = params.skill.toLowerCase().trim();

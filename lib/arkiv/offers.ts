@@ -12,6 +12,7 @@ import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 import { getAvailabilityByKey, type WeeklyAvailability, serializeWeeklyAvailability, validateWeeklyAvailability } from "./availability"
+import { SPACE_ID } from "@/lib/config"
 
 export const OFFER_TTL_SECONDS = 7200; // 2 hours default
 
@@ -74,7 +75,7 @@ export async function createOffer({
   }
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const status = 'active';
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
@@ -150,10 +151,10 @@ export async function createOffer({
 /**
  * List all active offers
  * 
- * @param params - Optional filters (skill, spaceId)
+ * @param params - Optional filters (skill, spaceId, spaceIds)
  * @returns Array of offers
  */
-export async function listOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
+export async function listOffers(params?: { skill?: string; spaceId?: string; spaceIds?: string[]; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   
   try {
@@ -162,8 +163,14 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
     const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
     let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
     
-    if (params?.spaceId) {
-      queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (params?.spaceIds && params.spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(limit);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const spaceId = params?.spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
     }
     
     let result: any = null;
@@ -273,6 +280,11 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; li
       txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
     };
   });
+
+    // Filter by spaceIds client-side if multiple requested
+    if (params?.spaceIds && params.spaceIds.length > 0) {
+      offers = offers.filter((offer: Offer) => params.spaceIds!.includes(offer.spaceId));
+    }
 
     if (params?.skill) {
       const skillLower = params.skill.toLowerCase();

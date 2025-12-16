@@ -1,8 +1,8 @@
 /**
  * Configuration and environment variables
- * 
+ *
  * Based on mentor-graph implementation.
- * 
+ *
  * Reference: refs/mentor-graph/src/config.ts
  */
 
@@ -14,11 +14,23 @@ export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` 
  * Derive wallet address from the private key if available
  * This is used as a fallback when no wallet is connected via MetaMask
  */
-export const CURRENT_WALLET = ARKIV_PRIVATE_KEY 
-  ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address 
+export const CURRENT_WALLET = ARKIV_PRIVATE_KEY
+  ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address
   : undefined;
 
-export const SPACE_ID = "local-dev"; // Optionally configurable later
+/**
+ * Space ID for data isolation
+ *
+ * Used to separate different environments:
+ * - 'beta-launch': Production beta data
+ * - 'local-dev': Development/test data
+ * - 'local-dev-seed': Seed/example data for builder mode
+ *
+ * Can be overridden via BETA_SPACE_ID environment variable.
+ * Defaults to 'beta-launch' in production, 'local-dev' in development.
+ */
+export const SPACE_ID = process.env.BETA_SPACE_ID ||
+  (process.env.NODE_ENV === 'production' ? 'beta-launch' : 'local-dev');
 
 // Jitsi configuration
 export const JITSI_BASE_URL = process.env.JITSI_BASE_URL || 'https://meet.jit.si';
@@ -39,25 +51,25 @@ export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 /**
  * Get private key, throwing if not available
- * 
+ *
  * Used for API routes that need server-side entity creation.
  * This is the server-side signing wallet (ARKIV_PRIVATE_KEY env var).
- * 
+ *
  * IMPORTANT: This returns a private key (0x...), NOT a wallet address.
  * Never use a wallet address as a private key - it will cause transaction failures.
- * 
+ *
  * @throws Error if ARKIV_PRIVATE_KEY is not set
  */
 export function getPrivateKey(): `0x${string}` {
   if (!ARKIV_PRIVATE_KEY) {
     throw new Error("ARKIV_PRIVATE_KEY missing in environment. Required for server-side entity creation.");
   }
-  
+
   // Safety check: Ensure this looks like a private key (64 hex chars after 0x)
   if (!ARKIV_PRIVATE_KEY.startsWith('0x') || ARKIV_PRIVATE_KEY.length !== 66) {
     throw new Error("ARKIV_PRIVATE_KEY appears to be invalid. Expected 0x followed by 64 hex characters.");
   }
-  
+
   return ARKIV_PRIVATE_KEY;
 }
 

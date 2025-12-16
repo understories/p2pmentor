@@ -11,7 +11,7 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
 import { generateJitsiMeeting } from "../jitsi"
-import { JITSI_BASE_URL } from "../config"
+import { JITSI_BASE_URL, SPACE_ID } from "../config"
 
 export type Session = {
   key: string;
@@ -92,7 +92,7 @@ export async function createSession({
   
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const status = 'pending'; // Start as pending, requires confirmation
   const createdAt = new Date().toISOString();
 
@@ -277,13 +277,20 @@ export async function listSessions(params?: {
   skill?: string; 
   status?: string;
   spaceId?: string;
+  spaceIds?: string[];
 }): Promise<Session[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   let queryBuilder = query.where(eq('type', 'session'));
   
-  if (params?.spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
+  // Support multiple spaceIds (builder mode) or single spaceId
+  if (params?.spaceIds && params.spaceIds.length > 0) {
+    // Query all, filter client-side (Arkiv doesn't support OR queries)
+    queryBuilder = queryBuilder.limit(500);
+  } else {
+    // Use provided spaceId or default to SPACE_ID from config
+    const spaceId = params?.spaceId || SPACE_ID;
+    queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
   }
   if (params?.mentorWallet) {
     // Normalize wallet address to lowercase for querying
@@ -570,7 +577,7 @@ export async function listSessions(params?: {
     }
   });
 
-  return result.entities.map((entity: any) => {
+  const mappedSessions = result.entities.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {
@@ -676,6 +683,14 @@ export async function listSessions(params?: {
       community,
     };
   });
+
+  // Filter by spaceIds client-side if multiple requested
+  let sessions = mappedSessions;
+  if (params?.spaceIds && params.spaceIds.length > 0) {
+    sessions = mappedSessions.filter((session: Session) => params.spaceIds!.includes(session.spaceId));
+  }
+
+  return sessions;
 }
 
 /**

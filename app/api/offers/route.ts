@@ -1,14 +1,14 @@
 /**
  * Offers API route
- * 
+ *
  * Handles offer creation and listing.
- * 
+ *
  * Reference: refs/mentor-graph/pages/api/offers.ts
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createOffer, listOffers, listOffersForWallet } from '@/lib/arkiv/offers';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import type { WeeklyAvailability } from '@/lib/arkiv/availability';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
@@ -124,8 +124,8 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         // Handle transaction receipt timeout gracefully
         if (isTransactionTimeoutError(error)) {
-          return NextResponse.json({ 
-            ok: true, 
+          return NextResponse.json({
+            ok: true,
             key: null,
             txHash: null,
             pending: true,
@@ -154,7 +154,27 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');
     const skill = searchParams.get('skill') || undefined;
-    const spaceId = searchParams.get('spaceId') || undefined;
+
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
 
     if (wallet) {
       // List offers for specific wallet
@@ -162,7 +182,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, offers });
     } else {
       // List all offers (with optional filters)
-      const offers = await listOffers({ skill, spaceId });
+      const offers = await listOffers({ skill, spaceId, spaceIds });
       return NextResponse.json({ ok: true, offers });
     }
   } catch (error: any) {
