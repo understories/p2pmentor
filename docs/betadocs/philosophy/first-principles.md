@@ -11,3 +11,10 @@ The platform helps people find each other and coordinate. It does not sit in the
 ## Trustless infrastructure, trustworthy UX
 
 Infrastructure should not require trust to protect user data. UX and community norms should encourage good behavior and mutual respect.
+
+## Non-Goals
+
+- No engagement optimization
+- No private-by-default social graph
+- No algorithmic ranking
+- No mutable reputation

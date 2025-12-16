@@ -1,5 +1,7 @@
 # GraphQL and Performance
 
+For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+
 ## GraphQL API
 
 Location: `app/api/graphql/route.ts`

@@ -1,5 +1,7 @@
 # Wallet Architecture: Profile Wallet vs Signing Wallet
 
+For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+
 ## Overview
 
 p2pmentor uses a two-wallet architecture that separates user identity (profile wallet) from transaction signing (signing wallet). This design provides security, flexibility, and prepares for full data sovereignty when Arkiv moves to mainnet.

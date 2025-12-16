@@ -1,5 +1,7 @@
 # Arkiv-Native Application
 
+For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+
 ## How does an app work without a central database?
 
 Instead of storing data in our own database, we store everything on Arkiv, a decentralized blockchain network. Think of it like this:

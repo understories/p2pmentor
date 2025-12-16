@@ -60,7 +60,8 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'overview': 1,
     'arkiv-integration': 2,
     'graphql-performance': 3,
-    'admin-dashboard': 4,
+    'passkey-integration': 4,
+    'admin-dashboard': 5,
   },
   // Arkiv section
   'arkiv': {
@@ -107,7 +108,6 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'jitsi-integration': 1,
     'github-integration': 2,
     'graphql-integration': 3,
-    'passkey-integration': 4,
   },
   // Meta section
   'meta': {

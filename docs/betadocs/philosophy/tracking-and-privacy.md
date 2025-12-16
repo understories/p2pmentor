@@ -1,5 +1,7 @@
 # What We Track: Transparency & Privacy
 
+These metrics exist to make system behavior verifiable, not to monitor individual users.
+
 This document describes **exactly** what p2pmentor tracks about users and usage, where the data lives, and why we collect it. Everything is verifiable on-chain via Arkiv.
 
 ---

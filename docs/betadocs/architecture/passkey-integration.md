@@ -1,5 +1,7 @@
 # Passkey Integration
 
+For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+
 Custom passkey implementation for beta while waiting for Mendoza to support EIP-7951 natively.
 
 ## Current Implementation
