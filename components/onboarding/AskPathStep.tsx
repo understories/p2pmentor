@@ -65,6 +65,17 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate wallet is profile wallet (not signing wallet)
+    if (!wallet || wallet.trim() === '') {
+      onError(new Error('Profile wallet address is required. Please refresh the page.'));
+      return;
+    }
+    const normalizedWallet = wallet.toLowerCase().trim();
+    if (normalizedWallet.length < 10) {
+      onError(new Error('Invalid profile wallet address. Please refresh the page.'));
+      return;
+    }
+
     if (!message.trim()) {
       onError(new Error('Ask message is required'));
       return;
@@ -85,12 +96,15 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
       }
 
       // Use API route for ask creation
+      // wallet is the profile wallet address (from localStorage 'wallet_address')
+      // This is used as the 'wallet' attribute on the ask entity
+      // The API route uses getPrivateKey() (global signing wallet) to sign the transaction
       const res = await fetch('/api/asks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'createAsk',
-          wallet,
+          wallet: normalizedWallet, // Profile wallet address (used as 'wallet' attribute on entity)
           skill: skill.name_canonical, // Legacy: kept for backward compatibility
           skill_id: skill.key, // New: preferred for beta
           skill_label: skill.name_canonical, // Derived from Skill entity

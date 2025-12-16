@@ -46,6 +46,17 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
   }, []);
 
   const handleFollow = async () => {
+    // Validate wallet is profile wallet (not signing wallet)
+    if (!wallet || wallet.trim() === '') {
+      onError(new Error('Profile wallet address is required. Please refresh the page.'));
+      return;
+    }
+    const normalizedWallet = wallet.toLowerCase().trim();
+    if (normalizedWallet.length < 10) {
+      onError(new Error('Invalid profile wallet address. Please refresh the page.'));
+      return;
+    }
+
     if (!selectedSkill) {
       onError(new Error('Please select a community'));
       return;
@@ -60,12 +71,15 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
 
     try {
       // Use API route for learning follow
+      // wallet is the profile wallet address (from localStorage 'wallet_address')
+      // This is used as the 'profile_wallet' attribute on the learning_follow entity
+      // The API route uses getPrivateKey() (global signing wallet) to sign the transaction
       const res = await fetch('/api/learning-follow', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'createFollow',
-          wallet,
+          wallet: normalizedWallet, // Profile wallet address (API will use as 'profile_wallet' attribute on entity)
           skill_id: selectedSkill,
           mode: 'learning',
         }),

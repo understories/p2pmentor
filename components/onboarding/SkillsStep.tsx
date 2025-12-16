@@ -53,10 +53,18 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   // Step 1: Submit skill name and move to level selection
   const handleSkillNameSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!currentSkillName.trim()) {
+    const trimmedName = currentSkillName.trim();
+    if (!trimmedName) {
       onError(new Error('Skill name is required'));
       return;
     }
+
+    // Prevent commas - only allow one skill at a time
+    if (trimmedName.includes(',')) {
+      onError(new Error('Please enter only one skill at a time. No commas allowed.'));
+      return;
+    }
+
     // Move to level selection step
     setStep('level');
   };
@@ -94,16 +102,33 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
   // Step 2: Plant skill with selected expertise level
   const handlePlantSkill = async () => {
-    if (!currentSkillName.trim()) {
+    if (!wallet) {
+      onError(new Error('Wallet address is required. Please refresh the page.'));
+      return;
+    }
+
+    const trimmedName = currentSkillName.trim();
+    if (!trimmedName) {
       onError(new Error('Skill name is required'));
+      return;
+    }
+
+    // Prevent commas - only allow one skill at a time
+    if (trimmedName.includes(',')) {
+      onError(new Error('Please enter only one skill at a time. No commas allowed.'));
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Validate wallet is still available (profile wallet, not signing wallet)
+      if (!wallet || wallet.trim() === '') {
+        throw new Error('Profile wallet address is required. Please refresh the page.');
+      }
+
       // Ensure skill entity exists (Arkiv-native - creates if doesn't exist)
-      const skillEntity = await ensureSkillEntity(currentSkillName.trim());
+      const skillEntity = await ensureSkillEntity(trimmedName);
       if (!skillEntity) {
         throw new Error('Failed to create or find skill entity');
       }
@@ -130,19 +155,29 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
       // Check if this is a new skill (was just created) or existing
       const wasNewSkill = !existingSkills.find(s => s.key === skillEntity.key);
-      
-      // Get current profile
-      const profile = await getProfileByWallet(wallet);
+
+      // Get current profile - validate wallet is profile wallet (normalized)
+      const normalizedWallet = wallet.toLowerCase().trim();
+      if (!normalizedWallet || normalizedWallet.length < 10) {
+        throw new Error('Invalid profile wallet address. Please refresh the page.');
+      }
+
+      const profile = await getProfileByWallet(normalizedWallet);
       if (!profile) {
         throw new Error('Profile not found. Please complete the identity step first.');
       }
-      
+
+      // Verify profile wallet matches (safety check)
+      if (profile.wallet.toLowerCase() !== normalizedWallet) {
+        throw new Error('Profile wallet mismatch. Please refresh the page.');
+      }
+
       const currentSkills = profile.skillsArray || [];
       const currentExpertise = profile.skillExpertise || {};
-      
+
       let newSkills: string[];
       let newExpertise: Record<string, number>;
-      
+
       // Add skill to profile if not already there
       if (!currentSkills.includes(skill.name_canonical)) {
         newSkills = [...currentSkills, skill.name_canonical];
@@ -153,14 +188,17 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         ...currentExpertise,
         [skill.key]: expertise,
       };
-      
-      // Use API route for profile update (uses global Arkiv signing wallet)
+
+      // Use API route for profile update (uses global Arkiv signing wallet for signing)
+      // wallet is the profile wallet address (from localStorage 'wallet_address')
+      // This is used as the 'wallet' attribute on the profile entity
+      // The API route uses getPrivateKey() (global signing wallet) to sign the transaction
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'updateProfile',
-          wallet, // Profile wallet address (used as 'wallet' attribute on entity)
+          wallet: normalizedWallet, // Profile wallet address (used as 'wallet' attribute on entity)
           displayName: profile.displayName,
           bio: profile.bio,
           bioShort: profile.bioShort,
@@ -266,7 +304,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
             }}
           >
-            {createdSkills.length > 0 ? 'Add another skill or continue to the next step.' : 'Every skill grows in its own time.'}
+            {createdSkills.length > 0 ? 'Add another skill or continue to the next step.' : 'Add one skill to start. Every skill grows in its own time.'}
           </p>
         </div>
 
@@ -276,8 +314,12 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               id="skillName"
               type="text"
               value={currentSkillName}
-              onChange={(e) => setCurrentSkillName(e.target.value)}
-              placeholder="e.g., Spanish, Solidity, Writing, Leadership"
+              onChange={(e) => {
+                // Prevent commas - only allow one skill at a time
+                const value = e.target.value.replace(/,/g, '');
+                setCurrentSkillName(value);
+              }}
+              placeholder="e.g., Spanish"
               list="skillSuggestions"
               required
               autoFocus
