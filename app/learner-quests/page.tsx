@@ -52,7 +52,8 @@ export default function LearnerQuestsPage() {
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
   const [wallet, setWallet] = useState<string | null>(null);
-  const [quest, setQuest] = useState<LearnerQuest | null>(null);
+  const [quests, setQuests] = useState<LearnerQuest[]>([]);
+  const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [progress, setProgress] = useState<Record<string, MaterialProgress>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,39 +71,43 @@ export default function LearnerQuestsPage() {
   }, [router]);
 
   useEffect(() => {
-    loadQuest();
+    loadQuests();
   }, []);
 
   useEffect(() => {
-    if (wallet && quest) {
+    if (wallet && selectedQuestId) {
       loadProgress();
     }
-  }, [wallet, quest]);
+  }, [wallet, selectedQuestId]);
 
-  const loadQuest = async () => {
+  const loadQuests = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/learner-quests?questId=web3privacy_foundations');
+      const res = await fetch('/api/learner-quests');
       const data = await res.json();
 
-      if (data.ok && data.quest) {
-        setQuest(data.quest);
+      if (data.ok && data.quests) {
+        setQuests(data.quests);
+        // Auto-select first quest if available
+        if (data.quests.length > 0 && !selectedQuestId) {
+          setSelectedQuestId(data.quests[0].questId);
+        }
       } else {
-        setError(data.error || 'Failed to load quest');
+        setError(data.error || 'Failed to load quests');
       }
     } catch (err: any) {
-      console.error('Error loading quest:', err);
-      setError('Failed to load quest');
+      console.error('Error loading quests:', err);
+      setError('Failed to load quests');
     } finally {
       setLoading(false);
     }
   };
 
   const loadProgress = async () => {
-    if (!wallet || !quest) return;
+    if (!wallet || !selectedQuestId) return;
 
     try {
-      const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
+      const res = await fetch(`/api/learner-quests/progress?questId=${selectedQuestId}&wallet=${wallet}`);
       const data = await res.json();
 
       if (data.ok && data.progress) {
@@ -127,7 +132,7 @@ export default function LearnerQuestsPage() {
     window.open(material.url, '_blank', 'noopener,noreferrer');
 
     // Mark as read (fire and forget)
-    if (wallet && quest) {
+    if (wallet && selectedQuestId) {
       setMarkingRead(material.id);
       try {
         await fetch('/api/learner-quests', {
@@ -136,7 +141,7 @@ export default function LearnerQuestsPage() {
           body: JSON.stringify({
             action: 'markRead',
             wallet,
-            questId: quest.questId,
+            questId: selectedQuestId,
             materialId: material.id,
             sourceUrl: material.url,
           }),
@@ -178,13 +183,13 @@ export default function LearnerQuestsPage() {
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
                 query={[
-                  `loadQuest()`,
+                  `loadQuests()`,
                   `Queries:`,
-                  `GET /api/learner-quests?questId=web3privacy_foundations`,
-                  `→ type='learner_quest', questId='web3privacy_foundations', status='active'`,
-                  `Returns: LearnerQuest (most recent version)`
+                  `GET /api/learner-quests`,
+                  `→ type='learner_quest', status='active'`,
+                  `Returns: LearnerQuest[] (all active quests, deduplicated by questId)`
                 ]}
-                label="Loading Learner Quest"
+                label="Loading Learner Quests"
               >
                 <LoadingSpinner text="Loading learner quest..." className="py-12" />
               </ArkivQueryTooltip>
@@ -197,14 +202,46 @@ export default function LearnerQuestsPage() {
     );
   }
 
-  if (error || !quest) {
+  const selectedQuest = selectedQuestId ? quests.find(q => q.questId === selectedQuestId) : null;
+
+  if (error) {
     return (
       <BetaGate>
         <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
           <div className="max-w-4xl mx-auto">
             <BackButton href="/me" />
             <div className="text-center py-12">
-              <p className="text-red-600 dark:text-red-400">{error || 'Quest not found'}</p>
+              <p className="text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          </div>
+        </div>
+      </BetaGate>
+    );
+  }
+
+  if (quests.length === 0) {
+    return (
+      <BetaGate>
+        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+          <div className="max-w-4xl mx-auto">
+            <BackButton href="/me" />
+            <div className="text-center py-12">
+              <p className="text-gray-600 dark:text-gray-400">No learner quests available yet.</p>
+            </div>
+          </div>
+        </div>
+      </BetaGate>
+    );
+  }
+
+  if (!selectedQuest) {
+    return (
+      <BetaGate>
+        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+          <div className="max-w-4xl mx-auto">
+            <BackButton href="/me" />
+            <div className="text-center py-12">
+              <p className="text-gray-600 dark:text-gray-400">Please select a quest.</p>
             </div>
           </div>
         </div>
@@ -213,8 +250,8 @@ export default function LearnerQuestsPage() {
   }
 
   const readCount = getReadCount();
-  const progressPercent = quest.materials.length > 0
-    ? Math.round((readCount / quest.materials.length) * 100)
+  const progressPercent = selectedQuest.materials.length > 0
+    ? Math.round((readCount / selectedQuest.materials.length) * 100)
     : 0;
 
   return (
@@ -224,14 +261,34 @@ export default function LearnerQuestsPage() {
           <BackButton href="/me" />
 
           <div className="mb-8">
-            <h1 className="text-3xl font-semibold mb-2">{quest.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">{quest.description}</p>
+            {/* Quest Selector */}
+            {quests.length > 1 && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Select Quest:
+                </label>
+                <select
+                  value={selectedQuestId || ''}
+                  onChange={(e) => setSelectedQuestId(e.target.value)}
+                  className="w-full md:w-auto px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                  {quests.map((q) => (
+                    <option key={q.questId} value={q.questId}>
+                      {q.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <h1 className="text-3xl font-semibold mb-2">{selectedQuest.title}</h1>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">{selectedQuest.description}</p>
 
             {/* Progress Bar */}
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium">
-                  Progress: {readCount} / {quest.materials.length} materials read
+                  Progress: {readCount} / {selectedQuest.materials.length} materials read
                 </span>
                 <span className="text-sm text-gray-500 dark:text-gray-400">{progressPercent}%</span>
               </div>
@@ -247,19 +304,19 @@ export default function LearnerQuestsPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Source:{' '}
               <a
-                href={quest.source}
+                href={selectedQuest.source}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline hover:text-emerald-600 dark:hover:text-emerald-400"
               >
-                Web3Privacy Academy Library
+                {selectedQuest.source}
               </a>
             </p>
           </div>
 
           {/* Materials List */}
           <div className="space-y-4">
-            {quest.materials.map((material) => {
+            {selectedQuest.materials.map((material) => {
               const materialProgress = progress[material.id];
               const isRead = materialProgress?.status === 'read';
               const isMarking = markingRead === material.id;
@@ -295,7 +352,7 @@ export default function LearnerQuestsPage() {
                             `1. Opens: ${material.url} (new tab)`,
                             `2. POST /api/learner-quests { action: 'markRead', ... }`,
                             `   → Creates: type='learner_quest_progress' entity`,
-                            `   → Attributes: wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', questId='${quest.questId}', materialId='${material.id}', status='read'`,
+                            `   → Attributes: wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', questId='${selectedQuestId}', materialId='${material.id}', status='read'`,
                             `   → Payload: Full progress data with readAt timestamp`,
                             `   → TTL: 1 year (31536000 seconds)`
                           ]}

@@ -7,31 +7,38 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getLearnerQuest, markMaterialAsRead } from '@/lib/arkiv/learnerQuest';
+import { getLearnerQuest, listLearnerQuests, markMaterialAsRead } from '@/lib/arkiv/learnerQuest';
 import { getPrivateKey } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 /**
  * GET /api/learner-quests
  *
- * Fetch quest definition
- * Query params: questId (default: 'web3privacy_foundations')
+ * Fetch quest(s)
+ * Query params:
+ *   - questId: optional, fetch specific quest by ID
+ *   - If no questId, returns all active quests
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const questId = searchParams.get('questId') || 'web3privacy_foundations';
+    const questId = searchParams.get('questId');
 
-    const quest = await getLearnerQuest(questId);
-
-    if (!quest) {
-      return NextResponse.json({ ok: false, error: 'Quest not found' }, { status: 404 });
+    if (questId) {
+      // Fetch specific quest
+      const quest = await getLearnerQuest(questId);
+      if (!quest) {
+        return NextResponse.json({ ok: false, error: 'Quest not found' }, { status: 404 });
+      }
+      return NextResponse.json({ ok: true, quest });
+    } else {
+      // List all active quests
+      const quests = await listLearnerQuests();
+      return NextResponse.json({ ok: true, quests, count: quests.length });
     }
-
-    return NextResponse.json({ ok: true, quest });
   } catch (error: any) {
     console.error('[learner-quests] GET error:', error);
-    return NextResponse.json({ ok: false, error: 'Failed to fetch quest' }, { status: 500 });
+    return NextResponse.json({ ok: false, error: 'Failed to fetch quests' }, { status: 500 });
   }
 }
 

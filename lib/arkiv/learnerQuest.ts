@@ -134,6 +134,82 @@ export async function createLearnerQuest({
 }
 
 /**
+ * List all active learner quests
+ *
+ * Returns all active quest definitions, sorted by most recent first.
+ */
+export async function listLearnerQuests(): Promise<LearnerQuest[]> {
+  try {
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'learner_quest'))
+      .where(eq('status', 'active'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return [];
+    }
+
+    // Helper to get attribute value
+    const getAttr = (entity: any, key: string): string => {
+      const attrs = entity.attributes || {};
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    // Map entities to quest objects
+    const quests: LearnerQuest[] = result.entities
+      .map((entity: any) => {
+        try {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          const payload = JSON.parse(decoded);
+
+          return {
+            key: entity.key,
+            questId: getAttr(entity, 'questId'),
+            title: getAttr(entity, 'title'),
+            description: getAttr(entity, 'description'),
+            source: getAttr(entity, 'source'),
+            status: getAttr(entity, 'status') as 'active' | 'archived',
+            materials: payload.materials || [],
+            metadata: payload.metadata || {},
+            createdAt: getAttr(entity, 'createdAt'),
+            txHash: entity.txHash || undefined,
+          } as LearnerQuest;
+        } catch (e) {
+          console.error('[listLearnerQuests] Error decoding payload:', e);
+          return null;
+        }
+      })
+      .filter((q): q is LearnerQuest => q !== null)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    // Deduplicate by questId (keep most recent version of each quest)
+    const questMap = new Map<string, LearnerQuest>();
+    for (const quest of quests) {
+      if (!questMap.has(quest.questId)) {
+        questMap.set(quest.questId, quest);
+      }
+    }
+
+    return Array.from(questMap.values());
+  } catch (error: any) {
+    console.error('[listLearnerQuests] Error:', error);
+    return [];
+  }
+}
+
+/**
  * Get active learner quest by ID
  */
 export async function getLearnerQuest(questId: string): Promise<LearnerQuest | null> {
