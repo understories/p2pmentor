@@ -17,10 +17,10 @@ export function ArkivBuilderModeToggle({ enabled, onToggle }: ArkivBuilderModeTo
     <div className="relative group">
       <button
         onClick={() => onToggle(!enabled)}
-        className={`text-sm px-3 py-1.5 rounded-full border transition-colors ${
+        className={`text-sm px-3 py-1.5 rounded-full transition-colors ${
           enabled
-            ? 'bg-emerald-600 dark:bg-emerald-500 text-white border-emerald-600 dark:border-emerald-500'
-            : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 border-emerald-300/50 dark:border-emerald-600/50 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20'
+            ? 'bg-emerald-600 dark:bg-emerald-500 text-white'
+            : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-300 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20'
         }`}
         title="Arkiv Builder Mode"
       >

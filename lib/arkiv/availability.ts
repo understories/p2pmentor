@@ -40,10 +40,13 @@ export type DayAvailability = {
  * 
  * Version 1.0 schema for standardized availability data.
  * Stored as JSON string in Arkiv entity payload.
+ * 
+ * Note: Time slots are stored in UTC. The timezone field indicates
+ * the original timezone the user set their availability in.
  */
 export type WeeklyAvailability = {
   version: '1.0';
-  timezone: string; // IANA timezone (e.g., "America/New_York")
+  timezone: string; // IANA timezone (e.g., "America/New_York") - original user timezone
   days: {
     [K in DayOfWeek]: DayAvailability;
   };
@@ -151,7 +154,167 @@ export function validateWeeklyAvailability(
 }
 
 /**
+ * Convert a time slot from one timezone to another
+ * 
+ * Uses a reference date (next Monday) to handle DST correctly.
+ * 
+ * @param timeSlot - Time slot in HH:mm format
+ * @param fromTimezone - Source IANA timezone
+ * @param toTimezone - Target IANA timezone (default: UTC)
+ * @returns Converted time slot in HH:mm format
+ */
+export function convertTimeSlot(
+  timeSlot: TimeSlot,
+  fromTimezone: string,
+  toTimezone: string = 'UTC'
+): TimeSlot {
+  // Use next Monday as reference date to handle DST correctly
+  const now = new Date();
+  const daysUntilMonday = (8 - now.getDay()) % 7 || 7;
+  const nextMonday = new Date(now);
+  nextMonday.setDate(now.getDate() + daysUntilMonday);
+  nextMonday.setUTCHours(0, 0, 0, 0);
+
+  const convertTime = (time: string): string => {
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    // Create date components for next Monday
+    const year = nextMonday.getUTCFullYear();
+    const month = nextMonday.getUTCMonth() + 1;
+    const day = nextMonday.getUTCDate();
+    
+    // Create a date string and parse it as if it's in the source timezone
+    // We'll use a binary search-like approach to find the correct UTC time
+    // that, when formatted in source timezone, gives us the desired time
+    
+    // Start with a guess (assuming source timezone is close to UTC)
+    let guessDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
+    
+    // Format in source timezone to see what time it represents there
+    const sourceFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: fromTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    
+    // Adjust until we get the right time in source timezone
+    let attempts = 0;
+    const maxAttempts = 50; // Prevent infinite loop
+    while (attempts < maxAttempts) {
+      const parts = sourceFormatter.formatToParts(guessDate);
+      const sourceHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+      const sourceMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+      
+      if (sourceHour === hours && sourceMinute === minutes) {
+        break; // Found the correct UTC time
+      }
+      
+      // Adjust by the difference
+      const hourDiff = hours - sourceHour;
+      const minuteDiff = minutes - sourceMinute;
+      const totalMinutesDiff = hourDiff * 60 + minuteDiff;
+      guessDate = new Date(guessDate.getTime() + totalMinutesDiff * 60000);
+      attempts++;
+    }
+    
+    // Now format in target timezone
+    const targetFormatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: toTimezone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+    
+    const targetParts = targetFormatter.formatToParts(guessDate);
+    const targetHour = targetParts.find(p => p.type === 'hour')?.value?.padStart(2, '0') || '00';
+    const targetMinute = targetParts.find(p => p.type === 'minute')?.value?.padStart(2, '0') || '00';
+    
+    return `${targetHour}:${targetMinute}`;
+  };
+
+  return {
+    start: convertTime(timeSlot.start),
+    end: convertTime(timeSlot.end),
+  };
+}
+
+/**
+ * Convert WeeklyAvailability time slots from user timezone to UTC
+ * 
+ * @param availability - WeeklyAvailability with time slots in user timezone
+ * @returns WeeklyAvailability with time slots converted to UTC
+ */
+export function convertAvailabilityToUTC(availability: WeeklyAvailability): WeeklyAvailability {
+  const convertedDays: { [K in DayOfWeek]: DayAvailability } = {} as any;
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  for (const day of days) {
+    const dayAvail = availability.days[day];
+    if (dayAvail.available && dayAvail.timeSlots.length > 0) {
+      convertedDays[day] = {
+        available: true,
+        timeSlots: dayAvail.timeSlots.map(slot => 
+          convertTimeSlot(slot, availability.timezone, 'UTC')
+        ),
+      };
+    } else {
+      convertedDays[day] = {
+        available: false,
+        timeSlots: [],
+      };
+    }
+  }
+
+  return {
+    version: '1.0',
+    timezone: availability.timezone, // Keep original timezone for reference
+    days: convertedDays,
+  };
+}
+
+/**
+ * Convert WeeklyAvailability time slots from UTC to viewer timezone
+ * 
+ * @param availability - WeeklyAvailability with time slots in UTC
+ * @param viewerTimezone - Target IANA timezone for display
+ * @returns WeeklyAvailability with time slots converted to viewer timezone
+ */
+export function convertAvailabilityFromUTC(
+  availability: WeeklyAvailability,
+  viewerTimezone: string
+): WeeklyAvailability {
+  const convertedDays: { [K in DayOfWeek]: DayAvailability } = {} as any;
+  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  for (const day of days) {
+    const dayAvail = availability.days[day];
+    if (dayAvail.available && dayAvail.timeSlots.length > 0) {
+      convertedDays[day] = {
+        available: true,
+        timeSlots: dayAvail.timeSlots.map(slot => 
+          convertTimeSlot(slot, 'UTC', viewerTimezone)
+        ),
+      };
+    } else {
+      convertedDays[day] = {
+        available: false,
+        timeSlots: [],
+      };
+    }
+  }
+
+  return {
+    version: '1.0',
+    timezone: viewerTimezone, // Update timezone to viewer's timezone
+    days: convertedDays,
+  };
+}
+
+/**
  * Serialize WeeklyAvailability to JSON string for Arkiv storage
+ * 
+ * Note: Time slots should already be in UTC before serialization.
  * 
  * @param availability - WeeklyAvailability to serialize
  * @returns JSON string
@@ -229,11 +392,27 @@ export function createDefaultWeeklyAvailability(timezone: string): WeeklyAvailab
  * - "Mon-Fri 9am-12pm, 2pm-5pm EST" (if multiple slots)
  * - "No availability set" (if no days available)
  * 
- * @param availability - WeeklyAvailability to format
+ * Note: Availability stored in UTC will be converted to the original timezone
+ * (stored in the timezone field) or viewer timezone for display.
+ * 
+ * @param availability - WeeklyAvailability to format (may be in UTC)
+ * @param viewerTimezone - Optional viewer timezone (if different from original)
+ * @param isStoredInUTC - Whether the availability is stored in UTC (default: true for new data)
  * @returns Human-readable string
  */
-export function formatWeeklyAvailabilityForDisplay(availability: WeeklyAvailability): string {
-  const { days, timezone } = availability;
+export function formatWeeklyAvailabilityForDisplay(
+  availability: WeeklyAvailability,
+  viewerTimezone?: string,
+  isStoredInUTC: boolean = true
+): string {
+  // If availability is stored in UTC, convert to viewer timezone or original timezone for display
+  let displayAvailability = availability;
+  if (isStoredInUTC) {
+    const targetTimezone = viewerTimezone || availability.timezone;
+    displayAvailability = convertAvailabilityFromUTC(availability, targetTimezone);
+  }
+  
+  const { days, timezone } = displayAvailability;
   
   // Check if all weekdays have the same slots
   const weekdaySlots = days.monday.timeSlots;
@@ -301,10 +480,17 @@ export function formatWeeklyAvailabilityForDisplay(availability: WeeklyAvailabil
  * and legacy text format, automatically detecting and formatting appropriately.
  * Use this when displaying availability from offers, profiles, or availability entities.
  * 
+ * Note: Structured availability stored in UTC will be converted to the original
+ * timezone (or viewer timezone if provided) for display.
+ * 
  * @param availabilityString - Availability string (JSON or plain text)
+ * @param viewerTimezone - Optional viewer timezone for conversion
  * @returns Human-readable formatted string
  */
-export function formatAvailabilityForDisplay(availabilityString: string): string {
+export function formatAvailabilityForDisplay(
+  availabilityString: string,
+  viewerTimezone?: string
+): string {
   if (!availabilityString || availabilityString.trim() === '') {
     return 'No availability set';
   }
@@ -312,7 +498,7 @@ export function formatAvailabilityForDisplay(availabilityString: string): string
   // Try to parse as structured format
   const structured = deserializeWeeklyAvailability(availabilityString);
   if (structured) {
-    return formatWeeklyAvailabilityForDisplay(structured);
+    return formatWeeklyAvailabilityForDisplay(structured, viewerTimezone);
   }
 
   // Fallback to plain text (legacy format)
@@ -417,15 +603,18 @@ export async function createAvailability({
   let availabilityVersion: '1.0' | 'legacy';
   
   if (typeof timeBlocks === 'object' && timeBlocks.version === '1.0') {
-    // Structured format: validate and serialize
+    // Structured format: validate first
     const validation = validateWeeklyAvailability(timeBlocks);
     if (!validation.valid) {
       throw new Error(`Invalid weekly availability: ${validation.error}`);
     }
-    timeBlocksString = serializeWeeklyAvailability(timeBlocks);
+    
+    // Convert time slots from user timezone to UTC before storing
+    const utcAvailability = convertAvailabilityToUTC(timeBlocks);
+    timeBlocksString = serializeWeeklyAvailability(utcAvailability);
     availabilityVersion = '1.0';
   } else {
-    // Legacy text format
+    // Legacy text format (cannot convert to UTC, keep as-is for backward compatibility)
     timeBlocksString = typeof timeBlocks === 'string' ? timeBlocks : JSON.stringify(timeBlocks);
     availabilityVersion = 'legacy';
   }

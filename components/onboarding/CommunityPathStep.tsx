@@ -8,6 +8,8 @@
 
 import { useState, useEffect } from 'react';
 import { listSkills } from '@/lib/arkiv/skill';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { Skill } from '@/lib/arkiv/skill';
 
 interface CommunityPathStepProps {
@@ -22,6 +24,7 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Load available skills (communities)
   useEffect(() => {
@@ -137,20 +140,48 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
           </select>
         </div>
 
-        <button
-          onClick={handleFollow}
-          disabled={!selectedSkill || isSubmitting}
-          className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">🌲</span>
-              <span>Joining...</span>
-            </span>
-          ) : (
-            'Continue →'
-          )}
-        </button>
+        {arkivBuilderMode ? (
+          <ArkivQueryTooltip
+            query={[
+              `POST /api/learning-follow { action: 'createFollow', ... }`,
+              `Creates: type='learning_follow' entity`,
+              `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skill_id='${selectedSkill.slice(0, 12)}...', mode='learning'`,
+              `Payload: Full learning follow data`,
+              `TTL: 1 year (31536000 seconds)`
+            ]}
+            label="Continue"
+          >
+            <button
+              onClick={handleFollow}
+              disabled={!selectedSkill || isSubmitting}
+              className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">🌲</span>
+                  <span>Joining...</span>
+                </span>
+              ) : (
+                'Continue →'
+              )}
+            </button>
+          </ArkivQueryTooltip>
+        ) : (
+          <button
+            onClick={handleFollow}
+            disabled={!selectedSkill || isSubmitting}
+            className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin">🌲</span>
+                <span>Joining...</span>
+              </span>
+            ) : (
+              'Continue →'
+            )}
+          </button>
+        )}
       </div>
     </div>
   );

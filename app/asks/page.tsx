@@ -16,7 +16,6 @@ import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
@@ -24,6 +23,8 @@ import { fetchAsks } from '@/lib/graph/asksQueries';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors } from '@/lib/colors';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -95,6 +96,7 @@ export default function AsksPage() {
   const [selectedAskProfile, setSelectedAskProfile] = useState<UserProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -351,7 +353,25 @@ export default function AsksPage() {
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
-          <LoadingSpinner text="Loading asks..." className="py-12" />
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadData("${walletAddress?.toLowerCase() || '...'}")`,
+                `Queries:`,
+                `1. getProfileByWallet("${walletAddress?.toLowerCase() || '...'}")`,
+                `   → type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                `2. fetchAsks({ includeExpired: false, limit: 100 }) (GraphQL) OR`,
+                `   GET /api/asks (JSON-RPC)`,
+                `   → type='ask', status='active'`,
+                `Returns: Ask[] (all active asks)`
+              ]}
+              label="Loading Asks"
+            >
+              <LoadingSpinner text="Loading asks..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading asks..." className="py-12" />
+          )}
         </div>
       </div>
     );
@@ -360,7 +380,6 @@ export default function AsksPage() {
   return (
     <BetaGate>
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
@@ -389,12 +408,33 @@ export default function AsksPage() {
         {/* Create Ask Button */}
         {!showCreateForm && (
           <div className="mb-6">
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
-            >
-              {askEmojis.default} Create Ask
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Clicking opens form to create ask entity`,
+                  `POST /api/asks { action: 'createAsk', ... }`,
+                  `Creates: type='ask' entity`,
+                  `Attributes: wallet, skill, skill_id, message, status='active'`,
+                  `Payload: Full ask data`,
+                  `TTL: expiresIn (default 24 hours = 86400 seconds)`
+                ]}
+                label="Create Ask"
+              >
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                >
+                  {askEmojis.default} Create Ask
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setShowCreateForm(true)}
+                className={`px-4 py-2 ${askColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+              >
+                {askEmojis.default} Create Ask
+              </button>
+            )}
           </div>
         )}
 
@@ -496,13 +536,35 @@ export default function AsksPage() {
               )}
 
               <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Creating...' : 'Create Ask'}
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `POST /api/asks { action: 'createAsk', ... }`,
+                      `Creates: type='ask' entity`,
+                      `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill, skill_id, message, status='active'`,
+                      `Payload: Full ask data`,
+                      `TTL: expiresIn (default 24 hours = 86400 seconds)`,
+                      `Note: Creates ask_txhash entity for transaction tracking`
+                    ]}
+                    label="Create Ask"
+                  >
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {submitting ? 'Creating...' : 'Create Ask'}
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {submitting ? 'Creating...' : 'Create Ask'}
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => {
@@ -577,23 +639,60 @@ export default function AsksPage() {
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
                   <span className="font-mono text-xs">{ask.wallet.slice(0, 6)}...{ask.wallet.slice(-4)}</span>
                   <CountdownTimer createdAt={ask.createdAt} ttlSeconds={ask.ttlSeconds} />
-                  <ViewOnArkivLink entityKey={ask.key} />
+                  {arkivBuilderMode && ask.key && (
+                    <div className="flex items-center gap-2">
+                      <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {ask.key.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
+                  {!arkivBuilderMode && (
+                    <ViewOnArkivLink entityKey={ask.key} />
+                  )}
                 </div>
                     {/* Offer to Help Button - only show if not own ask */}
                     {walletAddress && walletAddress.toLowerCase() !== ask.wallet.toLowerCase() && (
                       <div className="mt-4">
-                        <button
-                          onClick={async () => {
-                            // Load profile for the ask's wallet
-                            const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                            setSelectedAskProfile(askProfile);
-                            setSelectedAsk(ask);
-                            setShowMeetingModal(true);
-                          }}
-                          className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
-                        >
-                          Offer to Help
-                        </button>
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `Opens RequestMeetingModal to create session`,
+                              `POST /api/sessions { action: 'createSession', ... }`,
+                              `Creates: type='session' entity`,
+                              `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
+                              `Payload: Full session data`,
+                              `TTL: sessionDate + duration + 1 hour buffer`
+                            ]}
+                            label="Offer to Help"
+                          >
+                            <button
+                              onClick={async () => {
+                                // Load profile for the ask's wallet
+                                const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                                setSelectedAskProfile(askProfile);
+                                setSelectedAsk(ask);
+                                setShowMeetingModal(true);
+                              }}
+                              className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                            >
+                              Offer to Help
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={async () => {
+                              // Load profile for the ask's wallet
+                              const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
+                              setSelectedAskProfile(askProfile);
+                              setSelectedAsk(ask);
+                              setShowMeetingModal(true);
+                            }}
+                            className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
+                          >
+                            Offer to Help
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

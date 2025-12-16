@@ -16,8 +16,6 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SkillCluster } from '@/components/network/SkillCluster';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -28,6 +26,9 @@ import type { Session } from '@/lib/arkiv/sessions';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatSessionTitle } from '@/lib/sessions/display';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { GardenBoard } from '@/components/garden/GardenBoard';
 
 type Match = {
   ask: Ask;
@@ -55,6 +56,7 @@ export default function TopicDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userWallet, setUserWallet] = useState<string | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [rsvping, setRsvping] = useState<string | null>(null);
@@ -65,12 +67,18 @@ export default function TopicDetailPage() {
     time: '',
     duration: '60',
   });
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
-    // Get user wallet first
+    // Get user wallet and profile first
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
       setUserWallet(address);
+      if (address) {
+        getProfileByWallet(address.toLowerCase().trim())
+          .then(setUserProfile)
+          .catch(() => null);
+      }
     }
   }, []);
 
@@ -235,17 +243,20 @@ export default function TopicDetailPage() {
       }
 
       // Load sessions for this community (skill-based sessions)
+      let skillBasedSessions: Session[] = [];
       if (sessionsRes.ok && sessionsRes.sessions) {
         // Filter to upcoming sessions only
         const now = Date.now();
-        const upcoming = sessionsRes.sessions.filter((s: Session) => {
+        skillBasedSessions = sessionsRes.sessions.filter((s: Session) => {
           const sessionTime = new Date(s.sessionDate).getTime();
           return sessionTime > now;
         });
-        setCommunitySessions(upcoming);
       }
 
       // Also load sessions linked to virtual gatherings for this community
+      // Arkiv-native approach: Group RSVP sessions by gatheringKey to avoid duplicates
+      // Each gathering has multiple RSVP sessions (one per person), but we only want to display the gathering once
+      let gatheringSessions: Session[] = [];
       if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
         // Query all virtual_gathering_rsvp sessions and filter by gatheringKey
@@ -254,54 +265,76 @@ export default function TopicDetailPage() {
           
           if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
             // Filter sessions that match gathering keys for this community
-            const allGatheringSessions: Session[] = gatheringSessionsRes.sessions.filter((s: Session) => {
+            const allGatheringSessions = gatheringSessionsRes.sessions.filter((s: Session) => {
               const notes = s.notes || '';
+              const gatheringKey = (s as any).gatheringKey;
               // Check if session notes contains gatheringKey for any of our gatherings
               return gatheringKeys.some((key: string) => 
-                notes.includes(`virtual_gathering_rsvp:${key}`) || notes.includes(key)
+                gatheringKey === key ||
+                notes.includes(`virtual_gathering_rsvp:${key}`) || 
+                notes.includes(key)
               );
             });
-
-            // Combine with skill-based sessions
-            setCommunitySessions(prev => {
-              const combined = [...prev, ...allGatheringSessions];
-              // Deduplicate by key
-              const unique = new Map<string, Session>();
-              combined.forEach(s => unique.set(s.key, s));
-              return Array.from(unique.values()).sort((a, b) => 
-                new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
-              );
-            });
-
-            // Check RSVP status for community sessions (if user wallet is available)
-            if (userWallet) {
-              const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
-              const sessionRsvpChecks = allGatheringSessions.map(async (s: Session) => {
-                // Extract gatheringKey from session attributes or notes
-                const gatheringKey = (s as any).gatheringKey || 
-                  (s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
-                  (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
-                
-                if (gatheringKey) {
-                  const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
-                  return { sessionKey: s.key, gatheringKey, hasRsvpd };
-                }
-                return null;
-              });
+            
+            // Arkiv-native deduplication: Group by gatheringKey and keep only one session per gathering
+            // This ensures each gathering is displayed only once, even though there are multiple RSVP sessions
+            const sessionsByGathering = new Map<string, Session>();
+            allGatheringSessions.forEach((s: Session) => {
+              const notes = s.notes || '';
+              const gatheringKey = (s as any).gatheringKey || 
+                notes.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+                (notes.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => notes.includes(k)) : null);
               
-              const rsvpResults = await Promise.all(sessionRsvpChecks);
-              const sessionRsvpMap: Record<string, boolean> = {};
-              rsvpResults.forEach(result => {
-                if (result) {
-                  sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
-                }
-              });
-              setSessionRsvpStatus(sessionRsvpMap);
-            }
+              if (gatheringKey && !sessionsByGathering.has(gatheringKey)) {
+                // Keep the first session for each gathering (they all have the same gathering info)
+                sessionsByGathering.set(gatheringKey, s);
+              }
+            });
+            
+            gatheringSessions = Array.from(sessionsByGathering.values());
           }
         } catch (err) {
           console.warn('Error loading gathering sessions:', err);
         }
+      }
+
+      // Combine and deduplicate all sessions by key (single state update)
+      const allSessions = [...skillBasedSessions, ...gatheringSessions];
+      const uniqueSessions = new Map<string, Session>();
+      allSessions.forEach(s => uniqueSessions.set(s.key, s));
+      const sortedSessions = Array.from(uniqueSessions.values()).sort((a, b) => 
+        new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+      );
+      setCommunitySessions(sortedSessions);
+
+      // Check RSVP status for community sessions (if user wallet is available)
+      if (userWallet && gatheringSessions.length > 0) {
+        const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
+        const gatheringKeys = gatheringsRes.ok && gatheringsRes.gatherings 
+          ? gatheringsRes.gatherings.map((g: VirtualGathering) => g.key)
+          : [];
+        
+        const sessionRsvpChecks = gatheringSessions.map(async (s: Session) => {
+          // Extract gatheringKey from session attributes or notes
+          const gatheringKey = (s as any).gatheringKey || 
+            (s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
+            (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
+          
+          if (gatheringKey) {
+            const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
+            return { sessionKey: s.key, gatheringKey, hasRsvpd };
+          }
+          return null;
+        });
+        
+        const rsvpResults = await Promise.all(sessionRsvpChecks);
+        const sessionRsvpMap: Record<string, boolean> = {};
+        rsvpResults.forEach(result => {
+          if (result) {
+            sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
+          }
+        });
+        setSessionRsvpStatus(sessionRsvpMap);
       }
 
       // Load profiles for all unique wallets (asks, offers, sessions, gatherings)
@@ -448,7 +481,6 @@ export default function TopicDetailPage() {
   if (error || !skill) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <ThemeToggle />
         <div className="max-w-6xl mx-auto">
           <div className="mb-6">
             <BackButton href="/network" />
@@ -472,7 +504,6 @@ export default function TopicDetailPage() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
@@ -949,6 +980,18 @@ export default function TopicDetailPage() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* Garden Board - Filter by skill name tag */}
+        {skill && (
+          <GardenBoard
+            tags={[skill.name_canonical]}
+            title={`${skill.name_canonical} Garden Board`}
+            description={`Notes and discussions about ${skill.name_canonical}`}
+            userWallet={userWallet}
+            userProfile={userProfile}
+            skillName={skill.name_canonical}
+          />
         )}
       </div>
     </div>

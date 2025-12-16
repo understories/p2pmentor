@@ -21,7 +21,8 @@ export type NotificationType =
   | 'app_feedback_submitted'
   | 'new_garden_note'
   | 'new_skill_created'
-  | 'community_meeting_scheduled';
+  | 'community_meeting_scheduled'
+  | 'entity_created'; // User-focused notification for entity creation
 
 export type Notification = {
   key: string;

@@ -69,6 +69,31 @@ export async function POST(request: NextRequest) {
       learnerConfirmed,
     });
 
+    // Create user-focused notification
+    if (key) {
+      try {
+        const { createNotification } = await import('@/lib/arkiv/notifications');
+        await createNotification({
+          wallet: feedbackFrom.toLowerCase(),
+          notificationType: 'entity_created',
+          sourceEntityType: 'session_feedback',
+          sourceEntityKey: key,
+          title: 'Feedback Submitted',
+          message: 'You left feedback for the session',
+          link: '/me/sessions',
+          metadata: {
+            feedbackKey: key,
+            sessionKey: sessionKey,
+            feedbackTo: feedbackTo.toLowerCase(),
+            rating: rating || undefined,
+          },
+          privateKey: getPrivateKey(),
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification for feedback:', notifError);
+      }
+    }
+
     // Update profile avgRating for feedbackTo (person receiving feedback)
     if (rating && rating > 0) {
       try {

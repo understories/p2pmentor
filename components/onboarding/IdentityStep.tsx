@@ -7,6 +7,8 @@
 'use client';
 
 import { useState } from 'react';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 interface IdentityStepProps {
   wallet: string;
@@ -18,6 +20,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
   const [displayName, setDisplayName] = useState('');
   const [exploringStatement, setExploringStatement] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -133,20 +136,48 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           </p>
         </div>
 
-        <button
-          type="submit"
-          disabled={!displayName.trim() || isSubmitting}
-          className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">🌱</span>
-              <span>Growing your seed...</span>
-            </span>
-          ) : (
-            'Continue →'
-          )}
-        </button>
+        {arkivBuilderMode ? (
+          <ArkivQueryTooltip
+            query={[
+              `POST /api/profile { action: 'createProfile', ... }`,
+              `Creates: type='user_profile' entity`,
+              `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', displayName, timezone`,
+              `Payload: Full profile data (bio, bioShort, etc.)`,
+              `TTL: 1 year (31536000 seconds)`
+            ]}
+            label="Continue"
+          >
+            <button
+              type="submit"
+              disabled={!displayName.trim() || isSubmitting}
+              className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">🌱</span>
+                  <span>Growing your seed...</span>
+                </span>
+              ) : (
+                'Continue →'
+              )}
+            </button>
+          </ArkivQueryTooltip>
+        ) : (
+          <button
+            type="submit"
+            disabled={!displayName.trim() || isSubmitting}
+            className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin">🌱</span>
+                <span>Growing your seed...</span>
+              </span>
+            ) : (
+              'Continue →'
+            )}
+          </button>
+        )}
       </form>
     </div>
   );

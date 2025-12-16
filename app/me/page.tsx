@@ -9,7 +9,6 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
@@ -25,8 +24,8 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { listSessionsForWallet, type Session } from '@/lib/arkiv/sessions';
 import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
 import { calculateAverageRating } from '@/lib/arkiv/profile';
-import { ArkivBuilderModeToggle } from '@/components/ArkivBuilderModeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -46,24 +45,7 @@ export default function MePage() {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
-  const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
-
-  // Sync Arkiv Builder Mode to localStorage for sidebar access
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('arkiv_builder_mode', String(arkivBuilderMode));
-    }
-  }, [arkivBuilderMode]);
-
-  // Load Arkiv Builder Mode from localStorage on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('arkiv_builder_mode');
-      if (saved === 'true') {
-        setArkivBuilderMode(true);
-      }
-    }
-  }, []);
+  const arkivBuilderMode = useArkivBuilderMode();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
@@ -165,12 +147,15 @@ export default function MePage() {
 
   const loadNotificationCount = async (wallet: string) => {
     try {
-      const res = await fetch(`/api/notifications?wallet=${wallet}&status=active`);
+      // Normalize wallet to lowercase for consistent querying (same as notifications page)
+      const normalizedWallet = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
       const data = await res.json();
       if (!data.ok) return;
       
       // Count unread notifications
-      // Check localStorage for notification preferences to determine read status
+      // Use the same logic as the notifications page: filter out archived notifications
+      // and count only unread ones
       const notifications = data.notifications || [];
       let unreadCount = 0;
       
@@ -180,15 +165,16 @@ export default function MePage() {
         if (prefStr) {
           try {
             const pref = JSON.parse(prefStr);
-            if (!pref.read && !pref.archived) {
+            // Filter out archived notifications (same as notifications page)
+            if (!pref.archived && !pref.read) {
               unreadCount++;
             }
           } catch (e) {
-            // If pref can't be parsed, treat as unread
+            // If pref can't be parsed, treat as unread (but not archived)
             unreadCount++;
           }
         } else {
-          // No preference stored, treat as unread
+          // No preference stored, treat as unread (same as notifications page)
           unreadCount++;
         }
       });
@@ -312,10 +298,6 @@ export default function MePage() {
       <GardenLayer skills={gardenSkills} allSkills={allSystemSkills} />
       
       <div className="relative z-10 p-4">
-        <div className="flex justify-between items-center mb-4">
-          <ThemeToggle />
-          <ArkivBuilderModeToggle enabled={arkivBuilderMode} onToggle={setArkivBuilderMode} />
-        </div>
       <div className="max-w-2xl mx-auto">
         
         {/* Profile Avatar with EIS */}
@@ -551,10 +533,13 @@ export default function MePage() {
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                 <div className="font-mono text-left">
                   <div>Arkiv query: type='session',</div>
-                  <div>(mentorWallet='{walletAddress?.slice(0, 8)}...' OR</div>
-                  <div>learnerWallet='{walletAddress?.slice(0, 8)}...'),</div>
+                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
+                  <div>(as mentor OR learner),</div>
                   <div>status='completed' OR</div>
                   <div>(status='scheduled' AND sessionDate &lt; now)</div>
+                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                    Queries: mentorWallet OR learnerWallet
+                  </div>
                 </div>
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
               </div>
@@ -590,10 +575,13 @@ export default function MePage() {
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
                 <div className="font-mono text-left">
                   <div>Arkiv query: type='session',</div>
-                  <div>(mentorWallet='{walletAddress?.slice(0, 8)}...' OR</div>
-                  <div>learnerWallet='{walletAddress?.slice(0, 8)}...'),</div>
+                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
+                  <div>(as mentor OR learner),</div>
                   <div>status='scheduled' AND</div>
                   <div>sessionDate &gt; now</div>
+                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                    Queries: mentorWallet OR learnerWallet
+                  </div>
                 </div>
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
               </div>

@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { name_canonical, description } = body;
+    const { name_canonical, description, created_by_profile } = body;
 
     if (!name_canonical || !name_canonical.trim()) {
       return NextResponse.json(
@@ -91,9 +91,36 @@ export async function POST(request: NextRequest) {
     const { key, txHash } = await createSkill({
       name_canonical: name_canonical.trim(),
       description: description?.trim() || undefined,
+      created_by_profile: created_by_profile || undefined,
       privateKey: getPrivateKey(),
       spaceId: 'local-dev',
     });
+
+    // Create user-focused notification if skill was created by a user
+    if (key && created_by_profile) {
+      try {
+        const { createNotification } = await import('@/lib/arkiv/notifications');
+        const { normalizeSkillSlug } = await import('@/lib/arkiv/skill');
+        const slug = normalizeSkillSlug(name_canonical.trim());
+        await createNotification({
+          wallet: created_by_profile.toLowerCase(),
+          notificationType: 'entity_created',
+          sourceEntityType: 'skill',
+          sourceEntityKey: key,
+          title: 'New Skill Created',
+          message: `You created a new skill: "${name_canonical.trim()}"`,
+          link: `/topic/${slug}`,
+          metadata: {
+            skillKey: key,
+            skillName: name_canonical.trim(),
+            skillSlug: slug,
+          },
+          privateKey: getPrivateKey(),
+        });
+      } catch (notifError) {
+        console.error('Failed to create notification for skill:', notifError);
+      }
+    }
 
     // Fetch the newly created skill to return
     // Arkiv needs time to index new entities, so retry with delays

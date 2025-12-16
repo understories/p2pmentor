@@ -13,9 +13,11 @@ import Link from 'next/link';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { connectWallet } from '@/lib/auth/metamask';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { TimezoneSelector } from '@/components/availability/TimezoneSelector';
 import { RegrowProfileBrowser } from '@/components/profile/RegrowProfileBrowser';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -27,6 +29,7 @@ export default function ProfilePage() {
   const [timezone, setTimezone] = useState<string>('');
   const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     // Get wallet address from localStorage
@@ -270,19 +273,31 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-  return (
+    return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
-      <div className="max-w-2xl mx-auto">
-          <p>Loading profile...</p>
+        <div className="max-w-2xl mx-auto">
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `getProfileByWallet("${walletAddress || '...'}")`,
+                `Query: type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
+                `Returns: UserProfile | null`,
+                `Note: Returns most recent profile (sorted by createdAt DESC)`
+              ]}
+              label="Loading Profile"
+            >
+              <p>Loading profile...</p>
+            </ArkivQueryTooltip>
+          ) : (
+            <p>Loading profile...</p>
+          )}
         </div>
       </div>
     );
   }
 
   return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <div className={`${!profile && mode === 'regrow' ? 'max-w-full' : 'max-w-2xl'} mx-auto`}>
         <div className="mb-6 flex items-center justify-between">
           <BackButton href="/me" />
@@ -298,29 +313,45 @@ export default function ProfilePage() {
         {/* Day 2: For profile-less wallets, show two buttons at top */}
         {!profile && mode === 'select' && (
           <div className="mb-6 flex gap-4">
-            <div className="relative group">
-              <button
-                onClick={() => setMode('regrow')}
-                className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center gap-2"
-              >
-                <span>🌱</span>
-                <span>Regrow Profile</span>
-              </button>
-              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-80 p-3 bg-white/95 dark:bg-gray-800 backdrop-blur-sm text-gray-900 dark:text-white text-sm rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                Growing a beta in the dark forest can be unstable, and we have no central database! In case of data loss, you can regrow your profile here.
+            <ArkivQueryTooltip
+              query={[
+                `createUserProfile({ wallet, ...profileData })`,
+                `Creates: type='user_profile' entity`,
+                `Attributes: wallet, displayName, username, timezone, skills, ...`,
+                `Payload: Full profile data (bio, contactLinks, etc.)`,
+                `TTL: 1 year (31536000 seconds)`
+              ]}
+              label="Regrow Profile"
+            >
+              <div className="relative group">
+                <button
+                  onClick={() => setMode('regrow')}
+                  className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center gap-2"
+                >
+                  <span>🌱</span>
+                  <span>Regrow Profile</span>
+                </button>
               </div>
-            </div>
-            <div className="relative group">
-              <button
-                onClick={() => setMode('create')}
-                className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
-              >
-                Create Profile
-              </button>
-              <div className="absolute top-full left-0 mt-2 hidden group-hover:block w-48 p-3 bg-white/95 dark:bg-gray-800 backdrop-blur-sm text-gray-900 dark:text-white text-sm rounded-lg shadow-lg z-10 border border-gray-200 dark:border-gray-700">
-                Create a new profile from scratch.
+            </ArkivQueryTooltip>
+            <ArkivQueryTooltip
+              query={[
+                `POST /api/profile { action: 'createProfile', ... }`,
+                `Creates: type='user_profile' entity`,
+                `Attributes: wallet, displayName, username, timezone, skills, ...`,
+                `Payload: Full profile data (bio, contactLinks, etc.)`,
+                `TTL: 1 year (31536000 seconds)`
+              ]}
+              label="Create Profile"
+            >
+              <div className="relative group">
+                <button
+                  onClick={() => setMode('create')}
+                  className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                >
+                  Create Profile
+                </button>
               </div>
-            </div>
+            </ArkivQueryTooltip>
           </div>
         )}
 
@@ -443,12 +474,29 @@ export default function ProfilePage() {
 
         {profile && (
           <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Editing existing profile</p>
-            <p className="font-medium">{profile.displayName}</p>
-            {profile.bioShort && <p className="text-sm mt-2">{profile.bioShort}</p>}
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-              Changes will create a new profile entity on Arkiv.
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Editing existing profile</p>
+                <p className="font-medium">{profile.displayName}</p>
+                {profile.bioShort && <p className="text-sm mt-2">{profile.bioShort}</p>}
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Changes will create a new profile entity on Arkiv.
+                </p>
+                {arkivBuilderMode && profile.key && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <ViewOnArkivLink
+                      entityKey={profile.key}
+                      txHash={profile.txHash}
+                      label="View Profile Entity"
+                      className="text-xs"
+                    />
+                    <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                      Key: {profile.key.slice(0, 16)}...
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         )}
 
@@ -640,16 +688,41 @@ export default function ProfilePage() {
           </div>
 
           <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {submitting 
-                ? (profile ? 'Updating Profile...' : 'Creating Profile...')
-                : (profile ? 'Update Profile' : 'Create Profile')
-              }
-            </button>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `POST /api/profile { action: 'createProfile', ... }`,
+                  `Creates: type='user_profile' entity (new version)`,
+                  `Attributes: wallet, displayName, username, timezone, skills, ...`,
+                  `Payload: Full profile data (bio, contactLinks, etc.)`,
+                  `Note: Profile updates create new entities (immutable)`,
+                  `TTL: 1 year (31536000 seconds)`
+                ]}
+                label="Profile Entity Creation"
+              >
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting 
+                    ? (profile ? 'Updating Profile...' : 'Creating Profile...')
+                    : (profile ? 'Update Profile' : 'Create Profile')
+                  }
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting 
+                  ? (profile ? 'Updating Profile...' : 'Creating Profile...')
+                  : (profile ? 'Update Profile' : 'Create Profile')
+                }
+              </button>
+            )}
           </div>
         </form>
         )}

@@ -70,7 +70,7 @@ export async function createFeedback({
   technicalDxFeedback?: string;
   privateKey: `0x${string}`;
   spaceId?: string;
-  sessionStatus?: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  sessionStatus?: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'declined' | 'cancelled';
   mentorConfirmed?: boolean;
   learnerConfirmed?: boolean;
 }): Promise<{ key: string; txHash: string }> {
@@ -111,7 +111,7 @@ export async function createFeedback({
 
   // CRITICAL: Validate session status
   if (sessionStatus) {
-    if (sessionStatus === 'pending' || sessionStatus === 'cancelled') {
+    if (sessionStatus === 'pending' || sessionStatus === 'declined' || sessionStatus === 'cancelled') {
       throw new Error('Feedback can only be given for scheduled or completed sessions');
     }
   }

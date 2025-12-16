@@ -10,8 +10,8 @@
 import Link from 'next/link';
 import { useEffect, useRef } from 'react';
 import './landing.css';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SunriseSunsetTimer } from '@/components/SunriseSunsetTimer';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function Home() {
   const treesContainerRef = useRef<HTMLDivElement>(null);
@@ -67,6 +67,26 @@ export default function Home() {
           >
             Enter Beta
           </Link>
+        </div>
+        
+        <div className="no-js-container" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+          <span 
+            className="no-js-link"
+            style={{
+              display: 'inline-block',
+              padding: '0.75rem 1.5rem',
+              fontSize: '0.875rem',
+              textDecoration: 'none',
+              color: 'rgba(200, 255, 200, 0.4)',
+              border: '1px solid rgba(200, 255, 200, 0.2)',
+              borderRadius: '4px',
+              opacity: 0.6,
+              cursor: 'not-allowed',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
+            }}
+          >
+            Load Without JavaScript (Coming Soon)
+          </span>
         </div>
         
         <div className="admin-link-container" style={{ marginTop: '1rem' }}>

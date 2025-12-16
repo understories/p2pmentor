@@ -10,7 +10,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface PerfSummary {
   graphql?: {
@@ -147,6 +146,12 @@ export default function AdminDashboard() {
   const [retentionLoading, setRetentionLoading] = useState(false);
   const [aggregatesData, setAggregatesData] = useState<any[]>([]);
   const [aggregatesLoading, setAggregatesLoading] = useState(false);
+  const [staticClientExpanded, setStaticClientExpanded] = useState(false);
+  const [betaCodeUsageExpanded, setBetaCodeUsageExpanded] = useState(false);
+  const [betaCodeUsageData, setBetaCodeUsageData] = useState<any>(null);
+  const [betaCodeUsageLoading, setBetaCodeUsageLoading] = useState(false);
+  const [rebuilding, setRebuilding] = useState(false);
+  const [buildStatus, setBuildStatus] = useState<{ lastBuild?: string; fileCount?: number; entityCounts?: any } | null>(null);
 
   useEffect(() => {
     // Check authentication
@@ -203,6 +208,16 @@ export default function AdminDashboard() {
       const savedSnapshotsExpanded = localStorage.getItem('admin_snapshots_expanded');
       if (savedSnapshotsExpanded !== null) {
         setSnapshotsExpanded(savedSnapshotsExpanded === 'true');
+      }
+
+      const savedStaticClientExpanded = localStorage.getItem('admin_static_client_expanded');
+      if (savedStaticClientExpanded !== null) {
+        setStaticClientExpanded(savedStaticClientExpanded === 'true');
+      }
+
+      const savedBetaCodeUsageExpanded = localStorage.getItem('admin_beta_code_usage_expanded');
+      if (savedBetaCodeUsageExpanded !== null) {
+        setBetaCodeUsageExpanded(savedBetaCodeUsageExpanded === 'true');
       }
 
       // Fetch performance summary - get all operations aggregated by route for page-level view
@@ -308,6 +323,16 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch GraphQL flags:', err));
+
+      // Fetch static client build status
+      fetch('/api/admin/rebuild-static')
+        .then(res => res.json())
+        .then(data => {
+          if (data.ok) {
+            setBuildStatus(data);
+          }
+        })
+        .catch(err => console.error('Failed to fetch build status:', err));
     }
   }, [authenticated]);
 
@@ -409,7 +434,6 @@ export default function AdminDashboard() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         {/* Security Warning Banner */}
         <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -1222,6 +1246,169 @@ export default function AdminDashboard() {
             )}
           </div>
 
+          {/* Beta Code Usage */}
+          <div className="border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between p-4">
+              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-50">
+                Beta Code Usage
+              </h3>
+              <button
+                onClick={() => {
+                  const newState = !betaCodeUsageExpanded;
+                  setBetaCodeUsageExpanded(newState);
+                  localStorage.setItem('admin_beta_code_usage_expanded', String(newState));
+                  // Fetch data when expanded
+                  if (newState && !betaCodeUsageData && !betaCodeUsageLoading) {
+                    setBetaCodeUsageLoading(true);
+                    fetch('/api/admin/beta-code-usage')
+                      .then(res => res.json())
+                      .then(data => {
+                        if (data.ok) {
+                          setBetaCodeUsageData(data);
+                        }
+                      })
+                      .catch(err => console.error('Failed to fetch beta code usage:', err))
+                      .finally(() => setBetaCodeUsageLoading(false));
+                  }
+                }}
+                className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+              >
+                {betaCodeUsageExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {betaCodeUsageExpanded && (
+              <div className="p-6">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  Track beta code usage and limits. All data stored as Arkiv entities for transparency.
+                </p>
+                {betaCodeUsageLoading ? (
+                  <div className="text-center py-4">
+                    <div className="inline-block w-6 h-6 border-2 border-gray-300 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">Loading beta code usage...</p>
+                  </div>
+                ) : betaCodeUsageData ? (
+                  <div className="space-y-4">
+                    {/* Summary Stats */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Codes</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalCodes}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Total Usage</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
+                          {betaCodeUsageData.summary.totalUsage} / {betaCodeUsageData.summary.totalLimit}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {betaCodeUsageData.summary.utilizationRate.toFixed(1)}% utilized
+                        </div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Unique Wallets</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalWallets}</div>
+                      </div>
+                      <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">Available</div>
+                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">{betaCodeUsageData.summary.codesAvailable}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          {betaCodeUsageData.summary.codesAtLimit} at limit
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Codes Table */}
+                    {betaCodeUsageData.codes && betaCodeUsageData.codes.length > 0 ? (
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
+                          <thead className="bg-gray-100 dark:bg-gray-800">
+                            <tr>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Code</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Usage</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Limit</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Status</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Wallets</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Created</th>
+                              <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Verify</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {betaCodeUsageData.codes.map((code: any, idx: number) => {
+                              const usagePercent = code.limit > 0 ? (code.usageCount / code.limit) * 100 : 0;
+                              const isAtLimit = code.usageCount >= code.limit;
+                              return (
+                                <tr key={code.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                  <td className="px-3 py-2 font-mono text-xs font-medium">{code.code}</td>
+                                  <td className="px-3 py-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className={isAtLimit ? 'text-red-600 dark:text-red-400 font-semibold' : ''}>
+                                        {code.usageCount}
+                                      </span>
+                                      <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                        <div
+                                          className={`h-full ${
+                                            isAtLimit
+                                              ? 'bg-red-500'
+                                              : usagePercent > 80
+                                              ? 'bg-amber-500'
+                                              : 'bg-green-500'
+                                          }`}
+                                          style={{ width: `${Math.min(usagePercent, 100)}%` }}
+                                        />
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2">{code.limit}</td>
+                                  <td className="px-3 py-2">
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      isAtLimit
+                                        ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                                        : usagePercent > 80
+                                        ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400'
+                                        : 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                                    }`}>
+                                      {isAtLimit ? 'At Limit' : usagePercent > 80 ? 'Near Limit' : 'Available'}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    <span className="text-xs text-gray-600 dark:text-gray-400">
+                                      {code.walletCount || 0} wallet{code.walletCount !== 1 ? 's' : ''}
+                                    </span>
+                                  </td>
+                                  <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
+                                    {new Date(code.createdAt).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-3 py-2">
+                                    {code.txHash ? (
+                                      <a
+                                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${code.txHash}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
+                                        title="Verify on-chain"
+                                      >
+                                        🔗
+                                      </a>
+                                    ) : (
+                                      <span className="text-gray-400 text-xs">—</span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-600 dark:text-gray-400">No beta codes found.</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-600 dark:text-gray-400">No beta code usage data available.</p>
+                )}
+              </div>
+            )}
+          </div>
+
           {/* Retention Metrics */}
           <div className="border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between p-4">
@@ -1492,6 +1679,159 @@ export default function AdminDashboard() {
           )}
         </section>
 
+
+        {/* Static Client Section */}
+        <section className="mb-8 border border-purple-200 dark:border-purple-800 rounded-lg bg-purple-50 dark:bg-purple-900/20">
+          <div className="flex items-center justify-between p-4 border-b border-purple-200 dark:border-purple-800">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🌐</span>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+                  Static Client (No-JS)
+                </h2>
+              </div>
+              <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                Decentralized
+              </span>
+              <button
+                onClick={() => {
+                  const newState = !staticClientExpanded;
+                  setStaticClientExpanded(newState);
+                  localStorage.setItem('admin_static_client_expanded', String(newState));
+                }}
+                className="ml-2 px-3 py-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 bg-white dark:bg-purple-900/30 rounded border border-purple-300 dark:border-purple-700 transition-colors"
+                title={staticClientExpanded ? 'Collapse static client section' : 'Expand static client section'}
+              >
+                {staticClientExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+          </div>
+          {staticClientExpanded && (
+            <div className="p-6 space-y-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-purple-200 dark:border-purple-700">
+                <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-50">
+                  Rebuild Static Client
+                </h3>
+                
+                {buildStatus && (
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded text-sm">
+                    {buildStatus.lastBuild ? (
+                      <div className="space-y-1">
+                        <div><strong>Last Build:</strong> {new Date(buildStatus.lastBuild).toLocaleString()}</div>
+                        {buildStatus.fileCount && <div><strong>Files Generated:</strong> {buildStatus.fileCount}</div>}
+                        {buildStatus.entityCounts && (
+                          <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                            <strong>Entity Counts:</strong>
+                            <ul className="ml-4 mt-1 space-y-0.5">
+                              <li>Profiles: {buildStatus.entityCounts.profiles || 0}</li>
+                              <li>Skills: {buildStatus.entityCounts.skills || 0}</li>
+                              <li>Asks: {buildStatus.entityCounts.asks || 0}</li>
+                              <li>Offers: {buildStatus.entityCounts.offers || 0}</li>
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-gray-600 dark:text-gray-400">No previous build found</div>
+                    )}
+                  </div>
+                )}
+
+                <button
+                  onClick={async () => {
+                    if (rebuilding) return;
+                    
+                    setRebuilding(true);
+                    try {
+                      const res = await fetch('/api/admin/rebuild-static', {
+                        method: 'POST',
+                      });
+                      
+                      const data = await res.json();
+                      
+                      if (data.ok) {
+                        setBuildStatus({
+                          lastBuild: data.buildTimestamp,
+                          fileCount: data.fileCount,
+                          entityCounts: data.entityCounts,
+                        });
+                        alert(`✅ Build successful!\n\nFiles: ${data.fileCount}\nOutput: ${data.outputDir}\n\nNext: Deploy to IPFS (see instructions below)`);
+                      } else {
+                        alert(`❌ Build failed: ${data.error || 'Unknown error'}`);
+                      }
+                    } catch (err: any) {
+                      console.error('[Admin] Error rebuilding static client:', err);
+                      alert(`❌ Build failed: ${err.message || 'Unknown error'}`);
+                    } finally {
+                      setRebuilding(false);
+                    }
+                  }}
+                  disabled={rebuilding}
+                  className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
+                    rebuilding 
+                      ? 'bg-gray-400 cursor-not-allowed' 
+                      : 'bg-purple-600 hover:bg-purple-700'
+                  }`}
+                >
+                  {rebuilding ? 'Rebuilding...' : 'Rebuild Static Client'}
+                </button>
+
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium mb-3 text-gray-900 dark:text-gray-50">
+                    📋 Step-by-Step IPFS Deployment Instructions
+                  </h4>
+                  <ol className="space-y-2 text-sm text-gray-700 dark:text-gray-300 list-decimal list-inside">
+                    <li>
+                      <strong>After rebuild completes:</strong> Static HTML files are in <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">static-app/public/</code>
+                    </li>
+                    <li>
+                      <strong>Option 1 - Using ipfs-deploy (Recommended):</strong>
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li>Install: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">npm install -g ipfs-deploy</code></li>
+                        <li>Deploy: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">ipfs-deploy static-app/public -p pinata -d cloudflare</code></li>
+                        <li>Copy the CID that is returned</li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Option 2 - Using IPFS CLI:</strong>
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li>Install IPFS: <a href="https://docs.ipfs.io/install/" target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">docs.ipfs.io/install</a></li>
+                        <li>Add: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">ipfs add -r static-app/public/</code></li>
+                        <li>Copy the root CID (last line)</li>
+                        <li>Pin: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">ipfs pin add &lt;CID&gt;</code></li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Option 3 - Manual Upload:</strong>
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li>Upload <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">static-app/public/</code> to a pinning service (Pinata, Web3.Storage, etc.)</li>
+                        <li>Get the CID from the service</li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Access your site:</strong>
+                      <ul className="ml-6 mt-1 space-y-1 list-disc">
+                        <li>Via IPFS: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">https://ipfs.io/ipfs/&lt;CID&gt;</code></li>
+                        <li>Via Cloudflare: <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">https://cloudflare-ipfs.com/ipfs/&lt;CID&gt;</code></li>
+                        <li>Via ENS (if configured): <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">p2pmentor.eth</code></li>
+                      </ul>
+                    </li>
+                    <li>
+                      <strong>Update landing page:</strong> Edit <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">app/page.tsx</code> and update the button link to point to your IPFS URL
+                    </li>
+                  </ol>
+                  
+                  <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+                    <p className="text-xs text-amber-800 dark:text-amber-200">
+                      <strong>Note:</strong> The static client works entirely without JavaScript. All data is embedded in HTML at build time. 
+                      Generated files are in <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">static-app/public/</code> (gitignored, not committed).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </section>
 
         {/* Quick Links */}
         <section>

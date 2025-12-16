@@ -262,13 +262,17 @@ export async function listAppFeedback({
   try {
     const publicClient = getPublicClient();
 
+    // For small limits, fetch more entities to ensure we get the most recent ones
+    // Arkiv doesn't guarantee order, so we need to fetch more and sort client-side
+    const fetchLimit = limit && limit < 50 ? Math.max(limit * 10, 100) : (limit || 100);
+
     // Fetch feedback entities, txHash entities, and resolution entities in parallel
     const [result, txHashResult, resolutionResult] = await Promise.all([
       publicClient.buildQuery()
         .where(eq('type', 'app_feedback'))
         .withAttributes(true)
         .withPayload(true)
-        .limit(limit || 100)
+        .limit(fetchLimit)
         .fetch(),
       publicClient.buildQuery()
         .where(eq('type', 'app_feedback_txhash'))
@@ -438,10 +442,19 @@ export async function listAppFeedback({
     feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
   }
 
-    // Sort by most recent first
-    return feedbacks.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+  // Sort by most recent first (by createdAt descending)
+  feedbacks.sort((a, b) => {
+    const aTime = new Date(a.createdAt).getTime();
+    const bTime = new Date(b.createdAt).getTime();
+    return bTime - aTime; // Most recent first
+  });
+
+  // Apply limit after sorting to ensure we get the most recent N items
+  if (limit && limit > 0) {
+    feedbacks = feedbacks.slice(0, limit);
+  }
+
+  return feedbacks;
   } catch (error: any) {
     console.error('Error in listAppFeedback:', error);
     console.error('Error message:', error?.message);

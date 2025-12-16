@@ -16,11 +16,12 @@ import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BackgroundImage } from '@/components/BackgroundImage';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { EmptyState } from '@/components/EmptyState';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 type VirtualGathering = {
@@ -51,6 +52,7 @@ function VirtualGatheringsContent() {
   const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
   const [rsvping, setRsvping] = useState<string | null>(null);
   const [community, setCommunity] = useState(searchParams.get('community') || 'beta_users');
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Form state
   const [formTitle, setFormTitle] = useState('');
@@ -240,7 +242,6 @@ function VirtualGatheringsContent() {
   return (
     <div className="min-h-screen relative">
       <BackgroundImage />
-      <ThemeToggle />
       <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
         <BackButton />
         <div className="mb-6">
@@ -271,12 +272,33 @@ function VirtualGatheringsContent() {
               <option value="beta_users">Beta Users</option>
             </select>
             {userWallet && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
-              >
-                + Suggest Gathering
-              </button>
+              arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens modal to create virtual gathering`,
+                    `POST /api/virtual-gatherings { action: 'create', ... }`,
+                    `Creates: type='virtual_gathering' entity`,
+                    `Attributes: organizerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', community='${community}', title, sessionDate, duration`,
+                    `Payload: Full gathering data (description, videoJoinUrl, videoRoomName)`,
+                    `TTL: sessionDate + duration + 1 hour buffer`
+                  ]}
+                  label="Suggest Gathering"
+                >
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  >
+                    + Suggest Gathering
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={() => setShowCreateModal(true)}
+                  className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                >
+                  + Suggest Gathering
+                </button>
+              )
             )}
           </div>
         </div>
@@ -291,7 +313,25 @@ function VirtualGatheringsContent() {
         {/* Loading State */}
         {loading && (
           <div className="flex justify-center py-12">
-            <LoadingSpinner />
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `loadGatherings()`,
+                  `Queries:`,
+                  `1. GET /api/virtual-gatherings?community=${community}&wallet=${userWallet?.toLowerCase().slice(0, 8) || '...'}...`,
+                  `   → type='virtual_gathering', community='${community}'`,
+                  `   → type='virtual_gathering_rsvp', wallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...' (for RSVP status)`,
+                  `2. getProfileByWallet(...) for each organizer wallet`,
+                  `   → type='user_profile', wallet='...'`,
+                  `Returns: VirtualGathering[] (all gatherings for community)`
+                ]}
+                label="Loading Virtual Gatherings"
+              >
+                <LoadingSpinner />
+              </ArkivQueryTooltip>
+            ) : (
+              <LoadingSpinner />
+            )}
           </div>
         )}
 
@@ -419,20 +459,51 @@ function VirtualGatheringsContent() {
                         </a>
                       )}
                       {userWallet && !hasRsvpd && !isPast && (
-                        <button
-                          onClick={() => handleRSVP(gathering.key)}
-                          disabled={rsvping === gathering.key}
-                          className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-                        >
-                          {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
-                        </button>
+                        arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `POST /api/virtual-gatherings { action: 'rsvp', ... }`,
+                              `Creates: type='virtual_gathering_rsvp' entity`,
+                              `Attributes: gatheringKey='${gathering.key.slice(0, 12)}...', wallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                              `Payload: Full RSVP data`,
+                              `TTL: sessionDate + duration + 1 hour buffer`
+                            ]}
+                            label="RSVP"
+                          >
+                            <button
+                              onClick={() => handleRSVP(gathering.key)}
+                              disabled={rsvping === gathering.key}
+                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            >
+                              {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
+                            </button>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <button
+                            onClick={() => handleRSVP(gathering.key)}
+                            disabled={rsvping === gathering.key}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                          >
+                            {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
+                          </button>
+                        )
                       )}
                       {hasRsvpd && (
                         <span className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
                           ✓ RSVP'd
                         </span>
                       )}
-                      <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
+                      {arkivBuilderMode && gathering.key && (
+                        <div className="flex items-center gap-2">
+                          <ViewOnArkivLink entityKey={gathering.key} txHash={gathering.txHash} className="text-xs" />
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            {gathering.key.slice(0, 12)}...
+                          </span>
+                        </div>
+                      )}
+                      {!arkivBuilderMode && (
+                        <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
+                      )}
                     </div>
                   </div>
                 </div>
@@ -530,13 +601,34 @@ function VirtualGatheringsContent() {
                   >
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {submitting ? 'Creating...' : 'Create Gathering'}
-                  </button>
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `POST /api/virtual-gatherings { action: 'create', ... }`,
+                        `Creates: type='virtual_gathering' entity`,
+                        `Attributes: organizerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', community='${community}', title, sessionDate, duration`,
+                        `Payload: Full gathering data (description, videoJoinUrl, videoRoomName)`,
+                        `TTL: sessionDate + duration + 1 hour buffer`
+                      ]}
+                      label="Create Gathering"
+                    >
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                      >
+                        {submitting ? 'Creating...' : 'Create Gathering'}
+                      </button>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? 'Creating...' : 'Create Gathering'}
+                    </button>
+                  )}
                 </div>
               </form>
             </div>

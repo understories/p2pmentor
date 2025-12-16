@@ -22,7 +22,7 @@ export type Session = {
   spaceId: string;
   createdAt: string;
   sessionDate: string; // ISO timestamp when session is/was scheduled
-  status: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'declined' | 'cancelled';
   duration?: number; // Duration in minutes
   notes?: string;
   feedbackKey?: string; // Reference to feedback entity
@@ -573,14 +573,17 @@ export async function listSessions(params?: {
     const paymentValidatedBy = paymentValidation?.validatedBy || undefined;
     
     // Determine final status:
-    // - If either party rejected, mark as cancelled
+    // - If either party rejected, mark as declined (rejecting a pending request)
     // - If both confirmed and was pending, mark as scheduled
+    // - cancelled is reserved for canceling already-scheduled sessions (future feature)
     // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
     const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
     let finalStatus = entityStatus;
     
     if (mentorRejected || learnerRejected) {
-      finalStatus = 'cancelled';
+      // Rejection of a pending request results in 'declined' status
+      // 'cancelled' is reserved for canceling already-scheduled sessions
+      finalStatus = 'declined';
     } else if (mentorConfirmed && learnerConfirmed) {
       // Both confirmed - should be scheduled (regardless of current status)
       finalStatus = 'scheduled';
@@ -856,14 +859,17 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   const cost = getAttr('cost') || payload.cost || undefined;
   
   // Determine final status:
-  // - If either party rejected, mark as cancelled
+  // - If either party rejected, mark as declined (rejecting a pending request)
   // - If both confirmed, mark as scheduled
+  // - cancelled is reserved for canceling already-scheduled sessions (future feature)
   // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
   const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
   let finalStatus = entityStatus;
   
   if (mentorRejected || learnerRejected) {
-    finalStatus = 'cancelled';
+    // Rejection of a pending request results in 'declined' status
+    // 'cancelled' is reserved for canceling already-scheduled sessions
+    finalStatus = 'declined';
   } else if (mentorConfirmed && learnerConfirmed) {
     // Both confirmed - should be scheduled (regardless of current status)
     finalStatus = 'scheduled';

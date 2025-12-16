@@ -22,6 +22,7 @@ interface GardenNoteComposeModalProps {
   targetProfile?: UserProfile | null; // Optional: for "note to a specific profile"
   userWallet: string | null;
   userProfile: UserProfile | null;
+  initialTags?: string[]; // Optional: pre-fill tags (e.g., skill name for topic pages)
   onSuccess?: () => void;
 }
 
@@ -31,6 +32,7 @@ export function GardenNoteComposeModal({
   targetProfile,
   userWallet,
   userProfile,
+  initialTags,
   onSuccess,
 }: GardenNoteComposeModalProps) {
   const [message, setMessage] = useState('');
@@ -43,11 +45,11 @@ export function GardenNoteComposeModal({
   const [status, setStatus] = useState<'draft' | 'submitting' | 'confirmed'>('draft');
   const [txHash, setTxHash] = useState<string | null>(null);
 
-  // Reset form when modal opens/closes
+  // Reset form when modal opens/closes, or pre-fill initialTags
   useEffect(() => {
     if (isOpen) {
       setMessage('');
-      setTags('');
+      setTags(initialTags && initialTags.length > 0 ? initialTags.join(', ') : '');
       setPublishConsent(false);
       setShowBlockchainInfo(false);
       setShowConfirmDialog(false);
@@ -56,7 +58,7 @@ export function GardenNoteComposeModal({
       setStatus('draft');
       setTxHash(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialTags]);
 
   if (!isOpen) return null;
 

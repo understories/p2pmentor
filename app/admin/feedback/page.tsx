@@ -12,7 +12,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface AppFeedback {
   id: string;
@@ -413,7 +412,6 @@ export default function AdminFeedbackPage() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-8 flex items-center justify-between">
           <div>

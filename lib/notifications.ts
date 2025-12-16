@@ -1,8 +1,8 @@
 /**
  * Notifications utilities
- * 
+ *
  * Client-side notification detection and management.
- * 
+ *
  * Since notifications are UI-only, we poll for new data and compare
  * against previously seen data to detect new items.
  */
@@ -11,8 +11,9 @@ import type { Session } from './arkiv/sessions';
 import type { Ask } from './arkiv/asks';
 import type { Offer } from './arkiv/offers';
 import type { UserProfile } from './arkiv/profile';
+import { canGiveFeedbackForSessionSync, hasSessionEnded } from './feedback/canGiveFeedback';
 
-export type NotificationType = 
+export type NotificationType =
   | 'meeting_request'
   | 'profile_match'
   | 'ask_offer_match'
@@ -22,7 +23,8 @@ export type NotificationType =
   | 'app_feedback_submitted'
   | 'new_garden_note'
   | 'new_skill_created'
-  | 'community_meeting_scheduled';
+  | 'community_meeting_scheduled'
+  | 'session_completed_feedback_needed';
 
 export interface Notification {
   id: string;
@@ -44,21 +46,21 @@ export function detectMeetingRequests(
   previousSessionKeys: Set<string>
 ): Notification[] {
   const notifications: Notification[] = [];
-  
+
   sessions.forEach((session) => {
     // Only check pending sessions where user is the recipient
     if (session.status !== 'pending') return;
-    
+
     const isMentor = session.mentorWallet.toLowerCase() === userWallet.toLowerCase();
     const isLearner = session.learnerWallet.toLowerCase() === userWallet.toLowerCase();
-    
+
     if (!isMentor && !isLearner) return;
-    
+
     // Check if this is a new session (not seen before)
     if (!previousSessionKeys.has(session.key)) {
       const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
       const hasConfirmed = isMentor ? session.mentorConfirmed : session.learnerConfirmed;
-      
+
       // Only notify if user hasn't confirmed yet
       if (!hasConfirmed) {
         notifications.push({
@@ -78,7 +80,7 @@ export function detectMeetingRequests(
       }
     }
   });
-  
+
   return notifications;
 }
 
@@ -92,23 +94,23 @@ export function detectProfileMatches(
   previousMatchedWallets: Set<string>
 ): Notification[] {
   if (!userProfile || !userProfile.skills) return [];
-  
+
   const notifications: Notification[] = [];
   const userSkills = userProfile.skillsArray || userProfile.skills.split(',').map(s => s.trim().toLowerCase());
-  
+
   allProfiles.forEach((profile) => {
     if (profile.wallet.toLowerCase() === userWallet.toLowerCase()) return;
     if (previousMatchedWallets.has(profile.wallet.toLowerCase())) return;
-    
+
     const profileSkills = profile.skillsArray || profile.skills?.split(',').map(s => s.trim().toLowerCase()) || [];
-    
+
     // Check for skill overlap
-    const hasMatch = userSkills.some(skill => 
-      profileSkills.some(ps => 
+    const hasMatch = userSkills.some(skill =>
+      profileSkills.some(ps =>
         ps === skill || ps.includes(skill) || skill.includes(ps)
       )
     );
-    
+
     if (hasMatch) {
       notifications.push({
         id: `profile_match_${profile.wallet}`,
@@ -125,7 +127,7 @@ export function detectProfileMatches(
       });
     }
   });
-  
+
   return notifications;
 }
 
@@ -138,16 +140,16 @@ export function detectAskOfferMatches(
   previousMatches: Set<string>
 ): Notification[] {
   const notifications: Notification[] = [];
-  
+
   userAsks.forEach((ask) => {
     allOffers.forEach((offer) => {
       const matchKey = `${ask.key}_${offer.key}`;
       if (previousMatches.has(matchKey)) return;
-      
+
       // Check if skills match
       const askSkill = ask.skill.toLowerCase();
       const offerSkill = offer.skill.toLowerCase();
-      
+
       if (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill)) {
         notifications.push({
           id: `ask_offer_match_${matchKey}`,
@@ -166,7 +168,7 @@ export function detectAskOfferMatches(
       }
     });
   });
-  
+
   return notifications;
 }
 
@@ -179,11 +181,11 @@ export function detectNewOffers(
   previousOfferKeys: Set<string>
 ): Notification[] {
   const notifications: Notification[] = [];
-  
+
   allOffers.forEach((offer) => {
     // Don't notify about user's own offers
     if (offer.wallet.toLowerCase() === userWallet.toLowerCase()) return;
-    
+
     // Check if this is a new offer
     if (!previousOfferKeys.has(offer.key)) {
       notifications.push({
@@ -202,7 +204,7 @@ export function detectNewOffers(
       });
     }
   });
-  
+
   return notifications;
 }
 
@@ -266,6 +268,69 @@ export function detectIssueResolutions(
           page: feedback.page,
         },
       });
+    }
+  });
+
+  return notifications;
+}
+
+/**
+ * Detect completed sessions that need feedback
+ *
+ * Notifies users when a session has ended and they haven't given feedback yet.
+ * Uses the reusable canGiveFeedbackForSessionSync utility.
+ */
+export function detectCompletedSessionsNeedingFeedback(
+  sessions: Session[],
+  userWallet: string,
+  sessionFeedbacks: Record<string, any[]>, // sessionKey -> Feedback[]
+  previousSessionKeys: Set<string>
+): Notification[] {
+  const notifications: Notification[] = [];
+
+  sessions.forEach((session) => {
+    // Only check sessions that have ended
+    if (!hasSessionEnded(session)) return;
+
+    const isMentor = session.mentorWallet.toLowerCase() === userWallet.toLowerCase();
+    const isLearner = session.learnerWallet.toLowerCase() === userWallet.toLowerCase();
+
+    if (!isMentor && !isLearner) return;
+
+    // Check if user can give feedback (using reusable utility)
+    const existingFeedbacks = sessionFeedbacks[session.key] || [];
+    const canGiveFeedback = canGiveFeedbackForSessionSync(
+      session,
+      userWallet,
+      existingFeedbacks
+    );
+
+    if (canGiveFeedback) {
+      // Only notify if this is a new completion (not seen before)
+      // Use a key that includes the feedback status to detect when feedback is given
+      const notificationKey = `session_feedback_${session.key}`;
+      if (!previousSessionKeys.has(notificationKey)) {
+        const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+        const role = isMentor ? 'mentor' : 'learner';
+
+        notifications.push({
+          id: notificationKey,
+          type: 'session_completed_feedback_needed',
+          title: 'Session Completed - Leave Feedback',
+          message: `Your ${session.skill} session has ended. Share your experience!`,
+          timestamp: session.sessionDate, // Use session date as timestamp
+          read: false,
+          link: `/me/sessions`,
+          metadata: {
+            sessionKey: session.key,
+            skill: session.skill,
+            otherWallet,
+            role,
+            mentorWallet: session.mentorWallet,
+            learnerWallet: session.learnerWallet,
+          },
+        });
+      }
     }
   });
 

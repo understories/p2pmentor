@@ -14,6 +14,7 @@ import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
+import { hasOnboardingBypass } from '@/lib/onboarding/access';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
@@ -170,10 +171,17 @@ export function SidebarNav() {
     },
   ];
 
+  // Check bypass flag
+  const hasBypass = typeof window !== 'undefined' && hasOnboardingBypass();
+  
   // Filter nav items based on onboarding level
+  // If bypass is active or level is loading, show all items
+  // Otherwise, filter based on level
+  // CRITICAL: Items are filtered out, not redirected to onboarding
   const navItems = allNavItems
     .filter(item => {
       if (item.minLevel === undefined) return true;
+      if (hasBypass || level === null) return true; // Show all during bypass or while loading
       return level >= item.minLevel;
     })
     .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
@@ -221,32 +229,26 @@ export function SidebarNav() {
         
         {navItems.map((item, index) => {
           const active = isActive(item.href);
-          const itemMinLevel = allNavItems.find(ni => ni.href === item.href)?.minLevel ?? 0;
-          const isLocked = itemMinLevel > level;
+          // Items are already filtered by level, so they should never be locked
+          // But check bypass flag to ensure we don't redirect incorrectly
+          const hasBypass = typeof window !== 'undefined' && hasOnboardingBypass();
           
           return (
             <div className="relative group/nav">
               <Link
                 key={item.href}
-                href={isLocked ? '/onboarding' : item.href}
+                href={item.href}
                 className={`
                   relative flex flex-row items-center gap-3
                   w-full py-2.5 px-3
                   rounded-lg
                   transition-all duration-150 ease-out
-                  ${isLocked 
-                    ? 'opacity-30 cursor-not-allowed'
-                    : active
+                  ${active
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
-                title={isLocked ? `Complete onboarding to unlock ${item.label}` : item.label}
-                onClick={(e) => {
-                  if (isLocked) {
-                    e.preventDefault();
-                  }
-                }}
+                title={item.label}
                 style={{
                   boxShadow: active
                     ? `0 0 12px ${navTokens.node.active.glow}`
@@ -254,17 +256,15 @@ export function SidebarNav() {
                   transform: active ? `scale(${navTokens.node.active.scale})` : undefined,
                 }}
                 onMouseEnter={(e) => {
-                  if (!isLocked) {
-                    setHoveredIndex(index);
-                    if (!active) {
-                      e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
-                      e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
-                    }
+                  setHoveredIndex(index);
+                  if (!active) {
+                    e.currentTarget.style.boxShadow = `0 0 8px ${navTokens.node.hover.glow}`;
+                    e.currentTarget.style.transform = `scale(${navTokens.node.hover.scale})`;
                   }
                 }}
                 onMouseLeave={(e) => {
                   setHoveredIndex(undefined);
-                  if (!active && !isLocked) {
+                  if (!active) {
                     e.currentTarget.style.boxShadow = '';
                     e.currentTarget.style.transform = '';
                   }
@@ -299,7 +299,7 @@ export function SidebarNav() {
               )}
               </Link>
               {/* Arkiv Builder Mode: Query Tooltip */}
-              {arkivBuilderMode && !isLocked && (
+              {arkivBuilderMode && (
                 <div className="absolute left-full ml-2 top-1/2 transform -translate-y-1/2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/nav:opacity-100 transition-opacity duration-200 pointer-events-none z-50 font-mono text-left whitespace-nowrap">
                   <div className="font-semibold mb-1">Arkiv Queries:</div>
                   {item.href === '/me' && wallet && (
@@ -358,8 +358,11 @@ export function SidebarNav() {
                   <div className="font-semibold mb-1">Arkiv Query:</div>
                   <div>listSessionsForWallet()</div>
                   <div className="text-gray-400">type='session',</div>
-                  <div className="text-gray-400">(mentorWallet='{wallet.slice(0, 8)}...'</div>
-                  <div className="text-gray-400">OR learnerWallet='{wallet.slice(0, 8)}...')</div>
+                  <div className="text-gray-400">profile_wallet='{wallet.slice(0, 8)}...'</div>
+                  <div className="text-gray-400">(as mentor OR learner)</div>
+                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                    Queries: mentorWallet OR learnerWallet
+                  </div>
                   <div className="absolute right-full top-1/2 transform -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
                 </div>
               )}

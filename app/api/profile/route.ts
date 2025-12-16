@@ -133,30 +133,54 @@ export async function POST(request: NextRequest) {
       // Always allow server-side creation (like mentor-graph)
       // The frontend decides whether to use this API or MetaMask directly
       try {
-        const { key, txHash } = await createUserProfile({
-          wallet: targetWallet,
-          displayName: finalDisplayName,
-          username: finalUsername,
-          profileImage: finalProfileImage,
-          bio: finalBio,
-          bioShort: finalBioShort,
-          bioLong: finalBioLong,
-          skills: finalSkills,
-          skillsArray: finalSkillsArray,
-          skill_ids: finalSkillIds,
-          skillExpertise: finalSkillExpertise,
-          timezone: finalTimezone,
-          languages: finalLanguages,
-          contactLinks: finalContactLinks,
-          seniority: finalSeniority,
-          domainsOfInterest: finalDomainsOfInterest,
-          mentorRoles: finalMentorRoles,
-          learnerRoles: finalLearnerRoles,
-          availabilityWindow: finalAvailabilityWindow,
-          privateKey: getPrivateKey(),
-        });
-        
-        return NextResponse.json({ ok: true, key, txHash });
+      const { key, txHash } = await createUserProfile({
+        wallet: targetWallet,
+        displayName: finalDisplayName,
+        username: finalUsername,
+        profileImage: finalProfileImage,
+        bio: finalBio,
+        bioShort: finalBioShort,
+        bioLong: finalBioLong,
+        skills: finalSkills,
+        skillsArray: finalSkillsArray,
+        skill_ids: finalSkillIds,
+        skillExpertise: finalSkillExpertise,
+        timezone: finalTimezone,
+        languages: finalLanguages,
+        contactLinks: finalContactLinks,
+        seniority: finalSeniority,
+        domainsOfInterest: finalDomainsOfInterest,
+        mentorRoles: finalMentorRoles,
+        learnerRoles: finalLearnerRoles,
+        availabilityWindow: finalAvailabilityWindow,
+        privateKey: getPrivateKey(),
+      });
+
+      // Create user-focused notification
+      if (key) {
+        try {
+          const { createNotification } = await import('@/lib/arkiv/notifications');
+          await createNotification({
+            wallet: targetWallet.toLowerCase(),
+            notificationType: 'entity_created',
+            sourceEntityType: 'user_profile',
+            sourceEntityKey: key,
+            title: action === 'updateProfile' ? 'Profile Updated' : 'Profile Created',
+            message: action === 'updateProfile' ? 'You updated your profile' : 'You created your profile',
+            link: '/me/profile',
+            metadata: {
+              profileKey: key,
+              displayName: finalDisplayName,
+              action: action,
+            },
+            privateKey: getPrivateKey(),
+          });
+        } catch (notifError) {
+          console.error('Failed to create notification for profile:', notifError);
+        }
+      }
+
+      return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {
         // Handle rate limit errors with user-friendly message
         if (isRateLimitError(error)) {

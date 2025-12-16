@@ -10,7 +10,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function AdminLoginPage() {
   const [password, setPassword] = useState('');
@@ -57,7 +56,6 @@ export default function AdminLoginPage() {
 
   return (
     <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <ThemeToggle />
       <div className="max-w-2xl mx-auto">
         <div className="mb-6">
           <BackButton href="/" />

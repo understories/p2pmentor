@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -57,7 +57,8 @@ export async function POST(request: NextRequest) {
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
-          skill,
+          skill, // Legacy: kept for backward compatibility
+          skill_id: skill_id || undefined, // Arkiv-native: skill entity key (preferred)
           sessionDate,
           duration: durationInt,
           notes: notes || undefined,
@@ -66,6 +67,64 @@ export async function POST(request: NextRequest) {
           cost: cost || undefined,
           privateKey: getPrivateKey(),
         });
+
+        // Create notification for offer owner when meeting is requested on an offer
+        if (offerKey && key) {
+          try {
+            const { createNotification } = await import('@/lib/arkiv/notifications');
+            const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+            
+            // Get learner profile for notification message
+            const learnerProfile = await getProfileByWallet(learnerWallet).catch(() => null);
+            const learnerName = learnerProfile?.displayName || learnerWallet.slice(0, 6) + '...' + learnerWallet.slice(-4);
+            
+            await createNotification({
+              wallet: mentorWallet.toLowerCase(), // Notify the offer owner (mentor)
+              notificationType: 'meeting_request',
+              sourceEntityType: 'session',
+              sourceEntityKey: key,
+              title: 'New Meeting Request on Your Offer',
+              message: `${learnerName} requested a meeting for "${skill}"`,
+              link: '/me/sessions',
+              metadata: {
+                sessionKey: key,
+                offerKey: offerKey,
+                skill: skill,
+                learnerWallet: learnerWallet.toLowerCase(),
+              },
+              privateKey: getPrivateKey(),
+            });
+          } catch (notifError) {
+            // Log but don't fail the session creation if notification fails
+            console.error('Failed to create notification for meeting request:', notifError);
+          }
+        }
+
+        // Create user-focused notification for the requester (learner or mentor who initiated)
+        if (key) {
+          try {
+            const { createNotification } = await import('@/lib/arkiv/notifications');
+            const requesterWallet = learnerWallet.toLowerCase(); // The learner is the one requesting
+            await createNotification({
+              wallet: requesterWallet,
+              notificationType: 'entity_created',
+              sourceEntityType: 'session',
+              sourceEntityKey: key,
+              title: 'Meeting Requested',
+              message: `You requested a meeting for "${skill}"`,
+              link: '/me/sessions',
+              metadata: {
+                sessionKey: key,
+                skill: skill,
+                mentorWallet: mentorWallet.toLowerCase(),
+                learnerWallet: learnerWallet.toLowerCase(),
+              },
+              privateKey: getPrivateKey(),
+            });
+          } catch (notifError) {
+            console.error('Failed to create user notification for session:', notifError);
+          }
+        }
 
         return NextResponse.json({ ok: true, key, txHash });
       } catch (error: any) {

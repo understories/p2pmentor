@@ -16,37 +16,43 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { BetaBanner } from '@/components/BetaBanner';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {
   const router = useRouter();
   const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [archivedProfiles, setArchivedProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
+  const [showArchived, setShowArchived] = useState(false);
+  const [stats, setStats] = useState<{ total: number; active: number; archived: number } | null>(null);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     fetchProfiles(skillFilter || undefined);
   }, [skillFilter]);
 
-  const fetchProfiles = async (skill?: string) => {
+  const fetchProfiles = async (skill?: string, includeArchived = false) => {
     try {
       setLoading(true);
-      const url = skill ? `/api/profiles?skill=${encodeURIComponent(skill)}` : '/api/profiles';
+      const params = new URLSearchParams();
+      if (skill) params.set('skill', skill);
+      if (includeArchived) params.set('includeArchived', 'true');
+      const url = `/api/profiles${params.toString() ? `?${params.toString()}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
       if (data.ok) {
-        // Get unique profiles by wallet (most recent for each wallet)
-        const profilesMap = new Map<string, UserProfile>();
-        (data.profiles || []).forEach((profile: UserProfile) => {
-          const existing = profilesMap.get(profile.wallet);
-          if (!existing || (profile.createdAt && existing.createdAt && new Date(profile.createdAt) > new Date(existing.createdAt))) {
-            profilesMap.set(profile.wallet, profile);
-          }
-        });
-        setProfiles(Array.from(profilesMap.values()));
+        setProfiles(data.profiles || []);
+        if (data.archived) {
+          setArchivedProfiles(data.archived || []);
+        }
+        if (data.stats) {
+          setStats(data.stats);
+        }
       }
     } catch (err) {
       console.error('Error fetching profiles:', err);
@@ -75,7 +81,6 @@ export default function ProfilesPage() {
 
   return (
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <ThemeToggle />
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <BackButton href="/network" />
@@ -85,8 +90,6 @@ export default function ProfilesPage() {
           title="Browse Profiles"
           description="Discover mentors and learners in the network."
         />
-        
-        <BetaBanner />
 
         {/* Filter */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
@@ -104,16 +107,49 @@ export default function ProfilesPage() {
         </div>
 
         {/* Stats */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Showing <strong>{profiles.length}</strong> profile{profiles.length !== 1 ? 's' : ''}
+            Showing <strong>{profiles.length}</strong> active profile{profiles.length !== 1 ? 's' : ''}
             {skillFilter && ` matching "${skillFilter}"`}
+            {stats && stats.archived > 0 && (
+              <span className="ml-2 text-gray-500 dark:text-gray-500">
+                ({stats.archived} archived)
+              </span>
+            )}
           </p>
+          {stats && stats.archived > 0 && (
+            <button
+              onClick={() => {
+                setShowArchived(!showArchived);
+                fetchProfiles(skillFilter || undefined, !showArchived);
+              }}
+              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+            >
+              {showArchived ? 'Hide' : 'Show'} Archived ({stats.archived})
+            </button>
+          )}
         </div>
 
         {/* Profiles List */}
         {loading ? (
-          <LoadingSpinner text="Loading profiles..." className="py-12" />
+          arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `fetchProfiles(${skillFilter ? `skill='${skillFilter}'` : 'all'})`,
+                `Queries:`,
+                skillFilter
+                  ? `GET /api/profiles?skill=${encodeURIComponent(skillFilter)}`
+                  : `GET /api/profiles`,
+                `   → type='user_profile'${skillFilter ? `, skills contains '${skillFilter}'` : ''}`,
+                `Returns: UserProfile[] (all profiles, deduplicated by wallet)`
+              ]}
+              label="Loading Profiles"
+            >
+              <LoadingSpinner text="Loading profiles..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading profiles..." className="py-12" />
+          )
         ) : profiles.length === 0 ? (
           <EmptyState
             title={skillFilter ? `No profiles found` : 'No profiles yet'}
@@ -197,7 +233,7 @@ export default function ProfilesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -207,9 +243,74 @@ export default function ProfilesPage() {
                   >
                     View Profile →
                   </button>
+                  {arkivBuilderMode && profile.key && (
+                    <div className="flex items-center gap-2">
+                      <ViewOnArkivLink
+                        entityKey={profile.key}
+                        txHash={profile.txHash}
+                        label="View Profile on Arkiv"
+                        className="text-xs"
+                      />
+                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        {profile.key.slice(0, 12)}...
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Archived Profiles Section */}
+        {showArchived && archivedProfiles.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold mb-4 text-gray-600 dark:text-gray-400">
+              📦 Archived Profiles ({archivedProfiles.length})
+            </h2>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
+              These profiles exist in Arkiv but cannot be fully loaded. They may be historical profiles from earlier builds.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {archivedProfiles.map((profile) => (
+                <div
+                  key={profile.key}
+                  className="p-6 bg-gray-100 dark:bg-gray-900 rounded-lg border border-gray-300 dark:border-gray-600 opacity-75"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-1">
+                        {profile.displayName || 'Anonymous'}
+                      </h3>
+                      {profile.username && (
+                        <p className="text-sm text-gray-400 dark:text-gray-500">@{profile.username}</p>
+                      )}
+                    </div>
+                    {arkivBuilderMode && profile.key && (
+                      <ViewOnArkivLink
+                        entityKey={profile.key}
+                        txHash={profile.txHash}
+                        label="View on Arkiv"
+                        className="text-xs"
+                      />
+                    )}
+                  </div>
+                  <div className="text-xs text-gray-400 dark:text-gray-500 space-y-1">
+                    <div>
+                      <strong>Wallet:</strong> {shortenWallet(profile.wallet)}
+                    </div>
+                    {profile.createdAt && (
+                      <div>
+                        <strong>Created:</strong> {formatDate(profile.createdAt)}
+                      </div>
+                    )}
+                    <div className="text-yellow-600 dark:text-yellow-400 mt-2">
+                      ⚠️ Cannot load full profile
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

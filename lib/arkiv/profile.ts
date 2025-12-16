@@ -527,8 +527,10 @@ export async function listUserProfiles(params?: {
  * @returns User profile or null if not found
  */
 export async function getProfileByWallet(wallet: string): Promise<UserProfile | null> {
+  // Normalize wallet: trim and convert to lowercase for consistent querying
+  const normalizedWallet = wallet.trim().toLowerCase();
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const profiles = await listUserProfilesForWallet(wallet);
+  const profiles = await listUserProfilesForWallet(normalizedWallet);
   if (profiles.length === 0) return null;
   
   // Return the most recent profile (sorted by createdAt descending)
@@ -658,6 +660,74 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
       txHash: payload.txHash,
     };
   });
+}
+
+/**
+ * Empirically check if a profile exists and is loadable
+ * 
+ * This method validates that a profile can be successfully queried and loaded,
+ * which is necessary for the profile detail page to work properly.
+ * 
+ * @param wallet - Wallet address to check
+ * @returns Object with existence and loadability status
+ */
+export async function checkProfileExistence(wallet: string): Promise<{
+  exists: boolean;
+  loadable: boolean;
+  profile: UserProfile | null;
+  error?: string;
+}> {
+  const normalizedWallet = wallet.toLowerCase().trim();
+  
+  try {
+    // Step 1: Query profile entities (arkiv-native pattern)
+    const profiles = await listUserProfilesForWallet(normalizedWallet);
+    
+    if (profiles.length === 0) {
+      return { exists: false, loadable: false, profile: null };
+    }
+    
+    // Step 2: Get most recent profile (same logic as getProfileByWallet)
+    profiles.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+    
+    const profile = profiles[0];
+    
+    // Step 3: Validate loadability
+    // Check minimum required fields
+    const hasRequiredFields = Boolean(
+      profile.wallet && 
+      profile.wallet.toLowerCase() === normalizedWallet &&
+      profile.displayName !== undefined &&
+      profile.createdAt !== undefined
+    );
+    
+    // Try to load via getProfileByWallet (same as detail page)
+    let loadable = false;
+    try {
+      const loadedProfile = await getProfileByWallet(normalizedWallet);
+      loadable = loadedProfile !== null && hasRequiredFields;
+    } catch (e) {
+      loadable = false;
+    }
+    
+    return {
+      exists: true,
+      loadable: loadable && hasRequiredFields,
+      profile: loadable ? profile : null,
+      error: loadable ? undefined : 'Profile exists but cannot be loaded',
+    };
+  } catch (error: any) {
+    return {
+      exists: false,
+      loadable: false,
+      profile: null,
+      error: error.message || 'Query failed',
+    };
+  }
 }
 
 /**

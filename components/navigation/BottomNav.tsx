@@ -12,6 +12,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
+import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
+import { hasOnboardingBypass } from '@/lib/onboarding/access';
 import { navTokens } from '@/lib/design/navTokens';
 
 interface NavItem {
@@ -19,6 +21,7 @@ interface NavItem {
   label: string;
   icon: string;
   badge?: number;
+  minLevel?: number; // Minimum onboarding level required
 }
 
 export function BottomNav() {
@@ -26,38 +29,57 @@ export function BottomNav() {
   const { theme, toggleTheme } = useTheme();
   const notificationCount = useNotificationCount();
   const [wallet, setWallet] = useState<string | null>(null);
+  const { level, loading: levelLoading } = useOnboardingLevel(wallet);
+  const [hasBypass, setHasBypass] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      // Check bypass flag
+      setHasBypass(hasOnboardingBypass());
     }
   }, []);
 
-  // Primary navigation items - simplified for mobile
-  const navItems: NavItem[] = [
+  // Primary navigation items with unlock levels - same as SidebarNav
+  const allNavItems: Array<NavItem> = [
     {
       href: '/me',
       label: 'Dashboard',
       icon: '👤',
+      minLevel: 0, // Always available
     },
     {
       href: '/network',
       label: 'Network',
       icon: '🌐',
+      minLevel: 3, // After network exploration
     },
     {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
+      minLevel: 1, // After profile creation
     },
     {
       href: '/notifications',
       label: 'Notifications',
       icon: '🔔',
       badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
+      minLevel: 1, // After profile creation
     },
   ];
+
+  // Filter nav items based on onboarding level
+  // If bypass is active or level is loading, show all items
+  // Otherwise, filter based on level
+  const navItems = allNavItems
+    .filter(item => {
+      if (item.minLevel === undefined) return true;
+      if (hasBypass || levelLoading) return true; // Show all during bypass or loading
+      return level >= item.minLevel;
+    })
+    .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
 
   // Don't show on landing, auth, beta, or admin pages
   const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
@@ -74,7 +96,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed top-0 left-0 right-0 z-40 border-b border-gray-200/30 dark:border-gray-700/30 safe-area-inset-top"
+      className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-gray-200/30 dark:border-emerald-900/30 safe-area-inset-top bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0)',
       }}

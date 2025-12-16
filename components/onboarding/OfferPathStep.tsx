@@ -9,6 +9,8 @@
 import { useState, useEffect } from 'react';
 import { listSkills } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { Skill } from '@/lib/arkiv/skill';
 
 interface OfferPathStepProps {
@@ -23,6 +25,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Load user's skills for selection
   useEffect(() => {
@@ -179,20 +182,48 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={!message.trim() || !selectedSkill || isSubmitting}
-          className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
-        >
-          {isSubmitting ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="animate-spin">💎</span>
-              <span>Creating offer...</span>
-            </span>
-          ) : (
-            'Continue →'
-          )}
-        </button>
+        {arkivBuilderMode ? (
+          <ArkivQueryTooltip
+            query={[
+              `POST /api/offers { action: 'createOffer', ... }`,
+              `Creates: type='offer' entity`,
+              `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skill, skill_id, message, availabilityWindow, status='active'`,
+              `Payload: Full offer data`,
+              `TTL: expiresIn (default 48 hours = 172800 seconds)`
+            ]}
+            label="Continue"
+          >
+            <button
+              type="submit"
+              disabled={!message.trim() || !selectedSkill || isSubmitting}
+              className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <span className="animate-spin">💎</span>
+                  <span>Creating offer...</span>
+                </span>
+              ) : (
+                'Continue →'
+              )}
+            </button>
+          </ArkivQueryTooltip>
+        ) : (
+          <button
+            type="submit"
+            disabled={!message.trim() || !selectedSkill || isSubmitting}
+            className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin">💎</span>
+                <span>Creating offer...</span>
+              </span>
+            ) : (
+              'Continue →'
+            )}
+          </button>
+        )}
       </form>
     </div>
   );

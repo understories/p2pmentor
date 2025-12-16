@@ -228,9 +228,14 @@ export async function listBetaAccessByCode(code: string): Promise<BetaAccess[]> 
         return String(attrs[key] || '');
       };
 
+      // Always use normalized wallet from attributes (Arkiv-native pattern)
+      // Attributes are queryable and normalized, payload may contain original case
+      const walletAttr = getAttr('wallet') || '';
+      const normalizedWallet = walletAttr ? walletAttr.toLowerCase() : (payload.wallet ? payload.wallet.toLowerCase() : '');
+
       return {
         key: entity.key,
-        wallet: getAttr('wallet') || payload.wallet || '',
+        wallet: normalizedWallet,
         code: getAttr('code') || payload.code || normalizedCode,
         grantedAt: getAttr('grantedAt') || payload.grantedAt || new Date().toISOString(),
         spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',

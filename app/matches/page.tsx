@@ -15,11 +15,12 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -49,6 +50,7 @@ export default function MatchesPage() {
   const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
   const [meetingMode, setMeetingMode] = useState<'request' | 'offer' | 'peer'>('request');
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -267,7 +269,28 @@ export default function MatchesPage() {
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
-          <LoadingSpinner text="Loading matches..." className="py-12" />
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadData()`,
+                `Queries:`,
+                `1. GET /api/asks`,
+                `   → type='ask', status='active'`,
+                `2. GET /api/offers`,
+                `   → type='offer', status='active'`,
+                `3. GET /api/skills?status=active&limit=200`,
+                `   → type='skill', status='active'`,
+                `4. getProfileByWallet(...) for each unique wallet`,
+                `   → type='user_profile', wallet='...'`,
+                `Returns: Match[] (computed from matching asks and offers by skill)`
+              ]}
+              label="Loading Matches"
+            >
+              <LoadingSpinner text="Loading matches..." className="py-12" />
+            </ArkivQueryTooltip>
+          ) : (
+            <LoadingSpinner text="Loading matches..." className="py-12" />
+          )}
         </div>
       </div>
     );
@@ -279,7 +302,6 @@ export default function MatchesPage() {
   return (
     <BetaGate>
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <ThemeToggle />
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
             <BackButton href="/network" />
@@ -349,7 +371,15 @@ export default function MatchesPage() {
                             Match: {match.skillMatch}
                           </h3>
                         </div>
-                        {match.skillId && (
+                        {arkivBuilderMode && match.skillId && (
+                          <div className="flex items-center gap-2">
+                            <ViewOnArkivLink entityKey={match.skillId} className="text-xs" />
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              {match.skillId.slice(0, 12)}...
+                            </span>
+                          </div>
+                        )}
+                        {!arkivBuilderMode && match.skillId && (
                           <ViewOnArkivLink entityKey={match.skillId} className="text-xs" />
                         )}
                       </div>
@@ -385,14 +415,45 @@ export default function MatchesPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <ViewOnArkivLink entityKey={match.ask.key} className="text-xs" />
+                          {arkivBuilderMode && match.ask.key && (
+                            <div className="flex items-center gap-2">
+                              <ViewOnArkivLink entityKey={match.ask.key} txHash={match.ask.txHash} className="text-xs" />
+                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                {match.ask.key.slice(0, 12)}...
+                              </span>
+                            </div>
+                          )}
+                          {!arkivBuilderMode && (
+                            <ViewOnArkivLink entityKey={match.ask.key} className="text-xs" />
+                          )}
                           {!isUserAsk && !askExpired && walletAddress && (
-                            <button
-                              onClick={() => handleRequestMeeting(match, 'ask')}
-                              className={`text-xs px-3 py-1 rounded ${askColors.button} transition-colors`}
-                            >
-                              Request Meeting
-                            </button>
+                            arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `Opens RequestMeetingModal to create session`,
+                                  `POST /api/sessions { action: 'createSession', ... }`,
+                                  `Creates: type='session' entity`,
+                                  `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${match.ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
+                                  `Payload: Full session data`,
+                                  `TTL: sessionDate + duration + 1 hour buffer`
+                                ]}
+                                label="Request Meeting"
+                              >
+                                <button
+                                  onClick={() => handleRequestMeeting(match, 'ask')}
+                                  className={`text-xs px-3 py-1 rounded ${askColors.button} transition-colors`}
+                                >
+                                  Request Meeting
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
+                              <button
+                                onClick={() => handleRequestMeeting(match, 'ask')}
+                                className={`text-xs px-3 py-1 rounded ${askColors.button} transition-colors`}
+                              >
+                                Request Meeting
+                              </button>
+                            )
                           )}
                         </div>
                       </div>
@@ -425,14 +486,45 @@ export default function MatchesPage() {
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <ViewOnArkivLink entityKey={match.offer.key} className="text-xs" />
+                          {arkivBuilderMode && match.offer.key && (
+                            <div className="flex items-center gap-2">
+                              <ViewOnArkivLink entityKey={match.offer.key} txHash={match.offer.txHash} className="text-xs" />
+                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                {match.offer.key.slice(0, 12)}...
+                              </span>
+                            </div>
+                          )}
+                          {!arkivBuilderMode && (
+                            <ViewOnArkivLink entityKey={match.offer.key} className="text-xs" />
+                          )}
                           {!isUserOffer && !offerExpired && walletAddress && (
-                            <button
-                              onClick={() => handleRequestMeeting(match, 'offer')}
-                              className={`text-xs px-3 py-1 rounded ${offerColors.button} transition-colors`}
-                            >
-                              Request Meeting
-                            </button>
+                            arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `Opens RequestMeetingModal to create session`,
+                                  `POST /api/sessions { action: 'createSession', ... }`,
+                                  `Creates: type='session' entity`,
+                                  `Attributes: mentorWallet='${match.offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                                  `Payload: Full session data`,
+                                  `TTL: sessionDate + duration + 1 hour buffer`
+                                ]}
+                                label="Request Meeting"
+                              >
+                                <button
+                                  onClick={() => handleRequestMeeting(match, 'offer')}
+                                  className={`text-xs px-3 py-1 rounded ${offerColors.button} transition-colors`}
+                                >
+                                  Request Meeting
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
+                              <button
+                                onClick={() => handleRequestMeeting(match, 'offer')}
+                                className={`text-xs px-3 py-1 rounded ${offerColors.button} transition-colors`}
+                              >
+                                Request Meeting
+                              </button>
+                            )
                           )}
                         </div>
                       </div>
