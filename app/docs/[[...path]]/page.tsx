@@ -376,7 +376,7 @@ export default function DocsPage() {
 
         {/* Main content */}
         <main className="flex-1 md:ml-64">
-          <article className="max-w-4xl mx-auto px-4 md:px-8 py-8 md:py-12">
+          <article className="max-w-4xl mx-auto px-4 md:px-8 pt-16 md:pt-8 pb-8 md:pb-12">
             {/* Show table of contents for root /docs */}
             {!currentPath ? (
               renderTableOfContents()
@@ -387,41 +387,43 @@ export default function DocsPage() {
                   const nav = getNavigationPages();
                   if (!nav.prev && !nav.next) return null;
                   return (
-                    <div className="mb-8 flex items-center justify-between gap-4 border-b border-gray-200 dark:border-gray-700 pb-4">
-                      {nav.prev ? (
-                        <Link
-                          href={`/docs/${nav.prev.path}`}
-                          className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                          </svg>
-                          <div className="flex flex-col">
-                            <span className="text-xs text-gray-500 dark:text-gray-500">Previous</span>
-                            <span className="truncate max-w-[200px] md:max-w-[300px] font-medium">
-                              {nav.prev.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </div>
-                        </Link>
-                      ) : (
-                        <div className="flex-1" />
-                      )}
-                      {nav.next && (
-                        <Link
-                          href={`/docs/${nav.next.path}`}
-                          className="group flex items-center gap-2 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors ml-auto"
-                        >
-                          <div className="flex flex-col text-right">
-                            <span className="text-xs text-gray-500 dark:text-gray-500">Next</span>
-                            <span className="truncate max-w-[200px] md:max-w-[300px] font-medium">
-                              {nav.next.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                            </span>
-                          </div>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                          </svg>
-                        </Link>
-                      )}
+                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
+                      <div className="max-w-4xl mx-auto px-4 md:px-0 py-2 md:py-0 flex items-center justify-between gap-4 md:pb-4">
+                        {nav.prev ? (
+                          <Link
+                            href={`/docs/${nav.prev.path}`}
+                            className="group flex items-center gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex-1 min-w-0"
+                          >
+                            <svg className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            <div className="flex flex-col min-w-0">
+                              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Previous</span>
+                              <span className="truncate max-w-[120px] md:max-w-[300px] font-medium text-xs md:text-sm">
+                                {nav.prev.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </span>
+                            </div>
+                          </Link>
+                        ) : (
+                          <div className="flex-1" />
+                        )}
+                        {nav.next && (
+                          <Link
+                            href={`/docs/${nav.next.path}`}
+                            className="group flex items-center gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors flex-1 min-w-0 justify-end"
+                          >
+                            <div className="flex flex-col text-right min-w-0">
+                              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Next</span>
+                              <span className="truncate max-w-[120px] md:max-w-[300px] font-medium text-xs md:text-sm">
+                                {nav.next.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              </span>
+                            </div>
+                            <svg className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            </svg>
+                          </Link>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
