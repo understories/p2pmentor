@@ -47,9 +47,6 @@ next-env.d.ts
 
 # reference repos
 refs/
-# Exception: implementation plans should be committed
-!/refs/*-implementation-plan.md
-!/refs/*-plan.md
 
 # testing and issue tracking docs (temporary)
 docs/TESTING_*.md
