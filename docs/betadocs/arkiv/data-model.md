@@ -272,8 +272,9 @@
 - `onboarding_event`: Onboarding tracking
 - `client_perf_metric`: Client-side performance metrics
 - `navigation_metric`: Aggregated navigation and click tracking
-- `learner_quest`: Curated reading list definitions
-- `learner_quest_progress`: User progress through quests
+- `learner_quest`: Quest definitions (reading lists and language assessments)
+- `learner_quest_progress`: User progress through quests (reading materials and assessment answers)
+- `learner_quest_assessment_result`: Assessment completion results and certifications
 - `perf_snapshot`: Performance snapshots
 - `retention_cohort`: User retention cohort metrics
 - `metric_aggregate`: Aggregated metrics

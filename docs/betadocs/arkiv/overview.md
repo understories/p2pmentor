@@ -149,6 +149,6 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 - [Entity Overview](entity-overview.md) - Detailed schema documentation
 - [Wallet Architecture](wallet-architecture.md) - Profile wallet vs signing wallet
 - [Builder Mode](builder-mode.md) - Developer-focused query visibility
-- [Learner Quests](learner-quests.md) - Curated reading lists and progress tracking
+- [Learner Quests](learner-quests.md) - Curated reading lists and language assessment quests with progress tracking
 - [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
 - [Arkiv Integration](../architecture/arkiv-integration.md) - Architecture details

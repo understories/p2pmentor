@@ -642,14 +642,17 @@ Currently transitioning from skill name strings to skill entity keys. Consider:
 
 ### Learner Quest Completion
 
-User profiles display learner quest completion percentage on both public profile pages (`/profiles/[wallet]`) and edit profile pages (`/me/profile`). The completion percentage is calculated across all active learner quests:
+User profiles display learner quest completion percentage on both public profile pages (`/profiles/[wallet]`) and edit profile pages (`/me/profile`). The completion percentage is calculated across all active reading list quests:
 
 - Fetches all active quests from `/api/learner-quests`
+- Filters to only `questType: 'reading_list'` quests (assessment quests have separate result tracking)
 - Loads progress for each quest in parallel
-- Calculates total read materials across all quests
+- Calculates total read materials across all reading list quests
 - Displays as: `X% complete (Y / Z materials)`
 
 The completion data is loaded asynchronously and does not block profile loading. If no quests exist or loading fails, the completion information is not displayed.
+
+**Note:** Language assessment quests are tracked separately via `learner_quest_assessment_result` entities and are not included in the reading list completion percentage.
 
 ## Related Documentation
 
