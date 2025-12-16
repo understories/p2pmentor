@@ -671,6 +671,12 @@ export default function MePage() {
               >
                 Edit Availability
               </Link>
+              <Link
+                href="/learner-quests"
+                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
+              >
+                Learner Quests
+              </Link>
             </div>
           )}
         </div>
