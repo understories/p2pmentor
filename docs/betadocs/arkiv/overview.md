@@ -148,6 +148,7 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 - [Data Model](data-model.md) - Complete entity schemas
 - [Entity Overview](entity-overview.md) - Detailed schema documentation
 - [Wallet Architecture](wallet-architecture.md) - Profile wallet vs signing wallet
+- [Environments](environments.md) - Using different signing wallets for separate data environments
 - [Builder Mode](builder-mode.md) - Developer-focused query visibility
 - [Learner Quests](learner-quests.md) - Curated reading lists and language assessment quests with progress tracking
 - [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A

@@ -201,6 +201,7 @@ const query = publicClient.buildQuery()
 ## See Also
 
 - [Arkiv Overview](overview.md) - Core Arkiv concepts
+- [Environments](environments.md) - Using different signing wallets for separate data environments
 - [Data Model](data-model.md) - Entity schemas
 - [Client Wrapper](overview.md#client-wrapper) - Wallet client implementation
 - [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network) - View your data on-chain
