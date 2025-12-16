@@ -144,6 +144,15 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Check if user has already RSVP'd (prevent duplicates)
+      const hasRsvpd = await hasRsvpdToGathering(gatheringKey, wallet);
+      if (hasRsvpd) {
+        return NextResponse.json(
+          { ok: false, error: 'You have already RSVP\'d to this gathering' },
+          { status: 400 }
+        );
+      }
+
       const privateKey = getPrivateKey();
       const { key, txHash } = await rsvpToGathering({
         gatheringKey,

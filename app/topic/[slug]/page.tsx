@@ -236,17 +236,18 @@ export default function TopicDetailPage() {
       }
 
       // Load sessions for this community (skill-based sessions)
+      let skillBasedSessions: Session[] = [];
       if (sessionsRes.ok && sessionsRes.sessions) {
         // Filter to upcoming sessions only
         const now = Date.now();
-        const upcoming = sessionsRes.sessions.filter((s: Session) => {
+        skillBasedSessions = sessionsRes.sessions.filter((s: Session) => {
           const sessionTime = new Date(s.sessionDate).getTime();
           return sessionTime > now;
         });
-        setCommunitySessions(upcoming);
       }
 
       // Also load sessions linked to virtual gatherings for this community
+      let gatheringSessions: Session[] = [];
       if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
         // Query all virtual_gathering_rsvp sessions and filter by gatheringKey
@@ -255,54 +256,59 @@ export default function TopicDetailPage() {
           
           if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
             // Filter sessions that match gathering keys for this community
-            const allGatheringSessions: Session[] = gatheringSessionsRes.sessions.filter((s: Session) => {
+            gatheringSessions = gatheringSessionsRes.sessions.filter((s: Session) => {
               const notes = s.notes || '';
+              const gatheringKey = (s as any).gatheringKey;
               // Check if session notes contains gatheringKey for any of our gatherings
               return gatheringKeys.some((key: string) => 
-                notes.includes(`virtual_gathering_rsvp:${key}`) || notes.includes(key)
+                gatheringKey === key ||
+                notes.includes(`virtual_gathering_rsvp:${key}`) || 
+                notes.includes(key)
               );
             });
-
-            // Combine with skill-based sessions
-            setCommunitySessions(prev => {
-              const combined = [...prev, ...allGatheringSessions];
-              // Deduplicate by key
-              const unique = new Map<string, Session>();
-              combined.forEach(s => unique.set(s.key, s));
-              return Array.from(unique.values()).sort((a, b) => 
-                new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
-              );
-            });
-
-            // Check RSVP status for community sessions (if user wallet is available)
-            if (userWallet) {
-              const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
-              const sessionRsvpChecks = allGatheringSessions.map(async (s: Session) => {
-                // Extract gatheringKey from session attributes or notes
-                const gatheringKey = (s as any).gatheringKey || 
-                  (s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
-                  (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
-                
-                if (gatheringKey) {
-                  const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
-                  return { sessionKey: s.key, gatheringKey, hasRsvpd };
-                }
-                return null;
-              });
-              
-              const rsvpResults = await Promise.all(sessionRsvpChecks);
-              const sessionRsvpMap: Record<string, boolean> = {};
-              rsvpResults.forEach(result => {
-                if (result) {
-                  sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
-                }
-              });
-              setSessionRsvpStatus(sessionRsvpMap);
-            }
           }
         } catch (err) {
           console.warn('Error loading gathering sessions:', err);
         }
+      }
+
+      // Combine and deduplicate all sessions by key (single state update)
+      const allSessions = [...skillBasedSessions, ...gatheringSessions];
+      const uniqueSessions = new Map<string, Session>();
+      allSessions.forEach(s => uniqueSessions.set(s.key, s));
+      const sortedSessions = Array.from(uniqueSessions.values()).sort((a, b) => 
+        new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+      );
+      setCommunitySessions(sortedSessions);
+
+      // Check RSVP status for community sessions (if user wallet is available)
+      if (userWallet && gatheringSessions.length > 0) {
+        const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
+        const gatheringKeys = gatheringsRes.ok && gatheringsRes.gatherings 
+          ? gatheringsRes.gatherings.map((g: VirtualGathering) => g.key)
+          : [];
+        
+        const sessionRsvpChecks = gatheringSessions.map(async (s: Session) => {
+          // Extract gatheringKey from session attributes or notes
+          const gatheringKey = (s as any).gatheringKey || 
+            (s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
+            (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
+          
+          if (gatheringKey) {
+            const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
+            return { sessionKey: s.key, gatheringKey, hasRsvpd };
+          }
+          return null;
+        });
+        
+        const rsvpResults = await Promise.all(sessionRsvpChecks);
+        const sessionRsvpMap: Record<string, boolean> = {};
+        rsvpResults.forEach(result => {
+          if (result) {
+            sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
+          }
+        });
+        setSessionRsvpStatus(sessionRsvpMap);
       }
 
       // Load profiles for all unique wallets (asks, offers, sessions, gatherings)
