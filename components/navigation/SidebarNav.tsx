@@ -277,7 +277,6 @@ export function SidebarNav() {
                   w-full py-2.5 px-3
                   rounded-lg
                   transition-all duration-150 ease-out
-                  opacity-0 group-hover:opacity-100 transition-opacity duration-200
                   ${active
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -305,7 +304,7 @@ export function SidebarNav() {
                   }
                 }}
               >
-              <span className="relative text-xl flex-shrink-0 opacity-100 group-hover:opacity-100">
+              <span className="relative text-xl flex-shrink-0">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -380,7 +379,7 @@ export function SidebarNav() {
                   boxShadow: `0 0 8px ${navTokens.node.hover.glow}`,
                 } : undefined}
               >
-                <span className="text-xl flex-shrink-0 opacity-100 relative">
+                <span className="text-xl flex-shrink-0 relative">
                   📅
                   {pendingConfirmationsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
@@ -528,7 +527,7 @@ export function SidebarNav() {
               `}
             >
               <span className="text-xl flex-shrink-0">🌐</span>
-              <span className="text-sm font-medium leading-tight">Network</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
               {isActive('/network') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
