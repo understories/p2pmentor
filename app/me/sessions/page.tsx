@@ -79,6 +79,8 @@ export default function SessionsPage() {
   const [sessionTypeFilter, setSessionTypeFilter] = useState<'all' | 'p2p' | 'community'>('all');
   const [timeFilter, setTimeFilter] = useState<'all' | 'upcoming' | 'past'>('all');
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
+  const [pendingExpanded, setPendingExpanded] = useState(false);
+  const [scheduledExpanded, setScheduledExpanded] = useState(false);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -687,7 +689,10 @@ export default function SessionsPage() {
                   All
                 </button>
                 <button
-                  onClick={() => setStatusFilter('pending')}
+                  onClick={() => {
+                    setStatusFilter('pending');
+                    setPendingExpanded(true);
+                  }}
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     statusFilter === 'pending'
                       ? 'bg-blue-600 text-white'
@@ -697,7 +702,10 @@ export default function SessionsPage() {
                   Pending
                 </button>
                 <button
-                  onClick={() => setStatusFilter('confirmed')}
+                  onClick={() => {
+                    setStatusFilter('confirmed');
+                    setScheduledExpanded(true);
+                  }}
                   className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
                     statusFilter === 'confirmed'
                       ? 'bg-blue-600 text-white'
@@ -782,26 +790,36 @@ export default function SessionsPage() {
         {/* Pending Sessions */}
         {pendingSessions.length > 0 && (
           <div className="mb-8">
-            {arkivBuilderMode ? (
-              <ArkivQueryTooltip
-                query={[
-                  `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
-                  `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
-                  `Filtered: status='pending'`,
-                  `Returns: Session[] (${pendingSessions.length} pending sessions)`,
-                  `Each session is a type='session' entity on Arkiv`
-                ]}
-                label={`⏳ Pending (${pendingSessions.length})`}
-              >
-                <h2 className="text-xl font-semibold mb-4 text-orange-600 dark:text-orange-400">
+            <div className="flex items-center justify-between mb-4">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                    `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                    `Filtered: status='pending'`,
+                    `Returns: Session[] (${pendingSessions.length} pending sessions)`,
+                    `Each session is a type='session' entity on Arkiv`
+                  ]}
+                  label={`⏳ Pending (${pendingSessions.length})`}
+                >
+                  <h2 className="text-xl font-semibold text-orange-600 dark:text-orange-400">
+                    ⏳ Pending ({pendingSessions.length})
+                  </h2>
+                </ArkivQueryTooltip>
+              ) : (
+                <h2 className="text-xl font-semibold text-orange-600 dark:text-orange-400">
                   ⏳ Pending ({pendingSessions.length})
                 </h2>
-              </ArkivQueryTooltip>
-            ) : (
-              <h2 className="text-xl font-semibold mb-4 text-orange-600 dark:text-orange-400">
-                ⏳ Pending ({pendingSessions.length})
-              </h2>
-            )}
+              )}
+              <button
+                onClick={() => setPendingExpanded(!pendingExpanded)}
+                className="px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={pendingExpanded ? 'Collapse pending sessions' : 'Expand pending sessions'}
+              >
+                {pendingExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {pendingExpanded && (
             <div className="space-y-4">
               {pendingSessions.map((session) => {
                 const isMentor = Boolean(userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase());
@@ -1097,32 +1115,43 @@ export default function SessionsPage() {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
         {/* Scheduled Sessions */}
         {scheduledSessions.length > 0 && (
           <div className="mb-8">
-            {arkivBuilderMode ? (
-              <ArkivQueryTooltip
-                query={[
-                  `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
-                  `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
-                  `Filtered: status='scheduled'`,
-                  `Returns: Session[] (${scheduledSessions.length} scheduled sessions)`,
-                  `Each session is a type='session' entity on Arkiv`
-                ]}
-                label={`✅ Scheduled (${scheduledSessions.length})`}
-              >
-                <h2 className="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">
+            <div className="flex items-center justify-between mb-4">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                    `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                    `Filtered: status='scheduled'`,
+                    `Returns: Session[] (${scheduledSessions.length} scheduled sessions)`,
+                    `Each session is a type='session' entity on Arkiv`
+                  ]}
+                  label={`✅ Scheduled (${scheduledSessions.length})`}
+                >
+                  <h2 className="text-xl font-semibold text-green-600 dark:text-green-400">
+                    ✅ Scheduled ({scheduledSessions.length})
+                  </h2>
+                </ArkivQueryTooltip>
+              ) : (
+                <h2 className="text-xl font-semibold text-green-600 dark:text-green-400">
                   ✅ Scheduled ({scheduledSessions.length})
                 </h2>
-              </ArkivQueryTooltip>
-            ) : (
-              <h2 className="text-xl font-semibold mb-4 text-green-600 dark:text-green-400">
-                ✅ Scheduled ({scheduledSessions.length})
-              </h2>
-            )}
+              )}
+              <button
+                onClick={() => setScheduledExpanded(!scheduledExpanded)}
+                className="px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                title={scheduledExpanded ? 'Collapse scheduled sessions' : 'Expand scheduled sessions'}
+              >
+                {scheduledExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            {scheduledExpanded && (
             <div className="space-y-4">
               {scheduledSessions.map((session) => {
                 const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
@@ -1391,6 +1420,7 @@ export default function SessionsPage() {
                 );
               })}
             </div>
+            )}
           </div>
         )}
 
