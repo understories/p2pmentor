@@ -145,7 +145,7 @@ export async function createGardenNote({
       }
     });
 
-    // Create notification for each profile (excluding the author)
+    // Create notification for each profile (excluding the author for 'new_garden_note' type)
     const authorWalletLower = authorWallet.toLowerCase();
     const notificationPromises = Array.from(uniqueWallets)
       .filter(wallet => wallet !== authorWalletLower)
@@ -174,6 +174,33 @@ export async function createGardenNote({
           console.warn(`[createGardenNote] Failed to create notification for ${wallet}:`, err);
         })
       );
+
+    // Create notification for the author (confirmation that their note was posted)
+    const authorNotificationPromise = createNotification({
+      wallet: authorWalletLower,
+      notificationType: 'entity_created',
+      sourceEntityType: 'garden_note',
+      sourceEntityKey: entityKey,
+      title: 'Garden Note Posted',
+      message: targetWallet 
+        ? 'You posted a garden note' 
+        : 'You posted a garden note to the public board',
+      link: targetWallet ? `/profiles/${targetWallet}` : '/garden/public-board',
+      metadata: {
+        gardenNoteKey: entityKey,
+        targetWallet: targetWallet || undefined,
+        tags: normalizedTags,
+        createdAt,
+        txHash,
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn(`[createGardenNote] Failed to create notification for author ${authorWalletLower}:`, err);
+    });
+
+    // Add author notification to the promises array
+    notificationPromises.push(authorNotificationPromise);
 
     // Don't wait for all notifications - fire and forget (non-blocking)
     Promise.all(notificationPromises).catch((err: any) => {
