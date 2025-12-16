@@ -1674,22 +1674,81 @@ export default function AdminDashboard() {
                             <table className="min-w-full text-sm border border-gray-200 dark:border-gray-700">
                               <thead className="bg-gray-100 dark:bg-gray-800">
                                 <tr>
-                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Pattern</th>
-                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700">Total Count</th>
+                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">Pattern</th>
+                                  <th className="px-3 py-2 text-left border-b border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100">Total Count</th>
                                 </tr>
                               </thead>
                               <tbody>
-                                {topPatterns.map(([pattern, count], idx) => (
-                                  <tr key={pattern} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                    <td className="px-3 py-2 font-mono text-xs">{pattern}</td>
-                                    <td className="px-3 py-2 font-semibold">{count}</td>
-                                  </tr>
-                                ))}
+                                {topPatterns.map(([pattern, count], idx) => {
+                                  const maxCount = topPatterns[0]?.[1] || 1;
+                                  const percentage = (count / maxCount) * 100;
+                                  return (
+                                    <tr key={pattern} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                                      <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{pattern}</td>
+                                      <td className="px-3 py-2">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-gray-900 dark:text-gray-100">{count}</span>
+                                          <div className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden max-w-[200px]">
+                                            <div
+                                              className="h-full bg-emerald-500 dark:bg-emerald-600 rounded-full transition-all duration-300"
+                                              style={{ width: `${percentage}%` }}
+                                            />
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
                               </tbody>
                             </table>
                           </div>
                         </div>
                       );
+                    })()}
+
+                    {/* Time Series Visualization */}
+                    {(() => {
+                      // Group metrics by date (hourly buckets for recent data)
+                      const timeBuckets = new Map<string, number>();
+                      navigationMetricsData.forEach((metric: any) => {
+                        const date = new Date(metric.createdAt);
+                        const hourKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`;
+                        const totalCount = metric.aggregates.reduce((sum: number, agg: { pattern: string; count: number }) => sum + agg.count, 0);
+                        timeBuckets.set(hourKey, (timeBuckets.get(hourKey) || 0) + totalCount);
+                      });
+
+                      const timeSeries = Array.from(timeBuckets.entries())
+                        .sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime())
+                        .slice(-24); // Last 24 hours
+
+                      const maxCount = Math.max(...timeSeries.map(([, count]) => count), 1);
+
+                      return timeSeries.length > 0 ? (
+                        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700 mb-6">
+                          <h5 className="text-xs font-semibold text-gray-900 dark:text-gray-100 mb-3">Metrics Over Time (Last 24 Hours)</h5>
+                          <div className="flex items-end gap-1 h-32">
+                            {timeSeries.map(([timeKey, count], idx) => {
+                              const height = (count / maxCount) * 100;
+                              return (
+                                <div key={timeKey} className="flex-1 flex flex-col items-center group relative">
+                                  <div
+                                    className="w-full bg-emerald-500 dark:bg-emerald-600 rounded-t transition-all duration-300 hover:bg-emerald-600 dark:hover:bg-emerald-500"
+                                    style={{ height: `${height}%`, minHeight: count > 0 ? '4px' : '0' }}
+                                    title={`${timeKey}: ${count} events`}
+                                  />
+                                  <div className="absolute bottom-full mb-1 hidden group-hover:block bg-gray-900 dark:bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
+                                    {new Date(timeKey).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}: {count}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <span>{timeSeries[0]?.[0] ? new Date(timeSeries[0][0]).toLocaleDateString() : ''}</span>
+                            <span>{timeSeries[timeSeries.length - 1]?.[0] ? new Date(timeSeries[timeSeries.length - 1][0]).toLocaleDateString() : ''}</span>
+                          </div>
+                        </div>
+                      ) : null;
                     })()}
 
                     {/* Recent Metrics Table */}
@@ -1712,7 +1771,7 @@ export default function AdminDashboard() {
                               const totalCount = metric.aggregates.reduce((sum: number, agg: { pattern: string; count: number }) => sum + agg.count, 0);
                               return (
                                 <tr key={metric.key || idx} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                                  <td className="px-3 py-2 font-mono text-xs">{metric.page || '-'}</td>
+                                  <td className="px-3 py-2 font-mono text-xs text-gray-900 dark:text-gray-100">{metric.page || '-'}</td>
                                   <td className="px-3 py-2 text-xs">
                                     <details className="cursor-pointer">
                                       <summary className="text-blue-600 dark:text-blue-400 hover:underline">
@@ -1720,14 +1779,14 @@ export default function AdminDashboard() {
                                       </summary>
                                       <div className="mt-2 space-y-1">
                                         {metric.aggregates.map((agg: { pattern: string; count: number }, aggIdx: number) => (
-                                          <div key={aggIdx} className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded">
+                                          <div key={aggIdx} className="text-xs font-mono bg-gray-100 dark:bg-gray-900 p-1 rounded text-gray-900 dark:text-gray-100">
                                             {agg.pattern}: {agg.count}
                                           </div>
                                         ))}
                                       </div>
                                     </details>
                                   </td>
-                                  <td className="px-3 py-2 font-semibold">{totalCount}</td>
+                                  <td className="px-3 py-2 font-semibold text-gray-900 dark:text-gray-100">{totalCount}</td>
                                   <td className="px-3 py-2 text-xs text-gray-500 dark:text-gray-400">
                                     {new Date(metric.createdAt).toLocaleString()}
                                   </td>
