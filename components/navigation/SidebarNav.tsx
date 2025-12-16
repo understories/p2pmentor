@@ -306,7 +306,7 @@ export function SidebarNav() {
                   }
                 }}
               >
-              <span className="relative text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">
+              <span className="relative text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">
                 {item.icon}
                 {item.badge !== undefined && item.badge > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -314,7 +314,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <div className="flex flex-col opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                 <span className="text-sm font-medium leading-tight">
                   {item.label}
                 </span>
@@ -381,7 +381,7 @@ export function SidebarNav() {
                   boxShadow: `0 0 8px ${navTokens.node.hover.glow}`,
                 } : undefined}
               >
-                <span className="text-xl flex-shrink-0 relative flex items-center justify-center w-4 h-6 overflow-visible">
+                <span className="text-3xl flex-shrink-0 relative flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">
                   📅
                   {pendingConfirmationsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
@@ -389,7 +389,7 @@ export function SidebarNav() {
                     </span>
                   )}
                 </span>
-                <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
+                <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
                 {(isActive('/me/sessions') || pendingConfirmationsCount > 0) && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -476,12 +476,12 @@ export function SidebarNav() {
                           className="flex flex-row items-center gap-2 p-2 rounded-lg"
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
-                          <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">📖</span>
+                          <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-5 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📖</span>
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {skillName}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {dateStr} {timeStr}
                             </span>
                           </div>
@@ -528,8 +528,8 @@ export function SidebarNav() {
                   }
                 `}
             >
-              <span className="text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">🌐</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
+              <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🌐</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
               {isActive('/network') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -546,14 +546,14 @@ export function SidebarNav() {
         {/* Asks, Offers, Matches - below Network, side by side */}
         {level >= 1 && (
           <div className="mt-2 w-full">
-            <div className="flex flex-row gap-1">
+            <div className="flex flex-row gap-0.5 group-hover:gap-2 transition-all duration-300">
               <Link
                 href="/asks"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 px-2
+                  flex-1 py-1.5 px-0.5 group-hover:px-2
                   rounded-lg
-                  transition-all duration-150 ease-out
+                  transition-all duration-300 ease-out
                   ${isActive('/asks')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -561,8 +561,8 @@ export function SidebarNav() {
                 `}
                 title="Asks"
               >
-                <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">🎓</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Asks</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🎓</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Asks</span>
                 {isActive('/asks') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -577,9 +577,9 @@ export function SidebarNav() {
                 href="/offers"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 px-2
+                  flex-1 py-1.5 px-0.5 group-hover:px-2
                   rounded-lg
-                  transition-all duration-150 ease-out
+                  transition-all duration-300 ease-out
                   ${isActive('/offers')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -587,8 +587,8 @@ export function SidebarNav() {
                 `}
                 title="Offers"
               >
-                <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">💎</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Offers</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💎</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Offers</span>
                 {isActive('/offers') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -603,9 +603,9 @@ export function SidebarNav() {
                 href="/matches"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 px-2
+                  flex-1 py-1.5 px-0.5 group-hover:px-2
                   rounded-lg
-                  transition-all duration-150 ease-out
+                  transition-all duration-300 ease-out
                   ${isActive('/matches')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -613,8 +613,8 @@ export function SidebarNav() {
                 `}
                 title="Matches"
               >
-                <span className="text-base flex-shrink-0 flex items-center justify-center w-4 h-5 overflow-visible">✨</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Matches</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">✨</span>
+                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Matches</span>
                 {isActive('/matches') && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -668,11 +668,11 @@ export function SidebarNav() {
                     const skillTitle = `${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`;
                     const skillContent = (
                       <>
-                        <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">
+                        <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">
                           {levelToEmoji(skill.level)}
                         </span>
                         <span 
-                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200"
+                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200"
                           style={{
                             wordBreak: 'break-word',
                             overflowWrap: 'break-word',
@@ -722,9 +722,9 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
                   title="Public Garden Board"
                 >
-                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">💌</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💌</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -738,9 +738,9 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Browse Profiles"
                 >
-                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">👤</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">👤</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -754,9 +754,9 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learner Communities"
                 >
-                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">🌱</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🌱</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -770,9 +770,9 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learning Quests"
                 >
-                  <span className="text-lg flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">📚</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📚</span>
                   <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap"
+                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
                       lineHeight: '1.3',
                     }}
@@ -801,7 +801,7 @@ export function SidebarNav() {
                   }
                 `}
             >
-              <span className="relative text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">
+              <span className="relative text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">
                 🔔
                 {notificationCount !== null && notificationCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
@@ -809,7 +809,7 @@ export function SidebarNav() {
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
               {isActive('/notifications') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -860,8 +860,8 @@ export function SidebarNav() {
               className="w-full flex flex-row items-center gap-3 py-2.5 pl-2 pr-1 group-hover:px-3 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
               title="Disconnect wallet and logout"
             >
-              <span className="text-xl flex-shrink-0 flex items-center justify-center w-4 h-6 overflow-visible">⚡</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+              <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">⚡</span>
+              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
             </button>
           </div>
         )}
