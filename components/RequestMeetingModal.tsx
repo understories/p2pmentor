@@ -311,17 +311,17 @@ export function RequestMeetingModal({
       
       // Show success message after modal is closed (non-blocking)
       setTimeout(() => {
+        const otherPartyName = profile.displayName || 'the other party';
         if (data.pending) {
           // Transaction submitted but confirmation pending
-          alert(`Meeting request submitted! Waiting for ${profile.displayName || 'the other party'} to confirm.`);
+          alert(`Meeting request submitted! Check Sessions to see when ${otherPartyName} confirms.`);
         } else {
           // Immediate success
-          const otherPartyName = profile.displayName || 'the other party';
           if (data.txHash) {
             const shortHash = data.txHash.slice(0, 10) + '...';
-            alert(`Meeting requested successfully! Waiting for ${otherPartyName} to confirm. Transaction: ${shortHash}`);
+            alert(`Meeting requested successfully! Check Sessions to see when ${otherPartyName} confirms. Transaction: ${shortHash}`);
           } else {
-            alert(`Meeting requested successfully! Waiting for ${otherPartyName} to confirm.`);
+            alert(`Meeting requested successfully! Check Sessions to see when ${otherPartyName} confirms.`);
           }
         }
       }, 100);

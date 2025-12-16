@@ -122,17 +122,18 @@ export async function POST(request: NextRequest) {
         }
 
         // Create user-focused notification for the requester (learner or mentor who initiated)
+        // Note: Requester is auto-confirmed, so they should check Sessions to see when the other party confirms
         if (key) {
           try {
             const { createNotification } = await import('@/lib/arkiv/notifications');
-            const requesterWallet = learnerWallet.toLowerCase(); // The learner is the one requesting
+            const requesterWalletNormalized = requesterWallet?.toLowerCase() || learnerWallet.toLowerCase();
             await createNotification({
-              wallet: requesterWallet,
+              wallet: requesterWalletNormalized,
               notificationType: 'entity_created',
               sourceEntityType: 'session',
               sourceEntityKey: key,
               title: 'Meeting Requested',
-              message: `You requested a meeting for "${skill}"`,
+              message: `Your meeting request for "${skill}" is pending confirmation. Check Sessions for updates.`,
               link: '/me/sessions',
               metadata: {
                 sessionKey: key,

@@ -46,6 +46,7 @@ export function SidebarNav() {
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [followedCommunities, setFollowedCommunities] = useState<LearningFollow[]>([]);
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
+  const [pendingConfirmationsCount, setPendingConfirmationsCount] = useState(0);
 
   // Load Arkiv Builder Mode from localStorage
   useEffect(() => {
@@ -137,11 +138,25 @@ export function SidebarNav() {
           .slice(0, 3); // Show up to 3 upcoming sessions
         console.log('[SidebarNav] Loaded sessions:', { total: sessions.length, upcoming: upcoming.length, upcomingSessions: upcoming });
         setUpcomingSessions(upcoming);
+
+        // Check for pending sessions that need user confirmation
+        const normalizedWallet = wallet.toLowerCase();
+        const pendingNeedingConfirmation = sessions.filter(s => {
+          if (s.status !== 'pending') return false;
+          // Check if user is mentor and hasn't confirmed
+          const isMentor = s.mentorWallet.toLowerCase() === normalizedWallet;
+          const isLearner = s.learnerWallet.toLowerCase() === normalizedWallet;
+          if (isMentor && !s.mentorConfirmed) return true;
+          if (isLearner && !s.learnerConfirmed) return true;
+          return false;
+        });
+        setPendingConfirmationsCount(pendingNeedingConfirmation.length);
       })
       .catch((error) => {
         console.error('[SidebarNav] Error loading sessions:', error);
         // Set empty array on error so we know it failed
         setUpcomingSessions([]);
+        setPendingConfirmationsCount(0);
       });
     
     // Load followed communities for join/leave state
@@ -339,13 +354,25 @@ export function SidebarNav() {
                   transition-all duration-150 ease-out
                   ${isActive('/me/sessions')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    : pendingConfirmationsCount > 0
+                    ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
+                style={pendingConfirmationsCount > 0 && !isActive('/me/sessions') ? {
+                  boxShadow: `0 0 8px ${navTokens.node.hover.glow}`,
+                } : undefined}
               >
-                <span className="text-xl flex-shrink-0 opacity-100">📅</span>
+                <span className="text-xl flex-shrink-0 opacity-100 relative">
+                  📅
+                  {pendingConfirmationsCount > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
+                      {pendingConfirmationsCount > 9 ? '9+' : pendingConfirmationsCount}
+                    </span>
+                  )}
+                </span>
                 <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
-                {isActive('/me/sessions') && (
+                {(isActive('/me/sessions') || pendingConfirmationsCount > 0) && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
                     style={{
