@@ -245,6 +245,7 @@ export default function AuthPage() {
               onClick={handleAddMendozaNetwork}
               disabled={addingNetwork}
               className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+              title="Don't worry: you do not need any funds in your wallet to use our app. In fact, we recommend using a wallet without any funds as your profile wallet. Read more in the betadocs"
             >
               {addingNetwork ? 'Adding Network...' : 'Add Mendoza Testnet to Wallet'}
             </button>
