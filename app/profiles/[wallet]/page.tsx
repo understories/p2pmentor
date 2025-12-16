@@ -515,36 +515,117 @@ export default function ProfileDetailPage() {
             <div className="mb-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {/* Sessions Completed */}
-                <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                    {completedSessions}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
-                </div>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `listSessionsForWallet('${wallet.toLowerCase()}')`,
+                      `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                      `Filtered: status='completed' OR (status='scheduled' AND sessionEnd < now)`,
+                      `Returns: ${completedSessions} completed sessions`,
+                      `Each session is a type='session' entity on Arkiv`
+                    ]}
+                    label="Sessions Completed"
+                  >
+                    <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                        {completedSessions}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {completedSessions}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
+                  </div>
+                )}
                 
                 {/* Upcoming Sessions */}
-                <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center cursor-help">
-                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {upcomingSessions}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
-                </div>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `listSessionsForWallet('${wallet.toLowerCase()}')`,
+                      `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
+                      `Filtered: status='scheduled' AND sessionDate > now`,
+                      `Returns: ${upcomingSessions} upcoming sessions`,
+                      `Each session is a type='session' entity on Arkiv`
+                    ]}
+                    label="Upcoming Sessions"
+                  >
+                    <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {upcomingSessions}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center">
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {upcomingSessions}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
+                  </div>
+                )}
                 
                 {/* Average Rating */}
-                <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center cursor-help">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {avgRating.toFixed(1)} ⭐
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
-                </div>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `listFeedbackForWallet('${wallet.toLowerCase()}')`,
+                      `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
+                      `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
+                      `Calculated: average of ${ratings.length} ratings`,
+                      `Returns: ${avgRating.toFixed(1)} average rating`,
+                      `Each feedback is a type='session_feedback' entity on Arkiv`
+                    ]}
+                    label="Average Rating"
+                  >
+                    <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {avgRating.toFixed(1)} ⭐
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center">
+                    <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {avgRating.toFixed(1)} ⭐
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
+                  </div>
+                )}
                 
                 {/* Skills Learning */}
-                <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center cursor-help">
-                  <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {skillsLearningCount}
-                  </p>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
-                </div>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `listLearningFollows({ profile_wallet: '${wallet.toLowerCase()}', active: true })`,
+                      `Query: type='learning_follow', profile_wallet='${wallet.toLowerCase()}'`,
+                      `Filters out: active=false (soft-delete pattern)`,
+                      `Returns: ${skillsLearningCount} active learning follows`,
+                      `Each follow is a type='learning_follow' entity on Arkiv`
+                    ]}
+                    label="Skills Learning"
+                  >
+                    <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {skillsLearningCount}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                      {skillsLearningCount}
+                    </p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
+                  </div>
+                )}
               </div>
             </div>
           );
@@ -872,6 +953,19 @@ export default function ProfileDetailPage() {
                             <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
                           </div>
                         )}
+                        {arkivBuilderMode && session.key && (
+                          <div className="mt-3 flex items-center gap-2">
+                            <ViewOnArkivLink
+                              entityKey={session.key}
+                              txHash={session.txHash}
+                              label="View Session Entity"
+                              className="text-xs"
+                            />
+                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              {session.key.slice(0, 12)}...
+                            </span>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -921,19 +1015,58 @@ export default function ProfileDetailPage() {
               
               {/* Stats */}
               <div className="mb-6 grid grid-cols-2 gap-4">
-                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
-                  <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                    {receivedFeedback.length}
-                  </p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
-                </div>
-                {avgRating && (
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `listFeedbackForWallet('${wallet.toLowerCase()}')`,
+                      `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
+                      `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
+                      `Returns: ${receivedFeedback.length} feedback entities`
+                    ]}
+                    label="Total Reviews"
+                  >
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {receivedFeedback.length}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
-                      {avgRating} ⭐
+                      {receivedFeedback.length}
                     </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
                   </div>
+                )}
+                {avgRating && (
+                  arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listFeedbackForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
+                        `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
+                        `Calculated: average of ${ratings.length} ratings`,
+                        `Returns: ${avgRating} average rating`
+                      ]}
+                      label="Average Rating"
+                    >
+                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                        <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                          {avgRating} ⭐
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                        {avgRating} ⭐
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
+                    </div>
+                  )
                 )}
               </div>
 
@@ -975,8 +1108,18 @@ export default function ProfileDetailPage() {
                         </p>
                       </div>
                     )}
-                    <div className="mt-2">
-                      <ViewOnArkivLink entityKey={feedback.key} />
+                    <div className="mt-2 flex items-center gap-2">
+                      <ViewOnArkivLink
+                        entityKey={feedback.key}
+                        txHash={feedback.txHash}
+                        label="View Feedback Entity"
+                        className="text-xs"
+                      />
+                      {arkivBuilderMode && feedback.key && (
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          {feedback.key.slice(0, 12)}...
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
