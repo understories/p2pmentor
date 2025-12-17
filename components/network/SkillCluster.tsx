@@ -13,6 +13,8 @@ import Link from 'next/link';
 import { useTheme } from '@/lib/theme';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -34,6 +36,7 @@ interface SkillClusterProps {
   onAskClick?: (ask: Ask) => void;
   onOfferClick?: (offer: Offer) => void;
   onMatchClick?: (match: Match) => void;
+  arkivBuilderMode?: boolean;
 }
 
 export function SkillCluster({
@@ -45,6 +48,7 @@ export function SkillCluster({
   onAskClick,
   onOfferClick,
   onMatchClick,
+  arkivBuilderMode = false,
 }: SkillClusterProps) {
   const { theme } = useTheme();
   const totalCount = asks.length + offers.length + matches.length;
@@ -127,23 +131,24 @@ export function SkillCluster({
       {/* Cards */}
       <div className="space-y-3 pl-10">
         {/* Matches */}
-        {matches.map((match) => (
-          <div
-            key={`${match.ask.key}-${match.offer.key}`}
-            className="p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
-            onClick={() => onMatchClick?.(match)}
-            style={{
-              backgroundColor: theme === 'dark'
-                ? 'rgba(255, 200, 100, 0.1)'
-                : 'rgba(255, 200, 100, 0.05)',
-              borderColor: theme === 'dark'
-                ? 'rgba(255, 200, 100, 0.4)'
-                : 'rgba(255, 200, 100, 0.3)',
-              boxShadow: theme === 'dark'
-                ? '0 0 12px rgba(255, 200, 100, 0.2)'
-                : '0 2px 8px rgba(255, 200, 100, 0.15)',
-            }}
-          >
+        {matches.map((match) => {
+          const matchCard = (
+            <div
+              key={`${match.ask.key}-${match.offer.key}`}
+              className="p-4 rounded-xl border-2 transition-all duration-200 hover:scale-[1.02] cursor-pointer"
+              onClick={() => onMatchClick?.(match)}
+              style={{
+                backgroundColor: theme === 'dark'
+                  ? 'rgba(255, 200, 100, 0.1)'
+                  : 'rgba(255, 200, 100, 0.05)',
+                borderColor: theme === 'dark'
+                  ? 'rgba(255, 200, 100, 0.4)'
+                  : 'rgba(255, 200, 100, 0.3)',
+                boxShadow: theme === 'dark'
+                  ? '0 0 12px rgba(255, 200, 100, 0.2)'
+                  : '0 2px 8px rgba(255, 200, 100, 0.15)',
+              }}
+            >
             <div className="flex items-center gap-2 mb-2">
               <span className="text-lg">✨</span>
               <span className="text-xs font-medium opacity-50 text-gray-500 dark:text-gray-400">Match made at: {formatDate(match.ask.createdAt)}</span>
@@ -199,14 +204,44 @@ export function SkillCluster({
                 </div>
                 <p className="text-xs opacity-75">{match.offer.message}</p>
               </div>
+              {arkivBuilderMode && (
+                <div className="mt-2 flex items-center gap-2 text-xs">
+                  {match.ask.key && (
+                    <ViewOnArkivLink entityKey={match.ask.key} txHash={match.ask.txHash} label="Ask Entity" className="text-xs" />
+                  )}
+                  {match.offer.key && (
+                    <ViewOnArkivLink entityKey={match.offer.key} txHash={match.offer.txHash} label="Offer Entity" className="text-xs" />
+                  )}
+                </div>
+              )}
             </div>
           </div>
-        ))}
+          );
+
+          if (arkivBuilderMode) {
+            return (
+              <ArkivQueryTooltip
+                key={`${match.ask.key}-${match.offer.key}`}
+                query={[
+                  `Match: ${match.skillMatch}`,
+                  `Ask: type='ask', key='${match.ask.key?.slice(0, 12)}...', skill_id='${match.ask.skill_id || match.ask.skill}'`,
+                  `Offer: type='offer', key='${match.offer.key?.slice(0, 12)}...', skill_id='${match.offer.skill_id || match.offer.skill}'`,
+                  `Match condition: ask.skill_id === offer.skill_id OR skill strings match`
+                ]}
+                label="Skill Match"
+              >
+                {matchCard}
+              </ArkivQueryTooltip>
+            );
+          }
+
+          return matchCard;
+        })}
 
         {/* Asks (Sprout Outlines) */}
         {asks.map((ask) => {
           const profile = profiles[ask.wallet];
-          return (
+          const askCard = (
             <div
               key={ask.key}
               className="p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] cursor-pointer"
@@ -255,16 +290,42 @@ export function SkillCluster({
                     )}
                   </div>
                   <p className="text-sm">{ask.message}</p>
+                  {arkivBuilderMode && ask.key && (
+                    <div className="mt-2">
+                      <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} label="View Ask Entity" className="text-xs" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           );
+
+          if (arkivBuilderMode) {
+            return (
+              <ArkivQueryTooltip
+                key={ask.key}
+                query={[
+                  `type='ask' entity`,
+                  `key='${ask.key?.slice(0, 12)}...'`,
+                  `wallet='${ask.wallet.slice(0, 8)}...'`,
+                  `skill_id='${ask.skill_id || ask.skill}'`,
+                  `status='${ask.status}'`,
+                  `TTL: ${ask.ttlSeconds || 3600}s (${Math.round((ask.ttlSeconds || 3600) / 3600)} hours)`
+                ]}
+                label="Ask"
+              >
+                {askCard}
+              </ArkivQueryTooltip>
+            );
+          }
+
+          return askCard;
         })}
 
         {/* Offers (Filled Sprouts) */}
         {offers.map((offer) => {
           const profile = profiles[offer.wallet];
-          return (
+          const offerCard = (
             <div
               key={offer.key}
               className="p-4 rounded-xl border transition-all duration-200 hover:scale-[1.02] cursor-pointer"
@@ -313,10 +374,36 @@ export function SkillCluster({
                     )}
                   </div>
                   <p className="text-sm">{offer.message}</p>
+                  {arkivBuilderMode && offer.key && (
+                    <div className="mt-2">
+                      <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} label="View Offer Entity" className="text-xs" />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           );
+
+          if (arkivBuilderMode) {
+            return (
+              <ArkivQueryTooltip
+                key={offer.key}
+                query={[
+                  `type='offer' entity`,
+                  `key='${offer.key?.slice(0, 12)}...'`,
+                  `wallet='${offer.wallet.slice(0, 8)}...'`,
+                  `skill_id='${offer.skill_id || offer.skill}'`,
+                  `status='${offer.status}'`,
+                  `TTL: ${offer.ttlSeconds || 3600}s (${Math.round((offer.ttlSeconds || 3600) / 3600)} hours)`
+                ]}
+                label="Offer"
+              >
+                {offerCard}
+              </ArkivQueryTooltip>
+            );
+          }
+
+          return offerCard;
         })}
       </div>
     </div>

@@ -9,17 +9,20 @@
 'use client';
 
 import { useTheme } from '@/lib/theme';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 interface CanopySectionProps {
   skills: Array<{ skill: string; count: number }>;
   onSkillClick: (skill: string) => void;
   selectedSkill?: string;
+  arkivBuilderMode?: boolean;
 }
 
 export function CanopySection({
   skills,
   onSkillClick,
   selectedSkill,
+  arkivBuilderMode = false,
 }: CanopySectionProps) {
   const { theme } = useTheme();
 
@@ -46,7 +49,7 @@ export function CanopySection({
           {topSkills.length > 0 ? (
             topSkills.map(({ skill, count }) => {
               const isSelected = selectedSkill?.toLowerCase() === skill.toLowerCase();
-              return (
+              const skillButton = (
                 <button
                   key={skill}
                   onClick={() => onSkillClick(skill)}
@@ -84,6 +87,25 @@ export function CanopySection({
                   <span className="ml-2 text-xs opacity-75">({count})</span>
                 </button>
               );
+
+              if (arkivBuilderMode) {
+                return (
+                  <ArkivQueryTooltip
+                    key={skill}
+                    query={[
+                      `Skill: ${skill}`,
+                      `Count: ${count} (asks + offers)`,
+                      `Query: type='ask' OR type='offer', skill_id='...' OR skill='${skill}'`,
+                      `Filters network by this skill`
+                    ]}
+                    label={skill}
+                  >
+                    {skillButton}
+                  </ArkivQueryTooltip>
+                );
+              }
+
+              return skillButton;
             })
           ) : (
             <p className="text-sm text-gray-500 dark:text-gray-400">

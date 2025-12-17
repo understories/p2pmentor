@@ -9,17 +9,20 @@
 'use client';
 
 import { useTheme } from '@/lib/theme';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 interface LeafChipFilterProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  arkivBuilderMode?: boolean;
 }
 
 export function LeafChipFilter({
   value,
   onChange,
   placeholder = 'Filter by skill...',
+  arkivBuilderMode = false,
 }: LeafChipFilterProps) {
   const { theme } = useTheme();
 
@@ -81,22 +84,52 @@ export function LeafChipFilter({
       )}
 
       {/* Input */}
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        className="w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        style={{
-          backgroundColor: theme === 'dark'
-            ? 'rgba(31, 41, 55, 0.6)'
-            : 'rgba(255, 255, 255, 0.9)',
-          borderColor: theme === 'dark'
-            ? 'rgba(34, 197, 94, 0.3)'
-            : 'rgba(34, 197, 94, 0.2)',
-          color: theme === 'dark' ? 'rgba(229, 231, 235, 0.9)' : 'rgba(17, 24, 39, 0.9)',
-        }}
-      />
+      {arkivBuilderMode ? (
+        <ArkivQueryTooltip
+          query={[
+            `Filter by skill: "${value || '...'}"`,
+            `Queries: GET /api/skills?slug=${encodeURIComponent(value.toLowerCase().trim())}`,
+            `If skill entity found: filters by skill_id`,
+            `Otherwise: filters by skill string (legacy)`,
+            `Filters: asks, offers, matches by skill`
+          ]}
+          label="Skill Filter"
+        >
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+            style={{
+              backgroundColor: theme === 'dark'
+                ? 'rgba(31, 41, 55, 0.6)'
+                : 'rgba(255, 255, 255, 0.9)',
+              borderColor: theme === 'dark'
+                ? 'rgba(34, 197, 94, 0.3)'
+                : 'rgba(34, 197, 94, 0.2)',
+              color: theme === 'dark' ? 'rgba(229, 231, 235, 0.9)' : 'rgba(17, 24, 39, 0.9)',
+            }}
+          />
+        </ArkivQueryTooltip>
+      ) : (
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full px-4 py-3 rounded-xl border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          style={{
+            backgroundColor: theme === 'dark'
+              ? 'rgba(31, 41, 55, 0.6)'
+              : 'rgba(255, 255, 255, 0.9)',
+            borderColor: theme === 'dark'
+              ? 'rgba(34, 197, 94, 0.3)'
+              : 'rgba(34, 197, 94, 0.2)',
+            color: theme === 'dark' ? 'rgba(229, 231, 235, 0.9)' : 'rgba(17, 24, 39, 0.9)',
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -519,6 +519,7 @@ export default function NetworkPage() {
           offersCount={offers.length}
           matchesCount={userMatches.length}
           matchesLabel="Your Matches"
+          arkivBuilderMode={arkivBuilderMode}
           onStatClick={(type) => {
             if (type === 'asks') {
               router.push('/asks');
@@ -530,13 +531,14 @@ export default function NetworkPage() {
           }}
         />
 
-        <QuickActions />
+        <QuickActions arkivBuilderMode={arkivBuilderMode} />
 
         {/* Skill Canopy Section */}
         <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Skill Canopy</h2>
           <CanopySection
             skills={topSkills.map(s => ({ skill: s.skill, count: s.count }))}
+            arkivBuilderMode={arkivBuilderMode}
             onSkillClick={(skill) => {
               // Find the skillKey for this skill name
               const skillEntry = topSkills.find(s => s.skill === skill);
@@ -562,6 +564,7 @@ export default function NetworkPage() {
         {/* Filter by Skill */}
         <LeafChipFilter
           value={skillFilter}
+          arkivBuilderMode={arkivBuilderMode}
           onChange={async (value) => {
             setSkillFilter(value);
             if (!value) {
@@ -625,6 +628,7 @@ export default function NetworkPage() {
                   offers={displayOffers}
                   matches={displayMatches}
                   profiles={profiles}
+                  arkivBuilderMode={arkivBuilderMode}
                 />
               );
             })}
