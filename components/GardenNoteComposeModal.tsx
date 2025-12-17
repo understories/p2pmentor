@@ -1,8 +1,8 @@
 /**
  * Garden Note Compose Modal Component
- * 
+ *
  * Modal for composing and publishing public garden notes (bulletin board).
- * 
+ *
  * Features:
  * - Educational UI (blockchain teaching moments)
  * - Explicit consent flow
@@ -103,6 +103,12 @@ export function GardenNoteComposeModal({
         .split(',')
         .map(t => t.trim())
         .filter(t => t.length > 0);
+     
+      // Always include initialTags (from topic pages) - these are automatic and required
+      // Merge with user-added tags, ensuring initialTags are always included
+      const finalTags = initialTags && initialTags.length > 0
+        ? [...new Set([...initialTags, ...tagArray])] // Remove duplicates, initialTags take priority
+        : tagArray;
 
       const res = await fetch('/api/garden-notes', {
         method: 'POST',
@@ -111,7 +117,7 @@ export function GardenNoteComposeModal({
           wallet: userWallet,
           targetWallet: targetProfile?.wallet || undefined,
           message: message.trim(),
-          tags: tagArray,
+          tags: finalTags,
           publishConsent: true,
         }),
       });
@@ -162,7 +168,7 @@ export function GardenNoteComposeModal({
       onClick={handleClose}
     >
       {/* Backdrop with vignette */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-md" 
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-md"
         style={{
           background: 'radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.5) 100%)',
         }}
@@ -355,14 +361,35 @@ export function GardenNoteComposeModal({
               {/* Tags Input with Sprout Chips */}
               <div>
                 <label htmlFor="tags" className="block text-sm font-medium mb-2 text-gray-900 dark:text-gray-100">
-                  Tags (optional)
+                  {initialTags && initialTags.length > 0 ? 'Tags' : 'Tags (optional)'}
                 </label>
+                {/* Show automatic tags from topic page */}
+                {initialTags && initialTags.length > 0 && (
+                  <div className="mb-3 p-3 bg-green-50/80 dark:bg-green-900/20 backdrop-blur-sm rounded-xl border border-green-200/50 dark:border-green-700/50">
+                    <p className="text-xs font-medium text-green-800 dark:text-green-200 mb-2">
+                      Automatically tagged for this topic:
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {initialTags.map((tag, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1.5 bg-gradient-to-r from-green-200 to-emerald-200 dark:from-green-800/50 dark:to-emerald-800/50 text-green-900 dark:text-green-100 rounded-full text-xs font-medium border-2 border-green-300/50 dark:border-green-600/50"
+                          style={{
+                            boxShadow: '0 0 8px rgba(34, 197, 94, 0.2)',
+                          }}
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <input
                   id="tags"
                   type="text"
                   value={tags}
                   onChange={(e) => setTags(e.target.value)}
-                  placeholder="e.g. #gratitude, #looking-for-mentor"
+                  placeholder={initialTags && initialTags.length > 0 ? "Add more tags (optional)..." : "e.g. #gratitude, #looking-for-mentor"}
                   className="w-full px-4 py-3 border-2 border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/80 dark:bg-gray-700/80 backdrop-blur-sm focus:ring-2 focus:ring-green-400/50 focus:border-green-400/50 dark:focus:border-green-500/50 transition-all"
                   style={{
                     boxShadow: '0 0 10px rgba(34, 197, 94, 0.05)',
@@ -384,7 +411,9 @@ export function GardenNoteComposeModal({
                   </div>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Separate tags with commas (e.g., #gratitude, #offer-help)
+                  {initialTags && initialTags.length > 0
+                    ? "You can add additional tags, but the topic tag is automatically included."
+                    : "Separate tags with commas (e.g., #gratitude, #offer-help)"}
                 </p>
               </div>
 
@@ -437,8 +466,8 @@ export function GardenNoteComposeModal({
                   disabled={!publishConsent || !message.trim()}
                   className="flex-1 px-4 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-xl font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   style={{
-                    boxShadow: !publishConsent || !message.trim() 
-                      ? 'none' 
+                    boxShadow: !publishConsent || !message.trim()
+                      ? 'none'
                       : '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
                   }}
                 >
