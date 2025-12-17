@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { safeRedirect } from '@/lib/utils/redirect';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
@@ -151,7 +152,19 @@ export default function BetaPage() {
       }
       
       // Redirect to auth or return URL
-      const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/auth';
+      // Validate redirect param to prevent routing to "null" (URLSearchParams.get() returns null)
+      const params = new URLSearchParams(window.location.search);
+      const redirectParam = params.get('redirect');
+      const redirectUrl = safeRedirect(redirectParam, '/auth');
+      
+      // Development assertion to catch invalid redirects
+      if (process.env.NODE_ENV === 'development' && redirectUrl === 'null') {
+        console.error('[Beta] Invalid redirect detected: "null"', {
+          redirectParam,
+          search: window.location.search,
+        });
+      }
+      
       router.push(redirectUrl);
     } catch (err: any) {
       console.error('[Beta] Beta code error:', err);

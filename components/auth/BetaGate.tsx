@@ -14,6 +14,7 @@
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useBetaAccess } from '@/lib/hooks/useBetaAccess';
+import { safePathname } from '@/lib/utils/redirect';
 
 export function BetaGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -23,7 +24,8 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !hasAccess) {
       // Redirect to /beta with return URL
-      const returnUrl = pathname || '/';
+      // Validate pathname to prevent encoding "null" (pathname can be null during hydration)
+      const returnUrl = safePathname(pathname, '/auth');
       router.push(`/beta?redirect=${encodeURIComponent(returnUrl)}`);
     }
   }, [hasAccess, loading, router, pathname]);

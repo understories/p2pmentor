@@ -74,7 +74,8 @@ export default function NetworkPage() {
               // Check for returnTo param from onboarding redirect
               const urlParams = new URLSearchParams(window.location.search);
               const returnTo = urlParams.get('returnTo');
-              if (returnTo) {
+              // Validate returnTo to prevent navigating to "null"
+              if (returnTo && returnTo !== 'null' && returnTo !== 'undefined' && returnTo.startsWith('/')) {
                 // Clean up URL
                 window.history.replaceState({}, '', returnTo);
               }

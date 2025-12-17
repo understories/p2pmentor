@@ -119,7 +119,11 @@ export async function checkOnboardingRoute(
   if (!check.hasAccess && typeof window !== 'undefined') {
     // Redirect to onboarding, but set bypass flag so they can navigate back
     // This allows onboarding flow to link back to the page
-    const currentUrl = window.location.pathname + window.location.search;
+    // Validate currentUrl to prevent encoding invalid paths
+    const currentPathname = window.location.pathname;
+    const currentSearch = window.location.search;
+    const validatedPathname = safePathname(currentPathname, '/');
+    const currentUrl = validatedPathname + currentSearch;
     window.location.href = `${redirectTo}?returnTo=${encodeURIComponent(currentUrl)}`;
     return false;
   }
