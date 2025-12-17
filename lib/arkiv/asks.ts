@@ -239,7 +239,9 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; spac
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      skill: getAttr('skill') || payload.skill || '',
+      skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
+      skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
+      skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
       spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
@@ -385,7 +387,9 @@ export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      skill: getAttr('skill') || payload.skill || '',
+      skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
+      skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
+      skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
       spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
