@@ -41,7 +41,7 @@ export async function createAppFeedback({
   rating,
   feedbackType = 'feedback',
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   page: string;
