@@ -30,6 +30,7 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { GardenBoard } from '@/components/garden/GardenBoard';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
+import { buildBuilderModeParams, appendBuilderModeParams } from '@/lib/utils/builderMode';
 
 type Match = {
   ask: Ask;
@@ -204,11 +205,14 @@ export default function TopicDetailPage() {
       setSkill(skillEntity);
 
       // Load asks, offers, virtual gatherings, and sessions for this community
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
+      const gatheringsParams = `?community=${encodeURIComponent(skillEntity.slug)}${userWallet ? `&wallet=${encodeURIComponent(userWallet)}` : ''}`;
+      const sessionsParams = `?skill=${encodeURIComponent(skillEntity.name_canonical)}&status=scheduled`;
       const [asksRes, offersRes, gatheringsRes, sessionsRes] = await Promise.all([
-        fetch('/api/asks').then(r => r.json()),
-        fetch('/api/offers').then(r => r.json()),
-        fetch(`/api/virtual-gatherings?community=${encodeURIComponent(skillEntity.slug)}${userWallet ? `&wallet=${encodeURIComponent(userWallet)}` : ''}`).then(r => r.json()),
-        fetch(`/api/sessions?skill=${encodeURIComponent(skillEntity.name_canonical)}&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
+        fetch(`/api/asks${builderParams}`).then(r => r.json()),
+        fetch(`/api/offers${builderParams}`).then(r => r.json()),
+        fetch(`/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`).then(r => r.json()),
+        fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
       ]);
 
       // Filter by skill_id
@@ -288,8 +292,9 @@ export default function TopicDetailPage() {
       if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
         // Query all virtual_gathering_rsvp sessions and filter by gatheringKey
-        try {
-          const gatheringSessionsRes = await fetch(`/api/sessions?skill=virtual_gathering_rsvp&status=scheduled`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }));
+          try {
+          const gatheringSessionsParams = `?skill=virtual_gathering_rsvp&status=scheduled`;
+          const gatheringSessionsRes = await fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, gatheringSessionsParams)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }));
           
           if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
             // Filter sessions that match gathering keys for this community
