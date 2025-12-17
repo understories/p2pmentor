@@ -422,17 +422,33 @@ export default function NetworkPage() {
   });
 
   // Sort skills by total activity (matches + asks + offers)
+  // Also sort asks and offers within each skill by createdAt (newest first)
   const sortedSkills = Array.from(skillsMap.entries())
     .map(([skillKey, data]) => {
       // Get skill name from entity if available
       const skill = skills[skillKey];
       const skillName = skill ? skill.name_canonical : skillKey;
+      
+      // Sort asks by createdAt (newest first)
+      const sortedAsks = [...data.asks].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return bTime - aTime; // Newest first
+      });
+      
+      // Sort offers by createdAt (newest first)
+      const sortedOffers = [...data.offers].sort((a, b) => {
+        const aTime = new Date(a.createdAt).getTime();
+        const bTime = new Date(b.createdAt).getTime();
+        return bTime - aTime; // Newest first
+      });
+      
       return {
         skill: skillName,
         skillKey: skillKey, // Explicitly set skillKey
-        asks: data.asks,
-        offers: data.offers,
-        matches: data.matches,
+        asks: sortedAsks,
+        offers: sortedOffers,
+        matches: data.matches, // Already sorted in computeMatches
         totalCount: data.matches.length + data.asks.length + data.offers.length,
       };
     })
@@ -593,17 +609,107 @@ export default function NetworkPage() {
           }}
         />
 
-        {/* Type Filter (simplified, optional) */}
-        {typeFilter !== 'all' && (
-          <div className="mb-4">
-            <button
-              onClick={() => setTypeFilter('all')}
-              className="text-sm text-gray-600 dark:text-gray-400 hover:underline"
+        {/* Type Filter */}
+        <div className="mb-4 flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `Type Filter`,
+                `Filters displayed asks, offers, and matches`,
+                `Applied client-side after skill filtering`,
+                `Options: All, Asks only, Offers only, Matches only`
+              ]}
+              label="Type Filter"
             >
-              ← Show all
-            </button>
-          </div>
-        )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setTypeFilter('all')}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    typeFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  onClick={() => setTypeFilter('asks')}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    typeFilter === 'asks'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Asks only
+                </button>
+                <button
+                  onClick={() => setTypeFilter('offers')}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    typeFilter === 'offers'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Offers only
+                </button>
+                <button
+                  onClick={() => setTypeFilter('matches')}
+                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                    typeFilter === 'matches'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Matches only
+                </button>
+              </div>
+            </ArkivQueryTooltip>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={() => setTypeFilter('all')}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  typeFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setTypeFilter('asks')}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  typeFilter === 'asks'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Asks only
+              </button>
+              <button
+                onClick={() => setTypeFilter('offers')}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  typeFilter === 'offers'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Offers only
+              </button>
+              <button
+                onClick={() => setTypeFilter('matches')}
+                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  typeFilter === 'matches'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Matches only
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Section D: Skill Clusters with Sprouts - Only show when content should be visible */}
         {showContent && sortedSkills.length > 0 ? (
