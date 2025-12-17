@@ -29,6 +29,8 @@ export type LearnerQuest = {
   description: string;
   source: string;
   questType: 'reading_list' | 'language_assessment';
+  questVersion?: string; // Optional, defaults to '1' for backward compatibility
+  creatorWallet?: string; // Optional, defaults to server signing wallet for admin-created
   // For reading_list quests:
   materials?: LearnerQuestMaterial[];
   metadata?: {
@@ -76,6 +78,8 @@ export async function createLearnerQuest({
   source,
   materials,
   questType = 'reading_list',
+  questVersion,
+  creatorWallet,
   privateKey,
   spaceId = SPACE_ID,
 }: {
@@ -85,6 +89,8 @@ export async function createLearnerQuest({
   source: string;
   materials: LearnerQuestMaterial[];
   questType?: 'reading_list' | 'language_assessment';
+  questVersion?: string; // Optional, defaults to '1'
+  creatorWallet?: string; // Optional, defaults to server signing wallet
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string } | null> {
@@ -115,6 +121,8 @@ export async function createLearnerQuest({
           { key: 'description', value: description },
           { key: 'source', value: source },
           { key: 'questType', value: questType },
+          { key: 'questVersion', value: questVersion || '1' }, // Default to '1' for backward compatibility
+          ...(creatorWallet ? [{ key: 'creatorWallet', value: creatorWallet.toLowerCase() }] : []), // Normalize wallet
           { key: 'status', value: 'active' },
           { key: 'spaceId', value: spaceId },
           { key: 'createdAt', value: createdAt },
@@ -236,6 +244,8 @@ export async function listLearnerQuests(options?: {
             description: getAttr(entity, 'description'),
             source: getAttr(entity, 'source'),
             questType,
+            questVersion: getAttr(entity, 'questVersion') || '1', // Default to '1' for backward compatibility
+            creatorWallet: getAttr(entity, 'creatorWallet') || undefined, // Optional
             status: getAttr(entity, 'status') as 'active' | 'archived',
             spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
             createdAt: getAttr(entity, 'createdAt'),
@@ -330,6 +340,8 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             description: getAttr(entity, 'description'),
             source: getAttr(entity, 'source'),
             questType,
+            questVersion: getAttr(entity, 'questVersion') || '1', // Default to '1' for backward compatibility
+            creatorWallet: getAttr(entity, 'creatorWallet') || undefined, // Optional
             status: getAttr(entity, 'status') as 'active' | 'archived',
             spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
             createdAt: getAttr(entity, 'createdAt'),
@@ -537,6 +549,110 @@ export async function getLearnerQuestProgress({
   } catch (error: any) {
     console.error('[getLearnerQuestProgress] Error:', error);
     return {};
+  }
+}
+
+/**
+ * Update learner quest (creates new version)
+ *
+ * Used to incrementally update quests without full re-seeding.
+ * Follows Arkiv immutability pattern: creates new entity with incremented version.
+ */
+export async function updateLearnerQuest({
+  questId,
+  updates,
+  privateKey,
+  spaceId = SPACE_ID,
+}: {
+  questId: string;
+  updates: Partial<{
+    title: string;
+    description: string;
+    materials: LearnerQuestMaterial[]; // For reading lists
+  }>;
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}): Promise<{ key: string; txHash: string } | null> {
+  try {
+    // 1. Get current quest
+    const current = await getLearnerQuest(questId);
+    if (!current) {
+      throw new Error(`Quest ${questId} not found`);
+    }
+
+    // 2. Get full quest entity to parse payload
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'learner_quest'))
+      .where(eq('questId', questId))
+      .where(eq('status', 'active'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
+
+    if (!result?.entities || result.entities.length === 0) {
+      throw new Error(`Quest entity ${questId} not found`);
+    }
+
+    // Get most recent entity (already sorted by createdAt descending in getLearnerQuest)
+    const entity = result.entities
+      .map((e: any) => {
+        const getAttr = (ent: any, key: string): string => {
+          const attrs = ent.attributes || {};
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const createdAt = getAttr(e, 'createdAt');
+        return { ...e, createdAt };
+      })
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+    // 3. Parse current payload
+    const decoded = entity.payload instanceof Uint8Array
+      ? new TextDecoder().decode(entity.payload)
+      : typeof entity.payload === 'string'
+      ? entity.payload
+      : JSON.stringify(entity.payload);
+    const currentPayload = JSON.parse(decoded);
+
+    // 4. Merge updates
+    const updatedPayload = {
+      ...currentPayload,
+      ...updates,
+      metadata: {
+        ...currentPayload.metadata,
+        lastUpdated: new Date().toISOString(),
+        ...(updates.materials ? {
+          totalMaterials: updates.materials.length,
+          categories: [...new Set(updates.materials.map((m: LearnerQuestMaterial) => m.category))],
+        } : {}),
+      },
+    };
+
+    // 5. Increment version
+    const currentVersion = parseInt(current.questVersion || '1', 10);
+    const newVersion = String(currentVersion + 1);
+
+    // 6. Create new entity with updated data
+    return await createLearnerQuest({
+      questId,
+      title: updates.title || current.title,
+      description: updates.description || current.description,
+      source: current.source,
+      materials: updatedPayload.materials || [],
+      questType: current.questType,
+      questVersion: newVersion,
+      creatorWallet: current.creatorWallet, // Preserve creator
+      privateKey,
+      spaceId,
+    });
+  } catch (error: any) {
+    console.error('[updateLearnerQuest] Error:', error);
+    return null;
   }
 }
 
