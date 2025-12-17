@@ -127,17 +127,19 @@ export async function createSkill({
 
   // Create notifications for all profiles when a new skill is created
   // This invites everyone to join the new learning community
+  // IMPORTANT: Only notify profiles in the same spaceId to avoid cross-environment notifications
   try {
     const { createNotification } = await import('./notifications');
     const { listUserProfiles } = await import('./profile');
     
-    // Get all profiles to notify
-    const allProfiles = await listUserProfiles();
+    // Get all profiles in the same spaceId
+    const allProfiles = await listUserProfiles({ spaceId });
     const uniqueWallets = new Set<string>();
     allProfiles.forEach(profile => {
       // Ensure wallet is normalized and not empty
+      // Also verify profile is in the same spaceId (safety check)
       const wallet = profile.wallet?.trim();
-      if (wallet && wallet.length > 0) {
+      if (wallet && wallet.length > 0 && profile.spaceId === spaceId) {
         uniqueWallets.add(wallet.toLowerCase());
       }
     });
