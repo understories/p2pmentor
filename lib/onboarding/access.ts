@@ -7,6 +7,8 @@
  * Reference: lib/auth/betaAccess.ts (beta gate pattern)
  */
 
+import { safePathname } from '@/lib/utils/redirect';
+
 export type OnboardingAccessCheck = {
   hasAccess: boolean;
   level?: number;
