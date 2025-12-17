@@ -72,6 +72,7 @@ export default function LearnerQuestsPage() {
   const [materialProgress, setMaterialProgress] = useState<Record<string, { status: string; readAt?: string; key?: string; txHash?: string }>>({});
   const [markingRead, setMarkingRead] = useState<string | null>(null);
   const [overallCompletion, setOverallCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
+  const [questTypeFilter, setQuestTypeFilter] = useState<'all' | 'reading_list' | 'language_assessment'>('all');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -118,6 +119,7 @@ export default function LearnerQuestsPage() {
   const loadQuests = async () => {
     try {
       setLoading(true);
+      // Load all quests (filtering is done client-side for better UX)
       const res = await fetch('/api/learner-quests');
       const data = await res.json();
 
@@ -286,8 +288,14 @@ export default function LearnerQuestsPage() {
     }
   };
 
-  const handleQuestClick = (questId: string) => {
-    setSelectedQuestId(questId);
+  const handleQuestClick = (quest: LearnerQuest) => {
+    if (quest.questType === 'language_assessment') {
+      // Navigate to language assessment page
+      router.push(`/learner-quests/${quest.questId}`);
+    } else {
+      // Show reading list detail view
+      setSelectedQuestId(quest.questId);
+    }
   };
 
   const handleBackToList = () => {
@@ -308,7 +316,12 @@ export default function LearnerQuestsPage() {
                   `GET /api/learner-quests`,
                   `Query: listLearnerQuests()`,
                   `→ type='learner_quest', status='active'`,
-                  `Returns: LearnerQuest[] (all active quests, deduplicated by questId)`
+                  `Returns: LearnerQuest[] (all active quests, deduplicated by questId)`,
+                  ``,
+                  `Filtering:`,
+                  `- Client-side filter by questType (reading_list | language_assessment)`,
+                  `- Arkiv-native: questType attribute on learner_quest entities`,
+                  `- API supports ?questType=... for server-side filtering`
                 ]}
                 label="Loading Learner Quests"
               >
@@ -486,12 +499,119 @@ export default function LearnerQuestsPage() {
             description="Curated reading materials and learning paths. Track your progress through each quest."
           />
 
-          {/* Overall Completion Rate */}
-          {overallCompletion && (
+          {/* Filter Buttons */}
+          <div className="mb-6 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Filter:</span>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Filter: Show all quest types`,
+                  `Query: GET /api/learner-quests`,
+                  `→ listLearnerQuests() (no questType filter)`,
+                  `→ type='learner_quest', status='active'`,
+                  `Returns: All active quests (reading_list + language_assessment)`
+                ]}
+                label="Filter: All"
+              >
+                <button
+                  onClick={() => setQuestTypeFilter('all')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    questTypeFilter === 'all'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  All
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setQuestTypeFilter('all')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  questTypeFilter === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                All
+              </button>
+            )}
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Filter: Show reading_list quests only`,
+                  `Query: GET /api/learner-quests?questType=reading_list`,
+                  `→ listLearnerQuests({ questType: 'reading_list' })`,
+                  `→ type='learner_quest', status='active', questType='reading_list'`,
+                  `Returns: Reading list quests only (with materials array)`
+                ]}
+                label="Filter: Reading Lists"
+              >
+                <button
+                  onClick={() => setQuestTypeFilter('reading_list')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    questTypeFilter === 'reading_list'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Reading Lists
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setQuestTypeFilter('reading_list')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  questTypeFilter === 'reading_list'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Reading Lists
+              </button>
+            )}
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Filter: Show language_assessment quests only`,
+                  `Query: GET /api/learner-quests?questType=language_assessment`,
+                  `→ listLearnerQuests({ questType: 'language_assessment' })`,
+                  `→ type='learner_quest', status='active', questType='language_assessment'`,
+                  `Returns: Language assessment quests only (with sections/questions in payload)`
+                ]}
+                label="Filter: Language Assessments"
+              >
+                <button
+                  onClick={() => setQuestTypeFilter('language_assessment')}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    questTypeFilter === 'language_assessment'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  Language Assessments
+                </button>
+              </ArkivQueryTooltip>
+            ) : (
+              <button
+                onClick={() => setQuestTypeFilter('language_assessment')}
+                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  questTypeFilter === 'language_assessment'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                }`}
+              >
+                Language Assessments
+              </button>
+            )}
+          </div>
+
+          {/* Overall Completion Rate (only for reading_list quests) */}
+          {overallCompletion && questTypeFilter !== 'language_assessment' && (
             <div className="mb-6 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Overall Progress
+                  Overall Progress (Reading Lists)
                 </span>
                 <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   {overallCompletion.percent}%
@@ -504,20 +624,30 @@ export default function LearnerQuestsPage() {
                 />
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                {overallCompletion.readCount} / {overallCompletion.totalMaterials} materials completed across all quests
+                {overallCompletion.readCount} / {overallCompletion.totalMaterials} materials completed across all reading list quests
               </p>
             </div>
           )}
 
           {/* Quests List */}
-          {quests.length === 0 ? (
-            <EmptyState
-              title="No learner quests available yet"
-              description="Check back soon for curated learning materials."
-            />
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-              {quests.map((quest) => {
+          {(() => {
+            // Filter quests by questType
+            const filteredQuests = questTypeFilter === 'all'
+              ? quests
+              : quests.filter(q => q.questType === questTypeFilter);
+
+            if (filteredQuests.length === 0) {
+              return (
+                <EmptyState
+                  title={`No ${questTypeFilter === 'all' ? 'learner quests' : questTypeFilter === 'reading_list' ? 'reading list quests' : 'language assessment quests'} available yet`}
+                  description="Check back soon for curated learning materials."
+                />
+              );
+            }
+
+            return (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+                {filteredQuests.map((quest) => {
                 const progress = questProgress[quest.questId] || {
                   readCount: 0,
                   totalMaterials: quest.materials.length,
@@ -527,7 +657,7 @@ export default function LearnerQuestsPage() {
                 return (
                   <div
                     key={quest.questId}
-                    onClick={() => handleQuestClick(quest.questId)}
+                    onClick={() => handleQuestClick(quest)}
                     className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200 cursor-pointer"
                   >
                     <div className="flex items-start justify-between mb-3">
@@ -585,6 +715,21 @@ export default function LearnerQuestsPage() {
                       </div>
                     )}
 
+                    {/* Language Assessment Action */}
+                    {quest.questType === 'language_assessment' && (
+                      <div className="mb-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/learner-quests/${quest.questId}`);
+                          }}
+                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                        >
+                          Start Assessment
+                        </button>
+                      </div>
+                    )}
+
                     {/* Source */}
                     <p className="text-xs text-gray-500 dark:text-gray-400">
                       Source:{' '}
@@ -601,8 +746,9 @@ export default function LearnerQuestsPage() {
                   </div>
                 );
               })}
-            </div>
-          )}
+              </div>
+            );
+          })()}
 
           {/* Garden Board - Suggest Learning Quests */}
           <GardenBoard

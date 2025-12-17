@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const questId = searchParams.get('questId');
+    const questType = searchParams.get('questType') as 'reading_list' | 'language_assessment' | null;
 
     if (questId) {
       // Fetch specific quest
@@ -32,8 +33,10 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ ok: true, quest });
     } else {
-      // List all active quests
-      const quests = await listLearnerQuests();
+      // List all active quests, optionally filtered by questType
+      const quests = await listLearnerQuests(
+        questType ? { questType } : undefined
+      );
       return NextResponse.json({ ok: true, quests, count: quests.length });
     }
   } catch (error: any) {
