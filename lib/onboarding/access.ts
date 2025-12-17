@@ -126,7 +126,11 @@ export async function checkOnboardingRoute(
     const currentSearch = window.location.search;
     const validatedPathname = safePathname(currentPathname, '/');
     const currentUrl = validatedPathname + currentSearch;
-    window.location.href = `${redirectTo}?returnTo=${encodeURIComponent(currentUrl)}`;
+    
+    // Use URL APIs to avoid double-encoding (don't manually encode)
+    const url = new URL(redirectTo, window.location.origin);
+    url.searchParams.set('returnTo', currentUrl); // URLSearchParams handles encoding automatically
+    window.location.href = url.pathname + url.search;
     return false;
   }
   

@@ -26,7 +26,16 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
       // Redirect to /beta with return URL
       // Validate pathname to prevent encoding "null" (pathname can be null during hydration)
       const returnUrl = safePathname(pathname, '/auth');
-      router.push(`/beta?redirect=${encodeURIComponent(returnUrl)}`);
+      
+      // Use URL APIs to avoid double-encoding (don't manually encode)
+      if (typeof window !== 'undefined') {
+        const url = new URL('/beta', window.location.origin);
+        url.searchParams.set('redirect', returnUrl); // URLSearchParams handles encoding automatically
+        router.push(url.pathname + url.search);
+      } else {
+        // Fallback for SSR (shouldn't happen, but safe)
+        router.push(`/beta?redirect=${encodeURIComponent(returnUrl)}`);
+      }
     }
   }, [hasAccess, loading, router, pathname]);
 

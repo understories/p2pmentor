@@ -19,19 +19,27 @@ export function safeRedirect(
   value: string | null | undefined,
   fallback: string = '/auth'
 ): string {
-  // Handle null/undefined
   if (!value) return fallback;
-  
-  // Handle string "null" or "undefined" (common when null gets stringified)
+
+  // Normalize common bad strings
   if (value === 'null' || value === 'undefined') return fallback;
-  
-  // Must be a valid path starting with '/'
-  if (!value.startsWith('/')) return fallback;
-  
-  // Reject empty path
-  if (value === '/') return fallback;
-  
-  return value;
+
+  // If it looks URL-encoded, decode once (turn "%2Fauth" into "/auth")
+  let v = value;
+  if (/%2f/i.test(v)) {
+    try {
+      v = decodeURIComponent(v);
+    } catch {
+      // leave as-is
+    }
+  }
+
+  // Must be a valid internal path starting with '/'
+  if (!v.startsWith('/')) return fallback;
+
+  if (v === '/') return fallback;
+
+  return v;
 }
 
 /**
