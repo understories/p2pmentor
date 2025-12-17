@@ -4,9 +4,9 @@ This section provides an overview of the p2pmentor beta documentation structure 
 
 ## Documentation Structure
 
-- **Introduction**: Project overview, getting started, and roadmap
+- **Introduction**: Project overview and getting started
 - **Philosophy**: Core values and design principles
-- **History**: Context and background
+- **History & Future**: Context, background, and roadmap
 - **Architecture**: Technical architecture and design decisions
 - **Arkiv**: Arkiv-specific implementation details and data model
 - **Modules**: Reusable modules and packages

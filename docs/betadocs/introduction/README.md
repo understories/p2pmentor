@@ -16,16 +16,13 @@ Start with [Introduction](/docs/introduction/introduction) for an overview, then
 ## Documentation Structure
 
 ```
-introduction.md          # Project overview and goals
+introduction/            # Project overview and getting started
 philosophy/              # Core values and design principles
+history-future/          # Project history and roadmap
+arkiv/                   # Arkiv-specific implementation details
 architecture/            # Technical architecture
 user-flows/              # User-facing features and flows
-arkiv/                   # Arkiv-specific implementation details
-modules/                 # Reusable modules and packages
 practices/               # Best practices and guidelines
-tracking-and-privacy.md  # What we track: transparency & privacy
-passkey-integration.md   # Passkey wallet implementation and plan
-roadmap.md               # Future directions
 ```
 
 ## Status

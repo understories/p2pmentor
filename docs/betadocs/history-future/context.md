@@ -1,4 +1,6 @@
-# History and Context
+# History & Future
+
+## Context
 
 ## Hidden Garden and early experiments
 
