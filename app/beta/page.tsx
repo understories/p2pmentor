@@ -48,13 +48,32 @@ export default function BetaPage() {
 
     try {
       // Check if code can be used (hasn't exceeded limit)
-      const validateRes = await fetch('/api/beta-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: normalizedCode, action: 'validate' }),
-      });
+      let validateRes: Response;
+      try {
+        validateRes = await fetch('/api/beta-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: normalizedCode, action: 'validate' }),
+        });
+      } catch (networkError: any) {
+        // Network error (fetch failed entirely - no response)
+        console.error('[Beta] Network error during validation:', networkError);
+        throw new Error('Network error: Unable to connect to the server. Please check your internet connection and try again.');
+      }
 
-      const validateData = await validateRes.json();
+      // Check if response is ok before parsing JSON
+      if (!validateRes.ok) {
+        const errorText = await validateRes.text().catch(() => 'Unknown error');
+        throw new Error(`Server error (${validateRes.status}): ${errorText || 'Failed to validate beta code'}`);
+      }
+
+      let validateData: any;
+      try {
+        validateData = await validateRes.json();
+      } catch (jsonError) {
+        console.error('[Beta] JSON parse error:', jsonError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       if (!validateData.ok) {
         throw new Error(validateData.error || 'Failed to validate beta code');
@@ -67,13 +86,32 @@ export default function BetaPage() {
       }
 
       // Track usage on Arkiv
-      const trackRes = await fetch('/api/beta-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: normalizedCode, action: 'track' }),
-      });
+      let trackRes: Response;
+      try {
+        trackRes = await fetch('/api/beta-code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: normalizedCode, action: 'track' }),
+        });
+      } catch (networkError: any) {
+        // Network error (fetch failed entirely - no response)
+        console.error('[Beta] Network error during tracking:', networkError);
+        throw new Error('Network error: Unable to connect to the server. Please check your internet connection and try again.');
+      }
 
-      const trackData = await trackRes.json();
+      // Check if response is ok before parsing JSON
+      if (!trackRes.ok) {
+        const errorText = await trackRes.text().catch(() => 'Unknown error');
+        throw new Error(`Server error (${trackRes.status}): ${errorText || 'Failed to track beta code usage'}`);
+      }
+
+      let trackData: any;
+      try {
+        trackData = await trackRes.json();
+      } catch (jsonError) {
+        console.error('[Beta] JSON parse error:', jsonError);
+        throw new Error('Invalid response from server. Please try again.');
+      }
       
       if (!trackData.ok) {
         // Handle specific transaction errors with user-friendly messages
@@ -90,24 +128,36 @@ export default function BetaPage() {
       // Store invite code and access key for future checks
       const accessKey = trackData.key; // Beta code usage entity key
 
-      // Set cookies for server-side middleware checks
-      // Cookies are more secure than localStorage for server-side validation
+      // Set cookies and localStorage for server-side middleware checks
+      // Handle privacy-focused browsers (DuckDuckGo, etc.) that may block these
       if (typeof window !== 'undefined') {
-        // Set cookies (httpOnly will be handled by server if needed, but for now client-side is fine)
-        document.cookie = `beta_access_code=${normalizedCode}; path=/; max-age=31536000; SameSite=Lax`;
-        document.cookie = `beta_access_key=${accessKey}; path=/; max-age=31536000; SameSite=Lax`;
+        try {
+          // Set cookies (httpOnly will be handled by server if needed, but for now client-side is fine)
+          document.cookie = `beta_access_code=${normalizedCode}; path=/; max-age=31536000; SameSite=Lax`;
+          document.cookie = `beta_access_key=${accessKey}; path=/; max-age=31536000; SameSite=Lax`;
+        } catch (cookieError) {
+          // Cookies may be blocked by privacy settings - log but don't fail
+          console.warn('[Beta] Failed to set cookies (may be blocked by privacy settings):', cookieError);
+        }
         
-        // Also keep in localStorage for client-side checks
-        localStorage.setItem('beta_invite_code', normalizedCode);
-        localStorage.setItem('beta_access_key', accessKey);
+        try {
+          // Also keep in localStorage for client-side checks
+          localStorage.setItem('beta_invite_code', normalizedCode);
+          localStorage.setItem('beta_access_key', accessKey);
+        } catch (storageError) {
+          // localStorage may be blocked by privacy settings - log but don't fail
+          console.warn('[Beta] Failed to set localStorage (may be blocked by privacy settings):', storageError);
+        }
       }
       
       // Redirect to auth or return URL
       const redirectUrl = new URLSearchParams(window.location.search).get('redirect') || '/auth';
       router.push(redirectUrl);
     } catch (err: any) {
-      console.error('Beta code error:', err);
-      setError(err.message || 'Failed to process beta code');
+      console.error('[Beta] Beta code error:', err);
+      // Provide user-friendly error message
+      const errorMessage = err.message || 'Failed to process beta code';
+      setError(errorMessage);
       setSubmitting(false);
     }
   };
