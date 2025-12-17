@@ -11,6 +11,7 @@ import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 import { getLearnerQuest } from "./learnerQuest";
+import { SPACE_ID } from "@/lib/config";
 
 export type QuestionType = 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false' | 'sentence_order';
 
@@ -193,7 +194,7 @@ export async function createLanguageAssessmentQuest({
   sections,
   metadata,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   questId: string;
   title: string;
@@ -330,7 +331,7 @@ export async function submitAssessmentAnswer({
   answer,
   timeSpent,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   questId: string;

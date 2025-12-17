@@ -7,7 +7,7 @@
 
 import { eq, and } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID } from "../config";
+import { SPACE_ID } from "@/lib/config";
 
 export type NotificationPreferenceType = 
   | 'meeting_request'
@@ -40,7 +40,7 @@ export async function upsertNotificationPreference({
   read,
   archived = false,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   notificationId: string;

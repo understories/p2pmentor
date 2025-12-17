@@ -9,6 +9,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { SPACE_ID } from "@/lib/config";
 
 export type AdminResponse = {
   key: string;
@@ -30,7 +31,7 @@ export async function createAdminResponse({
   message,
   adminWallet,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   feedbackKey: string;
   wallet: string;
@@ -210,7 +211,7 @@ export async function listAdminResponses({
         wallet: getAttr('wallet'),
         message: payload.message || '',
         adminWallet: getAttr('adminWallet'),
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID,
         createdAt: getAttr('createdAt'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
@@ -324,7 +325,7 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
       wallet: getAttr('wallet'),
       message: payload.message || '',
       adminWallet: getAttr('adminWallet'),
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID,
       createdAt: getAttr('createdAt'),
       txHash: txHash || payload.txHash || undefined,
     };

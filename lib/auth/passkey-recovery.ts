@@ -10,6 +10,7 @@ import { createBackupWalletIdentity, listBackupWalletIdentities, listPasskeyIden
 import { createPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 import { verifyMessage } from 'viem';
+import { SPACE_ID } from '@/lib/config';
 
 /**
  * Register a backup wallet for passkey recovery (client-side)
@@ -58,7 +59,7 @@ export async function registerBackupWallet({
         { key: 'type', value: 'auth_identity' },
         { key: 'subtype', value: 'backup_wallet' },
         { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: 'local-dev' },
+        { key: 'spaceId', value: SPACE_ID },
         { key: 'createdAt', value: createdAt },
       ],
       expiresIn,
@@ -73,7 +74,7 @@ export async function registerBackupWallet({
       { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
       { key: 'identityKey', value: entityKey },
       { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: 'local-dev' },
+      { key: 'spaceId', value: SPACE_ID },
     ],
     expiresIn,
   }).catch((error: any) => {

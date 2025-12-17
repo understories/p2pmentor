@@ -11,6 +11,7 @@ import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient, getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import type { NavigationMetric } from '@/lib/metrics/navigation';
+import { SPACE_ID } from '@/lib/config';
 
 export type NavigationMetricEntity = {
   key: string;
@@ -29,7 +30,7 @@ export type NavigationMetricEntity = {
 export async function createNavigationMetric({
   metric,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   metric: NavigationMetric;
   privateKey: `0x${string}`;

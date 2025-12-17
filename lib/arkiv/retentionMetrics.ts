@@ -16,6 +16,7 @@ import { listUserProfiles } from "./profile";
 import { listAsks } from "./asks";
 import { listOffers } from "./offers";
 import { listSessions } from "./sessions";
+import { SPACE_ID } from "@/lib/config";
 
 export type RetentionCohort = {
   key: string;
@@ -202,7 +203,7 @@ export async function computeRetentionCohort(
 export async function createRetentionCohort({
   cohort,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   cohort: Omit<RetentionCohort, 'key' | 'txHash'>;
   privateKey: `0x${string}`;

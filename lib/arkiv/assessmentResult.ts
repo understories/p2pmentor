@@ -13,6 +13,7 @@ import { getAssessmentProgress } from "./languageQuest";
 import { getLearnerQuest } from "./learnerQuest";
 import { parseLanguageAssessmentQuest } from "./languageQuest";
 import type { LanguageAssessmentQuest } from "./languageQuest";
+import { SPACE_ID } from "@/lib/config";
 
 export type AssessmentResult = {
   key: string;
@@ -173,7 +174,7 @@ export async function completeAssessment({
   questId,
   startedAt,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   questId: string;

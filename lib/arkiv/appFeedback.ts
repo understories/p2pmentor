@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { listAdminResponses } from "./adminResponse";
+import { SPACE_ID } from "@/lib/config";
 
 export type AppFeedback = {
   key: string;
@@ -160,7 +161,7 @@ export async function resolveAppFeedback({
   feedbackKey,
   resolvedByWallet,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   feedbackKey: string;
   resolvedByWallet: string;
@@ -409,7 +410,7 @@ export async function listAppFeedback({
       message: payload.message || '',
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID,
       createdAt: getAttr('createdAt'),
       txHash: txHashMap[feedbackKey] || payload.txHash || entity.txHash || undefined,
       resolved: !!resolution,
@@ -592,7 +593,7 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
       message: payload.message || '',
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID,
       createdAt: getAttr('createdAt'),
       txHash: txHash || payload.txHash || undefined,
       resolved: !!resolution,

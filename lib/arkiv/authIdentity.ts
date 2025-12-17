@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type AuthIdentityType = 'passkey' | 'backup_wallet';
 
@@ -55,7 +56,7 @@ export async function createPasskeyIdentity({
   transports,
   deviceName,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   credentialID: string; // base64url-encoded
@@ -134,7 +135,7 @@ export async function createBackupWalletIdentity({
   wallet,
   backupWalletAddress,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   backupWalletAddress: string;

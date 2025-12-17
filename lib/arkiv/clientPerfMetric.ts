@@ -11,6 +11,7 @@ import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 import type { ClientPerfMetric } from "@/lib/metrics/clientPerf";
+import { SPACE_ID } from "@/lib/config";
 
 export type ClientPerfMetricEntity = {
   key: string;
@@ -33,7 +34,7 @@ export type ClientPerfMetricEntity = {
 export async function createClientPerfMetric({
   metric,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   metric: ClientPerfMetric;
   privateKey: `0x${string}`;

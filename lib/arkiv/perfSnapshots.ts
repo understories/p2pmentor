@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type PerfSnapshot = {
   key: string;
@@ -59,7 +60,7 @@ export type PerfSnapshot = {
 export async function createPerfSnapshot({
   snapshot,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   snapshot: Omit<PerfSnapshot, 'key' | 'txHash'>;
   privateKey: `0x${string}`;

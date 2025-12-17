@@ -362,7 +362,7 @@ export async function getGardenNoteByKey(key: string): Promise<GardenNote | null
     const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
     const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
     const createdAtAttr = String(attributes.find((a: any) => a.key === 'createdAt')?.value || '');
-    const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || 'local-dev');
+    const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
     const channelAttr = String(attributes.find((a: any) => a.key === 'channel')?.value || 'public_garden_board');
 
     const noteTags = tagsAttr ? tagsAttr.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [];

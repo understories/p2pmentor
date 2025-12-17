@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type GitHubIssueLink = {
   key: string;
@@ -30,7 +31,7 @@ export async function createGitHubIssueLink({
   issueUrl,
   repository,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   feedbackKey: string;
   issueNumber: number;

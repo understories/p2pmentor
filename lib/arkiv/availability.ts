@@ -896,7 +896,7 @@ export async function getAvailabilityByKey(key: string): Promise<Availability | 
   return {
     key: entity.key,
     wallet: getAttr('wallet'),
-    spaceId: getAttr('spaceId') || 'local-dev',
+    spaceId: getAttr('spaceId') || SPACE_ID,
     createdAt: getAttr('createdAt'),
     timeBlocks: payload.timeBlocks || '',
     timezone: payload.timezone || getAttr('timezone') || '',

@@ -12,6 +12,7 @@ import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 import { listDxMetrics } from "./dxMetrics";
 import { listClientPerfMetrics } from "./clientPerfMetric";
+import { SPACE_ID } from "@/lib/config";
 
 export type PercentileMetrics = {
   p50: number;
@@ -84,7 +85,7 @@ export function calculatePercentiles(values: number[]): PercentileMetrics {
 export async function createMetricAggregate({
   aggregate,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   aggregate: Omit<DailyMetricAggregate, 'key' | 'txHash'>;
   privateKey: `0x${string}`;

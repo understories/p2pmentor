@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type OnboardingEventType = 'network_explored' | 'onboarding_started' | 'onboarding_completed';
 
@@ -33,7 +34,7 @@ export async function createOnboardingEvent({
   wallet,
   eventType,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   eventType: OnboardingEventType;
@@ -96,7 +97,7 @@ export async function createOnboardingEventClient({
   wallet,
   eventType,
   account,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   eventType: OnboardingEventType;
@@ -159,7 +160,7 @@ export async function listOnboardingEvents({
   wallet,
   eventType,
   limit = 100,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   eventType?: OnboardingEventType;

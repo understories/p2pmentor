@@ -11,6 +11,7 @@ import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 import type { PerfSample } from "@/lib/metrics/perf";
+import { SPACE_ID } from "@/lib/config";
 
 export type DxMetric = {
   key: string;
@@ -36,7 +37,7 @@ export type DxMetric = {
 export async function createDxMetric({
   sample,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   sample: PerfSample;
   privateKey: `0x${string}`;
