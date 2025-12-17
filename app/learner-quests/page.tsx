@@ -71,6 +71,7 @@ export default function LearnerQuestsPage() {
   const [selectedQuest, setSelectedQuest] = useState<LearnerQuest | null>(null);
   const [materialProgress, setMaterialProgress] = useState<Record<string, { status: string; readAt?: string; key?: string; txHash?: string }>>({});
   const [markingRead, setMarkingRead] = useState<string | null>(null);
+  const [overallCompletion, setOverallCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -91,6 +92,7 @@ export default function LearnerQuestsPage() {
   useEffect(() => {
     if (wallet && quests.length > 0) {
       loadAllProgress();
+      loadOverallCompletion();
     }
   }, [wallet, quests]);
 
@@ -173,6 +175,46 @@ export default function LearnerQuestsPage() {
       setQuestProgress(progressMap);
     } catch (err: any) {
       console.error('Error loading all progress:', err);
+    }
+  };
+
+  const loadOverallCompletion = async () => {
+    if (!wallet) return;
+
+    try {
+      // Calculate overall completion across all reading_list quests
+      const readingListQuests = quests.filter(q => q.questType === 'reading_list');
+      if (readingListQuests.length === 0) {
+        setOverallCompletion(null);
+        return;
+      }
+
+      const progressPromises = readingListQuests.map(async (quest) => {
+        try {
+          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
+          const data = await res.json();
+
+          if (data.ok && data.progress && quest.materials) {
+            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+            const totalMaterials = quest.materials.length;
+            return { readCount, totalMaterials };
+          }
+          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+        } catch (err) {
+          console.error(`Error loading progress for quest ${quest.questId}:`, err);
+          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+        }
+      });
+
+      const results = await Promise.all(progressPromises);
+      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
+      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
+      const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
+
+      setOverallCompletion({ percent, readCount: totalRead, totalMaterials });
+    } catch (err: any) {
+      console.error('Error loading overall completion:', err);
+      setOverallCompletion(null);
     }
   };
 
@@ -443,6 +485,29 @@ export default function LearnerQuestsPage() {
             title="Learning Quests"
             description="Curated reading materials and learning paths. Track your progress through each quest."
           />
+
+          {/* Overall Completion Rate */}
+          {overallCompletion && (
+            <div className="mb-6 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Overall Progress
+                </span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {overallCompletion.percent}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+                <div
+                  className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${overallCompletion.percent}%` }}
+                />
+              </div>
+              <p className="text-xs text-gray-600 dark:text-gray-400">
+                {overallCompletion.readCount} / {overallCompletion.totalMaterials} materials completed across all quests
+              </p>
+            </div>
+          )}
 
           {/* Quests List */}
           {quests.length === 0 ? (

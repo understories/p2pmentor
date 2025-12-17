@@ -45,6 +45,7 @@ export default function MePage() {
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
+  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
@@ -113,6 +114,7 @@ export default function MePage() {
         // Load sessions and feedback for stats
         loadSessionStats(address);
         loadFeedbackStats(address);
+        loadLearnerQuestCompletion(address);
       }
       
       // Poll for notifications and profile status every 30 seconds (only if profile exists)
@@ -271,6 +273,54 @@ export default function MePage() {
         totalRatings: 0,
         average: 0,
       });
+    }
+  };
+
+  const loadLearnerQuestCompletion = async (walletAddress: string) => {
+    try {
+      // Fetch all active quests
+      const questsRes = await fetch('/api/learner-quests');
+      const questsData = await questsRes.json();
+
+      if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
+        setLearnerQuestCompletion(null);
+        return;
+      }
+
+      const quests = questsData.quests.filter((q: any) => q.questType === 'reading_list');
+
+      if (quests.length === 0) {
+        setLearnerQuestCompletion(null);
+        return;
+      }
+
+      // Load progress for all quests in parallel
+      const progressPromises = quests.map(async (quest: any) => {
+        try {
+          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+          const data = await res.json();
+
+          if (data.ok && data.progress && quest.materials) {
+            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+            const totalMaterials = quest.materials.length;
+            return { readCount, totalMaterials };
+          }
+          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+        } catch (err) {
+          console.error(`Error loading progress for quest ${quest.questId}:`, err);
+          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+        }
+      });
+
+      const results = await Promise.all(progressPromises);
+      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
+      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
+      const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
+
+      setLearnerQuestCompletion({ percent, readCount: totalRead, totalMaterials });
+    } catch (err) {
+      console.error('Error loading learner quest completion:', err);
+      setLearnerQuestCompletion(null);
     }
   };
 
@@ -586,6 +636,31 @@ export default function MePage() {
                 <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
               </div>
             </div>
+
+            {/* Learner Quest Completion */}
+            {learnerQuestCompletion && (
+              <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
+                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                  {learnerQuestCompletion.percent}%
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
+                <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
+                  {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
+                </p>
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <div className="font-mono text-left">
+                    <div>Arkiv query: type='learner_quest_progress',</div>
+                    <div>wallet='{walletAddress?.slice(0, 8)}...'</div>
+                    <div>status='read'</div>
+                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                      Calculated across all reading_list quests
+                    </div>
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                </div>
+              </div>
+            )}
             
             {/* Average Rating */}
             <div className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center cursor-help">

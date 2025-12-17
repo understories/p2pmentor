@@ -683,6 +683,44 @@ export default function ProfileDetailPage() {
                   </div>
                 )}
               </div>
+
+              {/* Learner Quest Completion */}
+              {learnerQuestCompletion && (
+                <div className="mt-4">
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `GET /api/learner-quests`,
+                        `GET /api/learner-quests/progress?questId=...&wallet=${wallet.toLowerCase()}`,
+                        `Query: type='learner_quest_progress', wallet='${wallet.toLowerCase()}', status='read'`,
+                        `Calculated across all reading_list quests`,
+                        `Returns: ${learnerQuestCompletion.percent}% complete (${learnerQuestCompletion.readCount} / ${learnerQuestCompletion.totalMaterials} materials)`
+                      ]}
+                      label="Learning Quests"
+                    >
+                      <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                        <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                          {learnerQuestCompletion.percent}%
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
+                          {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
+                        </p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                        {learnerQuestCompletion.percent}%
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
+                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
+                        {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           );
         })()}
