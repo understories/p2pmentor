@@ -235,15 +235,17 @@ export default function OnboardingPage() {
                   onSkillAdded={(skillId) => {
                     // Trigger garden animation for new skill
                     setAnimateNewSkill(skillId);
-                    // Reload garden skills
-                    getProfileByWallet(wallet)
-                      .then(profile => {
-                        if (profile) {
-                          const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
-                          setGardenSkills(skills);
-                        }
-                      })
-                      .catch(() => {});
+                    // Reload garden skills after a delay to allow Arkiv indexing
+                    setTimeout(() => {
+                      getProfileByWallet(wallet)
+                        .then(profile => {
+                          if (profile) {
+                            const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
+                            setGardenSkills(skills);
+                          }
+                        })
+                        .catch(() => {});
+                    }, 1000); // 1 second delay to allow Arkiv to index the profile update
                     // Clear animation after animation completes
                     setTimeout(() => setAnimateNewSkill(undefined), 800);
                   }}

@@ -72,12 +72,21 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   // Get profile count for a skill
   const getSkillProfileCount = async (skillKey: string): Promise<number> => {
     try {
-      const allProfiles = await listUserProfiles();
       const skill = existingSkills.find(s => s.key === skillKey);
       if (!skill) return 0;
 
+      // CRITICAL: Query profiles with the same spaceId as the skill
+      // This ensures accurate counts and prevents cross-environment data mixing
+      const allProfiles = await listUserProfiles({ spaceId: skill.spaceId });
+
       let count = 0;
       allProfiles.forEach(profile => {
+        // CRITICAL: Only count profiles from the same spaceId as the skill
+        // This ensures accurate counts when querying multiple spaceIds or different environments
+        if (profile.spaceId !== skill.spaceId) {
+          return; // Skip profiles from different spaceIds
+        }
+
         // Check skill_ids array (new format)
         if (Array.isArray((profile as any).skill_ids) && (profile as any).skill_ids.includes(skillKey)) {
           count++;
@@ -215,12 +224,17 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         throw new Error(data.error || 'Failed to update profile');
       }
 
+      // Small delay to allow Arkiv to index the new profile entity
+      // This ensures the profile count includes the newly added profile
+      await new Promise(resolve => setTimeout(resolve, 500));
+
       // Show confirmation based on whether skill was new or existing
       if (wasNewSkill) {
         setConfirmationType('new');
         setConfirmationMessage(`You added a new skill to the network! "${skill.name_canonical}" has been planted in the Arkiv garden.`);
       } else {
         // Get profile count for existing skill
+        // The count should now include the newly added profile after the delay
         const profileCount = await getSkillProfileCount(skill.key);
         setConfirmationType('existing');
         setConfirmationMessage(`You are joining ${profileCount} other${profileCount === 1 ? '' : 's'} in the network learning "${skill.name_canonical}".`);
