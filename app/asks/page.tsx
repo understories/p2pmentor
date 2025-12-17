@@ -26,6 +26,7 @@ import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors } from '@/lib/colors';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { buildBuilderModeParams } from '@/lib/utils/builderMode';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -224,9 +225,10 @@ export default function AsksPage() {
       // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
       const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
       
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const [profileData, asksRes] = await Promise.all([
         getProfileByWallet(wallet).catch(() => null),
-        fetch(`/api/asks${arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : ''}`).then(r => r.json()),
+        fetch(`/api/asks${builderParams}`).then(r => r.json()),
       ]);
       
       const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;

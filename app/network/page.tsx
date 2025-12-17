@@ -24,6 +24,7 @@ import { SkillCluster } from '@/components/network/SkillCluster';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { buildBuilderModeParams } from '@/lib/utils/builderMode';
 import { safeRedirect } from '@/lib/utils/redirect';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -155,11 +156,11 @@ export default function NetworkPage() {
   const loadNetwork = async () => {
     try {
       setLoading(true);
-      const builderParams = arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : '';
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const [asksRes, offersRes, skillsRes] = await Promise.all([
         fetch(`/api/asks${builderParams}`).then(r => r.json()),
         fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        fetch('/api/skills?status=active&limit=200').then(r => r.json()),
+        fetch(`/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`).then(r => r.json()),
         // fetch(`/api/skills/explore${builderParams}`).then(r => r.json()), // Commented out: Skill Canopy removed for now (may use in future)
       ]);
 

@@ -21,6 +21,7 @@ import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { buildBuilderModeParams } from '@/lib/utils/builderMode';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
@@ -69,11 +70,11 @@ export default function MatchesPage() {
       setLoading(true);
       
       // Load asks, offers, and skills in parallel
-      const builderParams = arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : '';
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const [asksRes, offersRes, skillsRes] = await Promise.all([
         fetch(`/api/asks${builderParams}`).then(r => r.json()),
         fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        fetch('/api/skills?status=active&limit=200').then(r => r.json()),
+        fetch(`/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`).then(r => r.json()),
       ]);
 
       const asks: Ask[] = asksRes.ok ? (asksRes.asks || []) : [];
