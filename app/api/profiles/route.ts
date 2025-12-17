@@ -9,7 +9,7 @@
  */
 
 import { NextResponse } from 'next/server';
-import { listUserProfiles, checkProfileExistence } from '@/lib/arkiv/profile';
+import { listUserProfiles } from '@/lib/arkiv/profile';
 import { SPACE_ID } from '@/lib/config';
 
 export async function GET(request: Request) {
@@ -73,50 +73,16 @@ export async function GET(request: Request) {
 
     const uniqueProfiles = Array.from(profilesMap.values());
 
-    // Check which profiles are loadable (empirical query method)
-    // Only check if not including archived (to save API calls)
-    let activeProfiles: typeof uniqueProfiles = [];
-    let archivedProfiles: typeof uniqueProfiles = [];
+    // Skip existence checks to avoid rate limiting (429 errors)
+    // Profiles returned from listUserProfiles are already valid
+    // If a profile can't be loaded, the detail page will handle it gracefully
+    const activeProfiles = uniqueProfiles;
+    const archivedProfiles: typeof uniqueProfiles = [];
 
-    if (!includeArchived) {
-      // Check loadability for each profile (in parallel, but with reasonable concurrency)
-      // Use Promise.allSettled to handle individual failures gracefully
-      const existenceChecks = await Promise.allSettled(
-        uniqueProfiles.map(async (profile) => {
-          try {
-            const check = await checkProfileExistence(profile.wallet);
-            return { profile, check, success: true };
-          } catch (error) {
-            // If check fails, assume profile is loadable (fail open)
-            return { profile, check: { exists: true, loadable: true, profile: null }, success: false };
-          }
-        })
-      );
-
-      // Process results
-      existenceChecks.forEach((result) => {
-        if (result.status === 'fulfilled' && result.value.success) {
-          const { profile, check } = result.value;
-          if (check.loadable) {
-            activeProfiles.push(profile);
-          } else if (check.exists) {
-            archivedProfiles.push(profile);
-          }
-        } else if (result.status === 'fulfilled' && !result.value.success) {
-          // Fail open: if check fails, include in active
-          activeProfiles.push(result.value.profile);
-        }
-      });
-
-      console.log('[Profiles API] Profile existence checks complete:', {
-        totalChecked: uniqueProfiles.length,
-        active: activeProfiles.length,
-        archived: archivedProfiles.length,
-      });
-    } else {
-      // Include all profiles when archived is requested
-      activeProfiles = uniqueProfiles;
-    }
+    console.log('[Profiles API] Skipping existence checks to avoid rate limiting:', {
+      totalProfiles: uniqueProfiles.length,
+      note: 'Existence checks were causing 429 rate limit errors. Profiles are validated when accessed.',
+    });
 
     return NextResponse.json({
       ok: true,
