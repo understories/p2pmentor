@@ -143,6 +143,7 @@ export async function POST(request: NextRequest) {
                 learnerWallet: learnerWallet.toLowerCase(),
               },
               privateKey: getPrivateKey(),
+              spaceId: SPACE_ID, // Use SPACE_ID from config (same as the session entity)
             });
           } catch (notifError) {
             console.error('Failed to create user notification for session:', notifError);
