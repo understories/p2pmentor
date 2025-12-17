@@ -50,7 +50,7 @@ export async function createGardenNote({
   tags = [],
   replyToNoteId,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
   publishConsent = false,
 }: {
   authorWallet: string;
@@ -269,8 +269,8 @@ export async function listGardenNotes({
         const attrs = entity.attributes || [];
         const spaceIdAttr = String(
           Array.isArray(attrs)
-            ? attrs.find((a: any) => a.key === 'spaceId')?.value || 'local-dev'
-            : attrs.spaceId || 'local-dev'
+            ? attrs.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID
+            : attrs.spaceId || SPACE_ID
         );
         return spaceIds.includes(spaceIdAttr);
       });
@@ -287,7 +287,7 @@ export async function listGardenNotes({
         const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
         const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
         const createdAtAttr = String(attributes.find((a: any) => a.key === 'createdAt')?.value || '');
-        const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || 'local-dev');
+        const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
 
         // Apply filters
         if (targetWallet && targetWalletAttr) {

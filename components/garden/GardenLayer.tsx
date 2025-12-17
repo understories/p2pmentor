@@ -87,9 +87,9 @@ export function GardenLayer({
   const identitySeedSlot = slots.find(s => s?.id === 'identity_seed');
 
   return (
-    <div className={`fixed inset-0 ${showSeedTooltip ? 'z-20' : 'z-0'} ${className}`}>
-      {/* Bottom garden strip - responsive spacing with padding to prevent cutoff */}
-      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 pb-20 md:pb-24 overflow-visible">
+    <div className={`fixed inset-0 ${showSeedTooltip ? 'z-20' : 'z-[1]'} ${className}`}>
+      {/* Bottom garden strip - responsive spacing with padding to prevent cutoff, lowered for visibility */}
+      <div className="absolute inset-x-0 bottom-2 md:bottom-4 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 pb-20 md:pb-24 overflow-visible">
         {slots.map((skill, i) =>
           skill ? (
             skill.id === 'identity_seed' && showSeedTooltip && onSeedClick ? (

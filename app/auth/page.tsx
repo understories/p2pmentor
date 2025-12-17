@@ -16,6 +16,8 @@ import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 import { isMobileBrowser, isMetaMaskBrowser, isMetaMaskAvailable, getMobilePlatform } from '@/lib/auth/mobile-detection';
 import { openMetaMaskApp, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -27,6 +29,7 @@ export default function AuthPage() {
   const [isMetaMaskMobileBrowser, setIsMetaMaskMobileBrowser] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Check if user has already passed invite gate
   useEffect(() => {
@@ -339,13 +342,23 @@ export default function AuthPage() {
 
         <div className="flex flex-col gap-4 mb-6">
           {/* Connect Wallet Button - Always visible per acceptance criteria */}
-          <button
-            onClick={handleMetaMaskConnect}
-            disabled={isConnecting || loadingExample}
-            className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
+          <ArkivQueryTooltip
+            query={[
+              `getProfileByWallet(wallet='{address}')`,
+              `type='profile', wallet='{wallet}'`,
+              `calculateOnboardingLevel(wallet='{address}')`,
+              `Queries: profile, asks, offers, onboarding_events`,
+            ]}
+            label="Auth Queries"
           >
-            {isConnecting ? 'Connecting...' : 'Connect Wallet'}
-          </button>
+            <button
+              onClick={handleMetaMaskConnect}
+              disabled={isConnecting || loadingExample}
+              className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
+            >
+              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          </ArkivQueryTooltip>
           
           {/* Mobile helper text - only show on mobile when MetaMask not detected */}
           {mounted && isMobile && !isMetaMaskMobileBrowser && !hasMetaMask && (
@@ -386,13 +399,23 @@ export default function AuthPage() {
             <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
           </div>
 
-          <button
-            onClick={handleExampleWallet}
-            disabled={isConnecting || loadingExample}
-            className="w-full px-6 py-3 text-base font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700"
+          <ArkivQueryTooltip
+            query={[
+              `getProfileByWallet(wallet='{address}')`,
+              `type='profile', wallet='{wallet}'`,
+              `calculateOnboardingLevel(wallet='{address}')`,
+              `Queries: profile, asks, offers, onboarding_events`,
+            ]}
+            label="Auth Queries"
           >
-            {loadingExample ? 'Loading...' : 'Log in with Example Wallet'}
-          </button>
+            <button
+              onClick={handleExampleWallet}
+              disabled={isConnecting || loadingExample}
+              className="w-full px-6 py-3 text-base font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700"
+            >
+              {loadingExample ? 'Loading...' : 'Log in with Example Wallet'}
+            </button>
+          </ArkivQueryTooltip>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 text-center">
             Try the demo without MetaMask
           </p>

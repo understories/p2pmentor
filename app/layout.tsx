@@ -9,6 +9,7 @@ import { GlobalToggles } from "@/components/GlobalToggles";
 import { ArkivModeBanner } from "@/components/ArkivModeBanner";
 import { NavigationTracker } from "@/components/NavigationTracker";
 import { NoScriptRedirect } from "@/components/NoScriptRedirect";
+import { FixedBackgroundGarden } from "@/components/garden/FixedBackgroundGarden";
 
 export const metadata: Metadata = {
   title: "p2pmentor",
@@ -39,6 +40,7 @@ export default function RootLayout({
           <ArkivModeBanner />
           <NavigationTracker />
           <BackgroundImage />
+          <FixedBackgroundGarden />
           <ClientPerfTracker />
           <ConditionalAppShell>
             {children}

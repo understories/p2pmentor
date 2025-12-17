@@ -56,6 +56,7 @@ export default function NetworkPage() {
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
   const [showContent, setShowContent] = useState(false); // Hide content by default
+  const [canopySkills, setCanopySkills] = useState<Array<{ skill: string; count: number; skillKey?: string }>>([]);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -152,10 +153,11 @@ export default function NetworkPage() {
     try {
       setLoading(true);
       const builderParams = arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : '';
-      const [asksRes, offersRes, skillsRes] = await Promise.all([
+      const [asksRes, offersRes, skillsRes, skillsExploreRes] = await Promise.all([
         fetch(`/api/asks${builderParams}`).then(r => r.json()),
         fetch(`/api/offers${builderParams}`).then(r => r.json()),
         fetch('/api/skills?status=active&limit=200').then(r => r.json()),
+        fetch(`/api/skills/explore${builderParams}`).then(r => r.json()),
       ]);
 
       console.log('[Network] Data loaded:', {
@@ -185,6 +187,18 @@ export default function NetworkPage() {
           skillsMap[skill.key] = skill;
         });
         setSkills(skillsMap);
+      }
+
+      // Load canopy skills from /api/skills/explore (same as skills page)
+      if (skillsExploreRes.ok && skillsExploreRes.skills) {
+        const canopySkillsData = skillsExploreRes.skills
+          .slice(0, 10) // Top 10 by profile count
+          .map((skill: Skill & { profileCount: number }) => ({
+            skill: skill.name_canonical,
+            count: skill.profileCount,
+            skillKey: skill.key,
+          }));
+        setCanopySkills(canopySkillsData);
       }
 
       // Load profiles for all unique wallets
@@ -372,26 +386,32 @@ export default function NetworkPage() {
   });
 
   // Extract top skills for Canopy section (use skill_id when available)
-  const skillCounts = new Map<string, number>();
-  asks.forEach(a => {
-    const skillKey = a.skill_id || a.skill;
-    const count = skillCounts.get(skillKey) || 0;
-    skillCounts.set(skillKey, count + 1);
-  });
-  offers.forEach(o => {
-    const skillKey = o.skill_id || o.skill;
-    const count = skillCounts.get(skillKey) || 0;
-    skillCounts.set(skillKey, count + 1);
-  });
-  const topSkills = Array.from(skillCounts.entries())
-    .map(([skillKey, count]) => {
-      // Get skill name from entity if available
-      const skill = skills[skillKey];
-      const skillName = skill ? skill.name_canonical : skillKey;
-      return { skill: skillName, skillKey, count };
-    })
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
+  // Use canopy skills from /api/skills/explore (same as skills page)
+  // Fallback to ask/offer counts if canopy skills not loaded yet
+  const topSkills = canopySkills.length > 0
+    ? canopySkills.map(s => ({ skill: s.skill, skillKey: s.skillKey, count: s.count }))
+    : (() => {
+        // Fallback: calculate from asks/offers counts
+        const skillCounts = new Map<string, number>();
+        asks.forEach(a => {
+          const skillKey = a.skill_id || a.skill;
+          const count = skillCounts.get(skillKey) || 0;
+          skillCounts.set(skillKey, count + 1);
+        });
+        offers.forEach(o => {
+          const skillKey = o.skill_id || o.skill;
+          const count = skillCounts.get(skillKey) || 0;
+          skillCounts.set(skillKey, count + 1);
+        });
+        return Array.from(skillCounts.entries())
+          .map(([skillKey, count]) => {
+            const skill = skills[skillKey];
+            const skillName = skill ? skill.name_canonical : skillKey;
+            return { skill: skillName, skillKey, count };
+          })
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+      })();
 
   // Group asks/offers/matches by skill (use skill_id when available)
   const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }>();

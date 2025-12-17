@@ -7,7 +7,7 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/lib/theme';
@@ -26,6 +26,7 @@ interface NavItem {
 
 export function BottomNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const notificationCount = useNotificationCount();
   const [wallet, setWallet] = useState<string | null>(null);
@@ -129,10 +130,33 @@ export function BottomNav() {
       <div className="flex items-center h-14 w-full px-0.5">
         {navItems.map((item) => {
           const active = isActive(item.href);
+          const isDashboard = item.href === '/me';
+
+          // Intercept dashboard clicks during onboarding
+          const handleDashboardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            if (isDashboard && wallet && !levelLoading) {
+              // Check if we're on onboarding page
+              if (pathname === '/onboarding') {
+                e.preventDefault();
+                return;
+              }
+
+              // Check if onboarding is complete (level >= 2 means ask or offer created)
+              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+              if (level !== null && level < 2) {
+                e.preventDefault();
+                // Redirect to onboarding
+                router.push('/onboarding');
+                return;
+              }
+            }
+          };
+
           return (
             <Link
               key={item.href}
               href={item.href}
+              onClick={handleDashboardClick}
               className={`
                 relative flex flex-col items-center justify-center
                 flex-1 h-full min-w-0 max-w-full

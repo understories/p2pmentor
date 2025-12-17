@@ -10,12 +10,15 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function BetaPage() {
   const [inviteCode, setInviteCode] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Get beta code from environment variable (client-side accessible)
   const expectedCode = process.env.NEXT_PUBLIC_BETA_INVITE_CODE?.toLowerCase().trim() || '';
@@ -147,19 +150,29 @@ export default function BetaPage() {
             </p>
           )}
           
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full px-6 py-3 text-base font-semibold rounded-lg
-                     bg-[var(--accent-color)] dark:bg-emerald-600
-                     text-white
-                     hover:bg-[var(--accent-hover)] dark:hover:bg-emerald-700
-                     focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] dark:focus:ring-emerald-500 focus:ring-offset-2
-                     transition-colors
-                     disabled:opacity-50 disabled:cursor-not-allowed"
+          <ArkivQueryTooltip
+            query={[
+              `getBetaCodeUsage(code='${inviteCode || '...'}')`,
+              `type='beta_code_usage', code='{code}'`,
+              `trackBetaCodeUsage(code='${inviteCode || '...'}')`,
+              `Creates: type='beta_code_usage'`,
+            ]}
+            label="Beta Code Queries"
           >
-            {submitting ? 'Processing...' : 'Unlock Beta'}
-          </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full px-6 py-3 text-base font-semibold rounded-lg
+                       bg-[var(--accent-color)] dark:bg-emerald-600
+                       text-white
+                       hover:bg-[var(--accent-hover)] dark:hover:bg-emerald-700
+                       focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] dark:focus:ring-emerald-500 focus:ring-offset-2
+                       transition-colors
+                       disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Processing...' : 'Unlock Beta'}
+            </button>
+          </ArkivQueryTooltip>
         </form>
       </div>
     </main>

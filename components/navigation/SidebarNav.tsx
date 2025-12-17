@@ -7,7 +7,7 @@
 
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
@@ -35,6 +35,7 @@ interface NavItem {
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const router = useRouter();
   const notificationCount = useNotificationCount();
   const [hoveredIndex, setHoveredIndex] = useState<number | undefined>();
   
@@ -262,12 +263,34 @@ export function SidebarNav() {
           // Items are already filtered by level, so they should never be locked
           // But check bypass flag to ensure we don't redirect incorrectly
           const hasBypass = typeof window !== 'undefined' && hasOnboardingBypass();
-          
+          const isDashboard = item.href === '/me';
+
+          // Intercept dashboard clicks during onboarding
+          const handleDashboardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            if (isDashboard && wallet && level !== null) {
+              // Check if we're on onboarding page
+              if (pathname === '/onboarding') {
+                e.preventDefault();
+                return;
+              }
+
+              // Check if onboarding is complete (level >= 2 means ask or offer created)
+              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+              if (level !== null && level < 2) {
+                e.preventDefault();
+                // Redirect to onboarding
+                router.push('/onboarding');
+                return;
+              }
+            }
+          };
+
           return (
             <div className="relative group/nav">
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={handleDashboardClick}
                 className={`
                   relative flex flex-row items-center gap-3
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
