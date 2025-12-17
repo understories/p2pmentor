@@ -8,7 +8,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { mendoza } from '@arkiv-network/sdk/chains';
@@ -29,6 +29,7 @@ export default function AuthPage() {
   const [isMetaMaskMobileBrowser, setIsMetaMaskMobileBrowser] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
   const [openingMetaMask, setOpeningMetaMask] = useState(false);
+  const openingTimerRef = useRef<number | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -96,8 +97,17 @@ export default function AuthPage() {
     // Redirect users into MetaMask's in-app browser instead.
     if (mounted && isMobile && !isMetaMaskMobileBrowser) {
       setOpeningMetaMask(true);
+
+      // Clear any existing timeout
+      if (openingTimerRef.current) {
+        window.clearTimeout(openingTimerRef.current);
+      }
       // Reset after 4 seconds in case OS blocks the redirect
-      setTimeout(() => setOpeningMetaMask(false), 4000);
+      openingTimerRef.current = window.setTimeout(() => {
+        setOpeningMetaMask(false);
+        openingTimerRef.current = null;
+      }, 4000);
+
       openInMetaMaskBrowser(window.location.href);
       return;
     }
