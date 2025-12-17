@@ -200,18 +200,28 @@ export async function listLearnerQuests(options?: {
             : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
-          return {
+          // Default to 'reading_list' for backward compatibility
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment';
+
+          const quest: LearnerQuest = {
             key: entity.key,
             questId: getAttr(entity, 'questId'),
             title: getAttr(entity, 'title'),
             description: getAttr(entity, 'description'),
             source: getAttr(entity, 'source'),
+            questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            materials: payload.materials || [],
-            metadata: payload.metadata || {},
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
-          } as LearnerQuest;
+          };
+
+          // Only include materials/metadata for reading_list quests
+          if (questType === 'reading_list') {
+            quest.materials = payload.materials || [];
+            quest.metadata = payload.metadata || {};
+          }
+
+          return quest;
         } catch (e) {
           console.error('[listLearnerQuests] Error decoding payload:', e);
           return null;
