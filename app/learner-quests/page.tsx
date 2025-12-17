@@ -529,12 +529,33 @@ export default function LearnerQuestsPage() {
               title="Learning Quests"
               description="Curated reading materials and learning paths. Track your progress through each quest."
             />
-            <Link
-              href="/learner-quests/create"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-            >
-              Create Quest
-            </Link>
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `Navigates to /learner-quests/create page`,
+                  `POST /api/learner-quests/create { action: 'createQuest', ... }`,
+                  `Creates: type='learner_quest' entity`,
+                  `Attributes: questId, title, description, questType, status='active'`,
+                  `Payload: Full quest data (materials array, metadata, etc.)`,
+                  `TTL: 1 year (31536000 seconds)`
+                ]}
+                label="Create Quest"
+              >
+                <Link
+                  href="/learner-quests/create"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  Create Quest
+                </Link>
+              </ArkivQueryTooltip>
+            ) : (
+              <Link
+                href="/learner-quests/create"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              >
+                Create Quest
+              </Link>
+            )}
           </div>
 
           {/* Filter Buttons */}
