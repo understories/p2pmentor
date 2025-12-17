@@ -47,6 +47,14 @@ export default function MePage() {
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
+  const [individualQuestProgress, setIndividualQuestProgress] = useState<Array<{
+    questId: string;
+    title: string;
+    questType: 'reading_list' | 'language_assessment';
+    progressPercent: number;
+    readCount?: number;
+    totalMaterials?: number;
+  }>>([]);
   const arkivBuilderMode = useArkivBuilderMode();
   const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
@@ -287,43 +295,85 @@ export default function MePage() {
 
       if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
         setLearnerQuestCompletion(null);
+        setIndividualQuestProgress([]);
         return;
       }
 
-      const quests = questsData.quests.filter((q: any) => q.questType === 'reading_list');
+      const allQuests = questsData.quests;
+      const readingListQuests = allQuests.filter((q: any) => q.questType === 'reading_list');
 
-      if (quests.length === 0) {
-        setLearnerQuestCompletion(null);
-        return;
-      }
-
-      // Load progress for all quests in parallel
-      const progressPromises = quests.map(async (quest: any) => {
+      // Load progress for all quests in parallel (both reading_list and language_assessment)
+      const progressPromises = allQuests.map(async (quest: any) => {
         try {
-          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
-          const data = await res.json();
+          if (quest.questType === 'reading_list') {
+            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+            const data = await res.json();
 
-          if (data.ok && data.progress && quest.materials) {
-            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
-            const totalMaterials = quest.materials.length;
-            return { readCount, totalMaterials };
+            if (data.ok && data.progress && quest.materials) {
+              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const totalMaterials = quest.materials.length;
+              const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
+              return {
+                questId: quest.questId,
+                title: quest.title,
+                questType: quest.questType,
+                progressPercent,
+                readCount,
+                totalMaterials,
+              };
+            }
+            return {
+              questId: quest.questId,
+              title: quest.title,
+              questType: quest.questType,
+              progressPercent: 0,
+              readCount: 0,
+              totalMaterials: quest.materials?.length || 0,
+            };
+          } else if (quest.questType === 'language_assessment') {
+            // For language assessments, we could load assessment results here
+            // For now, just show 0% or we could check if there's a completed assessment
+            return {
+              questId: quest.questId,
+              title: quest.title,
+              questType: quest.questType,
+              progressPercent: 0, // TODO: Load assessment results to calculate actual progress
+            };
           }
-          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+          return null;
         } catch (err) {
           console.error(`Error loading progress for quest ${quest.questId}:`, err);
-          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
+          return {
+            questId: quest.questId,
+            title: quest.title,
+            questType: quest.questType,
+            progressPercent: 0,
+            readCount: 0,
+            totalMaterials: quest.materials?.length || 0,
+          };
         }
       });
 
       const results = await Promise.all(progressPromises);
-      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
-      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
+      const validResults = results.filter((r): r is NonNullable<typeof r> => r !== null);
+      setIndividualQuestProgress(validResults);
+
+      // Calculate overall completion for reading_list quests only
+      if (readingListQuests.length === 0) {
+        setLearnerQuestCompletion(null);
+        return;
+      }
+
+      const readingListResults = validResults.filter(r => r.questType === 'reading_list');
+      const totalRead = readingListResults.reduce((sum, r) => sum + (r.readCount || 0), 0);
+      const totalMaterials = readingListResults.reduce((sum, r) => sum + (r.totalMaterials || 0), 0);
       const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
 
       setLearnerQuestCompletion({ percent, readCount: totalRead, totalMaterials });
     } catch (err) {
       console.error('Error loading learner quest completion:', err);
       setLearnerQuestCompletion(null);
+      setIndividualQuestProgress([]);
     }
   };
 
@@ -645,29 +695,89 @@ export default function MePage() {
               </div>
             </div>
 
-            {/* Learner Quest Completion */}
-            {learnerQuestCompletion && (
-              <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {learnerQuestCompletion.percent}%
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
-                <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
-                  {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
-                </p>
-                {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                  <div className="font-mono text-left">
-                    <div>Arkiv query: type='learner_quest_progress',</div>
-                    <div>wallet='{walletAddress?.slice(0, 8)}...'</div>
-                    <div>status='read'</div>
-                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
-                      Calculated across all reading_list quests
+            {/* Learner Quests - Full Width Row */}
+            {individualQuestProgress.length > 0 && (
+              <Link
+                href="/learner-quests"
+                className="col-span-2 group relative p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all duration-200 cursor-pointer"
+              >
+                <div className="flex flex-col md:flex-row gap-4">
+                  {/* Reading Lists Section */}
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Reading Lists
+                    </h3>
+                    <div className="space-y-2">
+                      {individualQuestProgress
+                        .filter(q => q.questType === 'reading_list')
+                        .map((quest) => (
+                          <div
+                            key={quest.questId}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300 truncate flex-1">
+                              {quest.title}
+                            </span>
+                            <span className="text-emerald-600 dark:text-emerald-400 font-medium ml-2">
+                              {quest.progressPercent}%
+                            </span>
+                          </div>
+                        ))}
+                      {individualQuestProgress.filter(q => q.questType === 'reading_list').length === 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">No reading list quests</p>
+                      )}
                     </div>
                   </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+
+                  {/* Divider */}
+                  <div className="w-px bg-emerald-200 dark:bg-emerald-700"></div>
+
+                  {/* Language Assessments Section */}
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Language Assessments
+                    </h3>
+                    <div className="space-y-2">
+                      {individualQuestProgress
+                        .filter(q => q.questType === 'language_assessment')
+                        .map((quest) => (
+                          <div
+                            key={quest.questId}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300 truncate flex-1">
+                              {quest.title}
+                            </span>
+                            <span className="text-blue-600 dark:text-blue-400 font-medium ml-2">
+                              {quest.progressPercent}%
+                            </span>
+                          </div>
+                        ))}
+                      {individualQuestProgress.filter(q => q.questType === 'language_assessment').length === 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">No language assessments</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+                {/* Tooltip */}
+                {arkivBuilderMode && (
+                  <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                    <div className="font-mono text-left">
+                      <div>GET /api/learner-quests</div>
+                      <div>→ listLearnerQuests()</div>
+                      <div>→ type='learner_quest', status='active'</div>
+                      <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                        For each quest: GET /api/learner-quests/progress
+                      </div>
+                      <div className="text-[10px] text-gray-500">
+                        → type='learner_quest_progress', wallet='...', questId='...'
+                      </div>
+                    </div>
+                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                  </div>
+                )}
+              </Link>
             )}
             
             {/* Average Rating */}
