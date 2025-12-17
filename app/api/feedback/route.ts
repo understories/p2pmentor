@@ -126,6 +126,9 @@ export async function GET(request: Request) {
     const sessionKey = searchParams.get('sessionKey');
     const wallet = searchParams.get('wallet');
     const key = searchParams.get('key');
+    
+    // Extract spaceId from query params (for builder mode) or use SPACE_ID from config
+    const spaceId = searchParams.get('spaceId') || undefined;
 
     // Get single feedback by key
     if (key) {
