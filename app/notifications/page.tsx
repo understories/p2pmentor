@@ -380,21 +380,28 @@ export default function NotificationsPage() {
 
       const data = await response.json();
       
+      // Calculate delay based on number of updates to allow Arkiv indexing
+      // Each entity needs time to be indexed, so we wait longer for bulk updates
+      // Using 200ms per notification + 500ms base delay to ensure all entities are indexed
+      const indexingDelay = Math.max(1500, 500 + (unreadNotifications.length * 200));
+      
       // Verify all preferences were updated successfully
       if (data.updated < unreadNotifications.length) {
-        console.warn(`[markAllAsRead] Only ${data.updated}/${unreadNotifications.length} preferences updated. Some may have failed.`);
-        // Reload preferences to get accurate state
+        console.warn(`[markAllAsRead] Only ${data.updated}/${unreadNotifications.length} preferences updated. Waiting for indexing before checking...`);
+        // Wait for indexing before reloading to check actual state
+        await new Promise(resolve => setTimeout(resolve, indexingDelay));
+        // Reload preferences to get accurate state after indexing
         await loadNotificationPreferences(userWallet);
         // Reload notifications to reflect accurate read state
         await loadNotifications(userWallet);
+      } else {
+        // All updates succeeded - wait for Arkiv to index all entities before dispatching event
+        // This ensures the count refresh sees all updated preferences
+        await new Promise(resolve => setTimeout(resolve, indexingDelay));
       }
 
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
-
-      // Wait a moment for Arkiv to index the new preference entities before dispatching event
-      // This ensures the count refresh sees the updated preferences
-      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Dispatch event to update sidebar notification count
       if (typeof window !== 'undefined') {
@@ -460,6 +467,15 @@ export default function NotificationsPage() {
       if (!response.ok) {
         throw new Error('Failed to save preferences');
       }
+
+      const data = await response.json();
+      
+      // Calculate delay based on number of updates to allow Arkiv indexing
+      // Using 200ms per notification + 500ms base delay to ensure all entities are indexed
+      const indexingDelay = Math.max(1500, 500 + (readNotifications.length * 200));
+      
+      // Wait for Arkiv to index all entities before dispatching event
+      await new Promise(resolve => setTimeout(resolve, indexingDelay));
 
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload

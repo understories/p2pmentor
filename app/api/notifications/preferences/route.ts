@@ -153,8 +153,10 @@ export async function PUT(request: Request) {
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const spaceId = SPACE_ID;
     
-    // Update preferences sequentially with small delays to avoid rate limits
-    // Arkiv can handle parallel updates, but sequential is safer for bulk operations
+    // Update preferences sequentially with delays to allow Arkiv indexing
+    // CRITICAL: Each entity needs time to be indexed before the next one
+    // Using 200ms delay to ensure proper indexing (Arkiv-native pattern)
+    // This prevents rate limits and ensures all entities are indexed before querying
     const results: Array<{ key: string; txHash: string } | null> = [];
     for (let i = 0; i < preferences.length; i++) {
       const pref = preferences[i];
@@ -170,13 +172,20 @@ export async function PUT(request: Request) {
         });
         results.push(result);
         
-        // Small delay between updates to avoid rate limiting (50ms)
+        // Delay between updates to allow Arkiv indexing (200ms per entity)
+        // This ensures each entity is indexed before the next update
+        // Longer delay helps prevent rate limits and ensures reliable indexing
         if (i < preferences.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 50));
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
       } catch (err: any) {
-        console.error(`Failed to update preference ${pref.notificationId}:`, err);
+        console.error(`[bulk preferences] Failed to update preference ${pref.notificationId}:`, err);
         results.push(null);
+        // Continue processing other preferences even if one fails
+        // Add delay even on error to avoid rate limits
+        if (i < preferences.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
     }
 
