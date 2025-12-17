@@ -148,7 +148,7 @@ export default function LearnerQuestsPage() {
 
           if (data.ok && data.progress) {
             const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
-            const totalMaterials = quest.materials.length;
+            const totalMaterials = quest.materials?.length || 0;
             const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
 
             return {
@@ -355,8 +355,9 @@ export default function LearnerQuestsPage() {
   // Show quest detail view if a quest is selected (only for reading_list quests)
   if (selectedQuest && selectedQuest.questType === 'reading_list') {
     const readCount = Object.values(materialProgress).filter(p => p.status === 'read').length;
-    const progressPercent = selectedQuest.materials.length > 0
-      ? Math.round((readCount / selectedQuest.materials.length) * 100)
+    const totalMaterials = selectedQuest.materials?.length || 0;
+    const progressPercent = totalMaterials > 0
+      ? Math.round((readCount / totalMaterials) * 100)
       : 0;
 
     return (
@@ -373,7 +374,7 @@ export default function LearnerQuestsPage() {
               <div className="mb-4">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">
-                    Progress: {readCount} / {selectedQuest.materials.length} materials read
+                    Progress: {readCount} / {selectedQuest.materials?.length || 0} materials read
                   </span>
                   <span className="text-sm text-gray-500 dark:text-gray-400">{progressPercent}%</span>
                 </div>
@@ -650,7 +651,7 @@ export default function LearnerQuestsPage() {
                 {filteredQuests.map((quest) => {
                 const progress = questProgress[quest.questId] || {
                   readCount: 0,
-                  totalMaterials: quest.materials.length,
+                  totalMaterials: quest.materials?.length || 0,
                   progressPercent: 0,
                 };
 
