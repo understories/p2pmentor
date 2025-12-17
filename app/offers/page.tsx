@@ -519,6 +519,11 @@ export default function OffersPage() {
                       ({offer.cost})
                     </span>
                   )}
+                  {offer.paymentAddress && (
+                    <div className="mt-2 text-xs font-mono text-purple-600 dark:text-purple-400 break-all">
+                      Payment: {offer.paymentAddress}
+                    </div>
+                  )}
                 </>
               ) : (
                 <span className="text-blue-600 dark:text-blue-400 font-medium">🆓 Free</span>
@@ -855,65 +860,167 @@ export default function OffersPage() {
                 <label className="block text-sm font-medium mb-2">
                   Payment Type *
                 </label>
-                <div className="flex gap-4">
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="paymentType"
-                      checked={!newOffer.isPaid}
-                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
-                      className="mr-2"
-                    />
-                    <span>Free</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="radio"
-                      name="paymentType"
-                      checked={newOffer.isPaid}
-                      onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
-                      className="mr-2"
-                    />
-                    <span>Paid</span>
-                  </label>
-                </div>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Payment Type Selection`,
+                      `Stored as: attribute='isPaid' on offer entity`,
+                      `Values: 'true' | 'false' (string)`,
+                      `Determines if cost and paymentAddress are required`
+                    ]}
+                    label="Payment Type"
+                  >
+                    <div className="flex gap-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="paymentType"
+                          checked={!newOffer.isPaid}
+                          onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
+                          className="mr-2"
+                        />
+                        <span>Free</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="paymentType"
+                          checked={newOffer.isPaid}
+                          onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
+                          className="mr-2"
+                        />
+                        <span>Paid</span>
+                      </label>
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="flex gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={!newOffer.isPaid}
+                        onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
+                        className="mr-2"
+                      />
+                      <span>Free</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="paymentType"
+                        checked={newOffer.isPaid}
+                        onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
+                        className="mr-2"
+                      />
+                      <span>Paid</span>
+                    </label>
+                  </div>
+                )}
               </div>
               
               {newOffer.isPaid && (
                 <>
                   <div>
-                    <label htmlFor="cost" className="block text-sm font-medium mb-2">
-                      Cost *
-                    </label>
-                    <input
-                      id="cost"
-                      type="text"
-                      value={newOffer.cost}
-                      onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
-                      placeholder="e.g., 0.1 ETH, $50, 100 USDC"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required={newOffer.isPaid}
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      The cost for this mentorship session
-                    </p>
+                    {arkivBuilderMode ? (
+                      <ArkivQueryTooltip
+                        query={[
+                          `Cost Input (Paid Offers)`,
+                          `Stored as: attribute='cost' on offer entity`,
+                          `Required when: isPaid='true'`,
+                          `Format: Free text (e.g., "0.1 ETH", "$50", "100 USDC")`,
+                          `Also stored in payload for retrieval`
+                        ]}
+                        label="Cost"
+                      >
+                        <div>
+                          <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                            Cost *
+                          </label>
+                          <input
+                            id="cost"
+                            type="text"
+                            value={newOffer.cost}
+                            onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
+                            placeholder="e.g., 0.1 ETH, $50, 100 USDC"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required={newOffer.isPaid}
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            The cost for this mentorship session
+                          </p>
+                        </div>
+                      </ArkivQueryTooltip>
+                    ) : (
+                      <div>
+                        <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                          Cost *
+                        </label>
+                        <input
+                          id="cost"
+                          type="text"
+                          value={newOffer.cost}
+                          onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
+                          placeholder="e.g., 0.1 ETH, $50, 100 USDC"
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          required={newOffer.isPaid}
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          The cost for this mentorship session
+                        </p>
+                      </div>
+                    )}
                   </div>
                   <div>
-                    <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
-                      Payment Address *
-                    </label>
-                    <input
-                      id="paymentAddress"
-                      type="text"
-                      value={newOffer.paymentAddress}
-                      onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
-                      placeholder="0x..."
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                      required={newOffer.isPaid}
-                    />
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Wallet address where you'll receive payment for this offer
-                    </p>
+                    {arkivBuilderMode ? (
+                      <ArkivQueryTooltip
+                        query={[
+                          `Payment Address Input (Paid Offers)`,
+                          `Stored as: attribute='paymentAddress' on offer entity`,
+                          `Required when: isPaid='true'`,
+                          `Format: Ethereum wallet address (0x...)`,
+                          `Also stored in payload for retrieval`,
+                          `Visible to requesters on offer cards`
+                        ]}
+                        label="Payment Address"
+                      >
+                        <div>
+                          <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                            Payment Address *
+                          </label>
+                          <input
+                            id="paymentAddress"
+                            type="text"
+                            value={newOffer.paymentAddress}
+                            onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                            placeholder="0x..."
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                            required={newOffer.isPaid}
+                          />
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            Wallet address where you'll receive payment for this offer
+                          </p>
+                        </div>
+                      </ArkivQueryTooltip>
+                    ) : (
+                      <div>
+                        <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                          Payment Address *
+                        </label>
+                        <input
+                          id="paymentAddress"
+                          type="text"
+                          value={newOffer.paymentAddress}
+                          onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                          placeholder="0x..."
+                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                          required={newOffer.isPaid}
+                        />
+                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          Wallet address where you'll receive payment for this offer
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
