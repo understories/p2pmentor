@@ -64,6 +64,14 @@ export default function ProfilePage() {
       if (profileData?.timezone) {
         setTimezone(profileData.timezone);
       }
+      // Initialize selected emoji from profile
+      if (profileData) {
+        const currentEmoji = getProfileEmoji(profileData);
+        setSelectedEmoji(currentEmoji);
+      } else {
+        // If no profile, set to empty string (will use random on creation)
+        setSelectedEmoji('');
+      }
       // If no profile timezone, timezone state already has auto-detected value from useEffect
 
       // Day 2: For profile-less wallets, show selection mode (two buttons)
