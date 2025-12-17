@@ -19,6 +19,9 @@ export function ArkivBuilderModeToggle({ enabled, onToggle }: ArkivBuilderModeTo
         onClick={() => onToggle(!enabled)}
         className={`
           px-4 py-2 rounded-lg transition-all duration-200 font-semibold
+          flex flex-row items-center justify-center gap-2
+          whitespace-nowrap
+          min-w-fit
           ${enabled
             ? 'bg-emerald-600 dark:bg-emerald-500 text-white shadow-lg ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-gray-900'
             : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -27,8 +30,8 @@ export function ArkivBuilderModeToggle({ enabled, onToggle }: ArkivBuilderModeTo
         title="Arkiv Builder Mode - Toggle to see Arkiv queries and entity information"
         aria-label={enabled ? 'Disable Arkiv Builder Mode' : 'Enable Arkiv Builder Mode'}
       >
-        <span className="font-mono">[A]</span>
-        {enabled && <span className="ml-2 text-sm">Active</span>}
+        <span className="font-mono flex-shrink-0">[A]</span>
+        {enabled && <span className="text-sm flex-shrink-0">Active</span>}
       </button>
       {/* Tooltip - positioned underneath for better readability */}
       <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10 whitespace-nowrap">
