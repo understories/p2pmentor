@@ -83,10 +83,11 @@ export default function MePage() {
         window.history.replaceState({}, '', window.location.pathname);
       }
       
-      // Check onboarding access (requires level 2 for dashboard - at least ask or offer created)
+      // Check onboarding access (requires level 1 for dashboard - at least profile + skills)
       // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+      // Dashboard should be accessible once user has profile and skills (they can create asks/offers from dashboard)
       import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
-        checkOnboardingRoute(address, 2, '/onboarding').then((hasAccess) => {
+        checkOnboardingRoute(address, 1, '/onboarding').then((hasAccess) => {
           setOnboardingChecked(true); // Mark check as complete
           if (hasAccess) {
             // Has access - continue loading
