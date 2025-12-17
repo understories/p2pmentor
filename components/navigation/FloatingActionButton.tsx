@@ -83,8 +83,6 @@ export function FloatingActionButton() {
                 ? '/asks?create=true'
                 : action.href === '/offers'
                 ? '/offers?create=true'
-                : action.queryParam
-                ? `${action.href}?${action.queryParam}`
                 : action.href;
               
               return (
