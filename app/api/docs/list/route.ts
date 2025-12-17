@@ -12,19 +12,19 @@ interface DocFile {
 
 /**
  * Define custom ordering for documentation sections and files
- * Natural order: Introduction → Philosophy → History → Architecture → Arkiv → Modules → Practices → User Flows → Integrations → Meta
+ * Natural order: Introduction → Philosophy → History & Future → Architecture → Arkiv → User Flows → Modules → Practices → Integrations → Meta
  */
 const SECTION_ORDER: Record<string, number> = {
   'introduction': 1,
-  'architecture': 2,
-  'philosophy': 3,
-  'user-flows': 4,
+  'philosophy': 2,
+  'history-future': 3,
+  'architecture': 4,
   'arkiv': 5,
-  'modules': 6,
-  'practices': 7,
-  'integrations': 8,
-  'meta': 9,
-  'history': 10,
+  'user-flows': 6,
+  'modules': 7,
+  'practices': 8,
+  'integrations': 9,
+  'meta': 10,
 };
 
 const FILE_ORDER: Record<string, Record<string, number>> = {
@@ -51,9 +51,11 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'a-platform-that-teaches': 6,
     'serverless-and-trustless': 7,
   },
-  // History section
-  'history': {
-    'context': 1,
+  // History & Future section
+  'history-future': {
+    'README': 1,
+    'context': 2,
+    'roadmap': 3,
   },
   // Architecture section
   'architecture': {

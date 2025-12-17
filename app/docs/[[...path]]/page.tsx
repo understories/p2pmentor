@@ -163,6 +163,15 @@ export default function DocsPage() {
     };
   };
 
+  // Format section name for display
+  const formatSectionName = (name: string): string => {
+    // Special case for history-future
+    if (name === 'history-future') {
+      return 'History & Future';
+    }
+    return name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
   const renderFileTree = (files: DocFile[], level = 0, forTOC = false) => {
     return (
       <ul className={level === 0 ? 'space-y-1' : 'ml-4 mt-1 space-y-1'}>
@@ -173,7 +182,7 @@ export default function DocsPage() {
                 {forTOC ? (
                   <>
                     <div className="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">
-                      {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      {formatSectionName(file.name)}
                     </div>
                     {file.children && file.children.length > 0 && (
                       <div className="ml-4 mb-2 space-y-1">
@@ -220,7 +229,7 @@ export default function DocsPage() {
                               }}
                               className="hover:text-blue-600 dark:hover:text-blue-400"
                             >
-                              {file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {formatSectionName(file.name)}
                             </Link>
                           </button>
                         </div>
@@ -240,7 +249,7 @@ export default function DocsPage() {
                             <span className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}>
                               ▶
                             </span>
-                            <span>{file.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                            <span>{formatSectionName(file.name)}</span>
                           </button>
                         </div>
                         {expandedDirs.has(file.path) && file.children && (
