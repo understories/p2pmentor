@@ -250,22 +250,6 @@ export function GardenBoard({
         </div>
       )}
 
-      {/* Empty State */}
-      {!loading && notes.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-          <div className="text-4xl mb-4">🌱</div>
-          <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-            No notes yet
-          </h4>
-          <p className="text-sm text-gray-600 dark:text-gray-400 max-w-md">
-            {targetWallet 
-              ? 'Be the first to leave a note for this profile.'
-              : tags && tags.length > 0
-              ? 'Be the first to plant a note about this topic.'
-              : 'Be the first to plant a note.'}
-          </p>
-        </div>
-      )}
 
       {/* Notes List */}
       {!loading && notes.length > 0 && (
