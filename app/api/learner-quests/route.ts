@@ -55,10 +55,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ ok: true, quest });
     } else {
       // List all active quests, optionally filtered by questType and spaceId
+      console.log('[learner-quests] Querying quests with:', {
+        questType,
+        spaceId,
+        spaceIds,
+        SPACE_ID,
+        builderMode,
+      });
       const quests = await listLearnerQuests({
         ...(questType ? { questType } : {}),
         ...(spaceId ? { spaceId } : {}),
         ...(spaceIds ? { spaceIds } : {}),
+      });
+      console.log('[learner-quests] Found quests:', {
+        count: quests.length,
+        questIds: quests.map(q => q.questId),
+        spaceIds: quests.map(q => q.spaceId),
       });
       return NextResponse.json({ ok: true, quests, count: quests.length });
     }

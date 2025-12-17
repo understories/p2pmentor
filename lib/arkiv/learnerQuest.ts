@@ -174,9 +174,14 @@ export async function listLearnerQuests(options?: {
     if (options?.spaceIds && options.spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
       queryBuilder = queryBuilder.limit(100);
+      console.log('[listLearnerQuests] Querying multiple spaceIds:', options.spaceIds);
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = options?.spaceId || SPACE_ID;
+      console.log('[listLearnerQuests] Querying with spaceId:', finalSpaceId, {
+        providedSpaceId: options?.spaceId,
+        defaultSPACE_ID: SPACE_ID,
+      });
       queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(100);
     }
 
@@ -190,7 +195,13 @@ export async function listLearnerQuests(options?: {
       .withPayload(true)
       .fetch();
 
+    console.log('[listLearnerQuests] Raw query result:', {
+      entityCount: result?.entities?.length || 0,
+      hasEntities: !!result?.entities,
+    });
+
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      console.log('[listLearnerQuests] No entities found');
       return [];
     }
 
