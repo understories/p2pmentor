@@ -604,36 +604,107 @@ export default function SessionsPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Type:</span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setSessionTypeFilter('all')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    sessionTypeFilter === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setSessionTypeFilter('p2p')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    sessionTypeFilter === 'p2p'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  P2P
-                </button>
-                <button
-                  onClick={() => setSessionTypeFilter('community')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    sessionTypeFilter === 'community'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Community
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Type = All`,
+                      `Shows all sessions (no type filtering)`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: All sessions regardless of gatheringKey`
+                    ]}
+                    label="All"
+                  >
+                    <button
+                      onClick={() => setSessionTypeFilter('all')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        sessionTypeFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setSessionTypeFilter('all')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      sessionTypeFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Type = P2P`,
+                      `Filters out community sessions`,
+                      `Client-side filter: !isCommunitySession(session)`,
+                      `isCommunitySession: session.gatheringKey !== undefined`,
+                      `Returns: Sessions without gatheringKey (P2P only)`
+                    ]}
+                    label="P2P"
+                  >
+                    <button
+                      onClick={() => setSessionTypeFilter('p2p')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        sessionTypeFilter === 'p2p'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      P2P
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setSessionTypeFilter('p2p')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      sessionTypeFilter === 'p2p'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    P2P
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Type = Community`,
+                      `Filters to community sessions only`,
+                      `Client-side filter: isCommunitySession(session)`,
+                      `isCommunitySession: session.gatheringKey !== undefined`,
+                      `Returns: Sessions with gatheringKey (community only)`
+                    ]}
+                    label="Community"
+                  >
+                    <button
+                      onClick={() => setSessionTypeFilter('community')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        sessionTypeFilter === 'community'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Community
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setSessionTypeFilter('community')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      sessionTypeFilter === 'community'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Community
+                  </button>
+                )}
               </div>
             </div>
 
@@ -641,36 +712,107 @@ export default function SessionsPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Time:</span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setTimeFilter('all')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    timeFilter === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setTimeFilter('upcoming')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    timeFilter === 'upcoming'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Upcoming
-                </button>
-                <button
-                  onClick={() => setTimeFilter('past')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    timeFilter === 'past'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Past
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Time = All`,
+                      `Shows all sessions (no time filtering)`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: All sessions regardless of sessionDate`
+                    ]}
+                    label="All"
+                  >
+                    <button
+                      onClick={() => setTimeFilter('all')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        timeFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setTimeFilter('all')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      timeFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Time = Upcoming`,
+                      `Client-side filter: sessionDate > now`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Filtered: new Date(session.sessionDate).getTime() > Date.now()`,
+                      `Returns: Sessions scheduled in the future`
+                    ]}
+                    label="Upcoming"
+                  >
+                    <button
+                      onClick={() => setTimeFilter('upcoming')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        timeFilter === 'upcoming'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Upcoming
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setTimeFilter('upcoming')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      timeFilter === 'upcoming'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Upcoming
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Time = Past`,
+                      `Client-side filter: sessionEnd < now OR status in ['completed', 'declined', 'cancelled']`,
+                      `sessionEnd = sessionDate + duration + 1 hour buffer`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: Sessions that have ended or are completed/declined/cancelled`
+                    ]}
+                    label="Past"
+                  >
+                    <button
+                      onClick={() => setTimeFilter('past')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        timeFilter === 'past'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Past
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setTimeFilter('past')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      timeFilter === 'past'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Past
+                  </button>
+                )}
               </div>
             </div>
 
@@ -678,42 +820,117 @@ export default function SessionsPage() {
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status:</span>
               <div className="flex gap-2">
-                <button
-                  onClick={() => setStatusFilter('all')}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    statusFilter === 'all'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter('pending');
-                    setPendingExpanded(true);
-                  }}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    statusFilter === 'pending'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => {
-                    setStatusFilter('confirmed');
-                    setScheduledExpanded(true);
-                  }}
-                  className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
-                    statusFilter === 'confirmed'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                  }`}
-                >
-                  Confirmed
-                </button>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Status = All`,
+                      `Shows all sessions (no status filtering)`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: All sessions regardless of status`
+                    ]}
+                    label="All"
+                  >
+                    <button
+                      onClick={() => setStatusFilter('all')}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        statusFilter === 'all'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      All
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => setStatusFilter('all')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      statusFilter === 'all'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Status = Pending`,
+                      `Client-side filter: status='pending' OR !mentorConfirmed OR !learnerConfirmed`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: Sessions awaiting confirmation from mentor or learner`
+                    ]}
+                    label="Pending"
+                  >
+                    <button
+                      onClick={() => {
+                        setStatusFilter('pending');
+                        setPendingExpanded(true);
+                      }}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        statusFilter === 'pending'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Pending
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setStatusFilter('pending');
+                      setPendingExpanded(true);
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      statusFilter === 'pending'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Pending
+                  </button>
+                )}
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Filter: Status = Confirmed`,
+                      `Client-side filter: mentorConfirmed && learnerConfirmed && (status='scheduled' || status='completed')`,
+                      `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
+                      `Returns: Sessions confirmed by both parties (scheduled or completed)`
+                    ]}
+                    label="Confirmed"
+                  >
+                    <button
+                      onClick={() => {
+                        setStatusFilter('confirmed');
+                        setScheduledExpanded(true);
+                      }}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                        statusFilter === 'confirmed'
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      }`}
+                    >
+                      Confirmed
+                    </button>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setStatusFilter('confirmed');
+                      setScheduledExpanded(true);
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      statusFilter === 'confirmed'
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Confirmed
+                  </button>
+                )}
               </div>
             </div>
           </div>
