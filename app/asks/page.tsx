@@ -20,6 +20,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useGraphqlForAsks } from '@/lib/graph/featureFlags';
 import { fetchAsks } from '@/lib/graph/asksQueries';
+import { SPACE_ID } from '@/lib/config';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors } from '@/lib/colors';
@@ -180,7 +181,7 @@ export default function AsksPage() {
               txHash: ask.txHash || undefined,
               // GraphQL may not include spaceId - will be set correctly when using API route
               // For GraphQL results, we need to fetch from API or add spaceId to GraphQL query
-              spaceId: (ask as any).spaceId || 'beta-launch', // Use actual spaceId if available, fallback to beta-launch for production
+              spaceId: (ask as any).spaceId || SPACE_ID, // Use actual spaceId if available, fallback to SPACE_ID from config
             })) as Ask[];
             // Sort by newest first (invert order)
             const sortedAsks = mappedAsks.sort((a, b) => 

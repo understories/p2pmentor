@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const { key, txHash } = await createNavigationMetric({
       metric,
       privateKey: getPrivateKey(),
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({ ok: true, key, txHash });

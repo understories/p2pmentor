@@ -979,7 +979,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     mentorWallet: getAttr('mentorWallet'),
     learnerWallet: getAttr('learnerWallet'),
     skill: getAttr('skill'),
-    spaceId: getAttr('spaceId') || 'local-dev',
+    spaceId: getAttr('spaceId') || SPACE_ID,
     createdAt: getAttr('createdAt'),
     sessionDate: getAttr('sessionDate') || payload.sessionDate || '',
     status: finalStatus,

@@ -46,7 +46,7 @@ export async function createSkill({
   description,
   created_by_profile,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   name_canonical: string;
   description?: string;

@@ -7,6 +7,7 @@
 
 import { eq, and } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { SPACE_ID } from "../config";
 
 export type NotificationPreferenceType = 
   | 'meeting_request'

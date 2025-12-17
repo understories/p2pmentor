@@ -30,7 +30,7 @@ export async function createLearningFollow({
   skill_id,
   mode = 'learning',
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   profile_wallet: string;
   skill_id: string;
@@ -268,7 +268,7 @@ export async function unfollowSkill({
   profile_wallet,
   skill_id,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   profile_wallet: string;
   skill_id: string;

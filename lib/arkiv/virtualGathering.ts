@@ -62,7 +62,7 @@ export async function createVirtualGathering({
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const createdAt = new Date().toISOString();
 
   // We'll generate Jitsi with a temporary key first, then update if needed

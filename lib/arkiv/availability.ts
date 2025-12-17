@@ -585,7 +585,7 @@ export async function createAvailability({
   timeBlocks,
   timezone,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   timeBlocks: string | WeeklyAvailability; // Time blocks description (legacy text) or WeeklyAvailability object
@@ -677,7 +677,7 @@ export async function deleteAvailability({
   availabilityKey,
   wallet,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   availabilityKey: string;
   wallet: string;
@@ -835,7 +835,7 @@ export async function listAvailabilityForWallet(
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID,
         createdAt: getAttr('createdAt'),
         timeBlocks: payload.timeBlocks || '',
         timezone: payload.timezone || getAttr('timezone') || '',

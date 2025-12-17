@@ -56,7 +56,7 @@ export async function createFeedback({
   notes,
   technicalDxFeedback,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
   sessionStatus,
   mentorConfirmed,
   learnerConfirmed,

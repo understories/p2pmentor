@@ -77,7 +77,7 @@ export async function createLearnerQuest({
   materials,
   questType = 'reading_list',
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   questId: string;
   title: string;
@@ -237,7 +237,7 @@ export async function listLearnerQuests(options?: {
             source: getAttr(entity, 'source'),
             questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            spaceId: getAttr(entity, 'spaceId') || 'local-dev',
+            spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
           };
@@ -331,7 +331,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             source: getAttr(entity, 'source'),
             questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
-            spaceId: getAttr(entity, 'spaceId') || 'local-dev',
+            spaceId: getAttr(entity, 'spaceId') || SPACE_ID,
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
           };
@@ -369,7 +369,7 @@ export async function markMaterialAsRead({
   materialId,
   sourceUrl,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   questId: string;
