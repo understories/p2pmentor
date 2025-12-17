@@ -58,7 +58,7 @@ export function BottomNav() {
       href: '/learner-quests',
       label: 'Quests',
       icon: '🧭',
-      minLevel: 0, // Always available
+      minLevel: 1, // After profile creation (like other nav items)
     },
     {
       href: '/me/sessions',
