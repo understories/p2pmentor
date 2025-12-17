@@ -49,7 +49,7 @@ export function isMetaMaskBrowser(): boolean {
 
   // Check user agent for MetaMask browser
   const userAgent = window.navigator.userAgent.toLowerCase();
-  return userAgent.includes('metamask') || userAgent.includes('trustwallet');
+  return userAgent.includes('metamask');
 }
 
 /**

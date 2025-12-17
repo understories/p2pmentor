@@ -38,10 +38,9 @@ export function getMetaMaskSDK(): MetaMaskSDK {
         name: 'p2pmentor',
         url: origin,
       },
-      // Enable mobile deep linking - SDK automatically handles redirects
-      // On mobile, SDK will open MetaMask app and redirect back to the current page
-      // The SDK automatically uses the current page URL as the redirect URL
-      useDeeplink: true,
+      // Disable SDK deeplinking - we handle mobile redirects explicitly via openInMetaMaskBrowser
+      // This prevents the SDK from trying to do mobile redirect magic behind our back
+      useDeeplink: false,
       // Don't check installation immediately (let user initiate connection)
       checkInstallationImmediately: false,
       // Disable analytics

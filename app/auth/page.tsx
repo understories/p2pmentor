@@ -15,7 +15,7 @@ import { mendoza } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 import { isMobileBrowser, isMetaMaskBrowser, isMetaMaskAvailable, getMobilePlatform } from '@/lib/auth/mobile-detection';
-import { openMetaMaskApp, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
+import { openInMetaMaskBrowser, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
@@ -91,6 +91,13 @@ export default function AuthPage() {
   }, []);
 
   const handleMetaMaskConnect = async () => {
+    // Mobile Safari/Chrome won't have window.ethereum even if MetaMask is installed.
+    // Redirect users into MetaMask's in-app browser instead.
+    if (mounted && isMobile && !isMetaMaskMobileBrowser) {
+      openInMetaMaskBrowser(window.location.href);
+      return;
+    }
+
     console.log('[Auth Page] handleMetaMaskConnect called', {
       currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
       isMobile,
@@ -360,22 +367,23 @@ export default function AuthPage() {
             </button>
           </ArkivQueryTooltip>
           
-          {/* Mobile helper text - only show on mobile when MetaMask not detected */}
-          {mounted && isMobile && !isMetaMaskMobileBrowser && !hasMetaMask && (
+          {/* Mobile helper text - only show on mobile when not in MetaMask browser */}
+          {mounted && isMobile && !isMetaMaskMobileBrowser && (
             <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-              Don't have MetaMask?{' '}
+              On mobile, connect via the MetaMask in-app browser. Tap "Connect Wallet" to open it.
               {getMetaMaskInstallUrl() ? (
-                <a
-                  href={getMetaMaskInstallUrl()!}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
-                >
-                  Install MetaMask
-                </a>
-              ) : (
-                <span>Install MetaMask from your app store</span>
-              )}
+                <>
+                  {' '}If you don't have MetaMask yet,{' '}
+                  <a
+                    href={getMetaMaskInstallUrl()!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    install MetaMask
+                  </a>.
+                </>
+              ) : null}
             </p>
           )}
 
