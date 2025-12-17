@@ -186,19 +186,13 @@ export function SidebarNav() {
   };
 
   // Primary navigation items with unlock levels
-  // Only Dashboard and Network in main nav (Notifications moved to bottom above Logout)
+  // Only Dashboard in main nav (Network is shown later in sidebar, Notifications moved to bottom above Logout)
   const allNavItems: Array<NavItem & { minLevel?: number }> = [
     {
       href: '/me',
       label: 'Dashboard',
       icon: '👤',
       minLevel: 0, // Always available
-    },
-    {
-      href: '/network',
-      label: 'Network',
-      icon: '🌐',
-      minLevel: 3, // After network exploration
     },
   ];
 
