@@ -9,7 +9,7 @@
 
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { BackButton } from '@/components/BackButton';
 import { BetaGate } from '@/components/auth/BetaGate';
@@ -281,6 +281,24 @@ export default function LanguageAssessmentPage() {
     }
   };
 
+  // Stable shuffle for matching questions (based on question ID to avoid re-shuffling)
+  const getShuffledMatchingPairs = useMemo(() => {
+    const cache = new Map<string, { left: string[]; right: string[] }>();
+    return (question: LanguageAssessmentQuestion) => {
+      if (!question.matchingPairs || question.matchingPairs.length === 0) {
+        return { left: [], right: [] };
+      }
+      const cacheKey = question.id;
+      if (!cache.has(cacheKey)) {
+        // Create shuffled copies (stable per question ID)
+        const leftItems = [...question.matchingPairs.map(p => p.left)].sort(() => Math.random() - 0.5);
+        const rightItems = [...question.matchingPairs.map(p => p.right)].sort(() => Math.random() - 0.5);
+        cache.set(cacheKey, { left: leftItems, right: rightItems });
+      }
+      return cache.get(cacheKey)!;
+    };
+  }, []);
+
   const renderQuestion = (question: LanguageAssessmentQuestion) => {
     const section = getCurrentSection();
     if (!section) return null;
@@ -335,16 +353,27 @@ export default function LanguageAssessmentPage() {
         );
 
       case 'fill_blank':
+        // Display full sentence with user's answer inserted
+        const displaySentence = question.question.replace('____', typeof currentAnswer === 'string' && currentAnswer ? currentAnswer : '____');
         return (
           <div className="space-y-4">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-gray-200 dark:border-gray-700">
+              <p className="text-lg text-gray-900 dark:text-gray-100 font-medium mb-2">Complete:</p>
+              <p className="text-base text-gray-800 dark:text-gray-200">{displaySentence}</p>
+            </div>
             {question.wordBank && question.wordBank.length > 0 && (
               <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
                 <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Word Bank:</p>
                 <div className="flex flex-wrap gap-2">
                   {question.wordBank.map((word, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-white dark:bg-gray-700 rounded text-sm text-gray-900 dark:text-gray-100">
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => handleAnswerChange(word)}
+                      className="px-3 py-1 bg-white dark:bg-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                    >
                       {word}
-                    </span>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -361,33 +390,89 @@ export default function LanguageAssessmentPage() {
 
       case 'matching':
         const matchingAnswer = Array.isArray(currentAnswer) ? currentAnswer : [];
+        // Get stable shuffled pairs (cached per question ID)
+        const { left: shuffledLeft, right: shuffledRight } = getShuffledMatchingPairs(question);
+        
         return (
           <div className="space-y-4">
-            {question.matchingPairs?.map((pair, idx) => {
-              const pairKey = `${pair.left}-${pair.right}`;
-              const isSelected = matchingAnswer.includes(pairKey);
-              return (
-                <label
-                  key={idx}
-                  className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={(e) => {
-                      const newAnswer = e.target.checked
-                        ? [...matchingAnswer, pairKey]
-                        : matchingAnswer.filter((a) => a !== pairKey);
-                      handleAnswerChange(newAnswer);
-                    }}
-                    className="w-5 h-5 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="flex-1 text-gray-900 dark:text-gray-100">
-                    {pair.left} → {pair.right}
-                  </span>
-                </label>
-              );
-            })}
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              Match the items on the left with the items on the right by clicking:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Left:</p>
+                {shuffledLeft.map((left, idx) => {
+                  // Find the correct right match for this left item
+                  const correctPair = question.matchingPairs?.find(p => p.left === left);
+                  const pairKey = correctPair ? `${correctPair.left}-${correctPair.right}` : '';
+                  const isMatched = pairKey && matchingAnswer.includes(pairKey);
+                  return (
+                    <div
+                      key={idx}
+                      className={`p-3 border-2 rounded-lg ${
+                        isMatched
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
+                      }`}
+                    >
+                      <span className="text-gray-900 dark:text-gray-100">{left}</span>
+                      {isMatched && correctPair && (
+                        <span className="ml-2 text-blue-600 dark:text-blue-400">→ {correctPair.right}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Right:</p>
+                {shuffledRight.map((right, idx) => {
+                  // Check if this right item is already matched
+                  const matchedPair = question.matchingPairs?.find(p => p.right === right);
+                  const pairKey = matchedPair ? `${matchedPair.left}-${matchedPair.right}` : '';
+                  const isMatched = pairKey && matchingAnswer.includes(pairKey);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        if (matchedPair) {
+                          const newPairKey = `${matchedPair.left}-${matchedPair.right}`;
+                          if (isMatched) {
+                            // Remove if already matched
+                            handleAnswerChange(matchingAnswer.filter(a => a !== newPairKey));
+                          } else {
+                            // Add to matches
+                            handleAnswerChange([...matchingAnswer, newPairKey]);
+                          }
+                        }
+                      }}
+                      className={`w-full p-3 text-left border-2 rounded-lg transition-colors ${
+                        isMatched
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-blue-400 dark:hover:border-blue-500'
+                      }`}
+                    >
+                      {right}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            {matchingAnswer.length > 0 && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Your matches ({matchingAnswer.length}):</p>
+                <div className="space-y-1">
+                  {matchingAnswer.map((match, idx) => {
+                    const [left, right] = match.split('-');
+                    return (
+                      <div key={idx} className="text-sm text-blue-800 dark:text-blue-200">
+                        {left} → {right}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -618,10 +703,17 @@ export default function LanguageAssessmentPage() {
               {!answerData?.submitted && hasAnswer && (
                 <button
                   onClick={handleSubmitAnswer}
-                  disabled={submitting === questionKey}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  disabled={submitting === questionKey || !hasAnswer}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {submitting === questionKey ? 'Submitting...' : 'Submit Answer'}
+                  {submitting === questionKey ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    'Submit Answer'
+                  )}
                 </button>
               )}
               <button

@@ -53,9 +53,10 @@ type LearnerQuest = {
 };
 
 type QuestProgress = {
-  readCount: number;
-  totalMaterials: number;
+  readCount?: number;
+  totalMaterials?: number;
   progressPercent: number;
+  assessmentResult?: any; // Optional assessment result for language assessments
 };
 
 export default function LearnerQuestsPage() {
@@ -143,20 +144,48 @@ export default function LearnerQuestsPage() {
       // Load progress for all quests in parallel
       const progressPromises = quests.map(async (quest) => {
         try {
-          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
-          const data = await res.json();
+          if (quest.questType === 'reading_list') {
+            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
+            const data = await res.json();
 
-          if (data.ok && data.progress) {
-            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
-            const totalMaterials = quest.materials?.length || 0;
-            const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
+            if (data.ok && data.progress) {
+              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const totalMaterials = quest.materials?.length || 0;
+              const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
 
+              return {
+                questId: quest.questId,
+                progress: {
+                  readCount,
+                  totalMaterials,
+                  progressPercent,
+                },
+              };
+            }
+          } else if (quest.questType === 'language_assessment') {
+            // Load assessment results for language assessments
+            try {
+              const resultRes = await fetch(`/api/learner-quests/assessment/result?questId=${quest.questId}&wallet=${wallet}`);
+              const resultData = await resultRes.json();
+              
+              if (resultData.ok && resultData.result) {
+                const result = resultData.result;
+                return {
+                  questId: quest.questId,
+                  progress: {
+                    progressPercent: result.percentage || 0,
+                    assessmentResult: result,
+                  },
+                };
+              }
+            } catch (err) {
+              console.error(`Error loading assessment result for quest ${quest.questId}:`, err);
+            }
+            // Fallback if no result found
             return {
               questId: quest.questId,
               progress: {
-                readCount,
-                totalMaterials,
-                progressPercent,
+                progressPercent: 0,
               },
             };
           }

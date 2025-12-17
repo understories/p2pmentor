@@ -329,13 +329,30 @@ export default function MePage() {
               totalMaterials: quest.materials?.length || 0,
             };
           } else if (quest.questType === 'language_assessment') {
-            // For language assessments, we could load assessment results here
-            // For now, just show 0% or we could check if there's a completed assessment
+            // Load assessment results for language assessments
+            try {
+              const resultRes = await fetch(`/api/learner-quests/assessment/result?questId=${quest.questId}&wallet=${walletAddress}`);
+              const resultData = await resultRes.json();
+              
+              if (resultData.ok && resultData.result) {
+                const result = resultData.result;
+                return {
+                  questId: quest.questId,
+                  title: quest.title,
+                  questType: quest.questType,
+                  progressPercent: result.percentage || 0,
+                  assessmentResult: result, // Store full result for display
+                };
+              }
+            } catch (err) {
+              console.error(`Error loading assessment result for quest ${quest.questId}:`, err);
+            }
+            // Fallback if no result found
             return {
               questId: quest.questId,
               title: quest.title,
               questType: quest.questType,
-              progressPercent: 0, // TODO: Load assessment results to calculate actual progress
+              progressPercent: 0,
             };
           }
           return null;
