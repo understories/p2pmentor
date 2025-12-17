@@ -89,11 +89,14 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
  * Check if onboarding is complete
  * 
  * @param wallet - Wallet address
- * @returns True if onboarding is complete (level 4)
+ * @returns True if onboarding is complete (level 2 = ask or offer created)
+ * Note: Network and community steps are optional, not required for completion
  */
 export async function isOnboardingComplete(wallet: string): Promise<boolean> {
   const level = await calculateOnboardingLevel(wallet);
-  return level === 4;
+  // Onboarding is complete after creating an ask or offer (level 2)
+  // Network and community exploration are optional, not required
+  return level >= 2;
 }
 
 /**
@@ -104,7 +107,9 @@ export async function isOnboardingComplete(wallet: string): Promise<boolean> {
  */
 export async function getOnboardingProgress(wallet: string): Promise<OnboardingProgress> {
   const level = await calculateOnboardingLevel(wallet);
-  const isComplete = level === 4;
+  // Onboarding is complete after creating an ask or offer (level 2)
+  // Network and community exploration are optional, not required
+  const isComplete = level >= 2;
 
   const completedSteps: string[] = [];
   const missingSteps: string[] = [];

@@ -18,8 +18,6 @@ import { SkillsStep } from '@/components/onboarding/SkillsStep';
 import { PathSelectionStep } from '@/components/onboarding/PathSelectionStep';
 import { AskPathStep } from '@/components/onboarding/AskPathStep';
 import { OfferPathStep } from '@/components/onboarding/OfferPathStep';
-import { NetworkPathStep } from '@/components/onboarding/NetworkPathStep';
-import { CommunityPathStep } from '@/components/onboarding/CommunityPathStep';
 import { CompleteStep } from '@/components/onboarding/CompleteStep';
 import { GardenLayer } from '@/components/garden/GardenLayer';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
@@ -129,8 +127,6 @@ export default function OnboardingPage() {
         'paths',
         'ask',
         'offer',
-        'network',
-        'community',
         'complete',
       ];
       const currentIndex = stepOrder.indexOf(currentStep);
@@ -141,7 +137,7 @@ export default function OnboardingPage() {
     setError(null);
   };
 
-  const handlePathSelect = (path: 'ask' | 'offer' | 'network' | 'community') => {
+  const handlePathSelect = (path: 'ask' | 'offer') => {
     setCurrentStep(path);
     setError(null);
   };
@@ -266,22 +262,6 @@ export default function OnboardingPage() {
 
               {currentStep === 'offer' && wallet && (
                 <OfferPathStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('complete')}
-                  onError={handleError}
-                />
-              )}
-
-              {currentStep === 'network' && wallet && (
-                <NetworkPathStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('complete')}
-                  onError={handleError}
-                />
-              )}
-
-              {currentStep === 'community' && wallet && (
-                <CommunityPathStep
                   wallet={wallet}
                   onComplete={() => handleStepComplete('complete')}
                   onError={handleError}

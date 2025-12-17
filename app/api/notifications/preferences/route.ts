@@ -24,7 +24,7 @@ import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
  * - archived: Filter by archived status (optional, true/false)
  * - spaceId: Override default spaceId (optional, uses SPACE_ID from config by default)
  */
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');

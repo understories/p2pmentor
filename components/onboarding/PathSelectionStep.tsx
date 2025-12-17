@@ -9,11 +9,11 @@
 import { useState } from 'react';
 
 interface PathSelectionStepProps {
-  onSelectPath: (path: 'ask' | 'offer' | 'network' | 'community') => void;
+  onSelectPath: (path: 'ask' | 'offer') => void;
 }
 
 export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
-  const [selectedPath, setSelectedPath] = useState<'ask' | 'offer' | 'network' | 'community' | null>(null);
+  const [selectedPath, setSelectedPath] = useState<'ask' | 'offer' | null>(null);
 
   const paths = [
     {
@@ -32,22 +32,6 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
       color: 'cyan',
       glowColor: 'rgba(6, 182, 212, 0.3)',
     },
-    {
-      id: 'network' as const,
-      title: 'Explore the Network',
-      description: 'Meet fellow travelers',
-      icon: '🌐',
-      color: 'white',
-      glowColor: 'rgba(255, 255, 255, 0.2)',
-    },
-    {
-      id: 'community' as const,
-      title: 'Join a Community',
-      description: 'Join a learning grove',
-      icon: '🌲',
-      color: 'green',
-      glowColor: 'rgba(34, 197, 94, 0.3)',
-    },
   ];
 
   return (
@@ -59,7 +43,7 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
             textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
           }}
         >
-          There are four paths through the Garden
+          Choose your path
         </h2>
         <p 
           className="text-gray-200 dark:text-gray-300 text-lg mb-12 drop-shadow-md"
@@ -67,11 +51,11 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
         >
-          Follow any one to begin. You can explore others later.
+          Follow one path to begin. You can explore others later.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-2xl mx-auto">
         {paths.map((path) => (
           <button
             key={path.id}

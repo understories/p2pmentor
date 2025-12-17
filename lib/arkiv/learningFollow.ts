@@ -9,6 +9,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type LearningFollow = {
   key: string;

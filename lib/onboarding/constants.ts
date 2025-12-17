@@ -44,8 +44,8 @@ export const STEP_COPY: Record<OnboardingStep, { title: string; description: str
     description: 'Every skill grows in its own time. What stage are you at?',
   },
   paths: {
-    title: 'There are four paths through the Garden',
-    description: 'Follow any one to begin. You can explore others later.',
+    title: 'Choose your path',
+    description: 'Follow one path to begin. You can explore others later.',
   },
   ask: {
     title: 'What are you seeking?',

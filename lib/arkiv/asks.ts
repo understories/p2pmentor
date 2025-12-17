@@ -298,13 +298,19 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; spac
  * @param wallet - Wallet address
  * @returns Array of asks for that wallet
  */
-export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
+export async function listAsksForWallet(wallet: string, spaceId?: string): Promise<Ask[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  let queryBuilder = query
+    .where(eq('type', 'ask'))
+    .where(eq('wallet', wallet.toLowerCase()));
+  
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  
   const [result, txHashResult] = await Promise.all([
-    query
-      .where(eq('type', 'ask'))
-      .where(eq('wallet', wallet.toLowerCase()))
+    queryBuilder
       .withAttributes(true)
       .withPayload(true)
       .limit(100)

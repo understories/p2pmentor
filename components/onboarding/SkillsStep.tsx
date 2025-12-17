@@ -14,6 +14,7 @@ import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
 import { listUserProfiles } from '@/lib/arkiv/profile';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { SPACE_ID } from '@/lib/config';
 
 interface SkillsStepProps {
   wallet: string;
@@ -150,14 +151,17 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         setExistingSkills(updatedSkills);
         skill = updatedSkills.find(s => s.key === skillEntity.key);
         if (!skill) {
-          // Use the entity data we have - extract spaceId from skillEntity if available
+          // Use the entity data we have
+          // Note: skillEntity from ensureSkillEntity doesn't include spaceId, so we use SPACE_ID from config
+          // The skill should be in updatedSkills after reload, but if not, use SPACE_ID as fallback
+          const foundSkill = updatedSkills.find(s => s.key === skillEntity.key);
           skill = {
             key: skillEntity.key,
             name_canonical: skillEntity.name_canonical,
             slug: skillEntity.slug,
             status: 'active' as const,
-            spaceId: skillEntity.spaceId || 'beta-launch', // Use actual spaceId from entity, fallback to beta-launch for production
-            createdAt: new Date().toISOString(),
+            spaceId: foundSkill?.spaceId || SPACE_ID, // Use spaceId from found skill or SPACE_ID from config
+            createdAt: foundSkill?.createdAt || new Date().toISOString(),
           } as Skill;
         }
       }

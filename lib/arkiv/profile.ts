@@ -624,12 +624,18 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
  * @param wallet - Wallet address
  * @returns Array of user profiles
  */
-export async function listUserProfilesForWallet(wallet: string): Promise<UserProfile[]> {
+export async function listUserProfilesForWallet(wallet: string, spaceId?: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  const result = await query
+  let queryBuilder = query
     .where(eq('type', 'user_profile'))
-    .where(eq('wallet', wallet.toLowerCase()))
+    .where(eq('wallet', wallet.toLowerCase()));
+  
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  
+  const result = await queryBuilder
     .withAttributes(true)
     .withPayload(true)
     .limit(100)

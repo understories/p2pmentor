@@ -8,6 +8,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
+import { SPACE_ID } from "@/lib/config";
 
 export type Feedback = {
   key: string;
