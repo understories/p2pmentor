@@ -67,26 +67,19 @@ export default function AuthPage() {
       // Check if we're in MetaMask browser with encoded URL (from universal link)
       // MetaMask sometimes doesn't decode %2F properly, so we need to fix it
       // This can happen when the universal link contains encoded forward slashes
+      // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
+      // Never decodeURIComponent the entire pathname - it can create new encoding issues
       const currentPath = window.location.pathname;
-      const currentHref = window.location.href;
       
-      // Check if pathname or full URL contains encoded forward slashes
-      if (currentPath.includes('%2F') || currentPath.includes('%2f') || 
-          currentHref.includes('%2F') || currentHref.includes('%2f')) {
-        try {
-          // Decode the entire URL to fix encoding issues
-          const decodedPath = decodeURIComponent(currentPath);
-          const cleanUrl = decodedPath + window.location.search;
-          window.history.replaceState({}, '', cleanUrl);
-          console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
-            originalPath: currentPath,
-            originalHref: currentHref,
-            decodedPath,
-            cleanUrl,
-          });
-        } catch (e) {
-          console.warn('[Auth Page] Failed to decode URL', e);
-        }
+      // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
+      const normalizedPath = currentPath.replace(/^\/%2F/i, '/');
+      
+      if (normalizedPath !== currentPath) {
+        window.history.replaceState({}, '', normalizedPath + window.location.search);
+        console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
+          originalPath: currentPath,
+          normalizedPath,
+        });
       }
 
       // Check if we're returning from a MetaMask redirect on mobile

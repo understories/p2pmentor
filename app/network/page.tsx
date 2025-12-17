@@ -24,6 +24,7 @@ import { SkillCluster } from '@/components/network/SkillCluster';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { safeRedirect } from '@/lib/utils/redirect';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -74,10 +75,11 @@ export default function NetworkPage() {
               // Check for returnTo param from onboarding redirect
               const urlParams = new URLSearchParams(window.location.search);
               const returnTo = urlParams.get('returnTo');
-              // Validate returnTo to prevent navigating to "null"
-              if (returnTo && returnTo !== 'null' && returnTo !== 'undefined' && returnTo.startsWith('/')) {
+              // Use safeRedirect helper to validate and decode (handles %2Fauth -> /auth)
+              const safe = safeRedirect(returnTo, window.location.pathname);
+              if (safe !== window.location.pathname) {
                 // Clean up URL
-                window.history.replaceState({}, '', returnTo);
+                window.history.replaceState({}, '', safe);
               }
             }
             // If no access, checkOnboardingRoute will redirect
