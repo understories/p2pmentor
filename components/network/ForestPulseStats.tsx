@@ -105,7 +105,7 @@ export function ForestPulseStats({
             key={stat.type}
             onClick={() => onStatClick?.(stat.type)}
             className={`
-              relative p-4 rounded-xl border transition-all duration-200
+              group/stat relative p-4 rounded-xl border transition-all duration-200
               ${onStatClick ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
             `}
             style={{
@@ -129,6 +129,11 @@ export function ForestPulseStats({
                   {stat.description}
                 </div>
               </div>
+              {onStatClick && (
+                <div className="text-gray-400 dark:text-gray-500 text-xl opacity-60 group-hover/stat:opacity-100 transition-opacity">
+                  →
+                </div>
+              )}
             </div>
           </button>
         );
