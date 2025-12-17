@@ -9,7 +9,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { getPrivateKey } from "@/lib/config";
+import { getPrivateKey, SPACE_ID } from "@/lib/config";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type BetaAccess = {
@@ -34,7 +34,7 @@ export async function createBetaAccess({
   wallet,
   code,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   code: string;
@@ -97,14 +97,16 @@ export async function createBetaAccess({
  * @param wallet - Wallet address
  * @returns Beta access record or null if not found
  */
-export async function getBetaAccessByWallet(wallet: string): Promise<BetaAccess | null> {
+export async function getBetaAccessByWallet(wallet: string, spaceId?: string): Promise<BetaAccess | null> {
   const publicClient = getPublicClient();
   const normalizedWallet = wallet.toLowerCase();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
     const result = await publicClient.buildQuery()
       .where(eq('type', 'beta_access'))
       .where(eq('wallet', normalizedWallet))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -142,6 +144,7 @@ export async function getBetaAccessByWallet(wallet: string): Promise<BetaAccess 
     const txHashResult = await publicClient.buildQuery()
       .where(eq('type', 'beta_access_txhash'))
       .where(eq('accessKey', entity.key))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -168,7 +171,7 @@ export async function getBetaAccessByWallet(wallet: string): Promise<BetaAccess 
       wallet: getAttr('wallet') || payload.wallet || normalizedWallet,
       code: getAttr('code') || payload.code || '',
       grantedAt: getAttr('grantedAt') || payload.grantedAt || new Date().toISOString(),
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
       txHash,
     };
   } catch (error: any) {
@@ -185,16 +188,19 @@ export async function getBetaAccessByWallet(wallet: string): Promise<BetaAccess 
  * List all beta access records for a code
  * 
  * @param code - Beta code string
+ * @param spaceId - Optional space ID to filter by (defaults to SPACE_ID from config)
  * @returns Array of beta access records
  */
-export async function listBetaAccessByCode(code: string): Promise<BetaAccess[]> {
+export async function listBetaAccessByCode(code: string, spaceId?: string): Promise<BetaAccess[]> {
   const publicClient = getPublicClient();
   const normalizedCode = code.toLowerCase().trim();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
     const result = await publicClient.buildQuery()
       .where(eq('type', 'beta_access'))
       .where(eq('code', normalizedCode))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1000)
@@ -238,7 +244,7 @@ export async function listBetaAccessByCode(code: string): Promise<BetaAccess[]> 
         wallet: normalizedWallet,
         code: getAttr('code') || payload.code || normalizedCode,
         grantedAt: getAttr('grantedAt') || payload.grantedAt || new Date().toISOString(),
-        spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+        spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
       };
     });
   } catch (error: any) {

@@ -8,6 +8,7 @@
 import { NextResponse } from 'next/server';
 import { listAllBetaCodeUsage } from '@/lib/arkiv/betaCode';
 import { listBetaAccessByCode } from '@/lib/arkiv/betaAccess';
+import { SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/admin/beta-code-usage
@@ -20,7 +21,8 @@ export async function GET() {
   
   try {
     // Get all beta code usage entities (latest version of each code)
-    const betaCodes = await listAllBetaCodeUsage();
+    // Use SPACE_ID from config to ensure proper data isolation
+    const betaCodes = await listAllBetaCodeUsage(SPACE_ID);
     
     // Get beta access records for each code to see wallet usage
     // Ensure code is normalized (Arkiv-native pattern: always normalize for queries)
@@ -28,7 +30,7 @@ export async function GET() {
       betaCodes.map(async (code) => {
         // Normalize code to ensure consistent querying (defensive)
         const normalizedCode = code.code.toLowerCase().trim();
-        const accessRecords = await listBetaAccessByCode(normalizedCode);
+        const accessRecords = await listBetaAccessByCode(normalizedCode, SPACE_ID);
         return {
           ...code,
           walletCount: accessRecords.length,

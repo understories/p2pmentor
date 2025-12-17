@@ -7,7 +7,7 @@
 
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { getPrivateKey } from "@/lib/config";
+import { getPrivateKey, SPACE_ID } from "@/lib/config";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type BetaCodeUsage = {
@@ -33,12 +33,12 @@ export async function trackBetaCodeUsage(
   const privateKey = getPrivateKey();
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  const spaceId = SPACE_ID;
   const createdAt = new Date().toISOString();
   const normalizedCode = code.toLowerCase().trim();
 
-  // Check if beta code entity already exists
-  const existing = await getBetaCodeUsage(normalizedCode);
+  // Check if beta code entity already exists (use SPACE_ID from config)
+  const existing = await getBetaCodeUsage(normalizedCode, SPACE_ID);
   
   if (existing) {
     // Update usage count
@@ -138,14 +138,18 @@ export async function trackBetaCodeUsage(
  * @param code - Beta code string
  * @returns Beta code usage entity or null
  */
-export async function getBetaCodeUsage(code: string): Promise<BetaCodeUsage | null> {
+export async function getBetaCodeUsage(code: string, spaceId?: string): Promise<BetaCodeUsage | null> {
   const publicClient = getPublicClient();
   const normalizedCode = code.toLowerCase().trim();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient.buildQuery()
+    let queryBuilder = publicClient.buildQuery()
       .where(eq('type', 'beta_code_usage'))
       .where(eq('code', normalizedCode))
+      .where(eq('spaceId', finalSpaceId));
+
+    const result = await queryBuilder
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -183,6 +187,7 @@ export async function getBetaCodeUsage(code: string): Promise<BetaCodeUsage | nu
     const txHashResult = await publicClient.buildQuery()
       .where(eq('type', 'beta_code_usage_txhash'))
       .where(eq('betaCodeKey', entity.key))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -224,8 +229,8 @@ export async function getBetaCodeUsage(code: string): Promise<BetaCodeUsage | nu
  * @param code - Beta code string
  * @returns true if code can be used, false if limit exceeded
  */
-export async function canUseBetaCode(code: string): Promise<boolean> {
-  const usage = await getBetaCodeUsage(code);
+export async function canUseBetaCode(code: string, spaceId?: string): Promise<boolean> {
+  const usage = await getBetaCodeUsage(code, spaceId);
   if (!usage) {
     return true; // New code, can be used
   }
@@ -238,14 +243,17 @@ export async function canUseBetaCode(code: string): Promise<boolean> {
  * Since entities are immutable, multiple entities may exist for the same code.
  * This function groups by code and returns the latest version (highest usageCount).
  * 
+ * @param spaceId - Optional space ID to filter by (defaults to SPACE_ID from config)
  * @returns Array of beta code usage entities (one per unique code, latest version)
  */
-export async function listAllBetaCodeUsage(): Promise<BetaCodeUsage[]> {
+export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUsage[]> {
   const publicClient = getPublicClient();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
     const result = await publicClient.buildQuery()
       .where(eq('type', 'beta_code_usage'))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1000) // Get all beta code usage entities
@@ -321,6 +329,7 @@ export async function listAllBetaCodeUsage(): Promise<BetaCodeUsage[]> {
           const txHashResult = await publicClient.buildQuery()
             .where(eq('type', 'beta_code_usage_txhash'))
             .where(eq('betaCodeKey', key))
+            .where(eq('spaceId', finalSpaceId))
             .withAttributes(true)
             .withPayload(true)
             .limit(1)

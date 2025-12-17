@@ -7,7 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { trackBetaCodeUsage, getBetaCodeUsage, canUseBetaCode } from '@/lib/arkiv/betaCode';
 import { createBetaAccess } from '@/lib/arkiv/betaAccess';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * POST /api/beta-code
@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'validate') {
-      // Check if code can be used
-      const canUse = await canUseBetaCode(code);
-      const usage = await getBetaCodeUsage(code);
+      // Check if code can be used (use SPACE_ID from config)
+      const canUse = await canUseBetaCode(code, SPACE_ID);
+      const usage = await getBetaCodeUsage(code, SPACE_ID);
       
       return NextResponse.json({
         ok: true,
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
       try {
         const { key, txHash } = await trackBetaCodeUsage(code, 50); // Default limit 50
         
-        // Get updated usage
-        const updatedUsage = await getBetaCodeUsage(code);
+        // Get updated usage (use SPACE_ID from config)
+        const updatedUsage = await getBetaCodeUsage(code, SPACE_ID);
         
         return NextResponse.json({
           ok: true,
@@ -140,8 +140,8 @@ export async function GET(request: Request) {
       );
     }
 
-    const usage = await getBetaCodeUsage(code);
-    const canUse = await canUseBetaCode(code);
+    const usage = await getBetaCodeUsage(code, SPACE_ID);
+    const canUse = await canUseBetaCode(code, SPACE_ID);
 
     return NextResponse.json({
       ok: true,

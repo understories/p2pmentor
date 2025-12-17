@@ -10,6 +10,7 @@
 import { NextRequest } from 'next/server';
 import { getBetaAccessByWallet } from '@/lib/arkiv/betaAccess';
 import { getBetaCodeUsage } from '@/lib/arkiv/betaCode';
+import { SPACE_ID } from '@/lib/config';
 
 export type BetaAccessCheck = {
   hasAccess: boolean;
@@ -47,7 +48,7 @@ export async function verifyBetaAccess(
     // Verify code hasn't exceeded limit
     if (betaCode) {
       try {
-        const usage = await getBetaCodeUsage(betaCode);
+        const usage = await getBetaCodeUsage(betaCode, SPACE_ID);
         if (usage && usage.usageCount >= usage.limit) {
           return { hasAccess: false, error: 'Beta code limit exceeded' };
         }
@@ -60,7 +61,7 @@ export async function verifyBetaAccess(
     // Verify wallet has beta access (if wallet provided)
     if (options.walletAddress) {
       try {
-        const access = await getBetaAccessByWallet(options.walletAddress);
+        const access = await getBetaAccessByWallet(options.walletAddress, SPACE_ID);
         if (!access) {
           // Wallet doesn't have access record yet (may be pre-auth)
           // This is okay - access will be created post-auth
