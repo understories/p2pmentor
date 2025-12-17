@@ -476,7 +476,7 @@ export function SidebarNav() {
                           className="flex flex-row items-center gap-2 p-2 rounded-lg"
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
-                          <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-5 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📖</span>
+                          <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📖</span>
                           <div className="flex flex-col gap-0.5">
                             <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
                               {skillName}
@@ -561,7 +561,7 @@ export function SidebarNav() {
                 `}
                 title="Asks"
               >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🎓</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🎓</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Asks</span>
                 {isActive('/asks') && (
                   <div 
@@ -587,7 +587,7 @@ export function SidebarNav() {
                 `}
                 title="Offers"
               >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💎</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💎</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Offers</span>
                 {isActive('/offers') && (
                   <div 
@@ -613,7 +613,7 @@ export function SidebarNav() {
                 `}
                 title="Matches"
               >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-3 h-4 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">✨</span>
+                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">✨</span>
                 <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Matches</span>
                 {isActive('/matches') && (
                   <div 
@@ -668,7 +668,7 @@ export function SidebarNav() {
                     const skillTitle = `${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`;
                     const skillContent = (
                       <>
-                        <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">
+                        <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">
                           {levelToEmoji(skill.level)}
                         </span>
                         <span 
@@ -722,7 +722,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
                   title="Public Garden Board"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💌</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💌</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -738,7 +738,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Browse Profiles"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">👤</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">👤</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -754,7 +754,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learner Communities"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🌱</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🌱</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
@@ -770,7 +770,7 @@ export function SidebarNav() {
                   className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
                   title="Learning Quests"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-4 h-6 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📚</span>
+                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📚</span>
                   <span
                     className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
                     style={{
