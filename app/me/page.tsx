@@ -59,10 +59,8 @@ export default function MePage() {
   const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
-    community: boolean;
   }>({
     profile: true, // Default to expanded
-    community: false,
   });
   const router = useRouter();
   const { level } = useOnboardingLevel(walletAddress);
@@ -630,25 +628,30 @@ export default function MePage() {
         <div className="mb-6 space-y-4">
           <div className="grid grid-cols-2 gap-3">
             {/* Sessions Completed */}
-            <div className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-help">
+            <Link
+              href="/me/sessions"
+              className="group relative p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all duration-200"
+            >
               <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {sessionsCompleted}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
               {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                <div className="font-mono text-left">
-                  <div>Arkiv query: type='session',</div>
-                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
-                  <div>(as mentor OR learner),</div>
-                  <div>status='completed' OR</div>
-                  <div>(status='scheduled' AND sessionDate &lt; now)</div>
-                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
-                    Queries: mentorWallet OR learnerWallet
+              {arkivBuilderMode && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <div className="font-mono text-left">
+                    <div>Arkiv query: type='session',</div>
+                    <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
+                    <div>(as mentor OR learner),</div>
+                    <div>status='completed' OR</div>
+                    <div>(status='scheduled' AND sessionDate &lt; now)</div>
+                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                      Queries: mentorWallet OR learnerWallet
+                    </div>
                   </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-              </div>
+              )}
               {/* Arkiv Builder Mode: Show session entities */}
               {arkivBuilderMode && sessions.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-emerald-200 dark:border-emerald-700">
@@ -669,29 +672,34 @@ export default function MePage() {
                   ))}
                 </div>
               )}
-            </div>
+            </Link>
             
             {/* Upcoming Sessions */}
-            <div className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center cursor-help">
+            <Link
+              href="/me/sessions"
+              className="group relative p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-md transition-all duration-200"
+            >
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                 {sessionsUpcoming}
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
               {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                <div className="font-mono text-left">
-                  <div>Arkiv query: type='session',</div>
-                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
-                  <div>(as mentor OR learner),</div>
-                  <div>status='scheduled' AND</div>
-                  <div>sessionDate &gt; now</div>
-                  <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
-                    Queries: mentorWallet OR learnerWallet
+              {arkivBuilderMode && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <div className="font-mono text-left">
+                    <div>Arkiv query: type='session',</div>
+                    <div>profile_wallet='{walletAddress?.slice(0, 8)}...'</div>
+                    <div>(as mentor OR learner),</div>
+                    <div>status='scheduled' AND</div>
+                    <div>sessionDate &gt; now</div>
+                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                      Queries: mentorWallet OR learnerWallet
+                    </div>
                   </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-              </div>
-            </div>
+              )}
+            </Link>
 
             {/* Learner Quests - Full Width Row */}
             {individualQuestProgress.length > 0 && (
@@ -953,53 +961,7 @@ export default function MePage() {
         </div>
 
         {/* Skill Garden Section - Removed, now integrated into Skills Learning box above */}
-
-        {/* Community Section - Collapsible */}
-        <div className="relative">
-          {/* Subtle radial gradient hint */}
-          <div 
-            className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
-            style={{
-              background: 'radial-gradient(circle at center, rgba(168, 85, 247, 0.08) 0%, transparent 70%)',
-            }}
-          />
-          <button
-            onClick={() => setExpandedSections(prev => ({ ...prev, community: !prev.community }))}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left cursor-pointer"
-          >
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 pointer-events-none">Community</span>
-            <span className="text-gray-500 dark:text-gray-400 pointer-events-none">
-              {expandedSections.community ? '▼' : '▶'}
-            </span>
-          </button>
-          {expandedSections.community && (
-            <div className="mt-3 space-y-3">
-              <Link
-                href="/network"
-                className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-              >
-                🌐 Browse Network
-              </Link>
-              <Link
-                href="/me/sessions"
-                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-              >
-                📅 Sessions
-              </Link>
-              <Link
-                href="/notifications"
-                className="relative block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-              >
-                🔔 Notifications
-                {notificationCount > 0 && (
-                  <span className="absolute top-2 right-2 px-2 py-0.5 text-xs font-medium bg-emerald-600 dark:bg-emerald-500 text-white rounded-full">
-                    {notificationCount}
-                  </span>
-                )}
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Community Section - Removed */}
       </div>
       </div>
     </div>
