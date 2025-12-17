@@ -53,7 +53,7 @@ export function BottomNav() {
       href: '/network',
       label: 'Network',
       icon: '🌐',
-      minLevel: 3, // After network exploration
+      minLevel: 1, // After profile creation (matches desktop sidebar)
     },
     {
       href: '/skills/explore',
