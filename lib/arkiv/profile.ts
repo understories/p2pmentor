@@ -96,6 +96,7 @@ export async function createUserProfileClient({
   mentorRoles,
   learnerRoles,
   availabilityWindow,
+  identity_seed,
   account,
 }: {
   wallet: string;
@@ -122,6 +123,7 @@ export async function createUserProfileClient({
   mentorRoles?: string[];
   learnerRoles?: string[];
   availabilityWindow?: string;
+  identity_seed?: string;
   account: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   // Use unified wallet client getter (supports both MetaMask and Passkey)
@@ -148,15 +150,14 @@ export async function createUserProfileClient({
     avgRating = 0;
   }
 
-  // Auto-assign emoji identity seed (EIS) for new profiles only
-  // Preserve existing identity_seed for profile updates
-  const identity_seed = existingProfile?.identity_seed || selectRandomEmoji();
+  // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
+  const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
 
   const payload = {
     displayName,
     username,
     profileImage,
-    identity_seed,
+    identity_seed: finalIdentitySeed,
     exploringStatement: bioShort || undefined, // Use bioShort as exploringStatement for onboarding
     bio,
     bioShort: bioShort || bio,
@@ -198,7 +199,7 @@ export async function createUserProfileClient({
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
-  if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
+  if (finalIdentitySeed) attributes.push({ key: 'identity_seed', value: finalIdentitySeed });
   if (bio) attributes.push({ key: 'bio', value: bio });
   if (skills) attributes.push({ key: 'skills', value: skills });
   if (seniority) attributes.push({ key: 'seniority', value: seniority });
@@ -252,6 +253,7 @@ export async function createUserProfile({
   mentorRoles,
   learnerRoles,
   availabilityWindow,
+  identity_seed,
   privateKey,
 }: {
   wallet: string;
@@ -278,6 +280,7 @@ export async function createUserProfile({
   mentorRoles?: string[];
   learnerRoles?: string[];
   availabilityWindow?: string;
+  identity_seed?: string;
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -303,15 +306,14 @@ export async function createUserProfile({
     avgRating = 0;
   }
 
-  // Auto-assign emoji identity seed (EIS) for new profiles only
-  // Preserve existing identity_seed for profile updates
-  const identity_seed = existingProfile?.identity_seed || selectRandomEmoji();
+  // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
+  const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
 
   const payload = {
     displayName,
     username,
     profileImage,
-    identity_seed,
+    identity_seed: finalIdentitySeed,
     bio,
     bioShort: bioShort || bio,
     bioLong,
@@ -351,7 +353,7 @@ export async function createUserProfile({
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
-  if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
+  if (finalIdentitySeed) attributes.push({ key: 'identity_seed', value: finalIdentitySeed });
   if (bio) attributes.push({ key: 'bio', value: bio });
   if (skills) attributes.push({ key: 'skills', value: skills });
   if (seniority) attributes.push({ key: 'seniority', value: seniority });

@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
         mentorRoles,
         learnerRoles,
         availabilityWindow,
+        identity_seed,
       } = profileData;
 
       // For updateProfile, use existing values if not provided
@@ -87,6 +88,10 @@ export async function POST(request: NextRequest) {
       const finalMentorRoles = mentorRoles !== undefined ? mentorRoles : existingProfile?.mentorRoles;
       const finalLearnerRoles = learnerRoles !== undefined ? learnerRoles : existingProfile?.learnerRoles;
       const finalAvailabilityWindow = availabilityWindow !== undefined ? availabilityWindow : existingProfile?.availabilityWindow;
+      // For identity_seed, use provided value or preserve existing, or generate new if creating
+      const finalIdentitySeed = identity_seed !== undefined
+        ? identity_seed
+        : (existingProfile?.identity_seed || undefined);
       const finalSkills = skills || (existingProfile?.skills || '');
       const finalSkillsArray = skillsArray !== undefined 
         ? skillsArray 
@@ -152,6 +157,7 @@ export async function POST(request: NextRequest) {
         domainsOfInterest: finalDomainsOfInterest,
         mentorRoles: finalMentorRoles,
         learnerRoles: finalLearnerRoles,
+        identity_seed: finalIdentitySeed,
         availabilityWindow: finalAvailabilityWindow,
         privateKey: getPrivateKey(),
       });

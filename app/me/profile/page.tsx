@@ -18,6 +18,8 @@ import { RegrowProfileBrowser } from '@/components/profile/RegrowProfileBrowser'
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { PLANT_EMOJI_POOL, isValidPlantEmoji, getProfileEmoji } from '@/lib/profile/identitySeed';
+import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 
 export default function ProfilePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -29,6 +31,7 @@ export default function ProfilePage() {
   const [timezone, setTimezone] = useState<string>('');
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
+  const [selectedEmoji, setSelectedEmoji] = useState<string>('');
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -275,6 +278,7 @@ export default function ProfilePage() {
             languages,
             contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
             seniority: seniority || undefined,
+            identity_seed: selectedEmoji || undefined,
           }),
       });
 
@@ -590,6 +594,35 @@ export default function ProfilePage() {
                 className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                 placeholder="@username"
               />
+            </div>
+
+            <div>
+              <label htmlFor="identity_seed" className="block text-sm font-medium mb-2">
+                Identity Emoji
+              </label>
+              <div className="flex items-center gap-4">
+                <div className="text-4xl">
+                  <EmojiIdentitySeed profile={selectedEmoji ? { identity_seed: selectedEmoji } as UserProfile : profile} size="lg" />
+                </div>
+                <div className="flex-1">
+                  <select
+                    id="identity_seed"
+                    name="identity_seed"
+                    value={selectedEmoji}
+                    onChange={(e) => setSelectedEmoji(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  >
+                    {PLANT_EMOJI_POOL.map((emoji) => (
+                      <option key={emoji} value={emoji}>
+                        {emoji} {emoji}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Choose an emoji to represent your identity
+              </p>
             </div>
 
             <div>
