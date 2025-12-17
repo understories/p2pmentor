@@ -28,6 +28,7 @@ export default function AuthPage() {
   const [isMobile, setIsMobile] = useState(false);
   const [isMetaMaskMobileBrowser, setIsMetaMaskMobileBrowser] = useState(false);
   const [hasMetaMask, setHasMetaMask] = useState(false);
+  const [openingMetaMask, setOpeningMetaMask] = useState(false);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -94,6 +95,9 @@ export default function AuthPage() {
     // Mobile Safari/Chrome won't have window.ethereum even if MetaMask is installed.
     // Redirect users into MetaMask's in-app browser instead.
     if (mounted && isMobile && !isMetaMaskMobileBrowser) {
+      setOpeningMetaMask(true);
+      // Reset after 4 seconds in case OS blocks the redirect
+      setTimeout(() => setOpeningMetaMask(false), 4000);
       openInMetaMaskBrowser(window.location.href);
       return;
     }
@@ -376,7 +380,7 @@ export default function AuthPage() {
                     You're in MetaMask. Tap Connect to continue.
                   </p>
                 </div>
-              ) : (
+              ) : openingMetaMask ? (
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
                     Opening MetaMask…
@@ -395,6 +399,23 @@ export default function AuthPage() {
                     ) : null}
                   </p>
                 </div>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
+                  On mobile, connect via the MetaMask in-app browser. Tap "Connect Wallet" to open it.
+                  {getMetaMaskInstallUrl() ? (
+                    <>
+                      {' '}If you don't have MetaMask yet,{' '}
+                      <a
+                        href={getMetaMaskInstallUrl()!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                      >
+                        install MetaMask
+                      </a>.
+                    </>
+                  ) : null}
+                </p>
               )}
             </>
           )}
