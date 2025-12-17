@@ -109,7 +109,6 @@ export function GardenNoteComposeModal({
       const finalTags = initialTags && initialTags.length > 0
         ? [...new Set([...initialTags, ...tagArray])] // Remove duplicates, initialTags take priority
         : tagArray;
-
       const res = await fetch('/api/garden-notes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

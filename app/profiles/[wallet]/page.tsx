@@ -269,9 +269,38 @@ export default function ProfileDetailPage() {
           <div className="mb-6">
             <BackButton href="/profiles" />
           </div>
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
-          </div>
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `loadProfileData("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `Queries:`,
+                `1. getProfileByWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='user_profile', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `2. listAsksForWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='ask', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `3. listOffersForWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='offer', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `4. listSessionsForWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='session', mentorWallet OR learnerWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `5. listFeedbackForWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='feedback', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `6. listAvailabilityForWallet("${wallet?.toLowerCase().slice(0, 8) || '...'}...")`,
+                `   → type='availability', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
+                `7. listLearningFollows({ profile_wallet: "${wallet?.toLowerCase().slice(0, 8) || '...'}...", active: true })`,
+                `   → type='learning_follow', profile_wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', active=true`,
+                `Returns: Profile data with asks, offers, sessions, feedback, availability, and learning follows`
+              ]}
+              label="Loading Profile"
+            >
+              <div className="text-center py-12">
+                <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+              </div>
+            </ArkivQueryTooltip>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -350,34 +379,108 @@ export default function ProfileDetailPage() {
         {/* Action Buttons - only show if viewing someone else's profile and profile is loaded */}
         {userWallet && profile && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
           <div className="mb-6 flex justify-center gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedOffer(null);
-                          setShowMeetingModal(true);
-                          setMeetingMode('request');
-                        }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Request Meeting
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSelectedOffer(null);
-                          setShowMeetingModal(true);
-                          setMeetingMode('peer');
-                        }}
-                        className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Peer Learning
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowGardenNoteModal(true);
-                        }}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Leave a Note
-                      </button>
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Opens RequestMeetingModal to create session`,
+                            `POST /api/sessions { action: 'createSession', ... }`,
+                            `Creates: type='session' entity`,
+                            `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                            `Payload: Full session data`,
+                            `TTL: sessionDate + duration + 1 hour buffer`
+                          ]}
+                          label="Request Meeting"
+                        >
+                          <button
+                            onClick={() => {
+                              setSelectedOffer(null);
+                              setShowMeetingModal(true);
+                              setMeetingMode('request');
+                            }}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Request Meeting
+                          </button>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOffer(null);
+                            setShowMeetingModal(true);
+                            setMeetingMode('request');
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Request Meeting
+                        </button>
+                      )}
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Opens RequestMeetingModal for peer learning session`,
+                            `POST /api/sessions { action: 'createSession', ... }`,
+                            `Creates: type='session' entity`,
+                            `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                            `Mode: 'peer' (both users are learners)`,
+                            `Payload: Full session data`,
+                            `TTL: sessionDate + duration + 1 hour buffer`
+                          ]}
+                          label="Peer Learning"
+                        >
+                          <button
+                            onClick={() => {
+                              setSelectedOffer(null);
+                              setShowMeetingModal(true);
+                              setMeetingMode('peer');
+                            }}
+                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Peer Learning
+                          </button>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOffer(null);
+                            setShowMeetingModal(true);
+                            setMeetingMode('peer');
+                          }}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Peer Learning
+                        </button>
+                      )}
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Opens GardenNoteComposeModal to create garden note`,
+                            `POST /api/garden-notes { action: 'createNote', ... }`,
+                            `Creates: type='garden_note' entity`,
+                            `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', targetWallet='${wallet.toLowerCase().slice(0, 8)}...', channel='public_garden_board'`,
+                            `Payload: Full garden note data (message, tags, etc.)`,
+                            `TTL: 1 year (31536000 seconds)`
+                          ]}
+                          label="Leave a Note"
+                        >
+                          <button
+                            onClick={() => {
+                              setShowGardenNoteModal(true);
+                            }}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Leave a Note
+                          </button>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setShowGardenNoteModal(true);
+                          }}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Leave a Note
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -843,16 +946,41 @@ export default function ProfileDetailPage() {
                     </div>
                     {/* Request Meeting Button for this specific offer */}
                     {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-                      <button
-                        onClick={() => {
-                          setSelectedOffer(offer); // Set the specific offer
-                          setMeetingMode('request');
-                          setShowMeetingModal(true);
-                        }}
-                        className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Request Meeting
-                      </button>
+                      arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Opens RequestMeetingModal to create session`,
+                            `POST /api/sessions { action: 'createSession', ... }`,
+                            `Creates: type='session' entity`,
+                            `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet.toLowerCase().slice(0, 8)}...', skill='${offer.skill}'`,
+                            `Payload: Full session data`,
+                            `TTL: sessionDate + duration + 1 hour buffer`
+                          ]}
+                          label="Request Meeting"
+                        >
+                          <button
+                            onClick={() => {
+                              setSelectedOffer(offer); // Set the specific offer
+                              setMeetingMode('request');
+                              setShowMeetingModal(true);
+                            }}
+                            className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                          >
+                            Request Meeting
+                          </button>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setSelectedOffer(offer); // Set the specific offer
+                            setMeetingMode('request');
+                            setShowMeetingModal(true);
+                          }}
+                          className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                        >
+                          Request Meeting
+                        </button>
+                      )
                     )}
                   </div>
                 </div>
@@ -1062,13 +1190,21 @@ export default function ProfileDetailPage() {
                               {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {shortenWallet(otherWallet)}
                             </p>
                           </div>
-                          <span className={`px-2 py-1 text-xs font-medium rounded ${
-                            session.status === 'completed'
-                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                              : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                          }`}>
-                            {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 text-xs font-medium rounded ${
+                              session.status === 'completed'
+                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                                : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                            }`}>
+                              {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
+                            </span>
+                            {arkivBuilderMode && session.key && (
+                              <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} className="text-xs" />
+                            )}
+                            {!arkivBuilderMode && session.key && (
+                              <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} />
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
                           <strong>Date:</strong> {sessionDate.toLocaleDateString('en-US', {
