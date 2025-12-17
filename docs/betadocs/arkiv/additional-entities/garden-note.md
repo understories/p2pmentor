@@ -15,7 +15,7 @@ Public Garden Bulletin - short, playful messages pinned to the shared "garden wa
 - `targetWallet`: Target wallet (optional, for "note to a specific profile")
 - `channel`: Channel identifier (default: `'public_garden_board'`) (required)
 - `visibility`: Visibility level (default: `'public'`) (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -136,7 +136,7 @@ const { key, txHash } = await createGardenNote({
   visibility: "public",
   publishConsent: true,
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

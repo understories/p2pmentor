@@ -13,7 +13,7 @@ Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of
 - `type`: `'beta_access'` (required)
 - `wallet`: Wallet address granted access (required, lowercase)
 - `code`: Beta code used (required, lowercase, trimmed)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required, stored as `grantedAt` in payload)
 
 ## Payload
@@ -98,7 +98,7 @@ const { key, txHash } = await createBetaAccess({
   wallet: "0x1234...",
   code: "BETA2024",
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

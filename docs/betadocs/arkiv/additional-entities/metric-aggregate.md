@@ -16,7 +16,7 @@ Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, a
 - `source`: `'arkiv'` | `'graphql'` (required)
 - `route`: API route (optional)
 - `period`: `'daily'` | `'weekly'` (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -146,7 +146,7 @@ const { key, txHash } = await createMetricAggregate({
   errorRate: 0.02,
   fallbackRate: 0.0,
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

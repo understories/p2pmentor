@@ -12,7 +12,7 @@
 | displayName | string | Yes | Attribute | User's display name |
 | username | string | No | Attribute | Unique username (optional, client-side uniqueness check only) |
 | timezone | string | Yes | Attribute | IANA timezone (e.g., "America/New_York") |
-| spaceId | string | Yes | Attribute | Currently "local-dev" |
+| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | createdAt | string | Yes | Attribute | ISO timestamp |
 | identity_seed | string | No | Attribute | Emoji Identity Seed (EIS) for UI |
 | bio | string | No | Attribute | Legacy bio field |
@@ -50,7 +50,7 @@
 | communityAffiliations | string[] | No | Payload | Array of community identifiers |
 | reputationScore | number | No | Payload | Reputation score (default: 0) |
 | lastActiveTimestamp | string | No | Payload | ISO timestamp of last activity |
-| spaceId | string | Yes | Payload | Currently "local-dev" |
+| spaceId | string | Yes | Payload | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | createdAt | string | Yes | Payload | ISO timestamp |
 
 ## Update Handling

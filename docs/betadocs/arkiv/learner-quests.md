@@ -46,7 +46,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `language`: Language code (e.g., `'es'`, `'zh'`) - only for `language_assessment` quests
 - `proficiencyLevel`: Proficiency level (e.g., `'A1'`, `'HSK1'`) - only for `language_assessment` quests
 - `status`: `'active' | 'archived'`
-- `spaceId`: `'local-dev'`
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload (Reading List Quest):**
@@ -132,7 +132,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `sectionId`: Section identifier (for language assessment quests)
 - `questionId`: Question identifier (for language assessment quests)
 - `status`: `'read' | 'in_progress' | 'not_started'` (for reading list quests)
-- `spaceId`: `'local-dev'`
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload (Reading List Quest Progress):**
@@ -189,7 +189,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `language`: Language code
 - `proficiencyLevel`: Proficiency level
 - `status`: `'in_progress' | 'completed' | 'passed' | 'failed'`
-- `spaceId`: `'local-dev'`
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `completedAt`: ISO timestamp (when assessment finished)
 
@@ -248,7 +248,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `type`: `'learner_quest_progress_txhash'`
 - `progressKey`: Reference to `learner_quest_progress` entity key
 - `txHash`: Transaction hash
-- `spaceId`: `'local-dev'`
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **TTL:** 1 year (matches progress entity)
@@ -261,7 +261,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `type`: `'learner_quest_assessment_result_txhash'`
 - `resultKey`: Reference to `learner_quest_assessment_result` entity key
 - `txHash`: Transaction hash
-- `spaceId`: `'local-dev'`
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **TTL:** 1 year (matches result entity)

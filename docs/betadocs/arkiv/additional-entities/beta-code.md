@@ -12,7 +12,7 @@ Tracks beta code usage on Arkiv to enforce limits. Each beta code has a usage li
 
 - `type`: `'beta_code_usage'` (required)
 - `code`: Beta code string (required, lowercase, trimmed)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload

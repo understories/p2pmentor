@@ -61,22 +61,30 @@ The signing wallet address is not used in queries. All queries filter by the `wa
 
 To create separate data environments, use different `spaceId` values:
 
+**Default Space ID:**
+The default `spaceId` is determined by `SPACE_ID` in `lib/config.ts`:
+- If `BETA_SPACE_ID` environment variable is set, use that value
+- Otherwise: `'beta-launch'` in production (`NODE_ENV === 'production'`), `'local-dev'` in development
+
 **Development Environment:**
 ```bash
+# Uses 'local-dev' by default (or set explicitly)
 BETA_SPACE_ID=local-dev npm run dev
 ```
 
 **Production Environment:**
 ```bash
+# Uses 'beta-launch' by default (or set explicitly)
 BETA_SPACE_ID=beta-launch npm run build
 ```
 
 **Seed/Example Data:**
 ```bash
+# Use custom spaceId for seed data
 BETA_SPACE_ID=local-dev-seed npm run seed
 ```
 
-Each environment uses a different `spaceId`, and queries filter by `spaceId` to show only relevant data.
+Each environment uses a different `spaceId`, and queries filter by `spaceId` to show only relevant data. API routes use `SPACE_ID` from config when creating entities.
 
 ### Why SpaceId, Not Signing Wallet?
 
@@ -158,6 +166,8 @@ Seed scripts use the signing wallet to create initial data, but use `spaceId` to
 ```typescript
 // scripts/seed-learner-quest.ts
 const privateKey = getPrivateKey(); // From ARKIV_PRIVATE_KEY
+// spaceId defaults to 'local-dev' in library functions
+// Can be overridden via BETA_SPACE_ID env var or passed explicitly
 await createLearnerQuest({
   questId: 'web3privacy_foundations',
   spaceId: 'local-dev-seed', // Use spaceId to separate seed data
@@ -165,6 +175,8 @@ await createLearnerQuest({
   privateKey,
 });
 ```
+
+**Note:** Library functions (like `createLearnerQuest`) default to `'local-dev'` if no `spaceId` is provided. API routes use `SPACE_ID` from config (which respects `BETA_SPACE_ID` env var).
 
 ### Multiple Seeds
 

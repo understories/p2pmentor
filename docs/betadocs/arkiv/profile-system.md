@@ -273,7 +273,7 @@ export async function createUserProfile({
   timezone,
   // ... other fields
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 }: {
   wallet: string;
   displayName: string;

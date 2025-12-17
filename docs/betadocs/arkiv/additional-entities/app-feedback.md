@@ -15,7 +15,7 @@ User feedback about the application itself (for builders/admin). Separate from s
 - `page`: Page where feedback was given (e.g., `/network`, `/me`) (required)
 - `feedbackType`: `'feedback'` | `'issue'` (required)
 - `rating`: Rating 1-5 (optional, stored as string)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -129,7 +129,7 @@ const { key, txHash } = await createAppFeedback({
   rating: 3,
   feedbackType: "issue",
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -144,7 +144,7 @@ const { key, txHash } = await resolveAppFeedback({
   feedbackKey: "app_feedback:abc123",
   resolvedByWallet: "0xadmin...",
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

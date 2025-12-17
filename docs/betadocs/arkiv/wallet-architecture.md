@@ -166,7 +166,7 @@ const entity = {
   attributes: [
     { key: 'type', value: 'user_profile' },
     { key: 'wallet', value: profileWallet.toLowerCase() }, // Profile wallet
-    { key: 'spaceId', value: 'local-dev' },
+    { key: 'spaceId', value: 'local-dev' }, // Default in library functions; API routes use SPACE_ID from config
     { key: 'createdAt', value: new Date().toISOString() },
   ],
   payload: {

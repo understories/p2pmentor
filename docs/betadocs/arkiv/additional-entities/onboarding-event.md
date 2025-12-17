@@ -13,7 +13,7 @@ Tracks onboarding progress events (e.g., `network_explored`, `onboarding_started
 - `type`: `'onboarding_event'` (required)
 - `wallet`: Wallet address (required, lowercase)
 - `eventType`: Event type (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -112,7 +112,7 @@ const { key, txHash } = await createOnboardingEvent({
   wallet: walletAddress,
   eventType: 'network_explored',
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

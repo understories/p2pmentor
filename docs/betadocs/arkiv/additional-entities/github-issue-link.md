@@ -12,7 +12,7 @@ Links app feedback entities to GitHub issues. Stores GitHub issue number and URL
 
 - `type`: `'github_issue_link'` (required)
 - `feedbackKey`: Reference to `app_feedback` entity key (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -100,7 +100,7 @@ const { key, txHash } = await createGitHubIssueLink({
   issueUrl: "https://github.com/understories/p2pmentor/issues/123",
   repository: "understories/p2pmentor",
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

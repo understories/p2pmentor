@@ -20,7 +20,7 @@ type: 'notification'
 | `sourceEntityType` | string | Yes | Type of source entity: `'session'`, `'ask'`, `'offer'`, `'user_profile'`, `'admin_response'`, `'app_feedback'` |
 | `sourceEntityKey` | string | Yes | Key of the source entity that triggered this notification |
 | `status` | string | Yes | `'active'` or `'archived'` (for soft delete) |
-| `spaceId` | string | Yes | Space ID (typically `'local-dev'`) |
+| `spaceId` | string | Yes | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | `createdAt` | string | Yes | ISO timestamp when notification was created |
 
 ## Payload
@@ -105,7 +105,7 @@ await createNotification({
     otherWallet: learnerWallet.toLowerCase(),
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -130,7 +130,7 @@ await createNotification({
     adminWallet: adminWallet.toLowerCase(),
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -164,7 +164,7 @@ await createNotification({
     txHash,
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -187,7 +187,7 @@ await createNotification({
     resolvedBy: resolvedByWallet.toLowerCase(),
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -214,7 +214,7 @@ await archiveNotification({
   notificationKey: notificationKey,
   wallet: userWallet,
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

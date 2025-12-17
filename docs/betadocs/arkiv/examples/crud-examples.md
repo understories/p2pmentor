@@ -25,7 +25,7 @@ const { key, txHash } = await createProfile({
     [skill2.key]: 3,
   },
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -76,7 +76,7 @@ const { key, txHash } = await createAsk({
   message: "Looking for a Spanish conversation partner",
   expiresIn: 3600, // 1 hour
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -133,7 +133,7 @@ const { key, txHash } = await createOffer({
   isPaid: false,
   expiresIn: 7200, // 2 hours
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -181,7 +181,7 @@ const { key, txHash } = await createSession({
   notes: "First Spanish conversation session",
   requiresPayment: false,
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -247,7 +247,7 @@ const { key, txHash } = await createFeedback({
   notes: "Great session! Very helpful.",
   technicalDxFeedback: "The video quality was excellent",
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -293,7 +293,7 @@ const { key, txHash } = await createAvailability({
     ],
   },
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -331,7 +331,7 @@ const { key, txHash } = await createSkill({
   status: "active",
   created_by_profile: walletAddress,
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

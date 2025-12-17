@@ -385,7 +385,7 @@ export async function createAppFeedback({
   rating,
   feedbackType = 'feedback',
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }: {
   wallet: string;
   page: string;
@@ -462,7 +462,7 @@ export async function resolveAppFeedback({
   feedbackKey,
   resolvedByWallet,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }: {
   feedbackKey: string;
   resolvedByWallet: string;
@@ -521,7 +521,7 @@ export async function createFeedback({
   notes,
   technicalDxFeedback,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }: {
   sessionKey: string;
   mentorWallet: string;

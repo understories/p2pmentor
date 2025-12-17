@@ -34,7 +34,11 @@ User identity is tied to wallet addresses:
 
 ### Space ID
 
-All entities include a `spaceId` attribute. Currently set to `'local-dev'` for beta. This enables multi-tenant or environment-specific data isolation.
+All entities include a `spaceId` attribute. The default `spaceId` comes from `SPACE_ID` config (`lib/config.ts`), which is:
+- `process.env.BETA_SPACE_ID` if set
+- Otherwise: `'beta-launch'` in production, `'local-dev'` in development
+
+This enables multi-tenant or environment-specific data isolation. API routes use `SPACE_ID` from config when creating entities. Library functions default to `'local-dev'` but accept an optional `spaceId` parameter.
 
 ## Core Entity Types
 

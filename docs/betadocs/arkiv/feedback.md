@@ -13,7 +13,7 @@
 | learnerWallet | string | Yes | Attribute | Learner wallet address (lowercase) |
 | feedbackFrom | string | Yes | Attribute | Wallet address of person giving feedback |
 | feedbackTo | string | Yes | Attribute | Wallet address of person receiving feedback |
-| spaceId | string | Yes | Attribute | Currently "local-dev" |
+| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | createdAt | string | Yes | Attribute | ISO timestamp |
 | rating | string | No | Attribute | Rating 1-5 (stored as string) |
 | rating | number | No | Payload | Rating 1-5 |

@@ -14,7 +14,7 @@ Stores user notification preferences and read/unread state as Arkiv entities. Al
 - `wallet`: Wallet address (required, lowercase)
 - `notificationId`: Notification ID (e.g., `"meeting_request_sessionKey123"`) (required)
 - `notificationType`: Notification type (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 - `updatedAt`: ISO timestamp (required)
 
@@ -125,7 +125,7 @@ const { key, txHash } = await upsertNotificationPreference({
   read: false,
   archived: false,
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

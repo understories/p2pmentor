@@ -7,7 +7,7 @@
 **Attributes:**
 - `type`: 'user_profile'
 - `wallet`: Wallet address (lowercase)
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 
 **Payload:**
 - `displayName`: Display name
@@ -52,7 +52,7 @@
 - `type`: 'ask'
 - `wallet`: Wallet address (lowercase)
 - `skill`: Skill name
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `status`: 'open'
 - `ttlSeconds`: TTL in seconds (default: 3600)
@@ -73,7 +73,7 @@
 - `type`: 'offer'
 - `wallet`: Wallet address (lowercase)
 - `skill`: Skill name
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `status`: 'active'
 - `ttlSeconds`: TTL in seconds (default: 7200)
@@ -100,7 +100,7 @@
 - `mentorWallet`: Mentor wallet address (lowercase)
 - `learnerWallet`: Learner wallet address (lowercase)
 - `skill`: Skill name
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload:**
@@ -144,7 +144,7 @@
 - `name_canonical`: Display name (e.g., "Spanish")
 - `slug`: Normalized key (e.g., "spanish")
 - `status`: 'active' | 'archived'
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `created_by_profile`: Wallet address of creator (optional)
 
@@ -163,7 +163,7 @@
 - `wallet`: Wallet address (lowercase)
 - `timezone`: IANA timezone (e.g., "America/New_York")
 - `availabilityVersion`: '1.0' (structured) | 'legacy' (text)
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload:**
@@ -185,7 +185,7 @@
 - `learnerWallet`: Learner wallet address
 - `feedbackFrom`: Wallet of person giving feedback
 - `feedbackTo`: Wallet of person receiving feedback
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `rating`: Rating 1-5 (optional, stored as string)
 
@@ -206,7 +206,7 @@
 - `wallet`: Feedback author wallet
 - `page`: Page where feedback was given
 - `feedbackType`: 'feedback' | 'issue'
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 - `rating`: Rating 1-5 (optional, stored as string)
 
@@ -224,7 +224,7 @@
 - `type`: 'virtual_gathering'
 - `organizerWallet`: Organizer wallet address
 - `community`: Community identifier (e.g., skill slug)
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload:**
@@ -245,7 +245,7 @@
 - `source`: 'arkiv' | 'graphql'
 - `operation`: Operation name
 - `route`: API route (optional)
-- `spaceId`: 'local-dev'
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - `createdAt`: ISO timestamp
 
 **Payload:**

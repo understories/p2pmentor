@@ -12,7 +12,7 @@
 | learnerWallet | string | Yes | Attribute | Learner wallet address (lowercase) |
 | skill | string | Yes | Attribute | Skill name (legacy, kept for backward compatibility) |
 | skill_id | string | No | Attribute | Skill entity key (preferred for beta) |
-| spaceId | string | Yes | Attribute | Currently "local-dev" |
+| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | createdAt | string | Yes | Attribute | ISO timestamp |
 | sessionDate | string | Yes | Attribute | ISO timestamp when session is scheduled |
 | status | string | Yes | Attribute | "pending" | "scheduled" | "in-progress" | "completed" | "cancelled" |

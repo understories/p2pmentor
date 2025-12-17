@@ -13,7 +13,7 @@ Privacy-preserving retention and cohort analysis. Uses one-way hashed wallets fo
 - `type`: `'retention_cohort'` (required)
 - `cohortDate`: Date string (YYYY-MM-DD format) (required)
 - `period`: `'daily'` | `'weekly'` | `'monthly'` (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -114,7 +114,7 @@ const { key, txHash } = await createRetentionCohort({
   day14: 8,
   day30: 5,
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

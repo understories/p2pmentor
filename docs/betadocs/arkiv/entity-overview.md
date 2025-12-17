@@ -12,7 +12,7 @@ All entities are stored on Arkiv (blockchain-native storage). Entities are immut
 
 **Common Patterns:**
 - All entities have `type` attribute for filtering
-- All entities have `spaceId` attribute (currently `'local-dev'`)
+- All entities have `spaceId` attribute (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - All entities have `createdAt` attribute (ISO timestamp)
 - Transaction hash tracking via separate `*_txhash` entities
 - Wallet addresses are normalized to lowercase

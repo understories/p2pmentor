@@ -145,7 +145,7 @@ export async function createSkill({
   description,
   created_by_profile,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 }: {
   name_canonical: string;
   // ...

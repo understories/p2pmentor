@@ -15,7 +15,7 @@ Create a separate entity type that marks another entity as deleted:
   entityKey: 'original_entity_key',  // Reference to deleted entity
   deletedBy: 'wallet_address',        // Who deleted it
   deletedAt: '2024-01-15T10:30:00Z',  // When deleted
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 }
 ```
 
@@ -39,7 +39,7 @@ async function deleteEntity(entityKey: string, wallet: string) {
       type: 'entity_type_deletion',
       entityKey,
       deletedBy: wallet.toLowerCase(),
-      spaceId: 'local-dev',
+      spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
     },
     expiresIn: 31536000, // 1 year
   });

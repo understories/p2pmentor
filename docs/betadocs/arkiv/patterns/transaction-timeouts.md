@@ -156,7 +156,7 @@ async function createProfileWithTimeout(profileData: ProfileData): Promise<Profi
       attributes: {
         type: 'user_profile',
         wallet: profileData.wallet.toLowerCase(),
-        spaceId: 'local-dev',
+        spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
       },
       expiresIn: undefined, // No expiration
     }, 2); // 2 retries

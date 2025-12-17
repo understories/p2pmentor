@@ -13,7 +13,7 @@ Community virtual gatherings (public meetings). Anyone can suggest a gathering, 
 - `type`: `'virtual_gathering'` (required)
 - `organizerWallet`: Organizer wallet address (required, lowercase)
 - `community`: Community identifier (e.g., skill slug) (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -108,7 +108,7 @@ const { key, txHash } = await createVirtualGathering({
   sessionDate: "2024-01-20T18:00:00Z",
   duration: 60, // 60 minutes
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

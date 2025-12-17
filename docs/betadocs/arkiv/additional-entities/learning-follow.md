@@ -14,7 +14,7 @@ Tracks which skills (topics) a user is following for learning communities. Enabl
 - `profile_wallet`: Wallet address (reference to Profile.wallet) (required, lowercase)
 - `skill_id`: Skill entity key (reference to Skill.key) (required)
 - `active`: Boolean flag for soft delete (required, default: `true`)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -112,7 +112,7 @@ const { key, txHash } = await createLearningFollow({
   skill_id: skillKey,
   mode: 'learning', // or 'teaching' or 'both'
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

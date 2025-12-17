@@ -14,7 +14,7 @@ Admin responses to user app feedback. Allows administrators to respond to user f
 - `feedbackKey`: Reference to `app_feedback` entity key (required)
 - `wallet`: Wallet address of user who gave feedback (required, lowercase)
 - `adminWallet`: Wallet address of admin responding (required, lowercase)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -85,7 +85,7 @@ const { key, txHash } = await createAdminResponse({
   message: "Thank you for the feedback! We're working on this.",
   adminWallet: "0xadmin...",
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

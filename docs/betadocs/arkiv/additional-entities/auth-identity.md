@@ -17,7 +17,7 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 - `subtype`: `'passkey'` (required)
 - `wallet`: Wallet address (required, lowercase)
 - `credentialId`: Base64url-encoded credential ID (required, stored as attribute `credentialId`)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ### Backup Wallet Identity
@@ -26,7 +26,7 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 - `subtype`: `'backup_wallet'` (required)
 - `wallet`: Primary wallet address (required, lowercase)
 - `backupWalletAddress`: Backup wallet address (required, lowercase)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -126,7 +126,7 @@ const { key, txHash } = await createPasskeyIdentity({
   transports: ["usb", "nfc"],
   deviceName: "iPhone 15 Pro",
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -139,7 +139,7 @@ const { key, txHash } = await createBackupWalletIdentity({
   wallet: "0x1234...", // Primary wallet
   backupWalletAddress: "0x5678...", // Backup wallet
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

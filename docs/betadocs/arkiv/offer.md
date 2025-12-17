@@ -12,7 +12,7 @@
 | skill | string | No | Attribute | Skill name (legacy, kept for backward compatibility) |
 | skill_id | string | No | Attribute | Skill entity key (preferred for beta) |
 | skill_label | string | No | Attribute | Skill display name (derived from Skill entity) |
-| spaceId | string | Yes | Attribute | Currently "local-dev" |
+| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
 | createdAt | string | Yes | Attribute | ISO timestamp |
 | status | string | Yes | Attribute | Always "active" |
 | ttlSeconds | string | Yes | Attribute | TTL in seconds (default: 7200) |

@@ -13,7 +13,7 @@ Stores aggregated performance snapshots as Arkiv entities for historical trackin
 - `type`: `'perf_snapshot'` (required)
 - `operation`: Operation name (e.g., `'buildNetworkGraphData'`) (required)
 - `method`: `'arkiv'` | `'graphql'` | `'both'` (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -171,7 +171,7 @@ const { key, txHash } = await createPerfSnapshot({
     successful: 8,
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

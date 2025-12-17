@@ -12,7 +12,7 @@ Stores client-side performance metrics (Web Vitals) as Arkiv entities. Privacy-p
 
 - `type`: `'client_perf_metric'` (required)
 - `page`: Page path where metric was collected (e.g., `/network`) (required)
-- `spaceId`: `'local-dev'` (required)
+- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
 - `createdAt`: ISO timestamp (required)
 
 ## Payload
@@ -114,7 +114,7 @@ const { key, txHash } = await createClientPerfMetric({
     createdAt: new Date().toISOString(),
   },
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev',
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
