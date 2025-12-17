@@ -29,6 +29,8 @@ import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import { GardenLayer } from '@/components/garden/GardenLayer';
+import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { profileToGardenSkills } from '@/lib/garden/types';
 
 function PublicGardenBoardContent() {
@@ -42,8 +44,9 @@ function PublicGardenBoardContent() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
-  const [skillProfileCounts, setSkillProfileCounts] = useState<Record<string, number>>({});
+  const [learningSkillIds, setLearningSkillIds] = useState<string[]>([]);
   const arkivBuilderMode = useArkivBuilderMode();
+  const skillProfileCounts = useSkillProfileCounts();
 
   useEffect(() => {
     // Get current user's profile wallet (from localStorage 'wallet_address')
@@ -80,27 +83,20 @@ function PublicGardenBoardContent() {
 
   useEffect(() => {
     loadNotes();
-    loadSkillProfileCounts();
   }, []);
 
-  const loadSkillProfileCounts = async () => {
-    try {
-      const res = await fetch('/api/skills/explore');
-      const data = await res.json();
-
-      if (data.ok && data.skills) {
-        const countsMap: Record<string, number> = {};
-        data.skills.forEach((skill: any) => {
-          // Map by skill name (case-insensitive) for matching
-          const normalizedName = skill.name_canonical.toLowerCase().trim();
-          countsMap[normalizedName] = skill.profileCount;
+  // Load learning follows for glow
+  useEffect(() => {
+    if (userWallet) {
+      listLearningFollows({ profile_wallet: userWallet, active: true })
+        .then(follows => {
+          setLearningSkillIds(follows.map(f => f.skill_id));
+        })
+        .catch(() => {
+          // Learning follows not found - that's okay
         });
-        setSkillProfileCounts(countsMap);
-      }
-    } catch (err) {
-      console.error('Error loading skill profile counts:', err);
     }
-  };
+  }, [userWallet]);
 
   // Open modal if create=true in URL (from FAB)
   useEffect(() => {
@@ -193,6 +189,7 @@ function PublicGardenBoardContent() {
         <GardenLayer
           skills={gardenSkills}
           skillProfileCounts={skillProfileCounts}
+          learningSkillIds={learningSkillIds}
         />
       )}
 
