@@ -43,7 +43,7 @@ async function seedHSK1Quest() {
   console.log(`   Passing Score: ${questionBank.passingScore} (${Math.round((questionBank.passingScore / totalPoints) * 100)}%)`);
   console.log(`   Time Limit: ${questionBank.timeLimit}s (${Math.round(questionBank.timeLimit / 60)} minutes)\n`);
 
-  const targetSpaceId = SPACE_ID || 'beta-launch';
+  const targetSpaceId = SPACE_ID;
   console.log(`📦 Target Space ID: ${targetSpaceId}\n`);
 
   // Check if quest already exists in the target spaceId
