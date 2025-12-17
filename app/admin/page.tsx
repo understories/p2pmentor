@@ -148,6 +148,7 @@ export default function AdminDashboard() {
   const [clientPerfLoading, setClientPerfLoading] = useState(false);
   const [retentionData, setRetentionData] = useState<any[]>([]);
   const [retentionLoading, setRetentionLoading] = useState(false);
+  const [loadingExampleWallet, setLoadingExampleWallet] = useState(false);
   const [aggregatesData, setAggregatesData] = useState<any[]>([]);
   const [aggregatesLoading, setAggregatesLoading] = useState(false);
   const [staticClientExpanded, setStaticClientExpanded] = useState(false);
@@ -284,7 +285,7 @@ export default function AdminDashboard() {
         .catch(err => console.error('Failed to fetch page load times:', err));
 
       // Fetch recent feedback
-      fetch('/api/app-feedback?limit=5')
+      fetch(`/api/app-feedback?limit=5${spaceIdParams}`)
         .then(res => res.json())
         .then(data => {
           if (data.ok) {
@@ -294,7 +295,7 @@ export default function AdminDashboard() {
         .catch(err => console.error('Failed to fetch feedback:', err));
 
       // Check if auto-snapshot should be created
-      fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData')
+      fetch(`/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData${spaceIdParams}`)
         .then(res => res.json())
         .then(data => {
           if (data.ok) {
@@ -306,13 +307,13 @@ export default function AdminDashboard() {
             // Auto-create snapshot if > 12 hours since last one
             if (data.shouldCreateSnapshot) {
               // Use 'both' method for auto-snapshots to capture comprehensive data
-              fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=both`)
+              fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=both${spaceIdParams}`)
                 .then(snapRes => snapRes.json())
                 .then(snapData => {
                   if (snapData.ok) {
                     console.log('[Admin] Auto-created performance snapshot');
                     // Refresh snapshots list (fetch all snapshots, no operation filter)
-                    return fetch('/api/admin/perf-snapshots?limit=20');
+                    return fetch(`/api/admin/perf-snapshots?limit=20${spaceIdParams}`);
                   }
                 })
                 .then(snapshotsRes => snapshotsRes?.json())
@@ -321,7 +322,7 @@ export default function AdminDashboard() {
                     setSnapshots(snapshotsData.snapshots || []);
                   }
                   // Update check status
-                  return fetch('/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData');
+                  return fetch(`/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData${spaceIdParams}`);
                 })
                 .then(checkRes => checkRes?.json())
                 .then(checkData => {
@@ -339,7 +340,7 @@ export default function AdminDashboard() {
         .catch(err => console.error('Failed to check snapshot status:', err));
 
       // Fetch historical snapshots (no operation filter to show all snapshots)
-      fetch('/api/admin/perf-snapshots?limit=20')
+      fetch(`/api/admin/perf-snapshots?limit=20${spaceIdParams}`)
         .then(res => res.json())
         .then(data => {
           if (data.ok) {
@@ -451,6 +452,36 @@ export default function AdminDashboard() {
     router.push('/admin/login');
   };
 
+  const handleExampleWalletLogin = async () => {
+    try {
+      setLoadingExampleWallet(true);
+      const res = await fetch('/api/wallet');
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        if (res.status === 503) {
+          alert('Example wallet not available. Please set ARKIV_PRIVATE_KEY in your .env file.');
+          return;
+        }
+        throw new Error(errorData.error || 'Failed to fetch example wallet');
+      }
+      const data = await res.json();
+      if (!data.address) {
+        throw new Error('No example wallet available');
+      }
+      // Store profile wallet address in localStorage for session persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wallet_address', data.address);
+      }
+      // Redirect to dashboard
+      window.location.href = '/me';
+    } catch (err: any) {
+      console.error('Failed to load example wallet:', err);
+      alert(err.message || 'Failed to load example wallet');
+    } finally {
+      setLoadingExampleWallet(false);
+    }
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
@@ -515,6 +546,14 @@ export default function AdminDashboard() {
                 <option value="all">All Spaces</option>
               </select>
             </div>
+            <button
+              onClick={handleExampleWalletLogin}
+              disabled={loadingExampleWallet}
+              className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Log in with default wallet (admin only)"
+            >
+              {loadingExampleWallet ? 'Loading...' : 'Default Wallet'}
+            </button>
             <Link
               href="/"
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
@@ -1377,7 +1416,8 @@ export default function AdminDashboard() {
                   // Fetch data when expanded
                   if (newState && !betaCodeUsageData && !betaCodeUsageLoading) {
                     setBetaCodeUsageLoading(true);
-                    fetch('/api/admin/beta-code-usage')
+                    const spaceIdParams = buildSpaceIdParams();
+                    fetch(`/api/admin/beta-code-usage${spaceIdParams}`)
                       .then(res => res.json())
                       .then(data => {
                         if (data.ok) {
@@ -1540,7 +1580,8 @@ export default function AdminDashboard() {
                   // Fetch data when expanded
                   if (newState && retentionData.length === 0 && !retentionLoading) {
                     setRetentionLoading(true);
-                    fetch('/api/admin/retention-cohorts?limit=20&period=weekly')
+                    const spaceIdParams = buildSpaceIdParams();
+                    fetch(`/api/admin/retention-cohorts?limit=20&period=weekly${spaceIdParams}`)
                       .then(res => res.json())
                       .then(data => {
                         if (data.ok) {
@@ -1646,7 +1687,8 @@ export default function AdminDashboard() {
                   if (newState && aggregatesData.length === 0 && !aggregatesLoading) {
                     setAggregatesLoading(true);
                     // Get recent aggregates (last 7 days)
-                    fetch('/api/admin/metric-aggregates?limit=50&period=daily')
+                    const spaceIdParams = buildSpaceIdParams();
+                    fetch(`/api/admin/metric-aggregates?limit=50&period=daily${spaceIdParams}`)
                       .then(res => res.json())
                       .then(data => {
                         if (data.ok) {
@@ -1752,7 +1794,8 @@ export default function AdminDashboard() {
                   // Fetch data when expanded
                   if (newState && navigationMetricsData.length === 0 && !navigationMetricsLoading) {
                     setNavigationMetricsLoading(true);
-                    fetch('/api/admin/navigation-metrics?limit=100')
+                    const spaceIdParams = buildSpaceIdParams();
+                    fetch(`/api/admin/navigation-metrics?limit=100${spaceIdParams}`)
                       .then(res => res.json())
                       .then(data => {
                         if (data.ok) {

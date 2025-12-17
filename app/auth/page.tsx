@@ -21,7 +21,6 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [loadingExample, setLoadingExample] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
   const [addingNetwork, setAddingNetwork] = useState(false);
@@ -314,68 +313,6 @@ export default function AuthPage() {
     }
   };
 
-  const handleExampleWallet = async () => {
-    try {
-      setLoadingExample(true);
-      setError('');
-      const res = await fetch('/api/wallet');
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        if (res.status === 503) {
-          throw new Error('Example wallet not available. Please set ARKIV_PRIVATE_KEY in your .env file, or use MetaMask to connect.');
-        }
-        throw new Error(errorData.error || 'Failed to fetch example wallet');
-      }
-      const data = await res.json();
-      if (!data.address) {
-        throw new Error('No example wallet available');
-      }
-      // Store profile wallet address in localStorage for session persistence
-      // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
-      // The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions, but entities are tied to this profile wallet
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('wallet_address', data.address);
-      }
-      // Check if user has profile for this profile wallet - redirect to onboarding if not
-      // Only create beta access record for NEW users (level === 0) to avoid double-counting
-      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-        calculateOnboardingLevel(data.address).then(level => {
-          if (level === 0) {
-            // No profile for this profile wallet - new user, create beta access record
-            // This tracks which profile wallets have used which beta codes (only for new users)
-            const betaCode = localStorage.getItem('beta_invite_code');
-            if (betaCode) {
-              // Create beta access record asynchronously (don't block auth flow)
-              fetch('/api/beta-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  code: betaCode,
-                  action: 'createAccess',
-                  wallet: data.address.toLowerCase(), // Use profile wallet, not signing wallet
-                }),
-              }).catch(err => {
-                // Don't block auth flow if beta access creation fails
-                console.warn('[auth] Failed to create beta access record:', err);
-              });
-            }
-            // Redirect to onboarding for new users
-            router.push('/onboarding');
-          } else {
-            // Has profile - existing user, don't create beta access (already counted)
-            router.push('/me');
-          }
-        }).catch(() => {
-          // On error, default to /me (don't block on calculation failure)
-          router.push('/me');
-        });
-      });
-    } catch (err: any) {
-      console.error('Failed to load example wallet:', err);
-      setError(err.message || 'Failed to load example wallet');
-      setLoadingExample(false);
-    }
-  };
 
   return (
     <main className="min-h-screen flex flex-col items-center justify-center p-8 text-gray-900 dark:text-gray-100">
@@ -426,7 +363,7 @@ export default function AuthPage() {
           >
             <button
               onClick={handleMetaMaskConnect}
-              disabled={isConnecting || loadingExample}
+              disabled={isConnecting}
               className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
             >
               {isConnecting ? 'Connecting...' : 'Connect Wallet'}
@@ -496,32 +433,6 @@ export default function AuthPage() {
             </>
           )}
 
-          <div className="flex items-center gap-3 my-2">
-            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-            <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
-            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
-          </div>
-
-          <ArkivQueryTooltip
-            query={[
-              `getProfileByWallet(wallet='{address}')`,
-              `type='profile', wallet='{wallet}'`,
-              `calculateOnboardingLevel(wallet='{address}')`,
-              `Queries: profile, asks, offers, onboarding_events`,
-            ]}
-            label="Auth Queries"
-          >
-            <button
-              onClick={handleExampleWallet}
-              disabled={isConnecting || loadingExample}
-              className="w-full px-6 py-3 text-base font-medium text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 border border-gray-300 dark:border-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700"
-            >
-              {loadingExample ? 'Loading...' : 'Log in with Example Wallet'}
-            </button>
-          </ArkivQueryTooltip>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 text-center">
-            Try the demo without MetaMask
-          </p>
         </div>
 
         <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg opacity-60 hover:opacity-100 transition-opacity duration-300">
