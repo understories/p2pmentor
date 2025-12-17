@@ -36,6 +36,15 @@ export default function AuthPage() {
   // IMPORTANT: Normalize encoded pathname FIRST before any redirect logic
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Self-heal: fix encoded slash in host pattern (e.g., "p2pmentor.com%2fauth")
+      // This can happen if MetaMask doesn't decode %2F in the universal link
+      const href = window.location.href.toLowerCase();
+      if (href.includes('.com%2f') || href.includes('.xyz%2f')) {
+        const fixedHref = window.location.href.replace(/%2f/gi, '/');
+        window.location.href = fixedHref;
+        return; // Let the redirect happen, will re-run this effect
+      }
+      
       // Normalize encoded pathname BEFORE any other logic (prevents redirect loops)
       // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
       // Case-insensitive regex handles both %2F and %2f

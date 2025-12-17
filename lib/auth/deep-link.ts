@@ -33,19 +33,20 @@ export function openInMetaMaskBrowser(dappPath = '/auth'): void {
 
   // Extract host from origin (more reliable than parsing window.location.href)
   const host = new URL(origin).host;
-  const dappUrl = `${host}${pathname}`;
-
-  // Encode the entire dapp URL for the MetaMask universal link
-  const encodedDappUrl = encodeURIComponent(dappUrl);
+  // Include search params if present (already properly formatted with "?")
+  const search = window.location.search || '';
+  const dappUrl = `${host}${pathname}${search}`;
 
   // Construct the MetaMask universal link
-  const metamaskLink = `https://link.metamask.io/dapp/${encodedDappUrl}`;
+  // DO NOT encode the dappUrl - MetaMask handles unencoded slashes reliably
+  // Encoding creates %2F which MetaMask may not decode, leaving "host%2fpath"
+  const metamaskLink = `https://link.metamask.io/dapp/${dappUrl}`;
 
   console.log('[openInMetaMaskBrowser] Redirecting to MetaMask', {
     origin,
     pathname,
+    search,
     dappUrl,
-    encodedDappUrl,
     metamaskLink,
   });
 
