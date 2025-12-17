@@ -77,10 +77,17 @@ export async function GET(request: Request) {
     
     // Count profiles for each deduplicated skill
     // For duplicates, count profiles that reference ANY of the duplicate skill keys
+    // IMPORTANT: Only count profiles that match the skill's spaceId to ensure accurate counts
     const skillsWithCounts = Array.from(skillMap.values()).map(skill => {
       let count = 0;
       
       profiles.forEach(profile => {
+        // CRITICAL: Only count profiles from the same spaceId as the skill
+        // This ensures accurate counts when querying multiple spaceIds or different environments
+        if (profile.spaceId !== skill.spaceId) {
+          return; // Skip profiles from different spaceIds
+        }
+        
         // Check if profile has this skill
         // Check skill_ids array (new format) - check against all duplicate keys
         const skillIds = (profile as any).skill_ids || [];
