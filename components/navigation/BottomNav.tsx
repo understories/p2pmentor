@@ -31,15 +31,7 @@ export function BottomNav() {
   const [wallet, setWallet] = useState<string | null>(null);
   const { level, loading: levelLoading } = useOnboardingLevel(wallet);
   const [hasBypass, setHasBypass] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedWallet = localStorage.getItem('wallet_address');
-      setWallet(storedWallet);
-      // Check bypass flag
-      setHasBypass(hasOnboardingBypass());
-    }
-  }, []);
+  const [hideText, setHideText] = useState(false);
 
   // Primary navigation items with unlock levels - same as SidebarNav
   const allNavItems: Array<NavItem> = [
@@ -76,6 +68,15 @@ export function BottomNav() {
     },
   ];
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedWallet = localStorage.getItem('wallet_address');
+      setWallet(storedWallet);
+      // Check bypass flag
+      setHasBypass(hasOnboardingBypass());
+    }
+  }, []);
+
   // Filter nav items based on onboarding level
   // If bypass is active or level is loading, show all items
   // Otherwise, filter based on level
@@ -86,6 +87,24 @@ export function BottomNav() {
       return level >= item.minLevel;
     })
     .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
+
+  // Check if we should hide text based on viewport width and item count
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const checkTextVisibility = () => {
+        const totalItems = navItems.length + 2; // +2 for theme and logout
+        const viewportWidth = window.innerWidth;
+        // Hide text if viewport is narrow OR if we have more than 5 items
+        // Roughly 60px per item with text, 40px per item without text
+        const needsText = totalItems * 60 > viewportWidth;
+        setHideText(needsText || totalItems > 5);
+      };
+      
+      checkTextVisibility();
+      window.addEventListener('resize', checkTextVisibility);
+      return () => window.removeEventListener('resize', checkTextVisibility);
+    }
+  }, [navItems.length]);
 
   // Don't show on landing, auth, beta, or admin pages
   const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
@@ -107,7 +126,7 @@ export function BottomNav() {
         paddingTop: 'env(safe-area-inset-top, 0)',
       }}
     >
-      <div className="flex items-center h-14 max-w-2xl mx-auto px-1">
+      <div className="flex items-center h-14 w-full px-0.5">
         {navItems.map((item) => {
           const active = isActive(item.href);
           return (
@@ -116,7 +135,7 @@ export function BottomNav() {
               href={item.href}
               className={`
                 relative flex flex-col items-center justify-center
-                flex-1 h-full min-w-0
+                flex-1 h-full min-w-0 max-w-full
                 transition-all duration-150 ease-out
                 ${active 
                   ? 'opacity-100' 
@@ -127,6 +146,7 @@ export function BottomNav() {
                 boxShadow: active
                   ? `0 0 8px ${navTokens.node.active.glow}`
                   : undefined,
+                flexBasis: 0, // Ensure equal distribution
               }}
               onMouseEnter={(e) => {
                 if (!active) {
@@ -139,17 +159,19 @@ export function BottomNav() {
                 }
               }}
             >
-              <span className="text-lg mb-0.5">{item.icon}</span>
-              <div className="flex flex-col items-center">
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                  {item.label}
-                </span>
-                {item.href === '/me' && wallet && (
-                  <span className="text-[9px] text-gray-500 dark:text-gray-500 font-mono leading-tight mt-0.5">
-                    {wallet.slice(0, 6)}...{wallet.slice(-4)}
+              <span className="text-lg mb-0.5 flex-shrink-0">{item.icon}</span>
+              {!hideText && (
+                <div className="flex flex-col items-center min-w-0 w-full">
+                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">
+                    {item.label}
                   </span>
-                )}
-              </div>
+                  {item.href === '/me' && wallet && (
+                    <span className="text-[9px] text-gray-500 dark:text-gray-500 font-mono leading-tight mt-0.5 truncate w-full text-center">
+                      {wallet.slice(0, 6)}...{wallet.slice(-4)}
+                    </span>
+                  )}
+                </div>
+              )}
               {item.badge !== undefined && item.badge > 0 && (
                 <span className="absolute top-0 right-1/2 translate-x-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
                   {item.badge > 99 ? '99+' : item.badge}
@@ -169,54 +191,60 @@ export function BottomNav() {
         })}
         {/* Theme Toggle */}
         <button
-          onClick={toggleTheme}
-          className="flex flex-col items-center justify-center flex-1 h-full min-w-0 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
-          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        >
-          <span className="text-lg mb-0.5">{theme === 'dark' ? '☀️' : '🌙'}</span>
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Theme</span>
+              onClick={toggleTheme}
+              className="flex flex-col items-center justify-center flex-1 h-full min-w-0 max-w-full transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{ flexBasis: 0 }}
+            >
+              <span className="text-lg mb-0.5 flex-shrink-0">{theme === 'dark' ? '☀️' : '🌙'}</span>
+              {!hideText && (
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">Theme</span>
+              )}
         </button>
         {/* Logout Button */}
         <button
-          onClick={async () => {
-            if (typeof window !== 'undefined') {
-              // Disconnect MetaMask if it's a MetaMask wallet
-              const walletAddress = localStorage.getItem('wallet_address');
-              if (walletAddress) {
-                const walletType = localStorage.getItem(`wallet_type_${walletAddress.toLowerCase()}`);
-                if (walletType === 'metamask' && window.ethereum) {
-                  try {
-                    const { disconnectWallet } = await import('@/lib/auth/metamask');
-                    await disconnectWallet();
-                  } catch (error) {
-                    // Silently fail - clearing localStorage is the important part
-                    console.warn('Failed to disconnect MetaMask:', error);
+              onClick={async () => {
+                if (typeof window !== 'undefined') {
+                  // Disconnect MetaMask if it's a MetaMask wallet
+                  const walletAddress = localStorage.getItem('wallet_address');
+                  if (walletAddress) {
+                    const walletType = localStorage.getItem(`wallet_type_${walletAddress.toLowerCase()}`);
+                    if (walletType === 'metamask' && window.ethereum) {
+                      try {
+                        const { disconnectWallet } = await import('@/lib/auth/metamask');
+                        await disconnectWallet();
+                      } catch (error) {
+                        // Silently fail - clearing localStorage is the important part
+                        console.warn('Failed to disconnect MetaMask:', error);
+                      }
+                    }
                   }
+                  
+                  // Clear all wallet-related localStorage
+                  localStorage.removeItem('wallet_address');
+                  localStorage.removeItem('passkey_user_id');
+                  // Clear all passkey-related keys
+                  const keysToRemove: string[] = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
+                      keysToRemove.push(key);
+                    }
+                  }
+                  keysToRemove.forEach(key => localStorage.removeItem(key));
+                  // Redirect to auth page
+                  window.location.href = '/auth';
                 }
-              }
-              
-              // Clear all wallet-related localStorage
-              localStorage.removeItem('wallet_address');
-              localStorage.removeItem('passkey_user_id');
-              // Clear all passkey-related keys
-              const keysToRemove: string[] = [];
-              for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
-                  keysToRemove.push(key);
-                }
-              }
-              keysToRemove.forEach(key => localStorage.removeItem(key));
-              // Redirect to auth page
-              window.location.href = '/auth';
-            }
-          }}
-          className="flex flex-col items-center justify-center flex-1 h-full min-w-0 transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
-          title="Disconnect wallet and logout"
-        >
-          <span className="text-lg mb-0.5">⚡</span>
-          <span className="text-xs font-medium text-gray-700 dark:text-gray-300">Logout</span>
+              }}
+              className="flex flex-col items-center justify-center flex-1 h-full min-w-0 max-w-full transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
+              title="Disconnect wallet and logout"
+              style={{ flexBasis: 0 }}
+            >
+              <span className="text-lg mb-0.5 flex-shrink-0">⚡</span>
+              {!hideText && (
+                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">Logout</span>
+              )}
         </button>
       </div>
     </nav>
