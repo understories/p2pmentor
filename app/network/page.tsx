@@ -16,7 +16,7 @@ import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { PageHeader } from '@/components/PageHeader';
-import { CanopySection } from '@/components/network/CanopySection';
+// import { CanopySection } from '@/components/network/CanopySection'; // Commented out: Skill Canopy removed for now (may use in future)
 import { ForestPulseStats } from '@/components/network/ForestPulseStats';
 import { QuickActions } from '@/components/network/QuickActions';
 import { LeafChipFilter } from '@/components/network/LeafChipFilter';
@@ -49,7 +49,7 @@ export default function NetworkPage() {
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
   const [skillIdFilter, setSkillIdFilter] = useState<string | null>(null);
-  const [selectedCanopySkill, setSelectedCanopySkill] = useState<string | undefined>();
+  // const [selectedCanopySkill, setSelectedCanopySkill] = useState<string | undefined>(); // Commented out: Skill Canopy removed for now (may use in future)
   const [typeFilter, setTypeFilter] = useState<'all' | 'asks' | 'offers' | 'matches'>('all');
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [skills, setSkills] = useState<Record<string, Skill>>({});
@@ -57,7 +57,7 @@ export default function NetworkPage() {
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
   const [showContent, setShowContent] = useState(false); // Hide content by default
-  const [canopySkills, setCanopySkills] = useState<Array<{ skill: string; count: number; skillKey?: string }>>([]);
+  // const [canopySkills, setCanopySkills] = useState<Array<{ skill: string; count: number; skillKey?: string }>>([]); // Commented out: Skill Canopy removed for now (may use in future)
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -156,11 +156,11 @@ export default function NetworkPage() {
     try {
       setLoading(true);
       const builderParams = arkivBuilderMode ? '?builderMode=true&spaceIds=beta-launch,local-dev,local-dev-seed' : '';
-      const [asksRes, offersRes, skillsRes, skillsExploreRes] = await Promise.all([
+      const [asksRes, offersRes, skillsRes] = await Promise.all([
         fetch(`/api/asks${builderParams}`).then(r => r.json()),
         fetch(`/api/offers${builderParams}`).then(r => r.json()),
         fetch('/api/skills?status=active&limit=200').then(r => r.json()),
-        fetch(`/api/skills/explore${builderParams}`).then(r => r.json()),
+        // fetch(`/api/skills/explore${builderParams}`).then(r => r.json()), // Commented out: Skill Canopy removed for now (may use in future)
       ]);
 
       console.log('[Network] Data loaded:', {
@@ -193,16 +193,17 @@ export default function NetworkPage() {
       }
 
       // Load canopy skills from /api/skills/explore (same as skills page)
-      if (skillsExploreRes.ok && skillsExploreRes.skills) {
-        const canopySkillsData = skillsExploreRes.skills
-          .slice(0, 10) // Top 10 by profile count
-          .map((skill: Skill & { profileCount: number }) => ({
-            skill: skill.name_canonical,
-            count: skill.profileCount,
-            skillKey: skill.key,
-          }));
-        setCanopySkills(canopySkillsData);
-      }
+      // Commented out: Skill Canopy removed for now (may use in future)
+      // if (skillsExploreRes.ok && skillsExploreRes.skills) {
+      //   const canopySkillsData = skillsExploreRes.skills
+      //     .slice(0, 10) // Top 10 by profile count
+      //     .map((skill: Skill & { profileCount: number }) => ({
+      //       skill: skill.name_canonical,
+      //       count: skill.profileCount,
+      //       skillKey: skill.key,
+      //     }));
+      //   setCanopySkills(canopySkillsData);
+      // }
 
       // Load profiles for all unique wallets
       const allWallets = new Set<string>();
@@ -347,7 +348,8 @@ export default function NetworkPage() {
   };
 
   // Filter data based on filters (prioritize skill_id filter)
-  const activeSkillFilter = selectedCanopySkill || skillFilter;
+  // const activeSkillFilter = selectedCanopySkill || skillFilter; // Commented out: Skill Canopy removed for now (may use in future)
+  const activeSkillFilter = skillFilter;
   
   const filteredAsks = asks.filter((ask) => {
     // If skill_id filter is set, use it
@@ -389,32 +391,31 @@ export default function NetworkPage() {
   });
 
   // Extract top skills for Canopy section (use skill_id when available)
-  // Use canopy skills from /api/skills/explore (same as skills page)
-  // Fallback to ask/offer counts if canopy skills not loaded yet
-  const topSkills = canopySkills.length > 0
-    ? canopySkills.map(s => ({ skill: s.skill, skillKey: s.skillKey, count: s.count }))
-    : (() => {
-        // Fallback: calculate from asks/offers counts
-        const skillCounts = new Map<string, number>();
-        asks.forEach(a => {
-          const skillKey = a.skill_id || a.skill;
-          const count = skillCounts.get(skillKey) || 0;
-          skillCounts.set(skillKey, count + 1);
-        });
-        offers.forEach(o => {
-          const skillKey = o.skill_id || o.skill;
-          const count = skillCounts.get(skillKey) || 0;
-          skillCounts.set(skillKey, count + 1);
-        });
-        return Array.from(skillCounts.entries())
-          .map(([skillKey, count]) => {
-            const skill = skills[skillKey];
-            const skillName = skill ? skill.name_canonical : skillKey;
-            return { skill: skillName, skillKey, count };
-          })
-          .sort((a, b) => b.count - a.count)
-          .slice(0, 10);
-      })();
+  // Commented out: Skill Canopy removed for now (may use in future)
+  // const topSkills = canopySkills.length > 0
+  //   ? canopySkills.map(s => ({ skill: s.skill, skillKey: s.skillKey, count: s.count }))
+  //   : (() => {
+  //       // Fallback: calculate from asks/offers counts
+  //       const skillCounts = new Map<string, number>();
+  //       asks.forEach(a => {
+  //         const skillKey = a.skill_id || a.skill;
+  //         const count = skillCounts.get(skillKey) || 0;
+  //         skillCounts.set(skillKey, count + 1);
+  //       });
+  //       offers.forEach(o => {
+  //         const skillKey = o.skill_id || o.skill;
+  //         const count = skillCounts.get(skillKey) || 0;
+  //         skillCounts.set(skillKey, count + 1);
+  //       });
+  //       return Array.from(skillCounts.entries())
+  //         .map(([skillKey, count]) => {
+  //           const skill = skills[skillKey];
+  //           const skillName = skill ? skill.name_canonical : skillKey;
+  //           return { skill: skillName, skillKey, count };
+  //         })
+  //         .sort((a, b) => b.count - a.count)
+  //         .slice(0, 10);
+  //     })();
 
   // Group asks/offers/matches by skill (use skill_id when available)
   const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }>();
@@ -542,7 +543,7 @@ export default function NetworkPage() {
             href="/skills/explore"
             className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
           >
-            Learner Communities
+            Explore Skills
           </Link>
           <Link
             href="/learner-quests"
@@ -573,7 +574,8 @@ export default function NetworkPage() {
         <QuickActions arkivBuilderMode={arkivBuilderMode} />
 
         {/* Skill Canopy Section */}
-        <div className="mb-6">
+        {/* Commented out: Skill Canopy removed for now (may use in future) */}
+        {/* <div className="mb-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Skill Canopy</h2>
           <CanopySection
             skills={topSkills.map(s => ({ skill: s.skill, count: s.count }))}
@@ -598,7 +600,7 @@ export default function NetworkPage() {
             }}
             selectedSkill={selectedCanopySkill}
           />
-        </div>
+        </div> */}
 
         {/* Filter by Skill */}
         <LeafChipFilter
@@ -607,7 +609,7 @@ export default function NetworkPage() {
           onChange={async (value) => {
             setSkillFilter(value);
             if (!value) {
-              setSelectedCanopySkill(undefined);
+              // setSelectedCanopySkill(undefined); // Commented out: Skill Canopy removed for now (may use in future)
               setSkillIdFilter(null);
               setShowContent(false);
             } else {
@@ -769,8 +771,8 @@ export default function NetworkPage() {
           />
         ) : (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <p className="text-lg mb-2">Select a skill from the canopy above to explore asks, offers, and matches</p>
-            <p className="text-sm">Or use the filter to search for a specific skill</p>
+            <p className="text-lg mb-2">Use the filter above to explore asks, offers, and matches</p>
+            <p className="text-sm">Search for a specific skill to get started</p>
           </div>
         )}
       </div>
