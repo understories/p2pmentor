@@ -276,7 +276,7 @@ export function SidebarNav() {
                 href={item.href}
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-0 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${active
@@ -367,7 +367,7 @@ export function SidebarNav() {
                 href="/me/sessions"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-0 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/me/sessions')
@@ -473,7 +473,7 @@ export function SidebarNav() {
                     return (
                       <div key={session.key} className="relative group/session">
                         <div
-                          className="flex flex-row items-center gap-2 py-2 pl-0 group-hover:pl-2 rounded-lg"
+                          className="flex flex-row items-center gap-2 py-2 pl-1 group-hover:pl-2 rounded-lg"
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
                           <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📖</span>
@@ -516,10 +516,10 @@ export function SidebarNav() {
         {level >= 1 && (
           <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
             <Link
-              href="/network"
+                href="/network"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-0 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/network')
@@ -551,7 +551,7 @@ export function SidebarNav() {
                 href="/asks"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-0 group-hover:px-2
+                  flex-1 py-1.5 pl-1 group-hover:px-2
                   rounded-lg
                   transition-all duration-300 ease-out
                   ${isActive('/asks')
@@ -577,7 +577,7 @@ export function SidebarNav() {
                 href="/offers"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-0 group-hover:px-2
+                  flex-1 py-1.5 pl-1 group-hover:px-2
                   rounded-lg
                   transition-all duration-300 ease-out
                   ${isActive('/offers')
@@ -603,7 +603,7 @@ export function SidebarNav() {
                 href="/matches"
                 className={`
                   relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-0 group-hover:px-2
+                  flex-1 py-1.5 pl-1 group-hover:px-2
                   rounded-lg
                   transition-all duration-300 ease-out
                   ${isActive('/matches')
@@ -792,7 +792,7 @@ export function SidebarNav() {
               href="/notifications"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-0 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
                   ${isActive('/notifications')
@@ -857,7 +857,7 @@ export function SidebarNav() {
                   window.location.href = '/auth';
                 }
               }}
-              className="w-full flex flex-row items-center gap-3 py-2.5 pl-0 group-hover:pl-2 group-hover:pr-1 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
+              className="w-full flex flex-row items-center gap-3 py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
               title="Disconnect wallet and logout"
             >
               <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">⚡</span>
