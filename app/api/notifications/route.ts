@@ -26,17 +26,34 @@ export async function GET(request: Request) {
     // Normalize wallet address to lowercase for consistent querying
     const normalizedWallet = wallet.toLowerCase();
 
-    // Extract spaceId from query params (for builder mode) or use SPACE_ID from config
-    const spaceId = searchParams.get('spaceId') || undefined;
-    const spaceIds = searchParams.get('spaceIds')?.split(',') || undefined;
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
     
     // Query notifications directly from Arkiv entities
     const notifications = await listNotifications({
       wallet: normalizedWallet,
       notificationType: notificationType as any,
       status: status || 'active',
-      spaceId: spaceId || SPACE_ID,
-      spaceIds: spaceIds,
+      spaceId,
+      spaceIds,
       limit: 100,
     });
 
