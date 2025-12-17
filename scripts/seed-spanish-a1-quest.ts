@@ -7,10 +7,12 @@
  *   ARKIV_PRIVATE_KEY=0x... tsx scripts/seed-spanish-a1-quest.ts
  */
 
+import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { createLanguageAssessmentQuest } from '@/lib/arkiv/languageQuest';
-import { getPrivateKey } from '@/lib/config';
+import { listLearnerQuests } from '@/lib/arkiv/learnerQuest';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 async function seedSpanishA1Quest() {
   const privateKey = getPrivateKey();
@@ -41,6 +43,24 @@ async function seedSpanishA1Quest() {
   console.log(`   Passing Score: ${questionBank.passingScore} (${Math.round((questionBank.passingScore / totalPoints) * 100)}%)`);
   console.log(`   Time Limit: ${questionBank.timeLimit}s (${Math.round(questionBank.timeLimit / 60)} minutes)\n`);
 
+  const targetSpaceId = SPACE_ID || 'beta-launch';
+  console.log(`📦 Target Space ID: ${targetSpaceId}\n`);
+
+  // Check if quest already exists in the target spaceId
+  const existingQuests = await listLearnerQuests({ 
+    questType: 'language_assessment',
+    spaceId: targetSpaceId 
+  });
+  const existingQuest = existingQuests.find(q => q.questId === 'spanish_a1');
+
+  if (existingQuest) {
+    console.log(`⏭️  Skipping Spanish A1 quest (already exists in ${targetSpaceId})`);
+    console.log(`   Existing quest key: ${existingQuest.key}`);
+    process.exit(0);
+  }
+
+  console.log(`✨ Creating Spanish A1 quest in ${targetSpaceId}...\n`);
+
   const result = await createLanguageAssessmentQuest({
     questId: 'spanish_a1',
     title: questionBank.certificationName,
@@ -57,12 +77,14 @@ async function seedSpanishA1Quest() {
       certificationName: questionBank.certificationName,
     },
     privateKey,
+    spaceId: targetSpaceId,
   });
 
   if (result) {
     console.log('✅ Successfully created Spanish A1 quest!');
     console.log(`   Entity Key: ${result.key}`);
     console.log(`   Transaction Hash: ${result.txHash}`);
+    console.log(`   Space ID: ${targetSpaceId}`);
     console.log(`\n   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${result.key}`);
   } else {
     console.error('❌ Failed to create quest');

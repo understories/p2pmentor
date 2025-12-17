@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "../config";
 
 export type LearnerQuestMaterial = {
   id: string;
@@ -39,6 +40,7 @@ export type LearnerQuest = {
   // Use parseLanguageAssessmentQuest() from languageQuest.ts to extract
   createdAt: string;
   status: 'active' | 'archived';
+  spaceId: string;
   txHash?: string;
 };
 
@@ -153,26 +155,39 @@ export async function createLearnerQuest({
  * List all active learner quests
  *
  * Returns all active quest definitions, sorted by most recent first.
- * Optionally filter by quest type.
+ * Optionally filter by quest type and spaceId.
  */
 export async function listLearnerQuests(options?: {
   questType?: 'reading_list' | 'language_assessment';
+  spaceId?: string;
+  spaceIds?: string[];
 }): Promise<LearnerQuest[]> {
   try {
     const publicClient = getPublicClient();
-    let query = publicClient.buildQuery()
+    
+    // Build query with space ID filtering
+    let queryBuilder = publicClient.buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('status', 'active'));
 
-    // Filter by quest type if specified
-    if (options?.questType) {
-      query = query.where(eq('questType', options.questType));
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (options?.spaceIds && options.spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(100);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const finalSpaceId = options?.spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(100);
     }
 
-    const result = await query
+    // Filter by quest type if specified
+    if (options?.questType) {
+      queryBuilder = queryBuilder.where(eq('questType', options.questType));
+    }
+
+    const result = await queryBuilder
       .withAttributes(true)
       .withPayload(true)
-      .limit(100)
       .fetch();
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
@@ -211,6 +226,7 @@ export async function listLearnerQuests(options?: {
             source: getAttr(entity, 'source'),
             questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
+            spaceId: getAttr(entity, 'spaceId') || 'local-dev',
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
           };
@@ -230,9 +246,15 @@ export async function listLearnerQuests(options?: {
       .filter((q): q is LearnerQuest => q !== null)
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
+    // Filter by spaceIds client-side if multiple requested
+    let filteredQuests = quests;
+    if (options?.spaceIds && options.spaceIds.length > 0) {
+      filteredQuests = quests.filter((quest: LearnerQuest) => options.spaceIds!.includes(quest.spaceId));
+    }
+
     // Deduplicate by questId (keep most recent version of each quest)
     const questMap = new Map<string, LearnerQuest>();
-    for (const quest of quests) {
+    for (const quest of filteredQuests) {
       if (!questMap.has(quest.questId)) {
         questMap.set(quest.questId, quest);
       }
@@ -298,6 +320,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
             source: getAttr(entity, 'source'),
             questType,
             status: getAttr(entity, 'status') as 'active' | 'archived',
+            spaceId: getAttr(entity, 'spaceId') || 'local-dev',
             createdAt: getAttr(entity, 'createdAt'),
             txHash: (entity as any).txHash || undefined,
           };

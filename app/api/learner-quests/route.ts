@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getLearnerQuest, listLearnerQuests, markMaterialAsRead } from '@/lib/arkiv/learnerQuest';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 /**
@@ -25,6 +25,27 @@ export async function GET(request: NextRequest) {
     const questId = searchParams.get('questId');
     const questType = searchParams.get('questType') as 'reading_list' | 'language_assessment' | null;
 
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
+
     if (questId) {
       // Fetch specific quest
       const quest = await getLearnerQuest(questId);
@@ -33,10 +54,12 @@ export async function GET(request: NextRequest) {
       }
       return NextResponse.json({ ok: true, quest });
     } else {
-      // List all active quests, optionally filtered by questType
-      const quests = await listLearnerQuests(
-        questType ? { questType } : undefined
-      );
+      // List all active quests, optionally filtered by questType and spaceId
+      const quests = await listLearnerQuests({
+        ...(questType ? { questType } : {}),
+        ...(spaceId ? { spaceId } : {}),
+        ...(spaceIds ? { spaceIds } : {}),
+      });
       return NextResponse.json({ ok: true, quests, count: quests.length });
     }
   } catch (error: any) {
