@@ -83,7 +83,7 @@ export default function CreateQuestPage() {
       author: '',
       year: undefined,
       url: '',
-      category: '',
+      category: undefined,
       description: '',
     });
     setError(null);
