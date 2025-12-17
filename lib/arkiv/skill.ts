@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type Skill = {
   key: string;
@@ -184,23 +185,38 @@ export async function createSkill({
 export async function listSkills({
   status,
   slug,
+  spaceId,
+  spaceIds,
   limit = 100,
 }: {
   status?: 'active' | 'archived';
   slug?: string;
+  spaceId?: string;
+  spaceIds?: string[];
   limit?: number;
 } = {}): Promise<Skill[]> {
   try {
     const publicClient = getPublicClient();
     
+    // Build query with space ID filtering
+    let queryBuilder = publicClient.buildQuery()
+      .where(eq('type', 'skill'))
+      .withAttributes(true)
+      .withPayload(true);
+
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (spaceIds && spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(limit || 100);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const finalSpaceId = spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
+    }
+    
     // Fetch skill entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
-        .where(eq('type', 'skill'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
+      queryBuilder.fetch(),
       publicClient.buildQuery()
         .where(eq('type', 'skill_txhash'))
         .withAttributes(true)

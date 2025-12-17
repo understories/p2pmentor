@@ -7,15 +7,38 @@
 import { NextResponse } from 'next/server';
 import { listSkills, normalizeSkillSlug } from '@/lib/arkiv/skill';
 import { listUserProfiles } from '@/lib/arkiv/profile';
+import { SPACE_ID } from '@/lib/config';
 import type { Skill } from '@/lib/arkiv/skill';
 
 export async function GET(request: Request) {
   try {
-    // Get all skills
-    const skills = await listSkills({ status: 'active', limit: 500 });
+    // Check if builder mode is enabled (from query param)
+    const { searchParams } = new URL(request.url);
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
+
+    // Get all skills (with space ID filtering)
+    const skills = await listSkills({ status: 'active', spaceId, spaceIds, limit: 500 });
     
-    // Get all profiles
-    const profiles = await listUserProfiles();
+    // Get all profiles (with same space ID filtering)
+    const profiles = await listUserProfiles({ spaceId, spaceIds });
     
     // Deduplicate skills by name_canonical (case-insensitive) or slug
     // If duplicates exist, keep the most recent one (by createdAt) and merge profile counts
