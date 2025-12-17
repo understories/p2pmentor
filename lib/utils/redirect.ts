@@ -24,19 +24,16 @@ export function safeRedirect(
   // Normalize common bad strings
   if (value === 'null' || value === 'undefined') return fallback;
 
-  // If it looks URL-encoded, decode once (turn "%2Fauth" into "/auth")
+  // Always try to decode once (handles "%2Fauth" -> "/auth")
   let v = value;
-  if (/%2f/i.test(v)) {
-    try {
-      v = decodeURIComponent(v);
-    } catch {
-      // leave as-is
-    }
+  try {
+    v = decodeURIComponent(v);
+  } catch {
+    // If malformed, keep original
   }
 
-  // Must be a valid internal path starting with '/'
+  if (v === 'null' || v === 'undefined') return fallback;
   if (!v.startsWith('/')) return fallback;
-
   if (v === '/') return fallback;
 
   return v;
