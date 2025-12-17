@@ -19,6 +19,7 @@ import { listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
 import { getWalletClientFromPasskey } from '@/lib/wallet/getWalletClientFromPasskey';
 import { hasLocalPasskeyWallet, hasArkivPasskeyIdentity, hasBackupWallet, recoverPasskeyWallet } from '@/lib/auth/passkey-recovery';
 import { connectWallet, createArkivClients } from '@/lib/auth/metamask';
+import { SPACE_ID } from '@/lib/config';
 
 interface PasskeyLoginButtonProps {
   userId?: string; // Optional: if provided, will check for existing wallet
@@ -225,7 +226,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
             console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
               wallet: address,
               credentialId_base64url: credentialID,
-              spaceId: 'local-dev',
+              spaceId: SPACE_ID,
               attempting: true,
               method: 'api_route_with_global_signing_wallet',
             });
@@ -258,7 +259,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               success: true,
               entityId: arkivData.key,
               txHash: arkivData.txHash,
-              spaceId: 'local-dev',
+              spaceId: SPACE_ID,
               credentialId_stored: credentialID,
               method: 'api_route_with_global_signing_wallet',
             });

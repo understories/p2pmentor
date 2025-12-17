@@ -534,7 +534,7 @@ export async function listUserProfiles(params?: {
       lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
       communityAffiliations: payload.communityAffiliations || [],
       reputationScore: payload.reputationScore || 0,
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt,
       txHash: payload.txHash,
       skill_ids: payload.skill_ids || [], // Include skill_ids for client-side filtering
@@ -581,11 +581,11 @@ export async function listUserProfiles(params?: {
  * @param wallet - Wallet address
  * @returns User profile or null if not found
  */
-export async function getProfileByWallet(wallet: string): Promise<UserProfile | null> {
+export async function getProfileByWallet(wallet: string, spaceId?: string): Promise<UserProfile | null> {
   // Normalize wallet: trim and convert to lowercase for consistent querying
   const normalizedWallet = wallet.trim().toLowerCase();
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  const profiles = await listUserProfilesForWallet(normalizedWallet);
+  const profiles = await listUserProfilesForWallet(normalizedWallet, spaceId);
   if (profiles.length === 0) return null;
   
   // Return the most recent profile (sorted by createdAt descending)
@@ -710,7 +710,7 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
       lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
       communityAffiliations: payload.communityAffiliations || [],
       reputationScore: payload.reputationScore || 0,
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt,
       txHash: payload.txHash,
     };
@@ -901,7 +901,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
           lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
           communityAffiliations: payload.communityAffiliations || [],
           reputationScore: payload.reputationScore || 0,
-          spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+          spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
           createdAt: getAttr('createdAt') || payload.createdAt,
           txHash: payload.txHash,
         });

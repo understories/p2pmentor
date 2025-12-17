@@ -140,10 +140,10 @@ export async function GET(request: Request) {
         );
       }
     } else if (sessionKey) {
-      const feedbacks = await listFeedbackForSession(sessionKey);
+      const feedbacks = await listFeedbackForSession(sessionKey, spaceId || SPACE_ID);
       return NextResponse.json({ ok: true, feedbacks });
     } else if (wallet) {
-      const feedbacks = await listFeedbackForWallet(wallet);
+      const feedbacks = await listFeedbackForWallet(wallet, spaceId || SPACE_ID);
       return NextResponse.json({ ok: true, feedbacks });
     } else {
       return NextResponse.json(

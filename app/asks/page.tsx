@@ -178,7 +178,9 @@ export default function AsksPage() {
               expiresAt: ask.expiresAt ? Number(ask.expiresAt) : null,
               ttlSeconds: ask.ttlSeconds,
               txHash: ask.txHash || undefined,
-              spaceId: 'local-dev', // Default space ID
+              // GraphQL may not include spaceId - will be set correctly when using API route
+              // For GraphQL results, we need to fetch from API or add spaceId to GraphQL query
+              spaceId: (ask as any).spaceId || 'beta-launch', // Use actual spaceId if available, fallback to beta-launch for production
             })) as Ask[];
             // Sort by newest first (invert order)
             const sortedAsks = mappedAsks.sort((a, b) => 

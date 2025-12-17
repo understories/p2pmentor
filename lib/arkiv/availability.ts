@@ -723,13 +723,14 @@ export async function listAvailabilityForWallet(
 ): Promise<Availability[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  
   let queryBuilder = query
     .where(eq('type', 'availability'))
-    .where(eq('wallet', wallet.toLowerCase()));
-
-  if (spaceId) {
-    queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
-  }
+    .where(eq('wallet', wallet.toLowerCase()))
+    .where(eq('spaceId', finalSpaceId));
 
   const [result, txHashResult, deletionResult] = await Promise.all([
     queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),

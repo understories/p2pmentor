@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { computeRetentionCohort, createRetentionCohort } from '@/lib/arkiv/retentionMetrics';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/cron/weekly-retention
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     const { key, txHash } = await createRetentionCohort({
       cohort,
       privateKey,
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({

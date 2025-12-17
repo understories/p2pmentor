@@ -293,7 +293,7 @@ export async function listSkills({
         description: payload.description || undefined,
         created_by_profile: getAttr('created_by_profile') || undefined,
         status: (getAttr('status') || 'active') as 'active' | 'archived',
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
         createdAt: getAttr('createdAt'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
@@ -415,7 +415,7 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
       description: payload.description || undefined,
       created_by_profile: getAttr('created_by_profile') || undefined,
       status: (getAttr('status') || 'active') as 'active' | 'archived',
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt'),
       txHash: txHash || payload.txHash || undefined,
     };

@@ -18,10 +18,16 @@ export async function GET(request: NextRequest) {
     const active = searchParams.get('active') !== 'false'; // Default to true
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 100;
 
+    // Extract spaceId from query params (for builder mode) or use SPACE_ID from config
+    const spaceId = searchParams.get('spaceId') || undefined;
+    const spaceIds = searchParams.get('spaceIds')?.split(',') || undefined;
+    
     const follows = await listLearningFollows({
       profile_wallet,
       skill_id,
       active,
+      spaceId: spaceId || SPACE_ID,
+      spaceIds,
       limit,
     });
 

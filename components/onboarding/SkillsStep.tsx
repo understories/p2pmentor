@@ -141,13 +141,13 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         setExistingSkills(updatedSkills);
         skill = updatedSkills.find(s => s.key === skillEntity.key);
         if (!skill) {
-          // Use the entity data we have
+          // Use the entity data we have - extract spaceId from skillEntity if available
           skill = {
             key: skillEntity.key,
             name_canonical: skillEntity.name_canonical,
             slug: skillEntity.slug,
             status: 'active' as const,
-            spaceId: 'local-dev',
+            spaceId: skillEntity.spaceId || 'beta-launch', // Use actual spaceId from entity, fallback to beta-launch for production
             createdAt: new Date().toISOString(),
           } as Skill;
         }

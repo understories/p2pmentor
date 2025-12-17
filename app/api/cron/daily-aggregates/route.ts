@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { computeDailyAggregates, createMetricAggregate } from '@/lib/arkiv/metricAggregates';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/cron/daily-aggregates
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         const { key, txHash } = await createMetricAggregate({
           aggregate,
           privateKey,
-          spaceId: 'local-dev',
+          spaceId: SPACE_ID,
         });
         results.push({ aggregate, key, txHash, status: 'created' });
       } catch (error: any) {

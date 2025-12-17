@@ -267,7 +267,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
       skill: getAttr('skill') || payload.skill || '',
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',
@@ -364,13 +364,19 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
  * @param wallet - Wallet address
  * @returns Array of offers for that wallet
  */
-export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
+export async function listOffersForWallet(wallet: string, spaceId?: string): Promise<Offer[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
+  let queryBuilder = query
+    .where(eq('type', 'offer'))
+    .where(eq('wallet', wallet.toLowerCase()));
+  
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
+  
   const [result, txHashResult] = await Promise.all([
-    query
-      .where(eq('type', 'offer'))
-      .where(eq('wallet', wallet.toLowerCase()))
+    queryBuilder
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -454,7 +460,7 @@ export async function listOffersForWallet(wallet: string): Promise<Offer[]> {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
       skill: getAttr('skill') || payload.skill || '',
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',
       message: payload.message || '',

@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClientPerfMetric, listClientPerfMetrics } from '@/lib/arkiv/clientPerfMetric';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import type { ClientPerfMetric } from '@/lib/metrics/clientPerf';
 
 /**
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const { key, txHash } = await createClientPerfMetric({
       metric,
       privateKey: getPrivateKey(),
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({ ok: true, key, txHash });

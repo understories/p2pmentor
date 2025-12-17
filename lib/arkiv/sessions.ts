@@ -658,7 +658,7 @@ export async function listSessions(params?: {
       learnerWallet,
       skill: getAttr('skill'),
       skill_id,
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt'),
       sessionDate: getAttr('sessionDate') || payload.sessionDate || '',
       status: finalStatus,
@@ -699,14 +699,17 @@ export async function listSessions(params?: {
  * @param wallet - Wallet address
  * @returns Array of sessions
  */
-export async function listSessionsForWallet(wallet: string): Promise<Session[]> {
+export async function listSessionsForWallet(wallet: string, spaceId?: string): Promise<Session[]> {
   // Normalize wallet address to lowercase
   const normalizedWallet = wallet.toLowerCase();
   
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  
   // Get sessions where wallet is either mentor or learner
   const [asMentor, asLearner] = await Promise.all([
-    listSessions({ mentorWallet: normalizedWallet }),
-    listSessions({ learnerWallet: normalizedWallet }),
+    listSessions({ mentorWallet: normalizedWallet, spaceId: finalSpaceId }),
+    listSessions({ learnerWallet: normalizedWallet, spaceId: finalSpaceId }),
   ]);
 
   // Combine and deduplicate by key
@@ -1022,7 +1025,7 @@ export async function confirmSession({
 }): Promise<{ key: string; txHash: string }> {
   // Try to get the session, but if not found, use provided wallet info
   let session: Session | null = null;
-  let spaceId = providedSpaceId || 'local-dev';
+  let spaceId = providedSpaceId || SPACE_ID;
   let verifiedMentorWallet = mentorWallet;
   let verifiedLearnerWallet = learnerWallet;
 
@@ -1235,7 +1238,7 @@ export async function rejectSession({
 }): Promise<{ key: string; txHash: string }> {
   // Try to get the session, but if not found, use provided wallet info
   let session: Session | null = null;
-  let spaceId = providedSpaceId || 'local-dev';
+  let spaceId = providedSpaceId || SPACE_ID;
   let verifiedMentorWallet = mentorWallet;
   let verifiedLearnerWallet = learnerWallet;
 
@@ -1356,7 +1359,7 @@ export async function submitPayment({
 }): Promise<{ key: string; txHash: string }> {
   // Get the session to verify it exists and get wallet info
   let session: Session | null = null;
-  let spaceId = providedSpaceId || 'local-dev';
+  let spaceId = providedSpaceId || SPACE_ID;
   let verifiedMentorWallet = mentorWallet;
   let verifiedLearnerWallet = learnerWallet;
 
@@ -1477,7 +1480,7 @@ export async function validatePayment({
 }): Promise<{ key: string; txHash: string }> {
   // Get the session to verify it exists and get wallet info
   let session: Session | null = null;
-  let spaceId = providedSpaceId || 'local-dev';
+  let spaceId = providedSpaceId || SPACE_ID;
   let verifiedMentorWallet = mentorWallet;
   let verifiedLearnerWallet = learnerWallet;
 

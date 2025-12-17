@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createNavigationMetric } from '@/lib/arkiv/navigationMetric';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import type { NavigationMetric } from '@/lib/metrics/navigation';
 
 /**
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       const { key, txHash } = await createNavigationMetric({
         metric,
         privateKey: getPrivateKey(),
-        spaceId: 'local-dev',
+        spaceId: SPACE_ID,
       });
 
       return NextResponse.json({ ok: true, key, txHash });

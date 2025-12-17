@@ -8,7 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import { createAdminResponse, listAdminResponses, getAdminResponseByKey } from '@/lib/arkiv/adminResponse';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
@@ -76,7 +76,7 @@ export async function POST(request: Request) {
       message: message.trim(),
       adminWallet,
       privateKey: getPrivateKey(),
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({ ok: true, key, txHash });

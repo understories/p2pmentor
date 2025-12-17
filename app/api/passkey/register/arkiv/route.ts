@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createPasskeyIdentity } from '@/lib/arkiv/authIdentity';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
       wallet: wallet.toLowerCase().trim(),
       credentialId_base64url: normalizedCredentialID,
       credentialId_length: normalizedCredentialID.length,
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
       attempting: true,
       signingWallet: 'global_arkiv_wallet', // Using env wallet, not passkey wallet
     });
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       transports: transports || [],
       deviceName,
       privateKey, // Global Arkiv signing wallet (funded)
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     // [PASSKEY][REGISTER][ARKIV_WRITE] - Log success
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       success: true,
       entityId: arkivResult.key,
       txHash: arkivResult.txHash,
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
       credentialId_stored: normalizedCredentialID,
       credentialId_length: normalizedCredentialID.length,
       signingWallet: 'global_arkiv_wallet',

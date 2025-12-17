@@ -96,24 +96,39 @@ export async function listLearningFollows({
   profile_wallet,
   skill_id,
   active = true,
+  spaceId,
+  spaceIds,
   limit = 100,
 }: {
   profile_wallet?: string;
   skill_id?: string;
   active?: boolean;
+  spaceId?: string;
+  spaceIds?: string[];
   limit?: number;
 } = {}): Promise<LearningFollow[]> {
   try {
     const publicClient = getPublicClient();
     
+    // Build query with space ID filtering
+    let queryBuilder = publicClient.buildQuery()
+      .where(eq('type', 'learning_follow'))
+      .withAttributes(true)
+      .withPayload(true);
+    
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (spaceIds && spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(limit || 100);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const finalSpaceId = spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
+    }
+    
     // Fetch follow entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
-        .where(eq('type', 'learning_follow'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit || 100)
-        .fetch(),
+      queryBuilder.fetch(),
       publicClient.buildQuery()
         .where(eq('type', 'learning_follow_txhash'))
         .withAttributes(true)
@@ -187,7 +202,7 @@ export async function listLearningFollows({
         skill_id: getAttr('skill_id'),
         mode: (getAttr('mode') || 'learning') as 'learning' | 'teaching' | 'both',
         active: getAttr('active') === 'true' || payload.active === true,
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
         createdAt: getAttr('createdAt') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };

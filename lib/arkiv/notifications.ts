@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export type NotificationType = 
   | 'meeting_request'
@@ -57,7 +58,7 @@ export async function createNotification({
   link,
   metadata,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   wallet: string;
   notificationType: NotificationType;
@@ -134,12 +135,16 @@ export async function listNotifications({
   notificationType,
   status,
   sourceEntityType,
+  spaceId,
+  spaceIds,
   limit = 100,
 }: {
   wallet?: string;
   notificationType?: NotificationType;
   status?: 'active' | 'archived';
   sourceEntityType?: string;
+  spaceId?: string;
+  spaceIds?: string[];
   limit?: number;
 } = {}): Promise<Notification[]> {
   try {
@@ -152,6 +157,16 @@ export async function listNotifications({
     
     if (wallet) {
       notificationQuery = notificationQuery.where(eq('wallet', wallet.toLowerCase()));
+    }
+    
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (spaceIds && spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      notificationQuery = notificationQuery.limit(limit || 100);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const finalSpaceId = spaceId || SPACE_ID;
+      notificationQuery = notificationQuery.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
     }
     
     // Fetch notification entities and txHash entities in parallel
@@ -243,12 +258,17 @@ export async function listNotifications({
         link: payload.link || undefined,
         metadata: payload.metadata || undefined,
         status: (getAttr('status') || 'active') as 'active' | 'archived',
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
         createdAt: getAttr('createdAt'),
         txHash: txHashMap[entity.key] || payload.txHash || entity.txHash || undefined,
       };
     });
 
+    // Filter by spaceIds client-side if multiple requested
+    if (spaceIds && spaceIds.length > 0) {
+      notifications = notifications.filter(n => spaceIds.includes(n.spaceId));
+    }
+    
     // Apply filters
     if (wallet) {
       notifications = notifications.filter(n => n.wallet.toLowerCase() === wallet.toLowerCase());
@@ -287,7 +307,7 @@ export async function archiveNotification({
   notificationKey,
   wallet,
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID,
 }: {
   notificationKey: string;
   wallet: string;

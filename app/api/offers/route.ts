@@ -179,7 +179,7 @@ export async function GET(request: Request) {
 
     if (wallet) {
       // List offers for specific wallet
-      const offers = await listOffersForWallet(wallet);
+      const offers = await listOffersForWallet(wallet, spaceId || SPACE_ID);
       return NextResponse.json({ ok: true, offers });
     } else {
       // List all offers (with optional filters)

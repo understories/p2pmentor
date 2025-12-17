@@ -170,11 +170,16 @@ export async function createFeedback({
 /**
  * List feedback for a session
  */
-export async function listFeedbackForSession(sessionKey: string): Promise<Feedback[]> {
+export async function listFeedbackForSession(sessionKey: string, spaceId?: string): Promise<Feedback[]> {
   const publicClient = getPublicClient();
+  
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  
   const result = await publicClient.buildQuery()
     .where(eq('type', 'session_feedback'))
     .where(eq('sessionKey', sessionKey))
+    .where(eq('spaceId', finalSpaceId))
     .withAttributes(true)
     .withPayload(true)
     .limit(10)
@@ -214,7 +219,7 @@ export async function listFeedbackForSession(sessionKey: string): Promise<Feedba
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       notes: payload.notes || undefined,
       technicalDxFeedback: payload.technicalDxFeedback || undefined,
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt'),
     };
   });
@@ -223,19 +228,25 @@ export async function listFeedbackForSession(sessionKey: string): Promise<Feedba
 /**
  * List feedback for a wallet (all feedback given or received)
  */
-export async function listFeedbackForWallet(wallet: string): Promise<Feedback[]> {
+export async function listFeedbackForWallet(wallet: string, spaceId?: string): Promise<Feedback[]> {
   const publicClient = getPublicClient();
   
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  
   // Query feedback where wallet is either feedbackFrom or feedbackTo
+  // Filter by spaceId to ensure cross-environment isolation
   const [fromResult, toResult] = await Promise.all([
     publicClient.buildQuery()
       .where(eq('type', 'session_feedback'))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'session_feedback'))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -291,7 +302,7 @@ export async function listFeedbackForWallet(wallet: string): Promise<Feedback[]>
         rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
         notes: payload.notes || undefined,
         technicalDxFeedback: payload.technicalDxFeedback || undefined,
-        spaceId: getAttr('spaceId') || 'local-dev',
+        spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
         createdAt: getAttr('createdAt'),
       });
     }
@@ -386,7 +397,7 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
       rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
       notes: payload.notes || undefined,
       technicalDxFeedback: payload.technicalDxFeedback || undefined,
-      spaceId: getAttr('spaceId') || 'local-dev',
+      spaceId: getAttr('spaceId') || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt'),
       txHash: txHash || undefined,
     };

@@ -242,7 +242,7 @@ export async function listAsks(params?: { skill?: string; spaceId?: string; spac
       skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
       skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
       skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
       message: payload.message || '',
@@ -390,7 +390,7 @@ export async function listAsksForWallet(wallet: string): Promise<Ask[]> {
       skill: getAttr('skill') || payload.skill || '', // Legacy: kept for backward compatibility
       skill_id: getAttr('skill_id') || payload.skill_id || undefined, // New: preferred for beta
       skill_label: getAttr('skill_label') || payload.skill_label || undefined, // Derived from Skill entity
-      spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'open',
       message: payload.message || '',

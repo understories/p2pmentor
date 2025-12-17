@@ -7,6 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { listNotifications } from '@/lib/arkiv/notifications';
+import { SPACE_ID } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
@@ -25,11 +26,17 @@ export async function GET(request: Request) {
     // Normalize wallet address to lowercase for consistent querying
     const normalizedWallet = wallet.toLowerCase();
 
+    // Extract spaceId from query params (for builder mode) or use SPACE_ID from config
+    const spaceId = searchParams.get('spaceId') || undefined;
+    const spaceIds = searchParams.get('spaceIds')?.split(',') || undefined;
+    
     // Query notifications directly from Arkiv entities
     const notifications = await listNotifications({
       wallet: normalizedWallet,
       notificationType: notificationType as any,
       status: status || 'active',
+      spaceId: spaceId || SPACE_ID,
+      spaceIds: spaceIds,
       limit: 100,
     });
 

@@ -8,7 +8,7 @@
 
 import { NextResponse } from 'next/server';
 import { createAppFeedback, listAppFeedback, resolveAppFeedback, getAppFeedbackByKey } from '@/lib/arkiv/appFeedback';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 export async function POST(request: Request) {
   try {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         rating,
         feedbackType: feedbackType || 'feedback',
         privateKey: getPrivateKey(),
-        spaceId: 'local-dev',
+        spaceId: SPACE_ID,
       });
 
       return NextResponse.json({ ok: true, key, txHash });
@@ -62,7 +62,7 @@ export async function POST(request: Request) {
         feedbackKey,
         resolvedByWallet,
         privateKey: getPrivateKey(),
-        spaceId: 'local-dev',
+        spaceId: SPACE_ID,
       });
 
       return NextResponse.json({ ok: true, key, txHash });

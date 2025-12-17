@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createGitHubIssueLink } from '@/lib/arkiv/githubIssueLink';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 const GITHUB_OWNER = process.env.GITHUB_OWNER || 'understories';
 const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
@@ -95,7 +95,7 @@ ${message}
       issueUrl,
       repository: `${GITHUB_OWNER}/${GITHUB_REPO}`,
       privateKey,
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({

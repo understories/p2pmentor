@@ -165,7 +165,7 @@ export async function GET(request: Request) {
 
     if (wallet) {
       // List asks for specific wallet
-      const asks = await listAsksForWallet(wallet);
+      const asks = await listAsksForWallet(wallet, spaceId || SPACE_ID);
       return NextResponse.json({ ok: true, asks });
     } else {
       // List all asks (with optional filters)
