@@ -918,6 +918,7 @@ export default function TopicDetailPage() {
             offers={offers}
             matches={matches}
             profiles={profiles}
+            arkivBuilderMode={arkivBuilderMode}
           />
         )}
 
