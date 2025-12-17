@@ -92,6 +92,33 @@ export default function AuthPage() {
     }
   }, []);
 
+  // Clear timeout on unmount to prevent state update warnings
+  useEffect(() => {
+    return () => {
+      if (openingTimerRef.current) {
+        window.clearTimeout(openingTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Cancel banner instantly if page goes hidden (MetaMask opened successfully)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        setOpeningMetaMask(false);
+        if (openingTimerRef.current) {
+          window.clearTimeout(openingTimerRef.current);
+          openingTimerRef.current = null;
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   const handleMetaMaskConnect = async () => {
     // Mobile Safari/Chrome won't have window.ethereum even if MetaMask is installed.
     // Redirect users into MetaMask's in-app browser instead.
