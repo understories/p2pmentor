@@ -52,6 +52,39 @@ export async function GET(request: NextRequest) {
       if (!quest) {
         return NextResponse.json({ ok: false, error: 'Quest not found' }, { status: 404 });
       }
+
+      // For language assessment quests, we need to include the payload
+      // (which contains sections and questions)
+      if (quest.questType === 'language_assessment') {
+        const publicClient = (await import('@/lib/arkiv/client')).getPublicClient();
+        const result = await publicClient.buildQuery()
+          .where((await import('@arkiv-network/sdk/query')).eq('type', 'learner_quest'))
+          .where((await import('@arkiv-network/sdk/query')).eq('questId', questId))
+          .where((await import('@arkiv-network/sdk/query')).eq('status', 'active'))
+          .withAttributes(true)
+          .withPayload(true)
+          .limit(1)
+          .fetch();
+
+        if (result?.entities && result.entities.length > 0) {
+          const entity = result.entities[0];
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          const payload = JSON.parse(decoded);
+
+          return NextResponse.json({
+            ok: true,
+            quest: {
+              ...quest,
+              payload, // Include full payload for language assessment quests
+            },
+          });
+        }
+      }
+
       return NextResponse.json({ ok: true, quest });
     } else {
       // List all active quests, optionally filtered by questType and spaceId
