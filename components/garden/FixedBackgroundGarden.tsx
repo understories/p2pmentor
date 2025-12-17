@@ -11,6 +11,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { GardenLayer } from './GardenLayer';
 import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
@@ -19,6 +20,13 @@ import type { Skill } from '@/lib/arkiv/skill';
 import type { GardenSkill } from '@/lib/garden/types';
 
 export function FixedBackgroundGarden() {
+  const pathname = usePathname();
+
+  // Hide garden on landing, beta, and auth pages
+  const hideGardenPaths = ['/', '/beta', '/auth'];
+  if (hideGardenPaths.includes(pathname)) {
+    return null;
+  }
   const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
   const [userSkills, setUserSkills] = useState<GardenSkill[]>([]);
   const [learningSkillIds, setLearningSkillIds] = useState<string[]>([]);
