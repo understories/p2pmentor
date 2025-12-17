@@ -352,8 +352,8 @@ export default function LearnerQuestsPage() {
     );
   }
 
-  // Show quest detail view if a quest is selected
-  if (selectedQuest) {
+  // Show quest detail view if a quest is selected (only for reading_list quests)
+  if (selectedQuest && selectedQuest.questType === 'reading_list') {
     const readCount = Object.values(materialProgress).filter(p => p.status === 'read').length;
     const progressPercent = selectedQuest.materials.length > 0
       ? Math.round((readCount / selectedQuest.materials.length) * 100)
