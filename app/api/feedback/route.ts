@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createFeedback, listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 export async function POST(request: NextRequest) {
@@ -53,6 +53,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
+    const targetSpaceId = spaceId || SPACE_ID;
+    
     const { key, txHash } = await createFeedback({
       sessionKey,
       mentorWallet,
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
       notes,
       technicalDxFeedback,
       privateKey: getPrivateKey(),
-      spaceId: spaceId || 'local-dev',
+      spaceId: targetSpaceId,
       sessionStatus,
       mentorConfirmed,
       learnerConfirmed,
@@ -88,6 +91,7 @@ export async function POST(request: NextRequest) {
             rating: rating || undefined,
           },
           privateKey: getPrivateKey(),
+          spaceId: targetSpaceId,
         });
       } catch (notifError) {
         console.error('Failed to create notification for feedback:', notifError);

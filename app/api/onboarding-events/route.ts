@@ -10,7 +10,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createOnboardingEvent } from '@/lib/arkiv/onboardingEvent';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 export async function POST(request: NextRequest) {
@@ -47,11 +47,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Create onboarding event using server-side signing wallet
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const { key, txHash } = await createOnboardingEvent({
       wallet,
       eventType,
       privateKey: getPrivateKey(),
-      spaceId: 'local-dev',
+      spaceId: SPACE_ID,
     });
 
     return NextResponse.json({ ok: true, key, txHash });

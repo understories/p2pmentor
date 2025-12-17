@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           try {
             const { createNotification } = await import('@/lib/arkiv/notifications');
             const skillName = skill_label || skill || 'a skill';
+            // Use SPACE_ID from config (same as the ask entity)
             await createNotification({
               wallet: targetWallet.toLowerCase(),
               notificationType: 'entity_created',

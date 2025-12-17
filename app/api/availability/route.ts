@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createAvailability, listAvailabilityForWallet, deleteAvailability, type WeeklyAvailability } from '@/lib/arkiv/availability';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
@@ -41,13 +41,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
+    const targetSpaceId = spaceId || SPACE_ID;
+    
     try {
       const { key, txHash } = await createAvailability({
         wallet,
         timeBlocks: timeBlocks as string | WeeklyAvailability, // Support both formats
         timezone,
         privateKey: getPrivateKey(),
-        spaceId: spaceId || 'local-dev',
+        spaceId: targetSpaceId,
       });
 
       // Create user-focused notification
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest) {
               timezone: timezone,
             },
             privateKey: getPrivateKey(),
+            spaceId: targetSpaceId,
           });
         } catch (notifError) {
           console.error('Failed to create notification for availability:', notifError);

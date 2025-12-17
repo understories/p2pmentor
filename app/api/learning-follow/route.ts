@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createLearningFollow, unfollowSkill, listLearningFollows } from '@/lib/arkiv/learningFollow';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
@@ -69,12 +69,14 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Use SPACE_ID from config (beta-launch in production, local-dev in development)
       try {
         const { key, txHash } = await createLearningFollow({
           profile_wallet: targetWallet,
           skill_id,
           mode: mode || 'learning',
           privateKey: getPrivateKey(),
+          spaceId: SPACE_ID,
         });
 
         return NextResponse.json({ ok: true, key, txHash });

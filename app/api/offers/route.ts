@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
                 isPaid: isPaid === true || isPaid === 'true',
               },
               privateKey: getPrivateKey(),
+              spaceId: SPACE_ID, // Use SPACE_ID from config (same as the offer entity)
             });
           } catch (notifError) {
             console.error('Failed to create notification for offer:', notifError);
