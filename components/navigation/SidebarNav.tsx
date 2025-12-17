@@ -473,15 +473,15 @@ export function SidebarNav() {
                     return (
                       <div key={session.key} className="relative group/session">
                         <div
-                          className="flex flex-row items-center gap-2 py-2 pl-1 group-hover:pl-2 rounded-lg"
+                          className="flex flex-row items-center gap-3 py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg"
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
-                          <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📖</span>
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm text-gray-700 dark:text-gray-300 font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">📖</span>
+                          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-sm font-medium leading-tight">
                               {skillName}
                             </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                            <span className="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5">
                               {dateStr} {timeStr}
                             </span>
                           </div>
@@ -543,89 +543,93 @@ export function SidebarNav() {
           </div>
         )}
         
-        {/* Asks, Offers, Matches - below Network, vertical when closed, horizontal when open */}
+        {/* Asks, Offers, Matches - always vertical layout */}
         {level >= 1 && (
-          <div className="mt-2 w-full">
-            <div className="flex flex-col group-hover:flex-row gap-0.5 group-hover:gap-2 transition-all duration-300">
-              <Link
-                href="/asks"
-                className={`
-                  relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-1 group-hover:px-2
-                  rounded-lg
-                  transition-all duration-300 ease-out
-                  ${isActive('/asks')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }
-                `}
-                title="Asks"
-              >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🎓</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Asks</span>
-                {isActive('/asks') && (
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
-                    style={{
-                      transition: 'opacity 150ms ease-out',
-                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
-                    }}
-                  />
-                )}
-              </Link>
-              <Link
-                href="/offers"
-                className={`
-                  relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-1 group-hover:px-2
-                  rounded-lg
-                  transition-all duration-300 ease-out
-                  ${isActive('/offers')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }
-                `}
-                title="Offers"
-              >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💎</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Offers</span>
-                {isActive('/offers') && (
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
-                    style={{
-                      transition: 'opacity 150ms ease-out',
-                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
-                    }}
-                  />
-                )}
-              </Link>
-              <Link
-                href="/matches"
-                className={`
-                  relative flex flex-col items-center justify-center
-                  flex-1 py-1.5 pl-1 group-hover:px-2
-                  rounded-lg
-                  transition-all duration-300 ease-out
-                  ${isActive('/matches')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                  }
-                `}
-                title="Matches"
-              >
-                <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">✨</span>
-                <span className="text-[10px] font-medium leading-tight mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Matches</span>
-                {isActive('/matches') && (
-                  <div 
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
-                    style={{
-                      transition: 'opacity 150ms ease-out',
-                      boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
-                    }}
-                  />
-                )}
-              </Link>
-            </div>
+          <div className="mt-2 w-full space-y-0.5">
+            <Link
+              href="/asks"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/asks')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+              title="Asks"
+            >
+              <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🎓</span>
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                <span className="text-sm font-medium leading-tight">Asks</span>
+              </div>
+              {isActive('/asks') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
+            <Link
+              href="/offers"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/offers')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+              title="Offers"
+            >
+              <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">💎</span>
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                <span className="text-sm font-medium leading-tight">Offers</span>
+              </div>
+              {isActive('/offers') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
+            <Link
+              href="/matches"
+              className={`
+                relative flex flex-row items-center gap-3
+                w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                rounded-lg
+                transition-all duration-150 ease-out
+                ${isActive('/matches')
+                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                }
+              `}
+              title="Matches"
+            >
+              <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">✨</span>
+              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                <span className="text-sm font-medium leading-tight">Matches</span>
+              </div>
+              {isActive('/matches') && (
+                <div 
+                  className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
+                  style={{
+                    transition: 'opacity 150ms ease-out',
+                    boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
+                  }}
+                />
+              )}
+            </Link>
           </div>
         )}
         
@@ -643,7 +647,7 @@ export function SidebarNav() {
           return (
             <div className="mt-2 w-full">
               <div className="flex flex-col gap-2">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2">
                   {uniqueSkills.slice(0, 6).map((skill) => {
                     // Find skill entity by name to get slug for topic page link
                     const skillEntity = Object.values(skillsMap).find(s => 
@@ -668,20 +672,14 @@ export function SidebarNav() {
                     const skillTitle = `${skill.name} - ${skill.level === 0 ? 'Beginner' : skill.level === 2 ? 'Intermediate' : skill.level >= 3 && skill.level <= 4 ? 'Advanced' : 'Expert'}`;
                     const skillContent = (
                       <>
-                        <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">
+                        <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">
                           {levelToEmoji(skill.level)}
                         </span>
-                        <span 
-                          className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200"
-                          style={{
-                            wordBreak: 'break-word',
-                            overflowWrap: 'break-word',
-                            lineHeight: '1.3',
-                          }}
-                          title={skill.name}
-                        >
-                          {skill.name}
-                        </span>
+                        <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          <span className="text-sm font-medium leading-tight">
+                            {skill.name}
+                          </span>
+                        </div>
                       </>
                     );
                     
@@ -691,7 +689,7 @@ export function SidebarNav() {
                         <Link
                           key={skill.id}
                           href={`/topic/${skillEntity.slug}`}
-                          className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                           title={skillTitle}
                         >
                           {skillContent}
@@ -702,7 +700,7 @@ export function SidebarNav() {
                         <button
                           key={skill.id}
                           onClick={handleSkillClick}
-                          className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity text-left"
+                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
                           title={skillTitle}
                         >
                           {skillContent}
@@ -716,69 +714,49 @@ export function SidebarNav() {
                     </div>
                   )}
                 </div>
-                {/* Public Garden Board - same size as skills */}
+                {/* Public Garden Board */}
                 <Link
                   href="/garden/public-board"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Public Garden Board"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">💌</span>
-                  <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-                    style={{
-                      lineHeight: '1.3',
-                    }}
-                  >
-                    Public Board
-                  </span>
+                  <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">💌</span>
+                  <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    <span className="text-sm font-medium leading-tight">Public Board</span>
+                  </div>
                 </Link>
-                {/* Browse Profiles - same size as skills */}
+                {/* Browse Profiles */}
                 <Link
                   href="/profiles"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Browse Profiles"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">👤</span>
-                  <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-                    style={{
-                      lineHeight: '1.3',
-                    }}
-                  >
-                    Browse Profiles
-                  </span>
+                  <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">👤</span>
+                  <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    <span className="text-sm font-medium leading-tight">Browse Profiles</span>
+                  </div>
                 </Link>
-                {/* Learner Communities - same size as skills */}
+                {/* Learner Communities */}
                 <Link
                   href="/skills/explore"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Learner Communities"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">🌱</span>
-                  <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-                    style={{
-                      lineHeight: '1.3',
-                    }}
-                  >
-                    Learner Communities
-                  </span>
+                  <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🌱</span>
+                  <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    <span className="text-sm font-medium leading-tight">Learner Communities</span>
+                  </div>
                 </Link>
-                {/* Learning Quests - same size as skills */}
+                {/* Learning Quests */}
                 <Link
                   href="/learner-quests"
-                  className="relative flex items-center gap-1.5 hg-anim-plant-idle hover:opacity-80 transition-opacity group/link"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Learning Quests"
                 >
-                  <span className="text-2xl group-hover:text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 group-hover:w-8 group-hover:h-10 overflow-visible transition-all duration-300">📚</span>
-                  <span
-                    className="text-xs text-gray-600 dark:text-gray-400 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap"
-                    style={{
-                      lineHeight: '1.3',
-                    }}
-                  >
-                    Learning Quests
-                  </span>
+                  <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">📚</span>
+                  <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                    <span className="text-sm font-medium leading-tight">Learning Quests</span>
+                  </div>
                 </Link>
               </div>
             </div>
