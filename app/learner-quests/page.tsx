@@ -402,7 +402,7 @@ export default function LearnerQuestsPage() {
 
             {/* Materials List */}
             <div className="space-y-4">
-              {selectedQuest.materials.map((material) => {
+              {selectedQuest.materials?.map((material) => {
                 const materialProgressData = materialProgress[material.id];
                 const isRead = materialProgressData?.status === 'read';
                 const isMarking = markingRead === material.id;
