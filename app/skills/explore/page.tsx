@@ -136,6 +136,13 @@ export default function ExploreSkillsPage() {
           description="Discover all skills in the network and see how many people are learning or teaching each one"
         />
 
+        {/* Instructions */}
+        <div className="mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <p className="text-sm text-gray-600 dark:text-gray-400">
+            Click a skill to view the learning community, schedule a community meeting, or leave a message on the community board.
+          </p>
+        </div>
+
         {/* Search */}
         <div className="mb-6">
           <input

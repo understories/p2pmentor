@@ -187,7 +187,8 @@ export function SidebarNav() {
   };
 
   // Primary navigation items with unlock levels
-  // Only Dashboard in main nav (Network is shown later in sidebar, Notifications moved to bottom above Logout)
+  // Only Dashboard in main nav (Network, Skills, Quests, Sessions, Notifications shown later in sidebar in dedicated sections)
+  // Note: BottomNav uses its own allNavItems array, so mobile nav is unaffected
   const allNavItems: Array<NavItem & { minLevel?: number }> = [
     {
       href: '/me',
@@ -195,37 +196,8 @@ export function SidebarNav() {
       icon: '👤',
       minLevel: 0, // Always available
     },
-    {
-      href: '/network',
-      label: 'Network',
-      icon: '🌐',
-      minLevel: 1, // After profile creation (matches desktop sidebar)
-    },
-    {
-      href: '/skills/explore',
-      label: 'Skills',
-      icon: '🌿',
-      minLevel: 1, // After profile creation
-    },
-    {
-      href: '/learner-quests',
-      label: 'Quests',
-      icon: '🧭',
-      minLevel: 1, // After profile creation (like other nav items)
-    },
-    {
-      href: '/me/sessions',
-      label: 'Sessions',
-      icon: '📅',
-      minLevel: 1, // After profile creation
-    },
-    {
-      href: '/notifications',
-      label: 'Notifications',
-      icon: '🔔',
-      badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
-      minLevel: 1, // After profile creation
-    },
+    // Network, Skills, Quests, Sessions, Notifications removed from top nav to avoid duplicates
+    // They appear in dedicated sections below (Network button, Sessions button, Notifications at bottom)
   ];
 
   // Check bypass flag
@@ -784,15 +756,15 @@ export function SidebarNav() {
                     <span className="text-sm font-medium leading-tight">Browse Profiles</span>
                   </div>
                 </Link>
-                {/* Learner Communities */}
+                {/* Explore Skills */}
                 <Link
                   href="/skills/explore"
                   className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                  title="Learner Communities"
+                  title="Explore Skills"
                 >
                   <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🌱</span>
                   <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                    <span className="text-sm font-medium leading-tight">Learner Communities</span>
+                    <span className="text-sm font-medium leading-tight">Explore Skills</span>
                   </div>
                 </Link>
                 {/* Learning Quests */}
