@@ -11,7 +11,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { generateJitsiMeeting } from "../jitsi";
-import { JITSI_BASE_URL } from "../config";
+import { JITSI_BASE_URL, SPACE_ID } from "../config";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type VirtualGathering = {
@@ -343,7 +343,7 @@ export async function listVirtualGatherings({
           description: payload.description,
           sessionDate: getAttr('sessionDate') || payload.sessionDate,
           duration: durationInt,
-          spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev',
+          spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
           createdAt: getAttr('createdAt') || payload.createdAt,
           txHash: txHashMap[entity.key] || payload.txHash,
           videoProvider: (getAttr('videoProvider') || payload.videoProvider || 'jitsi') as 'jitsi' | 'none' | 'custom',
@@ -425,7 +425,8 @@ export async function rsvpToGathering({
   // Store gathering key in notes
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'local-dev';
+  // Use the gathering's spaceId to ensure consistency
+  const spaceId = gathering.spaceId || SPACE_ID;
   const createdAt = new Date().toISOString();
 
   // For RSVP sessions, we use the wallet as both mentor and learner (self-confirmed)
@@ -540,22 +541,30 @@ export async function rsvpToGathering({
 
 /**
  * Check if wallet has RSVP'd to a gathering
+ * 
+ * @param gatheringKey - The gathering entity key
+ * @param wallet - Wallet address to check
+ * @param spaceId - Space ID to filter by (required for accurate results)
  */
 export async function hasRsvpdToGathering(
   gatheringKey: string,
-  wallet: string
+  wallet: string,
+  spaceId?: string
 ): Promise<boolean> {
   const publicClient = getPublicClient();
   const normalizedWallet = wallet.toLowerCase();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
     // Query for RSVP sessions - check both learnerWallet and mentorWallet (since it's self-confirmed)
+    // CRITICAL: Filter by spaceId to ensure we're checking the correct environment
     const [learnerResult, mentorResult] = await Promise.all([
       publicClient.buildQuery()
         .where(eq('type', 'session'))
         .where(eq('skill', 'virtual_gathering_rsvp'))
         .where(eq('gatheringKey', gatheringKey))
         .where(eq('learnerWallet', normalizedWallet))
+        .where(eq('spaceId', finalSpaceId))
         .withAttributes(true)
         .limit(1)
         .fetch(),
@@ -564,6 +573,7 @@ export async function hasRsvpdToGathering(
         .where(eq('skill', 'virtual_gathering_rsvp'))
         .where(eq('gatheringKey', gatheringKey))
         .where(eq('mentorWallet', normalizedWallet))
+        .where(eq('spaceId', finalSpaceId))
         .withAttributes(true)
         .limit(1)
         .fetch(),
@@ -580,19 +590,24 @@ export async function hasRsvpdToGathering(
  * List all wallets that have RSVP'd to a gathering
  * 
  * @param gatheringKey - The gathering entity key
+ * @param spaceId - Space ID to filter by (required for accurate results)
  * @returns Array of wallet addresses (normalized to lowercase)
  */
 export async function listRsvpWalletsForGathering(
-  gatheringKey: string
+  gatheringKey: string,
+  spaceId?: string
 ): Promise<string[]> {
   const publicClient = getPublicClient();
+  const finalSpaceId = spaceId || SPACE_ID;
 
   try {
     // Query all RSVP sessions for this gathering
+    // CRITICAL: Filter by spaceId to ensure we're checking the correct environment
     const rsvpResult = await publicClient.buildQuery()
       .where(eq('type', 'session'))
       .where(eq('skill', 'virtual_gathering_rsvp'))
       .where(eq('gatheringKey', gatheringKey))
+      .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .limit(1000)
       .fetch();

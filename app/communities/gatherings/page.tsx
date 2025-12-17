@@ -212,7 +212,13 @@ function VirtualGatheringsContent() {
         throw new Error(data.error || 'Failed to RSVP');
       }
 
-      alert('RSVP confirmed! This gathering is now linked to your profile.');
+      // Optimistically update RSVP status immediately
+      setRsvpStatus(prev => ({ ...prev, [gatheringKey]: true }));
+      
+      // Wait for Arkiv to index the new RSVP entity before reloading
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Reload gatherings to get updated RSVP count and ensure consistency
       loadGatherings();
     } catch (err: any) {
       console.error('Error RSVPing:', err);

@@ -349,7 +349,12 @@ export default function TopicDetailPage() {
             (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
           
           if (gatheringKey) {
-            const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet);
+            // Get the gathering to get its spaceId for accurate filtering
+            const gathering = gatheringsRes.ok && gatheringsRes.gatherings 
+              ? gatheringsRes.gatherings.find((g: VirtualGathering) => g.key === gatheringKey)
+              : null;
+            const spaceId = gathering?.spaceId;
+            const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet, spaceId);
             return { sessionKey: s.key, gatheringKey, hasRsvpd };
           }
           return null;

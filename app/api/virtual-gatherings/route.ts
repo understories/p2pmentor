@@ -17,7 +17,7 @@ import {
   hasRsvpdToGathering,
   listRsvpWalletsForGathering,
 } from '@/lib/arkiv/virtualGathering';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/virtual-gatherings
@@ -35,7 +35,12 @@ export async function GET(request: Request) {
 
     // If gatheringKey is provided, return RSVP wallets for that gathering
     if (gatheringKey) {
-      const rsvpWallets = await listRsvpWalletsForGathering(gatheringKey);
+      // Get the gathering to get its spaceId for accurate filtering
+      const gatherings = await listVirtualGatherings({ limit: 1000 });
+      const gathering = gatherings.find(g => g.key === gatheringKey);
+      const spaceId = gathering?.spaceId || SPACE_ID;
+      
+      const rsvpWallets = await listRsvpWalletsForGathering(gatheringKey, spaceId);
       return NextResponse.json({
         ok: true,
         rsvpWallets,
@@ -50,10 +55,11 @@ export async function GET(request: Request) {
     });
 
     // If wallet provided, check RSVP status for each gathering
+    // CRITICAL: Use each gathering's spaceId for accurate filtering
     let rsvpStatus: Record<string, boolean> = {};
     if (wallet) {
       const rsvpPromises = gatherings.map(async (gathering) => {
-        const hasRsvpd = await hasRsvpdToGathering(gathering.key, wallet);
+        const hasRsvpd = await hasRsvpdToGathering(gathering.key, wallet, gathering.spaceId);
         return { key: gathering.key, hasRsvpd };
       });
       const rsvpResults = await Promise.all(rsvpPromises);
@@ -169,8 +175,19 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Get the gathering to get its spaceId for accurate filtering
+      const gatherings = await listVirtualGatherings({ limit: 1000 });
+      const gathering = gatherings.find(g => g.key === gatheringKey);
+      if (!gathering) {
+        return NextResponse.json(
+          { ok: false, error: 'Gathering not found' },
+          { status: 404 }
+        );
+      }
+
       // Check if user has already RSVP'd (prevent duplicates)
-      const hasRsvpd = await hasRsvpdToGathering(gatheringKey, wallet);
+      // CRITICAL: Use the gathering's spaceId to ensure we check the correct environment
+      const hasRsvpd = await hasRsvpdToGathering(gatheringKey, wallet, gathering.spaceId);
       if (hasRsvpd) {
         return NextResponse.json(
           { ok: false, error: 'You have already RSVP\'d to this gathering' },
