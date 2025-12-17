@@ -18,6 +18,7 @@ interface GardenLayerProps {
   skills: GardenSkill[]; // User's skills (for glowing)
   allSkills?: GardenSkill[]; // All skills in system (for background display)
   skillProfileCounts?: Record<string, number>; // Profile counts by skill name (normalized)
+  learningSkillIds?: string[]; // Skill IDs the user is learning (for glowing)
   showIdentitySeed?: boolean; // Show central 🌱 for identity step
   animateNew?: string; // ID of newly added skill to animate
   className?: string;
@@ -29,6 +30,7 @@ export function GardenLayer({
   skills, // User's skills (for glowing)
   allSkills, // All skills in system (for background display)
   skillProfileCounts = {}, // Profile counts by skill name (normalized)
+  learningSkillIds = [], // Skill IDs the user is learning (for glowing)
   showIdentitySeed = false,
   animateNew,
   className = '',
@@ -44,6 +46,11 @@ export function GardenLayer({
   const userSkillNames = useMemo(() => {
     return new Set(skills.map(s => s.name.toLowerCase().trim()));
   }, [skills]);
+
+  // Create a set of learning skill IDs for glowing
+  const learningSkillIdSet = useMemo(() => {
+    return new Set(learningSkillIds);
+  }, [learningSkillIds]);
   
   // Remove duplicates from allSkills by skill name
   const uniqueSkillsToDisplay = useMemo(() => {
@@ -82,7 +89,7 @@ export function GardenLayer({
   return (
     <div className={`fixed inset-0 ${showSeedTooltip ? 'z-20' : 'z-0'} ${className}`}>
       {/* Bottom garden strip - responsive spacing with padding to prevent cutoff */}
-      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8">
+      <div className="absolute inset-x-0 bottom-6 md:bottom-12 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 pb-20 md:pb-24 overflow-visible">
         {slots.map((skill, i) =>
           skill ? (
             skill.id === 'identity_seed' && showSeedTooltip && onSeedClick ? (
@@ -153,8 +160,8 @@ export function GardenLayer({
                       ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
                       : skill.id === 'identity_seed' 
                       ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                      : userSkillNames.has(skill.name.toLowerCase().trim())
-                      ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.5))' // Glow for user's skills
+                      : userSkillNames.has(skill.name.toLowerCase().trim()) || learningSkillIdSet.has(skill.id)
+                      ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.5))' // Glow for user's skills or learning skills
                       : 'none',
                   }}
                 >
@@ -166,16 +173,22 @@ export function GardenLayer({
                   </span>
                 )}
                 {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
-                  <div className="flex flex-col items-center gap-0.5">
+                  <div className="flex flex-col items-center gap-0.5 w-full max-w-[100px] min-w-0">
                     <span
-                      className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                      className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal break-words"
                       style={{
-                        maxWidth: '70px',
+                        maxWidth: '100px',
+                        width: '100%',
                         wordBreak: 'break-word',
                         overflowWrap: 'break-word',
                         lineHeight: '1.3',
                         minHeight: '28px',
-                        display: 'inline-block',
+                        display: 'block',
+                        overflow: 'visible',
+                        textOverflow: 'clip',
+                        hyphens: 'auto',
+                        WebkitHyphens: 'auto',
+                        msHyphens: 'auto',
                       }}
                       title={skill.name}
                     >
@@ -184,40 +197,42 @@ export function GardenLayer({
                     {(() => {
                       const normalizedName = skill.name.toLowerCase().trim();
                       const profileCount = skillProfileCounts[normalizedName] ?? 0;
-                      const countText = `${profileCount} ${profileCount === 1 ? 'profile' : 'profiles'}`;
+                      const countText = profileCount > 0 ? `${profileCount}` : '0';
 
-                      if (profileCount > 0) {
-                        const content = (
-                          <span className="text-[9px] md:text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                            {countText}
-                          </span>
+                      // Always show count
+                      const content = (
+                        <span className={`text-[9px] md:text-[10px] font-medium ${
+                          profileCount > 0 
+                            ? 'text-emerald-600 dark:text-emerald-400' 
+                            : 'text-gray-400 dark:text-gray-500'
+                        }`}>
+                          {countText}
+                        </span>
+                      );
+
+                      if (arkivBuilderMode && profileCount > 0) {
+                        return (
+                          <ArkivQueryTooltip
+                            query={[
+                              `GET /api/skills/explore`,
+                              `Queries:`,
+                              `1. listSkills({ status: 'active', limit: 500 })`,
+                              `   → type='skill', status='active'`,
+                              `2. listUserProfiles()`,
+                              `   → type='user_profile'`,
+                              `3. Count profiles with skill:`,
+                              `   - Check skill_ids array (new format)`,
+                              `   - Check skillsArray (legacy format)`,
+                              `   - Check skills string (legacy format)`,
+                              `Returns: Skill[] with profileCount for "${skill.name}"`
+                            ]}
+                            label={`${profileCount} ${profileCount === 1 ? 'profile' : 'profiles'}`}
+                          >
+                            {content}
+                          </ArkivQueryTooltip>
                         );
-
-                        if (arkivBuilderMode) {
-                          return (
-                            <ArkivQueryTooltip
-                              query={[
-                                `GET /api/skills/explore`,
-                                `Queries:`,
-                                `1. listSkills({ status: 'active', limit: 500 })`,
-                                `   → type='skill', status='active'`,
-                                `2. listUserProfiles()`,
-                                `   → type='user_profile'`,
-                                `3. Count profiles with skill:`,
-                                `   - Check skill_ids array (new format)`,
-                                `   - Check skillsArray (legacy format)`,
-                                `   - Check skills string (legacy format)`,
-                                `Returns: Skill[] with profileCount for "${skill.name}"`
-                              ]}
-                              label={countText}
-                            >
-                              {content}
-                            </ArkivQueryTooltip>
-                          );
-                        }
-                        return content;
                       }
-                      return null;
+                      return content;
                     })()}
                   </div>
                 )}

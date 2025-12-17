@@ -26,6 +26,7 @@ import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
 import { calculateAverageRating } from '@/lib/arkiv/profile';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -47,6 +48,7 @@ export default function MePage() {
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
+  const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
     skillGarden: boolean;
@@ -135,8 +137,9 @@ export default function MePage() {
       const skills: Skill[] = await listSkills({ status: 'active', limit: 100 });
       
       // Convert to GardenSkill format (all as sprout emojis, level 0)
+      // Use skill.key as id to match learningSkillIds (skill entity keys)
       const gardenSkills: GardenSkill[] = skills.map((skill) => ({
-        id: skill.slug || skill.key,
+        id: skill.key, // Use key to match learningSkillIds
         name: skill.name_canonical,
         level: 0, // All as sprout emojis for now
       }));
@@ -345,7 +348,12 @@ export default function MePage() {
       <BackgroundImage />
       
       {/* Garden Layer - persistent garden showing all system skills, with user's skills glowing */}
-      <GardenLayer skills={gardenSkills} allSkills={allSystemSkills} />
+      <GardenLayer 
+        skills={gardenSkills} 
+        allSkills={allSystemSkills}
+        skillProfileCounts={skillProfileCounts}
+        learningSkillIds={followedSkills}
+      />
       
       <div className="relative z-10 p-4">
       <div className="max-w-2xl mx-auto">

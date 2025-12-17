@@ -26,6 +26,8 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills } from '@/lib/garden/types';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
+import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -34,8 +36,10 @@ export default function OnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   const [animateNewSkill, setAnimateNewSkill] = useState<string | undefined>(undefined);
+  const [learningSkillIds, setLearningSkillIds] = useState<string[]>([]);
   const { level, isComplete, loading } = useOnboardingLevel(wallet);
   const arkivBuilderMode = useArkivBuilderMode();
+  const skillProfileCounts = useSkillProfileCounts();
 
   // Get profile wallet from localStorage (set during auth)
   // This is the wallet address used as the 'wallet' attribute on entities (profiles, asks, offers)
@@ -77,6 +81,15 @@ export default function OnboardingPage() {
         })
         .catch(() => {
           // Profile not found yet - that's okay during onboarding
+        });
+
+      // Load learning follows for glow
+      listLearningFollows({ profile_wallet: wallet, active: true })
+        .then(follows => {
+          setLearningSkillIds(follows.map(f => f.skill_id));
+        })
+        .catch(() => {
+          // Learning follows not found - that's okay
         });
     }
   }, [wallet, loading, currentStep, arkivBuilderMode]);
@@ -149,6 +162,8 @@ export default function OnboardingPage() {
       {/* Garden Layer - shows plants behind the UI */}
       <GardenLayer 
         skills={gardenSkills} 
+        skillProfileCounts={skillProfileCounts}
+        learningSkillIds={learningSkillIds}
         showIdentitySeed={showIdentitySeed}
         animateNew={animateNewSkill}
         onSeedClick={currentStep === 'welcome' ? () => handleStepComplete('identity') : undefined}
