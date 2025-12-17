@@ -125,5 +125,5 @@ Engineering principles for p2pmentor development ensuring code quality, transpar
 
 **Values:** FLOSS principles, Ethereum values, open source best practices, community-friendly, proper attribution
 
-See [Full Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) for complete documentation.
+See [Full Engineering Guidelines](https://github.com/understories/p2pmentor/blob/main/docs/ENGINEERING_GUIDELINES.md) for complete documentation.
 

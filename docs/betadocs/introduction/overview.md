@@ -20,4 +20,4 @@ This section provides an overview of the p2pmentor beta documentation structure 
 - **Designers/PMs**: Start with [User Flows](/docs/user-flows/overview)
 - **Users**: Start with [Getting Started](/docs/introduction/getting-started)
 
-See [README](/docs/introduction/README) for the documentation entry point.
+See [README](https://github.com/understories/p2pmentor#readme) for the documentation entry point.
