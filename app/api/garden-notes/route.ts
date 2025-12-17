@@ -18,7 +18,7 @@ import {
   GARDEN_NOTE_MAX_LENGTH,
   GARDEN_NOTE_DAILY_LIMIT,
 } from '@/lib/arkiv/gardenNote';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
 export async function GET(request: Request) {
@@ -42,12 +42,35 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, note });
     }
 
+    // Check if builder mode is enabled (from query param)
+    const builderMode = searchParams.get('builderMode') === 'true';
+
+    // Get spaceId(s) from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const spaceIdsParam = searchParams.get('spaceIds');
+
+    let spaceId: string | undefined;
+    let spaceIds: string[] | undefined;
+
+    if (builderMode && spaceIdsParam) {
+      // Builder mode: query multiple spaceIds
+      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+    } else if (spaceIdParam) {
+      // Override default spaceId
+      spaceId = spaceIdParam;
+    } else {
+      // Use default from config
+      spaceId = SPACE_ID;
+    }
+
     // List notes
     const notes = await listGardenNotes({
       channel,
       targetWallet,
       authorWallet,
       tags,
+      spaceId,
+      spaceIds,
       limit: 100,
     });
 

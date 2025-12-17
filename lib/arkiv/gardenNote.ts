@@ -14,6 +14,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { SPACE_ID } from "@/lib/config";
 
 export const GARDEN_NOTE_MAX_LENGTH = 500; // Max message length
 export const GARDEN_NOTE_DAILY_LIMIT = 10; // Max notes per profile per day
@@ -217,7 +218,7 @@ export async function createGardenNote({
 /**
  * List garden notes
  * 
- * @param params - Optional filters (channel, targetWallet, authorWallet, tags)
+ * @param params - Optional filters (channel, targetWallet, authorWallet, tags, spaceId, spaceIds)
  * @returns Array of garden notes
  */
 export async function listGardenNotes({
@@ -225,12 +226,16 @@ export async function listGardenNotes({
   targetWallet,
   authorWallet,
   tags,
+  spaceId,
+  spaceIds,
   limit = 100,
 }: {
   channel?: string;
   targetWallet?: string;
   authorWallet?: string;
   tags?: string[];
+  spaceId?: string;
+  spaceIds?: string[];
   limit?: number;
 } = {}): Promise<GardenNote[]> {
   const publicClient = getPublicClient();
@@ -238,16 +243,38 @@ export async function listGardenNotes({
 
   try {
     // Query by type and channel
-    const queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient.buildQuery()
       .where(eq('type', 'garden_note'))
       .where(eq('channel', channel))
       .where(eq('moderationState', 'active')) // Only show active notes
       .withAttributes(true)
-      .withPayload(true)
-      .limit(limit);
+      .withPayload(true);
+
+    // Support multiple spaceIds (builder mode) or single spaceId
+    if (spaceIds && spaceIds.length > 0) {
+      // Query all, filter client-side (Arkiv doesn't support OR queries)
+      queryBuilder = queryBuilder.limit(limit);
+    } else {
+      // Use provided spaceId or default to SPACE_ID from config
+      const finalSpaceId = spaceId || SPACE_ID;
+      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit);
+    }
 
     const result = await queryBuilder.fetch();
-    const entities = result?.entities || [];
+    let entities = result?.entities || [];
+
+    // Filter by spaceIds client-side if multiple requested
+    if (spaceIds && spaceIds.length > 0) {
+      entities = entities.filter((entity: any) => {
+        const attrs = entity.attributes || [];
+        const spaceIdAttr = String(
+          Array.isArray(attrs)
+            ? attrs.find((a: any) => a.key === 'spaceId')?.value || 'local-dev'
+            : attrs.spaceId || 'local-dev'
+        );
+        return spaceIds.includes(spaceIdAttr);
+      });
+    }
 
     for (const entity of entities) {
       try {
