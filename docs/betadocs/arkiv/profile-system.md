@@ -656,11 +656,9 @@ The completion data is loaded asynchronously and does not block profile loading.
 
 ## Related Documentation
 
-- [Profile Entity](../arkiv/profile.md)
-- [Learner Quests](./learner-quests.md)
-- [Engineering Guidelines](../../ENGINEERING_GUIDELINES.md)
-- [Arkiv Query Patterns](../../ARKIV_BUILDER_MODE.md)
-- [Notification System](./notification-system.md)
+- [Profile Entity](/docs/arkiv/profile)
+- [Learner Quests](/docs/arkiv/learner-quests)
+- [Notification System](/docs/arkiv/notification-system)
 
 ## Summary
 

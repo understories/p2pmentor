@@ -149,11 +149,11 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 
 ## See Also
 
-- [Data Model](data-model.md) - Complete entity schemas
-- [Entity Overview](entity-overview.md) - Detailed schema documentation
-- [Wallet Architecture](wallet-architecture.md) - Profile wallet vs signing wallet
-- [Environments](environments.md) - Using different signing wallets for separate data environments
-- [Builder Mode](builder-mode.md) - Developer-focused query visibility
-- [Learner Quests](learner-quests.md) - Curated reading lists and language assessment quests with progress tracking
-- [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
-- [Arkiv Integration](../architecture/arkiv-integration.md) - Architecture details
+- [Data Model](/docs/arkiv/data-model) - Complete entity schemas
+- [Entity Overview](/docs/arkiv/entity-overview) - Detailed schema documentation
+- [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
+- [Environments](/docs/arkiv/environments) - Using different signing wallets for separate data environments
+- [Builder Mode](/docs/arkiv/builder-mode) - Developer-focused query visibility
+- [Learner Quests](/docs/arkiv/learner-quests) - Curated reading lists and language assessment quests with progress tracking
+- [Implementation FAQ](/docs/arkiv/implementation-faq) - Common patterns and Q&A
+- [Arkiv Integration](/docs/architecture/arkiv-integration) - Architecture details

@@ -91,6 +91,6 @@ Complete implementation includes all entity types, advanced features, automated 
 ## Related Documentation
 
 - **Full Implementation Plan**: `refs/docs/DECENTRALIZED_STATIC_APP_IMPLEMENTATION_PLAN.md` (internal)
-- **Arkiv Data Model**: [Arkiv Data Model](../arkiv/data-model.md)
-- **Serverless Architecture**: [Serverless & Trustless](../philosophy/serverless-and-trustless.md)
+- **Arkiv Data Model**: [Arkiv Data Model](/docs/arkiv/data-model)
+- **Serverless Architecture**: [Serverless & Trustless](/docs/philosophy/serverless-and-trustless)
 

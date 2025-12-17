@@ -230,11 +230,11 @@ Once you've completed onboarding:
 
 ## Need Help?
 
-- Check the [User Flows Overview](overview.md) for detailed flow documentation
-- See [Profiles and Skills](profiles-skills.md) for profile management
-- See [Asks and Offers](asks-offers.md) for creating mentorship requests
-- See [Sessions](sessions.md) for session management
-- See [Feedback](feedback.md) for giving and receiving feedback
+- Check the [User Flows Overview](/docs/user-flows/overview) for detailed flow documentation
+- See [Profiles and Skills](/docs/user-flows/profiles-skills) for profile management
+- See [Asks and Offers](/docs/user-flows/asks-offers) for creating mentorship requests
+- See [Sessions](/docs/user-flows/sessions) for session management
+- See [Feedback](/docs/user-flows/feedback) for giving and receiving feedback
 
 Remember: All your data is stored on Arkiv blockchain. You own it, and you can verify it on the Arkiv explorer.
 

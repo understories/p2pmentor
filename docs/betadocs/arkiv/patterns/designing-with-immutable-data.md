@@ -12,7 +12,7 @@ Entities cannot be modified after creation. Updates create new entities. The lat
 
 When a user updates their profile, we create a new `user_profile` entity. The old entity remains on-chain. Queries select the latest entity based on `createdAt` timestamp or by querying all versions and selecting the most recent.
 
-See [Entity Versioning](entity-versioning.md) for implementation patterns.
+See [Entity Versioning](/docs/arkiv/patterns/entity-versioning) for implementation patterns.
 
 ## Deletion Changes Interpretation, Not History
 
@@ -22,7 +22,7 @@ Entities cannot be deleted from Arkiv. To "delete" data, we change its interpret
 - Filtering: Exclude entities from queries based on status
 - Expiration: Use TTL to let entities expire naturally
 
-The historical data remains on-chain and verifiable. See [Deletion Patterns](deletion-patterns.md) for details.
+The historical data remains on-chain and verifiable. See [Deletion Patterns](/docs/arkiv/patterns/deletion-patterns) for details.
 
 ## UX Must Reflect Uncertainty and Latency
 
@@ -33,5 +33,5 @@ Blockchain operations have inherent latency and uncertainty:
 - **Optimistic updates**: Update UI optimistically, but show when data is unconfirmed
 - **Error recovery**: Allow retries and show clear error messages
 
-See [Error Handling](error-handling.md) and [Transaction Timeouts](transaction-timeouts.md) for patterns.
+See [Error Handling](/docs/arkiv/patterns/error-handling) and [Transaction Timeouts](/docs/arkiv/patterns/transaction-timeouts) for patterns.
 

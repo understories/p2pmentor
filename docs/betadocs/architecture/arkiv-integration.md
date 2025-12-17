@@ -1,6 +1,6 @@
 # Arkiv-Native Application
 
-For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+For architectural rationale, see [Serverless and Trustless](/docs/philosophy/serverless-and-trustless).
 
 ## How does an app work without a central database?
 
@@ -99,4 +99,4 @@ TTL used for ephemeral entities (asks: 3600s, offers: 7200s). Entities are immut
 
 Any additional storage is viewed as cache or index, not the source of truth. GraphQL layer is a thin wrapper over Arkiv JSON-RPC.
 
-See [Data Model](../arkiv/data-model.md) for detailed entity schemas.
+See [Data Model](/docs/arkiv/data-model) for detailed entity schemas.

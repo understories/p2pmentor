@@ -222,7 +222,7 @@ await archiveNotification({
 
 Read/unread state is stored separately in `notification_preference` entities, not in the notification entity itself. This allows multiple users to have different read states for the same notification (if shared) and follows the separation of concerns principle.
 
-See [notification-preferences.md](./notification-preferences.md) for details.
+See [Notification Preferences](/docs/arkiv/additional-entities/notification-preferences) for details.
 
 ## TTL (Time To Live)
 

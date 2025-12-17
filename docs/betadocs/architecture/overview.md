@@ -48,7 +48,7 @@
 /docs                   # Documentation
 ```
 
-See [Arkiv Integration](../arkiv/overview.md) for detailed data layer architecture.
+See [Arkiv Integration](/docs/arkiv/overview) for detailed data layer architecture.
 
 ## Decentralized Static Client
 

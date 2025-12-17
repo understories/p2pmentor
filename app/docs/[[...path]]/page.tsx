@@ -502,6 +502,58 @@ export default function DocsPage() {
                         },
                       }],
                     ]}
+                    components={{
+                      a: ({ node, href, children, ...props }) => {
+                        // Transform relative markdown links to Next.js /docs routes
+                        if (href && !href.startsWith('http') && !href.startsWith('#')) {
+                          // Remove .md extension and handle relative paths
+                          let docPath = href.replace(/\.md$/, '').replace(/\.md#/, '#');
+                          
+                          // Handle relative paths
+                          if (docPath.startsWith('../')) {
+                            // Go up from current directory
+                            const pathParts = currentPath ? currentPath.split('/') : [];
+                            const relativeParts = docPath.split('/').filter(p => p === '..' || p);
+                            let upLevels = 0;
+                            const newParts: string[] = [];
+                            
+                            for (const part of relativeParts) {
+                              if (part === '..') {
+                                upLevels++;
+                              } else if (part && part !== '') {
+                                newParts.push(part);
+                              }
+                            }
+                            
+                            // Remove upLevels from pathParts
+                            const baseParts = pathParts.slice(0, pathParts.length - upLevels);
+                            docPath = [...baseParts, ...newParts].join('/');
+                          } else if (docPath.startsWith('./')) {
+                            // Same directory
+                            const pathParts = currentPath ? currentPath.split('/') : [];
+                            docPath = [...pathParts, docPath.slice(2)].join('/');
+                          } else if (!docPath.startsWith('/')) {
+                            // Relative to current directory
+                            const pathParts = currentPath ? currentPath.split('/') : [];
+                            const currentDir = pathParts.slice(0, -1).join('/');
+                            docPath = currentDir ? `${currentDir}/${docPath}` : docPath;
+                          }
+                          
+                          // Handle anchor links
+                          const [path, anchor] = docPath.split('#');
+                          const hrefWithAnchor = anchor ? `/docs/${path}#${anchor}` : `/docs/${path}`;
+                          
+                          return (
+                            <Link href={hrefWithAnchor} {...props}>
+                              {children}
+                            </Link>
+                          );
+                        }
+                        
+                        // External links or anchors - use regular <a> tag
+                        return <a href={href} {...props}>{children}</a>;
+                      },
+                    }}
                   >
                     {content}
                   </ReactMarkdown>

@@ -1,6 +1,6 @@
 # Wallet Architecture: Profile Wallet vs Signing Wallet
 
-For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+For architectural rationale, see [Serverless and Trustless](/docs/philosophy/serverless-and-trustless).
 
 ## Overview
 
@@ -202,9 +202,9 @@ const query = publicClient.buildQuery()
 
 ## See Also
 
-- [Arkiv Overview](overview.md) - Core Arkiv concepts
-- [Environments](environments.md) - Using different signing wallets for separate data environments
-- [Data Model](data-model.md) - Entity schemas
-- [Client Wrapper](overview.md#client-wrapper) - Wallet client implementation
+- [Arkiv Overview](/docs/arkiv/overview) - Core Arkiv concepts
+- [Environments](/docs/arkiv/environments) - Using different signing wallets for separate data environments
+- [Data Model](/docs/arkiv/data-model) - Entity schemas
+- [Client Wrapper](/docs/arkiv/overview#client-wrapper) - Wallet client implementation
 - [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network) - View your data on-chain
 

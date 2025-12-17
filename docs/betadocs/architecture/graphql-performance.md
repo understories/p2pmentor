@@ -1,6 +1,6 @@
 # GraphQL and Performance
 
-For architectural rationale, see [Serverless and Trustless](../philosophy/serverless-and-trustless.md).
+For architectural rationale, see [Serverless and Trustless](/docs/philosophy/serverless-and-trustless).
 
 ## GraphQL API
 

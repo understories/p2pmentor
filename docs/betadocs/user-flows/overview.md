@@ -4,9 +4,9 @@ These flows describe the intended beta experience. They reflect how the system b
 
 Core mentorship flows in the beta:
 
-1. [Getting Started Tutorial](getting-started.md) - Step-by-step guide for new users
-2. [Profiles and Skills](profiles-skills.md)
-3. [Asks and Offers](asks-offers.md)
-4. [Network Discovery](network-discovery.md)
-5. [Sessions](sessions.md)
-6. [Feedback](feedback.md)
+1. [Getting Started Tutorial](/docs/user-flows/getting-started) - Step-by-step guide for new users
+2. [Profiles and Skills](/docs/user-flows/profiles-skills)
+3. [Asks and Offers](/docs/user-flows/asks-offers)
+4. [Network Discovery](/docs/user-flows/network-discovery)
+5. [Sessions](/docs/user-flows/sessions)
+6. [Feedback](/docs/user-flows/feedback)

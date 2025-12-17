@@ -256,7 +256,7 @@ const result = await publicClient.buildQuery()
 ---
 
 **See Also:**
-- [Arkiv Data Model Overview](data-model.md)
-- [Additional Entities](additional-entities/) - Supporting entity types
-- [Implementation FAQ](implementation-faq.md) - Common patterns and Q&A
-- [Arkiv Integration Guide](../architecture/arkiv-integration.md)
+- [Arkiv Data Model Overview](/docs/arkiv/data-model)
+- [Additional Entities](/docs/arkiv/additional-entities/README) - Supporting entity types
+- [Implementation FAQ](/docs/arkiv/implementation-faq) - Common patterns and Q&A
+- [Arkiv Integration Guide](/docs/architecture/arkiv-integration)
