@@ -22,7 +22,8 @@ export async function ensureSkillEntity(skillName: string): Promise<{ key: strin
     // Normalize the skill name to slug
     const normalizedSlug = normalizeSkillSlug(skillName.trim());
     
-    // Check if skill already exists by slug
+    // Check if skill already exists by slug in the current spaceId
+    // getSkillBySlug will use SPACE_ID from config automatically
     const existing = await getSkillBySlug(normalizedSlug);
     if (existing) {
       return {

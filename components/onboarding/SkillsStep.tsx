@@ -242,9 +242,14 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       setCurrentSkillName('');
       setExpertise(1);
     } catch (err) {
-      onError(err instanceof Error ? err : new Error('Failed to add skill'));
-    } finally {
+      console.error('[SkillsStep] Error adding skill:', err);
+      // Always reset submitting state, even on error
       setIsSubmitting(false);
+      onError(err instanceof Error ? err : new Error('Failed to add skill'));
+      // Reset form state on error so user can try again
+      setStep('input');
+      setCurrentSkillName('');
+      setExpertise(1);
     }
   };
 

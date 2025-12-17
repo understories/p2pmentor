@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { listSkills, createSkill, getSkillBySlug, normalizeSkillSlug } from '@/lib/arkiv/skill';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/skills
@@ -68,7 +68,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if skill already exists by slug
+    // Check onboarding level (require level 1 - at least profile + skills)
+    if (created_by_profile) {
+      const { verifyOnboardingAccess } = await import('@/lib/onboarding/access');
+      const accessCheck = await verifyOnboardingAccess(created_by_profile, 1, { allowBypass: false });
+      if (!accessCheck.hasAccess) {
+        return NextResponse.json(
+          { ok: false, error: 'Please complete onboarding before creating skills. You need to create a profile and add at least one skill.' },
+          { status: 403 }
+        );
+      }
+    }
+
+    // Check if skill already exists by slug in the current spaceId
     // Use normalizeSkillSlug() for consistent normalization (removes special chars, handles edge cases)
     const normalizedSlug = normalizeSkillSlug(name_canonical);
     if (!normalizedSlug || normalizedSlug.trim() === '') {
@@ -77,7 +89,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const existing = await getSkillBySlug(normalizedSlug);
+    
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
+    const targetSpaceId = SPACE_ID;
+    
+    // Check if skill already exists in the target spaceId
+    const existing = await getSkillBySlug(normalizedSlug, targetSpaceId);
     if (existing) {
       return NextResponse.json({
         ok: true,
@@ -87,13 +104,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create new skill entity
+    // Create new skill entity with correct spaceId
     const { key, txHash } = await createSkill({
       name_canonical: name_canonical.trim(),
       description: description?.trim() || undefined,
       created_by_profile: created_by_profile || undefined,
       privateKey: getPrivateKey(),
-      spaceId: 'local-dev',
+      spaceId: targetSpaceId,
     });
 
     // Create user-focused notification if skill was created by a user
@@ -116,6 +133,7 @@ export async function POST(request: NextRequest) {
             skillSlug: slug,
           },
           privateKey: getPrivateKey(),
+          spaceId: targetSpaceId,
         });
       } catch (notifError) {
         console.error('Failed to create notification for skill:', notifError);
@@ -129,7 +147,7 @@ export async function POST(request: NextRequest) {
     const retryDelay = 1000; // Start with 1 second
     
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      newSkill = await getSkillBySlug(normalizedSlug);
+      newSkill = await getSkillBySlug(normalizedSlug, targetSpaceId);
       if (newSkill) {
         break;
       }
@@ -153,7 +171,7 @@ export async function POST(request: NextRequest) {
           slug: normalizedSlug,
           description: description?.trim() || undefined,
           status: 'active' as const,
-          spaceId: 'local-dev',
+          spaceId: targetSpaceId,
           createdAt: new Date().toISOString(),
           txHash,
         },

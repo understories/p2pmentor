@@ -321,10 +321,16 @@ export async function listSkills({
 
 /**
  * Get Skill by slug
+ * 
+ * @param slug - Skill slug (normalized name)
+ * @param spaceId - Optional spaceId to filter by. If not provided, uses SPACE_ID from config.
+ *                  This ensures we only find skills in the current environment.
  */
-export async function getSkillBySlug(slug: string): Promise<Skill | null> {
+export async function getSkillBySlug(slug: string, spaceId?: string): Promise<Skill | null> {
   const normalizedSlug = normalizeSkillSlug(slug);
-  const skills = await listSkills({ slug: normalizedSlug, limit: 1 });
+  // Use provided spaceId or default to SPACE_ID from config
+  const finalSpaceId = spaceId || SPACE_ID;
+  const skills = await listSkills({ slug: normalizedSlug, spaceId: finalSpaceId, limit: 1 });
   return skills.length > 0 ? skills[0] : null;
 }
 
