@@ -83,7 +83,7 @@ export function SkillCluster({
     .filter(Boolean) as UserProfile[];
 
   return (
-    <div className="mb-8">
+    <div className="mb-8 overflow-visible">
       {/* Skill Header with Constellation Label */}
       <div className="relative mb-4">
         {/* Connecting line visual */}
@@ -129,7 +129,7 @@ export function SkillCluster({
       </div>
 
       {/* Cards */}
-      <div className="space-y-3 pl-10">
+      <div className="space-y-3 pl-10 overflow-visible">
         {/* Matches */}
         {matches.map((match) => {
           const matchCard = (

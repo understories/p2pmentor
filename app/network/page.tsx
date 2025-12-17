@@ -473,8 +473,8 @@ export default function NetworkPage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 overflow-visible">
+      <div className="max-w-6xl mx-auto overflow-visible">
         <div className="mb-6">
           <BackButton href="/me" />
         </div>

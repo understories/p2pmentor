@@ -25,13 +25,13 @@ export function ArkivQueryTooltip({ query, label = 'Arkiv Query', children }: Ar
   }
 
   return (
-    <div className="group/query relative">
+    <div className="group/query relative overflow-visible" style={{ zIndex: 1 }}>
       {children}
       {/* Tooltip */}
-      <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left max-w-md">
+      <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-[9999] font-mono text-left whitespace-normal break-words" style={{ minWidth: '200px', maxWidth: '400px' }}>
         <div className="font-semibold mb-1">{label}:</div>
         {query.map((line, i) => (
-          <div key={i}>{line}</div>
+          <div key={i} className="whitespace-normal break-words">{line}</div>
         ))}
         <div className="absolute top-full left-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
       </div>

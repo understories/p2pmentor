@@ -43,7 +43,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
   );
 
   return (
-    <div className="flex gap-3 mb-6">
+    <div className="flex gap-3 mb-6 overflow-visible">
       {arkivBuilderMode ? (
         <ArkivQueryTooltip
           query={[

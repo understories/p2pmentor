@@ -30,7 +30,7 @@ export function CanopySection({
   const topSkills = skills.slice(0, 10);
 
   return (
-    <div className="relative mb-8 p-6 rounded-2xl overflow-hidden">
+    <div className="relative mb-8 p-6 rounded-2xl overflow-visible">
       {/* Subtle constellation overlay background */}
       <div
         className="absolute inset-0 opacity-20 pointer-events-none"
