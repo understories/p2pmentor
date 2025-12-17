@@ -22,6 +22,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { appendBuilderModeParams } from '@/lib/utils/builderMode';
 import type { UserProfile } from '@/lib/arkiv/profile';
 
 type VirtualGathering = {
@@ -91,7 +92,8 @@ function VirtualGatheringsContent() {
       setError('');
 
       const wallet = userWallet || '';
-      const res = await fetch(`/api/virtual-gatherings?community=${encodeURIComponent(community)}${wallet ? `&wallet=${encodeURIComponent(wallet)}` : ''}`);
+      const gatheringsParams = `?community=${encodeURIComponent(community)}${wallet ? `&wallet=${encodeURIComponent(wallet)}` : ''}`;
+      const res = await fetch(`/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`);
       const data = await res.json();
 
       if (!data.ok) {

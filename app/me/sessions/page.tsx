@@ -21,6 +21,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { formatSessionTitle } from '@/lib/sessions/display';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { appendBuilderModeParams } from '@/lib/utils/builderMode';
 import { canGiveFeedbackForSessionSync, hasSessionEnded } from '@/lib/feedback/canGiveFeedback';
 import type { Session } from '@/lib/arkiv/sessions';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -112,7 +113,8 @@ export default function SessionsPage() {
       setSkillsMap(skillsMap);
 
       // Fetch sessions
-      const sessionsRes = await fetch(`/api/sessions?wallet=${encodeURIComponent(wallet)}`);
+      const sessionsParams = `?wallet=${encodeURIComponent(wallet)}`;
+      const sessionsRes = await fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`);
       if (!sessionsRes.ok) {
         throw new Error('Failed to fetch sessions');
       }
