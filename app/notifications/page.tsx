@@ -13,6 +13,7 @@ import { BackButton } from '@/components/BackButton';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { FeedbackModal } from '@/components/FeedbackModal';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { appendBuilderModeParams } from '@/lib/utils/builderMode';
 import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import { getUnreadCount } from '@/lib/notifications';
@@ -133,7 +134,8 @@ export default function NotificationsPage() {
     try {
       // Normalize wallet to lowercase for consistent querying
       const normalizedWallet = wallet.toLowerCase().trim();
-      const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`);
+      const notificationsParams = `?wallet=${encodeURIComponent(normalizedWallet)}&status=active`;
+      const res = await fetch(`/api/notifications${appendBuilderModeParams(arkivBuilderMode, notificationsParams)}`);
       const data = await res.json();
 
       if (!data.ok) {

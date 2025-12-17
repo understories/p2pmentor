@@ -25,6 +25,7 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { appendBuilderModeParams } from '@/lib/utils/builderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import type { GardenNote } from '@/lib/arkiv/gardenNote';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -112,7 +113,8 @@ function PublicGardenBoardContent() {
       setLoading(true);
       setError('');
 
-      const res = await fetch('/api/garden-notes?channel=public_garden_board');
+      const gardenNotesParams = '?channel=public_garden_board';
+      const res = await fetch(`/api/garden-notes${appendBuilderModeParams(arkivBuilderMode, gardenNotesParams)}`);
       const data = await res.json();
 
       if (!data.ok) {
