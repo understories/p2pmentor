@@ -1,6 +1,6 @@
 /**
  * Admin Dashboard
- * 
+ *
  * Main admin dashboard showing performance metrics, feedback, and usage stats.
  * Requires authentication via /admin/login.
  */
@@ -188,38 +188,38 @@ export default function AdminDashboard() {
       if (savedSpaceId && (savedSpaceId === 'all' || ['beta-launch', 'local-dev', 'local-dev-seed'].includes(savedSpaceId))) {
         setSelectedSpaceId(savedSpaceId as string | 'all');
       }
-      
+
       // Load section expansion states
       const savedPerfExpanded = localStorage.getItem('admin_performance_expanded');
       if (savedPerfExpanded !== null) {
         setPerformanceExpanded(savedPerfExpanded === 'true');
       }
-      
+
       const savedFeedbackExpanded = localStorage.getItem('admin_feedback_expanded');
       if (savedFeedbackExpanded !== null) {
         setFeedbackExpanded(savedFeedbackExpanded === 'true');
       }
-      
+
       const savedGraphqlMigrationExpanded = localStorage.getItem('admin_graphql_migration_expanded');
       if (savedGraphqlMigrationExpanded !== null) {
         setGraphqlMigrationExpanded(savedGraphqlMigrationExpanded === 'true');
       }
-      
+
       const savedQueryPerformanceExpanded = localStorage.getItem('admin_query_performance_expanded');
       if (savedQueryPerformanceExpanded !== null) {
         setQueryPerformanceExpanded(savedQueryPerformanceExpanded === 'true');
       }
-      
+
       const savedPageLoadTimesExpanded = localStorage.getItem('admin_page_load_times_expanded');
       if (savedPageLoadTimesExpanded !== null) {
         setPageLoadTimesExpanded(savedPageLoadTimesExpanded === 'true');
       }
-      
+
       const savedRecentSamplesExpanded = localStorage.getItem('admin_recent_samples_expanded');
       if (savedRecentSamplesExpanded !== null) {
         setRecentSamplesExpanded(savedRecentSamplesExpanded === 'true');
       }
-      
+
       const savedSnapshotsExpanded = localStorage.getItem('admin_snapshots_expanded');
       if (savedSnapshotsExpanded !== null) {
         setSnapshotsExpanded(savedSnapshotsExpanded === 'true');
@@ -303,7 +303,7 @@ export default function AdminDashboard() {
               shouldCreate: data.shouldCreateSnapshot,
               hoursAgo: data.lastSnapshot?.hoursAgo,
             });
-            
+
             // Auto-create snapshot if > 12 hours since last one
             if (data.shouldCreateSnapshot) {
               // Use 'both' method for auto-snapshots to capture comprehensive data
@@ -368,37 +368,70 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch build status:', err));
-  }, [authenticated, selectedSpaceId]);
+
+      // Refresh beta code usage if section is expanded
+      if (betaCodeUsageExpanded) {
+        setBetaCodeUsageLoading(true);
+        fetch(`/api/admin/beta-code-usage${spaceIdParams}`)
+          .then(res => {
+            if (!res.ok) {
+              throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (data.ok) {
+              setBetaCodeUsageData(data);
+            } else {
+              console.error('Beta code usage API error:', data.error);
+              setBetaCodeUsageData({
+                error: data.error || 'Failed to fetch beta code usage',
+                summary: { totalCodes: 0, totalUsage: 0, totalLimit: 0, totalWallets: 0, codesAtLimit: 0, codesAvailable: 0, utilizationRate: 0 },
+                codes: []
+              });
+            }
+          })
+          .catch(err => {
+            console.error('Failed to fetch beta code usage:', err);
+            setBetaCodeUsageData({
+              error: err.message || 'Failed to fetch beta code usage',
+              summary: { totalCodes: 0, totalUsage: 0, totalLimit: 0, totalWallets: 0, codesAtLimit: 0, codesAvailable: 0, utilizationRate: 0 },
+              codes: []
+            });
+          })
+          .finally(() => setBetaCodeUsageLoading(false));
+      }
+  }, [authenticated, selectedSpaceId, betaCodeUsageExpanded]);
 
   const handleCreateSnapshot = async (e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     if (creatingSnapshot) {
       console.log('[Admin] Snapshot creation already in progress');
       return;
     }
-    
+
     setCreatingSnapshot(true);
     console.log('[Admin] Creating snapshot with method:', testMethod);
-    
+
     try {
       // Check if snapshot was created recently (idempotency)
       const res = await fetch(`/api/admin/perf-snapshots?operation=buildNetworkGraphData&method=${testMethod}`, {
         method: 'POST',
       });
       console.log('[Admin] Snapshot creation response status:', res.status);
-      
+
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`HTTP ${res.status}: ${errorText}`);
       }
-      
+
       const data = await res.json();
       console.log('[Admin] Snapshot creation data:', data);
-      
+
       if (data.ok) {
         // Success - refresh data
         // Note: Transaction may be pending, so we show success but note it may take a moment to appear
@@ -508,7 +541,7 @@ export default function AdminDashboard() {
                 Internal Access Only — Not Production-Ready Authentication
               </p>
               <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                This admin panel uses simple password authentication. Do not expose publicly. 
+                This admin panel uses simple password authentication. Do not expose publicly.
                 Proper authentication (passkey/wallet allowlist) required before public release.
               </p>
             </div>
@@ -625,15 +658,15 @@ export default function AdminDashboard() {
                     onClick={async (e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      
+
                       if (testingPerformance) {
                         console.log('[Admin] Test already in progress');
                         return;
                       }
-                      
+
                       setTestingPerformance(true);
                       console.log('[Admin] Starting performance test with method:', testMethod);
-                      
+
                       try {
                         const res = await fetch(`/api/admin/perf-samples?seed=true&method=${testMethod}`);
                         console.log('[Admin] Performance test response status:', res.status);
@@ -715,7 +748,7 @@ export default function AdminDashboard() {
               </div>
             )}
           </div>
-          
+
           {performanceExpanded && (
             <div className="p-6 space-y-6">
           {/* GraphQL Migration Status - Collapsible Subsection */}
@@ -999,10 +1032,10 @@ export default function AdminDashboard() {
                           const normalizedRoute = result.page.startsWith('/profiles/') && result.page !== '/profiles'
                             ? '/profiles/[wallet]'
                             : result.page;
-                          
+
                           const graphqlCount = perfSummary.graphql?.pages?.[normalizedRoute] || perfSummary.graphql?.pages?.[result.page];
                           const arkivCount = perfSummary.arkiv?.pages?.[normalizedRoute] || perfSummary.arkiv?.pages?.[result.page];
-                          
+
                           return (
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 flex gap-4">
                               {graphqlCount && (
@@ -1259,7 +1292,7 @@ export default function AdminDashboard() {
               </span>
             </div>
           </div>
-          
+
           {/* Client Performance Metrics */}
           <div className="border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between p-4">
@@ -1325,7 +1358,7 @@ export default function AdminDashboard() {
                         <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
                           {(() => {
                             const withTtfb = clientPerfData.filter(m => m.ttfb);
-                            return withTtfb.length > 0 
+                            return withTtfb.length > 0
                               ? `${Math.round(withTtfb.reduce((sum, m) => sum + (m.ttfb || 0), 0) / withTtfb.length)}ms`
                               : '-';
                           })()}
@@ -1336,7 +1369,7 @@ export default function AdminDashboard() {
                         <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
                           {(() => {
                             const withLcp = clientPerfData.filter(m => m.lcp);
-                            return withLcp.length > 0 
+                            return withLcp.length > 0
                               ? `${Math.round(withLcp.reduce((sum, m) => sum + (m.lcp || 0), 0) / withLcp.length)}ms`
                               : '-';
                           })()}
@@ -1347,7 +1380,7 @@ export default function AdminDashboard() {
                         <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
                           {(() => {
                             const withFcp = clientPerfData.filter(m => m.fcp);
-                            return withFcp.length > 0 
+                            return withFcp.length > 0
                               ? `${Math.round(withFcp.reduce((sum, m) => sum + (m.fcp || 0), 0) / withFcp.length)}ms`
                               : '-';
                           })()}
@@ -1414,17 +1447,36 @@ export default function AdminDashboard() {
                   setBetaCodeUsageExpanded(newState);
                   localStorage.setItem('admin_beta_code_usage_expanded', String(newState));
                   // Fetch data when expanded
-                  if (newState && !betaCodeUsageData && !betaCodeUsageLoading) {
+                  if (newState && !betaCodeUsageLoading) {
                     setBetaCodeUsageLoading(true);
                     const spaceIdParams = buildSpaceIdParams();
                     fetch(`/api/admin/beta-code-usage${spaceIdParams}`)
-                      .then(res => res.json())
+                      .then(res => {
+                        if (!res.ok) {
+                          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                        }
+                        return res.json();
+                      })
                       .then(data => {
                         if (data.ok) {
                           setBetaCodeUsageData(data);
+                        } else {
+                          console.error('Beta code usage API error:', data.error);
+                          setBetaCodeUsageData({
+                            error: data.error || 'Failed to fetch beta code usage',
+                            summary: { totalCodes: 0, totalUsage: 0, totalLimit: 0, totalWallets: 0, codesAtLimit: 0, codesAvailable: 0, utilizationRate: 0 },
+                            codes: []
+                          });
                         }
                       })
-                      .catch(err => console.error('Failed to fetch beta code usage:', err))
+                      .catch(err => {
+                        console.error('Failed to fetch beta code usage:', err);
+                        setBetaCodeUsageData({
+                          error: err.message || 'Failed to fetch beta code usage',
+                          summary: { totalCodes: 0, totalUsage: 0, totalLimit: 0, totalWallets: 0, codesAtLimit: 0, codesAvailable: 0, utilizationRate: 0 },
+                          codes: []
+                        });
+                      })
                       .finally(() => setBetaCodeUsageLoading(false));
                   }
                 }}
@@ -1445,34 +1497,43 @@ export default function AdminDashboard() {
                   </div>
                 ) : betaCodeUsageData ? (
                   <div className="space-y-4">
+                    {/* Error Message */}
+                    {betaCodeUsageData.error && (
+                      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-3 mb-4">
+                        <p className="text-sm text-red-700 dark:text-red-400">
+                          <strong>Error:</strong> {betaCodeUsageData.error}
+                        </p>
+                      </div>
+                    )}
+
                     {/* Summary Stats */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                         <div className="text-xs text-gray-500 dark:text-gray-400">Total Codes</div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalCodes}</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary?.totalCodes || 0}</div>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                         <div className="text-xs text-gray-500 dark:text-gray-400">Total Usage</div>
                         <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">
-                          {betaCodeUsageData.summary.totalUsage} / {betaCodeUsageData.summary.totalLimit}
+                          {betaCodeUsageData.summary?.totalUsage || 0} / {betaCodeUsageData.summary?.totalLimit || 0}
                         </div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {betaCodeUsageData.summary.utilizationRate.toFixed(1)}% utilized
+                          {betaCodeUsageData.summary?.utilizationRate?.toFixed(1) || '0.0'}% utilized
                         </div>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                         <div className="text-xs text-gray-500 dark:text-gray-400">Unique Wallets</div>
-                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary.totalWallets}</div>
+                        <div className="text-lg font-semibold text-gray-900 dark:text-gray-50">{betaCodeUsageData.summary?.totalWallets || 0}</div>
                       </div>
                       <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
                         <div className="text-xs text-gray-500 dark:text-gray-400">Available</div>
-                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">{betaCodeUsageData.summary.codesAvailable}</div>
+                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">{betaCodeUsageData.summary?.codesAvailable || 0}</div>
                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                          {betaCodeUsageData.summary.codesAtLimit} at limit
+                          {betaCodeUsageData.summary?.codesAtLimit || 0} at limit
                         </div>
                       </div>
                     </div>
-                    
+
                     {/* Codes Table */}
                     {betaCodeUsageData.codes && betaCodeUsageData.codes.length > 0 ? (
                       <div className="overflow-x-auto">
@@ -2174,7 +2235,7 @@ export default function AdminDashboard() {
                             {feedback.page}
                           </span>
                           <span className={`text-xs px-2 py-0.5 rounded ${
-                            feedback.feedbackType === 'issue' 
+                            feedback.feedbackType === 'issue'
                               ? 'bg-red-100 dark:bg-red-900/20 text-red-700 dark:text-red-400'
                               : 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
                           }`}>
@@ -2248,7 +2309,7 @@ export default function AdminDashboard() {
                 <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-50">
                   Rebuild Static Client
                 </h3>
-                
+
                 {buildStatus && (
                   <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700 rounded text-sm">
                     {buildStatus.lastBuild ? (
@@ -2276,15 +2337,15 @@ export default function AdminDashboard() {
                 <button
                   onClick={async () => {
                     if (rebuilding) return;
-                    
+
                     setRebuilding(true);
                     try {
                       const res = await fetch('/api/admin/rebuild-static', {
                         method: 'POST',
                       });
-                      
+
                       const data = await res.json();
-                      
+
                       if (data.ok) {
                         setBuildStatus({
                           lastBuild: data.buildTimestamp,
@@ -2304,8 +2365,8 @@ export default function AdminDashboard() {
                   }}
                   disabled={rebuilding}
                   className={`px-4 py-2 text-white rounded-lg text-sm transition-colors ${
-                    rebuilding 
-                      ? 'bg-gray-400 cursor-not-allowed' 
+                    rebuilding
+                      ? 'bg-gray-400 cursor-not-allowed'
                       : 'bg-purple-600 hover:bg-purple-700'
                   }`}
                 >
@@ -2356,10 +2417,10 @@ export default function AdminDashboard() {
                       <strong>Update landing page:</strong> Edit <code className="bg-gray-100 dark:bg-gray-800 px-1 rounded">app/page.tsx</code> and update the button link to point to your IPFS URL
                     </li>
                   </ol>
-                  
+
                   <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
                     <p className="text-xs text-amber-800 dark:text-amber-200">
-                      <strong>Note:</strong> The static client works entirely without JavaScript. All data is embedded in HTML at build time. 
+                      <strong>Note:</strong> The static client works entirely without JavaScript. All data is embedded in HTML at build time.
                       Generated files are in <code className="bg-amber-100 dark:bg-amber-900/40 px-1 rounded">static-app/public/</code> (gitignored, not committed).
                     </p>
                   </div>
