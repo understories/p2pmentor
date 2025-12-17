@@ -100,6 +100,7 @@ export async function POST(request: NextRequest) {
                 skill_id: skill_id || undefined,
               },
               privateKey: getPrivateKey(),
+              spaceId: SPACE_ID, // Use SPACE_ID from config (same as the ask entity)
             });
           } catch (notifError) {
             console.error('Failed to create notification for ask:', notifError);
