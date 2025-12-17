@@ -379,6 +379,13 @@ export default function NotificationsPage() {
 
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
+
+      // Dispatch event to update sidebar notification count
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { wallet: userWallet },
+        }));
+      }
     } catch (err) {
       console.error('Error marking all as read:', err);
       // Revert on error
