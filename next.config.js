@@ -3,19 +3,24 @@ const nextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
   webpack: (config, { isServer }) => {
-    // Suppress MetaMask SDK React Native module warnings
+    // Suppress MetaMask SDK React Native module errors
     // The SDK tries to import React Native modules even in browser contexts
-    // This is harmless but generates build warnings
-    if (!isServer) {
-      config.resolve.alias = {
-        ...config.resolve.alias,
-        '@react-native-async-storage/async-storage': false,
-      };
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        '@react-native-async-storage/async-storage': false,
-      };
-    }
+    // We need to handle this for both client and server builds
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      '@react-native-async-storage/async-storage': false,
+    };
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      '@react-native-async-storage/async-storage': false,
+    };
+    
+    // Ignore React Native modules that MetaMask SDK tries to import
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'react-native': false,
+    };
+    
     return config;
   },
 }
