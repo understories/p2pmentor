@@ -275,12 +275,25 @@ export function SkillSelector({
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="text-emerald-600 dark:text-emerald-400 hover:underline"
+                  className="text-emerald-600 dark:text-emerald-400 hover:underline w-full text-left"
                 >
                   Create "{searchTerm}"
                 </button>
+              ) : searchTerm.trim() ? (
+                <div>
+                  <div className="text-gray-500 dark:text-gray-400 mb-1">No skills found matching "{searchTerm}"</div>
+                  {allowCreate && (
+                    <button
+                      type="button"
+                      onClick={handleCreateNew}
+                      className="text-emerald-600 dark:text-emerald-400 hover:underline"
+                    >
+                      Create "{searchTerm}"
+                    </button>
+                  )}
+                </div>
               ) : (
-                'No skills found'
+                <div className="text-gray-400 dark:text-gray-500">Start typing to search skills...</div>
               )}
             </div>
           ) : (

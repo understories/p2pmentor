@@ -68,13 +68,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check onboarding level (require level 1 - at least profile + skills)
+    // Check onboarding level (require level 1 - at least profile created)
+    // Note: Level 1 means profile exists, not that skills exist (that would be circular)
+    // Allow skill creation if user has a profile (level >= 1)
     if (created_by_profile) {
       const { verifyOnboardingAccess } = await import('@/lib/onboarding/access');
-      const accessCheck = await verifyOnboardingAccess(created_by_profile, 1, { allowBypass: false });
+      const accessCheck = await verifyOnboardingAccess(created_by_profile, 1, { allowBypass: true });
       if (!accessCheck.hasAccess) {
         return NextResponse.json(
-          { ok: false, error: 'Please complete onboarding before creating skills. You need to create a profile and add at least one skill.' },
+          { ok: false, error: 'Please create a profile first before creating skills. Go to /me/profile to create your profile.' },
           { status: 403 }
         );
       }
