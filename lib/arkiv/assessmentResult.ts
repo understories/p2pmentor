@@ -122,7 +122,12 @@ export async function calculateAssessmentScore({
       let pointsEarned = 0;
       let timeSpent = 0;
 
+      // Calculate points possible from actual questions (not section.points which may be incorrect)
+      let pointsPossible = 0;
+
       section.questions.forEach((question) => {
+        pointsPossible += question.points; // Sum of all question points in section
+        
         const progressKey = `${section.id}:${question.id}`;
         const answerProgress = progress[progressKey];
 
@@ -130,7 +135,7 @@ export async function calculateAssessmentScore({
           questionsAnswered += 1;
           if (answerProgress.correct) {
             questionsCorrect += 1;
-            pointsEarned += answerProgress.score;
+            pointsEarned += answerProgress.score || question.points; // Use stored score or question points
           }
           timeSpent += answerProgress.timeSpent || 0;
         }
@@ -141,20 +146,25 @@ export async function calculateAssessmentScore({
         questionsAnswered,
         questionsCorrect,
         pointsEarned,
-        pointsPossible: section.points,
+        pointsPossible, // Sum of question points, not section.points
         timeSpent,
       };
     });
 
     const totalScore = sectionScores.reduce((sum, s) => sum + s.pointsEarned, 0);
-    const totalPoints = languageQuest.metadata.totalPoints;
-    const percentage = totalPoints > 0 ? Math.round((totalScore / totalPoints) * 100) : 0;
-    const passed = totalScore >= languageQuest.metadata.passingScore;
+    // Calculate totalPoints from actual section pointsPossible (more accurate than metadata)
+    const totalPoints = sectionScores.reduce((sum, s) => sum + s.pointsPossible, 0);
+    // Fallback to metadata if calculation is 0 (shouldn't happen, but defensive)
+    const finalTotalPoints = totalPoints > 0 ? totalPoints : languageQuest.metadata.totalPoints;
+    const percentage = finalTotalPoints > 0 ? Math.round((totalScore / finalTotalPoints) * 100) : 0;
+    // Use calculated totalPoints for passing check (more accurate)
+    const passingScore = languageQuest.metadata.passingScore;
+    const passed = totalScore >= passingScore;
     const totalTimeSpent = sectionScores.reduce((sum, s) => sum + s.timeSpent, 0);
 
     return {
       totalScore,
-      totalPoints,
+      totalPoints: finalTotalPoints, // Use calculated totalPoints
       percentage,
       passed,
       sections: sectionScores,
