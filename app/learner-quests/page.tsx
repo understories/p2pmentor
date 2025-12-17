@@ -524,10 +524,18 @@ export default function LearnerQuestsPage() {
         <div className="max-w-6xl mx-auto">
           <BackButton href="/me" />
 
-          <PageHeader
-            title="Learning Quests"
-            description="Curated reading materials and learning paths. Track your progress through each quest."
-          />
+          <div className="mb-6 flex items-center justify-between">
+            <PageHeader
+              title="Learning Quests"
+              description="Curated reading materials and learning paths. Track your progress through each quest."
+            />
+            <Link
+              href="/learner-quests/create"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+            >
+              Create Quest
+            </Link>
+          </div>
 
           {/* Filter Buttons */}
           <div className="mb-6 flex flex-wrap items-center gap-3">
