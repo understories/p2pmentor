@@ -43,21 +43,38 @@ export async function POST(request: NextRequest) {
       });
     } else if (action === 'track') {
       // Track usage (increment count)
-      const { key, txHash } = await trackBetaCodeUsage(code, 50); // Default limit 50
-      
-      // Get updated usage
-      const updatedUsage = await getBetaCodeUsage(code);
-      
-      return NextResponse.json({
-        ok: true,
-        key,
-        txHash,
-        usage: updatedUsage ? {
-          usageCount: updatedUsage.usageCount,
-          limit: updatedUsage.limit,
-          remaining: Math.max(0, updatedUsage.limit - updatedUsage.usageCount),
-        } : null,
-      });
+      try {
+        const { key, txHash } = await trackBetaCodeUsage(code, 50); // Default limit 50
+        
+        // Get updated usage
+        const updatedUsage = await getBetaCodeUsage(code);
+        
+        return NextResponse.json({
+          ok: true,
+          key,
+          txHash,
+          usage: updatedUsage ? {
+            usageCount: updatedUsage.usageCount,
+            limit: updatedUsage.limit,
+            remaining: Math.max(0, updatedUsage.limit - updatedUsage.usageCount),
+          } : null,
+        });
+      } catch (error: any) {
+        console.error('[api/beta-code] Error tracking beta code usage:', error);
+        // Check if it's a transaction replacement error
+        const errorMessage = error?.message || String(error);
+        if (errorMessage.includes('replacement transaction underpriced') || 
+            errorMessage.includes('nonce') ||
+            errorMessage.includes('underpriced')) {
+          return NextResponse.json({
+            ok: false,
+            error: 'Transaction is still processing from a previous request. Please wait a moment and try again.',
+            retryable: true,
+          }, { status: 409 }); // 409 Conflict
+        }
+        // Re-throw to be caught by outer try-catch
+        throw error;
+      }
     } else if (action === 'createAccess') {
       // Create beta access record (wallet binding - optional, can be done post-auth)
       const { wallet } = body;

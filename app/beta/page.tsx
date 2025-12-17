@@ -23,6 +23,11 @@ export default function BetaPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Prevent double-submission
+    if (submitting) {
+      return;
+    }
+    
     if (!expectedCode) {
       setError('Beta access is not configured. Please contact the administrator.');
       return;
@@ -68,7 +73,15 @@ export default function BetaPage() {
       const trackData = await trackRes.json();
       
       if (!trackData.ok) {
-        throw new Error(trackData.error || 'Failed to track beta code usage');
+        // Handle specific transaction errors with user-friendly messages
+        const errorMessage = trackData.error || 'Failed to track beta code usage';
+        if (errorMessage.includes('replacement transaction underpriced') || 
+            errorMessage.includes('nonce') ||
+            errorMessage.includes('underpriced') ||
+            errorMessage.includes('still processing')) {
+          throw new Error('Transaction is still processing from a previous request. Please wait a moment and try again.');
+        }
+        throw new Error(errorMessage);
       }
 
       // Store invite code and access key for future checks

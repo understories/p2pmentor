@@ -24,6 +24,21 @@ export function isRateLimitError(error: any): boolean {
 }
 
 /**
+ * Checks if an error is a transaction replacement/nonce error
+ * 
+ * @param error - Error object or message
+ * @returns True if this is a replacement transaction or nonce error
+ */
+export function isTransactionReplacementError(error: any): boolean {
+  const errorMessage = typeof error === 'string' ? error : error?.message || '';
+  return errorMessage.includes('replacement transaction underpriced') ||
+         errorMessage.includes('nonce too low') ||
+         errorMessage.includes('nonce too high') ||
+         errorMessage.includes('already known') ||
+         (errorMessage.includes('underpriced') && errorMessage.includes('transaction'));
+}
+
+/**
  * Retry with exponential backoff for rate limit errors
  */
 async function retryWithBackoff<T>(
@@ -71,6 +86,20 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
     // Handle rate limit errors with user-friendly message
     if (isRateLimitError(error)) {
       throw new Error('Rate limit exceeded. Please wait a moment and try again. The Arkiv network is temporarily limiting requests.');
+    }
+    
+    // Handle transaction replacement/nonce errors
+    if (isTransactionReplacementError(error)) {
+      // This usually means a transaction with the same nonce is already pending
+      // Wait a bit and retry once with a small delay to allow nonce to increment
+      console.warn('[transaction-utils] Transaction replacement error, waiting and retrying once...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      try {
+        return await createEntityFn();
+      } catch (retryError: any) {
+        // If retry also fails, throw user-friendly error
+        throw new Error('Transaction is still processing from a previous request. Please wait a moment and try again.');
+      }
     }
     
     // Handle transaction receipt timeout - common on testnets
