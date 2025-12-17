@@ -95,7 +95,7 @@
    - Normalize wallet addresses in attributes
    - Use attributes for queryable fields (type, wallet, spaceId, createdAt, status)
    - Use payload for user-facing content (messages, descriptions, complex objects)
-   - Include `spaceId` (default: `'local-dev'`), `createdAt` (ISO string), `type` attribute
+   - Include `spaceId` (use `SPACE_ID` from config, never hardcode), `createdAt` (ISO string), `type` attribute
    - Create parallel `*_txhash` entities for reliable querying
 
 4. **Error Handling:**
@@ -907,11 +907,13 @@ if (!result || !result.entities || !Array.isArray(result.entities)) {
 
 **Standard Create Structure:**
 ```typescript
+import { SPACE_ID } from '@/lib/config';
+
 export async function createEntity({
   wallet,
   // ... other fields
   privateKey,
-  spaceId = 'local-dev',
+  spaceId = SPACE_ID, // Use SPACE_ID from config, never hardcode
 }: {
   wallet: string;
   // ... types
@@ -921,6 +923,7 @@ export async function createEntity({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
+  const finalSpaceId = spaceId || SPACE_ID; // Always fallback to SPACE_ID
   
   // Wrap in handleTransactionWithTimeout for graceful timeout handling
   const result = await handleTransactionWithTimeout(async () => {
@@ -932,7 +935,7 @@ export async function createEntity({
       attributes: [
         { key: 'type', value: 'entity_type' },
         { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
-        { key: 'spaceId', value: spaceId },
+        { key: 'spaceId', value: finalSpaceId }, // Use finalSpaceId
         { key: 'createdAt', value: createdAt },
         // ... other queryable attributes
       ],
@@ -950,7 +953,7 @@ export async function createEntity({
       { key: 'type', value: 'entity_type_txhash' },
       { key: 'entityKey', value: entityKey },
       { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
-      { key: 'spaceId', value: spaceId },
+      { key: 'spaceId', value: finalSpaceId }, // Use finalSpaceId
     ],
     expiresIn: ttl,
   });
@@ -1018,6 +1021,116 @@ if (isTransactionTimeoutError(error)) {
 }
 ```
 
+### Space ID Management (CRITICAL)
+
+**Rule:** ALWAYS use `SPACE_ID` from `lib/config.ts`. NEVER hardcode `'local-dev'` or `'beta-launch'`.
+
+**Why:** Space ID provides data isolation between environments. Hardcoded values cause data leakage and break environment separation.
+
+**Configuration:**
+```typescript
+// lib/config.ts
+export const SPACE_ID = process.env.BETA_SPACE_ID ||
+  (process.env.NODE_ENV === 'production' ? 'beta-launch' : 'local-dev');
+```
+
+**Default Behavior:**
+- Production (`NODE_ENV === 'production'`): `'beta-launch'`
+- Development: `'local-dev'`
+- Can be overridden via `BETA_SPACE_ID` environment variable
+
+**Entity Creation:**
+```typescript
+// ✅ Correct: Use SPACE_ID from config
+import { SPACE_ID } from '@/lib/config';
+
+export async function createEntity({
+  wallet,
+  privateKey,
+  spaceId = SPACE_ID, // Default to SPACE_ID, can be overridden
+}: {
+  wallet: string;
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}) {
+  const finalSpaceId = spaceId || SPACE_ID; // Always fallback to SPACE_ID
+  // ...
+  attributes: [
+    { key: 'spaceId', value: finalSpaceId },
+    // ...
+  ],
+}
+```
+
+**Entity Mapping (Fallbacks):**
+```typescript
+// ✅ Correct: Fallback to SPACE_ID, never hardcode
+spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID
+
+// ❌ Wrong: Hardcoded fallback
+spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev'
+```
+
+**Query Filtering:**
+```typescript
+// ✅ Correct: Filter by spaceId for data isolation
+let queryBuilder = publicClient.buildQuery()
+  .where(eq('type', 'entity_type'));
+
+if (spaceId) {
+  queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
+} else {
+  // Default to SPACE_ID if not provided
+  queryBuilder = queryBuilder.where(eq('spaceId', SPACE_ID));
+}
+
+// For builder mode (multiple spaceIds)
+if (spaceIds && spaceIds.length > 0) {
+  // Query all, filter client-side (Arkiv doesn't support OR)
+  queryBuilder = queryBuilder.limit(limit);
+  // Then filter: entities.filter(e => spaceIds.includes(e.spaceId))
+} else {
+  queryBuilder = queryBuilder.where(eq('spaceId', spaceId || SPACE_ID));
+}
+```
+
+**API Routes:**
+```typescript
+// ✅ Correct: Extract spaceId from query params or use SPACE_ID
+const spaceIdParam = searchParams.get('spaceId');
+const spaceIdsParam = searchParams.get('spaceIds');
+
+let spaceId: string | undefined;
+let spaceIds: string[] | undefined;
+
+if (builderMode && spaceIdsParam) {
+  spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+} else if (spaceIdParam) {
+  spaceId = spaceIdParam;
+} else {
+  spaceId = SPACE_ID; // Default to SPACE_ID from config
+}
+
+// Pass to library functions
+const entities = await listEntities({ spaceId, spaceIds });
+```
+
+**Common Mistakes to Avoid:**
+- ❌ `spaceId = 'local-dev'` (hardcoded)
+- ❌ `spaceId: getAttr('spaceId') || 'local-dev'` (hardcoded fallback)
+- ❌ `spaceId: (entity as any).spaceId || 'beta-launch'` (hardcoded fallback)
+- ✅ `spaceId = SPACE_ID` (from config)
+- ✅ `spaceId: getAttr('spaceId') || SPACE_ID` (config fallback)
+- ✅ `spaceId: (entity as any).spaceId || SPACE_ID` (config fallback)
+
+**Verification Checklist:**
+- [ ] All `create*` functions use `SPACE_ID` as default parameter
+- [ ] All entity mapping fallbacks use `SPACE_ID`, not hardcoded values
+- [ ] All API routes default to `SPACE_ID` when no spaceId provided
+- [ ] All query functions filter by `spaceId` when provided
+- [ ] No hardcoded `'local-dev'` or `'beta-launch'` in code
+- [ ] Import `SPACE_ID` from `@/lib/config` where needed
+
 ### Consistency Checklist
 
 Before creating or modifying Arkiv entity functions:
@@ -1028,7 +1141,8 @@ Before creating or modifying Arkiv entity functions:
 - [ ] **Error handling:** Gracefully handles query failures and transaction timeouts
 - [ ] **txHash entities:** Creates parallel `*_txhash` entities for reliable querying
 - [ ] **Attribute vs payload:** Uses attributes for queryable fields, payload for content
-- [ ] **Space ID:** Includes `spaceId` attribute (defaults to `'local-dev'`)
+- [ ] **Space ID:** Includes `spaceId` attribute (uses `SPACE_ID` from config, never hardcoded)
+- [ ] **Space ID filtering:** All queries filter by `spaceId` for proper data isolation
 - [ ] **Created timestamp:** Includes `createdAt` attribute (ISO string)
 - [ ] **Type attribute:** Always includes `type` attribute matching entity type
 
