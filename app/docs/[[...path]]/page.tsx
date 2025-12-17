@@ -505,15 +505,33 @@ export default function DocsPage() {
                     components={{
                       a: ({ node, href, children, ...props }) => {
                         // Transform relative markdown links to Next.js /docs routes
-                        if (href && !href.startsWith('http') && !href.startsWith('#')) {
+                        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('#')) {
                           // Remove .md extension and handle relative paths
                           let docPath = href.replace(/\.md$/, '').replace(/\.md#/, '#');
+                          
+                          // If link already starts with /docs/, use it as-is (just strip /docs/ prefix and use the path)
+                          if (docPath.startsWith('/docs/')) {
+                            const pathWithoutDocs = docPath.slice(6); // Remove '/docs/' prefix
+                            const [path, anchor] = pathWithoutDocs.split('#');
+                            const hrefWithAnchor = anchor ? `/docs/${path}#${anchor}` : `/docs/${path}`;
+                            return (
+                              <Link href={hrefWithAnchor} {...props}>
+                                {children}
+                              </Link>
+                            );
+                          }
+                          
+                          // If link starts with / but not /docs/, treat as absolute path (shouldn't happen in docs, but handle gracefully)
+                          if (docPath.startsWith('/') && !docPath.startsWith('/docs/')) {
+                            // Use as-is for absolute paths outside /docs/
+                            return <a href={docPath} {...props}>{children}</a>;
+                          }
                           
                           // Handle relative paths
                           if (docPath.startsWith('../')) {
                             // Go up from current directory
                             const pathParts = currentPath ? currentPath.split('/') : [];
-                            const relativeParts = docPath.split('/').filter(p => p === '..' || p);
+                            const relativeParts = docPath.split('/');
                             let upLevels = 0;
                             const newParts: string[] = [];
                             
@@ -526,18 +544,21 @@ export default function DocsPage() {
                             }
                             
                             // Remove upLevels from pathParts
-                            const baseParts = pathParts.slice(0, pathParts.length - upLevels);
-                            docPath = [...baseParts, ...newParts].join('/');
+                            const baseParts = pathParts.slice(0, Math.max(0, pathParts.length - upLevels));
+                            docPath = baseParts.length > 0 ? [...baseParts, ...newParts].join('/') : newParts.join('/');
                           } else if (docPath.startsWith('./')) {
                             // Same directory
                             const pathParts = currentPath ? currentPath.split('/') : [];
-                            docPath = [...pathParts, docPath.slice(2)].join('/');
-                          } else if (!docPath.startsWith('/')) {
+                            docPath = [...pathParts.slice(0, -1), docPath.slice(2)].filter(p => p).join('/');
+                          } else {
                             // Relative to current directory
                             const pathParts = currentPath ? currentPath.split('/') : [];
                             const currentDir = pathParts.slice(0, -1).join('/');
                             docPath = currentDir ? `${currentDir}/${docPath}` : docPath;
                           }
+                          
+                          // Clean up path (remove leading/trailing slashes, empty segments)
+                          docPath = docPath.split('/').filter(p => p).join('/');
                           
                           // Handle anchor links
                           const [path, anchor] = docPath.split('#');
@@ -550,7 +571,7 @@ export default function DocsPage() {
                           );
                         }
                         
-                        // External links or anchors - use regular <a> tag
+                        // External links, anchors, or mailto - use regular <a> tag
                         return <a href={href} {...props}>{children}</a>;
                       },
                     }}
