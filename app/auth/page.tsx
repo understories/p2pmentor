@@ -33,8 +33,29 @@ export default function AuthPage() {
   const arkivBuilderMode = useArkivBuilderMode();
 
   // Check if user has already passed invite gate
+  // IMPORTANT: Normalize encoded pathname FIRST before any redirect logic
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Normalize encoded pathname BEFORE any other logic (prevents redirect loops)
+      // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
+      // Case-insensitive regex handles both %2F and %2f
+      const currentPath = window.location.pathname;
+      const normalizedPath = currentPath.replace(/^\/%2F/i, '/');
+      
+      if (normalizedPath !== currentPath) {
+        window.history.replaceState({}, '', normalizedPath + window.location.search);
+        console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
+          originalPath: currentPath,
+          normalizedPath,
+        });
+      }
+      
+      // Detection tripwire: warn if encoded pathname still exists after normalization
+      if (window.location.pathname.toLowerCase().startsWith('/%2f')) {
+        console.warn('[Pathname encoded]', window.location.href);
+      }
+      
+      // Now check beta access (after normalization)
       const inviteCode = localStorage.getItem('beta_invite_code');
       if (!inviteCode) {
         router.push('/beta');
@@ -63,24 +84,6 @@ export default function AuthPage() {
       setIsMobile(isMobileDetected);
       setIsMetaMaskMobileBrowser(isMetaMaskBrowserDetected);
       setHasMetaMask(hasMetaMaskDetected);
-
-      // Check if we're in MetaMask browser with encoded URL (from universal link)
-      // MetaMask sometimes doesn't decode %2F properly, so we need to fix it
-      // This can happen when the universal link contains encoded forward slashes
-      // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
-      // Never decodeURIComponent the entire pathname - it can create new encoding issues
-      const currentPath = window.location.pathname;
-      
-      // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
-      const normalizedPath = currentPath.replace(/^\/%2F/i, '/');
-      
-      if (normalizedPath !== currentPath) {
-        window.history.replaceState({}, '', normalizedPath + window.location.search);
-        console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
-          originalPath: currentPath,
-          normalizedPath,
-        });
-      }
 
       // Check if we're returning from a MetaMask redirect on mobile
       // MetaMask SDK redirects back to the browser after wallet selection
