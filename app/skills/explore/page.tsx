@@ -19,6 +19,7 @@ import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { buildBuilderModeParams } from '@/lib/utils/builderMode';
 
 type SkillWithCount = Skill & {
   profileCount: number;
@@ -60,7 +61,8 @@ export default function ExploreSkillsPage() {
       setLoading(true);
       setError(null);
       
-      const res = await fetch('/api/skills/explore');
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
+      const res = await fetch(`/api/skills/explore${builderParams}`);
       const data = await res.json();
       
       if (data.ok) {
