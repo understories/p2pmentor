@@ -49,14 +49,6 @@ export function FloatingActionButton() {
       color: offerColors.button,
       minLevel: 1, // After identity + skills
     },
-    {
-      href: '/garden/public-board',
-      label: 'Leave Garden Note',
-      icon: '🌱',
-      color: 'bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-600',
-      queryParam: 'create=true',
-      minLevel: 1, // After identity + skills
-    },
   ];
 
   // Filter actions based on onboarding level
@@ -95,12 +87,6 @@ export function FloatingActionButton() {
                 ? `${action.href}?${action.queryParam}`
                 : action.href;
               
-              // Special styling for Garden Note (desaturated green)
-              const isGardenNote = action.href === '/garden/public-board';
-              const gardenNoteColor = isGardenNote
-                ? 'bg-emerald-500/90 hover:bg-emerald-600/90 dark:bg-emerald-500/80 dark:hover:bg-emerald-600/80'
-                : action.color;
-              
               return (
                 <Link
                   key={action.href}
@@ -110,7 +96,7 @@ export function FloatingActionButton() {
                     flex items-center gap-2
                     px-3 py-2
                     rounded-full
-                    ${gardenNoteColor}
+                    ${action.color}
                     shadow-lg
                     transition-all duration-200 ease-out
                     hover:scale-105

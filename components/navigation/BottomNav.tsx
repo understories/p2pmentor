@@ -56,6 +56,12 @@ export function BottomNav() {
       minLevel: 3, // After network exploration
     },
     {
+      href: '/skills/explore',
+      label: 'Skills',
+      icon: '🌿',
+      minLevel: 1, // After profile creation
+    },
+    {
       href: '/me/sessions',
       label: 'Sessions',
       icon: '📅',
