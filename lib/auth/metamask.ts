@@ -166,7 +166,7 @@ export async function connectWallet(): Promise<`0x${string}`> {
   console.log('[MetaMask] Using direct window.ethereum connection');
   if (!window.ethereum) {
     console.error('[MetaMask] window.ethereum not available');
-    throw new Error("MetaMask not installed. Please install MetaMask or use the mobile app.");
+    throw new Error("No injected wallet provider found in this browser. Install MetaMask (desktop extension) or open this page in the MetaMask mobile browser.");
   }
 
   // First switch to the correct chain

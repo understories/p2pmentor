@@ -367,24 +367,36 @@ export default function AuthPage() {
             </button>
           </ArkivQueryTooltip>
           
-          {/* Mobile helper text - only show on mobile when not in MetaMask browser */}
-          {mounted && isMobile && !isMetaMaskMobileBrowser && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-              On mobile, connect via the MetaMask in-app browser. Tap "Connect Wallet" to open it.
-              {getMetaMaskInstallUrl() ? (
-                <>
-                  {' '}If you don't have MetaMask yet,{' '}
-                  <a
-                    href={getMetaMaskInstallUrl()!}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline"
-                  >
-                    install MetaMask
-                  </a>.
-                </>
-              ) : null}
-            </p>
+          {/* Mobile helper text - show appropriate message based on context */}
+          {mounted && isMobile && (
+            <>
+              {isMetaMaskMobileBrowser ? (
+                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <p className="text-sm text-green-800 dark:text-green-300 text-center">
+                    You're in MetaMask. Tap Connect to continue.
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
+                    Opening MetaMask…
+                    {getMetaMaskInstallUrl() ? (
+                      <>
+                        {' '}If you don't have MetaMask yet,{' '}
+                        <a
+                          href={getMetaMaskInstallUrl()!}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                        >
+                          install MetaMask
+                        </a>.
+                      </>
+                    ) : null}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {mounted && (
