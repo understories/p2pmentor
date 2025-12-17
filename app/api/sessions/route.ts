@@ -297,7 +297,7 @@ export async function GET(request: Request) {
 
     if (wallet) {
       // List sessions for specific wallet
-      const sessions = await listSessionsForWallet(wallet);
+      const sessions = await listSessionsForWallet(wallet, spaceId || SPACE_ID);
       return NextResponse.json({ ok: true, sessions });
     } else {
       // List all sessions (with optional filters)
