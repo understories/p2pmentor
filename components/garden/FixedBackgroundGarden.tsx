@@ -22,9 +22,10 @@ import type { GardenSkill } from '@/lib/garden/types';
 export function FixedBackgroundGarden() {
   const pathname = usePathname();
 
-  // Hide garden on landing, beta, and auth pages
-  const hideGardenPaths = ['/', '/beta', '/auth'];
-  if (hideGardenPaths.includes(pathname)) {
+  // Hide garden on landing, beta, auth, onboarding, and documentation pages
+  // Onboarding has its own GardenLayer that shows during the skills step
+  const hideGardenPaths = ['/', '/beta', '/auth', '/onboarding'];
+  if (hideGardenPaths.includes(pathname) || pathname?.startsWith('/docs')) {
     return null;
   }
   const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
