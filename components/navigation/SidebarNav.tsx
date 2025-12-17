@@ -195,6 +195,37 @@ export function SidebarNav() {
       icon: '👤',
       minLevel: 0, // Always available
     },
+    {
+      href: '/network',
+      label: 'Network',
+      icon: '🌐',
+      minLevel: 1, // After profile creation (matches desktop sidebar)
+    },
+    {
+      href: '/skills/explore',
+      label: 'Skills',
+      icon: '🌿',
+      minLevel: 1, // After profile creation
+    },
+    {
+      href: '/learner-quests',
+      label: 'Quests',
+      icon: '🧭',
+      minLevel: 0, // Always available
+    },
+    {
+      href: '/me/sessions',
+      label: 'Sessions',
+      icon: '📅',
+      minLevel: 1, // After profile creation
+    },
+    {
+      href: '/notifications',
+      label: 'Notifications',
+      icon: '🔔',
+      badge: notificationCount !== null && notificationCount > 0 ? notificationCount : undefined,
+      minLevel: 1, // After profile creation
+    },
   ];
 
   // Check bypass flag
