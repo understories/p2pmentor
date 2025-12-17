@@ -24,7 +24,17 @@
 - Wallet based authentication with MetaMask
 - Passkey authentication (WebAuthn-based) with embedded EVM keypairs
 - Jitsi for video sessions
+- GitHub integration for issue linking
+- GraphQL API for data querying
 - No central application database for primary data
+
+### Modules
+
+- Builder Mode: Developer-focused query visibility
+- Feedback System: User feedback and issue tracking
+- Learner Quests: Reading lists and language assessments
+- Notification System: Read/unread state management
+- Profile System: User profile management
 
 ## Technology Stack
 

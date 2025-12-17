@@ -12,6 +12,8 @@ This documentation serves three audiences. Choose your entry point:
 
 - [How p2pmentor Works](/docs/architecture/overview) - Technical architecture
 - [Architecture](/docs/architecture/overview) - System design and decisions
+- [Modules](/docs/architecture/modules) - Core system modules
+- [Integrations](/docs/architecture/integrations) - External service integrations
 - [Arkiv Concepts](/docs/arkiv/overview) - Arkiv-specific implementation
 - [Patterns](/docs/arkiv/patterns/README) - Development patterns and best practices
 

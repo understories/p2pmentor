@@ -429,8 +429,8 @@ Currently using "archived" flag for soft delete. Consider:
 ## Related Documentation
 
 - [Notification Preferences Entity](/docs/arkiv/additional-entities/notification-preferences)
-- [Profile System](/docs/arkiv/profile-system)
-- [Feedback System](/docs/arkiv/feedback-system)
+- [Profile System](/docs/architecture/modules/profile-system)
+- [Feedback System](/docs/architecture/modules/feedback-system)
 
 ## Summary
 

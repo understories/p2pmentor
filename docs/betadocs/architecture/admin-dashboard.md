@@ -255,9 +255,9 @@ GET /api/admin/page-load-times?baseUrl=http://localhost:3000
 │ Source    │ Operation              │ Duration │ Payload │   │
 │           │                        │          │         │   │
 │ graphql   │ buildNetworkGraphData  │ 234ms    │ 12.3 KB │ 🔗│
-│ arkiv     │ listAsks               │ 456ms    │ 8.7 KB  │ — │
+│ arkiv     │ listAsks               │ 456ms    │ 8.7 KB  │ N/A │
 │ graphql   │ fetchNetworkOverview   │ 189ms    │ 15.2 KB │ 🔗│
-│ arkiv     │ listOffers             │ 389ms    │ 7.1 KB  │ — │
+│ arkiv     │ listOffers             │ 389ms    │ 7.1 KB  │ N/A │
 └─────────────────────────────────────────────────────────────┘
 ```
 

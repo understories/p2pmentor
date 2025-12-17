@@ -153,7 +153,7 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 - [Entity Overview](/docs/arkiv/entity-overview) - Detailed schema documentation
 - [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
 - [Environments](/docs/arkiv/environments) - Using different signing wallets for separate data environments
-- [Builder Mode](/docs/arkiv/builder-mode) - Developer-focused query visibility
-- [Learner Quests](/docs/arkiv/learner-quests) - Curated reading lists and language assessment quests with progress tracking
+- [Builder Mode](/docs/architecture/modules/builder-mode) - Developer-focused query visibility
+- [Learner Quests](/docs/architecture/modules/learner-quests) - Curated reading lists and language assessment quests with progress tracking
 - [Implementation FAQ](/docs/arkiv/implementation-faq) - Common patterns and Q&A
 - [Arkiv Integration](/docs/architecture/arkiv-integration) - Architecture details
