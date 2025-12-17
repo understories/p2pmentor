@@ -59,11 +59,9 @@ export default function MePage() {
   const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
     profile: boolean;
-    skillGarden: boolean;
     community: boolean;
   }>({
     profile: true, // Default to expanded
-    skillGarden: false,
     community: false,
   });
   const router = useRouter();
@@ -801,21 +799,107 @@ export default function MePage() {
               </div>
             </div>
             
-            {/* Skills Learning */}
-            <div className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center cursor-help">
-              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {skillsLearningCount}
-              </p>
-              <p className="text-xs text-gray-600 dark:text-gray-400">Skills Learning</p>
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                <div className="font-mono text-left">
-                  <div>Arkiv query: type='learning_follow',</div>
-                  <div>profile_wallet='{walletAddress?.slice(0, 8)}...',</div>
-                  <div>active=true</div>
+            {/* Skills Learning - Full Width Row (Skill Garden) */}
+            <div className="col-span-2 group relative p-4 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                Skills Learning ({skillsLearningCount})
+              </h3>
+              
+              {walletAddress && followedSkills.length > 0 ? (
+                <div className="space-y-2 mb-4">
+                  {followedSkills.slice(0, 5).map((skillId) => {
+                    const skillEntity = allSkills.find(s => s.key === skillId);
+                    if (!skillEntity) return null;
+
+                    const skillLink = skillEntity.slug ? `/topic/${skillEntity.slug}` : '#';
+
+                    return (
+                      <div
+                        key={skillId}
+                        className="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800 border border-purple-200 dark:border-purple-700"
+                      >
+                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {skillEntity.name_canonical}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={skillLink}
+                            className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                          >
+                            View Community →
+                          </Link>
+                          <button
+                            onClick={async () => {
+                              if (submittingFollow === skillId) return;
+                              setSubmittingFollow(skillId);
+                              try {
+                                const res = await fetch('/api/learning-follow', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    action: 'unfollow',
+                                    wallet: walletAddress,
+                                    skillId: skillId,
+                                  }),
+                                });
+                                const data = await res.json();
+                                if (data.ok) {
+                                  await new Promise(resolve => setTimeout(resolve, 1500));
+                                  const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
+                                  setFollowedSkills(follows.map(f => f.skill_id));
+                                  setSkillsLearningCount(follows.length);
+                                } else {
+                                  alert(data.error || 'Failed to leave community');
+                                }
+                              } catch (error: any) {
+                                console.error('Error leaving community:', error);
+                                alert('Failed to leave community');
+                              } finally {
+                                setSubmittingFollow(null);
+                              }
+                            }}
+                            disabled={submittingFollow === skillId}
+                            className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {submittingFollow === skillId ? 'Leaving...' : 'Leave'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {followedSkills.length > 5 && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-1">
+                      +{followedSkills.length - 5} more
+                    </div>
+                  )}
                 </div>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-              </div>
+              ) : (
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  You're not part of any learning communities yet. Join a skill community to see activity in your feed.
+                </p>
+              )}
+
+              <Link
+                href="/skills/explore"
+                className="block w-full px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium text-center transition-colors"
+              >
+                🔍 Explore All Skills
+              </Link>
+
+              {/* Tooltip */}
+              {arkivBuilderMode && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <div className="font-mono text-left">
+                    <div>GET /api/learning-follow</div>
+                    <div>→ listLearningFollows({`{ profile_wallet: '${walletAddress?.slice(0, 8)}...', active: true }`})</div>
+                    <div>→ type='learning_follow', profile_wallet='...', active='true'</div>
+                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
+                      For each skill: GET /api/skills/explore to get skill details
+                    </div>
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -868,192 +952,7 @@ export default function MePage() {
           )}
         </div>
 
-        {/* Skill Garden Section - Collapsible */}
-        <div className="mb-8 relative">
-          {/* Subtle radial gradient hint */}
-          <div 
-            className="absolute inset-0 rounded-2xl opacity-30 pointer-events-none -z-10"
-            style={{
-              background: 'radial-gradient(circle at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
-            }}
-          />
-          <button
-            onClick={() => setExpandedSections(prev => ({ ...prev, skillGarden: !prev.skillGarden }))}
-            className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md transition-all duration-200 text-left cursor-pointer"
-          >
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 pointer-events-none">Skill Garden</span>
-            <span className="text-gray-500 dark:text-gray-400 pointer-events-none">
-              {expandedSections.skillGarden ? '▼' : '▶'}
-            </span>
-          </button>
-          {expandedSections.skillGarden && (
-            <div className="mt-3 space-y-3">
-              <Link
-                href="/garden/public-board"
-                className="block p-3 rounded-lg border border-green-300 dark:border-green-600 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-              >
-                🌱 Public Garden Board
-              </Link>
-              {walletAddress && gardenSkills.length > 0 && (() => {
-                // Deduplicate skills by name (case-insensitive) - keep first occurrence
-                const seenSkills = new Set<string>();
-                const uniqueSkills = gardenSkills.filter((skill) => {
-                  const normalizedName = skill.name.toLowerCase().trim();
-                  if (seenSkills.has(normalizedName)) {
-                    return false;
-                  }
-                  seenSkills.add(normalizedName);
-                  return true;
-                });
-                
-                return (
-                  <div className="space-y-3">
-                    <div className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-                      Your Skills
-                    </div>
-                    <div className="space-y-2">
-                      {uniqueSkills.map((gardenSkill) => {
-                        // Find matching skill entity by name or slug
-                        const skillEntity = allSkills.find(s => 
-                          s.name_canonical?.toLowerCase().trim() === gardenSkill.name.toLowerCase().trim() ||
-                          s.slug?.toLowerCase().trim() === gardenSkill.name.toLowerCase().trim().replace(/\s+/g, '-')
-                        );
-                        const isJoined = skillEntity ? followedSkills.includes(skillEntity.key) : false;
-                        
-                        // Handle click to ensure skill entity exists before navigating
-                        const handleViewCommunity = async (e: React.MouseEvent) => {
-                          e.preventDefault();
-                          const { getSkillTopicLink } = await import('@/lib/arkiv/skill-helpers');
-                          const topicLink = await getSkillTopicLink(gardenSkill.name);
-                          if (topicLink) {
-                            window.location.href = topicLink;
-                          } else {
-                            // Fallback to network page if skill creation fails
-                            window.location.href = `/network?skill=${encodeURIComponent(gardenSkill.name)}`;
-                          }
-                        };
-                        
-                        const skillLink = skillEntity ? `/topic/${skillEntity.slug}` : '#';
-                        
-                        return (
-                          <div
-                            key={gardenSkill.id}
-                            className="flex items-center justify-between p-2 rounded bg-white dark:bg-gray-800 border border-emerald-200 dark:border-emerald-700"
-                          >
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {gardenSkill.name}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="relative group/link">
-                                <Link
-                                  href={skillLink}
-                                  onClick={!skillEntity ? handleViewCommunity : undefined}
-                                  className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline"
-                                >
-                                  View Community →
-                                </Link>
-                                {/* Arkiv Builder Mode: Query Tooltip */}
-                                {arkivBuilderMode && skillEntity && (
-                                  <div className="absolute bottom-full left-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/link:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
-                                    <div className="font-semibold mb-1">Skill Query:</div>
-                                    <div>type='skill',</div>
-                                    <div>slug='{skillEntity.slug || 'N/A'}'</div>
-                                    {skillEntity.key && (
-                                      <>
-                                        <div className="mt-2 pt-2 border-t border-gray-700">
-                                          <div className="text-xs text-gray-400">Entity Key:</div>
-                                          <div className="text-xs">{skillEntity.key.slice(0, 16)}...</div>
-                                        </div>
-                                      </>
-                                    )}
-                                    <div className="absolute top-full left-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                                  </div>
-                                )}
-                              </div>
-                              {skillEntity && (
-                                <div className="relative group/button">
-                                  <button
-                                    onClick={async () => {
-                                      if (!walletAddress || !skillEntity.key || submittingFollow === skillEntity.key) return;
-                                      
-                                      const action = isJoined ? 'unfollow' : 'follow';
-                                      setSubmittingFollow(skillEntity.key);
-                                      try {
-                                        const res = await fetch('/api/learning-follow', {
-                                          method: 'POST',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({
-                                            action,
-                                            profile_wallet: walletAddress,
-                                            skill_id: skillEntity.key,
-                                          }),
-                                        });
-                                        
-                                        const data = await res.json();
-                                        if (data.ok) {
-                                          // Wait for Arkiv to index the new entity (especially important for joins)
-                                          await new Promise(resolve => setTimeout(resolve, 1500));
-                                          // Reload followed skills
-                                          const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
-                                          setFollowedSkills(follows.map(f => f.skill_id));
-                                        } else {
-                                          alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                        }
-                                      } catch (error: any) {
-                                        console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
-                                        alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
-                                      } finally {
-                                        setSubmittingFollow(null);
-                                      }
-                                    }}
-                                    disabled={submittingFollow === skillEntity.key}
-                                    className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                  >
-                                    {submittingFollow === skillEntity.key 
-                                      ? (isJoined ? 'Leaving...' : 'Joining...') 
-                                      : (isJoined ? 'Leave' : 'Join')
-                                    }
-                                  </button>
-                                  {/* Arkiv Builder Mode: Entity Creation Tooltip */}
-                                  {arkivBuilderMode && (
-                                    <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/button:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left whitespace-nowrap">
-                                      <div className="font-semibold mb-1">Creates Entity:</div>
-                                      <div>type='learning_follow',</div>
-                                      <div>profile_wallet='{walletAddress?.slice(0, 8)}...',</div>
-                                      <div>skill_id='{skillEntity.key.slice(0, 8)}...',</div>
-                                      <div>active={isJoined ? 'false' : 'true'}</div>
-                                      <div className="mt-2 pt-2 border-t border-gray-700 text-xs text-gray-400">
-                                        {isJoined ? 'Unfollow: Creates new entity with active=false' : 'Follow: Creates new entity with active=true'}
-                                      </div>
-                                      <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
-              {/* Explore Other Skills */}
-              <Link
-                href="/skills/explore"
-                className="block p-3 rounded-lg border border-blue-300 dark:border-blue-600 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center font-medium"
-              >
-                🔍 Explore Other Skills
-              </Link>
-              <Link
-                href="/learner-quests"
-                className="block p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-center"
-              >
-                Learning Quests
-              </Link>
-            </div>
-          )}
-        </div>
+        {/* Skill Garden Section - Removed, now integrated into Skills Learning box above */}
 
         {/* Community Section - Collapsible */}
         <div className="relative">
