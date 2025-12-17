@@ -131,6 +131,7 @@ export async function listNotificationPreferences({
   notificationType,
   read,
   archived,
+  spaceId,
   limit = 1000,
 }: {
   wallet?: string;
@@ -138,16 +139,23 @@ export async function listNotificationPreferences({
   notificationType?: NotificationPreferenceType;
   read?: boolean;
   archived?: boolean;
+  spaceId?: string;
   limit?: number;
 } = {}): Promise<NotificationPreference[]> {
   try {
     const publicClient = getPublicClient();
     
-    const query = publicClient.buildQuery()
+    let query = publicClient.buildQuery()
       .where(eq('type', 'notification_preference'))
       .withAttributes(true)
-      .withPayload(true)
-      .limit(limit);
+      .withPayload(true);
+    
+    // Filter by spaceId if provided (important for cross-environment isolation)
+    if (spaceId) {
+      query = query.where(eq('spaceId', spaceId));
+    }
+    
+    query = query.limit(limit);
 
     const result = await query.fetch();
 
@@ -196,6 +204,21 @@ export async function listNotificationPreferences({
     let filtered = preferences;
     if (wallet) {
       filtered = filtered.filter(p => p.wallet.toLowerCase() === wallet.toLowerCase());
+    }
+    if (spaceId) {
+      // Filter by spaceId (client-side if not filtered in query)
+      filtered = filtered.filter(p => {
+        const attrs = (p as any).attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const prefSpaceId = getAttr('spaceId') || (p as any).spaceId;
+        return prefSpaceId === spaceId;
+      });
     }
     if (notificationType) {
       filtered = filtered.filter(p => p.notificationType === notificationType);

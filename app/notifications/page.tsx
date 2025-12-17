@@ -374,11 +374,27 @@ export default function NotificationsPage() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to save preferences');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save preferences');
+      }
+
+      const data = await response.json();
+      
+      // Verify all preferences were updated successfully
+      if (data.updated < unreadNotifications.length) {
+        console.warn(`[markAllAsRead] Only ${data.updated}/${unreadNotifications.length} preferences updated. Some may have failed.`);
+        // Reload preferences to get accurate state
+        await loadNotificationPreferences(userWallet);
+        // Reload notifications to reflect accurate read state
+        await loadNotifications(userWallet);
       }
 
       // Success: preferences are now persisted, keep the optimistic updates
       // The preferences ref already has the correct state, so no need to reload
+
+      // Wait a moment for Arkiv to index the new preference entities before dispatching event
+      // This ensures the count refresh sees the updated preferences
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       // Dispatch event to update sidebar notification count
       if (typeof window !== 'undefined') {

@@ -11,7 +11,7 @@ import {
   listNotificationPreferences,
   getNotificationPreference,
 } from '@/lib/arkiv/notificationPreferences';
-import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
+import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/notifications/preferences
@@ -22,8 +22,9 @@ import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
  * - notificationType: Filter by type (optional)
  * - read: Filter by read status (optional, true/false)
  * - archived: Filter by archived status (optional, true/false)
+ * - spaceId: Override default spaceId (optional, uses SPACE_ID from config by default)
  */
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');
@@ -31,6 +32,10 @@ export async function GET(request: Request) {
     const notificationType = searchParams.get('notificationType') as any || undefined;
     const read = searchParams.get('read') === 'true' ? true : searchParams.get('read') === 'false' ? false : undefined;
     const archived = searchParams.get('archived') === 'true' ? true : searchParams.get('archived') === 'false' ? false : undefined;
+    const spaceIdParam = searchParams.get('spaceId');
+    
+    // Use provided spaceId or default to SPACE_ID from config
+    const spaceId = spaceIdParam || SPACE_ID;
 
     if (!wallet) {
       return NextResponse.json(
@@ -45,6 +50,7 @@ export async function GET(request: Request) {
       notificationType,
       read,
       archived,
+      spaceId,
     });
 
     return NextResponse.json({
@@ -91,6 +97,9 @@ export async function POST(request: Request) {
       );
     }
 
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
+    const spaceId = SPACE_ID;
+    
     const { key, txHash } = await upsertNotificationPreference({
       wallet,
       notificationId,
@@ -98,6 +107,7 @@ export async function POST(request: Request) {
       read,
       archived: archived || false,
       privateKey,
+      spaceId,
     });
 
     return NextResponse.json({
@@ -140,30 +150,52 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Update all preferences in parallel
-    const results = await Promise.all(
-      preferences.map((pref: any) =>
-        upsertNotificationPreference({
+    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
+    const spaceId = SPACE_ID;
+    
+    // Update preferences sequentially with small delays to avoid rate limits
+    // Arkiv can handle parallel updates, but sequential is safer for bulk operations
+    const results: Array<{ key: string; txHash: string } | null> = [];
+    for (let i = 0; i < preferences.length; i++) {
+      const pref = preferences[i];
+      try {
+        const result = await upsertNotificationPreference({
           wallet,
           notificationId: pref.notificationId,
           notificationType: pref.notificationType,
           read: pref.read,
           archived: pref.archived || false,
           privateKey,
-        }).catch(err => {
-          console.error(`Failed to update preference ${pref.notificationId}:`, err);
-          return null;
-        })
-      )
-    );
+          spaceId,
+        });
+        results.push(result);
+        
+        // Small delay between updates to avoid rate limiting (50ms)
+        if (i < preferences.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      } catch (err: any) {
+        console.error(`Failed to update preference ${pref.notificationId}:`, err);
+        results.push(null);
+      }
+    }
 
     const successful = results.filter(r => r !== null);
+    
+    // Log if some updates failed
+    if (successful.length < preferences.length) {
+      console.warn(`[bulk preferences] Only ${successful.length}/${preferences.length} preferences updated successfully`);
+    }
     
     return NextResponse.json({
       ok: true,
       updated: successful.length,
       total: preferences.length,
       results: successful,
+      // Include failure info for debugging
+      ...(successful.length < preferences.length ? {
+        warning: `${preferences.length - successful.length} preferences failed to update`,
+      } : {}),
     });
   } catch (error: any) {
     console.error('Bulk notification preferences API error:', error);
