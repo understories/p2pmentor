@@ -35,10 +35,25 @@ export async function GET(request: Request) {
     }
 
     // Get all skills (with space ID filtering)
-    const skills = await listSkills({ status: 'active', spaceId, spaceIds, limit: 500 });
+    // Use a high limit to ensure we get all skills (Arkiv may have many skills)
+    const skills = await listSkills({ status: 'active', spaceId, spaceIds, limit: 1000 });
+    
+    // Log for debugging
+    console.log('[api/skills/explore] Skills query:', {
+      spaceId,
+      spaceIds,
+      skillsFound: skills.length,
+      skillNames: skills.slice(0, 5).map(s => s.name_canonical),
+    });
     
     // Get all profiles (with same space ID filtering)
     const profiles = await listUserProfiles({ spaceId, spaceIds });
+    
+    console.log('[api/skills/explore] Profiles query:', {
+      spaceId,
+      spaceIds,
+      profilesFound: profiles.length,
+    });
     
     // Deduplicate skills by name_canonical (case-insensitive) or slug
     // If duplicates exist, keep the most recent one (by createdAt) and merge profile counts

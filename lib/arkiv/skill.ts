@@ -209,11 +209,13 @@ export async function listSkills({
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
-      queryBuilder = queryBuilder.limit(limit || 100);
+      // Use higher limit for builder mode to ensure we get all skills
+      queryBuilder = queryBuilder.limit(limit || 500);
     } else {
       // Use provided spaceId or default to SPACE_ID from config
       const finalSpaceId = spaceId || SPACE_ID;
-      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
+      // Use provided limit or default to 500 to ensure we get all skills
+      queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 500);
     }
     
     // Fetch skill entities and txHash entities in parallel
@@ -230,6 +232,14 @@ export async function listSkills({
       console.error('[listSkills] Invalid result from Arkiv query:', result);
       return [];
     }
+    
+    // Log for debugging
+    console.log('[listSkills] Arkiv query result:', {
+      spaceId: spaceId || SPACE_ID,
+      spaceIds,
+      entitiesFound: result.entities.length,
+      limit,
+    });
 
     // Build txHash map
     const txHashMap: Record<string, string> = {};
