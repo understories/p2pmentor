@@ -297,6 +297,11 @@ export async function listSkills({
       };
     });
 
+    // Filter by spaceIds client-side if multiple requested
+    if (spaceIds && spaceIds.length > 0) {
+      skills = skills.filter((skill: Skill) => spaceIds.includes(skill.spaceId));
+    }
+
     // Apply filters
     if (status) {
       skills = skills.filter(s => s.status === status);
