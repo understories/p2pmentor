@@ -16,11 +16,13 @@
    - Use environment variables only (scripts MUST fail if env vars missing)
    - If secret committed: remove immediately, use `git filter-repo` to remove from history, rotate secret
 
-3. **NEVER COMMIT refs/ FILES** - ⚠️ ABSOLUTE PROHIBITION
+3. **NEVER COMMIT refs/ FILES** - ⚠️ ABSOLUTE PROHIBITION - CRITICAL
    - `refs/` = Internal documentation (gitignored, team-only)
    - `docs/` = Public documentation (committed, visible to all)
-   - NEVER use `git add -f` to force-add files from `refs/`
+   - **NEVER use `git add -f` to force-add files from `refs/`** - This is a violation that requires rewriting git history
+   - **If you accidentally commit a `refs/` file, you MUST remove it from history using `git filter-repo`**
    - If file needs to be public: move to `docs/` first, then commit normally
+   - **Violation consequences**: Committing `refs/` files pollutes the repository and requires history rewriting, which affects all collaborators
 
 4. **KEEP TREE CLEAN - NO WHITESPACE-ONLY CHANGES** - ⚠️ MANDATORY
    - Run `git diff --check` before every commit to detect whitespace issues
