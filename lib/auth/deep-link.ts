@@ -16,31 +16,34 @@ import { getMobilePlatform } from './mobile-detection';
  * in MetaMask's in-app browser. This avoids the "window.ethereum not available"
  * trap and SDK deeplink edge cases.
  *
- * @param redirectUrl - Optional URL to redirect to (defaults to current page)
+ * Uses deterministic construction from known-good primitives to avoid
+ * transient browser state issues (e.g., window.location.href being "null"
+ * or "about:blank" during navigation).
+ *
+ * @param dappPath - Path to redirect to (e.g., '/auth'). Defaults to '/auth'.
+ *                   Should be a path, not a full URL.
  */
-export function openInMetaMaskBrowser(redirectUrl?: string): void {
+export function openInMetaMaskBrowser(dappPath = '/auth'): void {
   if (typeof window === 'undefined') return;
 
-  // Use the current page by default
-  const url = redirectUrl ?? window.location.href;
-  const u = new URL(url);
+  // Always construct from known-good primitives
+  // window.location.origin is stable even when href is transient
+  const origin = window.location.origin || 'https://www.p2pmentor.com';
+  const pathname = dappPath.startsWith('/') ? dappPath : `/${dappPath}`;
 
-  // MetaMask expects host+path+query WITHOUT protocol
-  // Build the dapp URL: host + pathname + search
-  // Note: pathname already includes leading slash, so we get "p2pmentor.com/auth"
-  const dappUrl = `${u.host}${u.pathname}${u.search}`;
+  // Extract host from origin (more reliable than parsing window.location.href)
+  const host = new URL(origin).host;
+  const dappUrl = `${host}${pathname}`;
 
   // Encode the entire dapp URL for the MetaMask universal link
-  // encodeURIComponent will encode / as %2F, which MetaMask should decode
-  // However, some browsers/MetaMask versions may not decode properly
-  // So we'll use a more explicit encoding approach
   const encodedDappUrl = encodeURIComponent(dappUrl);
 
   // Construct the MetaMask universal link
   const metamaskLink = `https://link.metamask.io/dapp/${encodedDappUrl}`;
 
   console.log('[openInMetaMaskBrowser] Redirecting to MetaMask', {
-    originalUrl: url,
+    origin,
+    pathname,
     dappUrl,
     encodedDappUrl,
     metamaskLink,

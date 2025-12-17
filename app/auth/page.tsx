@@ -159,7 +159,10 @@ export default function AuthPage() {
         openingTimerRef.current = null;
       }, 4000);
 
-      openInMetaMaskBrowser(window.location.href);
+      // Pass intent (path), not transient browser state (window.location.href)
+      // This avoids issues where window.location.href is "null" or "about:blank"
+      // during navigation on mobile browsers
+      openInMetaMaskBrowser('/auth');
       return;
     }
 
