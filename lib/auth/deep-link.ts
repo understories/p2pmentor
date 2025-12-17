@@ -26,9 +26,27 @@ export function openInMetaMaskBrowser(redirectUrl?: string): void {
   const u = new URL(url);
 
   // MetaMask expects host+path+query WITHOUT protocol
+  // Build the dapp URL: host + pathname + search
+  // Note: pathname already includes leading slash, so we get "p2pmentor.com/auth"
   const dappUrl = `${u.host}${u.pathname}${u.search}`;
 
-  window.location.href = `https://link.metamask.io/dapp/${encodeURIComponent(dappUrl)}`;
+  // Encode the entire dapp URL for the MetaMask universal link
+  // encodeURIComponent will encode / as %2F, which MetaMask should decode
+  // However, some browsers/MetaMask versions may not decode properly
+  // So we'll use a more explicit encoding approach
+  const encodedDappUrl = encodeURIComponent(dappUrl);
+
+  // Construct the MetaMask universal link
+  const metamaskLink = `https://link.metamask.io/dapp/${encodedDappUrl}`;
+
+  console.log('[openInMetaMaskBrowser] Redirecting to MetaMask', {
+    originalUrl: url,
+    dappUrl,
+    encodedDappUrl,
+    metamaskLink,
+  });
+
+  window.location.href = metamaskLink;
 }
 
 /**

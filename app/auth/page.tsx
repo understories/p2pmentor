@@ -65,6 +65,31 @@ export default function AuthPage() {
       setIsMetaMaskMobileBrowser(isMetaMaskBrowserDetected);
       setHasMetaMask(hasMetaMaskDetected);
 
+      // Check if we're in MetaMask browser with encoded URL (from universal link)
+      // MetaMask sometimes doesn't decode %2F properly, so we need to fix it
+      // This can happen when the universal link contains encoded forward slashes
+      const currentPath = window.location.pathname;
+      const currentHref = window.location.href;
+      
+      // Check if pathname or full URL contains encoded forward slashes
+      if (currentPath.includes('%2F') || currentPath.includes('%2f') || 
+          currentHref.includes('%2F') || currentHref.includes('%2f')) {
+        try {
+          // Decode the entire URL to fix encoding issues
+          const decodedPath = decodeURIComponent(currentPath);
+          const cleanUrl = decodedPath + window.location.search;
+          window.history.replaceState({}, '', cleanUrl);
+          console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
+            originalPath: currentPath,
+            originalHref: currentHref,
+            decodedPath,
+            cleanUrl,
+          });
+        } catch (e) {
+          console.warn('[Auth Page] Failed to decode URL', e);
+        }
+      }
+
       // Check if we're returning from a MetaMask redirect on mobile
       // MetaMask SDK redirects back to the browser after wallet selection
       // Clean up URL parameters if present
