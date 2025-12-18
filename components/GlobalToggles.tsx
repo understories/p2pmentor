@@ -63,7 +63,7 @@ export function GlobalToggles() {
   // Show on mobile for landing, beta, auth, and docs pages
   const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth' || (pathname && pathname.startsWith('/docs'));
   const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
-  
+
   // For docs pages on mobile, position above the navbar (navbar is at top-0 with z-40)
   // Navbar has py-2 and content, so roughly 48-56px tall. Position toggle above it.
   const isDocsPage = pathname && pathname.startsWith('/docs');
