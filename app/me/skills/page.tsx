@@ -504,7 +504,7 @@ export default function SkillsPage() {
             {newSkillPlanted && !submitting && (
               <div className="mb-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
                 <p className="text-sm text-green-800 dark:text-green-200">
-                  <span className="animate-bounce">🌱</span> You've planted a brand new skill in the garden! "{newSkillPlanted}"
+                  <span className="animate-bounce">🌱</span> You've planted a brand new skill in the garden! "{newSkillPlanted}" Click add skill to add it to your profile.
                 </p>
               </div>
             )}

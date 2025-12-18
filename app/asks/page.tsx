@@ -98,6 +98,7 @@ export default function AsksPage() {
   const [selectedAsk, setSelectedAsk] = useState<Ask | null>(null);
   const [selectedAskProfile, setSelectedAskProfile] = useState<UserProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [skillJustCreated, setSkillJustCreated] = useState<string | null>(null); // Track newly created skill
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -297,6 +298,12 @@ export default function AsksPage() {
       return;
     }
 
+    // Prevent submission if skill was just created and is still being indexed
+    if (skillJustCreated) {
+      setError('Please wait for the skill to be saved before submitting your ask');
+      return;
+    }
+
     setSubmitting(true);
     setError('');
     setSuccess('');
@@ -481,9 +488,14 @@ export default function AsksPage() {
                     onClick={async () => {
                       // Load profile for the ask's wallet
                       const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                      setSelectedAskProfile(askProfile);
-                      setSelectedAsk(ask);
-                      setShowMeetingModal(true);
+                      if (askProfile) {
+                        setSelectedAsk(ask);
+                        setSelectedAskProfile(askProfile);
+                        // Use setTimeout to ensure state is updated before opening modal
+                        setTimeout(() => setShowMeetingModal(true), 0);
+                      } else {
+                        setError('Could not load profile for this ask');
+                      }
                     }}
                     className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
                   >
@@ -495,9 +507,14 @@ export default function AsksPage() {
                   onClick={async () => {
                     // Load profile for the ask's wallet
                     const askProfile = await getProfileByWallet(ask.wallet).catch(() => null);
-                    setSelectedAskProfile(askProfile);
-                    setSelectedAsk(ask);
-                    setShowMeetingModal(true);
+                    if (askProfile) {
+                      setSelectedAsk(ask);
+                      setSelectedAskProfile(askProfile);
+                      // Use setTimeout to ensure state is updated before opening modal
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    } else {
+                      setError('Could not load profile for this ask');
+                    }
                   }}
                   className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors`}
                 >
@@ -678,6 +695,15 @@ export default function AsksPage() {
                         placeholder="Search for a skill..."
                         allowCreate={true}
                         required
+                        onSkillCreated={async (skillName, skillId, pending, txHash, isNewSkill) => {
+                          if (isNewSkill && pending) {
+                            // Skill was created but is pending - show feedback and wait
+                            setSkillJustCreated(skillName);
+                            // Wait for skill to be indexed (similar to SkillsStep delay)
+                            await new Promise(resolve => setTimeout(resolve, 2000));
+                            setSkillJustCreated(null);
+                          }
+                        }}
                       />
                     </div>
                   </ArkivQueryTooltip>
@@ -688,6 +714,15 @@ export default function AsksPage() {
                     placeholder="Search for a skill..."
                     allowCreate={true}
                     required
+                    onSkillCreated={async (skillName, skillId, pending, txHash, isNewSkill) => {
+                      if (isNewSkill && pending) {
+                        // Skill was created but is pending - show feedback and wait
+                        setSkillJustCreated(skillName);
+                        // Wait for skill to be indexed (similar to SkillsStep delay)
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        setSkillJustCreated(null);
+                      }
+                    }}
                   />
                 )}
               </div>
@@ -705,6 +740,13 @@ export default function AsksPage() {
                   required
                 />
               </div>
+
+              {/* Skill creation feedback */}
+              {skillJustCreated && (
+                <div className="p-4 bg-green-50/90 dark:bg-green-900/30 backdrop-blur-md rounded-lg border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+                  <span className="animate-pulse">✨</span> Skill added. Now submit your ask!
+                </div>
+              )}
 
               {/* Advanced Options Toggle */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">

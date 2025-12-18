@@ -394,8 +394,9 @@ export default function ProfileDetailPage() {
                           <button
                             onClick={() => {
                               setSelectedOffer(null);
-                              setShowMeetingModal(true);
                               setMeetingMode('request');
+                              // Use setTimeout to ensure state is updated before opening modal
+                              setTimeout(() => setShowMeetingModal(true), 0);
                             }}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                           >
@@ -406,8 +407,9 @@ export default function ProfileDetailPage() {
                         <button
                           onClick={() => {
                             setSelectedOffer(null);
-                            setShowMeetingModal(true);
                             setMeetingMode('request');
+                            // Use setTimeout to ensure state is updated before opening modal
+                            setTimeout(() => setShowMeetingModal(true), 0);
                           }}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                         >
@@ -1045,10 +1047,17 @@ export default function ProfileDetailPage() {
                           label="Request Meeting"
                         >
                           <button
-                            onClick={() => {
-                              setSelectedOffer(offer); // Set the specific offer
-                              setMeetingMode('request');
-                              setShowMeetingModal(true);
+                            onClick={async () => {
+                              // Load profile for the offer's wallet
+                              const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                              if (offerProfile) {
+                                setSelectedOffer(offer);
+                                setMeetingMode('request');
+                                // Use setTimeout to ensure state is updated before opening modal
+                                setTimeout(() => setShowMeetingModal(true), 0);
+                              } else {
+                                setError('Could not load profile for this offer');
+                              }
                             }}
                             className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                           >
@@ -1057,10 +1066,17 @@ export default function ProfileDetailPage() {
                         </ArkivQueryTooltip>
                       ) : (
                         <button
-                          onClick={() => {
-                            setSelectedOffer(offer); // Set the specific offer
-                            setMeetingMode('request');
-                            setShowMeetingModal(true);
+                          onClick={async () => {
+                            // Load profile for the offer's wallet
+                            const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                            if (offerProfile) {
+                              setSelectedOffer(offer);
+                              setMeetingMode('request');
+                              // Use setTimeout to ensure state is updated before opening modal
+                              setTimeout(() => setShowMeetingModal(true), 0);
+                            } else {
+                              setError('Could not load profile for this offer');
+                            }
                           }}
                           className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
                         >

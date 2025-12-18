@@ -261,7 +261,8 @@ export default function MatchesPage() {
       setSelectedProfile(match.offerProfile || null);
       setMeetingMode('request'); // User is requesting help
     }
-    setShowMeetingModal(true);
+    // Use setTimeout to ensure state is updated before opening modal
+    setTimeout(() => setShowMeetingModal(true), 0);
   };
 
   if (loading) {

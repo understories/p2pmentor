@@ -34,7 +34,7 @@ export function AppShell({ children }: AppShellProps) {
       <BottomNav />
 
       {/* Main Content Area - adjusts margin when sidebar is hovered */}
-      <main className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out backdrop-blur-sm`}>
+      <main className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out`}>
         {children}
       </main>
 

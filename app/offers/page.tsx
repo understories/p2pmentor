@@ -105,6 +105,7 @@ export default function OffersPage() {
   });
   const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
   const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
+  const [skillJustCreated, setSkillJustCreated] = useState<string | null>(null); // Track newly created skill
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
@@ -312,6 +313,12 @@ export default function OffersPage() {
     // Require skill_id for beta (new Skill entity system)
     if (!newOffer.skill_id || !newOffer.message.trim() || !walletAddress) {
       setError('Please select a skill and enter a message');
+      return;
+    }
+
+    // Prevent submission if skill was just created and is still being indexed
+    if (skillJustCreated) {
+      setError('Please wait for the skill to be saved before submitting your offer');
       return;
     }
 
@@ -571,9 +578,14 @@ export default function OffersPage() {
                     onClick={async () => {
                       // Load profile for the offer's wallet
                       const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                      setSelectedOfferProfile(offerProfile);
-                      setSelectedOffer(offer);
-                      setShowMeetingModal(true);
+                      if (offerProfile) {
+                        setSelectedOffer(offer);
+                        setSelectedOfferProfile(offerProfile);
+                        // Use setTimeout to ensure state is updated before opening modal
+                        setTimeout(() => setShowMeetingModal(true), 0);
+                      } else {
+                        setError('Could not load profile for this offer');
+                      }
                     }}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                   >
@@ -585,9 +597,14 @@ export default function OffersPage() {
                   onClick={async () => {
                     // Load profile for the offer's wallet
                     const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                    setSelectedOfferProfile(offerProfile);
-                    setSelectedOffer(offer);
-                    setShowMeetingModal(true);
+                    if (offerProfile) {
+                      setSelectedOffer(offer);
+                      setSelectedOfferProfile(offerProfile);
+                      // Use setTimeout to ensure state is updated before opening modal
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    } else {
+                      setError('Could not load profile for this offer');
+                    }
                   }}
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                 >
@@ -752,6 +769,15 @@ export default function OffersPage() {
                   placeholder="Search for a skill..."
                   allowCreate={true}
                   required
+                  onSkillCreated={async (skillName, skillId, pending, txHash, isNewSkill) => {
+                    if (isNewSkill && pending) {
+                      // Skill was created but is pending - show feedback and wait
+                      setSkillJustCreated(skillName);
+                      // Wait for skill to be indexed (similar to SkillsStep delay)
+                      await new Promise(resolve => setTimeout(resolve, 2000));
+                      setSkillJustCreated(null);
+                    }
+                  }}
                 />
               </div>
               <div>
@@ -768,6 +794,14 @@ export default function OffersPage() {
                   required
                 />
               </div>
+
+              {/* Skill creation feedback */}
+              {skillJustCreated && (
+                <div className="p-4 bg-green-50/90 dark:bg-green-900/30 backdrop-blur-md rounded-lg border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
+                  <span className="animate-pulse">✨</span> Skill added. Now submit your offer!
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium mb-2">
                   Availability *
@@ -1260,9 +1294,14 @@ export default function OffersPage() {
                           onClick={async () => {
                             // Load profile for the offer's wallet
                             const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                            setSelectedOfferProfile(offerProfile);
-                            setSelectedOffer(offer);
-                            setShowMeetingModal(true);
+                            if (offerProfile) {
+                              setSelectedOffer(offer);
+                              setSelectedOfferProfile(offerProfile);
+                              // Use setTimeout to ensure state is updated before opening modal
+                              setTimeout(() => setShowMeetingModal(true), 0);
+                            } else {
+                              setError('Could not load profile for this offer');
+                            }
                           }}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                         >
@@ -1274,9 +1313,14 @@ export default function OffersPage() {
                         onClick={async () => {
                           // Load profile for the offer's wallet
                           const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                          setSelectedOfferProfile(offerProfile);
-                          setSelectedOffer(offer);
-                          setShowMeetingModal(true);
+                          if (offerProfile) {
+                            setSelectedOffer(offer);
+                            setSelectedOfferProfile(offerProfile);
+                            // Use setTimeout to ensure state is updated before opening modal
+                            setTimeout(() => setShowMeetingModal(true), 0);
+                          } else {
+                            setError('Could not load profile for this offer');
+                          }
                         }}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                       >
