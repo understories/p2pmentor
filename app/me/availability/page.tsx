@@ -203,7 +203,6 @@ export default function AvailabilityPage() {
 
   const handleCancelEdit = () => {
     setEditingKey(null);
-    setTimeBlocks('');
     setWeeklyAvailability(null);
     setTimezone(profile?.timezone || 'UTC');
     setUseStructuredFormat(true);
@@ -502,7 +501,6 @@ export default function AvailabilityPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setTimeBlocks('');
                   setWeeklyAvailability(null);
                   setTimezone(profile?.timezone || 'UTC');
                   setError('');
