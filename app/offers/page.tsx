@@ -1055,6 +1055,34 @@ export default function OffersPage() {
                   <div>
                     <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
                       Expiration Duration (optional)
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `TTL (Time To Live)`,
+                            `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
+                            ``,
+                            `Current Selection: ${newOffer.ttlHours === 'custom' ? `${newOffer.customTtlHours || '...'} hours` : `${newOffer.ttlHours || '168'} hours`}`,
+                            `Conversion: hours → seconds (${newOffer.ttlHours === 'custom' ? (parseFloat(newOffer.customTtlHours || '168') * 3600) : (parseFloat(newOffer.ttlHours || '168') * 3600)} seconds)`,
+                            ``,
+                            `In Offer Entity:`,
+                            `→ Attribute: ttlSeconds='${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)}'`,
+                            `→ Arkiv expiresIn: ${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)} seconds`,
+                            ``,
+                            `Client-Side Filtering:`,
+                            `→ Checks: createdAt + ttlSeconds < now`,
+                            `→ Expired offers filtered out (unless includeExpired: true)`,
+                            ``,
+                            `Arkiv-Level Expiration:`,
+                            `→ Hard deletion after expiresIn seconds`,
+                            `→ Used for network cleanup`
+                          ]}
+                          label="TTL Info"
+                        >
+                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help">ℹ️</span>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400" title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.">ℹ️</span>
+                      )}
                     </label>
                     <div className="flex gap-2">
                       <select

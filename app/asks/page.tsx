@@ -731,12 +731,13 @@ export default function AsksPage() {
               <div>
                 <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
                       Expiration Duration (optional)
-                </label>
-                {arkivBuilderMode ? (
-                  <ArkivQueryTooltip
-                    query={[
-                      `TTL/Expiration Selection`,
-                      `Current Selection: ${newAsk.ttlHours === 'custom' ? `${newAsk.customTtlHours || '...'} hours` : `${newAsk.ttlHours || '24'} hours`}`,
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `TTL (Time To Live)`,
+                            `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
+                            ``,
+                            `Current Selection: ${newAsk.ttlHours === 'custom' ? `${newAsk.customTtlHours || '...'} hours` : `${newAsk.ttlHours || '24'} hours`}`,
                       `Conversion: hours → seconds (${newAsk.ttlHours === 'custom' ? (parseFloat(newAsk.customTtlHours || '24') * 3600) : (parseFloat(newAsk.ttlHours || '24') * 3600)} seconds)`,
                       ``,
                       `In Ask Entity:`,

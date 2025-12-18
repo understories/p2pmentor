@@ -25,6 +25,9 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
   const [availableSkills, setAvailableSkills] = useState<Skill[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
+  const [ttlHours, setTtlHours] = useState('24'); // Default 24 hours
+  const [customTtlHours, setCustomTtlHours] = useState('');
   const arkivBuilderMode = useArkivBuilderMode();
 
   // Load user's skills for selection
@@ -95,6 +98,11 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
         throw new Error('Selected skill not found');
       }
 
+      // Convert hours to seconds for expiresIn
+      const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
+      const ttlHoursNum = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 86400 : Math.floor(ttlHoursNum * 3600); // Default to 24 hours if invalid
+
       // Use API route for ask creation
       // wallet is the profile wallet address (from localStorage 'wallet_address')
       // This is used as the 'wallet' attribute on the ask entity
@@ -109,7 +117,7 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
           skill_id: skill.key, // New: preferred for beta
           skill_label: skill.name_canonical, // Derived from Skill entity
           message: message.trim(),
-          expiresIn: 86400, // 24 hours default
+          expiresIn: expiresIn,
         }),
       });
 
@@ -197,6 +205,96 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
             disabled={isSubmitting}
           />
         </div>
+
+        {/* Advanced Options Toggle */}
+        <div className="pt-2 border-t border-white/20 dark:border-white/10">
+          <button
+            type="button"
+            onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            className="flex items-center gap-2 text-sm text-gray-200 dark:text-gray-400 hover:text-white dark:hover:text-gray-200 transition-colors"
+          >
+            <svg
+              className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            Advanced Options
+          </button>
+        </div>
+
+        {/* Advanced Options (Collapsed by Default) */}
+        {showAdvancedOptions && (
+          <div className="space-y-4 pt-4 border-t border-white/20 dark:border-white/10">
+            <div>
+              <label htmlFor="ttlHours" className="block text-sm font-medium mb-2 text-white dark:text-white">
+                Expiration Duration (optional)
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `TTL (Time To Live)`,
+                      `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
+                      ``,
+                      `Current Selection: ${ttlHours === 'custom' ? `${customTtlHours || '...'} hours` : `${ttlHours || '24'} hours`}`,
+                      `Conversion: hours → seconds (${ttlHours === 'custom' ? (parseFloat(customTtlHours || '24') * 3600) : (parseFloat(ttlHours || '24') * 3600)} seconds)`,
+                      ``,
+                      `In Ask Entity:`,
+                      `→ Attribute: ttlSeconds='${ttlHours === 'custom' ? Math.floor(parseFloat(customTtlHours || '24') * 3600) : Math.floor(parseFloat(ttlHours || '24') * 3600)}'`,
+                      `→ Arkiv expiresIn: ${ttlHours === 'custom' ? Math.floor(parseFloat(customTtlHours || '24') * 3600) : Math.floor(parseFloat(ttlHours || '24') * 3600)} seconds`,
+                      ``,
+                      `Client-Side Filtering:`,
+                      `→ Checks: createdAt + ttlSeconds < now`,
+                      `→ Expired asks filtered out (unless includeExpired: true)`,
+                      ``,
+                      `Arkiv-Level Expiration:`,
+                      `→ Hard deletion after expiresIn seconds`,
+                      `→ Used for network cleanup`
+                    ]}
+                    label="TTL Info"
+                  >
+                    <span className="ml-2 text-xs text-gray-300 dark:text-gray-500 cursor-help">ℹ️</span>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <span className="ml-2 text-xs text-gray-300 dark:text-gray-500" title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.">ℹ️</span>
+                )}
+              </label>
+              <div className="flex gap-2">
+                <select
+                  id="ttlHours"
+                  value={ttlHours === 'custom' ? 'custom' : ttlHours}
+                  onChange={(e) => setTtlHours(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-white/30 dark:border-white/20 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  disabled={isSubmitting}
+                >
+                  <option value="0.5">30 minutes</option>
+                  <option value="1">1 hour</option>
+                  <option value="2">2 hours</option>
+                  <option value="6">6 hours</option>
+                  <option value="12">12 hours</option>
+                  <option value="24">24 hours (1 day) - Recommended</option>
+                  <option value="48">48 hours (2 days)</option>
+                  <option value="168">1 week</option>
+                  <option value="custom">Custom (hours)</option>
+                </select>
+                {ttlHours === 'custom' && (
+                  <input
+                    type="number"
+                    min="0.5"
+                    max="8760"
+                    step="0.5"
+                    placeholder="Hours"
+                    value={customTtlHours}
+                    onChange={(e) => setCustomTtlHours(e.target.value)}
+                    className="w-32 px-4 py-2 border border-white/30 dark:border-white/20 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    disabled={isSubmitting}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {arkivBuilderMode ? (
           <ArkivQueryTooltip
