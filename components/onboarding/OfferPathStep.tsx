@@ -11,6 +11,7 @@ import { listSkills } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { createDefaultWeeklyAvailability, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import type { Skill } from '@/lib/arkiv/skill';
 
 interface OfferPathStepProps {
@@ -107,7 +108,12 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
       // wallet is the profile wallet address (from localStorage 'wallet_address')
       // This is used as the 'wallet' attribute on the offer entity
       // The API route uses getPrivateKey() (global signing wallet) to sign the transaction
-      // Note: Offers require availabilityWindow, so we'll use a simple default
+      // Note: Offers require availabilityWindow, so we'll use structured availability (default)
+      // Get user's timezone from profile or default to UTC
+      const profile = await getProfileByWallet(normalizedWallet).catch(() => null);
+      const userTimezone = profile?.timezone || 'UTC';
+      const defaultAvailability = createDefaultWeeklyAvailability(userTimezone);
+      
       const res = await fetch('/api/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -118,7 +124,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
           skill_id: skill.key, // New: preferred for beta
           skill_label: skill.name_canonical, // Derived from Skill entity
           message: message.trim(),
-          availabilityWindow: 'Flexible - contact me to schedule', // Default for onboarding
+          availabilityWindow: defaultAvailability, // Structured availability (default for onboarding)
           expiresIn: expiresIn,
         }),
       });

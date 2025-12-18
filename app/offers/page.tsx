@@ -95,7 +95,7 @@ export default function OffersPage() {
     message: '', 
     availabilityWindow: '',
     availabilityKey: '', // Reference to Availability entity
-    availabilityType: 'custom' as 'saved' | 'custom' | 'structured', // Type of availability input
+    availabilityType: 'structured' as 'saved' | 'structured', // Type of availability input (removed 'custom' legacy text option)
     structuredAvailability: null as WeeklyAvailability | null, // Structured availability object
     isPaid: false,
     cost: '',
@@ -326,11 +326,6 @@ export default function OffersPage() {
         setError('Please configure your structured availability');
         return;
       }
-    } else {
-      if (!newOffer.availabilityWindow.trim()) {
-        setError('Please enter availability text');
-        return;
-      }
     }
     
     // Validate payment fields if paid
@@ -361,8 +356,6 @@ export default function OffersPage() {
         availabilityWindowValue = ''; // Will use availabilityKey
       } else if (newOffer.availabilityType === 'structured') {
         availabilityWindowValue = newOffer.structuredAvailability!; // Send WeeklyAvailability object
-      } else {
-        availabilityWindowValue = newOffer.availabilityWindow.trim(); // Send text string
       }
 
       const res = await fetch('/api/offers', {
@@ -392,7 +385,7 @@ export default function OffersPage() {
 
         if (data.pending) {
           setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
@@ -401,7 +394,7 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
-          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
@@ -785,18 +778,8 @@ export default function OffersPage() {
                       <input
                         type="radio"
                         name="availabilityType"
-                        checked={newOffer.availabilityType === 'custom'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'custom', availabilityKey: '', structuredAvailability: null })}
-                        className="mr-2"
-                      />
-                      <span>Enter custom text</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="availabilityType"
                         checked={newOffer.availabilityType === 'saved'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', availabilityWindow: '', structuredAvailability: null })}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', structuredAvailability: null })}
                         className="mr-2"
                       />
                       <span>Use saved availability</span>
@@ -806,7 +789,7 @@ export default function OffersPage() {
                         type="radio"
                         name="availabilityType"
                         checked={newOffer.availabilityType === 'structured'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityWindow: '', availabilityKey: '' })}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityKey: '' })}
                         className="mr-2"
                       />
                       <span>Create structured availability</span>
@@ -820,7 +803,7 @@ export default function OffersPage() {
                     ) : savedAvailabilities.length === 0 ? (
                       <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or use custom availability above.
+                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or create structured availability below.
                         </p>
                       </div>
                     ) : (
@@ -840,7 +823,7 @@ export default function OffersPage() {
                       </select>
                     )}
                   </div>
-                ) : newOffer.availabilityType === 'structured' ? (
+                ) : (
                   <div>
                     <WeeklyAvailabilityEditor
                       value={newOffer.structuredAvailability}
@@ -848,16 +831,6 @@ export default function OffersPage() {
                       className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-300 dark:border-gray-600"
                     />
                   </div>
-                ) : (
-                  <input
-                    id="availabilityWindow"
-                    type="text"
-                    value={newOffer.availabilityWindow}
-                    onChange={(e) => setNewOffer({ ...newOffer, availabilityWindow: e.target.value })}
-                    placeholder="e.g., Weekdays 6-8 PM EST, Weekends flexible"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required={newOffer.availabilityType === 'custom'}
-                  />
                 )}
               </div>
               
@@ -1157,7 +1130,7 @@ export default function OffersPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'custom', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+                    setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
                     setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');
