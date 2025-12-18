@@ -166,6 +166,23 @@ export async function GET(request: Request) {
       return a.name_canonical.localeCompare(b.name_canonical);
     });
     
+    // Log for debugging: verify no duplicates by name
+    const finalNameCounts = new Map<string, number>();
+    skillsWithCounts.forEach(skill => {
+      const normalizedName = skill.name_canonical.toLowerCase().trim();
+      finalNameCounts.set(normalizedName, (finalNameCounts.get(normalizedName) || 0) + 1);
+    });
+    const finalDuplicates = Array.from(finalNameCounts.entries()).filter(([_, count]) => count > 1);
+    if (finalDuplicates.length > 0) {
+      console.error('[api/skills/explore] ERROR: Duplicate skill names in final output (should not happen):', finalDuplicates);
+    }
+    
+    console.log('[api/skills/explore] Final skills output:', {
+      totalSkills: skillsWithCounts.length,
+      uniqueNames: finalNameCounts.size,
+      duplicatesFound: finalDuplicates.length,
+    });
+    
     return NextResponse.json({ 
       ok: true, 
       skills: skillsWithCounts,

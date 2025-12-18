@@ -38,16 +38,21 @@ export function FixedBackgroundGarden() {
   const arkivBuilderMode = useArkivBuilderMode();
 
   // Deduplicate skills by name (case-insensitive) to prevent duplicates
+  // Keep the first occurrence of each skill name to ensure consistent slot assignment
   const deduplicatedSystemSkills = useMemo(() => {
-    const seen = new Set<string>();
-    return allSystemSkills.filter(skill => {
+    const seen = new Map<string, GardenSkill>(); // Map normalized name -> first skill seen
+    const result: GardenSkill[] = [];
+    
+    allSystemSkills.forEach(skill => {
       const normalizedName = skill.name.toLowerCase().trim();
-      if (seen.has(normalizedName)) {
-        return false;
+      if (!seen.has(normalizedName)) {
+        seen.set(normalizedName, skill);
+        result.push(skill);
       }
-      seen.add(normalizedName);
-      return true;
+      // If duplicate found, skip it (already have one with this name)
     });
+    
+    return result;
   }, [allSystemSkills]);
 
   // Load all system skills from /api/skills/explore (same as skills page)
@@ -64,6 +69,18 @@ export function FixedBackgroundGarden() {
             name: skill.name_canonical,
             level: 0, // Background skills don't have levels
           }));
+          
+          // Log for debugging: check for duplicates by name
+          const nameCounts = new Map<string, number>();
+          gardenSkills.forEach(skill => {
+            const normalizedName = skill.name.toLowerCase().trim();
+            nameCounts.set(normalizedName, (nameCounts.get(normalizedName) || 0) + 1);
+          });
+          const duplicates = Array.from(nameCounts.entries()).filter(([_, count]) => count > 1);
+          if (duplicates.length > 0) {
+            console.warn('[FixedBackgroundGarden] Duplicate skill names found (will be deduplicated):', duplicates);
+          }
+          
           setAllSystemSkills(gardenSkills);
         }
       } catch (err) {

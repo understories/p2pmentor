@@ -53,16 +53,21 @@ export function GardenLayer({
   }, [learningSkillIds]);
   
   // Remove duplicates from allSkills by skill name
+  // Keep the first occurrence of each skill name to ensure consistent slot assignment
   const uniqueSkillsToDisplay = useMemo(() => {
-    const seen = new Set<string>();
-    return skillsToDisplay.filter(skill => {
+    const seen = new Map<string, GardenSkill>(); // Map normalized name -> first skill seen
+    const result: GardenSkill[] = [];
+    
+    skillsToDisplay.forEach(skill => {
       const normalizedName = skill.name.toLowerCase().trim();
-      if (seen.has(normalizedName)) {
-        return false;
+      if (!seen.has(normalizedName)) {
+        seen.set(normalizedName, skill);
+        result.push(skill);
       }
-      seen.add(normalizedName);
-      return true;
+      // If duplicate found, skip it (already have one with this name)
     });
+    
+    return result;
   }, [skillsToDisplay]);
   
   const slots = useMemo(() => {
