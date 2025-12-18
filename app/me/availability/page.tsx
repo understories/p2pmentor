@@ -34,10 +34,8 @@ export default function AvailabilityPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [timeBlocks, setTimeBlocks] = useState('');
   const [timezone, setTimezone] = useState('UTC');
   const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability | null>(null);
-  const [useStructuredFormat, setUseStructuredFormat] = useState(true); // Default to structured format
   const [editingKey, setEditingKey] = useState<string | null>(null); // Track which availability is being edited
   const [deletingKey, setDeletingKey] = useState<string | null>(null); // Track which availability is being deleted
   const router = useRouter();
@@ -88,15 +86,9 @@ export default function AvailabilityPage() {
       return;
     }
 
-    // Validate structured format if using it
-    if (useStructuredFormat && !weeklyAvailability) {
+    // Validate structured format
+    if (!weeklyAvailability) {
       setError('Please set your availability using the weekly schedule');
-      return;
-    }
-
-    // Validate legacy format if using it
-    if (!useStructuredFormat && !timeBlocks.trim()) {
-      setError('Time blocks are required');
       return;
     }
 
@@ -111,7 +103,7 @@ export default function AvailabilityPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           wallet: walletAddress,
-          timeBlocks: useStructuredFormat ? weeklyAvailability : timeBlocks.trim(),
+          timeBlocks: weeklyAvailability,
           timezone: timezone || 'UTC',
         }),
       });
@@ -120,13 +112,11 @@ export default function AvailabilityPage() {
       if (data.ok) {
         if (data.pending) {
           setSuccess('Availability submitted! Transaction is being processed. Please refresh in a moment.');
-          setTimeBlocks('');
           setWeeklyAvailability(null);
           // Reload after a delay to allow entity to be indexed
           setTimeout(() => loadData(walletAddress), 2000);
         } else {
           setSuccess(editingKey ? 'Availability updated successfully!' : 'Availability created successfully!');
-          setTimeBlocks('');
           setWeeklyAvailability(null);
           setEditingKey(null);
           await loadData(walletAddress);
@@ -150,18 +140,18 @@ export default function AvailabilityPage() {
       const structured = deserializeWeeklyAvailability(availability.timeBlocks);
       if (structured) {
         setWeeklyAvailability(structured);
-        setUseStructuredFormat(true);
         setTimezone(structured.timezone);
+        setEditingKey(availability.key);
+        setError('');
+        setSuccess('');
+      } else {
+        setError('Cannot edit legacy availability format. Please create a new availability block using the weekly schedule.');
+        return;
       }
     } else {
-      setTimeBlocks(availability.timeBlocks);
-      setUseStructuredFormat(false);
-      setTimezone(availability.timezone);
+      setError('Cannot edit legacy availability format. Please create a new availability block using the weekly schedule.');
+      return;
     }
-    
-    setEditingKey(availability.key);
-    setError('');
-    setSuccess('');
     
     // Scroll to form
     window.scrollTo({ top: document.getElementById('availability-form')?.offsetTop || 0, behavior: 'smooth' });
@@ -440,95 +430,22 @@ export default function AvailabilityPage() {
             </div>
           )}
           
-          {/* Format Toggle */}
-          <div className="mb-4 flex gap-2">
-            <button
-              type="button"
-              onClick={() => setUseStructuredFormat(true)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                useStructuredFormat
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Weekly Schedule (Recommended)
-            </button>
-            <button
-              type="button"
-              onClick={() => setUseStructuredFormat(false)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                !useStructuredFormat
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-              }`}
-            >
-              Text Format (Legacy)
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
-            {useStructuredFormat ? (
-              /* Structured Weekly Availability Editor */
-              <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                <WeeklyAvailabilityEditor
-                  value={weeklyAvailability}
-                  onChange={(avail) => {
-                    setWeeklyAvailability(avail);
-                    if (avail) {
-                      setTimezone(avail.timezone);
-                    }
-                  }}
-                  timezone={timezone}
-                  onTimezoneChange={setTimezone}
-                  showBulkActions={true}
-                />
-              </div>
-            ) : (
-              /* Legacy Text Input */
-              <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="mb-4">
-                  <label htmlFor="timeBlocks" className="block text-sm font-medium mb-2">
-                    Time Blocks *
-                  </label>
-                  <input
-                    id="timeBlocks"
-                    type="text"
-                    value={timeBlocks}
-                    onChange={(e) => setTimeBlocks(e.target.value)}
-                    placeholder="e.g., Mon-Fri 9am-5pm EST, Weekends flexible"
-                    required={!useStructuredFormat}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Describe when you're available. Examples:
-                  </p>
-                  <ul className="mt-2 text-sm text-gray-500 dark:text-gray-400 list-disc list-inside space-y-1">
-                    <li>"Mon-Fri 9am-5pm EST"</li>
-                    <li>"Weekends 10am-2pm EST"</li>
-                    <li>"Flexible, prefer evenings"</li>
-                    <li>"Weekdays after 6pm PST"</li>
-                  </ul>
-                </div>
-                
-                <div>
-                  <label htmlFor="timezone" className="block text-sm font-medium mb-2">
-                    Timezone *
-                  </label>
-                  <input
-                    id="timezone"
-                    type="text"
-                    value={timezone}
-                    onChange={(e) => setTimezone(e.target.value)}
-                    placeholder="UTC, EST, PST, etc."
-                    required={!useStructuredFormat}
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                    Your timezone for this availability block.
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* Structured Weekly Availability Editor */}
+            <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <WeeklyAvailabilityEditor
+                value={weeklyAvailability}
+                onChange={(avail) => {
+                  setWeeklyAvailability(avail);
+                  if (avail) {
+                    setTimezone(avail.timezone);
+                  }
+                }}
+                timezone={timezone}
+                onTimezoneChange={setTimezone}
+                showBulkActions={true}
+              />
+            </div>
 
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
