@@ -246,9 +246,11 @@ export function SidebarNav() {
 
   return (
     <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30 transition-all duration-300 ease-out overflow-visible bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
+      {/* Pointer events capture area - only 4 units wide when collapsed, full width when expanded */}
+      <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-56 transition-all duration-300 ease-out pointer-events-auto" />
       {/* Visual indicator - vertical line with emerald glow */}
       <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300">
+      <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300 pointer-events-none">
         <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
         {/* Constellation Lines - only show when sidebar is expanded */}
         <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
@@ -289,7 +291,7 @@ export function SidebarNav() {
           };
 
           return (
-            <div className="relative group/nav">
+            <div className="relative group/nav pointer-events-auto">
               <Link
                 key={item.href}
                 href={item.href}
@@ -299,6 +301,7 @@ export function SidebarNav() {
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
+                  pointer-events-auto
                   ${active
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -382,7 +385,7 @@ export function SidebarNav() {
         {/* Sessions Button - above upcoming sessions */}
         {level >= 1 && (
           <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
-            <div className="relative group/sessions">
+            <div className="relative group/sessions pointer-events-auto">
               <Link
                 href="/me/sessions"
                 className={`
@@ -390,6 +393,7 @@ export function SidebarNav() {
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
+                  pointer-events-auto
                   ${isActive('/me/sessions')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : pendingConfirmationsCount > 0
@@ -542,6 +546,7 @@ export function SidebarNav() {
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
+                  pointer-events-auto
                   ${isActive('/network')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -573,6 +578,7 @@ export function SidebarNav() {
                 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                 rounded-lg
                 transition-all duration-150 ease-out
+                pointer-events-auto
                 ${isActive('/asks')
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -601,6 +607,7 @@ export function SidebarNav() {
                 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                 rounded-lg
                 transition-all duration-150 ease-out
+                pointer-events-auto
                 ${isActive('/offers')
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -629,6 +636,7 @@ export function SidebarNav() {
                 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                 rounded-lg
                 transition-all duration-150 ease-out
+                pointer-events-auto
                 ${isActive('/matches')
                   ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -709,7 +717,7 @@ export function SidebarNav() {
                         <Link
                           key={skill.id}
                           href={`/topic/${skillEntity.slug}`}
-                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                           title={skillTitle}
                         >
                           {skillContent}
@@ -720,7 +728,7 @@ export function SidebarNav() {
                         <button
                           key={skill.id}
                           onClick={handleSkillClick}
-                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
+                          className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 text-left"
                           title={skillTitle}
                         >
                           {skillContent}
@@ -737,7 +745,7 @@ export function SidebarNav() {
                 {/* Public Garden Board */}
                 <Link
                   href="/garden/public-board"
-                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Public Garden Board"
                 >
                   <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">💌</span>
@@ -748,7 +756,7 @@ export function SidebarNav() {
                 {/* Browse Profiles */}
                 <Link
                   href="/profiles"
-                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Browse Profiles"
                 >
                   <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">👤</span>
@@ -759,7 +767,7 @@ export function SidebarNav() {
                 {/* Explore Skills */}
                 <Link
                   href="/skills/explore"
-                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Explore Skills"
                 >
                   <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🌱</span>
@@ -770,7 +778,7 @@ export function SidebarNav() {
                 {/* Learning Quests */}
                 <Link
                   href="/learner-quests"
-                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  className="relative flex flex-row items-center gap-3 w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg transition-all duration-150 ease-out pointer-events-auto text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                   title="Learning Quests"
                 >
                   <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">📚</span>
@@ -793,6 +801,7 @@ export function SidebarNav() {
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
                   rounded-lg
                   transition-all duration-150 ease-out
+                  pointer-events-auto
                   ${isActive('/notifications')
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -855,7 +864,7 @@ export function SidebarNav() {
                   window.location.href = '/auth';
                 }
               }}
-              className="w-full flex flex-row items-center gap-3 py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out"
+              className="w-full flex flex-row items-center gap-3 py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-150 ease-out pointer-events-auto"
               title="Disconnect wallet and logout"
             >
               <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">⚡</span>
