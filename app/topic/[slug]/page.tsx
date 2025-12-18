@@ -10,7 +10,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
@@ -46,6 +46,7 @@ type Match = {
 
 export default function TopicDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = params?.slug as string;
   
   const [skill, setSkill] = useState<Skill | null>(null);
@@ -57,6 +58,8 @@ export default function TopicDetailPage() {
   const [rsvpStatus, setRsvpStatus] = useState<Record<string, boolean>>({});
   const [sessionRsvpStatus, setSessionRsvpStatus] = useState<Record<string, boolean>>({});
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
+  const [communityProfiles, setCommunityProfiles] = useState<UserProfile[]>([]);
+  const [loadingCommunityProfiles, setLoadingCommunityProfiles] = useState(false);
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
   const [rsvpWallets, setRsvpWallets] = useState<Record<string, string[]>>({}); // gatheringKey -> array of wallet addresses
   const [loading, setLoading] = useState(true);
@@ -136,6 +139,13 @@ export default function TopicDetailPage() {
     }
   }, [skill?.key, userWallet]);
 
+  // Load community profiles when skill is available
+  useEffect(() => {
+    if (skill) {
+      loadCommunityProfiles();
+    }
+  }, [skill]);
+
   const loadMembershipStatus = async () => {
     if (!skill?.key || !userWallet) return;
 
@@ -151,6 +161,56 @@ export default function TopicDetailPage() {
     } catch (error) {
       console.error('Error loading membership status:', error);
       setIsJoined(false);
+    }
+  };
+
+  const loadCommunityProfiles = async () => {
+    if (!skill) return;
+
+    try {
+      setLoadingCommunityProfiles(true);
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
+      const params = new URLSearchParams();
+      params.set('skill', skill.name_canonical);
+      if (arkivBuilderMode) {
+        params.set('builderMode', 'true');
+        params.set('spaceIds', 'beta-launch,local-dev,local-dev-seed');
+      }
+      const url = `/api/profiles?${params.toString()}${builderParams ? `&${builderParams.slice(1)}` : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      
+      if (data.ok && data.profiles) {
+        // Filter by skill_id if available (more accurate than name matching)
+        let filtered = data.profiles;
+        if (skill.key) {
+          filtered = data.profiles.filter((profile: UserProfile) => {
+            // Check skill_ids array (preferred, beta)
+            const skillIds = (profile as any).skill_ids || [];
+            if (skillIds.includes(skill.key)) {
+              return true;
+            }
+            // Check skillsArray (legacy) - match by name
+            if (profile.skillsArray && Array.isArray(profile.skillsArray)) {
+              return profile.skillsArray.some(skillName => 
+                skillName.toLowerCase().trim() === skill.name_canonical.toLowerCase().trim()
+              );
+            }
+            // Check skills string (legacy)
+            if (profile.skills) {
+              const skillsList = profile.skills.toLowerCase().split(',').map((s: string) => s.trim());
+              return skillsList.includes(skill.name_canonical.toLowerCase().trim());
+            }
+            return false;
+          });
+        }
+        setCommunityProfiles(filtered);
+      }
+    } catch (err) {
+      console.error('Error loading community profiles:', err);
+      setCommunityProfiles([]);
+    } finally {
+      setLoadingCommunityProfiles(false);
     }
   };
 
@@ -1595,6 +1655,145 @@ export default function TopicDetailPage() {
             arkivBuilderMode={arkivBuilderMode}
           />
         )}
+
+        {/* Community Profiles */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              👥 Community Members
+            </h2>
+            {arkivBuilderMode && (
+              <ArkivQueryTooltip
+                query={[
+                  `loadCommunityProfiles()`,
+                  `Queries: GET /api/profiles?skill='${skill.name_canonical}'`,
+                  `   → type='user_profile', skills contains '${skill.name_canonical}'`,
+                  `Client-side filter:`,
+                  `   → skill_ids.includes('${skill.key}') OR`,
+                  `   → skillsArray.includes('${skill.name_canonical}') OR`,
+                  `   → skills string contains '${skill.name_canonical}'`,
+                  `Returns: ${communityProfiles.length} profiles in this community`
+                ]}
+                label="Community Profiles"
+              >
+                <span className="text-xs text-gray-500 dark:text-gray-400">ℹ️</span>
+              </ArkivQueryTooltip>
+            )}
+          </div>
+          {loadingCommunityProfiles ? (
+            <LoadingSpinner text="Loading community members..." className="py-8" />
+          ) : communityProfiles.length === 0 ? (
+            <EmptyState
+              title="No community members yet"
+              description={`Be the first to join the ${skill.name_canonical} community!`}
+              icon={
+                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {communityProfiles.map((profile) => (
+                <div
+                  key={profile.key}
+                  className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer"
+                  onClick={() => router.push(`/profiles/${profile.wallet}`)}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                        {profile.displayName || 'Anonymous'}
+                      </h3>
+                      {profile.username && (
+                        <p className="text-sm text-gray-500 dark:text-gray-400">@{profile.username}</p>
+                      )}
+                    </div>
+                    {profile.profileImage && (
+                      <img
+                        src={profile.profileImage}
+                        alt={profile.displayName}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    )}
+                  </div>
+
+                  {profile.bioShort && (
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
+                      {profile.bioShort}
+                    </p>
+                  )}
+
+                  {profile.skillsArray && profile.skillsArray.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex flex-wrap gap-1">
+                        {profile.skillsArray.slice(0, 3).map((skillName, idx) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
+                          >
+                            {skillName}
+                          </span>
+                        ))}
+                        {profile.skillsArray.length > 3 && (
+                          <span className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
+                            +{profile.skillsArray.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    {profile.seniority && (
+                      <div>
+                        <strong>Level:</strong> {profile.seniority}
+                      </div>
+                    )}
+                    {profile.timezone && (
+                      <div>
+                        <strong>Timezone:</strong> {profile.timezone}
+                      </div>
+                    )}
+                    {profile.availabilityWindow && (
+                      <div>
+                        <strong>Available:</strong> {formatAvailabilityForDisplay(profile.availabilityWindow)}
+                      </div>
+                    )}
+                    <div>
+                      <strong>Wallet:</strong> {profile.wallet.slice(0, 6)}...{profile.wallet.slice(-4)}
+                    </div>
+                  </div>
+
+                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/profiles/${profile.wallet}`);
+                      }}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      View Profile →
+                    </button>
+                    {arkivBuilderMode && profile.key && (
+                      <div className="flex items-center gap-2">
+                        <ViewOnArkivLink
+                          entityKey={profile.key}
+                          txHash={profile.txHash}
+                          label="View Profile on Arkiv"
+                          className="text-xs"
+                        />
+                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          {profile.key.slice(0, 12)}...
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Schedule Meeting Modal */}
         {showScheduleModal && (
