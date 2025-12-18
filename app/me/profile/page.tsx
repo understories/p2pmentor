@@ -245,12 +245,45 @@ export default function ProfilePage() {
     const languagesStr = formData.get('languages') as string;
     const languages = languagesStr ? languagesStr.split(',').map(s => s.trim()).filter(Boolean) : undefined;
     
-    // Contact Links
+    // Contact Links - normalize to full URLs
+    const normalizeContactLink = (value: string | null | undefined, type: 'twitter' | 'github' | 'telegram' | 'discord'): string | undefined => {
+      if (!value || !value.trim()) return undefined;
+      
+      const trimmed = value.trim();
+      
+      // If already a full URL, return as-is
+      if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        return trimmed;
+      }
+      
+      // Normalize based on type
+      switch (type) {
+        case 'twitter':
+          // Remove @ if present, then prepend https://x.com/
+          const twitterUsername = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+          return `https://x.com/${twitterUsername}`;
+        case 'github':
+          // Remove @ if present, then prepend https://github.com/
+          const githubUsername = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+          return `https://github.com/${githubUsername}`;
+        case 'telegram':
+          // Remove @ if present, then prepend https://t.me/
+          const telegramUsername = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+          return `https://t.me/${telegramUsername}`;
+        case 'discord':
+          // Discord usernames are typically in format username#1234
+          // For now, just return as-is (users can enter full invite links)
+          return trimmed;
+        default:
+          return trimmed;
+      }
+    };
+    
     const contactLinks = {
-      twitter: formData.get('contactTwitter') as string || undefined,
-      github: formData.get('contactGithub') as string || undefined,
-      telegram: formData.get('contactTelegram') as string || undefined,
-      discord: formData.get('contactDiscord') as string || undefined,
+      twitter: normalizeContactLink(formData.get('contactTwitter') as string, 'twitter'),
+      github: normalizeContactLink(formData.get('contactGithub') as string, 'github'),
+      telegram: normalizeContactLink(formData.get('contactTelegram') as string, 'telegram'),
+      discord: normalizeContactLink(formData.get('contactDiscord') as string, 'discord'),
     };
     // Remove undefined values
     Object.keys(contactLinks).forEach(key => {
@@ -728,10 +761,13 @@ export default function ProfilePage() {
                   type="text"
                   id="contactTwitter"
                   name="contactTwitter"
-                  defaultValue={profile?.contactLinks?.twitter || ''}
+                  defaultValue={profile?.contactLinks?.twitter ? (profile.contactLinks.twitter.replace('https://x.com/', '').replace('https://twitter.com/', '')) : ''}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="@username"
+                  placeholder="@username or username"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Will be saved as: https://x.com/username
+                </p>
               </div>
 
               <div>
@@ -742,10 +778,13 @@ export default function ProfilePage() {
                   type="text"
                   id="contactGithub"
                   name="contactGithub"
-                  defaultValue={profile?.contactLinks?.github || ''}
+                  defaultValue={profile?.contactLinks?.github ? (profile.contactLinks.github.replace('https://github.com/', '')) : ''}
                   className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
                   placeholder="username"
                 />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Will be saved as: https://github.com/username
+                </p>
               </div>
             </div>
           </div>
