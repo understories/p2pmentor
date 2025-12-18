@@ -1168,9 +1168,11 @@ export async function confirmSession({
   // Check if both parties have now confirmed - if so, generate Jitsi meeting
   // IMPORTANT: Include the current confirmation we just created in the check
   // because the query might not immediately return it due to eventual consistency
+  // CRITICAL: Filter by spaceId to ensure we only find confirmations in the correct space
   const allConfirmations = await publicClient.buildQuery()
     .where(eq('type', 'session_confirmation'))
     .where(eq('sessionKey', sessionKey))
+    .where(eq('spaceId', spaceId))
     .withAttributes(true)
     .fetch();
 
@@ -1199,9 +1201,11 @@ export async function confirmSession({
   if (mentorConfirmed && learnerConfirmed) {
     
     // Check if Jitsi info already exists
+    // CRITICAL: Filter by spaceId to ensure we only find Jitsi entities in the correct space
     const existingJitsi = await publicClient.buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('sessionKey', sessionKey))
+      .where(eq('spaceId', spaceId))
       .withAttributes(true)
       .limit(1)
       .fetch();
