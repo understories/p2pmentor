@@ -379,7 +379,8 @@ export default function ProfileDetailPage() {
         {/* Action Buttons - only show if viewing someone else's profile and profile is loaded */}
         {userWallet && profile && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
           <div className="mb-6 flex justify-center gap-2">
-                      {arkivBuilderMode ? (
+                      {/* General "Request Meeting" button - hidden for now, preserved for future implementation */}
+                      {false && arkivBuilderMode ? (
                         <ArkivQueryTooltip
                           query={[
                             `Opens RequestMeetingModal to create session`,
@@ -403,7 +404,7 @@ export default function ProfileDetailPage() {
                             Request Meeting
                           </button>
                         </ArkivQueryTooltip>
-                      ) : (
+                      ) : false && (
                         <button
                           onClick={() => {
                             setSelectedOffer(null);
