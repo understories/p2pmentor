@@ -243,10 +243,12 @@ export default function AdminDashboard() {
   }, [authenticated]);
 
   // Helper function to build spaceId query params
-  const buildSpaceIdParams = () => {
-    return selectedSpaceId === 'all'
-      ? '&spaceIds=beta-launch,local-dev,local-dev-seed'
-      : `&spaceId=${selectedSpaceId}`;
+  // Returns string starting with & for use with existing query params, or ? for standalone
+  const buildSpaceIdParams = (standalone = false) => {
+    const param = selectedSpaceId === 'all'
+      ? 'spaceIds=beta-launch,local-dev,local-dev-seed'
+      : `spaceId=${selectedSpaceId}`;
+    return standalone ? `?${param}` : `&${param}`;
   };
 
   // Reload data when spaceId changes
@@ -372,7 +374,7 @@ export default function AdminDashboard() {
       // Refresh beta code usage if section is expanded
       if (betaCodeUsageExpanded) {
         setBetaCodeUsageLoading(true);
-        fetch(`/api/admin/beta-code-usage${spaceIdParams}`, {
+        fetch(`/api/admin/beta-code-usage${buildSpaceIdParams(true)}`, {
           credentials: 'include', // Include cookies for beta access check
         })
           .then(res => {
@@ -1457,8 +1459,7 @@ export default function AdminDashboard() {
                   // Fetch data when expanded
                   if (newState && !betaCodeUsageLoading) {
                     setBetaCodeUsageLoading(true);
-                    const spaceIdParams = buildSpaceIdParams();
-                    fetch(`/api/admin/beta-code-usage${spaceIdParams}`, {
+                    fetch(`/api/admin/beta-code-usage${buildSpaceIdParams(true)}`, {
                       credentials: 'include', // Include cookies for beta access check
                     })
                       .then(res => {
