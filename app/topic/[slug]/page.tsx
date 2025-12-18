@@ -31,6 +31,10 @@ import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { GardenBoard } from '@/components/garden/GardenBoard';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { buildBuilderModeParams, appendBuilderModeParams } from '@/lib/utils/builderMode';
+import { SkillSelector } from '@/components/SkillSelector';
+import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
+import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
+import { createDefaultWeeklyAvailability, formatAvailabilityForDisplay, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
 
 type Match = {
   ask: Ask;
@@ -71,6 +75,39 @@ export default function TopicDetailPage() {
     time: '',
     duration: '60',
   });
+  const [showCreateAskForm, setShowCreateAskForm] = useState(false);
+  const [showCreateOfferForm, setShowCreateOfferForm] = useState(false);
+  const [submittingAsk, setSubmittingAsk] = useState(false);
+  const [submittingOffer, setSubmittingOffer] = useState(false);
+  const [askError, setAskError] = useState('');
+  const [offerError, setOfferError] = useState('');
+  const [askSuccess, setAskSuccess] = useState('');
+  const [offerSuccess, setOfferSuccess] = useState('');
+  const [showAdvancedOptionsAsk, setShowAdvancedOptionsAsk] = useState(false);
+  const [showAdvancedOptionsOffer, setShowAdvancedOptionsOffer] = useState(false);
+  const [newAsk, setNewAsk] = useState({ 
+    skill: '',
+    skill_id: '',
+    message: '',
+    ttlHours: '24',
+    customTtlHours: '',
+  });
+  const [newOffer, setNewOffer] = useState({ 
+    skill: '',
+    skill_id: '',
+    message: '', 
+    availabilityWindow: '',
+    availabilityKey: '',
+    availabilityType: 'structured' as 'saved' | 'structured',
+    structuredAvailability: null as WeeklyAvailability | null,
+    isPaid: false,
+    cost: '',
+    paymentAddress: '',
+    ttlHours: '168',
+    customTtlHours: '',
+  });
+  const [userAvailability, setUserAvailability] = useState<WeeklyAvailability | null>(null);
+  const [savedAvailabilityBlocks, setSavedAvailabilityBlocks] = useState<Array<{ key: string; name: string }>>([]);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -503,6 +540,182 @@ export default function TopicDetailPage() {
     };
   };
 
+  const loadUserAvailability = async (wallet: string) => {
+    try {
+      const res = await fetch(`/api/availability?wallet=${encodeURIComponent(wallet)}`);
+      const data = await res.json();
+      if (data.ok && data.availabilities && data.availabilities.length > 0) {
+        // Use the first availability's timeBlocks as default
+        const firstAvail = data.availabilities[0];
+        if (firstAvail.timeBlocks) {
+          setUserAvailability(firstAvail.timeBlocks);
+        }
+      } else {
+        // No saved availability, create default
+        const profile = await getProfileByWallet(wallet).catch(() => null);
+        const timezone = profile?.timezone || 'UTC';
+        setUserAvailability(createDefaultWeeklyAvailability(timezone));
+      }
+      
+      // Load saved availability blocks for dropdown
+      if (data.ok && data.availabilities) {
+        const formatted = data.availabilities.map((avail: any) => ({
+          key: avail.key,
+          name: avail.name || `Availability ${avail.key.slice(0, 8)}`,
+        }));
+        setSavedAvailabilityBlocks(formatted);
+      }
+    } catch (err) {
+      console.error('Error loading availability:', err);
+      // Fallback to default
+      setUserAvailability(createDefaultWeeklyAvailability('UTC'));
+    }
+  };
+
+  const handleCreateAsk = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAsk.skill_id || !newAsk.message.trim() || !userWallet) {
+      setAskError('Please enter a message');
+      return;
+    }
+
+    setSubmittingAsk(true);
+    setAskError('');
+    setAskSuccess('');
+
+    try {
+      const ttlValue = newAsk.ttlHours === 'custom' ? newAsk.customTtlHours : newAsk.ttlHours;
+      const ttlHours = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 86400 : Math.floor(ttlHours * 3600);
+
+      const res = await fetch('/api/asks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createAsk',
+          wallet: userWallet,
+          skill: newAsk.skill.trim(),
+          skill_id: newAsk.skill_id,
+          skill_label: newAsk.skill.trim(),
+          message: newAsk.message.trim(),
+          expiresIn: expiresIn,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        setAskSuccess('Ask created successfully!');
+        setNewAsk({ skill: skill?.name_canonical || '', skill_id: skill?.key || '', message: '', ttlHours: '24', customTtlHours: '' });
+        setShowAdvancedOptionsAsk(false);
+        setShowCreateAskForm(false);
+        // Wait for Arkiv indexing then reload
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await loadTopicData();
+      } else {
+        setAskError(data.error || 'Failed to create ask');
+      }
+    } catch (err: any) {
+      console.error('Error creating ask:', err);
+      setAskError(err.message || 'Failed to create ask');
+    } finally {
+      setSubmittingAsk(false);
+    }
+  };
+
+  const handleCreateOffer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newOffer.skill_id || !newOffer.message.trim() || !userWallet) {
+      setOfferError('Please enter a message');
+      return;
+    }
+
+    if (newOffer.availabilityType === 'saved') {
+      if (!newOffer.availabilityKey.trim()) {
+        setOfferError('Please select a saved availability');
+        return;
+      }
+    } else if (newOffer.availabilityType === 'structured') {
+      if (!newOffer.structuredAvailability) {
+        setOfferError('Please configure your structured availability');
+        return;
+      }
+    }
+
+    if (newOffer.isPaid) {
+      if (!newOffer.cost.trim() || !newOffer.paymentAddress.trim()) {
+        setOfferError('Cost and payment address are required for paid offers');
+        return;
+      }
+    }
+
+    setSubmittingOffer(true);
+    setOfferError('');
+    setOfferSuccess('');
+
+    try {
+      const ttlValue = newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
+      const ttlHours = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 604800 : Math.floor(ttlHours * 3600);
+
+      let availabilityWindowValue: string | WeeklyAvailability = '';
+      if (newOffer.availabilityType === 'saved') {
+        availabilityWindowValue = '';
+      } else if (newOffer.availabilityType === 'structured') {
+        availabilityWindowValue = newOffer.structuredAvailability!;
+      }
+
+      const res = await fetch('/api/offers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createOffer',
+          wallet: userWallet,
+          skill: newOffer.skill.trim(),
+          skill_id: newOffer.skill_id,
+          skill_label: newOffer.skill.trim(),
+          message: newOffer.message.trim(),
+          availabilityWindow: availabilityWindowValue,
+          availabilityKey: newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
+          isPaid: newOffer.isPaid,
+          cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
+          paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
+          expiresIn: expiresIn,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.ok) {
+        setOfferSuccess('Offer created successfully!');
+        setNewOffer({ 
+          skill: skill?.name_canonical || '', 
+          skill_id: skill?.key || '', 
+          message: '', 
+          availabilityWindow: '', 
+          availabilityKey: '', 
+          availabilityType: 'structured', 
+          structuredAvailability: null, 
+          isPaid: false, 
+          cost: '', 
+          paymentAddress: '', 
+          ttlHours: '168', 
+          customTtlHours: '' 
+        });
+        setShowAdvancedOptionsOffer(false);
+        setShowCreateOfferForm(false);
+        // Wait for Arkiv indexing then reload
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await loadTopicData();
+      } else {
+        setOfferError(data.error || 'Failed to create offer');
+      }
+    } catch (err: any) {
+      console.error('Error creating offer:', err);
+      setOfferError(err.message || 'Failed to create offer');
+    } finally {
+      setSubmittingOffer(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
@@ -629,6 +842,28 @@ export default function TopicDetailPage() {
                   >
                     📅 Schedule Meeting
                   </button>
+                  {!showCreateAskForm && !showCreateOfferForm && (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowCreateAskForm(true);
+                          setShowCreateOfferForm(false);
+                        }}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${askColors.button}`}
+                      >
+                        {askEmojis.default} Create Ask
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowCreateOfferForm(true);
+                          setShowCreateAskForm(false);
+                        }}
+                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${offerColors.button}`}
+                      >
+                        {offerEmojis.default} Create Offer
+                      </button>
+                    </>
+                  )}
                 </>
               )}
               {!userWallet && (
@@ -648,6 +883,440 @@ export default function TopicDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Create Ask Form */}
+        {showCreateAskForm && userWallet && (
+          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Create New Ask for {skill.name_canonical}</h2>
+              <button
+                onClick={() => {
+                  setShowCreateAskForm(false);
+                  setNewAsk({ skill: skill.name_canonical, skill_id: skill.key, message: '', ttlHours: '24', customTtlHours: '' });
+                  setShowAdvancedOptionsAsk(false);
+                  setAskError('');
+                  setAskSuccess('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            {askError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-800 dark:text-red-200 text-sm">
+                {askError}
+              </div>
+            )}
+            {askSuccess && (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-800 dark:text-green-200 text-sm">
+                {askSuccess}
+              </div>
+            )}
+            <form onSubmit={handleCreateAsk} className="space-y-4">
+              <div>
+                <label htmlFor="skill" className="block text-sm font-medium mb-2">
+                  Skill you want to learn *
+                </label>
+                <SkillSelector
+                  value={newAsk.skill_id}
+                  onChange={(skillId, skillName) => setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })}
+                  placeholder="Search for a skill..."
+                  allowCreate={true}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Pre-filled with current topic: {skill.name_canonical}
+                </p>
+              </div>
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium mb-2">
+                  Message *
+                </label>
+                <textarea
+                  id="message"
+                  value={newAsk.message}
+                  onChange={(e) => setNewAsk({ ...newAsk, message: e.target.value })}
+                  placeholder="Describe what you want to learn..."
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOptionsAsk(!showAdvancedOptionsAsk)}
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAdvancedOptionsAsk ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Options
+                </button>
+              </div>
+              {showAdvancedOptionsAsk && (
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                      Expiration Duration (optional)
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        id="ttlHours"
+                        value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
+                        onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="0.5">30 minutes</option>
+                        <option value="1">1 hour</option>
+                        <option value="2">2 hours</option>
+                        <option value="6">6 hours</option>
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours (1 day) - Recommended</option>
+                        <option value="48">48 hours (2 days)</option>
+                        <option value="168">1 week</option>
+                        <option value="custom">Custom (hours)</option>
+                      </select>
+                      {newAsk.ttlHours === 'custom' && (
+                        <input
+                          type="number"
+                          min="0.5"
+                          max="8760"
+                          step="0.5"
+                          placeholder="Hours"
+                          value={newAsk.customTtlHours}
+                          onChange={(e) => setNewAsk({ ...newAsk, customTtlHours: e.target.value })}
+                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      How long should this ask remain active? Default: 24 hours
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={submittingAsk}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingAsk ? 'Creating...' : 'Create Ask'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateAskForm(false);
+                    setNewAsk({ skill: skill.name_canonical, skill_id: skill.key, message: '', ttlHours: '24', customTtlHours: '' });
+                    setShowAdvancedOptionsAsk(false);
+                    setAskError('');
+                    setAskSuccess('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Create Offer Form */}
+        {showCreateOfferForm && userWallet && (
+          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Create New Offer for {skill.name_canonical}</h2>
+              <button
+                onClick={() => {
+                  setShowCreateOfferForm(false);
+                  setNewOffer({ 
+                    skill: skill.name_canonical, 
+                    skill_id: skill.key, 
+                    message: '', 
+                    availabilityWindow: '', 
+                    availabilityKey: '', 
+                    availabilityType: 'structured', 
+                    structuredAvailability: null, 
+                    isPaid: false, 
+                    cost: '', 
+                    paymentAddress: '', 
+                    ttlHours: '168', 
+                    customTtlHours: '' 
+                  });
+                  setShowAdvancedOptionsOffer(false);
+                  setOfferError('');
+                  setOfferSuccess('');
+                }}
+                className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+            {offerError && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-800 dark:text-red-200 text-sm">
+                {offerError}
+              </div>
+            )}
+            {offerSuccess && (
+              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-800 dark:text-green-200 text-sm">
+                {offerSuccess}
+              </div>
+            )}
+            <form onSubmit={handleCreateOffer} className="space-y-4">
+              <div>
+                <label htmlFor="skill" className="block text-sm font-medium mb-2">
+                  Skill you can teach *
+                </label>
+                <SkillSelector
+                  value={newOffer.skill_id}
+                  onChange={(skillId, skillName) => setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })}
+                  placeholder="Search for a skill..."
+                  allowCreate={true}
+                  required
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Pre-filled with current topic: {skill.name_canonical}
+                </p>
+              </div>
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium mb-2">
+                  Message *
+                </label>
+                <textarea
+                  id="message"
+                  value={newOffer.message}
+                  onChange={(e) => setNewOffer({ ...newOffer, message: e.target.value })}
+                  placeholder="Describe what you can teach..."
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Availability *
+                </label>
+                <div className="mb-3">
+                  <div className="flex flex-wrap gap-4">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="availabilityType"
+                        checked={newOffer.availabilityType === 'saved'}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', structuredAvailability: null })}
+                        className="mr-2"
+                      />
+                      <span>Use saved availability</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="availabilityType"
+                        checked={newOffer.availabilityType === 'structured'}
+                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityKey: '' })}
+                        className="mr-2"
+                      />
+                      <span>Create structured availability</span>
+                    </label>
+                  </div>
+                </div>
+                {newOffer.availabilityType === 'saved' ? (
+                  <div>
+                    {savedAvailabilityBlocks.length === 0 ? (
+                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or create structured availability below.
+                        </p>
+                      </div>
+                    ) : (
+                      <select
+                        id="availabilityKey"
+                        value={newOffer.availabilityKey}
+                        onChange={(e) => setNewOffer({ ...newOffer, availabilityKey: e.target.value })}
+                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required={newOffer.availabilityType === 'saved'}
+                      >
+                        <option value="">Select saved availability...</option>
+                        {savedAvailabilityBlocks.map((avail) => (
+                          <option key={avail.key} value={avail.key}>
+                            {avail.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    <WeeklyAvailabilityEditor
+                      value={newOffer.structuredAvailability || userAvailability}
+                      onChange={(availability) => setNewOffer({ ...newOffer, structuredAvailability: availability })}
+                      className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-300 dark:border-gray-600"
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  Payment Type *
+                </label>
+                <div className="flex gap-4">
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={!newOffer.isPaid}
+                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
+                      className="mr-2"
+                    />
+                    <span>Free</span>
+                  </label>
+                  <label className="flex items-center">
+                    <input
+                      type="radio"
+                      name="paymentType"
+                      checked={newOffer.isPaid}
+                      onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
+                      className="mr-2"
+                    />
+                    <span>Paid</span>
+                  </label>
+                </div>
+              </div>
+              {newOffer.isPaid && (
+                <>
+                  <div>
+                    <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                      Cost *
+                    </label>
+                    <input
+                      id="cost"
+                      type="text"
+                      value={newOffer.cost}
+                      onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
+                      placeholder="e.g., 0.1 ETH, $50, 100 USDC"
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required={newOffer.isPaid}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                      Payment Address *
+                    </label>
+                    <input
+                      id="paymentAddress"
+                      type="text"
+                      value={newOffer.paymentAddress}
+                      onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                      placeholder="0x..."
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      required={newOffer.isPaid}
+                    />
+                  </div>
+                </>
+              )}
+              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedOptionsOffer(!showAdvancedOptionsOffer)}
+                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                >
+                  <svg
+                    className={`w-4 h-4 transition-transform ${showAdvancedOptionsOffer ? 'rotate-90' : ''}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                  Advanced Options
+                </button>
+              </div>
+              {showAdvancedOptionsOffer && (
+                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div>
+                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                      Expiration Duration (optional)
+                    </label>
+                    <div className="flex gap-2">
+                      <select
+                        id="ttlHours"
+                        value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
+                        onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="1">1 hour</option>
+                        <option value="2">2 hours</option>
+                        <option value="6">6 hours</option>
+                        <option value="12">12 hours</option>
+                        <option value="24">24 hours (1 day)</option>
+                        <option value="48">48 hours (2 days)</option>
+                        <option value="168">1 week - Recommended</option>
+                        <option value="720">1 month (30 days)</option>
+                        <option value="custom">Custom (hours)</option>
+                      </select>
+                      {newOffer.ttlHours === 'custom' && (
+                        <input
+                          type="number"
+                          min="1"
+                          max="8760"
+                          step="1"
+                          placeholder="Hours"
+                          value={newOffer.customTtlHours}
+                          onChange={(e) => setNewOffer({ ...newOffer, customTtlHours: e.target.value })}
+                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      )}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      How long should this offer remain active? Default: 1 week
+                    </p>
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={submittingOffer}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingOffer ? 'Creating...' : 'Create Offer'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateOfferForm(false);
+                    setNewOffer({ 
+                      skill: skill.name_canonical, 
+                      skill_id: skill.key, 
+                      message: '', 
+                      availabilityWindow: '', 
+                      availabilityKey: '', 
+                      availabilityType: 'structured', 
+                      structuredAvailability: null, 
+                      isPaid: false, 
+                      cost: '', 
+                      paymentAddress: '', 
+                      ttlHours: '168', 
+                      customTtlHours: '' 
+                    });
+                    setShowAdvancedOptionsOffer(false);
+                    setOfferError('');
+                    setOfferSuccess('');
+                  }}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        )}
 
         {/* Upcoming Community Sessions - Display actual session entities */}
         {communitySessions.length > 0 && (

@@ -728,8 +728,8 @@ export default function AsksPage() {
               {/* Advanced Options (Collapsed by Default) */}
               {showAdvancedOptions && (
                 <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <div>
-                <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                  <div>
+                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
                       Expiration Duration (optional)
                       {arkivBuilderMode ? (
                         <ArkivQueryTooltip
@@ -738,93 +738,94 @@ export default function AsksPage() {
                             `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
                             ``,
                             `Current Selection: ${newAsk.ttlHours === 'custom' ? `${newAsk.customTtlHours || '...'} hours` : `${newAsk.ttlHours || '24'} hours`}`,
-                      `Conversion: hours → seconds (${newAsk.ttlHours === 'custom' ? (parseFloat(newAsk.customTtlHours || '24') * 3600) : (parseFloat(newAsk.ttlHours || '24') * 3600)} seconds)`,
-                      ``,
-                      `In Ask Entity:`,
-                      `→ Attribute: ttlSeconds='${newAsk.ttlHours === 'custom' ? Math.floor(parseFloat(newAsk.customTtlHours || '24') * 3600) : Math.floor(parseFloat(newAsk.ttlHours || '24') * 3600)}'`,
-                      `→ Arkiv expiresIn: ${newAsk.ttlHours === 'custom' ? Math.floor(parseFloat(newAsk.customTtlHours || '24') * 3600) : Math.floor(parseFloat(newAsk.ttlHours || '24') * 3600)} seconds`,
-                      ``,
-                      `Client-Side Filtering:`,
-                      `→ Checks: createdAt + ttlSeconds < now`,
-                      `→ Expired asks filtered out (unless includeExpired: true)`,
-                      ``,
-                      `Arkiv-Level Expiration:`,
-                      `→ Hard deletion after expiresIn seconds`,
-                      `→ Used for network cleanup`
-                    ]}
-                    label="TTL Selection"
-                  >
-                    <div className="flex gap-2">
-                      <select
-                        id="ttlHours"
-                        value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
-                        onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="0.5">30 minutes</option>
-                        <option value="1">1 hour</option>
-                        <option value="2">2 hours</option>
-                        <option value="6">6 hours</option>
-                        <option value="12">12 hours</option>
-                        <option value="24">24 hours (1 day) - Recommended</option>
-                        <option value="48">48 hours (2 days)</option>
-                        <option value="168">1 week</option>
-                        <option value="custom">Custom (hours)</option>
-                      </select>
-                      {newAsk.ttlHours === 'custom' && (
-                        <input
-                          type="number"
-                          min="0.5"
-                          max="8760"
-                          step="0.5"
-                          placeholder="Hours"
-                          value={newAsk.customTtlHours}
-                          onChange={(e) => {
-                            setNewAsk({ ...newAsk, customTtlHours: e.target.value });
-                          }}
-                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
+                            `Conversion: hours → seconds (${newAsk.ttlHours === 'custom' ? (parseFloat(newAsk.customTtlHours || '24') * 3600) : (parseFloat(newAsk.ttlHours || '24') * 3600)} seconds)`,
+                            ``,
+                            `In Ask Entity:`,
+                            `→ Attribute: ttlSeconds='${newAsk.ttlHours === 'custom' ? Math.floor(parseFloat(newAsk.customTtlHours || '24') * 3600) : Math.floor(parseFloat(newAsk.ttlHours || '24') * 3600)}'`,
+                            `→ Arkiv expiresIn: ${newAsk.ttlHours === 'custom' ? Math.floor(parseFloat(newAsk.customTtlHours || '24') * 3600) : Math.floor(parseFloat(newAsk.ttlHours || '24') * 3600)} seconds`,
+                            ``,
+                            `Client-Side Filtering:`,
+                            `→ Checks: createdAt + ttlSeconds < now`,
+                            `→ Expired asks filtered out (unless includeExpired: true)`,
+                            ``,
+                            `Arkiv-Level Expiration:`,
+                            `→ Hard deletion after expiresIn seconds`,
+                            `→ Used for network cleanup`
+                          ]}
+                          label="TTL Selection"
+                        >
+                          <div className="flex gap-2">
+                            <select
+                              id="ttlHours"
+                              value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
+                              onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
+                              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                              <option value="0.5">30 minutes</option>
+                              <option value="1">1 hour</option>
+                              <option value="2">2 hours</option>
+                              <option value="6">6 hours</option>
+                              <option value="12">12 hours</option>
+                              <option value="24">24 hours (1 day) - Recommended</option>
+                              <option value="48">48 hours (2 days)</option>
+                              <option value="168">1 week</option>
+                              <option value="custom">Custom (hours)</option>
+                            </select>
+                            {newAsk.ttlHours === 'custom' && (
+                              <input
+                                type="number"
+                                min="0.5"
+                                max="8760"
+                                step="0.5"
+                                placeholder="Hours"
+                                value={newAsk.customTtlHours}
+                                onChange={(e) => {
+                                  setNewAsk({ ...newAsk, customTtlHours: e.target.value });
+                                }}
+                                className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              />
+                            )}
+                          </div>
+                        </ArkivQueryTooltip>
+                      ) : (
+                        <div className="flex gap-2">
+                          <select
+                            id="ttlHours"
+                            value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
+                            onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
+                            className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          >
+                            <option value="0.5">30 minutes</option>
+                            <option value="1">1 hour</option>
+                            <option value="2">2 hours</option>
+                            <option value="6">6 hours</option>
+                            <option value="12">12 hours</option>
+                            <option value="24">24 hours (1 day) - Recommended</option>
+                            <option value="48">48 hours (2 days)</option>
+                            <option value="168">1 week</option>
+                            <option value="custom">Custom (hours)</option>
+                          </select>
+                          {newAsk.ttlHours === 'custom' && (
+                            <input
+                              type="number"
+                              min="0.5"
+                              max="8760"
+                              step="0.5"
+                              placeholder="Hours"
+                              value={newAsk.customTtlHours}
+                              onChange={(e) => {
+                                setNewAsk({ ...newAsk, customTtlHours: e.target.value });
+                              }}
+                              className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            />
+                          )}
+                        </div>
                       )}
-                    </div>
-                  </ArkivQueryTooltip>
-                ) : (
-                  <div className="flex gap-2">
-                    <select
-                      id="ttlHours"
-                      value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
-                      onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
-                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="0.5">30 minutes</option>
-                      <option value="1">1 hour</option>
-                      <option value="2">2 hours</option>
-                      <option value="6">6 hours</option>
-                      <option value="12">12 hours</option>
-                      <option value="24">24 hours (1 day) - Recommended</option>
-                      <option value="48">48 hours (2 days)</option>
-                      <option value="168">1 week</option>
-                      <option value="custom">Custom (hours)</option>
-                    </select>
-                    {newAsk.ttlHours === 'custom' && (
-                      <input
-                        type="number"
-                        min="0.5"
-                        max="8760"
-                        step="0.5"
-                        placeholder="Hours"
-                        value={newAsk.customTtlHours}
-                        onChange={(e) => {
-                          setNewAsk({ ...newAsk, customTtlHours: e.target.value });
-                        }}
-                        className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
-                    )}
-                  </div>
-                )}
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    </label>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                       How long should this ask remain active? Default: 24 hours
-                </p>
-              </div>
+                    </p>
+                  </div>
                 </div>
               )}
 
