@@ -24,7 +24,7 @@ interface SkillSelectorProps {
   required?: boolean;
   onFocus?: () => void; // Optional callback when input is focused
   onCreatingSkill?: (skillName: string) => void; // Optional callback when skill creation starts
-  onSkillCreated?: (skillName: string, skillId: string, pending: boolean, txHash?: string) => void; // Optional callback when skill creation completes
+  onSkillCreated?: (skillName: string, skillId: string, pending: boolean, txHash?: string, isNewSkill?: boolean) => void; // Optional callback when skill creation completes. isNewSkill=true means this was a newly created skill (not just selected)
 }
 
 export function SkillSelector({
@@ -216,17 +216,17 @@ export function SkillSelector({
         throw new Error(data.error || 'Failed to create skill');
       }
 
-      // If skill already exists, use it
+      // If skill already exists, use it (not a new skill)
       if (data.alreadyExists && data.skill) {
         handleSelect(data.skill);
-        onSkillCreated?.(skillName, data.skill.key, false, data.txHash);
+        onSkillCreated?.(skillName, data.skill.key, false, data.txHash, false);
         return;
       }
 
       // If skill was created but is pending (not yet queryable), wait and retry
       if (data.pending && data.skill) {
-        // Notify parent that skill was created but is pending
-        onSkillCreated?.(skillName, data.skill.key, true, data.txHash);
+        // Notify parent that skill was created but is pending (isNewSkill=true)
+        onSkillCreated?.(skillName, data.skill.key, true, data.txHash, true);
         
         // Skill was created but not yet indexed - wait a bit and reload
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -245,10 +245,10 @@ export function SkillSelector({
       // Reload skills to include the new one
       await loadSkills();
       
-      // Select the newly created skill
+      // Select the newly created skill (isNewSkill=true)
       if (data.skill) {
         handleSelect(data.skill);
-        onSkillCreated?.(skillName, data.skill.key, false, data.txHash);
+        onSkillCreated?.(skillName, data.skill.key, false, data.txHash, true);
       }
     } catch (error: any) {
       console.error('Error creating skill:', error);

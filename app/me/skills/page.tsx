@@ -41,6 +41,7 @@ export default function SkillsPage() {
   const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
   const [isTypingSkill, setIsTypingSkill] = useState(false); // Track if user is typing in SkillSelector
   const [creatingSkill, setCreatingSkill] = useState<string | null>(null); // Track skill being created
+  const [newSkillPlanted, setNewSkillPlanted] = useState<string | null>(null); // Track newly planted skill name
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -160,11 +161,17 @@ export default function SkillsPage() {
         setSuccess('Skill update submitted! Transaction is being processed. Please refresh in a moment.');
         setSelectedSkillId('');
         setSelectedSkillName('');
+        setNewSkillPlanted(null); // Clear planted message
         setTimeout(() => loadData(walletAddress), 2000);
       } else {
-        setSuccess('Skill added!');
+        if (newSkillPlanted) {
+          setSuccess(`Skill "${newSkillPlanted}" planted and added to your profile!`);
+        } else {
+          setSuccess('Skill added!');
+        }
         setSelectedSkillId('');
         setSelectedSkillName('');
+        setNewSkillPlanted(null); // Clear planted message
         if (data.txHash) setLastTxHash(data.txHash);
         await loadData(walletAddress);
       }
@@ -406,20 +413,32 @@ export default function SkillsPage() {
                       setError('');
                       setSuccess('');
                     }}
-                    onSkillCreated={(skillName, skillId, pending, txHash) => {
+                    onSkillCreated={(skillName, skillId, pending, txHash, isNewSkill) => {
                       setCreatingSkill(null);
-                      if (pending) {
-                        setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
-                        if (txHash) setLastTxHash(txHash);
-                        // Refresh skills list after delay (similar to asks/offers pattern)
+                      
+                      // If this is a newly created skill, automatically add it to profile
+                      if (isNewSkill && skillId && skillName) {
+                        setNewSkillPlanted(skillName);
+                        setSelectedSkillId(skillId);
+                        setSelectedSkillName(skillName);
+                        
+                        // Automatically add to profile after a brief moment to show "planted" message
                         setTimeout(() => {
-                          loadData(walletAddress!);
-                        }, 2000);
+                          handleAddSkill();
+                        }, 500);
                       } else {
-                        setSuccess(`Skill "${skillName}" created successfully!`);
-                        if (txHash) setLastTxHash(txHash);
-                        // Refresh skills list immediately
-                        loadData(walletAddress!);
+                        // Existing skill selected - just show success
+                        if (pending) {
+                          setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
+                          if (txHash) setLastTxHash(txHash);
+                          setTimeout(() => {
+                            loadData(walletAddress!);
+                          }, 2000);
+                        } else {
+                          setSuccess(`Skill "${skillName}" created successfully!`);
+                          if (txHash) setLastTxHash(txHash);
+                          loadData(walletAddress!);
+                        }
                       }
                     }}
                     placeholder="Search for a skill..."
@@ -442,20 +461,32 @@ export default function SkillsPage() {
                   setError('');
                   setSuccess('');
                 }}
-                onSkillCreated={(skillName, skillId, pending, txHash) => {
+                onSkillCreated={(skillName, skillId, pending, txHash, isNewSkill) => {
                   setCreatingSkill(null);
-                  if (pending) {
-                    setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
-                    if (txHash) setLastTxHash(txHash);
-                    // Refresh skills list after delay (similar to asks/offers pattern)
+                  
+                  // If this is a newly created skill, automatically add it to profile
+                  if (isNewSkill && skillId && skillName) {
+                    setNewSkillPlanted(skillName);
+                    setSelectedSkillId(skillId);
+                    setSelectedSkillName(skillName);
+                    
+                    // Automatically add to profile after a brief moment to show "planted" message
                     setTimeout(() => {
-                      loadData(walletAddress!);
-                    }, 2000);
+                      handleAddSkill();
+                    }, 500);
                   } else {
-                    setSuccess(`Skill "${skillName}" created successfully!`);
-                    if (txHash) setLastTxHash(txHash);
-                    // Refresh skills list immediately
-                    loadData(walletAddress!);
+                    // Existing skill selected - just show success
+                    if (pending) {
+                      setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
+                      if (txHash) setLastTxHash(txHash);
+                      setTimeout(() => {
+                        loadData(walletAddress!);
+                      }, 2000);
+                    } else {
+                      setSuccess(`Skill "${skillName}" created successfully!`);
+                      if (txHash) setLastTxHash(txHash);
+                      loadData(walletAddress!);
+                    }
                   }
                 }}
                 placeholder="Search for a skill..."
@@ -467,6 +498,20 @@ export default function SkillsPage() {
               <div className="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200">
                   <span className="animate-pulse">⏳</span> Creating skill "{creatingSkill}"...
+                </p>
+              </div>
+            )}
+            {newSkillPlanted && !submitting && (
+              <div className="mb-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <p className="text-sm text-green-800 dark:text-green-200">
+                  <span className="animate-bounce">🌱</span> You've planted a brand new skill in the garden! "{newSkillPlanted}"
+                </p>
+              </div>
+            )}
+            {newSkillPlanted && submitting && (
+              <div className="mb-2 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+                <p className="text-sm text-purple-800 dark:text-purple-200">
+                  <span className="animate-pulse">✨</span> Adding "{newSkillPlanted}" to your profile...
                 </p>
               </div>
             )}
