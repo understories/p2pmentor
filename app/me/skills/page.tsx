@@ -145,7 +145,6 @@ export default function SkillsPage() {
           timezone: profile.timezone,
           languages: profile.languages,
           contactLinks: profile.contactLinks,
-          seniority: profile.seniority,
         }),
       });
 
@@ -213,7 +212,6 @@ export default function SkillsPage() {
           timezone: profile.timezone,
           languages: profile.languages,
           contactLinks: profile.contactLinks,
-          seniority: profile.seniority,
         }),
       });
 
