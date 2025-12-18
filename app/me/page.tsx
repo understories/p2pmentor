@@ -478,7 +478,7 @@ export default function MePage() {
         learningSkillIds={followedSkills}
       />
       
-      <div className="relative z-10 p-4">
+      <div className="relative z-10 p-4 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto">
         
         {/* Profile Avatar with EIS */}
