@@ -453,7 +453,7 @@ export default function AuthPage() {
               disabled={isConnecting}
               className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
             >
-              {isConnecting ? 'Connecting...' : 'Connect Wallet'}
+              {isConnecting ? 'Connecting...' : 'Connect Wallet (MetaMask)'}
             </button>
           </ArkivQueryTooltip>
 
