@@ -6,7 +6,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import rehypeSlug from 'rehype-slug';
 import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeRaw from 'rehype-raw';
 import Link from 'next/link';
+import { DiagramViewer } from '@/components/DiagramViewer';
 
 interface GitHistory {
   hash: string | null;
@@ -506,6 +508,7 @@ export default function DocsPage() {
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     rehypePlugins={[
+                      rehypeRaw, // Allow raw HTML (for img tags in markdown)
                       rehypeSlug,
                       [rehypeAutolinkHeadings, {
                         behavior: 'wrap',
@@ -515,6 +518,22 @@ export default function DocsPage() {
                       }],
                     ]}
                     components={{
+                      img: ({ node, src, alt, ...props }) => {
+                        // Check if this is a diagram SVG (both conceptual and implementation diagrams)
+                        if (src && typeof src === 'string' && (
+                          src.includes('diagram.svg') || 
+                          src.includes('walletdiagram') || 
+                          src.includes('profilediagram') || 
+                          src.includes('sessiondiagram') ||
+                          src.includes('walletm1') ||
+                          src.includes('profilem1') ||
+                          src.includes('sessionm1')
+                        )) {
+                          return <DiagramViewer src={src} alt={alt || ''} />;
+                        }
+                        // Regular images
+                        return <img src={typeof src === 'string' ? src : ''} alt={alt} {...props} className="max-w-full h-auto" />;
+                      },
                       a: ({ node, href, children, ...props }) => {
                         // Transform relative markdown links to Next.js /docs routes
                         if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('#')) {

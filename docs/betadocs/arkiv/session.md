@@ -29,6 +29,75 @@
 | gatheringTitle | string | No | Payload | Virtual gathering title |
 | community | string | No | Payload | Skill slug/community name (for virtual gatherings) |
 
+## State Machine Diagram
+
+For the detailed session state machine diagram, see [Session State Machine](./session-state-machine.md).
+
+## Implementation Details
+
+### Key Implementation Points
+
+1. **Status is Computed, Not Stored**: The session entity has a `status` attribute, but the actual status is computed dynamically from supporting entities (`session_confirmation`, `session_rejection`). The code explicitly states: "Don't trust the entity's status attribute - recalculate based on confirmations."
+
+2. **Auto-Confirmation of Requester**: When a session is created, the requester is automatically confirmed by creating a `session_confirmation` entity for them. This means:
+   - If learner requests from offer: learner is auto-confirmed
+   - If mentor offers to help on ask: mentor is auto-confirmed
+   - Only the other party needs to confirm
+
+3. **Both Parties Must Confirm**: Status transitions from `pending` to `scheduled` only when BOTH parties have `session_confirmation` entities. This is checked in the `confirmSession` function.
+
+4. **Jitsi Generation Timing**: The Jitsi meeting URL is generated when BOTH parties confirm (not on first confirmation). The `confirmSession` function checks if both confirmations exist, and only then creates the `session_jitsi` entity.
+
+5. **Rejection Creates Entity**: Rejection doesn't update the session entity directly. Instead, it creates a `session_rejection` entity, and the status is computed as `declined` when this entity exists.
+
+6. **Supporting Entities**:
+   - `session_confirmation`: Links to session via `sessionKey`, contains `confirmedBy` (mentorWallet or learnerWallet)
+   - `session_rejection`: Links to session via `sessionKey`, contains `rejectedBy` (mentorWallet or learnerWallet)
+   - `session_jitsi`: Links to session via `sessionKey`, contains `videoJoinUrl` in payload
+   - `session_txhash`: Tracks transaction hash for session creation (separate entity)
+
+7. **Status Computation Logic** (from `listSessions`):
+   ```typescript
+   if (mentorRejected || learnerRejected) {
+     finalStatus = 'declined';
+   } else if (mentorConfirmed && learnerConfirmed) {
+     // Both confirmed - mark as scheduled only if currently pending
+     // Preserve 'completed' and 'in-progress' statuses (don't overwrite)
+     if (entityStatus === 'pending') {
+       finalStatus = 'scheduled';
+     } else if (entityStatus === 'completed' || entityStatus === 'in-progress') {
+       // Preserve completed/in-progress status
+       finalStatus = entityStatus;
+     } else {
+       // For scheduled or other statuses, ensure it's scheduled
+       finalStatus = 'scheduled';
+     }
+   } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
+     finalStatus = 'pending'; // Revert if status doesn't match confirmations
+   }
+   ```
+   
+   **Critical Fix**: The status computation now preserves `'completed'` and `'in-progress'` statuses when both parties have confirmed. Previously, these statuses were being overwritten to `'scheduled'`, causing completed sessions to disappear from profile stats, notifications, and past filters.
+
+8. **Future States**: 
+   - `in-progress`: Manual status update (future feature)
+   - `completed`: Manual status update after session ends
+   - `cancelled`: Reserved for canceling already-scheduled sessions (not yet implemented)
+
+9. **Expiration**: Session entities expire at `sessionDate + duration + 1 hour buffer`. Supporting entities (confirmations, rejections, Jitsi) use the same expiration.
+
+10. **Payment Flow** (not shown in diagram):
+    - `session_payment_submission`: Created when learner submits payment txHash
+    - `session_payment_validation`: Created when mentor validates payment
+    - These are separate entities linked via `sessionKey`
+
+## Files Referenced
+
+- `lib/arkiv/sessions.ts` - Session creation, confirmation, rejection, and status computation
+- `app/api/sessions/route.ts` - API route for session operations
+- `app/me/sessions/page.tsx` - Frontend UI for viewing and managing sessions
+- `components/RequestMeetingModal.tsx` - Modal for requesting meetings
+
 ## State Transitions and Who Can Trigger Them
 
 Session state is computed from session entity plus confirmation/rejection entities:
@@ -41,7 +110,7 @@ Session state is computed from session entity plus confirmation/rejection entiti
 - Triggered by: Both mentor and learner must confirm
 - Mechanism: Create `session_confirmation` entity with `sessionKey` and `confirmedBy` (mentorWallet or learnerWallet)
 - Status computed: If both `session_confirmation` entities exist, status is "scheduled"
-- Jitsi URL generated: On first confirmation, `session_jitsi` entity created with room name and join URL
+- Jitsi URL generated: When both parties confirm, `session_jitsi` entity created with room name and join URL
 
 ### Transition to "in-progress"
 - Triggered by: Manual status update (future feature) or time-based (sessionDate reached)
