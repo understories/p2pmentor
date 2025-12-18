@@ -384,7 +384,7 @@ export function SidebarNav() {
         
         {/* Sessions Button - above upcoming sessions */}
         {level >= 1 && (
-          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+          <div className="mt-4 pt-4 group-hover:border-t group-hover:border-gray-200/50 group-hover:dark:border-gray-700/50 w-full">
             <div className="relative group/sessions pointer-events-auto">
               <Link
                 href="/me/sessions"
