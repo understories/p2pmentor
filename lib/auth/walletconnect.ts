@@ -34,6 +34,13 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
   try {
     // Initialize WalletConnect provider with Mendoza chain only
     // Reuse mendoza config from SDK for consistency
+    console.log('[WalletConnect] Initializing provider', {
+      projectId: projectId ? `${projectId.substring(0, 8)}...` : 'missing',
+      chainId: mendoza.id,
+      chainName: mendoza.name,
+      rpcUrl: mendoza.rpcUrls.default.http[0],
+    });
+    
     const provider = await EthereumProvider.init({
       projectId,
       chains: [mendoza.id],
@@ -48,9 +55,13 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
         icons: [],
       },
     });
+    
+    console.log('[WalletConnect] Provider initialized successfully');
 
     // Enable provider (starts connection flow)
+    console.log('[WalletConnect] Enabling provider (starting connection flow)');
     await provider.enable();
+    console.log('[WalletConnect] Provider enabled, checking accounts...');
 
     // Get accounts from provider
     const accounts = provider.accounts;
@@ -118,11 +129,30 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
 
     return address;
   } catch (error: any) {
-    console.error('[WalletConnect] Connection failed:', error);
+    console.error('[WalletConnect] Connection failed:', {
+      error,
+      message: error?.message,
+      code: error?.code,
+      data: error?.data,
+      stack: error?.stack,
+    });
     
     // Handle user rejection
     if (error?.code === 4001 || error?.message?.includes('User rejected') || error?.message?.includes('User closed')) {
       throw new Error('Connection cancelled by user');
+    }
+    
+    // Handle session settlement errors (common with WalletConnect v2)
+    if (error?.message?.includes('Invalid session settle request') || 
+        error?.message?.includes('session settle') ||
+        error?.message?.includes('namespaces')) {
+      throw new Error('WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Mendoza testnet. Try using MetaMask instead.');
+    }
+    
+    // Handle namespace errors
+    if (error?.message?.includes('No accounts found in approved namespaces') ||
+        error?.message?.includes('approved namespaces')) {
+      throw new Error('Wallet connection failed: No accounts found. Please ensure your wallet has accounts and try again. If using Rainbow or another mobile wallet, make sure you have at least one account set up.');
     }
     
     throw new Error(error?.message || 'Failed to connect with WalletConnect');
