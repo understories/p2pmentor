@@ -60,10 +60,10 @@ export default function OnboardingPage() {
     }
   }, [router]);
 
-  // If onboarding is complete, redirect to garden
+  // If onboarding is complete, redirect to me dashboard
   useEffect(() => {
     if (!loading && isComplete && wallet) {
-      router.push('/garden/public-board');
+      router.push('/me');
     }
   }, [loading, isComplete, wallet, router]);
 
@@ -269,7 +269,7 @@ export default function OnboardingPage() {
               )}
 
               {currentStep === 'complete' && (
-                <CompleteStep onEnterGarden={() => router.push('/garden/public-board')} />
+                <CompleteStep onEnterGarden={() => router.push('/me')} />
               )}
               </>
             )}

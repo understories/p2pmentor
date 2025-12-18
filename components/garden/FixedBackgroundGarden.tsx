@@ -10,12 +10,15 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { usePathname } from 'next/navigation';
 import { GardenLayer } from './GardenLayer';
 import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { profileToGardenSkills } from '@/lib/garden/types';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { SPACE_ID } from '@/lib/config';
 import type { Skill } from '@/lib/arkiv/skill';
 import type { GardenSkill } from '@/lib/garden/types';
 
@@ -32,6 +35,20 @@ export function FixedBackgroundGarden() {
   const [userSkills, setUserSkills] = useState<GardenSkill[]>([]);
   const [learningSkillIds, setLearningSkillIds] = useState<string[]>([]);
   const skillProfileCounts = useSkillProfileCounts();
+  const arkivBuilderMode = useArkivBuilderMode();
+
+  // Deduplicate skills by name (case-insensitive) to prevent duplicates
+  const deduplicatedSystemSkills = useMemo(() => {
+    const seen = new Set<string>();
+    return allSystemSkills.filter(skill => {
+      const normalizedName = skill.name.toLowerCase().trim();
+      if (seen.has(normalizedName)) {
+        return false;
+      }
+      seen.add(normalizedName);
+      return true;
+    });
+  }, [allSystemSkills]);
 
   // Load all system skills from /api/skills/explore (same as skills page)
   useEffect(() => {
@@ -95,19 +112,45 @@ export function FixedBackgroundGarden() {
   }, []);
 
   // Don't render if no skills loaded yet
-  if (allSystemSkills.length === 0) {
+  if (deduplicatedSystemSkills.length === 0) {
     return null;
   }
 
+  const gardenContent = (
+    <GardenLayer
+      skills={userSkills}
+      allSkills={deduplicatedSystemSkills}
+      skillProfileCounts={skillProfileCounts}
+      learningSkillIds={learningSkillIds}
+      className="pointer-events-none"
+    />
+  );
+
   return (
     <div className="fixed inset-0 z-[1] pointer-events-none">
-      <GardenLayer
-        skills={userSkills}
-        allSkills={allSystemSkills}
-        skillProfileCounts={skillProfileCounts}
-        learningSkillIds={learningSkillIds}
-        className="pointer-events-none"
-      />
+      {arkivBuilderMode ? (
+        <ArkivQueryTooltip
+          query={[
+            `GET /api/skills/explore`,
+            `Queries:`,
+            `1. listSkills({ status: 'active', limit: 1000, spaceId: '${SPACE_ID}' })`,
+            `   → type='skill', status='active', spaceId='${SPACE_ID}'`,
+            `2. listUserProfiles({ spaceId: '${SPACE_ID}' })`,
+            `   → type='user_profile', spaceId='${SPACE_ID}'`,
+            `3. Deduplicate skills by name_canonical (case-insensitive)`,
+            `4. Count profiles with skill:`,
+            `   - Check skill_ids array (new format)`,
+            `   - Check skillsArray (legacy format)`,
+            `   - Check skills string (legacy format)`,
+            `Returns: Skill[] with profileCount for each skill`
+          ]}
+          label="Skill Garden"
+        >
+          {gardenContent}
+        </ArkivQueryTooltip>
+      ) : (
+        gardenContent
+      )}
     </div>
   );
 }

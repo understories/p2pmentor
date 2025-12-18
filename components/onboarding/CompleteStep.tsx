@@ -23,7 +23,7 @@ export function CompleteStep({ onEnterGarden }: CompleteStepProps) {
   }, []);
 
   const handleEnterGarden = () => {
-    router.push('/garden/public-board');
+    router.push('/me');
     onEnterGarden();
   };
 
