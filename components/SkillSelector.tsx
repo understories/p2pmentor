@@ -112,7 +112,8 @@ export function SkillSelector({
     try {
       setLoading(true);
       // Use API route (Arkiv-native: queries actual Arkiv entities)
-      const res = await fetch('/api/skills?status=active&limit=100');
+      // Use high limit to ensure all skills are shown
+      const res = await fetch('/api/skills?status=active&limit=500');
       if (!res.ok) {
         throw new Error(`Failed to load skills: ${res.status}`);
       }

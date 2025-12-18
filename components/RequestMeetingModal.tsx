@@ -401,9 +401,9 @@ export function RequestMeetingModal({
             </button>
           </div>
 
-          <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="mb-6 p-3 bg-blue-50 dark:bg-blue-900/80 backdrop-blur-sm border border-blue-200 dark:border-blue-800 rounded-lg">
             <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border border-green-300/30 dark:border-green-500/20 flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/40 to-blue-500/40 dark:from-green-400/30 dark:to-blue-500/30 backdrop-blur-sm flex items-center justify-center border border-green-300/50 dark:border-green-500/40 flex-shrink-0">
                 <EmojiIdentitySeed profile={profile} size="md" showGlow={true} />
               </div>
               <div className="flex-1">
@@ -434,7 +434,7 @@ export function RequestMeetingModal({
           {/* Confirmation Preview */}
           {showConfirmation ? (
             <div className="space-y-4">
-              <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/80 backdrop-blur-sm border border-blue-200 dark:border-blue-800 rounded-lg">
                 <h3 className="text-lg font-semibold mb-3 text-blue-900 dark:text-blue-200">
                   {mode === 'offer' 
                     ? 'Confirm Help Offer' 
@@ -677,7 +677,7 @@ export function RequestMeetingModal({
 
             {/* Payment Info for Paid Offers (request mode) */}
             {mode === 'request' && offer?.isPaid && offer.paymentAddress && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/80 backdrop-blur-sm border border-purple-200 dark:border-purple-800 rounded-lg">
                 <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-2">
                   💰 Payment Required
                 </p>
@@ -697,7 +697,7 @@ export function RequestMeetingModal({
 
             {/* Payment Settings for Offer Mode */}
             {mode === 'offer' && (
-              <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="p-4 bg-purple-50 dark:bg-purple-900/80 backdrop-blur-sm border border-purple-200 dark:border-purple-800 rounded-lg">
                 <div className="mb-4">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
