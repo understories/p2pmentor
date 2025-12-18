@@ -22,12 +22,13 @@ export interface ProfileCompleteness {
  * Recommended fields:
  * - bio or bioShort (at least one)
  * - skillsArray (at least one skill)
- * - availabilityWindow
+ * - availability (availabilityWindow OR availability entities)
  * 
  * @param profile - User profile to check
+ * @param hasAvailability - Optional: whether user has availability entities (modern format)
  * @returns Completeness object with percentage and checklist
  */
-export function calculateProfileCompleteness(profile: UserProfile | null): ProfileCompleteness {
+export function calculateProfileCompleteness(profile: UserProfile | null, hasAvailability?: boolean): ProfileCompleteness {
   if (!profile) {
     return {
       percentage: 0,
@@ -67,7 +68,8 @@ export function calculateProfileCompleteness(profile: UserProfile | null): Profi
     missing.push('Skills');
   }
 
-  if (profile.availabilityWindow && profile.availabilityWindow.trim()) {
+  // Check availability: either legacy availabilityWindow OR modern availability entities
+  if (hasAvailability || (profile.availabilityWindow && profile.availabilityWindow.trim())) {
     completed.push('Availability');
   } else {
     missing.push('Availability');

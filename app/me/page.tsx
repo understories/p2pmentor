@@ -59,6 +59,7 @@ export default function MePage() {
     readCount?: number;
     totalMaterials?: number;
   }>>([]);
+  const [hasAvailability, setHasAvailability] = useState<boolean>(false);
   const arkivBuilderMode = useArkivBuilderMode();
   const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
@@ -195,11 +196,22 @@ export default function MePage() {
       } else {
         setProfileSkillsCount(0);
       }
+      
+      // Check for availability entities (modern format)
+      try {
+        const { listAvailabilityForWallet } = await import('@/lib/arkiv/availability');
+        const availabilities = await listAvailabilityForWallet(wallet);
+        setHasAvailability(availabilities.length > 0);
+      } catch (err) {
+        // If availability check fails, assume no availability
+        setHasAvailability(false);
+      }
     } catch (err) {
       console.error('Error loading profile status:', err);
       setHasProfile(null);
       setProfile(null);
       setProfileSkillsCount(0);
+      setHasAvailability(false);
     }
   };
 
@@ -504,7 +516,7 @@ export default function MePage() {
 
         {/* Profile Completeness Indicator */}
         {hasProfile && profile && (() => {
-          const completeness = calculateProfileCompleteness(profile);
+          const completeness = calculateProfileCompleteness(profile, hasAvailability);
           if (completeness.percentage < 100) {
             return (
               <div className="mb-6 p-4 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm border border-yellow-200 dark:border-yellow-800 rounded-lg">
