@@ -561,9 +561,13 @@ export default function SessionsPage() {
         return sessionTime > now;
       });
     }
-    // past: filter sessions that have ended
+    // past: filter sessions that have ended OR pending sessions where sessionDate is in the past
     return sessionList.filter(s => {
       const sessionTime = new Date(s.sessionDate).getTime();
+      // Include pending sessions where sessionDate is in the past (expired pending)
+      if (s.status === 'pending' && sessionTime < now) {
+        return true;
+      }
       const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
       const buffer = 60 * 60 * 1000; // 1 hour buffer
       const sessionEnd = sessionTime + duration + buffer;
@@ -1085,9 +1089,19 @@ export default function SessionsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                          <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
-                            Pending
-                          </span>
+                          {(() => {
+                            const sessionTime = new Date(session.sessionDate).getTime();
+                            const isExpired = sessionTime < Date.now();
+                            return isExpired ? (
+                              <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
+                                Expired
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
+                                Pending
+                              </span>
+                            );
+                          })()}
                           {arkivBuilderMode && session.key && (
                             <div className="flex items-center gap-2 ml-auto">
                               <ViewOnArkivLink
