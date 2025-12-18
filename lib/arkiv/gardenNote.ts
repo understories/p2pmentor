@@ -290,7 +290,12 @@ export async function listGardenNotes({
         const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
 
         // Apply filters
-        if (targetWallet && targetWalletAttr) {
+        if (targetWallet) {
+          // When filtering by targetWallet, only show notes that have a matching targetWallet
+          // Notes without a targetWallet (public notes) should be excluded
+          if (!targetWalletAttr) {
+            continue; // Skip notes without a targetWallet when filtering by targetWallet
+          }
           const targetWalletStr = String(targetWalletAttr);
           if (targetWalletStr.toLowerCase() !== targetWallet.toLowerCase()) {
             continue;
