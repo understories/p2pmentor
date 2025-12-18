@@ -14,15 +14,20 @@ Your beta access is stored in your browser, so you won't need to enter it again.
 
 ## Step 2: Connect Your Wallet
 
-p2pmentor uses your wallet address as your identity. You have two options:
+p2pmentor uses your wallet address as your identity. You have three options:
 
 **Option A: MetaMask (Recommended)**
 1. Install MetaMask browser extension if you don't have it
-2. Click "Connect with MetaMask" on the auth page
+2. Click "Connect Wallet" on the auth page
 3. Approve the connection in MetaMask
 4. If Mendoza testnet isn't added, you'll be prompted to add it automatically
 
-**Option B: Passkey (No Wallet Extension Needed)**
+**Option B: WalletConnect**
+1. Click "Connect with WalletConnect" on the auth page
+2. Scan the QR code with your mobile wallet (desktop) or approve the deep link (mobile)
+3. Approve the connection in your wallet app
+
+**Option C: Passkey (No Wallet Extension Needed)**
 1. Click "Login with Passkey" on the auth page
 2. Use your device's biometric authentication (fingerprint, face ID, etc.)
 3. A wallet is automatically created for you

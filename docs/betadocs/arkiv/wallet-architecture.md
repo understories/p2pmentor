@@ -44,7 +44,7 @@ The **signing wallet** is used to sign transactions on Arkiv:
 
 ### How It Works
 
-1. **User connects profile wallet** (MetaMask or example wallet)
+1. **User connects profile wallet** (MetaMask, WalletConnect, or passkey)
    - Profile wallet address stored in `localStorage`
    - No funds required in profile wallet
 

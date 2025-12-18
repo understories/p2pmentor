@@ -22,6 +22,7 @@
 ### Integrations
 
 - Wallet based authentication with MetaMask
+- WalletConnect for QR code and deep link wallet connection
 - Passkey authentication (WebAuthn-based) with embedded EVM keypairs
 - Jitsi for video sessions
 - GitHub integration for issue linking
@@ -41,7 +42,7 @@
 - **Framework**: Next.js 15+ (App Router)
 - **Language**: TypeScript
 - **Data Layer**: Arkiv Network (Mendoza testnet)
-- **Authentication**: MetaMask + Ethereum Passkeys (WebAuthn)
+- **Authentication**: MetaMask + WalletConnect + Ethereum Passkeys (WebAuthn)
 - **Video**: Jitsi
 - **Package Manager**: pnpm (preferred) or yarn
 

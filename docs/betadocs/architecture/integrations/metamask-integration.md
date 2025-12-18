@@ -297,6 +297,7 @@ Include self-healing logic for legacy encoded URLs that may persist in browser h
 
 - [Arkiv MetaMask Tutorial](https://github.com/Arkiv-Network/learn-arkiv/tree/main/tutorial-source-code/metamask-tutorial)
 - [Wallet Architecture](/docs/arkiv/wallet-architecture)
+- [WalletConnect Integration](walletconnect-integration.md)
 - [Passkey Integration](/docs/architecture/passkey-integration)
 - [Jitsi Integration](/docs/architecture/integrations/jitsi-integration)
 
