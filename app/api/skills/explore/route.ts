@@ -47,12 +47,31 @@ export async function GET(request: Request) {
     });
     
     // Get all profiles (with same space ID filtering)
-    const profiles = await listUserProfiles({ spaceId, spaceIds });
+    const allProfiles = await listUserProfiles({ spaceId, spaceIds });
     
     console.log('[api/skills/explore] Profiles query:', {
       spaceId,
       spaceIds,
-      profilesFound: profiles.length,
+      profilesFound: allProfiles.length,
+    });
+    
+    // Deduplicate profiles by wallet (most recent for each wallet)
+    // This ensures consistent counts with /api/profiles which also deduplicates
+    // Reuse same logic as /api/profiles/route.ts for consistency
+    const profilesMap = new Map<string, typeof allProfiles[0]>();
+    allProfiles.forEach((profile) => {
+      const existing = profilesMap.get(profile.wallet);
+      if (!existing || (profile.createdAt && existing.createdAt && new Date(profile.createdAt) > new Date(existing.createdAt))) {
+        profilesMap.set(profile.wallet, profile);
+      }
+    });
+    
+    const profiles = Array.from(profilesMap.values());
+    
+    console.log('[api/skills/explore] Deduplicated profiles:', {
+      beforeDedupe: allProfiles.length,
+      afterDedupe: profiles.length,
+      uniqueWallets: profiles.length,
     });
     
     // Deduplicate skills by name_canonical (case-insensitive) or slug
