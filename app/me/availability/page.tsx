@@ -205,7 +205,6 @@ export default function AvailabilityPage() {
     setEditingKey(null);
     setWeeklyAvailability(null);
     setTimezone(profile?.timezone || 'UTC');
-    setUseStructuredFormat(true);
     setError('');
     setSuccess('');
   };
