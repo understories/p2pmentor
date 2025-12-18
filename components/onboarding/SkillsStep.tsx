@@ -254,6 +254,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       // Trigger garden animation callback if provided
       onSkillAdded?.(skill.key);
 
+      // Reset submitting state before resetting form
+      setIsSubmitting(false);
+
       // After planting, show "anything else?" prompt
       // Don't reset - let user decide to add more or continue
       setStep('input');
