@@ -627,6 +627,7 @@ export async function listSessions(params?: {
     // Determine final status:
     // - If either party rejected, mark as declined (rejecting a pending request)
     // - If both confirmed and was pending, mark as scheduled
+    // - Preserve 'completed' and 'in-progress' statuses (don't overwrite)
     // - cancelled is reserved for canceling already-scheduled sessions (future feature)
     // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
     const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
@@ -637,8 +638,17 @@ export async function listSessions(params?: {
       // 'cancelled' is reserved for canceling already-scheduled sessions
       finalStatus = 'declined';
     } else if (mentorConfirmed && learnerConfirmed) {
-      // Both confirmed - should be scheduled (regardless of current status)
-      finalStatus = 'scheduled';
+      // Both confirmed - mark as scheduled only if currently pending
+      // Preserve 'completed' and 'in-progress' statuses (don't overwrite)
+      if (entityStatus === 'pending') {
+        finalStatus = 'scheduled';
+      } else if (entityStatus === 'completed' || entityStatus === 'in-progress') {
+        // Preserve completed/in-progress status
+        finalStatus = entityStatus;
+      } else {
+        // For scheduled or other statuses, ensure it's scheduled
+        finalStatus = 'scheduled';
+      }
     } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
       // Status says scheduled but confirmations don't match - revert to pending
       finalStatus = 'pending';
@@ -941,7 +951,8 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   
   // Determine final status:
   // - If either party rejected, mark as declined (rejecting a pending request)
-  // - If both confirmed, mark as scheduled
+  // - If both confirmed, mark as scheduled (unless already completed/in-progress)
+  // - Preserve 'completed' and 'in-progress' statuses (don't overwrite)
   // - cancelled is reserved for canceling already-scheduled sessions (future feature)
   // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
   const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
@@ -952,8 +963,17 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     // 'cancelled' is reserved for canceling already-scheduled sessions
     finalStatus = 'declined';
   } else if (mentorConfirmed && learnerConfirmed) {
-    // Both confirmed - should be scheduled (regardless of current status)
-    finalStatus = 'scheduled';
+    // Both confirmed - mark as scheduled only if currently pending
+    // Preserve 'completed' and 'in-progress' statuses (don't overwrite)
+    if (entityStatus === 'pending') {
+      finalStatus = 'scheduled';
+    } else if (entityStatus === 'completed' || entityStatus === 'in-progress') {
+      // Preserve completed/in-progress status
+      finalStatus = entityStatus;
+    } else {
+      // For scheduled or other statuses, ensure it's scheduled
+      finalStatus = 'scheduled';
+    }
   } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
     // Status says scheduled but confirmations don't match - revert to pending
     finalStatus = 'pending';
