@@ -1107,11 +1107,13 @@ export async function confirmSession({
   }
 
   // Check if already confirmed
+  // CRITICAL: Filter by spaceId to ensure we only find confirmations in the correct space
   const publicClient = getPublicClient();
   const existingConfirmations = await publicClient.buildQuery()
     .where(eq('type', 'session_confirmation'))
     .where(eq('sessionKey', sessionKey))
     .where(eq('confirmedBy', confirmedByWallet))
+    .where(eq('spaceId', spaceId))
     .withAttributes(true)
     .limit(1)
     .fetch();
