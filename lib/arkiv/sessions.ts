@@ -107,18 +107,17 @@ export async function createSession({
   };
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
-  const sessionStartTime = new Date(sessionDate).getTime();
+  const sessionStartTime = Math.floor(new Date(sessionDate).getTime()); // Ensure integer milliseconds
   // Ensure duration is always an integer to prevent float propagation
   const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
   const sessionDurationMs = durationMinutes * 60 * 1000; // Convert minutes to milliseconds
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer after session ends
-  const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
-  const now = Date.now();
+  const expirationTime = Math.floor(sessionStartTime + sessionDurationMs + bufferMs); // Ensure integer
+  const now = Math.floor(Date.now()); // Ensure integer milliseconds
   // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
   const expiresInSecondsRaw = (expirationTime - now) / 1000;
-  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw)); // Ensure at least 1 second
-  // Final safety check: ensure it's definitely an integer
-  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
+  // Use Math.trunc to ensure integer, then Math.floor for safety, then parseInt to guarantee integer type
+  const expiresInSecondsInt = parseInt(Math.floor(Math.max(1, Math.trunc(expiresInSecondsRaw))).toString(), 10);
 
   let entityKey: string;
   let txHash: string;
