@@ -590,6 +590,12 @@ export default function AdminDashboard() {
               {loadingExampleWallet ? 'Loading...' : 'Default Wallet'}
             </button>
             <Link
+              href="/admin/m1-exam"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium"
+            >
+              M1 Exam Checklist
+            </Link>
+            <Link
               href="/"
               className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
             >
