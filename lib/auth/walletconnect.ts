@@ -41,10 +41,14 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       rpcUrl: mendoza.rpcUrls.default.http[0],
     });
     
+    // Include Ethereum mainnet (1) as a fallback chain so wallets can connect
+    // Mendoza is a custom chain not in WalletConnect registry, so wallets may not recognize it
+    // We'll add Mendoza after connection using wallet_addEthereumChain
     const provider = await EthereumProvider.init({
       projectId,
-      chains: [mendoza.id],
+      chains: [1, mendoza.id], // Ethereum mainnet (1) + Mendoza
       rpcMap: {
+        1: 'https://eth.llamarpc.com', // Public Ethereum RPC
         [mendoza.id]: mendoza.rpcUrls.default.http[0],
       },
       showQrModal: true, // Use built-in QR modal for Phase 0
@@ -95,27 +99,57 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       setWalletConnectProvider(null);
     });
 
-    // Check chain ID and attempt to switch if needed (non-critical)
+    // After connection, add Mendoza to wallet and switch to it
+    // This ensures wallets can add Mendoza even if they don't recognize it during connection
+    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Mendoza
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
       const expectedChainId = `0x${mendoza.id.toString(16)}`;
       
       if (chainId !== expectedChainId) {
-        console.log('[WalletConnect] Chain mismatch, attempting to switch to Mendoza');
+        console.log('[WalletConnect] Not on Mendoza, attempting to add/switch to Mendoza');
+        const chainIdHex = expectedChainId;
+        
         try {
+          // First try to switch (if chain already exists in wallet)
           await provider.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: expectedChainId }],
+            params: [{ chainId: chainIdHex }],
           });
+          console.log('[WalletConnect] Successfully switched to Mendoza');
         } catch (switchError: any) {
-          // Non-critical - show non-blocking prompt
-          console.warn('[WalletConnect] Failed to switch chain (non-critical):', switchError);
-          // Could show a toast/notification here: "Please switch to Mendoza in your wallet"
+          // If switch fails (chain doesn't exist), try to add it
+          // This will prompt the wallet to add Mendoza network
+          console.log('[WalletConnect] Switch failed, attempting to add Mendoza chain to wallet');
+          try {
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: chainIdHex,
+                  chainName: mendoza.name,
+                  nativeCurrency: mendoza.nativeCurrency,
+                  rpcUrls: mendoza.rpcUrls.default.http,
+                  blockExplorerUrls: mendoza.blockExplorers?.default?.url ? [mendoza.blockExplorers.default.url] : [],
+                },
+              ],
+            });
+            console.log('[WalletConnect] Successfully added Mendoza chain to wallet');
+          } catch (addError: any) {
+            // Non-critical - user may have rejected or wallet doesn't support adding chains
+            console.warn('[WalletConnect] Failed to add/switch to Mendoza (non-critical):', {
+              switchError: switchError?.message || switchError,
+              addError: addError?.message || addError,
+            });
+            // Connection still succeeds, user can manually switch to Mendoza later
+          }
         }
+      } else {
+        console.log('[WalletConnect] Already on Mendoza chain');
       }
     } catch (chainError) {
       // Non-critical - continue even if chain check fails
-      console.warn('[WalletConnect] Failed to check chain (non-critical):', chainError);
+      console.warn('[WalletConnect] Failed to check/add chain (non-critical):', chainError);
     }
 
     // Telemetry: log successful connection
