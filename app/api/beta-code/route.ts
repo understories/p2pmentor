@@ -9,6 +9,10 @@ import { trackBetaCodeUsage, getBetaCodeUsage, canUseBetaCode } from '@/lib/arki
 import { createBetaAccess } from '@/lib/arkiv/betaAccess';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
+// In-memory cache to prevent duplicate concurrent requests
+// Key: normalized code, Value: Promise that resolves when tracking completes
+const pendingTrackingRequests = new Map<string, Promise<{ key: string; txHash: string }>>();
+
 /**
  * POST /api/beta-code
  * 
@@ -52,9 +56,54 @@ export async function POST(request: NextRequest) {
         }, { status: 403 }); // 403 Forbidden
       }
 
+      // Prevent duplicate concurrent requests for the same code
+      const normalizedCode = code.toLowerCase().trim();
+      const existingRequest = pendingTrackingRequests.get(normalizedCode);
+      
+      if (existingRequest) {
+        // Another request is already processing this code - wait for it
+        console.log(`[api/beta-code] Duplicate request detected for code "${normalizedCode}", waiting for existing request...`);
+        try {
+          const { key, txHash } = await existingRequest;
+          
+          // Get updated usage (use SPACE_ID from config)
+          const updatedUsage = await getBetaCodeUsage(code, SPACE_ID);
+          
+          return NextResponse.json({
+            ok: true,
+            key,
+            txHash,
+            usage: updatedUsage ? {
+              usageCount: updatedUsage.usageCount,
+              limit: updatedUsage.limit,
+              remaining: Math.max(0, updatedUsage.limit - updatedUsage.usageCount),
+            } : null,
+            message: 'Beta code usage tracked (duplicate request handled)',
+          });
+        } catch (error: any) {
+          // If the existing request failed, remove it and let this request try
+          pendingTrackingRequests.delete(normalizedCode);
+          // Fall through to create new request
+        }
+      }
+
+      // Create new tracking request and store it
+      const trackingPromise = (async () => {
+        try {
+          return await trackBetaCodeUsage(code, 50); // Default limit 50
+        } finally {
+          // Clean up after 5 seconds (transaction should complete by then)
+          setTimeout(() => {
+            pendingTrackingRequests.delete(normalizedCode);
+          }, 5000);
+        }
+      })();
+      
+      pendingTrackingRequests.set(normalizedCode, trackingPromise);
+
       // Track usage (increment count)
       try {
-        const { key, txHash } = await trackBetaCodeUsage(code, 50); // Default limit 50
+        const { key, txHash } = await trackingPromise;
         
         // Get updated usage (use SPACE_ID from config)
         const updatedUsage = await getBetaCodeUsage(code, SPACE_ID);
@@ -70,6 +119,9 @@ export async function POST(request: NextRequest) {
           } : null,
         });
       } catch (error: any) {
+        // Remove from pending on error
+        pendingTrackingRequests.delete(normalizedCode);
+        
         console.error('[api/beta-code] Error tracking beta code usage:', error);
         // Check if it's a transaction replacement error
         const errorMessage = error?.message || String(error);
