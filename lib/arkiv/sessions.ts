@@ -835,11 +835,9 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     }
   }
 
-  // Get session spaceId for filtering queries
-  const sessionSpaceId = getAttr('spaceId') || SPACE_ID;
-
   // Check for confirmations, rejections, payment validation, and Jitsi info
   // CRITICAL: Filter by spaceId to ensure we only find entities in the correct space
+  // (sessionSpaceId already defined above)
   const [mentorConfirmations, learnerConfirmations, mentorRejections, learnerRejections, paymentSubmission, paymentValidation, jitsiInfo] = await Promise.all([
     publicClient.buildQuery()
       .where(eq('type', 'session_confirmation'))
