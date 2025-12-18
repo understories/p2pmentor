@@ -587,12 +587,12 @@ export default function ProfileDetailPage() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Links</p>
               <div className="flex flex-wrap gap-2">
               {profile.contactLinks.twitter && (
-                  <a href={profile.contactLinks.twitter} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  <a href={profile.contactLinks.twitter.startsWith('http') ? profile.contactLinks.twitter : `https://x.com/${profile.contactLinks.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                     Twitter
                 </a>
               )}
               {profile.contactLinks.github && (
-                  <a href={profile.contactLinks.github} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  <a href={profile.contactLinks.github.startsWith('http') ? profile.contactLinks.github : `https://github.com/${profile.contactLinks.github.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
                     GitHub
                 </a>
               )}
