@@ -102,11 +102,15 @@ This document describes the architecture and structural decisions for p2pmentor 
 
 ## Environment Variables
 
-See `.env.example` for complete list. Key variables:
+See `.env.example` for complete list with setup instructions. Key variables:
 
 - `ARKIV_PRIVATE_KEY`: Private key for server-side operations (optional for client-only)
+- `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID`: WalletConnect Cloud project ID (see `.env.example` for setup instructions)
+- `NEXT_PUBLIC_WALLETCONNECT_ENABLED`: Enable WalletConnect button (`true`/`false`)
 - `JITSI_BASE_URL`: Jitsi instance URL (defaults to https://meet.jit.si)
 - `NEXT_PUBLIC_*`: Public variables accessible in browser
+
+**For Vercel deployment:** Set all environment variables in Vercel dashboard (Settings → Environment Variables).
 
 ## Code Reuse Strategy
 
