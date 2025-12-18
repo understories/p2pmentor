@@ -32,6 +32,10 @@ export function useOnboardingLevel(wallet: string | null | undefined) {
         setLoading(true);
         setError(null);
 
+        // Add small delay to allow Arkiv indexing after profile updates
+        // This prevents race conditions where profile was just updated but not yet indexed
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         const [calculatedLevel, complete, progressData] = await Promise.all([
           calculateOnboardingLevel(walletAddress),
           isOnboardingComplete(walletAddress),

@@ -60,12 +60,29 @@ export default function OnboardingPage() {
     }
   }, [router]);
 
-  // If onboarding is complete, redirect to me dashboard
+  // Handle returnTo redirect (from checkOnboardingRoute)
+  // Only redirect if onboarding is truly complete (level >= 2)
   useEffect(() => {
-    if (!loading && isComplete && wallet) {
+    if (typeof window !== 'undefined' && !loading && wallet && level >= 2) {
+      const searchParams = new URLSearchParams(window.location.search);
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo && returnTo.startsWith('/')) {
+        // Clear returnTo param and redirect
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, '', cleanUrl);
+        router.push(returnTo);
+        return;
+      }
+    }
+  }, [loading, wallet, level, router]);
+
+  // If onboarding is complete (level >= 2), redirect to me dashboard
+  // Only redirect if truly complete (has ask/offer), not just profile + skills
+  useEffect(() => {
+    if (!loading && isComplete && wallet && level >= 2) {
       router.push('/me');
     }
-  }, [loading, isComplete, wallet, router]);
+  }, [loading, isComplete, wallet, level, router]);
 
   // Load garden skills from profile
   useEffect(() => {

@@ -216,7 +216,8 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
       // Small delay to allow Arkiv to index the new profile entity
       // This ensures the profile count includes the newly added profile
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Also allows level calculation to see the updated profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Show confirmation based on whether skill was new or existing
       if (wasNewSkill) {
