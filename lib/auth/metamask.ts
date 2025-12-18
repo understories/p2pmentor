@@ -199,27 +199,29 @@ export async function connectWallet(): Promise<`0x${string}`> {
       // If wallet_revokePermissions is not supported or fails, continue anyway
       // Some wallets may not support this method
     }
-  }
 
-  // Request permissions explicitly - this will show account selection dialog
-  // if permissions were revoked, or if this is the first connection
-  try {
-    await window.ethereum.request({
-      method: "wallet_requestPermissions",
-      params: [
-        {
-          eth_accounts: {},
-        },
-      ],
-    });
-  } catch (error: any) {
-    // If user denies, throw a clear error
-    if (error?.code === 4001 || error?.message?.includes('User rejected')) {
-      throw new Error('Connection cancelled by user');
+    // Request permissions explicitly - this will show account selection dialog
+    // after permissions were revoked, or if this is the first connection
+    try {
+      await window.ethereum.request({
+        method: "wallet_requestPermissions",
+        params: [
+          {
+            eth_accounts: {},
+          },
+        ],
+      });
+    } catch (error: any) {
+      // If user denies, throw a clear error
+      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+        throw new Error('Connection cancelled by user');
+      }
+      // If wallet_requestPermissions fails, fall back to eth_requestAccounts
+      // This maintains backward compatibility
     }
-    // If wallet_requestPermissions fails, fall back to eth_requestAccounts
-    // This maintains backward compatibility
   }
+  // If storedWallet exists (reconnecting), skip wallet_requestPermissions
+  // and go directly to eth_requestAccounts since permissions already exist
 
   // Then request accounts (this will use the selected account)
   try {
