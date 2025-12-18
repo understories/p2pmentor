@@ -835,6 +835,9 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     }
   }
 
+  // Get session spaceId for filtering queries
+  const sessionSpaceId = getAttr('spaceId') || SPACE_ID;
+
   // Check for confirmations, rejections, payment validation, and Jitsi info
   // CRITICAL: Filter by spaceId to ensure we only find entities in the correct space
   const [mentorConfirmations, learnerConfirmations, mentorRejections, learnerRejections, paymentSubmission, paymentValidation, jitsiInfo] = await Promise.all([
@@ -842,6 +845,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       .where(eq('type', 'session_confirmation'))
       .where(eq('sessionKey', entity.key))
       .where(eq('confirmedBy', getAttr('mentorWallet')))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .limit(1)
       .fetch(),
@@ -849,6 +853,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       .where(eq('type', 'session_confirmation'))
       .where(eq('sessionKey', entity.key))
       .where(eq('confirmedBy', getAttr('learnerWallet')))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .limit(1)
       .fetch(),
