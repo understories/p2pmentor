@@ -23,6 +23,12 @@ const PUBLIC_API_ROUTES = [
   '/api/docs', // Documentation API routes (list, content, git-history)
 ];
 
+// Admin API routes require beta access (same as admin dashboard)
+// These are protected by admin password authentication in the route handlers
+const ADMIN_API_ROUTES = [
+  '/api/admin', // All admin API routes
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -35,6 +41,12 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith('/api/') && 
       PUBLIC_API_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))) {
     return NextResponse.next();
+  }
+
+  // Admin API routes require beta access (same as admin dashboard)
+  // They also require admin password authentication (handled in route handlers)
+  if (pathname.startsWith('/api/admin')) {
+    // Continue to beta access check below
   }
 
   // Check for beta access in cookies

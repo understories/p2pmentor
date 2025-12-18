@@ -372,7 +372,9 @@ export default function AdminDashboard() {
       // Refresh beta code usage if section is expanded
       if (betaCodeUsageExpanded) {
         setBetaCodeUsageLoading(true);
-        fetch(`/api/admin/beta-code-usage${spaceIdParams}`)
+        fetch(`/api/admin/beta-code-usage${spaceIdParams}`, {
+          credentials: 'include', // Include cookies for beta access check
+        })
           .then(res => {
             if (!res.ok) {
               throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -1450,7 +1452,9 @@ export default function AdminDashboard() {
                   if (newState && !betaCodeUsageLoading) {
                     setBetaCodeUsageLoading(true);
                     const spaceIdParams = buildSpaceIdParams();
-                    fetch(`/api/admin/beta-code-usage${spaceIdParams}`)
+                    fetch(`/api/admin/beta-code-usage${spaceIdParams}`, {
+                      credentials: 'include', // Include cookies for beta access check
+                    })
                       .then(res => {
                         if (!res.ok) {
                           throw new Error(`HTTP ${res.status}: ${res.statusText}`);
