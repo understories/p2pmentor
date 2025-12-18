@@ -879,19 +879,21 @@ export default function MePage() {
                 {avgRating.toFixed(1)} ⭐
               </p>
               <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
-              {/* Tooltip */}
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                <div className="font-mono text-left">
-                  {ratingCalculation.totalRatings > 0 && (
-                    <div className="mb-1">
-                      from {ratingCalculation.totalRatings} rating{ratingCalculation.totalRatings !== 1 ? 's' : ''}
-                    </div>
-                  )}
-                  <div>Arkiv query: type='session_feedback',</div>
-                  <div>feedbackTo='{walletAddress?.slice(0, 8)}...'</div>
+              {/* Tooltip - only show in Arkiv Builder Mode */}
+              {arkivBuilderMode && (
+                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
+                  <div className="font-mono text-left">
+                    {ratingCalculation.totalRatings > 0 && (
+                      <div className="mb-1">
+                        from {ratingCalculation.totalRatings} rating{ratingCalculation.totalRatings !== 1 ? 's' : ''}
+                      </div>
+                    )}
+                    <div>Arkiv query: type='session_feedback',</div>
+                    <div>feedbackTo='{walletAddress?.slice(0, 8)}...'</div>
+                  </div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
-                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-              </div>
+              )}
             </div>
             
             {/* Skills Learning - Full Width Row (Skill Garden) */}
