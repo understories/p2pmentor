@@ -36,6 +36,9 @@ interface SkillClusterProps {
   onAskClick?: (ask: Ask) => void;
   onOfferClick?: (offer: Offer) => void;
   onMatchClick?: (match: Match) => void;
+  onRequestMeetingFromOffer?: (offer: Offer, profile: UserProfile) => void;
+  onOfferToHelpFromAsk?: (ask: Ask, profile: UserProfile) => void;
+  userWallet?: string | null;
   arkivBuilderMode?: boolean;
 }
 
@@ -48,6 +51,9 @@ export function SkillCluster({
   onAskClick,
   onOfferClick,
   onMatchClick,
+  onRequestMeetingFromOffer,
+  onOfferToHelpFromAsk,
+  userWallet,
   arkivBuilderMode = false,
 }: SkillClusterProps) {
   const { theme } = useTheme();
@@ -295,6 +301,20 @@ export function SkillCluster({
                       <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} label="View Ask Entity" className="text-xs" />
                     </div>
                   )}
+                  {/* Offer to Help Button */}
+                  {userWallet && userWallet.toLowerCase() !== ask.wallet.toLowerCase() && onOfferToHelpFromAsk && profile && (
+                    <div className="mt-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onOfferToHelpFromAsk(ask, profile);
+                        }}
+                        className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Offer to Help
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -377,6 +397,20 @@ export function SkillCluster({
                   {arkivBuilderMode && offer.key && (
                     <div className="mt-2">
                       <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} label="View Offer Entity" className="text-xs" />
+                    </div>
+                  )}
+                  {/* Request Meeting Button */}
+                  {userWallet && userWallet.toLowerCase() !== offer.wallet.toLowerCase() && onRequestMeetingFromOffer && profile && (
+                    <div className="mt-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestMeetingFromOffer(offer, profile);
+                        }}
+                        className="px-3 py-1.5 text-xs bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                      >
+                        Request Meeting
+                      </button>
                     </div>
                   )}
                 </div>

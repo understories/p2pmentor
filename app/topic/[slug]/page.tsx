@@ -36,6 +36,7 @@ import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
 import { createDefaultWeeklyAvailability, formatAvailabilityForDisplay, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import { ArkivQueryTester } from '@/components/arkiv/ArkivQueryTester';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 
 type Match = {
   ask: Ask;
@@ -113,6 +114,12 @@ export default function TopicDetailPage() {
   const [userAvailability, setUserAvailability] = useState<WeeklyAvailability | null>(null);
   const [savedAvailabilityBlocks, setSavedAvailabilityBlocks] = useState<Array<{ key: string; name: string }>>([]);
   const arkivBuilderMode = useArkivBuilderMode();
+  // Request Meeting Modal state
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingMode, setMeetingMode] = useState<'request' | 'offer'>('request');
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedAsk, setSelectedAsk] = useState<Ask | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     // Get user wallet and profile first
@@ -1653,6 +1660,21 @@ export default function TopicDetailPage() {
             offers={offers}
             matches={matches}
             profiles={profiles}
+            userWallet={userWallet}
+            onRequestMeetingFromOffer={async (offer, profile) => {
+              setSelectedOffer(offer);
+              setSelectedAsk(null);
+              setSelectedProfile(profile);
+              setMeetingMode('request');
+              setTimeout(() => setShowMeetingModal(true), 0);
+            }}
+            onOfferToHelpFromAsk={async (ask, profile) => {
+              setSelectedAsk(ask);
+              setSelectedOffer(null);
+              setSelectedProfile(profile);
+              setMeetingMode('offer');
+              setTimeout(() => setShowMeetingModal(true), 0);
+            }}
             arkivBuilderMode={arkivBuilderMode}
           />
         )}
@@ -1985,6 +2007,33 @@ export default function TopicDetailPage() {
             userWallet={userWallet}
             userProfile={userProfile}
             skillName={skill.name_canonical}
+          />
+        )}
+
+        {/* Request Meeting Modal */}
+        {selectedProfile && (
+          <RequestMeetingModal
+            isOpen={showMeetingModal}
+            onClose={() => {
+              setShowMeetingModal(false);
+              setSelectedOffer(null);
+              setSelectedAsk(null);
+              setSelectedProfile(null);
+              setMeetingMode('request');
+            }}
+            profile={selectedProfile}
+            userWallet={userWallet}
+            userProfile={userProfile}
+            offer={selectedOffer}
+            ask={selectedAsk}
+            mode={meetingMode}
+            onSuccess={() => {
+              console.log('Meeting requested successfully');
+              setSelectedOffer(null);
+              setSelectedAsk(null);
+              setSelectedProfile(null);
+              setMeetingMode('request');
+            }}
           />
         )}
       </div>

@@ -33,6 +33,7 @@ import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { formatAvailabilityForDisplay } from '@/lib/arkiv/availability';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import type { UserProfile } from '@/lib/arkiv/profile';
+import { RequestMeetingModal } from '@/components/RequestMeetingModal';
 
 type Match = {
   ask: Ask;
@@ -60,14 +61,25 @@ export default function NetworkPage() {
   const [showContent, setShowContent] = useState(false); // Hide content by default
   // const [canopySkills, setCanopySkills] = useState<Array<{ skill: string; count: number; skillKey?: string }>>([]); // Commented out: Skill Canopy removed for now (may use in future)
   const arkivBuilderMode = useArkivBuilderMode();
+  // Request Meeting Modal state
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [meetingMode, setMeetingMode] = useState<'request' | 'offer'>('request');
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+  const [selectedAsk, setSelectedAsk] = useState<Ask | null>(null);
+  const [selectedProfile, setSelectedProfile] = useState<UserProfile | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     // Get user wallet
     if (typeof window !== 'undefined') {
-      const address = localStorage.getItem('wallet_address');
-      setUserWallet(address);
-      
-      // Check onboarding access (requires level 3 for network)
+        const address = localStorage.getItem('wallet_address');
+        setUserWallet(address);
+        // Load user profile
+        if (address) {
+          getProfileByWallet(address.toLowerCase().trim()).then(setUserProfile).catch(() => null);
+        }
+        
+        // Check onboarding access (requires level 3 for network)
       if (address) {
         import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
           checkOnboardingRoute(address, 3, '/onboarding').then((hasAccess) => {
@@ -760,6 +772,21 @@ export default function NetworkPage() {
                   offers={displayOffers}
                   matches={displayMatches}
                   profiles={profiles}
+                  userWallet={userWallet}
+                  onRequestMeetingFromOffer={async (offer, profile) => {
+                    setSelectedOffer(offer);
+                    setSelectedAsk(null);
+                    setSelectedProfile(profile);
+                    setMeetingMode('request');
+                    setTimeout(() => setShowMeetingModal(true), 0);
+                  }}
+                  onOfferToHelpFromAsk={async (ask, profile) => {
+                    setSelectedAsk(ask);
+                    setSelectedOffer(null);
+                    setSelectedProfile(profile);
+                    setMeetingMode('offer');
+                    setTimeout(() => setShowMeetingModal(true), 0);
+                  }}
                   arkivBuilderMode={arkivBuilderMode}
                 />
               );
@@ -775,6 +802,33 @@ export default function NetworkPage() {
             <p className="text-lg mb-2">Use the filter above to explore asks, offers, and matches</p>
             <p className="text-sm">Search for a specific skill to get started</p>
           </div>
+        )}
+
+        {/* Request Meeting Modal */}
+        {selectedProfile && (
+          <RequestMeetingModal
+            isOpen={showMeetingModal}
+            onClose={() => {
+              setShowMeetingModal(false);
+              setSelectedOffer(null);
+              setSelectedAsk(null);
+              setSelectedProfile(null);
+              setMeetingMode('request');
+            }}
+            profile={selectedProfile}
+            userWallet={userWallet}
+            userProfile={userProfile}
+            offer={selectedOffer}
+            ask={selectedAsk}
+            mode={meetingMode}
+            onSuccess={() => {
+              console.log('Meeting requested successfully');
+              setSelectedOffer(null);
+              setSelectedAsk(null);
+              setSelectedProfile(null);
+              setMeetingMode('request');
+            }}
+          />
         )}
       </div>
     </div>
