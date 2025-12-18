@@ -342,7 +342,7 @@ export default function DocsPage() {
         <aside
           className={`
             w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 overflow-y-auto
-            fixed left-0 top-14 bottom-0 z-40 md:top-0
+            fixed left-0 top-28 bottom-0 z-40 md:top-0
             transition-transform duration-300 ease-in-out
             md:translate-x-0 md:bg-gray-50 md:dark:bg-gray-950
             ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
