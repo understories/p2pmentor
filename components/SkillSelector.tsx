@@ -22,6 +22,7 @@ interface SkillSelectorProps {
   placeholder?: string;
   className?: string;
   required?: boolean;
+  onFocus?: () => void; // Optional callback when input is focused
 }
 
 export function SkillSelector({
@@ -31,6 +32,7 @@ export function SkillSelector({
   placeholder = 'Select a skill...',
   className = '',
   required = false,
+  onFocus,
 }: SkillSelectorProps) {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [filteredSkills, setFilteredSkills] = useState<Skill[]>([]);
@@ -149,6 +151,7 @@ export function SkillSelector({
   const handleInputFocus = () => {
     setIsOpen(true);
     updateDropdownPosition();
+    onFocus?.(); // Notify parent that input is focused (for tooltip display)
   };
 
   const updateDropdownPosition = () => {

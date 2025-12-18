@@ -39,6 +39,7 @@ export default function SkillsPage() {
   const [lastTxHash, setLastTxHash] = useState<string | null>(null);
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
   const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
+  const [isTypingSkill, setIsTypingSkill] = useState(false); // Track if user is typing in SkillSelector
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -368,45 +369,64 @@ export default function SkillsPage() {
         <div className="mb-6 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 relative z-10 overflow-visible">
           <h2 className="text-lg font-medium mb-4">Add Skill</h2>
           <div className="space-y-3 relative overflow-visible">
-            <SkillSelector
-              value={selectedSkillId}
-              onChange={(skillId, skillName) => {
-                setSelectedSkillId(skillId);
-                setSelectedSkillName(skillName);
-              }}
-              placeholder="Search for a skill..."
-              allowCreate={true}
-              className="mb-2"
-            />
-            {arkivBuilderMode ? (
+            {arkivBuilderMode && isTypingSkill ? (
               <ArkivQueryTooltip
                 query={[
-                  `POST /api/profile { action: 'updateProfile', ... }`,
-                  `Creates: type='user_profile' entity`,
-                  `Attributes: wallet, displayName, skills, skill_ids, ...`,
-                  `Payload: Full profile data with updated skill_ids array`,
-                  `TTL: 1 year (31536000 seconds)`,
-                  `Note: Creates new immutable profile entity on Arkiv`
+                  `SkillSelector Component`,
+                  `Queries: GET /api/skills?status=active&limit=100`,
+                  `→ type='skill', status='active'`,
+                  `Returns: Skill[] (all active skills)`,
+                  ``,
+                  `On Selection:`,
+                  `→ Stores: skill_id='${selectedSkillId || '...'}', skill='${selectedSkillName || '...'}'`,
+                  `→ skill_id: Skill entity key (preferred for beta)`,
+                  `→ skill: Skill name (legacy, backward compatibility)`,
+                  ``,
+                  `On Add Skill Button Click:`,
+                  `→ POST /api/profile { action: 'updateProfile', ... }`,
+                  `→ Creates: type='user_profile' entity`,
+                  `→ Attributes: wallet, displayName, skills, skill_ids, ...`,
+                  `→ Payload: Full profile data with updated skill_ids array`,
+                  `→ TTL: 1 year (31536000 seconds)`
                 ]}
-                label="Add Skill"
+                label="Skill Selector"
               >
-                <button
-                  onClick={handleAddSkill}
-                  disabled={submitting || !selectedSkillId}
-                  className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Adding...' : 'Add Skill'}
-                </button>
+                <div>
+                  <SkillSelector
+                    value={selectedSkillId}
+                    onChange={(skillId, skillName) => {
+                      setSelectedSkillId(skillId);
+                      setSelectedSkillName(skillName);
+                      setIsTypingSkill(false); // Hide tooltip when skill selected
+                    }}
+                    onFocus={() => setIsTypingSkill(true)} // Show tooltip when user starts typing
+                    placeholder="Search for a skill..."
+                    allowCreate={true}
+                    className="mb-2"
+                  />
+                </div>
               </ArkivQueryTooltip>
             ) : (
-              <button
-                onClick={handleAddSkill}
-                disabled={submitting || !selectedSkillId}
-                className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Adding...' : 'Add Skill'}
-              </button>
+              <SkillSelector
+                value={selectedSkillId}
+                onChange={(skillId, skillName) => {
+                  setSelectedSkillId(skillId);
+                  setSelectedSkillName(skillName);
+                  setIsTypingSkill(false); // Hide tooltip when skill selected
+                }}
+                onFocus={() => setIsTypingSkill(true)} // Show tooltip when user starts typing
+                placeholder="Search for a skill..."
+                allowCreate={true}
+                className="mb-2"
+              />
             )}
+            <button
+              onClick={handleAddSkill}
+              disabled={submitting || !selectedSkillId}
+              className="w-full px-6 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Adding...' : 'Add Skill'}
+            </button>
           </div>
         </div>
 
