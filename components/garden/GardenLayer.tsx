@@ -180,20 +180,15 @@ export function GardenLayer({
                 {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
                   <div className="flex flex-col items-center gap-0.5 w-full max-w-[100px] min-w-0">
                     <span
-                      className="text-[10px] md:text-[11px] text-gray-600 dark:text-gray-400 text-center whitespace-normal break-words"
+                      className="text-[8px] md:text-[9px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
                       style={{
                         maxWidth: '100px',
                         width: '100%',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'break-word',
-                        lineHeight: '1.3',
-                        minHeight: '28px',
+                        lineHeight: '1.2',
+                        minHeight: '24px',
                         display: 'block',
-                        overflow: 'visible',
-                        textOverflow: 'clip',
-                        hyphens: 'auto',
-                        WebkitHyphens: 'auto',
-                        msHyphens: 'auto',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
                       }}
                       title={skill.name}
                     >

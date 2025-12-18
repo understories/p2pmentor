@@ -37,8 +37,9 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main Content Area - adjusts margin when sidebar is hovered */}
       {/* Brave browser zoom fix: apply scale correction to main content only */}
+      {/* Global z-index fix: ensure content is always above skill garden (z-[1]) */}
       <main 
-        className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out`}
+        className={`relative z-10 md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out backdrop-blur-sm`}
         style={isBrave ? { transform: 'scale(0.93)', transformOrigin: 'top left' } : undefined}
       >
         {children}
