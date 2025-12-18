@@ -78,12 +78,29 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Ensure skill entity exists (server-side)
+      // This automatically creates the skill if it doesn't exist, preventing duplicates
+      const { ensureSkillEntityServer } = await import('@/lib/arkiv/skill-helpers');
+      const skillEntity = await ensureSkillEntityServer({
+        skill_id: skill_id || undefined,
+        skill_name: skill || undefined,
+        wallet: targetWallet,
+        spaceId: SPACE_ID,
+      });
+
+      if (!skillEntity) {
+        return NextResponse.json(
+          { ok: false, error: 'Failed to find or create skill entity. Please provide a valid skill_id or skill name.' },
+          { status: 400 }
+        );
+      }
+
       try {
         const { key, txHash } = await createOffer({
           wallet: targetWallet,
-          skill: skill || undefined, // Legacy: optional if skill_id provided
-          skill_id: skill_id || undefined, // New: preferred for beta
-          skill_label: skill_label || skill || undefined, // Derived from Skill entity
+          skill: skillEntity.name_canonical, // Legacy: for backward compatibility
+          skill_id: skillEntity.key, // New: preferred for beta (always use entity key)
+          skill_label: skillEntity.name_canonical, // Derived from Skill entity
           message,
           availabilityWindow,
           availabilityKey: availabilityKey || undefined,
@@ -98,7 +115,7 @@ export async function POST(request: NextRequest) {
         if (key) {
           try {
             const { createNotification } = await import('@/lib/arkiv/notifications');
-            const skillName = skill_label || skill || 'a skill';
+            const skillName = skillEntity.name_canonical; // Use skill entity name
             await createNotification({
               wallet: targetWallet.toLowerCase(),
               notificationType: 'entity_created',
@@ -110,7 +127,7 @@ export async function POST(request: NextRequest) {
               metadata: {
                 offerKey: key,
                 skill: skillName,
-                skill_id: skill_id || undefined,
+                skill_id: skillEntity.key, // Always use skill entity key
                 isPaid: isPaid === true || isPaid === 'true',
               },
               privateKey: getPrivateKey(),
