@@ -42,6 +42,16 @@ export async function POST(request: NextRequest) {
         } : null,
       });
     } else if (action === 'track') {
+      // CRITICAL: Validate limit before tracking (double safeguard, Arkiv-native)
+      const canUse = await canUseBetaCode(code, SPACE_ID);
+      if (!canUse) {
+        const usage = await getBetaCodeUsage(code, SPACE_ID);
+        return NextResponse.json({
+          ok: false,
+          error: `Beta code has reached its usage limit (${usage?.usageCount || 0}/${usage?.limit || 50}). Cannot track additional usage.`,
+        }, { status: 403 }); // 403 Forbidden
+      }
+
       // Track usage (increment count)
       try {
         const { key, txHash } = await trackBetaCodeUsage(code, 50); // Default limit 50

@@ -41,8 +41,15 @@ export async function trackBetaCodeUsage(
   const existing = await getBetaCodeUsage(normalizedCode, SPACE_ID);
   
   if (existing) {
+    // CRITICAL: Enforce limit before incrementing (Arkiv-native, prevents race conditions)
+    if (existing.usageCount >= existing.limit) {
+      console.error(`[trackBetaCodeUsage] Beta code "${normalizedCode}" limit exceeded: ${existing.usageCount}/${existing.limit}`);
+      throw new Error(`Beta code "${normalizedCode}" has reached its usage limit (${existing.usageCount}/${existing.limit}). Cannot track additional usage.`);
+    }
+
     // Update usage count
     const newUsageCount = existing.usageCount + 1;
+    console.log(`[trackBetaCodeUsage] Incrementing beta code "${normalizedCode}": ${existing.usageCount} -> ${newUsageCount} (limit: ${existing.limit})`);
     const payload = {
       code: normalizedCode,
       usageCount: newUsageCount,

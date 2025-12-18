@@ -107,6 +107,24 @@ export async function GET(request: Request) {
     const codesAtLimit = codesWithAccess.filter(code => code.usageCount >= code.limit).length;
     const codesAvailable = codesWithAccess.filter(code => code.usageCount < code.limit).length;
 
+    // Debug logging for admin dashboard (Arkiv-native debugging)
+    console.log('[admin/beta-code-usage] Summary:', {
+      totalCodes,
+      totalUsage,
+      totalLimit,
+      totalWallets,
+      codesAtLimit,
+      codesAvailable,
+      utilizationRate: totalLimit > 0 ? (totalUsage / totalLimit) * 100 : 0,
+    });
+
+    // Log any codes with mismatched usageCount vs walletCount (potential issue indicator)
+    codesWithAccess.forEach(code => {
+      if (code.usageCount !== code.walletCount) {
+        console.warn(`[admin/beta-code-usage] Mismatch for code "${code.code}": usageCount=${code.usageCount}, walletCount=${code.walletCount}`);
+      }
+    });
+
     return NextResponse.json({
       ok: true,
       summary: {
