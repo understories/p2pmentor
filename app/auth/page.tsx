@@ -11,6 +11,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
+import { connectWalletConnect } from '@/lib/auth/walletconnect';
 import { mendoza } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
@@ -21,6 +22,7 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
+  const [isConnectingWalletConnect, setIsConnectingWalletConnect] = useState(false);
   const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
   const [addingNetwork, setAddingNetwork] = useState(false);
@@ -31,6 +33,10 @@ export default function AuthPage() {
   const openingTimerRef = useRef<number | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
+
+  // Check if WalletConnect is enabled via feature flag
+  const isWalletConnectEnabled = typeof window !== 'undefined' && 
+    process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
 
   // Check if user has already passed invite gate
   // IMPORTANT: Normalize encoded pathname FIRST before any redirect logic
@@ -256,6 +262,79 @@ export default function AuthPage() {
     }
   };
 
+  const handleWalletConnectConnect = async () => {
+    // Guard: Check feature flag
+    if (!isWalletConnectEnabled) {
+      setError('WalletConnect is disabled');
+      return;
+    }
+
+    setIsConnectingWalletConnect(true);
+    setError('');
+
+    try {
+      const address = await connectWalletConnect();
+      console.log('[Auth Page] WalletConnect connected successfully', {
+        address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+      });
+
+      // Store profile wallet address in localStorage for session persistence
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wallet_address', address);
+        // Store wallet type for unified wallet client getter
+        setWalletType(address, 'walletconnect');
+        // Store connection method for reconnection handling
+        localStorage.setItem('wallet_connection_method', 'walletconnect');
+      }
+
+      // Check if user has profile for this profile wallet - redirect to onboarding if not
+      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+        calculateOnboardingLevel(address).then(level => {
+          if (level === 0) {
+            // No profile for this profile wallet - new user, create beta access record
+            const betaCode = localStorage.getItem('beta_invite_code');
+            if (betaCode) {
+              fetch('/api/beta-code', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  code: betaCode,
+                  action: 'createAccess',
+                  wallet: address.toLowerCase(),
+                }),
+              }).catch(err => {
+                console.warn('[auth] Failed to create beta access record:', err);
+              });
+            }
+            router.push('/onboarding');
+          } else {
+            router.push('/me');
+          }
+        }).catch(() => {
+          router.push('/me');
+        });
+      });
+    } catch (err) {
+      console.error('[Auth Page] WalletConnect connection error', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorObject: err,
+      });
+
+      let errorMessage = 'Failed to connect with WalletConnect';
+      if (err instanceof Error) {
+        if (err.message.includes('cancelled') || err.message.includes('rejected') || err.message.includes('closed')) {
+          errorMessage = 'Connection cancelled. Please try again when ready.';
+        } else if (err.message.includes('project ID')) {
+          errorMessage = 'WalletConnect not configured. Please contact support.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      setError(errorMessage);
+      setIsConnectingWalletConnect(false);
+    }
+  };
+
   const handleAddMendozaNetwork = async () => {
     if (!window.ethereum) {
       setError('MetaMask not installed');
@@ -377,6 +456,33 @@ export default function AuthPage() {
               {isConnecting ? 'Connecting...' : 'Connect Wallet'}
             </button>
           </ArkivQueryTooltip>
+
+          {/* WalletConnect Button - Feature flagged */}
+          {mounted && isWalletConnectEnabled && (
+            <ArkivQueryTooltip
+              query={[
+                `getProfileByWallet(wallet='{address}')`,
+                `type='profile', wallet='{wallet}'`,
+                `calculateOnboardingLevel(wallet='{address}')`,
+                `Queries: profile, asks, offers, onboarding_events`,
+              ]}
+              label="Auth Queries"
+            >
+              <button
+                onClick={handleWalletConnectConnect}
+                disabled={isConnectingWalletConnect || isConnecting}
+                className="w-full px-6 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-blue-500 dark:disabled:hover:bg-blue-600"
+              >
+                {isConnectingWalletConnect ? 'Connecting...' : 'Connect with WalletConnect'}
+              </button>
+            </ArkivQueryTooltip>
+          )}
+
+          {mounted && isWalletConnectEnabled && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-center -mt-2 mb-2">
+              Use any mobile wallet via QR / deep link. Works on desktop and mobile.
+            </p>
+          )}
           
           {/* Mobile helper text - show appropriate message based on context */}
           {mounted && isMobile && (
