@@ -23,6 +23,8 @@ interface SkillSelectorProps {
   className?: string;
   required?: boolean;
   onFocus?: () => void; // Optional callback when input is focused
+  onCreatingSkill?: (skillName: string) => void; // Optional callback when skill creation starts
+  onSkillCreated?: (skillName: string, skillId: string, pending: boolean, txHash?: string) => void; // Optional callback when skill creation completes
 }
 
 export function SkillSelector({
@@ -33,6 +35,8 @@ export function SkillSelector({
   className = '',
   required = false,
   onFocus,
+  onCreatingSkill,
+  onSkillCreated,
 }: SkillSelectorProps) {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [filteredSkills, setFilteredSkills] = useState<Skill[]>([]);
@@ -184,8 +188,13 @@ export function SkillSelector({
       return;
     }
 
+    const skillName = searchTerm.trim();
+    
     try {
       setLoading(true);
+      // Notify parent that skill creation is starting
+      onCreatingSkill?.(skillName);
+      
       // Get wallet address from localStorage to pass as creator
       const walletAddress = typeof window !== 'undefined'
         ? localStorage.getItem('wallet_address')
@@ -196,7 +205,7 @@ export function SkillSelector({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name_canonical: searchTerm.trim(),
+          name_canonical: skillName,
           description: undefined, // Can be added later
           created_by_profile: walletAddress || undefined, // Pass wallet so creator is auto-added as member
         }),
@@ -210,11 +219,15 @@ export function SkillSelector({
       // If skill already exists, use it
       if (data.alreadyExists && data.skill) {
         handleSelect(data.skill);
+        onSkillCreated?.(skillName, data.skill.key, false, data.txHash);
         return;
       }
 
       // If skill was created but is pending (not yet queryable), wait and retry
       if (data.pending && data.skill) {
+        // Notify parent that skill was created but is pending
+        onSkillCreated?.(skillName, data.skill.key, true, data.txHash);
+        
         // Skill was created but not yet indexed - wait a bit and reload
         await new Promise(resolve => setTimeout(resolve, 2000));
         await loadSkills();
@@ -235,6 +248,7 @@ export function SkillSelector({
       // Select the newly created skill
       if (data.skill) {
         handleSelect(data.skill);
+        onSkillCreated?.(skillName, data.skill.key, false, data.txHash);
       }
     } catch (error: any) {
       console.error('Error creating skill:', error);

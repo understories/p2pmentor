@@ -40,6 +40,7 @@ export default function SkillsPage() {
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
   const [submittingFollow, setSubmittingFollow] = useState<string | null>(null);
   const [isTypingSkill, setIsTypingSkill] = useState(false); // Track if user is typing in SkillSelector
+  const [creatingSkill, setCreatingSkill] = useState<string | null>(null); // Track skill being created
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -400,6 +401,27 @@ export default function SkillsPage() {
                       setIsTypingSkill(false); // Hide tooltip when skill selected
                     }}
                     onFocus={() => setIsTypingSkill(true)} // Show tooltip when user starts typing
+                    onCreatingSkill={(skillName) => {
+                      setCreatingSkill(skillName);
+                      setError('');
+                      setSuccess('');
+                    }}
+                    onSkillCreated={(skillName, skillId, pending, txHash) => {
+                      setCreatingSkill(null);
+                      if (pending) {
+                        setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
+                        if (txHash) setLastTxHash(txHash);
+                        // Refresh skills list after delay (similar to asks/offers pattern)
+                        setTimeout(() => {
+                          loadData(walletAddress!);
+                        }, 2000);
+                      } else {
+                        setSuccess(`Skill "${skillName}" created successfully!`);
+                        if (txHash) setLastTxHash(txHash);
+                        // Refresh skills list immediately
+                        loadData(walletAddress!);
+                      }
+                    }}
                     placeholder="Search for a skill..."
                     allowCreate={true}
                     className="mb-2"
@@ -415,10 +437,38 @@ export default function SkillsPage() {
                   setIsTypingSkill(false); // Hide tooltip when skill selected
                 }}
                 onFocus={() => setIsTypingSkill(true)} // Show tooltip when user starts typing
+                onCreatingSkill={(skillName) => {
+                  setCreatingSkill(skillName);
+                  setError('');
+                  setSuccess('');
+                }}
+                onSkillCreated={(skillName, skillId, pending, txHash) => {
+                  setCreatingSkill(null);
+                  if (pending) {
+                    setSuccess(`Skill "${skillName}" created! It may take a moment to appear.`);
+                    if (txHash) setLastTxHash(txHash);
+                    // Refresh skills list after delay (similar to asks/offers pattern)
+                    setTimeout(() => {
+                      loadData(walletAddress!);
+                    }, 2000);
+                  } else {
+                    setSuccess(`Skill "${skillName}" created successfully!`);
+                    if (txHash) setLastTxHash(txHash);
+                    // Refresh skills list immediately
+                    loadData(walletAddress!);
+                  }
+                }}
                 placeholder="Search for a skill..."
                 allowCreate={true}
                 className="mb-2"
               />
+            )}
+            {creatingSkill && (
+              <div className="mb-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <span className="animate-pulse">⏳</span> Creating skill "{creatingSkill}"...
+                </p>
+              </div>
             )}
             <button
               onClick={handleAddSkill}
