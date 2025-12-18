@@ -245,7 +245,7 @@ export function SidebarNav() {
   });
 
   return (
-    <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 border-r border-gray-200/30 dark:border-gray-700/30 transition-all duration-300 ease-out overflow-visible bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
+    <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 group-hover:border-r group-hover:border-gray-200/30 group-hover:dark:border-gray-700/30 transition-all duration-300 ease-out overflow-visible bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
       {/* Pointer events capture area - only 4 units wide when collapsed, full width when expanded */}
       <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-56 transition-all duration-300 ease-out pointer-events-auto" />
       {/* Visual indicator - vertical line with emerald glow */}
@@ -538,7 +538,7 @@ export function SidebarNav() {
         
         {/* Network Button - above skills */}
         {level >= 1 && (
-          <div className="mt-4 pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+          <div className="mt-4 pt-4 group-hover:border-t group-hover:border-gray-200/50 group-hover:dark:border-gray-700/50 w-full">
             <Link
                 href="/network"
                 className={`
@@ -793,7 +793,7 @@ export function SidebarNav() {
         
         {/* Notifications - above logout */}
         {wallet && (
-          <div className="mt-auto pt-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full">
+          <div className="mt-auto pt-4 group-hover:border-t group-hover:border-gray-200/50 group-hover:dark:border-gray-700/50 w-full">
             <Link
               href="/notifications"
                 className={`
@@ -832,7 +832,7 @@ export function SidebarNav() {
         
         {/* Logout Button - sticky at bottom to ensure visibility across browsers */}
         {wallet && (
-          <div className="mt-auto pt-2 pb-4 border-t border-gray-200/50 dark:border-gray-700/50 w-full flex-shrink-0">
+          <div className="mt-auto pt-2 pb-4 group-hover:border-t group-hover:border-gray-200/50 group-hover:dark:border-gray-700/50 w-full flex-shrink-0">
             <button
               onClick={async () => {
                 if (typeof window !== 'undefined') {
