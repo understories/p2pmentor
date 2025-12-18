@@ -35,6 +35,7 @@ import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
 import { createDefaultWeeklyAvailability, formatAvailabilityForDisplay, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import { ArkivQueryTester } from '@/components/arkiv/ArkivQueryTester';
 
 type Match = {
   ask: Ask;
@@ -1959,6 +1960,19 @@ export default function TopicDetailPage() {
                 </form>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Arkiv Query Tester - Show only for Arkiv topic */}
+        {skill && skill.name_canonical.toLowerCase() === 'arkiv' && (
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              🔍 Arkiv Query Tester
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Test Arkiv queries for all entity types. Useful for learning how to query Arkiv entities and finding them on Arkiv Explorer.
+            </p>
+            <ArkivQueryTester compact={true} />
           </div>
         )}
 
