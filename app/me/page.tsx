@@ -24,6 +24,8 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { listSessionsForWallet, type Session } from '@/lib/arkiv/sessions';
 import { listFeedbackForWallet, type Feedback } from '@/lib/arkiv/feedback';
 import { calculateAverageRating } from '@/lib/arkiv/profile';
+import { listAsksForWallet, type Ask } from '@/lib/arkiv/asks';
+import { listOffersForWallet, type Offer } from '@/lib/arkiv/offers';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
@@ -46,6 +48,10 @@ export default function MePage() {
   const [ratingCalculation, setRatingCalculation] = useState<{ totalRatings: number; average: number }>({ totalRatings: 0, average: 0 });
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
+  const [asksCount, setAsksCount] = useState(0);
+  const [offersCount, setOffersCount] = useState(0);
+  const [asks, setAsks] = useState<Ask[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0); // Count from learning_follow entities
   const [profileSkillsCount, setProfileSkillsCount] = useState(0); // Count from profile.skill_ids or profile.skillsArray
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
@@ -124,6 +130,7 @@ export default function MePage() {
         // Load sessions and feedback for stats
         loadSessionStats(address);
         loadFeedbackStats(address);
+        loadAsksAndOffers(address);
         loadLearnerQuestCompletion(address);
       }
       
@@ -252,6 +259,46 @@ export default function MePage() {
       setSessionsUpcoming(upcoming);
     } catch (err) {
       console.error('Error loading session stats:', err);
+    }
+  };
+
+  const loadAsksAndOffers = async (wallet: string) => {
+    try {
+      const [asksData, offersData] = await Promise.all([
+        listAsksForWallet(wallet).catch(() => []),
+        listOffersForWallet(wallet).catch(() => []),
+      ]);
+      
+      // Filter out expired asks/offers (same logic as elsewhere in the app)
+      const now = Date.now();
+      const activeAsks = asksData.filter(ask => {
+        if (ask.status !== 'open') return false;
+        // Check if expired
+        if (ask.createdAt && ask.ttlSeconds) {
+          const createdAt = new Date(ask.createdAt).getTime();
+          const expiresAt = createdAt + (ask.ttlSeconds * 1000);
+          return expiresAt > now;
+        }
+        return true;
+      });
+      
+      const activeOffers = offersData.filter(offer => {
+        if (offer.status !== 'active') return false;
+        // Check if expired
+        if (offer.createdAt && offer.ttlSeconds) {
+          const createdAt = new Date(offer.createdAt).getTime();
+          const expiresAt = createdAt + (offer.ttlSeconds * 1000);
+          return expiresAt > now;
+        }
+        return true;
+      });
+      
+      setAsks(activeAsks);
+      setOffers(activeOffers);
+      setAsksCount(activeAsks.length);
+      setOffersCount(activeOffers.length);
+    } catch (err) {
+      console.error('Error loading asks and offers:', err);
     }
   };
 
@@ -721,6 +768,58 @@ export default function MePage() {
                   </div>
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
+              )}
+            </Link>
+
+            {/* Asks */}
+            <Link
+              href="/asks"
+              className="group relative p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center cursor-pointer hover:border-purple-400 dark:hover:border-purple-500 hover:shadow-md transition-all duration-200"
+            >
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                🎓 {asksCount}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Asks</p>
+              {/* Tooltip */}
+              {arkivBuilderMode && (
+                <ArkivQueryTooltip
+                  query={[
+                    `listAsksForWallet('${walletAddress?.toLowerCase() || ''}')`,
+                    `Query: type='ask', wallet='${walletAddress?.slice(0, 8) || ''}...', status='open'`,
+                    `Filtered: active (not expired)`,
+                    `Returns: ${asksCount} active asks`,
+                    `Each ask is a type='ask' entity on Arkiv`
+                  ]}
+                  label="Asks"
+                >
+                  <div className="absolute inset-0" />
+                </ArkivQueryTooltip>
+              )}
+            </Link>
+
+            {/* Offers */}
+            <Link
+              href="/offers"
+              className="group relative p-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm text-center cursor-pointer hover:border-amber-400 dark:hover:border-amber-500 hover:shadow-md transition-all duration-200"
+            >
+              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                💎 {offersCount}
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400">Offers</p>
+              {/* Tooltip */}
+              {arkivBuilderMode && (
+                <ArkivQueryTooltip
+                  query={[
+                    `listOffersForWallet('${walletAddress?.toLowerCase() || ''}')`,
+                    `Query: type='offer', wallet='${walletAddress?.slice(0, 8) || ''}...', status='active'`,
+                    `Filtered: active (not expired)`,
+                    `Returns: ${offersCount} active offers`,
+                    `Each offer is a type='offer' entity on Arkiv`
+                  ]}
+                  label="Offers"
+                >
+                  <div className="absolute inset-0" />
+                </ArkivQueryTooltip>
               )}
             </Link>
 

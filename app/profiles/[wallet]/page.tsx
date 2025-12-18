@@ -728,6 +728,92 @@ export default function ProfileDetailPage() {
                     <p className="text-xs text-gray-600 dark:text-gray-400">Upcoming Sessions</p>
                   </div>
                 )}
+
+                {/* Asks */}
+                {(() => {
+                  // Filter out expired asks (same logic as /me page)
+                  const now = Date.now();
+                  const activeAsks = asks.filter(ask => {
+                    if (ask.status !== 'open') return false;
+                    if (ask.createdAt && ask.ttlSeconds) {
+                      const createdAt = new Date(ask.createdAt).getTime();
+                      const expiresAt = createdAt + (ask.ttlSeconds * 1000);
+                      return expiresAt > now;
+                    }
+                    return true;
+                  });
+                  const asksCount = activeAsks.length;
+
+                  return arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listAsksForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='ask', wallet='${wallet.slice(0, 8)}...', status='open'`,
+                        `Filtered: active (not expired)`,
+                        `Returns: ${asksCount} active asks`,
+                        `Each ask is a type='ask' entity on Arkiv`
+                      ]}
+                      label="Asks"
+                    >
+                      <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          🎓 {asksCount}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Asks</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        🎓 {asksCount}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Asks</p>
+                    </div>
+                  );
+                })()}
+
+                {/* Offers */}
+                {(() => {
+                  // Filter out expired offers (same logic as /me page)
+                  const now = Date.now();
+                  const activeOffers = offers.filter(offer => {
+                    if (offer.status !== 'active') return false;
+                    if (offer.createdAt && offer.ttlSeconds) {
+                      const createdAt = new Date(offer.createdAt).getTime();
+                      const expiresAt = createdAt + (offer.ttlSeconds * 1000);
+                      return expiresAt > now;
+                    }
+                    return true;
+                  });
+                  const offersCount = activeOffers.length;
+
+                  return arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `listOffersForWallet('${wallet.toLowerCase()}')`,
+                        `Query: type='offer', wallet='${wallet.slice(0, 8)}...', status='active'`,
+                        `Filtered: active (not expired)`,
+                        `Returns: ${offersCount} active offers`,
+                        `Each offer is a type='offer' entity on Arkiv`
+                      ]}
+                      label="Offers"
+                    >
+                      <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm text-center">
+                        <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                          💎 {offersCount}
+                        </p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Offers</p>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm text-center">
+                      <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
+                        💎 {offersCount}
+                      </p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Offers</p>
+                    </div>
+                  );
+                })()}
                 
                 {/* Average Rating */}
                 {arkivBuilderMode ? (
