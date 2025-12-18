@@ -718,7 +718,25 @@ export async function listSessionsForWallet(wallet: string, spaceId?: string): P
     sessionMap.set(session.key, session);
   });
 
-  return Array.from(sessionMap.values());
+  const allSessions = Array.from(sessionMap.values());
+  
+  // Debug: Log RSVP sessions found
+  const rsvpSessions = allSessions.filter(s => 
+    s.skill === 'virtual_gathering_rsvp' || 
+    s.notes?.includes('virtual_gathering_rsvp:') ||
+    s.gatheringKey
+  );
+  if (rsvpSessions.length > 0) {
+    console.log('[listSessionsForWallet] Found RSVP sessions:', {
+      wallet: normalizedWallet.slice(0, 8) + '...',
+      spaceId: finalSpaceId,
+      totalSessions: allSessions.length,
+      rsvpSessions: rsvpSessions.length,
+      rsvpKeys: rsvpSessions.map(s => s.key),
+    });
+  }
+
+  return allSessions;
 }
 
 /**
