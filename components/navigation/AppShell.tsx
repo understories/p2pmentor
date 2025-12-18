@@ -11,6 +11,7 @@ import { useState } from 'react';
 import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
 import { FloatingActionButton } from './FloatingActionButton';
+import { useBraveBrowser } from '@/lib/hooks/useBraveBrowser';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -18,6 +19,7 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarHovered, setSidebarHovered] = useState(false);
+  const isBrave = useBraveBrowser();
 
   return (
     <>
@@ -34,7 +36,11 @@ export function AppShell({ children }: AppShellProps) {
       <BottomNav />
 
       {/* Main Content Area - adjusts margin when sidebar is hovered */}
-      <main className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out`}>
+      {/* Brave browser zoom fix: apply scale correction to main content only */}
+      <main 
+        className={`md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out`}
+        style={isBrave ? { transform: 'scale(0.93)', transformOrigin: 'top left' } : undefined}
+      >
         {children}
       </main>
 
