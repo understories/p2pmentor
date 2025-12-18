@@ -27,6 +27,7 @@ import { calculateAverageRating } from '@/lib/arkiv/profile';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -45,7 +46,8 @@ export default function MePage() {
   const [ratingCalculation, setRatingCalculation] = useState<{ totalRatings: number; average: number }>({ totalRatings: 0, average: 0 });
   const [sessionsCompleted, setSessionsCompleted] = useState(0);
   const [sessionsUpcoming, setSessionsUpcoming] = useState(0);
-  const [skillsLearningCount, setSkillsLearningCount] = useState(0);
+  const [skillsLearningCount, setSkillsLearningCount] = useState(0); // Count from learning_follow entities
+  const [profileSkillsCount, setProfileSkillsCount] = useState(0); // Count from profile.skill_ids or profile.skillsArray
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [individualQuestProgress, setIndividualQuestProgress] = useState<Array<{
     questId: string;
@@ -206,11 +208,20 @@ export default function MePage() {
       if (profileData) {
         const skills = profileToGardenSkills(profileData.skillsArray, profileData.skillExpertise);
         setGardenSkills(skills);
+        
+        // Count skills from profile (skill_ids or skillsArray)
+        const skillIds = (profileData as any).skill_ids || [];
+        const skillsArray = profileData.skillsArray || [];
+        const profileSkills = skillIds.length > 0 ? skillIds.length : skillsArray.length;
+        setProfileSkillsCount(profileSkills);
+      } else {
+        setProfileSkillsCount(0);
       }
     } catch (err) {
       console.error('Error loading profile status:', err);
       setHasProfile(null);
       setProfile(null);
+      setProfileSkillsCount(0);
     }
   };
 
@@ -821,9 +832,44 @@ export default function MePage() {
             
             {/* Skills Learning - Full Width Row (Skill Garden) */}
             <div className="col-span-2 group relative p-4 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                Skills Learning ({skillsLearningCount})
-              </h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                  Skills Learning
+                </h3>
+                {arkivBuilderMode ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `Skills Count Queries:`,
+                      ``,
+                      `1. Profile Skills Count: ${profileSkillsCount}`,
+                      `   Query: getProfileByWallet('${walletAddress?.slice(0, 8)}...')`,
+                      `   → type='user_profile', wallet='${walletAddress?.slice(0, 8)}...'`,
+                      `   → Count: profile.skill_ids.length OR profile.skillsArray.length`,
+                      `   → Note: Skills added to profile (via /me/skills)`,
+                      ``,
+                      `2. Learning Communities Count: ${skillsLearningCount}`,
+                      `   Query: listLearningFollows({ profile_wallet: '${walletAddress?.slice(0, 8)}...', active: true })`,
+                      `   → type='learning_follow', profile_wallet='${walletAddress?.slice(0, 8)}...', active='true'`,
+                      `   → Count: learning_follow entities (explicit community joins)`,
+                      ``,
+                      `Automatic Join Check:`,
+                      `→ When skill is created with created_by_profile,`,
+                      `→ createLearningFollow() is called automatically`,
+                      `→ If mismatch: profile has skills but no learning_follow entities`,
+                      `→ User needs to manually join communities`
+                    ]}
+                    label="Skills Learning Queries"
+                  >
+                    <div className="text-xs text-gray-500 dark:text-gray-400 font-mono cursor-help border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-gray-50 dark:bg-gray-800">
+                      Profile: {profileSkillsCount} | Communities: {skillsLearningCount}
+                    </div>
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Profile: {profileSkillsCount} | Communities: {skillsLearningCount}
+                  </div>
+                )}
+              </div>
               
               {walletAddress && followedSkills.length > 0 ? (
                 <div className="space-y-2 mb-4">
@@ -906,20 +952,6 @@ export default function MePage() {
                 🔍 Explore All Skills
               </Link>
 
-              {/* Tooltip */}
-              {arkivBuilderMode && (
-                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10">
-                  <div className="font-mono text-left">
-                    <div>GET /api/learning-follow</div>
-                    <div>→ listLearningFollows({`{ profile_wallet: '${walletAddress?.slice(0, 8)}...', active: true }`})</div>
-                    <div>→ type='learning_follow', profile_wallet='...', active='true'</div>
-                    <div className="mt-1 pt-1 border-t border-gray-700 text-[10px] text-gray-500">
-                      For each skill: GET /api/skills/explore to get skill details
-                    </div>
-                  </div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                </div>
-              )}
             </div>
           </div>
         </div>
