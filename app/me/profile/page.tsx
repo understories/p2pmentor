@@ -163,7 +163,6 @@ export default function ProfilePage() {
         timezone: selectedProfile.timezone || timezone || 'UTC',
         languages: selectedProfile.languages,
         contactLinks: selectedProfile.contactLinks,
-        seniority: selectedProfile.seniority,
         domainsOfInterest: selectedProfile.domainsOfInterest,
         mentorRoles: selectedProfile.mentorRoles,
         learnerRoles: selectedProfile.learnerRoles,
@@ -188,7 +187,6 @@ export default function ProfilePage() {
           timezone: candidate.timezone || timezone || 'UTC',
           languages: candidate.languages,
           contactLinks: candidate.contactLinks,
-          seniority: candidate.seniority,
           domainsOfInterest: candidate.domainsOfInterest,
           mentorRoles: candidate.mentorRoles,
           learnerRoles: candidate.learnerRoles,
@@ -264,7 +262,6 @@ export default function ProfilePage() {
     // Skills - No longer editable here, must use /me/skills page
     // Keep existing skills from profile
     const skillsArray = profile?.skillsArray;
-    const seniority = formData.get('seniority') as string || undefined;
 
     try {
       // Always use API route for profile creation (like mentor-graph)
@@ -286,7 +283,6 @@ export default function ProfilePage() {
             timezone: timezoneValue,
             languages,
             contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
-            seniority: seniority || undefined,
             identity_seed: selectedEmoji || undefined,
           }),
       });
@@ -715,23 +711,6 @@ export default function ProfilePage() {
               )}
             </div>
 
-            <div>
-              <label htmlFor="seniority" className="block text-sm font-medium mb-1">
-                Seniority Level
-              </label>
-              <select
-                id="seniority"
-                name="seniority"
-                defaultValue={profile?.seniority || ''}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              >
-                <option value="">Select level</option>
-                <option value="beginner">Beginner</option>
-                <option value="intermediate">Intermediate</option>
-                <option value="advanced">Advanced</option>
-                <option value="expert">Expert</option>
-              </select>
-            </div>
           </div>
 
           {/* Contact Links */}

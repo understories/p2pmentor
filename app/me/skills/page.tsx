@@ -595,21 +595,6 @@ export default function SkillsPage() {
           )}
         </div>
 
-        {/* Seniority Level */}
-        {profile.seniority && (
-          <div className="mb-6 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800">
-            <h2 className="text-lg font-medium mb-2">Seniority Level</h2>
-            <p className="text-gray-600 dark:text-gray-400 capitalize">
-              {profile.seniority}
-            </p>
-            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
-              Update seniority level from the{' '}
-              <a href="/me/profile" className="text-green-600 dark:text-green-400 underline">
-                Profile page
-              </a>
-            </p>
-          </div>
-        )}
 
         {/* Technical Note */}
         <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">

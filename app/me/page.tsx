@@ -564,13 +564,6 @@ export default function MePage() {
                 </div>
               )}
               
-              {profile.seniority && (
-                <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Seniority</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{profile.seniority}</p>
-                </div>
-              )}
-              
               {profile.languages && profile.languages.length > 0 && (
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Languages</p>
