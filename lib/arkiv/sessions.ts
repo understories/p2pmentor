@@ -353,20 +353,31 @@ export async function listSessions(params?: {
   const sessionKeys = result.entities.map((e: any) => e.key);
   
   // Query confirmations, rejections, payment submissions, and payment validations (can batch these)
+  // CRITICAL: Filter by spaceId to ensure we only find entities in the correct space
+  // For multiple spaceIds (builder mode), we'll filter client-side after fetching
+  const targetSpaceId = params?.spaceIds && params.spaceIds.length > 0 ? undefined : (params?.spaceId || SPACE_ID);
   const [confirmationsResult, rejectionsResult, paymentSubmissionsResult, paymentValidationsResult] = await Promise.all([
     sessionKeys.length > 0
-      ? publicClient.buildQuery()
-          .where(eq('type', 'session_confirmation'))
-          .withAttributes(true)
-          .limit(100)
-          .fetch()
+      ? (() => {
+          let confirmationQuery = publicClient.buildQuery()
+            .where(eq('type', 'session_confirmation'))
+            .withAttributes(true);
+          if (targetSpaceId) {
+            confirmationQuery = confirmationQuery.where(eq('spaceId', targetSpaceId));
+          }
+          return confirmationQuery.limit(100).fetch();
+        })()
       : { entities: [] },
     sessionKeys.length > 0
-      ? publicClient.buildQuery()
-          .where(eq('type', 'session_rejection'))
-          .withAttributes(true)
-          .limit(100)
-          .fetch()
+      ? (() => {
+          let rejectionQuery = publicClient.buildQuery()
+            .where(eq('type', 'session_rejection'))
+            .withAttributes(true);
+          if (targetSpaceId) {
+            rejectionQuery = rejectionQuery.where(eq('spaceId', targetSpaceId));
+          }
+          return rejectionQuery.limit(100).fetch();
+        })()
       : { entities: [] },
     sessionKeys.length > 0
       ? publicClient.buildQuery()
@@ -388,16 +399,21 @@ export async function listSessions(params?: {
 
   // Query Jitsi entities per session key (more reliable than fetching all and filtering)
   // This ensures we get Jitsi entities even if they were created for sessions not in current query
+  // CRITICAL: Filter by spaceId to ensure we only find Jitsi entities in the correct space
   const jitsiQueries = await Promise.all(
-    sessionKeys.map(sessionKey =>
-      publicClient.buildQuery()
+    sessionKeys.map(sessionKey => {
+      let jitsiQuery = publicClient.buildQuery()
         .where(eq('type', 'session_jitsi'))
-        .where(eq('sessionKey', sessionKey))
+        .where(eq('sessionKey', sessionKey));
+      if (targetSpaceId) {
+        jitsiQuery = jitsiQuery.where(eq('spaceId', targetSpaceId));
+      }
+      return jitsiQuery
         .withAttributes(true)
         .withPayload(true)
         .limit(1)
-        .fetch()
-    )
+        .fetch();
+    })
   );
   
   // Flatten results
@@ -791,6 +807,9 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     return String(attrs[key] || '');
   };
 
+  // Get session spaceId for filtering queries
+  const sessionSpaceId = getAttr('spaceId') || SPACE_ID;
+
   // Get txHash
   const txHashResult = await publicClient.buildQuery()
     .where(eq('type', 'session_txhash'))
@@ -817,6 +836,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   }
 
   // Check for confirmations, rejections, payment validation, and Jitsi info
+  // CRITICAL: Filter by spaceId to ensure we only find entities in the correct space
   const [mentorConfirmations, learnerConfirmations, mentorRejections, learnerRejections, paymentSubmission, paymentValidation, jitsiInfo] = await Promise.all([
     publicClient.buildQuery()
       .where(eq('type', 'session_confirmation'))
@@ -836,6 +856,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       .where(eq('type', 'session_rejection'))
       .where(eq('sessionKey', entity.key))
       .where(eq('rejectedBy', getAttr('mentorWallet')))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .limit(1)
       .fetch(),
@@ -843,12 +864,14 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
       .where(eq('type', 'session_rejection'))
       .where(eq('sessionKey', entity.key))
       .where(eq('rejectedBy', getAttr('learnerWallet')))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .limit(1)
       .fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'session_payment_submission'))
       .where(eq('sessionKey', entity.key))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -856,6 +879,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     publicClient.buildQuery()
       .where(eq('type', 'session_payment_validation'))
       .where(eq('sessionKey', entity.key))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
@@ -863,6 +887,7 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
     publicClient.buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('sessionKey', entity.key))
+      .where(eq('spaceId', sessionSpaceId))
       .withAttributes(true)
       .limit(1)
       .fetch(),
