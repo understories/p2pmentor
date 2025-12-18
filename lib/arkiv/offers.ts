@@ -263,10 +263,14 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
     const ttlSecondsAttr = getAttr('ttlSeconds');
     const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
     
+    // Get skill_id if available (arkiv-native)
+    const skill_id = getAttr('skill_id') || undefined;
+
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      skill: getAttr('skill') || payload.skill || '',
+      skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
+      skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
       spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',
@@ -456,10 +460,14 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
     const ttlSecondsAttr = getAttr('ttlSeconds');
     const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
     
+    // Get skill_id if available (arkiv-native)
+    const skill_id = getAttr('skill_id') || undefined;
+
     return {
       key: entity.key,
       wallet: getAttr('wallet') || payload.wallet || '',
-      skill: getAttr('skill') || payload.skill || '',
+      skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
+      skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
       spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
       createdAt: getAttr('createdAt') || payload.createdAt || '',
       status: getAttr('status') || payload.status || 'active',

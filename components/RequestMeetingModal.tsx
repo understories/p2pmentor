@@ -65,8 +65,30 @@ export function RequestMeetingModal({
   useEffect(() => {
     if (profile && isOpen) {
       // If there's a specific offer or ask, use its skill; otherwise use profile's first skill
-      const skill = offer?.skill || ask?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
-      const skill_id = offer?.skill_id || ask?.skill_id || undefined;
+      let skill = offer?.skill || ask?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
+      let skill_id = offer?.skill_id || ask?.skill_id || undefined;
+
+      // CRITICAL: If skill is empty but skill_id exists, resolve skill name from skill_id
+      // This handles cases where offers/asks have skill_id but no skill attribute (arkiv-native)
+      // This is a defensive fix to ensure skill is always populated when requesting from an offer
+      if ((!skill || skill.trim() === '') && skill_id) {
+        // Resolve skill name from skill_id asynchronously
+        (async () => {
+          try {
+            const { getSkillByKey } = await import('@/lib/arkiv/skill');
+            const skillEntity = await getSkillByKey(skill_id);
+            if (skillEntity && skillEntity.name_canonical) {
+              setFormData(prev => ({
+                ...prev,
+                skill: mode === 'peer' ? '' : skillEntity.name_canonical, // Don't pre-fill for peer learning
+              }));
+            }
+          } catch (e) {
+            console.warn('[RequestMeetingModal] Could not resolve skill name from skill_id:', e);
+            // Continue - validation will catch empty skill and show error to user
+          }
+        })();
+      }
       
       // For peer learning mode, don't pre-fill skill - user must select from SkillSelector
       // For other modes, pre-fill if available
@@ -223,6 +245,31 @@ export function RequestMeetingModal({
           ? (formData.requiresPayment ? formData.cost.trim() : undefined)
           : (offer?.cost || undefined));
 
+      // CRITICAL: Ensure skill is not empty before submitting
+      // If skill is still empty at this point, try to resolve from skill_id one more time
+      let finalSkill = formData.skill.trim();
+      if (!finalSkill && (offer?.skill_id || ask?.skill_id || formData.skill_id)) {
+        try {
+          const { getSkillByKey } = await import('@/lib/arkiv/skill');
+          const skillIdToResolve = offer?.skill_id || ask?.skill_id || formData.skill_id;
+          if (skillIdToResolve) {
+            const skillEntity = await getSkillByKey(skillIdToResolve);
+            if (skillEntity && skillEntity.name_canonical) {
+              finalSkill = skillEntity.name_canonical;
+            }
+          }
+        } catch (e) {
+          console.warn('[RequestMeetingModal] Could not resolve skill name from skill_id before submit:', e);
+        }
+      }
+
+      // Final validation: skill must not be empty
+      if (!finalSkill || finalSkill.trim().length === 0) {
+        setError('Skill is required. Please select or enter a skill.');
+        setSubmitting(false);
+        return;
+      }
+
       // Get skill_id from offer/ask if available, or use formData.skill_id (for peer learning)
       // Arkiv-native skill entity reference ensures sessions display the skill entity name_canonical
       let skill_id: string | undefined = undefined;
@@ -239,13 +286,13 @@ export function RequestMeetingModal({
         try {
           const { getSkillBySlug, listSkills } = await import('@/lib/arkiv/skill');
           // First try by slug (normalized skill name)
-          const normalizedSkill = formData.skill.trim().toLowerCase().replace(/\s+/g, '-');
+          const normalizedSkill = finalSkill.toLowerCase().replace(/\s+/g, '-');
           let skillEntity = await getSkillBySlug(normalizedSkill);
           // If not found by slug, try searching by name_canonical
           if (!skillEntity) {
             const allSkills = await listSkills({ status: 'active', limit: 200 });
             const foundSkill = allSkills.find(s => 
-              s.name_canonical.toLowerCase() === formData.skill.trim().toLowerCase()
+              s.name_canonical.toLowerCase() === finalSkill.toLowerCase()
             );
             skillEntity = foundSkill || null;
           }
@@ -266,7 +313,7 @@ export function RequestMeetingModal({
             wallet: userWallet,
             mentorWallet,
             learnerWallet,
-            skill: formData.skill.trim(), // Legacy: kept for backward compatibility
+            skill: finalSkill, // Use resolved skill name (ensured to be non-empty)
             skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
             sessionDate,
             duration: formData.duration || '60',
