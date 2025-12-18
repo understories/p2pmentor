@@ -90,6 +90,15 @@ export async function createSession({
     throw new Error('Mentor and learner must be different wallets');
   }
   
+  // CRITICAL: Validate private key format before using it
+  // This ensures we're using the server signing wallet, not a client wallet
+  if (!privateKey || typeof privateKey !== 'string') {
+    throw new Error('Invalid private key: privateKey must be a string');
+  }
+  if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
+    throw new Error('Invalid private key format: Expected 0x followed by 64 hex characters. Ensure ARKIV_PRIVATE_KEY is set correctly.');
+  }
+  
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const spaceId = SPACE_ID;
@@ -107,41 +116,75 @@ export async function createSession({
   };
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
-  const sessionStartTime = Math.floor(new Date(sessionDate).getTime()); // Ensure integer milliseconds
+  // CRITICAL: Validate sessionDate is valid
+  const sessionDateObj = new Date(sessionDate);
+  if (isNaN(sessionDateObj.getTime())) {
+    throw new Error(`Invalid sessionDate: ${sessionDate}. Must be a valid ISO timestamp.`);
+  }
+  
+  const sessionStartTime = Math.floor(sessionDateObj.getTime()); // Ensure integer milliseconds
   // Ensure duration is always an integer to prevent float propagation
   const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
+  if (durationMinutes <= 0) {
+    throw new Error(`Invalid duration: ${duration}. Must be a positive number of minutes.`);
+  }
+  
   const sessionDurationMs = durationMinutes * 60 * 1000; // Convert minutes to milliseconds
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer after session ends
   const expirationTime = Math.floor(sessionStartTime + sessionDurationMs + bufferMs); // Ensure integer
   const now = Math.floor(Date.now()); // Ensure integer milliseconds
+  
   // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
   const expiresInSecondsRaw = (expirationTime - now) / 1000;
   // Use Math.trunc to ensure integer, then Math.floor for safety, then parseInt to guarantee integer type
   const expiresInSecondsInt = parseInt(Math.floor(Math.max(1, Math.trunc(expiresInSecondsRaw))).toString(), 10);
+  
+  // CRITICAL: Final validation - expiresIn must be a positive integer
+  if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt <= 0) {
+    throw new Error(`Invalid expiresIn calculation: ${expiresInSecondsInt}. Session date may be in the past or duration invalid.`);
+  }
 
+  // CRITICAL: Validate all required attributes before creating entity
+  if (!skill || typeof skill !== 'string' || skill.trim().length === 0) {
+    throw new Error('Invalid skill: skill is required and must be a non-empty string');
+  }
+  if (!spaceId || typeof spaceId !== 'string' || spaceId.trim().length === 0) {
+    throw new Error('Invalid spaceId: spaceId is required and must be a non-empty string');
+  }
+  
   let entityKey: string;
   let txHash: string;
   
   try {
+    // Build attributes array with validation
+    const attributes = [
+      { key: 'type', value: 'session' },
+      { key: 'mentorWallet', value: normalizedMentorWallet },
+      { key: 'learnerWallet', value: normalizedLearnerWallet },
+      { key: 'skill', value: skill.trim() }, // Legacy: keep for backward compatibility
+      { key: 'spaceId', value: spaceId.trim() },
+      { key: 'createdAt', value: createdAt },
+      { key: 'sessionDate', value: sessionDate },
+      { key: 'status', value: status },
+      ...(skill_id ? [{ key: 'skill_id', value: String(skill_id).trim() }] : []),
+      ...(requiresPayment ? [{ key: 'requiresPayment', value: 'true' }] : []),
+      ...(paymentAddress ? [{ key: 'paymentAddress', value: String(paymentAddress).trim() }] : []),
+      ...(cost ? [{ key: 'cost', value: String(cost).trim() }] : []),
+    ];
+    
+    // Validate all attribute values are non-empty strings
+    for (const attr of attributes) {
+      if (typeof attr.value !== 'string' || attr.value.length === 0) {
+        throw new Error(`Invalid attribute ${attr.key}: value must be a non-empty string`);
+      }
+    }
+    
     const result = await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'session' },
-        { key: 'mentorWallet', value: normalizedMentorWallet },
-        { key: 'learnerWallet', value: normalizedLearnerWallet },
-        { key: 'skill', value: skill }, // Legacy: keep for backward compatibility
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      { key: 'sessionDate', value: sessionDate },
-      { key: 'status', value: status },
-      ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
-      ...(requiresPayment ? [{ key: 'requiresPayment', value: 'true' }] : []),
-      ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
-      ...(cost ? [{ key: 'cost', value: cost }] : []),
-    ],
-    expiresIn: expiresInSecondsInt,
-  });
+      attributes,
+      expiresIn: expiresInSecondsInt,
+    });
     entityKey = result.entityKey;
     txHash = result.txHash;
   } catch (error: any) {
