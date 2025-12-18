@@ -175,15 +175,79 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const { key, txHash } = await confirmSession({
-        sessionKey,
-        confirmedByWallet,
-        privateKey: getPrivateKey(),
-        mentorWallet,
-        learnerWallet,
-      });
+      try {
+        const { key, txHash } = await confirmSession({
+          sessionKey,
+          confirmedByWallet,
+          privateKey: getPrivateKey(),
+          mentorWallet,
+          learnerWallet,
+        });
 
-      return NextResponse.json({ ok: true, key, txHash });
+        return NextResponse.json({ ok: true, key, txHash });
+      } catch (error: any) {
+        // Handle concurrent confirmation race condition
+        const errorMessage = error.message || '';
+
+        // Check if it's a duplicate confirmation error
+        if (errorMessage.includes('already confirmed') ||
+            errorMessage.includes('Session already confirmed')) {
+          // Confirmation already exists - this is actually success
+          // The user might have clicked at the same time as the other party
+          return NextResponse.json({
+            ok: true,
+            key: null,
+            txHash: null,
+            alreadyConfirmed: true,
+            message: 'Session was already confirmed. Both parties may have clicked at the same time!',
+          });
+        }
+
+        // Check for Mendoza/transaction errors that might indicate concurrent confirmation
+        if (errorMessage.includes('replacement transaction') ||
+            errorMessage.includes('underpriced') ||
+            errorMessage.includes('nonce') ||
+            errorMessage.toLowerCase().includes('mendoza') ||
+            errorMessage.includes('Transaction is still processing')) {
+          // This could be a concurrent confirmation - check if confirmation actually exists
+          try {
+            const { getPublicClient } = await import('@/lib/arkiv/client');
+            const { eq } = await import('@arkiv-network/sdk/query');
+            const publicClient = getPublicClient();
+            const existingConfirmations = await publicClient.buildQuery()
+              .where(eq('type', 'session_confirmation'))
+              .where(eq('sessionKey', sessionKey))
+              .where(eq('confirmedBy', confirmedByWallet.toLowerCase()))
+              .withAttributes(true)
+              .limit(1)
+              .fetch();
+
+            if (existingConfirmations.entities && existingConfirmations.entities.length > 0) {
+              // Confirmation actually exists - concurrent confirmation succeeded
+              return NextResponse.json({
+                ok: true,
+                key: null,
+                txHash: null,
+                alreadyConfirmed: true,
+                message: 'You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.',
+              });
+            }
+          } catch (checkError) {
+            // If check fails, fall through to generic error
+            console.warn('[sessions API] Error checking for existing confirmation:', checkError);
+          }
+
+          // Transaction conflict - likely concurrent confirmation
+          return NextResponse.json({
+            ok: false,
+            error: 'You both might have clicked at the same time! Wait a moment then try again.',
+            concurrentError: true,
+          }, { status: 409 }); // Conflict status code
+        }
+
+        // Re-throw other errors
+        throw error;
+      }
     } else if (action === 'rejectSession') {
       if (!sessionKey || !rejectedByWallet) {
         return NextResponse.json(

@@ -1,9 +1,9 @@
 /**
  * Sessions page
- * 
+ *
  * View and manage mentorship sessions (pending, scheduled, completed).
  * Allows confirming/rejecting pending sessions.
- * 
+ *
  * Based on mentor-graph implementation.
  * Reference: refs/mentor-graph/pages/network.tsx (session display and confirmation)
  */
@@ -40,23 +40,23 @@ function formatSessionDate(sessionDate: string): { date: string; time: string; i
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const sessionDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  
+
   const isPast = date < now;
   const isToday = sessionDay.getTime() === today.getTime();
-  
-  const dateStr = date.toLocaleDateString('en-US', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
+
+  const dateStr = date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
   });
-  
-  const timeStr = date.toLocaleTimeString('en-US', { 
-    hour: 'numeric', 
+
+  const timeStr = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
     minute: '2-digit',
-    hour12: true 
+    hour12: true
   });
-  
+
   return { date: dateStr, time: timeStr, isPast, isToday };
 }
 
@@ -290,17 +290,42 @@ export default function SessionsPage() {
 
       const data = await res.json();
       if (!res.ok) {
+        // Check for concurrent confirmation error
+        if (data.concurrentError || res.status === 409) {
+          // User-friendly message for concurrent confirmation
+          alert('You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.');
+          // Reload sessions to check if confirmation succeeded
+          if (userWallet) {
+            setTimeout(() => loadSessions(userWallet), 2000);
+          }
+          return;
+        }
         throw new Error(data.error || 'Failed to confirm session');
       }
 
-      alert('Session confirmed!');
+      // Check if already confirmed (concurrent confirmation case)
+      if (data.alreadyConfirmed) {
+        alert(data.message || 'Session was already confirmed. Both parties may have clicked at the same time!');
+      } else {
+        alert('Session confirmed!');
+      }
+
       // Reload sessions
       if (userWallet) {
         loadSessions(userWallet);
       }
     } catch (err: any) {
       console.error('Error confirming session:', err);
-      alert(`Error: ${err.message || 'Failed to confirm session'}`);
+      // Check if error message indicates concurrent confirmation
+      if (err.message?.includes('same time') || err.message?.includes('concurrent')) {
+        alert(err.message);
+        // Reload sessions to check if confirmation succeeded
+        if (userWallet) {
+          setTimeout(() => loadSessions(userWallet), 2000);
+        }
+      } else {
+        alert(`Error: ${err.message || 'Failed to confirm session'}`);
+      }
     } finally {
       setConfirming(null);
     }
@@ -510,8 +535,8 @@ export default function SessionsPage() {
   // Helper function to check if a session is a community session (arkiv-native: checks gatheringKey field)
   const isCommunitySession = (s: Session): boolean => {
     return Boolean(
-      s.gatheringKey || 
-      s.skill === 'virtual_gathering_rsvp' || 
+      s.gatheringKey ||
+      s.skill === 'virtual_gathering_rsvp' ||
       s.notes?.includes('virtual_gathering_rsvp:')
     );
   };
@@ -593,7 +618,7 @@ export default function SessionsPage() {
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
-        
+
         <PageHeader
           title="Sessions"
           description="Manage your mentorship sessions: pending requests, scheduled meetings, and completed sessions."
@@ -1046,7 +1071,7 @@ export default function SessionsPage() {
                 const canConfirm = isMentor || isLearner;
                 const userConfirmed = isMentor ? session.mentorConfirmed : (isLearner ? session.learnerConfirmed : false);
                 const otherConfirmed = isMentor ? session.learnerConfirmed : (isLearner ? session.mentorConfirmed : false);
-                
+
                 const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
                 const otherProfile = profiles[otherWallet.toLowerCase()];
                 const sessionTime = formatSessionDate(session.sessionDate);
@@ -1172,9 +1197,9 @@ export default function SessionsPage() {
                     )}
 
                     {/* Payment submission UI (for learner after mentor confirms) */}
-                    {session.requiresPayment && 
-                     !session.paymentTxHash && 
-                     session.mentorConfirmed && 
+                    {session.requiresPayment &&
+                     !session.paymentTxHash &&
+                     session.mentorConfirmed &&
                      isLearner && (
                       <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
                         <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
