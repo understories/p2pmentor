@@ -323,8 +323,56 @@ export async function listSkills({
       skills = skills.filter(s => s.slug === normalizedSlug);
     }
 
+    // Deduplicate skills by name_canonical (case-insensitive) or slug
+    // If duplicates exist, keep the most recent one (by createdAt) or the one with a slug
+    // This ensures users see only one "German" skill, not multiple duplicates
+    const skillMap = new Map<string, Skill>();
+    
+    skills.forEach(skill => {
+      // Use normalized name_canonical as the deduplication key (case-insensitive)
+      const dedupeKey = skill.name_canonical.toLowerCase().trim();
+      const existing = skillMap.get(dedupeKey);
+      
+      if (existing) {
+        // Duplicate found - decide which one to keep
+        const existingDate = existing.createdAt ? new Date(existing.createdAt).getTime() : 0;
+        const currentDate = skill.createdAt ? new Date(skill.createdAt).getTime() : 0;
+        
+        // Prefer skill with slug, then most recent, then existing
+        const existingHasSlug = existing.slug && existing.slug.trim() !== '';
+        const currentHasSlug = skill.slug && skill.slug.trim() !== '';
+        
+        if (currentHasSlug && !existingHasSlug) {
+          // Current has slug, existing doesn't - replace
+          skillMap.set(dedupeKey, skill);
+        } else if (!currentHasSlug && existingHasSlug) {
+          // Existing has slug, current doesn't - keep existing
+          // (no change needed)
+        } else if (currentDate > existingDate) {
+          // Both have or don't have slugs, but current is newer - replace
+          skillMap.set(dedupeKey, skill);
+        }
+        // Otherwise keep existing (older or same date)
+      } else {
+        // New skill - add to map
+        skillMap.set(dedupeKey, skill);
+      }
+    });
+    
+    // Convert back to array
+    const deduplicatedSkills = Array.from(skillMap.values());
+    
+    // Log if duplicates were found (for debugging)
+    if (skills.length > deduplicatedSkills.length) {
+      console.log('[listSkills] Deduplicated skills:', {
+        before: skills.length,
+        after: deduplicatedSkills.length,
+        duplicatesRemoved: skills.length - deduplicatedSkills.length,
+      });
+    }
+
     // Sort by name_canonical
-    return skills.sort((a, b) => a.name_canonical.localeCompare(b.name_canonical));
+    return deduplicatedSkills.sort((a, b) => a.name_canonical.localeCompare(b.name_canonical));
   } catch (error: any) {
     console.error('[listSkills] Error:', error);
     return [];
