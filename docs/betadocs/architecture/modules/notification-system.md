@@ -136,8 +136,13 @@ const markAsRead = async (notificationId: string) => {
       body: JSON.stringify({ wallet, notificationId, read: true })
     });
     
-    // 5. Dispatch event to sync other components
-    window.dispatchEvent(new CustomEvent('notification-preferences-updated'));
+    // 5. Wait for Arkiv to index the preference update
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 6. Dispatch event to sync other components
+    window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+      detail: { wallet, delay: 500 }
+    }));
   } catch (err) {
     // Revert on error
     setNotifications(prev => prev.map(n => 
