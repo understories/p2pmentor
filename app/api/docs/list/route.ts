@@ -71,9 +71,12 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'data-model': 2,
     'entity-overview': 3, // Overview page (will be linked from folder)
     'wallet-architecture': 4,
-    'environments': 5,
-    'privacy-consent': 6,
-    'implementation-faq': 7,
+    'wallet-authentication-flow': 5,
+    'profile-creation-flow': 6,
+    'session-state-machine': 7,
+    'environments': 8,
+    'privacy-consent': 9,
+    'implementation-faq': 10,
     // Entity schemas (alphabetical, grouped under entity-schemas folder)
     'ask': 1,
     'availability': 2,
