@@ -49,10 +49,15 @@ export default function NotificationsPage() {
     const storedWallet = localStorage.getItem('wallet_address');
     if (storedWallet) {
       setUserWallet(storedWallet);
-      // Load preferences FIRST, then notifications
-      loadNotificationPreferences(storedWallet).then(() => {
-        loadNotifications(storedWallet);
-      });
+      // Add small delay on initial load to ensure Arkiv has indexed any recent preference updates
+      // This is especially important when navigating back after marking notifications as read
+      // Arkiv-native: Wait for indexing before querying to ensure accurate read state
+      setTimeout(() => {
+        // Load preferences FIRST, then notifications
+        loadNotificationPreferences(storedWallet).then(() => {
+          loadNotifications(storedWallet);
+        });
+      }, 500); // 500ms delay to allow Arkiv indexing
 
       // Set up polling
       const interval = setInterval(() => {
@@ -233,13 +238,20 @@ export default function NotificationsPage() {
           throw new Error('Failed to save preference');
         }
 
+        // Wait for Arkiv to index the preference update before dispatching event
+        // Single notification update needs less time than bulk updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
 
         // Dispatch event to notify other components (e.g., navbar) of the change
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-            detail: { wallet: userWallet }
+            detail: { 
+              wallet: userWallet,
+              delay: 500, // Pass delay so sidebar knows to wait before querying
+            }
           }));
         }
       }
@@ -305,13 +317,20 @@ export default function NotificationsPage() {
           throw new Error('Failed to save preference');
         }
 
+        // Wait for Arkiv to index the preference update before dispatching event
+        // Single notification update needs less time than bulk updates
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Success: preferences are now persisted, keep the optimistic update
         // The preferences ref already has the correct state, so no need to reload
 
         // Dispatch event to notify other components (e.g., navbar) of the change
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-            detail: { wallet: userWallet }
+            detail: { 
+              wallet: userWallet,
+              delay: 500, // Pass delay so sidebar knows to wait before querying
+            }
           }));
         }
       }
@@ -406,9 +425,14 @@ export default function NotificationsPage() {
       // The preferences ref already has the correct state, so no need to reload
 
       // Dispatch event to update sidebar notification count
+      // Include delay in event detail so the sidebar knows to wait before querying Arkiv
+      // This ensures Arkiv has indexed all preference updates before the count is refreshed
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: userWallet },
+          detail: { 
+            wallet: userWallet,
+            delay: indexingDelay, // Pass the same delay used for Arkiv indexing
+          },
         }));
       }
     } catch (err) {
@@ -483,9 +507,14 @@ export default function NotificationsPage() {
       // The preferences ref already has the correct state, so no need to reload
 
       // Dispatch event to notify other components (e.g., navbar) of the change
+      // Include delay in event detail so the sidebar knows to wait before querying Arkiv
+      // This ensures Arkiv has indexed all preference updates before the count is refreshed
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: userWallet }
+          detail: { 
+            wallet: userWallet,
+            delay: indexingDelay, // Pass the same delay used for Arkiv indexing
+          }
         }));
       }
     } catch (err) {

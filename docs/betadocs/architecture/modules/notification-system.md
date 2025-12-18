@@ -164,8 +164,15 @@ const markAsRead = async (notificationId: string) => {
 
 1. **Notifications Page** dispatches events when preferences change:
 ```typescript
+// Wait for Arkiv to index preference updates before dispatching event
+const indexingDelay = Math.max(1500, 500 + (unreadNotifications.length * 200));
+await new Promise(resolve => setTimeout(resolve, indexingDelay));
+
 window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-  detail: { wallet: userWallet }
+  detail: { 
+    wallet: userWallet,
+    delay: indexingDelay, // Pass delay so sidebar knows to wait before querying
+  }
 }));
 ```
 
@@ -173,13 +180,18 @@ window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
 ```typescript
 useEffect(() => {
   const handlePreferenceUpdate = (event: Event) => {
-    const customEvent = event as CustomEvent<{ wallet?: string }>;
+    const customEvent = event as CustomEvent<{ wallet?: string; delay?: number }>;
     const currentWallet = localStorage.getItem('wallet_address')?.toLowerCase().trim();
     
     // Only refresh if update is for current wallet
     if (!customEvent.detail.wallet || 
         customEvent.detail.wallet.toLowerCase().trim() === currentWallet) {
-      loadCount(); // Refresh count immediately
+      // Add delay to ensure Arkiv has indexed the preference updates
+      // Use delay from event detail if provided, otherwise default to 500ms
+      const delay = customEvent.detail.delay || 500;
+      setTimeout(() => {
+        loadCount(); // Refresh count after delay
+      }, delay);
     }
   };
   
@@ -219,6 +231,8 @@ const loadNotificationPreferences = async (wallet: string) => {
 
 **Status:** ✅ Solved
 
+**Update (2025-01-XX):** Enhanced event-driven synchronization to handle Arkiv indexing delays. The event now includes a `delay` parameter that tells the sidebar hook to wait before querying Arkiv, ensuring all preference updates are indexed before the count is refreshed. This prevents the sidebar from querying too early and getting stale data.
+
 ### Issue 3: Count Resets When Navigating Away
 
 **Problem:** After marking notifications as unread, navigating away and back would reset the count to the previous state.
@@ -231,6 +245,8 @@ const loadNotificationPreferences = async (wallet: string) => {
 - Polling ensures eventual consistency
 
 **Status:** ✅ Solved
+
+**Update (2025-01-XX):** Added a 500ms delay on initial page load to ensure Arkiv has indexed any recent preference updates before querying. This is especially important when navigating back after marking notifications as read/unread, ensuring the page shows the correct read state.
 
 ### Issue 4: Loading States Showing When Data Already Available
 
@@ -256,7 +272,7 @@ Use flags to prevent `loadNotificationPreferences` from running during active sa
 
 ### 4. Event-Driven Synchronization
 
-Dispatch events when state changes to keep components in sync.
+Dispatch events when state changes to keep components in sync. Include a `delay` parameter in the event detail to account for Arkiv indexing delays, ensuring components wait before querying Arkiv for updated preferences.
 
 ### 5. Polling as Fallback
 
@@ -393,9 +409,17 @@ await fetch('/api/notifications/preferences', {
   })
 });
 
-// 3. Dispatch event to sync other components
+// 3. Wait for Arkiv to index all preference updates
+const indexingDelay = Math.max(1500, 500 + (unreadNotifications.length * 200));
+await new Promise(resolve => setTimeout(resolve, indexingDelay));
+
+// 4. Dispatch event to sync other components
+// Include delay in event detail so components know to wait before querying Arkiv
 window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-  detail: { wallet: userWallet }
+  detail: { 
+    wallet: userWallet,
+    delay: indexingDelay,
+  }
 }));
 ```
 

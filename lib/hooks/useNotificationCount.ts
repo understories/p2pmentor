@@ -92,7 +92,7 @@ export function useNotificationCount(): number | null {
     
     // Listen for preference updates from notifications page
     const handlePreferenceUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ wallet?: string }>;
+      const customEvent = event as CustomEvent<{ wallet?: string; delay?: number }>;
       const currentWallet = typeof window !== 'undefined' 
         ? localStorage.getItem('wallet_address')?.toLowerCase().trim()
         : null;
@@ -100,7 +100,12 @@ export function useNotificationCount(): number | null {
       // Only refresh if the update is for the current wallet (or no wallet specified)
       if (!customEvent.detail.wallet || 
           customEvent.detail.wallet.toLowerCase().trim() === currentWallet) {
-        loadCount();
+        // Add delay to ensure Arkiv has indexed the preference updates
+        // Use delay from event detail if provided, otherwise default to 500ms
+        const delay = customEvent.detail.delay || 500;
+        setTimeout(() => {
+          loadCount();
+        }, delay);
       }
     };
     
