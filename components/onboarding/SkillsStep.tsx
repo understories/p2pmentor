@@ -11,7 +11,6 @@ import { listSkills } from '@/lib/arkiv/skill';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import type { Skill } from '@/lib/arkiv/skill';
 import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
-import { listUserProfiles } from '@/lib/arkiv/profile';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { SPACE_ID } from '@/lib/config';
@@ -71,39 +70,26 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   };
 
   // Get profile count for a skill
-  const getSkillProfileCount = async (skillKey: string): Promise<number> => {
+  // Uses the same API endpoint as the skill garden to ensure identical counts
+  const getSkillProfileCount = async (skillName: string): Promise<number> => {
     try {
-      const skill = existingSkills.find(s => s.key === skillKey);
-      if (!skill) return 0;
-
-      // CRITICAL: Query profiles with the same spaceId as the skill
-      // This ensures accurate counts and prevents cross-environment data mixing
-      const allProfiles = await listUserProfiles({ spaceId: skill.spaceId });
-
-      let count = 0;
-      allProfiles.forEach(profile => {
-        // CRITICAL: Only count profiles from the same spaceId as the skill
-        // This ensures accurate counts when querying multiple spaceIds or different environments
-        if (profile.spaceId !== skill.spaceId) {
-          return; // Skip profiles from different spaceIds
-        }
-
-        // Check skill_ids array (new format)
-        if (Array.isArray((profile as any).skill_ids) && (profile as any).skill_ids.includes(skillKey)) {
-          count++;
-          return;
-        }
-        // Check skillsArray (match by name)
-        if (Array.isArray(profile.skillsArray) && profile.skillsArray.some(s => s.toLowerCase() === skill.name_canonical.toLowerCase())) {
-          count++;
-          return;
-        }
-        // Check skills string (legacy)
-        if (typeof profile.skills === 'string' && profile.skills.toLowerCase().includes(skill.name_canonical.toLowerCase())) {
-          count++;
-        }
-      });
-      return count;
+      // Use the same API endpoint as the skill garden (/api/skills/explore)
+      // This ensures the count matches exactly what's shown in the garden
+      const res = await fetch('/api/skills/explore');
+      const data = await res.json();
+      
+      if (!data.ok || !data.skills) {
+        console.error('Failed to fetch skill profile counts:', data.error);
+        return 0;
+      }
+      
+      // Find the skill by name (case-insensitive match)
+      const normalizedName = skillName.toLowerCase().trim();
+      const skill = data.skills.find((s: any) => 
+        s.name_canonical.toLowerCase().trim() === normalizedName
+      );
+      
+      return skill?.profileCount ?? 0;
     } catch (error) {
       console.error('Error getting skill profile count:', error);
       return 0;
@@ -238,8 +224,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
         setConfirmationMessage(`You added a new skill to the network! "${skill.name_canonical}" has been planted in the Arkiv garden.`);
       } else {
         // Get profile count for existing skill
+        // Uses same API endpoint as skill garden to ensure identical counts
         // The count should now include the newly added profile after the delay
-        const profileCount = await getSkillProfileCount(skill.key);
+        const profileCount = await getSkillProfileCount(skill.name_canonical);
         setConfirmationType('existing');
         setConfirmationMessage(`You are joining ${profileCount} other${profileCount === 1 ? '' : 's'} in the network learning "${skill.name_canonical}".`);
       }
