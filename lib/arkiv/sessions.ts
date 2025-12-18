@@ -311,7 +311,7 @@ export async function listSessions(params?: {
     queryBuilder
       .withAttributes(true)
       .withPayload(true)
-      .limit(100)
+      .limit(500) // Increased limit to ensure RSVP sessions are included
       .fetch(),
     publicClient.buildQuery()
       .where(eq('type', 'session_txhash'))
