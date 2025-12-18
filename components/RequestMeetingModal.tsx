@@ -15,7 +15,6 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Ask } from '@/lib/arkiv/asks';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
-import { validateDateTimeAgainstAvailability } from '@/lib/arkiv/availability';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { SkillSelector } from '@/components/SkillSelector';
@@ -130,15 +129,8 @@ export function RequestMeetingModal({
       return;
     }
 
-    // Validate against offer availability if offer is provided (request mode only)
-    if (mode === 'request' && offer?.availabilityWindow) {
-      const sessionDate = new Date(`${formData.date}T${formData.time}`).toISOString();
-      const validation = validateDateTimeAgainstAvailability(sessionDate, offer.availabilityWindow);
-      if (!validation.valid) {
-        setError(validation.error || 'Selected time does not match mentor availability');
-        return;
-      }
-    }
+    // Note: Availability validation removed - users can request meetings even if no availability is set
+    // Availability is only required when creating offers/asks (enforced in API)
 
     // Show confirmation preview before submitting
     setShowConfirmation(true);
