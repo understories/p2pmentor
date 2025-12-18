@@ -8,6 +8,53 @@ Pre-implementation conceptual diagram of the wallet authentication flow.
 
 <img src="/walletm1.svg" alt="Wallet Authentication Flow - Conceptual" />
 
+<details>
+<summary>View Mermaid source code</summary>
+
+```mermaid
+flowchart TD
+  A[User on auth page] --> B[Click Connect Wallet]
+
+  B --> C{Mobile device}
+  C -- Yes --> D[Open MetaMask mobile app]
+  D --> E{User approves}
+  E -- No --> E1[Error connection cancelled]
+  E1 --> B
+  E -- Yes --> F[Wallet connected]
+
+  C -- No --> G{MetaMask available}
+  G -- No --> G1[Error install MetaMask]
+  G1 --> B
+  G -- Yes --> H[Request wallet connection]
+  H --> I{User approves}
+  I -- No --> E1
+  I -- Yes --> F
+
+  F --> J[Get wallet address]
+  J --> K[Store wallet in localStorage]
+
+  K --> L[Attempt switch to Mendoza]
+  L --> M{Switch successful}
+  M -- Yes --> N[Redirect to dashboard]
+  M -- No --> O[Attempt add Mendoza]
+  O --> P{Add successful}
+  P -- Yes --> N
+  P -- No --> Q[Warning continue anyway]
+  Q --> N
+
+  N --> R{User refreshes page}
+  R -- Yes --> S[Read wallet from localStorage]
+  S --> T{Wallet exists}
+  T -- Yes --> N
+  T -- No --> U[Return to auth page]
+
+  N --> V[User clicks Disconnect]
+  V --> W[Clear localStorage]
+  W --> X[Redirect to auth page]
+```
+
+</details>
+
 ## Implementation Flow Diagram
 
 Current implementation diagram of the MetaMask wallet authentication flow.

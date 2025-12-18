@@ -8,6 +8,27 @@ Pre-implementation conceptual diagram of the session state machine.
 
 <img src="/sessionm1.svg" alt="Session State Machine - Conceptual" />
 
+<details>
+<summary>View Mermaid source code</summary>
+
+```mermaid
+stateDiagram-v2
+  [*] --> pending : Session created
+
+  pending --> confirmed : Mentor confirms
+  note right of confirmed
+    On confirm
+    Create Jitsi URL
+    Store in session entity
+  end note
+
+  pending --> declined : Mentor declines
+
+  confirmed --> confirmed : Join session
+```
+
+</details>
+
 ## Implementation State Machine Diagram
 
 Current implementation diagram of session state transitions.

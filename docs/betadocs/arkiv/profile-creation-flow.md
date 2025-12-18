@@ -8,6 +8,61 @@ Pre-implementation conceptual diagram of the profile creation flow.
 
 <img src="/profilem1.svg" alt="Profile Creation Flow - Conceptual" />
 
+<details>
+<summary>View Mermaid source code</summary>
+
+```mermaid
+flowchart TD
+  A[User on profile page] --> B[Fill profile form]
+  B --> C[Validate form]
+  C --> D{Valid}
+
+  D -- No --> D1[Show validation errors]
+  D1 --> B
+
+  D -- Yes --> E[Submit POST api profile]
+
+  E --> F[Verify beta access]
+  F --> G{Access valid}
+  G -- No --> G1[Error beta access required]
+  G1 --> B
+
+  G -- Yes --> H{Action type}
+
+  H -- Create --> I[Proceed with create]
+  H -- Update --> J[Load existing profile]
+
+  J --> K{Profile exists}
+  K -- No --> K1[Error profile not found]
+  K1 --> B
+  K -- Yes --> I
+
+  I --> L{Username provided}
+  L -- No --> M[Build profile payload]
+  L -- Yes --> N[Check username uniqueness]
+  N --> O{Username taken}
+  O -- Yes --> O1[Error username exists]
+  O1 --> B
+  O -- No --> M
+
+  M --> P[Server signs transaction]
+  P --> Q[Create profile entity on Arkiv]
+
+  Q --> R{Transaction success}
+  R -- No --> R1[Error transaction failed]
+  R1 --> B
+
+  R -- Yes --> S[Create notification entity]
+
+  S --> T[Return success response]
+
+  T --> U[Update UI]
+  U --> V[Show View on Explorer]
+  V --> W[Redirect to profile page]
+```
+
+</details>
+
 ## Implementation Flow Diagram
 
 Current implementation diagram of the profile creation and update flow.
