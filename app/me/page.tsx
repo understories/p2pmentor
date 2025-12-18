@@ -13,8 +13,6 @@ import { BetaGate } from '@/components/auth/BetaGate';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { getProfileByWallet, type UserProfile } from '@/lib/arkiv/profile';
 import { calculateProfileCompleteness } from '@/lib/profile/completeness';
-import { GardenLayer } from '@/components/garden/GardenLayer';
-import { profileToGardenSkills, type GardenSkill } from '@/lib/garden/types';
 import { BackgroundImage } from '@/components/BackgroundImage';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
 import type { Skill } from '@/lib/arkiv/skill';
@@ -36,8 +34,6 @@ export default function MePage() {
   const [notificationCount, setNotificationCount] = useState(0);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [gardenSkills, setGardenSkills] = useState<GardenSkill[]>([]);
-  const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
   const [onboardingChecked, setOnboardingChecked] = useState(false); // Track if onboarding check completed
   const [allSkills, setAllSkills] = useState<Skill[]>([]);
   const [followedSkills, setFollowedSkills] = useState<string[]>([]);
@@ -111,9 +107,6 @@ export default function MePage() {
         });
       });
       
-      // Load all system skills for background garden
-      loadAllSystemSkills();
-      
       // Load all skills and followed communities for join/leave functionality
       if (address) {
         Promise.all([
@@ -146,25 +139,6 @@ export default function MePage() {
     }
   }, [router, hasProfile]);
   
-  const loadAllSystemSkills = async () => {
-    try {
-      const { listSkills } = await import('@/lib/arkiv/skill');
-      const skills: Skill[] = await listSkills({ status: 'active', limit: 100 });
-      
-      // Convert to GardenSkill format (all as sprout emojis, level 0)
-      // Use skill.key as id to match learningSkillIds (skill entity keys)
-      const gardenSkills: GardenSkill[] = skills.map((skill) => ({
-        id: skill.key, // Use key to match learningSkillIds
-        name: skill.name_canonical,
-        level: 0, // All as sprout emojis for now
-      }));
-      
-      setAllSystemSkills(gardenSkills);
-    } catch (error) {
-      console.error('Error loading all system skills:', error);
-    }
-  };
-
   const loadNotificationCount = async (wallet: string) => {
     try {
       // Normalize wallet to lowercase for consistent querying (same as notifications page)
@@ -213,9 +187,6 @@ export default function MePage() {
       
       // Load garden skills from profile
       if (profileData) {
-        const skills = profileToGardenSkills(profileData.skillsArray, profileData.skillExpertise);
-        setGardenSkills(skills);
-        
         // Count skills from profile (skill_ids or skillsArray)
         const skillIds = (profileData as any).skill_ids || [];
         const skillsArray = profileData.skillsArray || [];
@@ -470,14 +441,8 @@ export default function MePage() {
       {/* Forest Background */}
       <BackgroundImage />
       
-      {/* Garden Layer - persistent garden showing all system skills, with user's skills glowing */}
-      <GardenLayer 
-        skills={gardenSkills} 
-        allSkills={allSystemSkills}
-        skillProfileCounts={skillProfileCounts}
-        learningSkillIds={followedSkills}
-      />
-      
+      {/* Garden is provided by FixedBackgroundGarden in root layout */}
+      {/* Dashboard content floats on top with backdrop blur */}
       <div className="relative z-10 p-4 backdrop-blur-sm">
       <div className="max-w-2xl mx-auto">
         
