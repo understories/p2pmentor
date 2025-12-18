@@ -26,17 +26,30 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('dark');
   const [mounted, setMounted] = useState(false);
 
-  // Initialize theme from localStorage or system preference
+  // Initialize theme from localStorage or default to dark
+  // Apply immediately to prevent flash of wrong theme
   useEffect(() => {
-    setMounted(true);
+    if (typeof window === 'undefined') return;
+    
     const saved = localStorage.getItem('theme');
+    let initialTheme: Theme = 'dark';
+    
     if (saved === 'dark' || saved === 'light') {
-      setThemeState(saved);
-    } else {
-      // Default to dark mode for landing page sunrise effect
-      // System preference check happens after initial render
-      setThemeState('dark');
+      initialTheme = saved;
     }
+    
+    // Apply theme immediately to prevent flash
+    const root = document.documentElement;
+    if (initialTheme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+    
+    setThemeState(initialTheme);
+    setMounted(true);
   }, []);
 
   // Apply theme to document

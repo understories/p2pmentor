@@ -59,9 +59,9 @@ export function GlobalToggles() {
     return null;
   }
 
-  // Show on all pages (including /, /auth, /beta)
-  // Show on mobile for landing and beta pages, desktop only for others
-  const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth';
+  // Show on all pages (including /, /auth, /beta, /docs)
+  // Show on mobile for landing, beta, auth, and docs pages
+  const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth' || (pathname && pathname.startsWith('/docs'));
   const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
 
   return (
