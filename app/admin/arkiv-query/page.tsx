@@ -158,9 +158,10 @@ export default function ArkivQueryPage() {
         const value = params[param.key] || param.defaultValue || '';
         if (value !== '') {
           if (param.type === 'number') {
-            queryParams[param.key] = parseInt(value, 10) || param.defaultValue || 0;
+            const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
+            queryParams[param.key] = (typeof numValue === 'number' && !isNaN(numValue)) ? numValue : (param.defaultValue || 0);
           } else {
-            queryParams[param.key] = value;
+            queryParams[param.key] = String(value);
           }
         }
       });
