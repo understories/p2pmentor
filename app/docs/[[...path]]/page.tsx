@@ -366,7 +366,7 @@ export default function DocsPage() {
 
         {/* Main content */}
         <main className="flex-1 md:ml-64 overflow-x-hidden">
-          <article className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-16 md:pt-8 pb-8 md:pb-12 overflow-x-hidden">
+          <article className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-20 md:pt-8 pb-8 md:pb-12 overflow-x-hidden">
             {/* Show table of contents for root /docs */}
             {!currentPath ? (
               renderTableOfContents()
@@ -376,7 +376,7 @@ export default function DocsPage() {
                 {(() => {
                   const nav = getNavigationPages();
                   return (
-                    <div className="md:mb-8 md:static fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
+                    <div className="md:mb-8 md:static fixed top-14 left-0 right-0 md:top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
                       <div className="w-full max-w-4xl mx-auto px-2 md:px-0 py-2 md:py-0 flex items-center gap-2 md:gap-4 md:pb-4 overflow-x-hidden">
                         {/* Mobile menu button - only show on mobile */}
                         <button

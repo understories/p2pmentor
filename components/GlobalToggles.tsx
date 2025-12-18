@@ -63,10 +63,16 @@ export function GlobalToggles() {
   // Show on mobile for landing, beta, auth, and docs pages
   const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth' || (pathname && pathname.startsWith('/docs'));
   const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
+  
+  // For docs pages on mobile, position above the navbar (navbar is at top-0 with z-40)
+  // Navbar has py-2 and content, so roughly 48-56px tall. Position toggle above it.
+  const isDocsPage = pathname && pathname.startsWith('/docs');
+  // On mobile docs: position at top with small margin, on desktop: keep top-4
+  const topPosition = isDocsPage ? 'top-2 md:top-4' : 'top-4';
 
   return (
     <div 
-      className={`${mobileClass} fixed top-4 right-4 z-50 flex flex-row items-center justify-end gap-2`}
+      className={`${mobileClass} fixed ${topPosition} right-4 z-50 flex flex-row items-center justify-end gap-2`}
     >
       {/* Theme Toggle */}
       <button
