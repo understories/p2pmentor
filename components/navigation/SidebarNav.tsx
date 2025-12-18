@@ -249,11 +249,11 @@ export function SidebarNav() {
       {/* Pointer events capture area - only 4 units wide when collapsed, full width when expanded */}
       <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-56 transition-all duration-300 ease-out pointer-events-auto" />
       {/* Visual indicator - vertical line with emerald glow */}
-      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
       <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300 pointer-events-none">
         <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
         {/* Constellation Lines - only show when sidebar is expanded */}
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="hidden group-hover:block">
           <ConstellationLines
             itemCount={navItems.length}
             itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
