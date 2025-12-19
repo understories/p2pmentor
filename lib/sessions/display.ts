@@ -78,7 +78,21 @@ export function formatSessionTitle(session: Session, skillsMap?: Record<string, 
   
   // Regular session - just show skill title
   if (skillId === '[legacy data]') {
-    return `[legacy data] ${session.skill}`;
+    return `[legacy data] ${session.skill || 'Session'}`;
+  }
+
+  // If skillTitle is the same as skillId (not found in skillsMap), try to use session.skill
+  // But only if session.skill looks like a skill name (not a hex string/entity key)
+  if (skillTitle === skillId && skillId !== '[legacy data]') {
+    // Check if session.skill is a valid skill name (not a hex string)
+    const isHexString = /^0x[a-f0-9]{64}$/i.test(session.skill || '');
+    if (session.skill && !isHexString && session.skill.trim().length > 0) {
+      // Use legacy skill name if it's not a hex string
+      return session.skill;
+    }
+    // If session.skill is also a hex string or empty, show a more user-friendly message
+    // This handles cases where skill_id is invalid or skill entity is missing
+    return '[legacy data] Session';
   }
   
   // Just return the skill title
