@@ -1771,6 +1771,66 @@ export async function rejectSession({
     expiresIn: sessionExpiration,
   });
 
+  // Arkiv-native: Create notification for the requester when meeting is declined
+  // M1 Acceptance Criteria: "the requester should be notified" when meeting is declined
+  try {
+    const { createNotification } = await import('./notifications');
+    const { getProfileByWallet } = await import('./profile');
+    
+    // Determine who rejected and who should be notified (the requester)
+    const isMentorRejecting = rejectedByWallet.toLowerCase() === verifiedMentorWallet.toLowerCase();
+    const isLearnerRejecting = rejectedByWallet.toLowerCase() === verifiedLearnerWallet.toLowerCase();
+    
+    // The requester is the other party (the one who didn't reject)
+    let requesterWallet: string;
+    let rejecterWallet: string;
+    let rejecterName: string;
+    
+    if (isMentorRejecting) {
+      // Mentor rejected - notify learner (requester)
+      requesterWallet = verifiedLearnerWallet;
+      rejecterWallet = verifiedMentorWallet;
+      const rejecterProfile = await getProfileByWallet(rejecterWallet).catch(() => null);
+      rejecterName = rejecterProfile?.displayName || rejecterWallet.slice(0, 6) + '...' + rejecterWallet.slice(-4);
+    } else if (isLearnerRejecting) {
+      // Learner rejected - notify mentor (requester)
+      requesterWallet = verifiedMentorWallet;
+      rejecterWallet = verifiedLearnerWallet;
+      const rejecterProfile = await getProfileByWallet(rejecterWallet).catch(() => null);
+      rejecterName = rejecterProfile?.displayName || rejecterWallet.slice(0, 6) + '...' + rejecterWallet.slice(-4);
+    } else {
+      // Should not happen, but handle gracefully
+      return { key: entityKey, txHash };
+    }
+    
+    const sessionSkill = session?.skill || 'your session';
+    
+    await createNotification({
+      wallet: requesterWallet.toLowerCase(),
+      notificationType: 'meeting_request',
+      sourceEntityType: 'session',
+      sourceEntityKey: sessionKey,
+      title: 'Meeting Request Declined',
+      message: `${rejecterName} declined your meeting request for "${sessionSkill}".`,
+      link: '/me/sessions',
+      metadata: {
+        sessionKey: sessionKey,
+        skill: sessionSkill,
+        otherWallet: rejecterWallet.toLowerCase(),
+        mentorWallet: verifiedMentorWallet.toLowerCase(),
+        learnerWallet: verifiedLearnerWallet.toLowerCase(),
+        rejectedBy: rejecterWallet.toLowerCase(),
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn('[rejectSession] Failed to create rejection notification for requester:', err);
+    });
+  } catch (notificationError: any) {
+    // Don't fail rejection if notification creation fails
+    console.warn('[rejectSession] Error in notification logic:', notificationError);
+  }
+
   return { key: entityKey, txHash };
 }
 
