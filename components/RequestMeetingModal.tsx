@@ -614,50 +614,10 @@ export function RequestMeetingModal({
                 </label>
                 <input
                   id="time"
-                  type="text"
+                  type="time"
                   value={formData.time}
-                  onChange={(e) => {
-                    let value = e.target.value;
-                    // Remove non-digits and colons, but allow partial input
-                    const digits = value.replace(/[^\d:]/g, '');
-                    
-                    // Format as HH:mm while typing
-                    if (digits.length <= 2) {
-                      setFormData({ ...formData, time: digits });
-                    } else if (digits.length <= 4) {
-                      // Add colon after 2 digits
-                      const formatted = digits.length === 3 
-                        ? `${digits.slice(0, 2)}:${digits.slice(2)}`
-                        : `${digits.slice(0, 2)}:${digits.slice(2)}`;
-                      setFormData({ ...formData, time: formatted });
-                    } else {
-                      // Limit to HH:mm format
-                      const formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
-                      setFormData({ ...formData, time: formatted });
-                    }
-                  }}
-                  onBlur={(e) => {
-                    // Round to nearest 15 minutes when user finishes editing
-                    const time = e.target.value;
-                    if (!time || time.length < 5) {
-                      return;
-                    }
-                    const [hours, minutes] = time.split(':').map(Number);
-                    if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-                      return;
-                    }
-                    const roundedMinutes = Math.round(minutes / 15) * 15;
-                    let adjustedHours = hours;
-                    let finalMinutes = roundedMinutes;
-                    if (roundedMinutes >= 60) {
-                      adjustedHours = (hours + 1) % 24;
-                      finalMinutes = 0;
-                    }
-                    const roundedTime = `${String(adjustedHours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
-                    setFormData({ ...formData, time: roundedTime });
-                  }}
-                  placeholder="13:15"
-                  maxLength={5}
+                  onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                  step="900"
                   required
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />

@@ -1935,37 +1935,21 @@ export default function TopicDetailPage() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Time *
+                      <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Time * (15-min intervals)
                       </label>
                       <input
-                        type="text"
+                        type="time"
+                        id="time"
                         value={formData.time}
-                        onChange={(e) => {
-                          let value = e.target.value;
-                          // Remove non-digits and colons, but allow partial input
-                          const digits = value.replace(/[^\d:]/g, '');
-                          
-                          // Format as HH:mm while typing
-                          if (digits.length <= 2) {
-                            setFormData({ ...formData, time: digits });
-                          } else if (digits.length <= 4) {
-                            // Add colon after 2 digits
-                            const formatted = digits.length === 3 
-                              ? `${digits.slice(0, 2)}:${digits.slice(2)}`
-                              : `${digits.slice(0, 2)}:${digits.slice(2)}`;
-                            setFormData({ ...formData, time: formatted });
-                          } else {
-                            // Limit to HH:mm format
-                            const formatted = `${digits.slice(0, 2)}:${digits.slice(2, 4)}`;
-                            setFormData({ ...formData, time: formatted });
-                          }
-                        }}
-                        placeholder="13:15"
-                        maxLength={5}
+                        onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                        step="900"
                         required
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        Times are rounded to 15-minute intervals
+                      </p>
                     </div>
                   </div>
 
