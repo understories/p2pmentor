@@ -147,9 +147,13 @@ export function SidebarNav() {
         const now = Date.now();
         const upcoming = sessions
           .filter(s => {
+            // Only show scheduled sessions that haven't ended yet
             if (s.status !== 'scheduled') return false;
             const sessionTime = new Date(s.sessionDate).getTime();
-            return sessionTime > now;
+            const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+            const buffer = 60 * 60 * 1000; // 1 hour buffer
+            const sessionEnd = sessionTime + duration + buffer;
+            return now < sessionEnd;
           })
           .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())
           .slice(0, 3); // Show up to 3 upcoming sessions

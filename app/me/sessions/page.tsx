@@ -558,19 +558,20 @@ export default function SessionsPage() {
     if (timeFilter === 'upcoming') {
       return sessionList.filter(s => {
         const sessionTime = new Date(s.sessionDate).getTime();
-        return sessionTime > now;
+        const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+        const buffer = 60 * 60 * 1000; // 1 hour buffer
+        const sessionEnd = sessionTime + duration + buffer;
+        // Only show as upcoming if session hasn't ended yet
+        return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
       });
     }
-    // past: filter sessions that have ended OR pending sessions where sessionDate is in the past
+    // past: filter sessions that have ended OR pending/scheduled sessions where sessionDate + duration + buffer is in the past
     return sessionList.filter(s => {
       const sessionTime = new Date(s.sessionDate).getTime();
-      // Include pending sessions where sessionDate is in the past (expired pending)
-      if (s.status === 'pending' && sessionTime < now) {
-        return true;
-      }
       const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
       const buffer = 60 * 60 * 1000; // 1 hour buffer
       const sessionEnd = sessionTime + duration + buffer;
+      // Include sessions that have ended (including duration + buffer) or are explicitly completed/declined/cancelled
       return now >= sessionEnd || s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled';
     });
   };

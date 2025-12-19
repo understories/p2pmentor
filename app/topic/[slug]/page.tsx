@@ -382,11 +382,14 @@ export default function TopicDetailPage() {
       // Load sessions for this community (skill-based sessions)
       let skillBasedSessions: Session[] = [];
       if (sessionsRes.ok && sessionsRes.sessions) {
-        // Filter to upcoming sessions only
+        // Filter to upcoming sessions only (that haven't ended yet)
         const now = Date.now();
         skillBasedSessions = sessionsRes.sessions.filter((s: Session) => {
           const sessionTime = new Date(s.sessionDate).getTime();
-          return sessionTime > now;
+          const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+          const buffer = 60 * 60 * 1000; // 1 hour buffer
+          const sessionEnd = sessionTime + duration + buffer;
+          return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
         });
       }
 

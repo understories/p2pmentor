@@ -18,7 +18,8 @@ import { hasUserGivenFeedbackForSession } from '@/lib/arkiv/feedback';
  * 
  * A session has ended if:
  * - Status is 'completed', OR
- * - Status is 'scheduled' AND the session time has passed (including duration buffer)
+ * - Status is 'scheduled' AND the session time has passed (including duration buffer), OR
+ * - Status is 'pending' AND the session time has passed (including duration buffer)
  * 
  * @param session - Session to check
  * @returns true if session has ended
@@ -28,7 +29,8 @@ export function hasSessionEnded(session: Session): boolean {
     return true;
   }
   
-  if (session.status === 'scheduled') {
+  // Check if session time has passed (including duration + buffer) for scheduled or pending sessions
+  if (session.status === 'scheduled' || session.status === 'pending') {
     const sessionTime = new Date(session.sessionDate).getTime();
     const duration = (session.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
     const buffer = 60 * 60 * 1000; // 1 hour buffer

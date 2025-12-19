@@ -223,19 +223,25 @@ export default function MePage() {
       const now = Date.now();
       const completed = allSessions.filter(s => {
         if (s.status === 'completed') return true;
-        // Also count past scheduled sessions as completed
-        if (s.status === 'scheduled') {
+        // Also count past scheduled/pending sessions as completed (including duration + buffer)
+        if (s.status === 'scheduled' || s.status === 'pending') {
           const sessionTime = new Date(s.sessionDate).getTime();
-          const sessionEnd = sessionTime + (s.duration || 60) * 60 * 1000;
+          const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+          const buffer = 60 * 60 * 1000; // 1 hour buffer
+          const sessionEnd = sessionTime + duration + buffer;
           return sessionEnd < now;
         }
         return false;
       }).length;
       
       const upcoming = allSessions.filter(s => {
+        // Only count scheduled sessions that haven't ended yet
         if (s.status !== 'scheduled') return false;
         const sessionTime = new Date(s.sessionDate).getTime();
-        return sessionTime > now;
+        const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+        const buffer = 60 * 60 * 1000; // 1 hour buffer
+        const sessionEnd = sessionTime + duration + buffer;
+        return now < sessionEnd;
       }).length;
       
       setSessionsCompleted(completed);
