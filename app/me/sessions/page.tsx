@@ -1720,6 +1720,19 @@ export default function SessionsPage() {
                                             </p>
                                           </div>
                                         )}
+                                        <div className="mt-2 flex items-center gap-2">
+                                          <ViewOnArkivLink
+                                            entityKey={userFeedback.key}
+                                            txHash={userFeedback.txHash}
+                                            label="View Feedback Entity"
+                                            className="text-xs"
+                                          />
+                                          {arkivBuilderMode && userFeedback.key && (
+                                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                              {userFeedback.key.slice(0, 12)}...
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     ) : (
                                       <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -1867,6 +1880,19 @@ export default function SessionsPage() {
                                 </p>
                               </div>
                             )}
+                            <div className="mt-2 flex items-center gap-2">
+                              <ViewOnArkivLink
+                                entityKey={userFeedback.key}
+                                txHash={userFeedback.txHash}
+                                label="View Feedback Entity"
+                                className="text-xs"
+                              />
+                              {arkivBuilderMode && userFeedback.key && (
+                                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                  {userFeedback.key.slice(0, 12)}...
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ) : (
                           <p className="text-sm text-gray-500 dark:text-gray-400">
