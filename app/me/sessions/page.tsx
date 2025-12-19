@@ -551,17 +551,23 @@ export default function SessionsPage() {
     return sessionList.filter(s => !isCommunitySession(s));
   };
 
-  // Helper function to check if a session is upcoming (hasn't ended yet)
-  // Used for "upcoming" filter - includes sessions that are currently happening
-  // Arkiv-native: Uses consistent sessionEnd calculation (sessionDate + duration + buffer)
+  // Helper function to check if a session is upcoming (hasn't started yet)
+  // Used for "upcoming" filter - only shows future sessions (not currently happening)
+  // Arkiv-native: Uses consistent sessionTime calculation
   const isSessionUpcoming = (s: Session): boolean => {
+    if (!s.sessionDate) return false; // Defensive: no date means invalid
+    if (s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled') {
+      return false; // Exclude completed/declined/cancelled
+    }
     const now = Date.now();
     const sessionTime = new Date(s.sessionDate).getTime();
-    const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
-    const buffer = 60 * 60 * 1000; // 1 hour buffer
-    const sessionEnd = sessionTime + duration + buffer;
-    // Session is upcoming if it hasn't ended yet and is not completed/declined/cancelled
-    return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
+    // Defensive: check if date parsing succeeded
+    if (isNaN(sessionTime)) {
+      console.warn('[isSessionUpcoming] Invalid sessionDate:', s.sessionDate, 'for session:', s.key);
+      return false;
+    }
+    // Session is upcoming if it hasn't started yet (future sessions only)
+    return now < sessionTime;
   };
   
   // Helper function to check if a session hasn't started yet (for "Next Session" highlight)
@@ -603,13 +609,14 @@ export default function SessionsPage() {
   };
 
   // Filter sessions by time (upcoming vs past)
+  // Arkiv-native: Consistent logic - upcoming = hasn't started, past = has started
   const filterSessionsByTime = (sessionList: Session[]): Session[] => {
     if (timeFilter === 'all') return sessionList;
     if (timeFilter === 'upcoming') {
-      // For "upcoming" filter, show sessions that haven't ended (includes currently happening)
+      // For "upcoming" filter, show only sessions that haven't started yet (future sessions)
       return sessionList.filter(isSessionUpcoming);
     }
-    // past: filter sessions that have ended OR are explicitly completed/declined/cancelled
+    // past: filter sessions that have started (includes currently happening and ended)
     // Arkiv-native: Use dedicated helper for consistency
     return sessionList.filter(isSessionPast);
   };
@@ -1436,27 +1443,37 @@ export default function SessionsPage() {
         )}
 
         {/* Scheduled Sessions */}
-        {scheduledSessions.length > 0 && (
-          <div className="mb-8">
+        {scheduledSessions.length > 0 && (() => {
+          // Determine if all sessions in this list are past (for section header)
+          const allPast = scheduledSessions.every(s => isSessionPast(s));
+          const sectionLabel = allPast && timeFilter === 'past' 
+            ? `📅 Past Sessions (${scheduledSessions.length})`
+            : `✅ Scheduled (${scheduledSessions.length})`;
+          const sectionColor = allPast && timeFilter === 'past'
+            ? 'text-orange-600 dark:text-orange-400'
+            : 'text-green-600 dark:text-green-400';
+          
+          return (
+            <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
               {arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
                     `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
                     `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
-                    `Filtered: status='scheduled'`,
-                    `Returns: Session[] (${scheduledSessions.length} scheduled sessions)`,
+                    `Filtered: status='scheduled'${timeFilter === 'past' ? ', isSessionPast=true' : ''}`,
+                    `Returns: Session[] (${scheduledSessions.length} ${allPast && timeFilter === 'past' ? 'past' : 'scheduled'} sessions)`,
                     `Each session is a type='session' entity on Arkiv`
                   ]}
-                  label={`✅ Scheduled (${scheduledSessions.length})`}
+                  label={sectionLabel}
                 >
-                  <h2 className="text-xl font-semibold text-green-600 dark:text-green-400">
-                    ✅ Scheduled ({scheduledSessions.length})
+                  <h2 className={`text-xl font-semibold ${sectionColor}`}>
+                    {sectionLabel}
                   </h2>
                 </ArkivQueryTooltip>
               ) : (
-                <h2 className="text-xl font-semibold text-green-600 dark:text-green-400">
-                  ✅ Scheduled ({scheduledSessions.length})
+                <h2 className={`text-xl font-semibold ${sectionColor}`}>
+                  {sectionLabel}
                 </h2>
               )}
               <button
@@ -1512,9 +1529,16 @@ export default function SessionsPage() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                          <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                            Scheduled
-                          </span>
+                          {/* Show "Past" badge if session has started, "Scheduled" if it hasn't */}
+                          {isSessionPast(session) ? (
+                            <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
+                              Past
+                            </span>
+                          ) : (
+                            <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                              Scheduled
+                            </span>
+                          )}
                           {isCommunityGathering && (
                             <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
                               Community gathering
@@ -1737,8 +1761,9 @@ export default function SessionsPage() {
               })}
             </div>
             )}
-          </div>
-        )}
+            </div>
+          );
+        })()}
 
         {/* Completed Sessions */}
         {completedSessions.length > 0 && (
