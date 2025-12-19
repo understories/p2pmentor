@@ -551,7 +551,8 @@ export default function SessionsPage() {
     return sessionList.filter(s => !isCommunitySession(s));
   };
 
-  // Helper function to check if a session is truly upcoming (hasn't ended)
+  // Helper function to check if a session is upcoming (hasn't ended yet)
+  // Used for "upcoming" filter - includes sessions that are currently happening
   // Arkiv-native: Uses consistent sessionEnd calculation (sessionDate + duration + buffer)
   const isSessionUpcoming = (s: Session): boolean => {
     const now = Date.now();
@@ -562,17 +563,55 @@ export default function SessionsPage() {
     // Session is upcoming if it hasn't ended yet and is not completed/declined/cancelled
     return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
   };
+  
+  // Helper function to check if a session hasn't started yet (for "Next Session" highlight)
+  // Arkiv-native: Only show sessions that haven't started as "Next Session"
+  const isSessionNotStarted = (s: Session): boolean => {
+    if (!s.sessionDate) return false; // Defensive: no date means invalid
+    if (s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled') {
+      return false; // Exclude completed/declined/cancelled
+    }
+    const now = Date.now();
+    const sessionTime = new Date(s.sessionDate).getTime();
+    // Defensive: check if date parsing succeeded
+    if (isNaN(sessionTime)) {
+      console.warn('[isSessionNotStarted] Invalid sessionDate:', s.sessionDate, 'for session:', s.key);
+      return false;
+    }
+    // Session hasn't started if current time is before session start time
+    return now < sessionTime;
+  };
+  
+  // Helper function to check if a session is past (has started or ended)
+  // Arkiv-native: Uses consistent sessionTime and sessionEnd calculation
+  // Past includes: sessions that have started (now >= sessionTime) OR ended (now >= sessionEnd)
+  const isSessionPast = (s: Session): boolean => {
+    if (!s.sessionDate) return false; // Defensive: no date means invalid
+    if (s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled') {
+      return true; // Explicitly past
+    }
+    const now = Date.now();
+    const sessionTime = new Date(s.sessionDate).getTime();
+    // Defensive: check if date parsing succeeded
+    if (isNaN(sessionTime)) {
+      console.warn('[isSessionPast] Invalid sessionDate:', s.sessionDate, 'for session:', s.key);
+      return false;
+    }
+    // Session is past if it has started (now >= sessionTime)
+    // This includes sessions that are currently happening
+    return now >= sessionTime;
+  };
 
   // Filter sessions by time (upcoming vs past)
   const filterSessionsByTime = (sessionList: Session[]): Session[] => {
     if (timeFilter === 'all') return sessionList;
     if (timeFilter === 'upcoming') {
-      // Use consistent helper function for upcoming check
+      // For "upcoming" filter, show sessions that haven't ended (includes currently happening)
       return sessionList.filter(isSessionUpcoming);
     }
     // past: filter sessions that have ended OR are explicitly completed/declined/cancelled
-    // Arkiv-native: Inverse of isSessionUpcoming for consistency
-    return sessionList.filter(s => !isSessionUpcoming(s));
+    // Arkiv-native: Use dedicated helper for consistency
+    return sessionList.filter(isSessionPast);
   };
 
   // Filter sessions by status (pending vs confirmed)
@@ -595,8 +634,13 @@ export default function SessionsPage() {
   };
 
   // Group sessions by status, then apply all filters
+  // Arkiv-native: All session lists use the same filtered set (respects type, time, status filters)
   const allSessionsFiltered = applyAllFilters(sessions);
   const pendingSessions = allSessionsFiltered.filter(s => s.status === 'pending');
+  // Scheduled sessions: already filtered by applyAllFilters (respects time filter)
+  // When timeFilter is "past", includes sessions that have started
+  // When timeFilter is "upcoming", includes sessions that haven't ended
+  // When timeFilter is "all", includes all scheduled sessions
   const scheduledSessions = allSessionsFiltered.filter(s => s.status === 'scheduled');
   const completedSessions = allSessionsFiltered.filter(s => s.status === 'completed');
   const declinedSessions = allSessionsFiltered.filter(s => s.status === 'declined');
@@ -604,12 +648,22 @@ export default function SessionsPage() {
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
-  // Find upcoming session (next scheduled session that hasn't ended)
+  // Find upcoming session (next scheduled session that hasn't started yet)
   // Arkiv-native: Use filtered sessions and respect all active filters (type, status)
-  // Only show sessions that are truly upcoming (haven't ended)
+  // Only show sessions that haven't started yet (for "Next Session" display)
+  // CRITICAL: Filter by isSessionNotStarted to ensure we only show future sessions
   const upcomingSession = scheduledSessions
-    .filter(isSessionUpcoming)
-    .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
+    .filter(isSessionNotStarted)
+    .sort((a, b) => {
+      const aTime = new Date(a.sessionDate).getTime();
+      const bTime = new Date(b.sessionDate).getTime();
+      // Defensive: handle invalid dates
+      if (isNaN(aTime) || isNaN(bTime)) {
+        console.warn('[upcomingSession] Invalid sessionDate in sort:', { a: a.sessionDate, b: b.sessionDate });
+        return 0;
+      }
+      return aTime - bTime;
+    })[0];
 
   const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0 || endedSessions.length > 0;
 
@@ -970,11 +1024,18 @@ export default function SessionsPage() {
 
         {/* Upcoming Session Highlight - only show when not filtering by past */}
         {upcomingSession && timeFilter !== 'past' && (() => {
+          // Defensive: Double-check that session hasn't started (safety check)
+          const now = Date.now();
+          const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
+          if (isNaN(sessionDateTime) || now >= sessionDateTime) {
+            // Session has started or invalid date - don't show as "Next Session"
+            return null;
+          }
+          
           const isMentor = userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
           const otherWallet = isMentor ? upcomingSession.learnerWallet : upcomingSession.mentorWallet;
           const otherProfile = profiles[otherWallet.toLowerCase()];
           const sessionTime = formatSessionDate(upcomingSession.sessionDate);
-          const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
           const remaining = sessionDateTime - now;
           const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
           const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
