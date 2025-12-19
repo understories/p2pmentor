@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, mode } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, askKey, mode } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -119,6 +119,40 @@ export async function POST(request: NextRequest) {
           } catch (notifError) {
             // Log but don't fail the session creation if notification fails
             console.error('Failed to create notification for meeting request:', notifError);
+          }
+        }
+
+        // Create notification for ask owner when someone offers to help on their ask
+        // Arkiv-native: When mode='offer', mentor is offering to help, learner is ask owner
+        if (askKey && key && mode === 'offer') {
+          try {
+            const { createNotification } = await import('@/lib/arkiv/notifications');
+            const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+
+            // Get mentor (offerer) profile for notification message
+            const mentorProfile = await getProfileByWallet(mentorWallet).catch(() => null);
+            const mentorName = mentorProfile?.displayName || mentorWallet.slice(0, 6) + '...' + mentorWallet.slice(-4);
+
+            await createNotification({
+              wallet: learnerWallet.toLowerCase(), // Notify the ask owner (learner)
+              notificationType: 'meeting_request',
+              sourceEntityType: 'session',
+              sourceEntityKey: key,
+              title: 'New Meeting Request on Your Ask',
+              message: `${mentorName} offered to help with "${skill}"`,
+              link: '/me/sessions',
+              metadata: {
+                sessionKey: key,
+                askKey: askKey,
+                skill: skill,
+                mentorWallet: mentorWallet.toLowerCase(),
+              },
+              privateKey: getPrivateKey(),
+              spaceId: SPACE_ID, // Use SPACE_ID from config (same as the session entity)
+            });
+          } catch (notifError) {
+            // Log but don't fail the session creation if notification fails
+            console.error('Failed to create notification for ask owner:', notifError);
           }
         }
 

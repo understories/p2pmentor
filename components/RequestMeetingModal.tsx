@@ -322,6 +322,7 @@ export function RequestMeetingModal({
             paymentAddress,
             cost,
             offerKey: offer?.key, // Pass offer key if meeting is requested on an offer
+            askKey: ask?.key, // Pass ask key if meeting is offered on an ask
             mode, // Pass mode to determine requester
           }),
       });
