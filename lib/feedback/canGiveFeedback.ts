@@ -73,15 +73,19 @@ export async function canGiveFeedbackForSession(
     return false;
   }
   
-  // 2. Check if session is confirmed (both sides)
-  if (!session.mentorConfirmed || !session.learnerConfirmed) {
-    return false;
+  // 2. Check if session has ended
+  const sessionHasEnded = hasSessionEnded(session);
+  if (!sessionHasEnded) {
+    // For future sessions, require both confirmations
+    if (!session.mentorConfirmed || !session.learnerConfirmed) {
+      return false;
+    }
+    return false; // Session hasn't ended yet
   }
   
-  // 3. Check if session has ended
-  if (!hasSessionEnded(session)) {
-    return false;
-  }
+  // 3. For past sessions (sessionHasEnded === true), allow feedback regardless of confirmation status
+  // The session time has passed, so both parties should be able to give feedback
+  // We skip the confirmation check for past sessions to ensure BOTH wallets can give feedback
   
   // 4. Check if user has already given feedback
   if (existingFeedbacks) {
@@ -129,15 +133,16 @@ export function canGiveFeedbackForSessionSync(
     return false;
   }
   
-  // 2. Check if session is confirmed (both sides)
-  if (!session.mentorConfirmed || !session.learnerConfirmed) {
+  // 2. Check if session has ended
+  const sessionHasEnded = hasSessionEnded(session);
+  if (!sessionHasEnded) {
+    // Session hasn't ended yet - don't allow feedback
     return false;
   }
   
-  // 3. Check if session has ended
-  if (!hasSessionEnded(session)) {
-    return false;
-  }
+  // 3. For past sessions (sessionHasEnded === true), allow feedback regardless of confirmation status
+  // The session time has passed, so both parties should be able to give feedback
+  // We skip the confirmation check for past sessions to ensure both wallets can give feedback
   
   // 4. Check if user has already given feedback
   const hasGivenFeedback = existingFeedbacks.some(
