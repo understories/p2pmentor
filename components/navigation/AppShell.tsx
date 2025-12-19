@@ -11,7 +11,8 @@ import { useState } from 'react';
 import { BottomNav } from './BottomNav';
 import { SidebarNav } from './SidebarNav';
 import { FloatingActionButton } from './FloatingActionButton';
-import { useBraveBrowser } from '@/lib/hooks/useBraveBrowser';
+// PRESERVED FOR FUTURE USE: Brave browser detection
+// import { useBraveBrowser } from '@/lib/hooks/useBraveBrowser';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -19,7 +20,8 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const [sidebarHovered, setSidebarHovered] = useState(false);
-  const isBrave = useBraveBrowser();
+  // PRESERVED FOR FUTURE USE: Brave browser detection (disabled due to issues)
+  // const isBrave = useBraveBrowser();
 
   return (
     <>
@@ -36,11 +38,11 @@ export function AppShell({ children }: AppShellProps) {
       <BottomNav />
 
       {/* Main Content Area - adjusts margin when sidebar is hovered */}
-      {/* Brave browser zoom fix: apply scale correction to main content only */}
+      {/* PRESERVED FOR FUTURE USE: Brave browser zoom fix (disabled due to issues) */}
+      {/* style={isBrave ? { transform: 'scale(0.93)', transformOrigin: 'top left' } : undefined} */}
       {/* Global z-index fix: ensure content is always above skill garden (z-[1]) */}
       <main 
         className={`relative z-10 md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out backdrop-blur-sm`}
-        style={isBrave ? { transform: 'scale(0.93)', transformOrigin: 'top left' } : undefined}
       >
         {children}
       </main>
