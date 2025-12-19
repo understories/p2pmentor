@@ -41,13 +41,8 @@ export function FeedbackModal({
       setError('Please provide a rating between 1 and 5');
       return;
     }
-    // Allow submitting with just rating, or continue to notes
-    if (formData.notes.trim() || formData.technicalDxFeedback.trim()) {
-      setStep('notes');
-    } else {
-      // Submit with just rating
-      handleFinalSubmit();
-    }
+    // Always continue to notes step - description is required
+    setStep('notes');
   };
 
   const handleNotesNext = () => {
@@ -67,6 +62,12 @@ export function FeedbackModal({
       return;
     }
 
+    // Require notes (description) - reuse app feedback pattern
+    if (!formData.notes.trim()) {
+      setError('Please provide feedback description');
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -80,7 +81,7 @@ export function FeedbackModal({
           feedbackFrom: userWallet,
           feedbackTo,
           rating: formData.rating,
-          notes: formData.notes.trim() || undefined,
+          notes: formData.notes.trim(), // Required - validated in handleFinalSubmit
           technicalDxFeedback: formData.technicalDxFeedback.trim() || undefined,
           spaceId: session.spaceId,
           sessionStatus: session.status,
@@ -197,18 +198,18 @@ export function FeedbackModal({
                   disabled={submitting || formData.rating < 1}
                   className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {formData.notes.trim() || formData.technicalDxFeedback.trim() ? 'Continue' : 'Submit Rating'}
+                  Continue
                 </button>
               </div>
             </div>
           )}
 
-          {/* Step 2: Notes (Optional) */}
+          {/* Step 2: Notes (Required) */}
           {step === 'notes' && (
             <div>
               <div className="mb-6">
                 <label htmlFor="notes" className="block text-sm font-medium mb-1">
-                  Feedback Notes (optional)
+                  Feedback Description *
                 </label>
                 <div className="mb-2 flex flex-wrap gap-2">
                   <button
@@ -238,7 +239,8 @@ export function FeedbackModal({
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                   rows={4}
-                  placeholder="How was the session? What did you learn? Any suggestions?"
+                  placeholder="How was the session? What did you learn? Any suggestions? (e.g., 'Great explanation of ownership concepts!')"
+                  required
                   className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
@@ -261,10 +263,10 @@ export function FeedbackModal({
                 <button
                   type="button"
                   onClick={handleNotesNext}
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                  disabled={submitting || !formData.notes.trim()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {formData.technicalDxFeedback.trim() ? 'Continue' : 'Skip & Submit'}
+                  {formData.technicalDxFeedback.trim() ? 'Continue' : 'Submit Feedback'}
                 </button>
               </div>
             </div>

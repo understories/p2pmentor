@@ -103,7 +103,14 @@ export async function createFeedback({
     throw new Error('Cannot give feedback to yourself');
   }
 
+  // CRITICAL: Validate notes (description) is required - reuse app feedback pattern
+  if (!notes || !notes.trim()) {
+    throw new Error('Feedback description is required');
+  }
+
   // CRITICAL: Validate session is confirmed (both sides)
+  // Note: For past sessions, this check is skipped in canGiveFeedbackForSessionSync
+  // But we still validate here for consistency
   if (mentorConfirmed !== undefined && learnerConfirmed !== undefined) {
     if (!mentorConfirmed || !learnerConfirmed) {
       throw new Error('Feedback can only be given for confirmed sessions (both mentor and learner must confirm)');
@@ -125,7 +132,7 @@ export async function createFeedback({
 
   const payload = {
     rating: rating || undefined,
-    notes: notes || undefined,
+    notes: notes.trim(), // Required - already validated above
     technicalDxFeedback: technicalDxFeedback || undefined,
     createdAt,
   };
