@@ -605,13 +605,17 @@ export default function SessionsPage() {
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
-  // Find upcoming session (next scheduled session) - use original sessions before filtering
+  // Find upcoming session (next scheduled session) - use same logic as filter
   const now = Date.now();
   const allScheduledSessions = sessions.filter(s => s.status === 'scheduled');
   const upcomingSession = allScheduledSessions
     .filter(s => {
       const sessionTime = new Date(s.sessionDate).getTime();
-      return sessionTime > now;
+      const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+      const buffer = 60 * 60 * 1000; // 1 hour buffer
+      const sessionEnd = sessionTime + duration + buffer;
+      // Only show as upcoming if session hasn't ended yet (same logic as filter)
+      return now < sessionEnd;
     })
     .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
 
@@ -972,8 +976,8 @@ export default function SessionsPage() {
           <Alert type="error" message={error} onClose={() => setError('')} className="mb-4" />
         )}
 
-        {/* Upcoming Session Highlight */}
-        {upcomingSession && (() => {
+        {/* Upcoming Session Highlight - only show when not filtering by past */}
+        {upcomingSession && timeFilter !== 'past' && (() => {
           const isMentor = userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
           const otherWallet = isMentor ? upcomingSession.learnerWallet : upcomingSession.mentorWallet;
           const otherProfile = profiles[otherWallet.toLowerCase()];

@@ -307,7 +307,7 @@ export function SidebarNav() {
                   transition-all duration-150 ease-out
                   pointer-events-auto
                   ${active
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
@@ -399,7 +399,7 @@ export function SidebarNav() {
                   transition-all duration-150 ease-out
                   pointer-events-auto
                   ${isActive('/me/sessions')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : pendingConfirmationsCount > 0
                     ? 'text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
@@ -552,7 +552,7 @@ export function SidebarNav() {
                   transition-all duration-150 ease-out
                   pointer-events-auto
                   ${isActive('/network')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
@@ -584,7 +584,7 @@ export function SidebarNav() {
                 transition-all duration-150 ease-out
                 pointer-events-auto
                 ${isActive('/asks')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
@@ -613,7 +613,7 @@ export function SidebarNav() {
                 transition-all duration-150 ease-out
                 pointer-events-auto
                 ${isActive('/offers')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
@@ -642,7 +642,7 @@ export function SidebarNav() {
                 transition-all duration-150 ease-out
                 pointer-events-auto
                 ${isActive('/matches')
-                  ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                  ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                   : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }
               `}
@@ -807,7 +807,7 @@ export function SidebarNav() {
                   transition-all duration-150 ease-out
                   pointer-events-auto
                   ${isActive('/notifications')
-                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
