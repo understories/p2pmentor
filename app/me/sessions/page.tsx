@@ -551,29 +551,28 @@ export default function SessionsPage() {
     return sessionList.filter(s => !isCommunitySession(s));
   };
 
+  // Helper function to check if a session is truly upcoming (hasn't ended)
+  // Arkiv-native: Uses consistent sessionEnd calculation (sessionDate + duration + buffer)
+  const isSessionUpcoming = (s: Session): boolean => {
+    const now = Date.now();
+    const sessionTime = new Date(s.sessionDate).getTime();
+    const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
+    const buffer = 60 * 60 * 1000; // 1 hour buffer
+    const sessionEnd = sessionTime + duration + buffer;
+    // Session is upcoming if it hasn't ended yet and is not completed/declined/cancelled
+    return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
+  };
+
   // Filter sessions by time (upcoming vs past)
   const filterSessionsByTime = (sessionList: Session[]): Session[] => {
     if (timeFilter === 'all') return sessionList;
-    const now = Date.now();
     if (timeFilter === 'upcoming') {
-      return sessionList.filter(s => {
-        const sessionTime = new Date(s.sessionDate).getTime();
-        const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
-        const buffer = 60 * 60 * 1000; // 1 hour buffer
-        const sessionEnd = sessionTime + duration + buffer;
-        // Only show as upcoming if session hasn't ended yet
-        return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
-      });
+      // Use consistent helper function for upcoming check
+      return sessionList.filter(isSessionUpcoming);
     }
-    // past: filter sessions that have ended OR pending/scheduled sessions where sessionDate + duration + buffer is in the past
-    return sessionList.filter(s => {
-      const sessionTime = new Date(s.sessionDate).getTime();
-      const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
-      const buffer = 60 * 60 * 1000; // 1 hour buffer
-      const sessionEnd = sessionTime + duration + buffer;
-      // Include sessions that have ended (including duration + buffer) or are explicitly completed/declined/cancelled
-      return now >= sessionEnd || s.status === 'completed' || s.status === 'declined' || s.status === 'cancelled';
-    });
+    // past: filter sessions that have ended OR are explicitly completed/declined/cancelled
+    // Arkiv-native: Inverse of isSessionUpcoming for consistency
+    return sessionList.filter(s => !isSessionUpcoming(s));
   };
 
   // Filter sessions by status (pending vs confirmed)
@@ -605,18 +604,11 @@ export default function SessionsPage() {
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
-  // Find upcoming session (next scheduled session) - use same logic as filter
-  const now = Date.now();
-  const allScheduledSessions = sessions.filter(s => s.status === 'scheduled');
-  const upcomingSession = allScheduledSessions
-    .filter(s => {
-      const sessionTime = new Date(s.sessionDate).getTime();
-      const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
-      const buffer = 60 * 60 * 1000; // 1 hour buffer
-      const sessionEnd = sessionTime + duration + buffer;
-      // Only show as upcoming if session hasn't ended yet (same logic as filter)
-      return now < sessionEnd;
-    })
+  // Find upcoming session (next scheduled session that hasn't ended)
+  // Arkiv-native: Use filtered sessions and respect all active filters (type, status)
+  // Only show sessions that are truly upcoming (haven't ended)
+  const upcomingSession = scheduledSessions
+    .filter(isSessionUpcoming)
     .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime())[0];
 
   const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0 || endedSessions.length > 0;
