@@ -1365,6 +1365,141 @@ export async function confirmSession({
   const mentorConfirmed = confirmedWallets.has(verifiedMentorWallet.toLowerCase());
   const learnerConfirmed = confirmedWallets.has(verifiedLearnerWallet.toLowerCase());
   
+  // Arkiv-native: Create notification for the other party when one party confirms
+  // This notifies the other participant that their meeting request has been confirmed
+  try {
+    const { createNotification } = await import('./notifications');
+    const { getProfileByWallet } = await import('./profile');
+    
+    // Determine who confirmed and who should be notified
+    const isMentorConfirming = confirmedByWallet.toLowerCase() === verifiedMentorWallet.toLowerCase();
+    const isLearnerConfirming = confirmedByWallet.toLowerCase() === verifiedLearnerWallet.toLowerCase();
+    
+    if (isMentorConfirming && !learnerConfirmed) {
+      // Mentor confirmed, learner hasn't yet - notify learner
+      try {
+        const mentorProfile = await getProfileByWallet(verifiedMentorWallet).catch(() => null);
+        const mentorName = mentorProfile?.displayName || verifiedMentorWallet.slice(0, 6) + '...' + verifiedMentorWallet.slice(-4);
+        const sessionSkill = session?.skill || 'your session';
+        
+        await createNotification({
+          wallet: verifiedLearnerWallet.toLowerCase(),
+          notificationType: 'meeting_request',
+          sourceEntityType: 'session',
+          sourceEntityKey: sessionKey,
+          title: 'Meeting Request Confirmed',
+          message: `${mentorName} confirmed your meeting request for "${sessionSkill}". Waiting for your confirmation.`,
+          link: '/me/sessions',
+          metadata: {
+            sessionKey: sessionKey,
+            skill: sessionSkill,
+            otherWallet: verifiedMentorWallet.toLowerCase(),
+            mentorWallet: verifiedMentorWallet.toLowerCase(),
+            learnerWallet: verifiedLearnerWallet.toLowerCase(),
+            confirmedBy: verifiedMentorWallet.toLowerCase(),
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn('[confirmSession] Failed to create confirmation notification for learner:', err);
+        });
+      } catch (notifError) {
+        console.warn('[confirmSession] Error creating confirmation notification for learner:', notifError);
+      }
+    } else if (isLearnerConfirming && !mentorConfirmed) {
+      // Learner confirmed, mentor hasn't yet - notify mentor
+      try {
+        const learnerProfile = await getProfileByWallet(verifiedLearnerWallet).catch(() => null);
+        const learnerName = learnerProfile?.displayName || verifiedLearnerWallet.slice(0, 6) + '...' + verifiedLearnerWallet.slice(-4);
+        const sessionSkill = session?.skill || 'your session';
+        
+        await createNotification({
+          wallet: verifiedMentorWallet.toLowerCase(),
+          notificationType: 'meeting_request',
+          sourceEntityType: 'session',
+          sourceEntityKey: sessionKey,
+          title: 'Meeting Request Confirmed',
+          message: `${learnerName} confirmed your meeting request for "${sessionSkill}". Waiting for your confirmation.`,
+          link: '/me/sessions',
+          metadata: {
+            sessionKey: sessionKey,
+            skill: sessionSkill,
+            otherWallet: verifiedLearnerWallet.toLowerCase(),
+            mentorWallet: verifiedMentorWallet.toLowerCase(),
+            learnerWallet: verifiedLearnerWallet.toLowerCase(),
+            confirmedBy: verifiedLearnerWallet.toLowerCase(),
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn('[confirmSession] Failed to create confirmation notification for mentor:', err);
+        });
+      } catch (notifError) {
+        console.warn('[confirmSession] Error creating confirmation notification for mentor:', notifError);
+      }
+    } else if (mentorConfirmed && learnerConfirmed) {
+      // Both confirmed - notify both parties that the session is fully confirmed
+      try {
+        const mentorProfile = await getProfileByWallet(verifiedMentorWallet).catch(() => null);
+        const learnerProfile = await getProfileByWallet(verifiedLearnerWallet).catch(() => null);
+        const mentorName = mentorProfile?.displayName || verifiedMentorWallet.slice(0, 6) + '...' + verifiedMentorWallet.slice(-4);
+        const learnerName = learnerProfile?.displayName || verifiedLearnerWallet.slice(0, 6) + '...' + verifiedLearnerWallet.slice(-4);
+        const sessionSkill = session?.skill || 'your session';
+        
+        // Notify mentor
+        await createNotification({
+          wallet: verifiedMentorWallet.toLowerCase(),
+          notificationType: 'meeting_request',
+          sourceEntityType: 'session',
+          sourceEntityKey: sessionKey,
+          title: 'Session Confirmed - Meeting Ready',
+          message: `Your "${sessionSkill}" session with ${learnerName} is confirmed! Check Sessions for meeting details.`,
+          link: '/me/sessions',
+          metadata: {
+            sessionKey: sessionKey,
+            skill: sessionSkill,
+            otherWallet: verifiedLearnerWallet.toLowerCase(),
+            mentorWallet: verifiedMentorWallet.toLowerCase(),
+            learnerWallet: verifiedLearnerWallet.toLowerCase(),
+            bothConfirmed: true,
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn('[confirmSession] Failed to create both-confirmed notification for mentor:', err);
+        });
+        
+        // Notify learner
+        await createNotification({
+          wallet: verifiedLearnerWallet.toLowerCase(),
+          notificationType: 'meeting_request',
+          sourceEntityType: 'session',
+          sourceEntityKey: sessionKey,
+          title: 'Session Confirmed - Meeting Ready',
+          message: `Your "${sessionSkill}" session with ${mentorName} is confirmed! Check Sessions for meeting details.`,
+          link: '/me/sessions',
+          metadata: {
+            sessionKey: sessionKey,
+            skill: sessionSkill,
+            otherWallet: verifiedMentorWallet.toLowerCase(),
+            mentorWallet: verifiedMentorWallet.toLowerCase(),
+            learnerWallet: verifiedLearnerWallet.toLowerCase(),
+            bothConfirmed: true,
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn('[confirmSession] Failed to create both-confirmed notification for learner:', err);
+        });
+      } catch (notifError) {
+        console.warn('[confirmSession] Error creating both-confirmed notifications:', notifError);
+      }
+    }
+  } catch (notificationError: any) {
+    // Don't fail confirmation if notification creation fails
+    console.warn('[confirmSession] Error in notification logic:', notificationError);
+  }
+  
   // If both confirmed, generate Jitsi meeting and store it
   if (mentorConfirmed && learnerConfirmed) {
     
