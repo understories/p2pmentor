@@ -1323,6 +1323,106 @@ export async function confirmSession({
         }
       }
     }
+
+    // Arkiv-native: Create notifications for completed sessions that need feedback
+    // Check if session has ended and create notifications for both participants
+    if (session && session.sessionDate) {
+      try {
+        const { hasSessionEnded } = await import('@/lib/feedback/canGiveFeedback');
+        const { listFeedbackForSession } = await import('./feedback');
+        const { createNotification } = await import('./notifications');
+        const { getProfileByWallet } = await import('./profile');
+
+        // Check if session has ended
+        const sessionHasEnded = hasSessionEnded(session);
+        
+        if (sessionHasEnded) {
+          // Get existing feedbacks for this session
+          const existingFeedbacks = await listFeedbackForSession(sessionKey, spaceId).catch(() => []);
+
+          // Check if mentor can give feedback
+          // Both parties must be confirmed (we know this is true since we're in the both-confirmed block)
+          const mentorFeedbacks = existingFeedbacks.filter(f => 
+            f.feedbackFrom.toLowerCase() === verifiedMentorWallet.toLowerCase()
+          );
+          const mentorCanGiveFeedback = !mentorFeedbacks.length;
+
+          // Check if learner can give feedback
+          // Both parties must be confirmed (we know this is true since we're in the both-confirmed block)
+          const learnerFeedbacks = existingFeedbacks.filter(f => 
+            f.feedbackFrom.toLowerCase() === verifiedLearnerWallet.toLowerCase()
+          );
+          const learnerCanGiveFeedback = !learnerFeedbacks.length;
+
+          // Create notification for mentor if they can give feedback
+          if (mentorCanGiveFeedback) {
+            try {
+              const learnerProfile = await getProfileByWallet(verifiedLearnerWallet).catch(() => null);
+              const learnerName = learnerProfile?.displayName || verifiedLearnerWallet.slice(0, 6) + '...' + verifiedLearnerWallet.slice(-4);
+              
+              await createNotification({
+                wallet: verifiedMentorWallet.toLowerCase(),
+                notificationType: 'session_completed_feedback_needed',
+                sourceEntityType: 'session',
+                sourceEntityKey: sessionKey,
+                title: 'Session Completed - Leave Feedback',
+                message: `Your ${session.skill} session with ${learnerName} has ended. Share your experience!`,
+                link: '/me/sessions',
+                metadata: {
+                  sessionKey: sessionKey,
+                  skill: session.skill,
+                  otherWallet: verifiedLearnerWallet.toLowerCase(),
+                  role: 'mentor',
+                  mentorWallet: verifiedMentorWallet.toLowerCase(),
+                  learnerWallet: verifiedLearnerWallet.toLowerCase(),
+                },
+                privateKey,
+                spaceId,
+              }).catch((err: any) => {
+                console.warn('[confirmSession] Failed to create feedback notification for mentor:', err);
+              });
+            } catch (notifError) {
+              console.warn('[confirmSession] Error creating feedback notification for mentor:', notifError);
+            }
+          }
+
+          // Create notification for learner if they can give feedback
+          if (learnerCanGiveFeedback) {
+            try {
+              const mentorProfile = await getProfileByWallet(verifiedMentorWallet).catch(() => null);
+              const mentorName = mentorProfile?.displayName || verifiedMentorWallet.slice(0, 6) + '...' + verifiedMentorWallet.slice(-4);
+              
+              await createNotification({
+                wallet: verifiedLearnerWallet.toLowerCase(),
+                notificationType: 'session_completed_feedback_needed',
+                sourceEntityType: 'session',
+                sourceEntityKey: sessionKey,
+                title: 'Session Completed - Leave Feedback',
+                message: `Your ${session.skill} session with ${mentorName} has ended. Share your experience!`,
+                link: '/me/sessions',
+                metadata: {
+                  sessionKey: sessionKey,
+                  skill: session.skill,
+                  otherWallet: verifiedMentorWallet.toLowerCase(),
+                  role: 'learner',
+                  mentorWallet: verifiedMentorWallet.toLowerCase(),
+                  learnerWallet: verifiedLearnerWallet.toLowerCase(),
+                },
+                privateKey,
+                spaceId,
+              }).catch((err: any) => {
+                console.warn('[confirmSession] Failed to create feedback notification for learner:', err);
+              });
+            } catch (notifError) {
+              console.warn('[confirmSession] Error creating feedback notification for learner:', notifError);
+            }
+          }
+        }
+      } catch (feedbackNotifError: any) {
+        // Don't fail confirmation if feedback notification creation fails
+        console.warn('[confirmSession] Error checking/creating feedback notifications:', feedbackNotifError);
+      }
+    }
   }
 
   return { key: entityKey, txHash };

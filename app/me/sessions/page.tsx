@@ -123,9 +123,11 @@ export default function SessionsPage() {
       setSessions(sessionsList);
 
       // Load feedbacks for all sessions
+      // Arkiv-native: Use session's spaceId to ensure we query feedback from the correct space
       const feedbackPromises = sessionsList.map(async (session: Session) => {
         try {
-          const feedbackRes = await fetch(`/api/feedback?sessionKey=${encodeURIComponent(session.key)}`);
+          const spaceIdParam = session.spaceId ? `&spaceId=${encodeURIComponent(session.spaceId)}` : '';
+          const feedbackRes = await fetch(`/api/feedback?sessionKey=${encodeURIComponent(session.key)}${spaceIdParam}`);
           if (feedbackRes.ok) {
             const feedbackData = await feedbackRes.json();
             return { sessionKey: session.key, feedbacks: feedbackData.feedbacks || [] };
