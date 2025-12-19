@@ -231,15 +231,27 @@ export default function SkillsPage() {
 
       if (data.pending) {
         setSuccess('Skill removal submitted! Transaction is being processed. Please refresh in a moment.');
+        // Clear form state after removal
+        setSelectedSkillId('');
+        setSelectedSkillName('');
+        setNewSkillPlanted(null);
         setTimeout(() => loadData(walletAddress), 2000);
       } else {
         setSuccess('Skill removed!');
         if (data.txHash) setLastTxHash(data.txHash);
+        // Clear form state after removal
+        setSelectedSkillId('');
+        setSelectedSkillName('');
+        setNewSkillPlanted(null);
         await loadData(walletAddress);
       }
     } catch (err: any) {
       console.error('Error removing skill:', err);
       setError(err.message || 'Failed to remove skill');
+      // Clear form state even on error to allow retry
+      setSelectedSkillId('');
+      setSelectedSkillName('');
+      setNewSkillPlanted(null);
     } finally {
       setSubmitting(false);
     }
