@@ -67,6 +67,7 @@ export async function createSession({
   cost,
   requesterWallet,
   privateKey,
+  ttlSeconds, // Optional: TTL in seconds (default: 6 months)
 }: {
   mentorWallet: string;
   learnerWallet: string;
@@ -80,6 +81,7 @@ export async function createSession({
   cost?: string; // Cost amount (if paid)
   requesterWallet?: string; // Wallet of the requester (will be auto-confirmed)
   privateKey: `0x${string}`;
+  ttlSeconds?: number; // Optional: TTL in seconds (default: 6 months = 15768000 seconds)
 }): Promise<{ key: string; txHash: string }> {
   // Normalize wallet addresses to lowercase for consistency
   const normalizedMentorWallet = mentorWallet.toLowerCase();
@@ -115,33 +117,35 @@ export async function createSession({
     // Note: paymentTxHash is NOT included here - it will be submitted later after mentor confirms
   };
 
-  // Calculate expiration: sessionDate + duration + 1 hour buffer for wrap-up
-  // CRITICAL: Validate sessionDate is valid
+  // Calculate expiration: Use provided ttlSeconds or default to 6 months
+  // Default: 6 months = 15768000 seconds (6 * 30.4 days * 24 hours * 3600 seconds)
+  const DEFAULT_SESSION_TTL_SECONDS = 15768000; // 6 months
+  
+  let expiresInSecondsInt: number;
+  
+  if (ttlSeconds !== undefined && ttlSeconds !== null) {
+    // Use provided TTL (from UI advanced options)
+    expiresInSecondsInt = Math.floor(Math.max(1, ttlSeconds));
+  } else {
+    // Default: 6 months
+    expiresInSecondsInt = DEFAULT_SESSION_TTL_SECONDS;
+  }
+  
+  // CRITICAL: Final validation - expiresIn must be a positive integer
+  if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt <= 0) {
+    throw new Error(`Invalid expiresIn: ${expiresInSecondsInt}. Must be a positive integer.`);
+  }
+  
+  // CRITICAL: Validate sessionDate is valid (still needed for sessionDate attribute)
   const sessionDateObj = new Date(sessionDate);
   if (isNaN(sessionDateObj.getTime())) {
     throw new Error(`Invalid sessionDate: ${sessionDate}. Must be a valid ISO timestamp.`);
   }
   
-  const sessionStartTime = Math.floor(sessionDateObj.getTime()); // Ensure integer milliseconds
   // Ensure duration is always an integer to prevent float propagation
   const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
   if (durationMinutes <= 0) {
     throw new Error(`Invalid duration: ${duration}. Must be a positive number of minutes.`);
-  }
-  
-  const sessionDurationMs = durationMinutes * 60 * 1000; // Convert minutes to milliseconds
-  const bufferMs = 60 * 60 * 1000; // 1 hour buffer after session ends
-  const expirationTime = Math.floor(sessionStartTime + sessionDurationMs + bufferMs); // Ensure integer
-  const now = Math.floor(Date.now()); // Ensure integer milliseconds
-  
-  // Calculate expiresIn and ensure it's always an integer (BigInt requirement)
-  const expiresInSecondsRaw = (expirationTime - now) / 1000;
-  // Use Math.trunc to ensure integer, then Math.floor for safety, then parseInt to guarantee integer type
-  const expiresInSecondsInt = parseInt(Math.floor(Math.max(1, Math.trunc(expiresInSecondsRaw))).toString(), 10);
-  
-  // CRITICAL: Final validation - expiresIn must be a positive integer
-  if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt <= 0) {
-    throw new Error(`Invalid expiresIn calculation: ${expiresInSecondsInt}. Session date may be in the past or duration invalid.`);
   }
 
   // CRITICAL: Validate all required attributes before creating entity
@@ -785,6 +789,97 @@ export async function listSessionsForWallet(wallet: string, spaceId?: string): P
   [...asMentor, ...asLearner].forEach(session => {
     sessionMap.set(session.key, session);
   });
+
+  // Option 4: Reconstruct expired sessions from feedback (for past sessions only)
+  // Query feedback for this wallet to find sessions that may have expired
+  try {
+    const { listFeedbackForWallet } = await import('./feedback');
+    const feedbacks = await listFeedbackForWallet(normalizedWallet, finalSpaceId);
+    
+    // For each feedback, try to get the session
+    // If session doesn't exist (expired), reconstruct minimal session from feedback
+    for (const feedback of feedbacks) {
+      // Skip if we already have this session
+      if (sessionMap.has(feedback.sessionKey)) {
+        continue;
+      }
+      
+      // Try to get the session - if it returns null, it's expired
+      try {
+        const expiredSession = await getSessionByKey(feedback.sessionKey);
+        if (!expiredSession) {
+          // Session expired - reconstruct from feedback
+          // Only reconstruct if feedback has enough info (mentorWallet, learnerWallet, skill)
+          if (feedback.mentorWallet && feedback.learnerWallet && feedback.mentorWallet !== feedback.learnerWallet) {
+            // Determine if this wallet is mentor or learner
+            const isMentor = feedback.mentorWallet.toLowerCase() === normalizedWallet;
+            const isLearner = feedback.learnerWallet.toLowerCase() === normalizedWallet;
+            
+            if (isMentor || isLearner) {
+              // Reconstruct minimal session from feedback
+              // Use feedback createdAt as approximation for sessionDate (feedback is created after session ends)
+              // Note: This is a minimal reconstruction - some fields will be missing (skill, exact sessionDate, duration)
+              const reconstructedSession: Session = {
+                key: feedback.sessionKey, // Use sessionKey from feedback
+                mentorWallet: feedback.mentorWallet,
+                learnerWallet: feedback.learnerWallet,
+                skill: 'Session (expired)', // Placeholder - feedback doesn't store skill
+                spaceId: feedback.spaceId || finalSpaceId,
+                createdAt: feedback.createdAt, // Use feedback createdAt as approximation
+                sessionDate: feedback.createdAt, // Approximation - feedback createdAt is close to session end
+                status: 'completed' as const, // Assume completed if feedback exists
+                duration: 60, // Default duration (unknown)
+                notes: 'Session expired - reconstructed from feedback',
+                mentorConfirmed: true, // Assume confirmed if feedback exists
+                learnerConfirmed: true, // Assume confirmed if feedback exists
+                // Note: This is a minimal reconstruction for display only
+                // Missing: exact sessionDate, duration, skill, payment info, Jitsi link
+              };
+              
+              // Only add if we don't already have it
+              if (!sessionMap.has(feedback.sessionKey)) {
+                sessionMap.set(feedback.sessionKey, reconstructedSession);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Session doesn't exist (expired) - reconstruct from feedback
+        // Only reconstruct if feedback has enough info
+        if (feedback.mentorWallet && feedback.learnerWallet && feedback.mentorWallet !== feedback.learnerWallet) {
+          const isMentor = feedback.mentorWallet.toLowerCase() === normalizedWallet;
+          const isLearner = feedback.learnerWallet.toLowerCase() === normalizedWallet;
+          
+          if (isMentor || isLearner) {
+            // Reconstruct minimal session from feedback (same as above)
+            const reconstructedSession: Session = {
+              key: feedback.sessionKey,
+              mentorWallet: feedback.mentorWallet,
+              learnerWallet: feedback.learnerWallet,
+              skill: 'Session (expired)', // Placeholder - feedback doesn't store skill
+              spaceId: feedback.spaceId || finalSpaceId,
+              createdAt: feedback.createdAt,
+              sessionDate: feedback.createdAt, // Approximation - feedback createdAt is close to session end
+              status: 'completed' as const, // Assume completed if feedback exists
+              duration: 60, // Default duration (unknown)
+              notes: 'Session expired - reconstructed from feedback',
+              mentorConfirmed: true, // Assume confirmed if feedback exists
+              learnerConfirmed: true, // Assume confirmed if feedback exists
+              // Note: This is a minimal reconstruction for display only
+            };
+            
+            if (!sessionMap.has(feedback.sessionKey)) {
+              sessionMap.set(feedback.sessionKey, reconstructedSession);
+            }
+          }
+        }
+      }
+    }
+  } catch (feedbackError) {
+    // If feedback query fails, continue without reconstruction
+    // This is optional functionality, so we don't want to break session listing
+    console.warn('[listSessionsForWallet] Could not query feedback for expired session reconstruction:', feedbackError);
+  }
 
   const allSessions = Array.from(sessionMap.values());
   

@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, askKey, mode } = body;
+    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, askKey, mode, ttlSeconds } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
@@ -74,6 +74,11 @@ export async function POST(request: NextRequest) {
           requesterWallet = learnerWallet.toLowerCase();
         }
 
+        // Ensure ttlSeconds is a positive integer if provided
+        const ttlSecondsInt = ttlSeconds !== undefined && ttlSeconds !== null
+          ? Math.floor(Math.max(1, typeof ttlSeconds === 'number' ? ttlSeconds : parseInt(String(ttlSeconds), 10) || 15768000))
+          : undefined; // Use default (6 months) if not provided
+
         const { key, txHash } = await createSession({
           mentorWallet,
           learnerWallet,
@@ -87,6 +92,7 @@ export async function POST(request: NextRequest) {
           cost: cost || undefined,
           requesterWallet, // Auto-confirm requester
           privateKey: getPrivateKey(),
+          ttlSeconds: ttlSecondsInt, // Pass TTL in seconds (default: 6 months if undefined)
         });
 
         // Create notification for offer owner when meeting is requested on an offer

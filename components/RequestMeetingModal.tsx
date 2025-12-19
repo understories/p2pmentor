@@ -59,7 +59,11 @@ export function RequestMeetingModal({
     requiresPayment: false,
     paymentAddress: '',
     cost: '',
+    // TTL fields (default: 6 months = 4320 hours)
+    ttlMonths: '6', // Default 6 months
+    customTtlMonths: '',
   });
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   // Pre-fill skill from offer, ask, or profile's first skill
   useEffect(() => {
@@ -305,6 +309,14 @@ export function RequestMeetingModal({
         }
       }
 
+      // Calculate ttlSeconds from months (default: 6 months)
+      // 1 month ≈ 730 hours (30.4 days average)
+      const ttlMonths = formData.ttlMonths === 'custom' 
+        ? parseFloat(formData.customTtlMonths || '6')
+        : parseFloat(formData.ttlMonths || '6');
+      const ttlHours = ttlMonths * 730; // Convert months to hours
+      const ttlSeconds = Math.floor(ttlHours * 3600); // Convert hours to seconds
+
       const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -324,6 +336,7 @@ export function RequestMeetingModal({
             offerKey: offer?.key, // Pass offer key if meeting is requested on an offer
             askKey: ask?.key, // Pass ask key if meeting is offered on an ask
             mode, // Pass mode to determine requester
+            ttlSeconds, // Pass TTL in seconds (default: 6 months)
           }),
       });
 
@@ -347,7 +360,8 @@ export function RequestMeetingModal({
         onSuccess();
       }
       onClose();
-      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '', ttlMonths: '6', customTtlMonths: '' });
+      setShowAdvancedOptions(false);
       
       // Show success message after modal is closed (non-blocking)
       setTimeout(() => {
@@ -382,7 +396,8 @@ export function RequestMeetingModal({
           onSuccess();
         }
         onClose();
-        setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+        setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '', ttlMonths: '6', customTtlMonths: '' });
+        setShowAdvancedOptions(false);
         
         // Show success message after modal is closed (non-blocking)
         setTimeout(() => {
@@ -403,7 +418,8 @@ export function RequestMeetingModal({
     if (!submitting) {
       setError('');
       setShowConfirmation(false);
-      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '' });
+      setFormData({ skill: '', skill_id: '', date: '', time: '', duration: '60', notes: '', requiresPayment: false, paymentAddress: '', cost: '', ttlMonths: '6', customTtlMonths: '' });
+      setShowAdvancedOptions(false);
       onClose();
     }
   };
@@ -697,6 +713,91 @@ export function RequestMeetingModal({
                 className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+
+            {/* Session Expiration Info */}
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                ℹ️ This session will expire in {formData.ttlMonths === 'custom' 
+                  ? (formData.customTtlMonths ? `${formData.customTtlMonths} months` : '...')
+                  : `${formData.ttlMonths} months`}
+              </p>
+            </div>
+
+            {/* Advanced Options Toggle */}
+            <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                className="w-full flex items-center justify-between text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+              >
+                <span>Advanced Options</span>
+                <span>{showAdvancedOptions ? '▲' : '▼'}</span>
+              </button>
+            </div>
+
+            {/* Advanced Options (Collapsed by Default) */}
+            {showAdvancedOptions && (
+              <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div>
+                  <label htmlFor="ttlMonths" className="block text-sm font-medium mb-2">
+                    Session Expiration Duration (optional)
+                    {arkivBuilderMode ? (
+                      <ArkivQueryTooltip
+                        query={[
+                          `TTL (Time To Live)`,
+                          `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
+                          ``,
+                          `Current Selection: ${formData.ttlMonths === 'custom' ? `${formData.customTtlMonths || '...'} months` : `${formData.ttlMonths || '6'} months`}`,
+                          `Conversion: months → hours → seconds`,
+                          `${formData.ttlMonths === 'custom' ? (parseFloat(formData.customTtlMonths || '6') * 730) : (parseFloat(formData.ttlMonths || '6') * 730)} hours = ${formData.ttlMonths === 'custom' ? Math.floor(parseFloat(formData.customTtlMonths || '6') * 730 * 3600) : Math.floor(parseFloat(formData.ttlMonths || '6') * 730 * 3600)} seconds`,
+                          ``,
+                          `In Session Entity:`,
+                          `→ Arkiv expiresIn: ${formData.ttlMonths === 'custom' ? Math.floor(parseFloat(formData.customTtlMonths || '6') * 730 * 3600) : Math.floor(parseFloat(formData.ttlMonths || '6') * 730 * 3600)} seconds`,
+                          ``,
+                          `Default: 6 months (allows feedback to persist)`,
+                          `Feedback TTL: 1 year (31536000 seconds)`,
+                          `Session TTL should be >= feedback TTL to ensure sessions remain queryable`
+                        ]}
+                        label="TTL Selection"
+                      >
+                        <span className="ml-2 text-xs text-gray-400 dark:text-gray-500 cursor-help">ℹ️</span>
+                      </ArkivQueryTooltip>
+                    ) : null}
+                  </label>
+                  <div className="flex gap-2">
+                    <select
+                      id="ttlMonths"
+                      value={formData.ttlMonths === 'custom' ? 'custom' : formData.ttlMonths}
+                      onChange={(e) => setFormData({ ...formData, ttlMonths: e.target.value })}
+                      className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="1">1 month</option>
+                      <option value="3">3 months</option>
+                      <option value="6">6 months - Recommended</option>
+                      <option value="12">12 months (1 year)</option>
+                      <option value="custom">Custom (months)</option>
+                    </select>
+                    {formData.ttlMonths === 'custom' && (
+                      <input
+                        type="number"
+                        min="1"
+                        max="24"
+                        step="1"
+                        placeholder="Months"
+                        value={formData.customTtlMonths}
+                        onChange={(e) => {
+                          setFormData({ ...formData, customTtlMonths: e.target.value });
+                        }}
+                        className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    How long should this session remain queryable? Default: 6 months
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Payment Info for Paid Offers (request mode) */}
             {mode === 'request' && offer?.isPaid && offer.paymentAddress && (
