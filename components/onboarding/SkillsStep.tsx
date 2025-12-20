@@ -318,7 +318,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
             }}
           >
-            {createdSkills.length > 0 ? 'Add another skill or continue to the next step.' : 'Add one skill to start. Every skill grows in its own time.'}
+            {createdSkills.length > 0 ? 'Plant skill to continue or add another skill.' : 'Add one skill to start'}
           </p>
         </div>
 

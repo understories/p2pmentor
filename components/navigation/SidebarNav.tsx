@@ -48,6 +48,7 @@ export function SidebarNav() {
   const [followedCommunities, setFollowedCommunities] = useState<LearningFollow[]>([]);
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   const [pendingConfirmationsCount, setPendingConfirmationsCount] = useState(0);
+  const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
 
   // Load Arkiv Builder Mode from localStorage
   useEffect(() => {
@@ -274,23 +275,21 @@ export function SidebarNav() {
           const hasBypass = typeof window !== 'undefined' && hasOnboardingBypass();
           const isDashboard = item.href === '/me';
 
-          // Intercept dashboard clicks during onboarding
-          const handleDashboardClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-            if (isDashboard && wallet && level !== null) {
-              // Check if we're on onboarding page
-              if (pathname === '/onboarding') {
-                e.preventDefault();
-                return;
-              }
+          // Intercept all navigation clicks during onboarding
+          const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+            // Check if we're on onboarding page
+            if (pathname === '/onboarding') {
+              e.preventDefault();
+              setShowOnboardingPopup(true);
+              return;
+            }
 
-              // Check if onboarding is complete (level >= 2 means ask or offer created)
-              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-              if (level !== null && level < 2) {
-                e.preventDefault();
-                // Redirect to onboarding
-                router.push('/onboarding');
-                return;
-              }
+            // Check if onboarding is complete (level >= 2 means ask or offer created)
+            // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+            if (wallet && level !== null && level < 2) {
+              e.preventDefault();
+              setShowOnboardingPopup(true);
+              return;
             }
           };
 
@@ -299,7 +298,7 @@ export function SidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={handleDashboardClick}
+                onClick={handleNavClick}
                 className={`
                   relative flex flex-row items-center gap-3
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
@@ -878,6 +877,29 @@ export function SidebarNav() {
         )}
         </div>
       </div>
+
+      {/* Onboarding Popup */}
+      {showOnboardingPopup && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🌱</div>
+              <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                Click grow to start
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6">
+                Complete onboarding to unlock navigation.
+              </p>
+              <button
+                onClick={() => setShowOnboardingPopup(false)}
+                className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
+              >
+                Got it
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
