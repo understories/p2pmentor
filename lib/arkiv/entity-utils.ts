@@ -66,12 +66,21 @@ export async function arkivUpsertEntity({
   // - Both should return { entityKey, txHash }
   
   if (key) {
-    // TODO: Replace with actual SDK updateEntity call once API is verified
-    // Expected: await walletClient.updateEntity({ entityKey: key, attributes, payload, ... })
-    throw new Error(
-      'Entity update not yet implemented. SDK API verification (U0.1) required. ' +
-      'See refs/entity-update-implementation-plan.md for details.'
-    );
+    // Update existing entity using SDK updateEntity API
+    // Verified in U0.1: SDK v0.4.4 supports updateEntity
+    // API signature: updateEntity({ entityKey, payload, attributes, contentType, expiresIn }, txParams?)
+    const finalExpiresIn = expiresIn ?? 15768000; // 6 months in seconds (default)
+    const result = await handleTransactionWithTimeout(async () => {
+      return await walletClient.updateEntity({
+        entityKey: key as `0x${string}`, // SDK expects Hex type
+        payload,
+        attributes: attributesWithSigner,
+        contentType,
+        expiresIn: finalExpiresIn,
+      });
+    });
+    // Map entityKey to key for consistency (entityKey should match input key)
+    return { key: result.entityKey, txHash: result.txHash };
   } else {
     // Use existing createEntity pattern
     // expiresIn is required by SDK, use default if not provided (6 months)

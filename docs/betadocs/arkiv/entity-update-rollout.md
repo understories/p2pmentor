@@ -28,10 +28,18 @@ The entity update pattern allows profiles and notifications to use stable entity
 
 ### Phase 2: SDK API Verification (U0.1)
 
-**Status:** ⏳ Pending  
-**Next Step:** Verify Arkiv SDK update API signature
+**Status:** ✅ Complete  
+**Completed:** 2025-12-21  
+**SDK Version:** `@arkiv-network/sdk@0.4.4`
 
-Once verified, the `arkivUpsertEntity` function in `lib/arkiv/entity-utils.ts` will be updated to use the actual SDK update call.
+**Verification Results:**
+- ✅ `updateEntity` method confirmed in SDK
+- ✅ API signature verified: `updateEntity({ entityKey, payload, attributes, contentType, expiresIn })`
+- ✅ Return type: `{ entityKey, txHash }`
+- ✅ Implementation updated in `lib/arkiv/entity-utils.ts`
+
+**Implementation:**
+The `arkivUpsertEntity` function now uses the actual SDK `updateEntity` call when a `key` is provided. See [SDK API Verification Guide](/docs/betadocs/arkiv/sdk-api-verification-guide.md) for details.
 
 ### Phase 3: Full Rollout (On Mode)
 
