@@ -163,21 +163,25 @@ export async function upsertNotificationPreference({
     updatedAt: now,
   };
 
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const baseAttributes = [
+    { key: 'type', value: 'notification_preference' },
+    { key: 'wallet', value: normalizedWallet },
+    { key: 'notificationId', value: notificationId },
+    { key: 'notificationType', value: notificationType },
+    { key: 'read', value: String(read) },
+    { key: 'archived', value: String(archived) },
+    { key: 'spaceId', value: finalSpaceId },
+    { key: 'createdAt', value: now },
+    { key: 'updatedAt', value: now },
+  ];
+  const attributesWithSigner = addSignerMetadata(baseAttributes, privateKey);
+  
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'notification_preference' },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'notificationId', value: notificationId },
-        { key: 'notificationType', value: notificationType },
-        { key: 'read', value: String(read) },
-        { key: 'archived', value: String(archived) },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: now },
-        { key: 'updatedAt', value: now },
-      ],
+      attributes: attributesWithSigner,
       expiresIn: 31536000, // 1 year
     });
   });

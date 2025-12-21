@@ -435,11 +435,14 @@ export async function createUserProfile({
   }
 
   // Create new profile (old behavior or fallback)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
-      attributes,
+      attributes: attributesWithSigner,
       expiresIn: 31536000, // 1 year
     });
   });

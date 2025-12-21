@@ -12,6 +12,7 @@
 
 import { getWalletClientFromPrivateKey } from './client';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
 
 /**
  * Upsert an entity (create or update)
@@ -55,6 +56,9 @@ export async function arkivUpsertEntity({
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   
+  // Add signer metadata to attributes (U1.x.2: Central Signer Metadata)
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+  
   // PLACEHOLDER: Actual implementation depends on SDK API verification (U0.1)
   // Expected behavior:
   // - If key is provided: call updateEntity (or equivalent) with that key
@@ -76,7 +80,7 @@ export async function arkivUpsertEntity({
       return await walletClient.createEntity({
         payload,
         contentType,
-        attributes,
+        attributes: attributesWithSigner,
         expiresIn: finalExpiresIn,
       });
     });
