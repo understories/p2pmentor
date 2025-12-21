@@ -50,6 +50,60 @@ export const BETA_INVITE_CODE = process.env.NEXT_PUBLIC_BETA_INVITE_CODE;
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 /**
+ * Entity update mode for migration
+ *
+ * Controls whether entities are updated in place (new pattern) or create new entities (old pattern).
+ * This is a time-bounded migration flag to prevent mixed-mode data.
+ *
+ * Modes:
+ * - 'off': Old behavior (create new entities on update)
+ * - 'shadow': Write canonical updates + validate reads work for both paths (or write both)
+ * - 'on': Only canonical update path (migration complete)
+ *
+ * Once a wallet is marked as migrated, it always uses update mode (no reverting).
+ *
+ * Based on entity update implementation plan (refs/entity-update-implementation-plan.md).
+ */
+export type EntityUpdateMode = 'off' | 'shadow' | 'on';
+export const ENTITY_UPDATE_MODE: EntityUpdateMode =
+  (process.env.ENTITY_UPDATE_MODE as EntityUpdateMode) || 'off';
+
+/**
+ * Per-wallet migration marker
+ *
+ * Tracks which wallets have been migrated to the new update pattern.
+ * Once a wallet is marked as migrated, it always uses update mode.
+ *
+ * This is stored in-memory for now. Can be persisted to file/DB for durability.
+ *
+ * Key: normalized wallet address (lowercase)
+ * Value: true if migrated
+ */
+const migratedWallets = new Set<string>();
+
+/**
+ * Check if a wallet has been migrated to the new update pattern
+ *
+ * @param wallet - Wallet address (will be normalized)
+ * @returns True if wallet is marked as migrated
+ */
+export function isWalletMigrated(wallet: string): boolean {
+  return migratedWallets.has(wallet.toLowerCase());
+}
+
+/**
+ * Mark a wallet as migrated to the new update pattern
+ *
+ * Once marked, the wallet always uses update mode (no reverting).
+ *
+ * @param wallet - Wallet address (will be normalized)
+ */
+export function markWalletMigrated(wallet: string): void {
+  migratedWallets.add(wallet.toLowerCase());
+  // TODO: Persist to file/DB for durability (can be added later)
+}
+
+/**
  * Get private key, throwing if not available
  *
  * Used for API routes that need server-side entity creation.
