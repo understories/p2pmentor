@@ -149,6 +149,7 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 
 ## See Also
 
+- [Editable Entities](/docs/arkiv/editable-entities) - Mental model: how entities can be "updated" on an immutable blockchain
 - [Data Model](/docs/arkiv/data-model) - Complete entity schemas
 - [Entity Overview](/docs/arkiv/entity-overview) - Detailed schema documentation
 - [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
