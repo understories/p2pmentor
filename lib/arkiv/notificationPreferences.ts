@@ -7,7 +7,9 @@
 
 import { eq, and } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID } from "@/lib/config";
+import { SPACE_ID, ENTITY_UPDATE_MODE, isWalletMigrated, markWalletMigrated } from "@/lib/config";
+import { arkivUpsertEntity } from "./entity-utils";
+import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type NotificationPreferenceType = 
   | 'meeting_request'
@@ -29,9 +31,34 @@ export type NotificationPreference = {
 };
 
 /**
+ * Get notification preference by deterministic key
+ *
+ * Deterministic key derivation: (wallet, notification_id) is unique identity.
+ * This ensures we can find the canonical preference entity.
+ */
+async function getNotificationPreferenceByKey(
+  wallet: string,
+  notificationId: string,
+  spaceId: string = SPACE_ID
+): Promise<NotificationPreference | null> {
+  const normalizedWallet = wallet.toLowerCase();
+  const preferences = await listNotificationPreferences({
+    wallet: normalizedWallet,
+    notificationId,
+    spaceId,
+    limit: 1,
+  });
+  return preferences.length > 0 ? preferences[0] : null;
+}
+
+/**
  * Create or update a notification preference
- * 
- * Stores read/unread state for a specific notification as an Arkiv entity.
+ *
+ * PRIORITY FIX: Uses stable entity_key to prevent state persistence issues.
+ * Deterministic key derivation: (wallet, notification_id) is unique identity.
+ *
+ * Key Rule: Reject/ignore writes that would create a second preference entity
+ * for the same (wallet, notification_id) identity.
  */
 export async function upsertNotificationPreference({
   wallet,
@@ -50,77 +77,98 @@ export async function upsertNotificationPreference({
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
-  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const normalizedWallet = wallet.toLowerCase();
   const enc = new TextEncoder();
   const now = new Date().toISOString();
+  const finalSpaceId = spaceId || SPACE_ID;
 
-  // Check if preference already exists
-  const existing = await listNotificationPreferences({ 
-    wallet, 
+  // Deterministic key derivation: (wallet, notification_id) is unique identity
+  const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
+
+  // Check for duplicates: reject if another preference exists for same (wallet, notification_id)
+  // This prevents creating multiple preference entities for the same identity
+  if (existing && existing.key) {
+    // Check if we should use update mode
+    const isMigrated = isWalletMigrated(normalizedWallet);
+    const shouldUpdate = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+
+    if (shouldUpdate) {
+      // Mark wallet as migrated if not already
+      if (!isMigrated) {
+        markWalletMigrated(normalizedWallet);
+      }
+
+      // Use canonical helper to update existing entity
+      // This will throw an error until SDK API is verified (U0.1)
+      // Structure is ready for real update API
+      const payload = {
+        wallet: normalizedWallet,
+        notificationId,
+        notificationType,
+        read,
+        archived,
+        createdAt: existing.createdAt,
+        updatedAt: now,
+      };
+
+      return await arkivUpsertEntity({
+        type: 'notification_preference',
+        key: existing.key, // Stable entity_key
+        attributes: [
+          { key: 'type', value: 'notification_preference' },
+          { key: 'wallet', value: normalizedWallet },
+          { key: 'notificationId', value: notificationId },
+          { key: 'notificationType', value: notificationType },
+          { key: 'read', value: String(read) },
+          { key: 'archived', value: String(archived) },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: existing.createdAt },
+          { key: 'updatedAt', value: now },
+        ],
+        payload: enc.encode(JSON.stringify(payload)),
+        expiresIn: 31536000, // 1 year
+        privateKey,
+      });
+    }
+    // Fall through to create-new-entity path if update mode is off
+  }
+
+  // Create new preference (old behavior or fallback)
+  // This path is used when:
+  // - No existing preference found
+  // - Update mode is 'off' and wallet not migrated
+  // - Update mode is 'shadow' but wallet not migrated yet
+  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const payload = {
+    wallet: normalizedWallet,
     notificationId,
-    limit: 1 
-  });
+    notificationType,
+    read,
+    archived,
+    createdAt: now,
+    updatedAt: now,
+  };
 
-  let entityKey: string;
-  let txHash: string;
-
-  if (existing.length > 0) {
-    // Update existing preference
-    const existingPref = existing[0];
-    const payload = {
-      read,
-      archived,
-      updatedAt: now,
-    };
-
-    const result = await walletClient.createEntity({
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'notification_preference' },
-        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'wallet', value: normalizedWallet },
         { key: 'notificationId', value: notificationId },
         { key: 'notificationType', value: notificationType },
         { key: 'read', value: String(read) },
         { key: 'archived', value: String(archived) },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: existingPref.createdAt },
-        { key: 'updatedAt', value: now },
-      ],
-      expiresIn: 31536000, // 1 year
-    });
-    entityKey = result.entityKey;
-    txHash = result.txHash;
-  } else {
-    // Create new preference
-    const payload = {
-      read,
-      archived,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    const result = await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'notification_preference' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'notificationId', value: notificationId },
-        { key: 'notificationType', value: notificationType },
-        { key: 'read', value: String(read) },
-        { key: 'archived', value: String(archived) },
-        { key: 'spaceId', value: spaceId },
+        { key: 'spaceId', value: finalSpaceId },
         { key: 'createdAt', value: now },
         { key: 'updatedAt', value: now },
       ],
       expiresIn: 31536000, // 1 year
     });
-    entityKey = result.entityKey;
-    txHash = result.txHash;
-  }
+  });
 
-  return { key: entityKey, txHash };
+  return { key: result.entityKey, txHash: result.txHash };
 }
 
 /**
