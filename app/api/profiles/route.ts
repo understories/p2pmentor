@@ -64,14 +64,27 @@ export async function GET(request: Request) {
 
     // Get unique profiles by wallet (most recent for each wallet)
     const profilesMap = new Map<string, typeof allProfiles[0]>();
+    const profileCountsByWallet = new Map<string, number>();
+
     allProfiles.forEach((profile) => {
-      const existing = profilesMap.get(profile.wallet);
+      const wallet = profile.wallet.toLowerCase();
+      // Count profiles per wallet (for migration metrics)
+      profileCountsByWallet.set(wallet, (profileCountsByWallet.get(wallet) || 0) + 1);
+
+      // Keep most recent profile for each wallet
+      const existing = profilesMap.get(wallet);
       if (!existing || (profile.createdAt && existing.createdAt && new Date(profile.createdAt) > new Date(existing.createdAt))) {
-        profilesMap.set(profile.wallet, profile);
+        profilesMap.set(wallet, profile);
       }
     });
 
     const uniqueProfiles = Array.from(profilesMap.values());
+
+    // Add profile count to each profile (for display on /profiles page)
+    const profilesWithCounts = uniqueProfiles.map(profile => ({
+      ...profile,
+      profileCount: profileCountsByWallet.get(profile.wallet.toLowerCase()) || 1,
+    }));
 
     // Skip existence checks to avoid rate limiting (429 errors)
     // Profiles returned from listUserProfiles are already valid
@@ -84,14 +97,40 @@ export async function GET(request: Request) {
       note: 'Existence checks were causing 429 rate limit errors. Profiles are validated when accessed.',
     });
 
+    // Calculate migration metrics
+    const walletsWithMultipleProfiles = Array.from(profileCountsByWallet.entries())
+      .filter(([_, count]) => count > 1)
+      .length;
+    const walletsWithSingleProfile = Array.from(profileCountsByWallet.entries())
+      .filter(([_, count]) => count === 1)
+      .length;
+    const totalWallets = profileCountsByWallet.size;
+    const percentCanonical = totalWallets > 0
+      ? Math.round((walletsWithSingleProfile / totalWallets) * 100)
+      : 100;
+
+    // Log migration metrics (for observability)
+    console.log('[Profiles API] Migration metrics:', {
+      totalWallets,
+      walletsWithSingleProfile,
+      walletsWithMultipleProfiles,
+      percentCanonical: `${percentCanonical}%`,
+    });
+
     return NextResponse.json({
       ok: true,
-      profiles: activeProfiles,
+      profiles: profilesWithCounts,
       archived: includeArchived ? archivedProfiles : undefined,
       stats: {
         total: uniqueProfiles.length,
         active: activeProfiles.length,
         archived: archivedProfiles.length,
+      },
+      migrationMetrics: {
+        totalWallets,
+        walletsWithSingleProfile,
+        walletsWithMultipleProfiles,
+        percentCanonical,
       },
     });
   } catch (error: any) {

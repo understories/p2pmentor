@@ -24,12 +24,18 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 
 export default function ProfilesPage() {
   const router = useRouter();
-  const [profiles, setProfiles] = useState<UserProfile[]>([]);
+  const [profiles, setProfiles] = useState<(UserProfile & { profileCount?: number })[]>([]);
   const [archivedProfiles, setArchivedProfiles] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [skillFilter, setSkillFilter] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [stats, setStats] = useState<{ total: number; active: number; archived: number } | null>(null);
+  const [migrationMetrics, setMigrationMetrics] = useState<{
+    totalWallets: number;
+    walletsWithSingleProfile: number;
+    walletsWithMultipleProfiles: number;
+    percentCanonical: number;
+  } | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -56,6 +62,9 @@ export default function ProfilesPage() {
         }
         if (data.stats) {
           setStats(data.stats);
+        }
+        if (data.migrationMetrics) {
+          setMigrationMetrics(data.migrationMetrics);
         }
       }
     } catch (err) {
@@ -111,26 +120,49 @@ export default function ProfilesPage() {
         </div>
 
         {/* Stats */}
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            Showing <strong>{profiles.length}</strong> active profile{profiles.length !== 1 ? 's' : ''}
-            {skillFilter && ` matching "${skillFilter}"`}
+        <div className="mb-6 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Showing <strong>{profiles.length}</strong> active profile{profiles.length !== 1 ? 's' : ''}
+              {skillFilter && ` matching "${skillFilter}"`}
+              {stats && stats.archived > 0 && (
+                <span className="ml-2 text-gray-500 dark:text-gray-500">
+                  ({stats.archived} archived)
+                </span>
+              )}
+            </p>
             {stats && stats.archived > 0 && (
-              <span className="ml-2 text-gray-500 dark:text-gray-500">
-                ({stats.archived} archived)
-              </span>
+              <button
+                onClick={() => {
+                  setShowArchived(!showArchived);
+                  fetchProfiles(skillFilter || undefined, !showArchived);
+                }}
+                className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
+              >
+                {showArchived ? 'Hide' : 'Show'} Archived ({stats.archived})
+              </button>
             )}
-          </p>
-          {stats && stats.archived > 0 && (
-            <button
-              onClick={() => {
-                setShowArchived(!showArchived);
-                fetchProfiles(skillFilter || undefined, !showArchived);
-              }}
-              className="px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600"
-            >
-              {showArchived ? 'Hide' : 'Show'} Archived ({stats.archived})
-            </button>
+          </div>
+
+          {/* Migration Metrics - Teaching Tool */}
+          {migrationMetrics && migrationMetrics.totalWallets > 0 && (
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <p className="text-xs font-medium text-blue-900 dark:text-blue-200 mb-1">
+                📊 Entity Update Migration Progress
+              </p>
+              <p className="text-xs text-blue-700 dark:text-blue-300">
+                <strong>{migrationMetrics.percentCanonical}%</strong> of wallets have a single canonical profile
+                ({migrationMetrics.walletsWithSingleProfile}/{migrationMetrics.totalWallets} wallets).
+                {migrationMetrics.walletsWithMultipleProfiles > 0 && (
+                  <span className="ml-1">
+                    {migrationMetrics.walletsWithMultipleProfiles} wallet{migrationMetrics.walletsWithMultipleProfiles !== 1 ? 's' : ''} still have multiple profile versions.
+                  </span>
+                )}
+              </p>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+                This shows how Arkiv is immutable (all versions exist) but state is mutable (canonical entity).
+              </p>
+            </div>
           )}
         </div>
 
@@ -235,6 +267,31 @@ export default function ProfilesPage() {
                   <div>
                     <strong>Wallet:</strong> {shortenWallet(profile.wallet)}
                   </div>
+                  {profile.profileCount !== undefined && profile.profileCount > 1 && (
+                    <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                      <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        <span>
+                          <strong>{profile.profileCount}</strong> profile version{profile.profileCount !== 1 ? 's' : ''} on-chain
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                        All versions preserved (immutable ledger)
+                      </p>
+                    </div>
+                  )}
+                  {profile.profileCount === 1 && (
+                    <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
+                      <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span>Canonical profile (single version)</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
