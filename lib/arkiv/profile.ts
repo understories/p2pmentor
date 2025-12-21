@@ -633,8 +633,14 @@ export async function listUserProfiles(params?: {
 
 /**
  * Get profile by wallet address
- * 
+ *
+ * Updated for entity update pattern (U1.4):
+ * - If migration mode is 'on' or wallet is migrated: Returns single canonical entity (no sorting needed)
+ * - If mode is 'off': Uses old pattern (multiple entities, pick latest)
+ * - If mode is 'shadow': Returns canonical first, falls back to latest if not found
+ *
  * @param wallet - Wallet address
+ * @param spaceId - Optional space ID filter
  * @returns User profile or null if not found
  */
 export async function getProfileByWallet(wallet: string, spaceId?: string): Promise<UserProfile | null> {
@@ -643,42 +649,94 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   const profiles = await listUserProfilesForWallet(normalizedWallet, spaceId);
   if (profiles.length === 0) return null;
-  
-  // Return the most recent profile (sorted by createdAt descending)
-  profiles.sort((a, b) => {
-    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-    return bTime - aTime;
-  });
-  
-  const profile = profiles[0];
-  
-  // Record performance metrics
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-  const payloadBytes = JSON.stringify(profile).length;
-  
-  // Record performance sample (async, don't block)
-  import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-    recordPerfSample({
-      source: 'arkiv',
-      operation: 'getProfileByWallet',
-      durationMs: Math.round(durationMs),
-      payloadBytes,
-      httpRequests: 1, // Single query
-      createdAt: new Date().toISOString(),
+
+  // Check migration mode to determine query strategy
+  const isMigrated = isWalletMigrated(normalizedWallet);
+  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+
+  if (useCanonicalPath) {
+    // With updates, there should only be one canonical entity per wallet
+    if (profiles.length > 1) {
+      console.warn(
+        `[getProfileByWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
+        `Expected single canonical entity. Found ${profiles.length} profiles. ` +
+        `This may indicate incomplete migration or old entities not yet cleaned up.`
+      );
+    }
+    // Return first profile (should be the only one, or canonical if multiple exist)
+    const profile = profiles[0];
+
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(profile).length;
+
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'getProfileByWallet',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 1, // Single query
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
     });
-  }).catch(() => {
-    // Silently fail if metrics module not available
-  });
-  
-  return profile;
+
+    return profile;
+  } else if (ENTITY_UPDATE_MODE === 'shadow' && !isMigrated) {
+    // Shadow mode but wallet not migrated: try canonical first, fallback to latest
+    // For now, use latest pattern (canonical would require knowing which entity_key is canonical)
+    // This will be improved once migration markers include canonical entity_key
+    profiles.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+    return profiles[0];
+  } else {
+    // Old pattern: Return the most recent profile (sorted by createdAt descending)
+    profiles.sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+
+    const profile = profiles[0];
+
+    // Record performance metrics
+    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const payloadBytes = JSON.stringify(profile).length;
+
+    // Record performance sample (async, don't block)
+    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      recordPerfSample({
+        source: 'arkiv',
+        operation: 'getProfileByWallet',
+        durationMs: Math.round(durationMs),
+        payloadBytes,
+        httpRequests: 1, // Single query
+        createdAt: new Date().toISOString(),
+      });
+    }).catch(() => {
+      // Silently fail if metrics module not available
+    });
+
+    return profile;
+  }
 }
 
 /**
  * List user profiles for a specific wallet
- * 
+ *
+ * Updated for entity update pattern (U1.4):
+ * - With updates enabled, should return single canonical entity
+ * - Warns if multiple profiles found (indicates incomplete migration or old entities)
+ *
  * @param wallet - Wallet address
- * @returns Array of user profiles
+ * @param spaceId - Optional space ID filter
+ * @returns Array of user profiles (should be 1 with updates, may be multiple with old pattern)
  */
 export async function listUserProfilesForWallet(wallet: string, spaceId?: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
@@ -686,16 +744,29 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
   let queryBuilder = query
     .where(eq('type', 'user_profile'))
     .where(eq('wallet', wallet.toLowerCase()));
-  
+
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
   queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
-  
+
   const result = await queryBuilder
     .withAttributes(true)
     .withPayload(true)
     .limit(100)
     .fetch();
+
+  // Check if multiple profiles found (shouldn't happen with updates)
+  const normalizedWallet = wallet.toLowerCase();
+  const isMigrated = isWalletMigrated(normalizedWallet);
+  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+
+  if (useCanonicalPath && result?.entities && result.entities.length > 1) {
+    console.warn(
+      `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
+      `Expected single canonical entity. Found ${result.entities.length} profiles. ` +
+      `This may indicate incomplete migration or old entities not yet cleaned up.`
+    );
+  }
 
   return result.entities.map((entity: any) => {
     let payload: any = {};
