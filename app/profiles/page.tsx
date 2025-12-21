@@ -169,10 +169,10 @@ export default function ProfilesPage() {
                     This shows how Arkiv is immutable (all versions exist) but state is mutable (canonical entity).
                   </p>
                   {/* Educational Tooltip - only show when builder mode is OFF */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-xs">
-                    <div className="font-semibold mb-1">Immutable transactions, mutable state</div>
-                    <p className="text-gray-300 dark:text-gray-400">
-                      Blockchains are immutable at the transaction level: every transaction is permanently recorded. However, application data is mutable at the state level: we can update entities while preserving all historical versions. This allows profiles to be editable while maintaining a complete audit trail.
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                    <div className="font-semibold mb-2">Immutable transactions, mutable state</div>
+                    <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
+                      Blockchains are immutable at the transaction level: every transaction is permanently recorded. However, application data is mutable at the state level: we can update entities while preserving all historical versions, allowing profiles to be editable while maintaining a complete audit trail.
                     </p>
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                   </div>
@@ -305,10 +305,10 @@ export default function ProfilesPage() {
                             </span>
                           </div>
                           {/* Educational Tooltip - only show when builder mode is OFF */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-xs">
-                            <div className="font-semibold mb-1">Profile version history</div>
-                            <p className="text-gray-300 dark:text-gray-400">
-                              While blockchains are immutable at the transaction level, application data is mutable at the state level. This means we can update profiles while preserving all historical versions on-chain. Each version is a separate transaction, but the application displays the latest canonical state.
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                            <div className="font-semibold mb-2">Profile version history</div>
+                            <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
+                              Blockchains are immutable at the transaction level, but application data is mutable at the state level. We can update profiles while preserving all historical versions on-chain. The app displays the latest canonical state.
                             </p>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                           </div>
@@ -337,10 +337,10 @@ export default function ProfilesPage() {
                             <span>Canonical profile (single version)</span>
                           </div>
                           {/* Educational Tooltip - only show when builder mode is OFF */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-xs">
-                            <div className="font-semibold mb-1">Canonical profile</div>
-                            <p className="text-gray-300 dark:text-gray-400">
-                              This profile uses a stable entity key. Updates modify the same entity rather than creating new versions, ensuring consistent references and simpler queries while maintaining full transaction history on-chain.
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                            <div className="font-semibold mb-2">Canonical profile</div>
+                            <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
+                              This profile uses a stable entity key. Updates modify the same entity rather than creating new versions, ensuring consistent references while maintaining full transaction history on-chain.
                             </p>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                           </div>
