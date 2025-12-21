@@ -31,6 +31,9 @@ export async function POST(request: NextRequest) {
 
     // Use wallet from request body, fallback to CURRENT_WALLET for backward compatibility
     // (like mentor-graph does)
+    // NOTE: CURRENT_WALLET is the signing wallet address (from ARKIV_PRIVATE_KEY), used here
+    // as a demo/example profile wallet fallback. The actual transaction signing still uses
+    // getPrivateKey() (signing wallet private key), not CURRENT_WALLET.
     const targetWallet = wallet || CURRENT_WALLET || '';
     if (!targetWallet) {
       return NextResponse.json(
