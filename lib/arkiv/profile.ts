@@ -397,13 +397,20 @@ export async function createUserProfile({
   // Check if we should use update mode
   const normalizedWallet = wallet.toLowerCase();
   const isMigrated = isWalletMigrated(normalizedWallet);
+  
+  // In shadow mode, mark new users as migrated on first profile creation
+  // This ensures subsequent updates use the update path
+  if (ENTITY_UPDATE_MODE === 'shadow' && !existingProfile && !isMigrated) {
+    markWalletMigrated(normalizedWallet);
+  }
+  
   const shouldUpdate = existingProfile?.key && (
-    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated)
+    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isWalletMigrated(normalizedWallet))
   );
 
   if (shouldUpdate && existingProfile?.key) {
-    // Mark wallet as migrated if not already
-    if (!isMigrated) {
+    // Mark wallet as migrated if not already (should already be marked in shadow mode)
+    if (!isWalletMigrated(normalizedWallet)) {
       markWalletMigrated(normalizedWallet);
     }
 
