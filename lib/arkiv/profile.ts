@@ -9,9 +9,10 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
 import { getWalletClient } from "@/lib/wallet/getWalletClient"
-import { CURRENT_WALLET, SPACE_ID } from "../config"
+import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE, isWalletMigrated, markWalletMigrated } from "../config"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 import { selectRandomEmoji } from "@/lib/profile/identitySeed"
+import { arkivUpsertEntity } from "./entity-utils"
 
 export type UserProfile = {
   key: string;
@@ -153,6 +154,9 @@ export async function createUserProfileClient({
   // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
   const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
 
+  // Preserve existing createdAt when updating
+  const finalCreatedAt = existingProfile?.createdAt || createdAt;
+
   const payload = {
     displayName,
     username,
@@ -175,18 +179,18 @@ export async function createUserProfileClient({
     learnerRoles: learnerRoles || [],
     availabilityWindow,
     spaceId,
-    createdAt,
+    createdAt: finalCreatedAt,
     lastActiveTimestamp,
-    sessionsCompleted: 0,
-    sessionsGiven: 0,
-    sessionsReceived: 0,
+    sessionsCompleted: existingProfile?.sessionsCompleted || 0,
+    sessionsGiven: existingProfile?.sessionsGiven || 0,
+    sessionsReceived: existingProfile?.sessionsReceived || 0,
     avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
-    npsScore: 0,
-    topSkillsUsage: [],
-    peerTestimonials: [],
-    trustEdges: [],
-    communityAffiliations: [],
-    reputationScore: 0,
+    npsScore: existingProfile?.npsScore || 0,
+    topSkillsUsage: existingProfile?.topSkillsUsage || [],
+    peerTestimonials: existingProfile?.peerTestimonials || [],
+    trustEdges: existingProfile?.trustEdges || [],
+    communityAffiliations: existingProfile?.communityAffiliations || [],
+    reputationScore: existingProfile?.reputationScore || 0,
   };
 
   const attributes: Array<{ key: string; value: string }> = [
@@ -195,7 +199,7 @@ export async function createUserProfileClient({
     { key: 'displayName', value: displayName },
     { key: 'timezone', value: timezone },
     { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
+    { key: 'createdAt', value: finalCreatedAt },
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
@@ -209,6 +213,28 @@ export async function createUserProfileClient({
     });
   }
 
+  // Note: Client-side updates require walletClient directly (no private key available)
+  // For now, preserve existing data but use create-new-entity pattern
+  // TODO: Add client-side update support once SDK API is verified (U0.1)
+  // The migration mode flag can be checked, but client-side updates need different implementation
+  const normalizedWallet = wallet.toLowerCase();
+  const isMigrated = isWalletMigrated(normalizedWallet);
+  const shouldUpdate = existingProfile?.key && (
+    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated)
+  );
+
+  if (shouldUpdate && existingProfile?.key) {
+    // Mark wallet as migrated if not already
+    if (!isMigrated) {
+      markWalletMigrated(normalizedWallet);
+    }
+
+    // TODO: Implement client-side update once SDK API is verified
+    // For now, fall through to create-new-entity (preserves data but creates new entity)
+    // This maintains backward compatibility until client-side update is implemented
+  }
+
+  // Create new profile (old behavior or fallback)
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
@@ -309,6 +335,9 @@ export async function createUserProfile({
   // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
   const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
 
+  // Preserve existing createdAt when updating
+  const finalCreatedAt = existingProfile?.createdAt || createdAt;
+
   const payload = {
     displayName,
     username,
@@ -329,18 +358,18 @@ export async function createUserProfile({
     learnerRoles: learnerRoles || [],
     availabilityWindow,
     spaceId,
-    createdAt,
+    createdAt: finalCreatedAt,
     lastActiveTimestamp,
-    sessionsCompleted: 0,
-    sessionsGiven: 0,
-    sessionsReceived: 0,
+    sessionsCompleted: existingProfile?.sessionsCompleted || 0,
+    sessionsGiven: existingProfile?.sessionsGiven || 0,
+    sessionsReceived: existingProfile?.sessionsReceived || 0,
     avgRating: Math.round(avgRating * 10) / 10, // Round to 1 decimal place
-    npsScore: 0,
-    topSkillsUsage: [],
-    peerTestimonials: [],
-    trustEdges: [],
-    communityAffiliations: [],
-    reputationScore: 0,
+    npsScore: existingProfile?.npsScore || 0,
+    topSkillsUsage: existingProfile?.topSkillsUsage || [],
+    peerTestimonials: existingProfile?.peerTestimonials || [],
+    trustEdges: existingProfile?.trustEdges || [],
+    communityAffiliations: existingProfile?.communityAffiliations || [],
+    reputationScore: existingProfile?.reputationScore || 0,
   };
 
   const attributes: Array<{ key: string; value: string }> = [
@@ -349,7 +378,7 @@ export async function createUserProfile({
     { key: 'displayName', value: displayName },
     { key: 'timezone', value: timezone },
     { key: 'spaceId', value: spaceId },
-    { key: 'createdAt', value: createdAt },
+    { key: 'createdAt', value: finalCreatedAt },
   ];
 
   if (username) attributes.push({ key: 'username', value: username });
@@ -363,6 +392,33 @@ export async function createUserProfile({
     });
   }
 
+  // Check if we should use update mode
+  const normalizedWallet = wallet.toLowerCase();
+  const isMigrated = isWalletMigrated(normalizedWallet);
+  const shouldUpdate = existingProfile?.key && (
+    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated)
+  );
+
+  if (shouldUpdate && existingProfile?.key) {
+    // Mark wallet as migrated if not already
+    if (!isMigrated) {
+      markWalletMigrated(normalizedWallet);
+    }
+
+    // Use canonical helper to update existing entity
+    // This will throw an error until SDK API is verified (U0.1)
+    // Structure is ready for real update API
+    return await arkivUpsertEntity({
+      type: 'user_profile',
+      key: existingProfile.key, // Stable entity_key
+      attributes,
+      payload: enc.encode(JSON.stringify(payload)),
+      expiresIn: 31536000, // 1 year
+      privateKey,
+    });
+  }
+
+  // Create new profile (old behavior or fallback)
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
