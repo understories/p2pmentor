@@ -111,7 +111,7 @@ export async function upsertNotificationPreference({
         updatedAt: now,
       };
 
-      return await arkivUpsertEntity({
+      const updateResult = await arkivUpsertEntity({
         type: 'notification_preference',
         key: existing.key, // Stable entity_key
         attributes: [
@@ -129,6 +129,20 @@ export async function upsertNotificationPreference({
         expiresIn: 31536000, // 1 year
         privateKey,
       });
+
+      // Structured logging (U1.x.1)
+      const { logEntityWrite } = await import('./write-logging');
+      logEntityWrite({
+        entityType: 'notification_preference',
+        entityKey: updateResult.key,
+        txHash: updateResult.txHash,
+        wallet: normalizedWallet,
+        timestamp: now,
+        operation: 'update',
+        spaceId: finalSpaceId,
+      });
+
+      return updateResult;
     }
     // Fall through to create-new-entity path if update mode is off
   }

@@ -130,7 +130,8 @@ export async function createUserProfileClient({
   // Use unified wallet client getter (supports both MetaMask and Passkey)
   const walletClient = await getWalletClient(account);
   const enc = new TextEncoder();
-  const spaceId = SPACE_ID;
+  const finalSpaceId = SPACE_ID;
+  const spaceId = finalSpaceId; // Keep for backward compatibility
   const createdAt = new Date().toISOString();
   const lastActiveTimestamp = new Date().toISOString();
 
@@ -311,7 +312,8 @@ export async function createUserProfile({
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = SPACE_ID;
+  const finalSpaceId = SPACE_ID;
+  const spaceId = finalSpaceId; // Keep for backward compatibility in this function
   const createdAt = new Date().toISOString();
   const lastActiveTimestamp = new Date().toISOString();
 
@@ -408,7 +410,7 @@ export async function createUserProfile({
     // Use canonical helper to update existing entity
     // This will throw an error until SDK API is verified (U0.1)
     // Structure is ready for real update API
-    return await arkivUpsertEntity({
+    const updateResult = await arkivUpsertEntity({
       type: 'user_profile',
       key: existingProfile.key, // Stable entity_key
       attributes,
@@ -416,6 +418,20 @@ export async function createUserProfile({
       expiresIn: 31536000, // 1 year
       privateKey,
     });
+
+      // Structured logging (U1.x.1)
+      const { logEntityWrite } = await import('./write-logging');
+      logEntityWrite({
+        entityType: 'user_profile',
+        entityKey: updateResult.key,
+        txHash: updateResult.txHash,
+        wallet: normalizedWallet,
+        timestamp: new Date().toISOString(),
+        operation: 'update',
+        spaceId: spaceId,
+      });
+
+    return updateResult;
   }
 
   // Create new profile (old behavior or fallback)
@@ -426,6 +442,18 @@ export async function createUserProfile({
       attributes,
       expiresIn: 31536000, // 1 year
     });
+  });
+
+  // Structured logging (U1.x.1)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'user_profile',
+    entityKey: result.entityKey,
+    txHash: result.txHash,
+    wallet: normalizedWallet,
+    timestamp: new Date().toISOString(),
+    operation: 'create',
+    spaceId: spaceId,
   });
 
   return { key: result.entityKey, txHash: result.txHash };

@@ -17,6 +17,7 @@ import { TimezoneSelector } from '@/components/availability/TimezoneSelector';
 import { RegrowProfileBrowser } from '@/components/profile/RegrowProfileBrowser';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { PLANT_EMOJI_POOL, isValidPlantEmoji, getProfileEmoji } from '@/lib/profile/identitySeed';
 import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
@@ -32,6 +33,7 @@ export default function ProfilePage() {
   const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
   const [selectedEmoji, setSelectedEmoji] = useState<string>('');
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -221,6 +223,7 @@ export default function ProfilePage() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastWriteInfo(null); // Clear previous write info
 
     if (!walletAddress) {
       setError('No wallet connected');
@@ -343,7 +346,11 @@ export default function ProfilePage() {
         setSuccess('Profile creation submitted! Transaction is being processed. Please refresh in a moment.');
         setTimeout(() => loadProfile(walletAddress), 2000);
       } else {
-        setSuccess(`Profile created! Entity key: ${result.key?.substring(0, 16)}...`);
+        setSuccess('Profile saved!');
+        // Store entity info for builder mode display
+        if (result.key && result.txHash) {
+          setLastWriteInfo({ key: result.key, txHash: result.txHash, entityType: 'user_profile' });
+        }
         // Reload profile
         await loadProfile(walletAddress);
       }
@@ -515,8 +522,18 @@ export default function ProfilePage() {
         )}
 
         {success && (
-          <div className="mb-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
-            {success}
+          <div className="mb-4">
+            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+              {success}
+            </div>
+            {lastWriteInfo && (
+              <EntityWriteInfo
+                entityKey={lastWriteInfo.key}
+                txHash={lastWriteInfo.txHash}
+                entityType={lastWriteInfo.entityType}
+                className="mt-2"
+              />
+            )}
           </div>
         )}
 

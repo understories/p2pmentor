@@ -141,19 +141,19 @@ export function BottomNav() {
 
           // Intercept all navigation clicks during onboarding
           const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-            // Check if we're on onboarding page
-            if (pathname === '/onboarding') {
-              e.preventDefault();
+              // Check if we're on onboarding page
+              if (pathname === '/onboarding') {
+                e.preventDefault();
               setShowOnboardingPopup(true);
-              return;
-            }
+                return;
+              }
 
-            // Check if onboarding is complete (level >= 2 means ask or offer created)
-            // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+              // Check if onboarding is complete (level >= 2 means ask or offer created)
+              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
             if (wallet && !levelLoading && level !== null && level < 2) {
-              e.preventDefault();
+                e.preventDefault();
               setShowOnboardingPopup(true);
-              return;
+                return;
             }
           };
 
