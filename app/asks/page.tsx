@@ -91,7 +91,7 @@ export default function AsksPage() {
     skill: '', // Legacy: kept for backward compatibility
     skill_id: '', // New: Skill entity ID (preferred for beta)
     message: '',
-    ttlHours: '24', // Default 24 hours (more reasonable)
+    ttlHours: '168', // Default 1 week
     customTtlHours: '', // For custom input
   });
   const [showMeetingModal, setShowMeetingModal] = useState(false);
@@ -312,7 +312,7 @@ export default function AsksPage() {
       // Convert hours to seconds for expiresIn
       const ttlValue = newAsk.ttlHours === 'custom' ? newAsk.customTtlHours : newAsk.ttlHours;
       const ttlHours = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 86400 : Math.floor(ttlHours * 3600); // Default to 24 hours if invalid
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 604800 : Math.floor(ttlHours * 3600); // Default to 1 week if invalid
 
       const res = await fetch('/api/asks', {
         method: 'POST',
@@ -336,7 +336,7 @@ export default function AsksPage() {
 
         if (data.pending) {
           setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload asks after a delay using the same method as initial load (GraphQL if enabled)
@@ -345,7 +345,7 @@ export default function AsksPage() {
           }, 2000);
         } else {
           setSuccess(`Ask created successfully! "${newAsk.skill || 'Your ask'}" is now live and visible to mentors. View it in Network →`);
-          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+          setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload asks using the same method as initial load (GraphQL if enabled)
@@ -748,6 +748,25 @@ export default function AsksPage() {
                 </div>
               )}
 
+              {/* Expiration Date Display */}
+              {(() => {
+                const ttlValue = newAsk.ttlHours === 'custom' ? newAsk.customTtlHours : newAsk.ttlHours;
+                const ttlHoursNum = parseFloat(ttlValue) || 168;
+                const expirationDate = new Date(Date.now() + ttlHoursNum * 3600 * 1000);
+                const formattedDate = expirationDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                });
+                return (
+                  <div className="pt-2 pb-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Expires:</span> {formattedDate}
+                  </div>
+                );
+              })()}
+
               {/* Advanced Options Toggle */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                 <button
@@ -905,7 +924,7 @@ export default function AsksPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '24', customTtlHours: '' });
+                    setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '168', customTtlHours: '' });
                     setShowAdvancedOptions(false);
                     setError('');
                     setSuccess('');

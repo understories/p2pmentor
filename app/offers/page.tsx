@@ -355,7 +355,7 @@ export default function OffersPage() {
       // Convert hours to seconds for expiresIn
       const ttlValue = newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
       const ttlHours = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 7200 : Math.floor(ttlHours * 3600); // Default to 2 hours if invalid
+      const expiresIn = isNaN(ttlHours) || ttlHours <= 0 ? 604800 : Math.floor(ttlHours * 3600); // Default to 1 week if invalid
 
       // Prepare availabilityWindow based on type
       let availabilityWindowValue: string | WeeklyAvailability = '';
@@ -1036,6 +1036,25 @@ export default function OffersPage() {
                   </div>
                 </>
               )}
+
+              {/* Expiration Date Display */}
+              {(() => {
+                const ttlValue = newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
+                const ttlHoursNum = parseFloat(ttlValue) || 168;
+                const expirationDate = new Date(Date.now() + ttlHoursNum * 3600 * 1000);
+                const formattedDate = expirationDate.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit'
+                });
+                return (
+                  <div className="pt-2 pb-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">Expires:</span> {formattedDate}
+                  </div>
+                );
+              })()}
 
               {/* Advanced Options Toggle */}
               <div className="pt-2 border-t border-gray-200 dark:border-gray-700">

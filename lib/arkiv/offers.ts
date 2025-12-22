@@ -14,7 +14,7 @@ import { handleTransactionWithTimeout } from "./transaction-utils"
 import { getAvailabilityByKey, type WeeklyAvailability, serializeWeeklyAvailability, validateWeeklyAvailability } from "./availability"
 import { SPACE_ID } from "@/lib/config"
 
-export const OFFER_TTL_SECONDS = 7200; // 2 hours default
+export const OFFER_TTL_SECONDS = 604800; // 1 week default
 
 export type Offer = {
   key: string;

@@ -27,7 +27,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-  const [ttlHours, setTtlHours] = useState('48'); // Default 48 hours
+  const [ttlHours, setTtlHours] = useState('168'); // Default 1 week
   const [customTtlHours, setCustomTtlHours] = useState('');
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -102,7 +102,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
       // Convert hours to seconds for expiresIn
       const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
       const ttlHoursNum = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 172800 : Math.floor(ttlHoursNum * 3600); // Default to 48 hours if invalid
+      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600); // Default to 1 week if invalid
 
       // Use API route for offer creation
       // wallet is the profile wallet address (from localStorage 'wallet_address')
@@ -213,6 +213,25 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
             disabled={isSubmitting}
           />
         </div>
+
+        {/* Expiration Date Display */}
+        {(() => {
+          const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
+          const ttlHoursNum = parseFloat(ttlValue) || 168;
+          const expirationDate = new Date(Date.now() + ttlHoursNum * 3600 * 1000);
+          const formattedDate = expirationDate.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+          });
+          return (
+            <div className="pt-2 pb-2 text-sm text-gray-200 dark:text-gray-400">
+              <span className="font-medium">Expires:</span> {formattedDate}
+            </div>
+          );
+        })()}
 
         {/* Advanced Options Toggle */}
         <div className="pt-2 border-t border-white/20 dark:border-white/10">

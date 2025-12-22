@@ -13,7 +13,7 @@ import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 import { SPACE_ID } from "@/lib/config"
 
-export const ASK_TTL_SECONDS = 3600; // 1 hour default
+export const ASK_TTL_SECONDS = 604800; // 1 week default
 
 export type Ask = {
   key: string;
