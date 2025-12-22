@@ -142,34 +142,63 @@ const [feedbackResult, resolutionResult, responseResult] = await Promise.all([
 ]);
 
 // Build maps for efficient lookup
-const resolutionMap: Record<string, Resolution> = {};
+const resolutionMap: Record<string, { resolvedAt: string; resolvedBy: string }> = {};
 resolutionResult.entities.forEach(entity => {
+  const attrs = entity.attributes || {};
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
+    }
+    return String(attrs[key] || '');
+  };
+  const payload = JSON.parse(new TextDecoder().decode(entity.payload));
   const feedbackKey = getAttr('feedbackKey');
   resolutionMap[feedbackKey] = {
-    resolvedAt: payload.resolvedAt,
+    resolvedAt: payload.resolvedAt || getAttr('createdAt'),
     resolvedBy: getAttr('resolvedBy'),
   };
 });
 
-const responseMap: Record<string, Response> = {};
+const responseMap: Record<string, { responseAt: string }> = {};
 responseResult.entities.forEach(entity => {
+  const attrs = entity.attributes || {};
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
+    }
+    return String(attrs[key] || '');
+  };
+  const payload = JSON.parse(new TextDecoder().decode(entity.payload));
   const feedbackKey = getAttr('feedbackKey');
   responseMap[feedbackKey] = {
-    responseAt: payload.createdAt,
+    responseAt: payload.createdAt || getAttr('createdAt'),
   };
 });
 
 // Combine feedback with resolution and response data
-const feedbacks = feedbackResult.entities.map(entity => ({
-  key: entity.key,
-  wallet: getAttr('wallet'),
-  message: payload.message,
-  resolved: !!resolutionMap[entity.key],
-  resolvedAt: resolutionMap[entity.key]?.resolvedAt,
-  resolvedBy: resolutionMap[entity.key]?.resolvedBy,
-  hasResponse: !!responseMap[entity.key],
-  responseAt: responseMap[entity.key]?.responseAt,
-}));
+const feedbacks = feedbackResult.entities.map(entity => {
+  const attrs = entity.attributes || {};
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
+    }
+    return String(attrs[key] || '');
+  };
+  const payload = JSON.parse(new TextDecoder().decode(entity.payload));
+  return {
+    key: entity.key,
+    wallet: getAttr('wallet'),
+    message: payload.message || '',
+    resolved: !!resolutionMap[entity.key],
+    resolvedAt: resolutionMap[entity.key]?.resolvedAt,
+    resolvedBy: resolutionMap[entity.key]?.resolvedBy,
+    hasResponse: !!responseMap[entity.key],
+    responseAt: responseMap[entity.key]?.responseAt,
+  };
+});
 ```
 
 **3. Resolution Creation**
@@ -180,10 +209,12 @@ const { key, txHash } = await resolveAppFeedback({
   feedbackKey,
   resolvedByWallet: adminWallet.toLowerCase(), // Normalize!
   privateKey,
+  spaceId: SPACE_ID, // Optional, defaults to SPACE_ID
 });
 
 // This creates a new app_feedback_resolution entity
 // The original app_feedback entity remains unchanged
+// Uses handleTransactionWithTimeout for graceful timeout handling
 ```
 
 ## Wallet Normalization
@@ -385,7 +416,7 @@ export async function createAppFeedback({
   rating,
   feedbackType = 'feedback',
   privateKey,
-  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
+  spaceId = SPACE_ID, // Default in library functions; API routes use SPACE_ID from config
 }: {
   wallet: string;
   page: string;
@@ -399,17 +430,25 @@ export async function createAppFeedback({
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   
-  // Validate: either message OR rating must be provided
+  // Validate rating if provided
+  if (rating !== undefined && (rating < 1 || rating > 5)) {
+    throw new Error('Rating must be between 1 and 5');
+  }
+  
+  // Validate: either message OR rating must be provided (at least one)
   const hasMessage = message && message.trim().length > 0;
   const hasRating = rating !== undefined && rating >= 1 && rating <= 5;
   if (!hasMessage && !hasRating) {
     throw new Error('Either a rating or feedback message is required');
   }
   
+  // App feedback should persist (1 year) for admin review
+  const expiresIn = 31536000; // 1 year in seconds
+  
   // Create feedback entity
   const { entityKey, txHash } = await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({
-      message: hasMessage ? message.trim() : undefined,
+      message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
       rating: hasRating ? rating : undefined,
       createdAt,
     })),
@@ -418,15 +457,15 @@ export async function createAppFeedback({
       { key: 'type', value: 'app_feedback' },
       { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
       { key: 'page', value: page },
-      { key: 'feedbackType', value: feedbackType },
+      { key: 'feedbackType', value: feedbackType }, // 'feedback' or 'issue'
       { key: 'spaceId', value: spaceId },
       { key: 'createdAt', value: createdAt },
       ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
     ],
-    expiresIn: 31536000, // 1 year
+    expiresIn,
   });
   
-  // Create txHash entity for reliable querying
+  // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
   await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({ txHash })),
     contentType: 'application/json',
@@ -436,20 +475,50 @@ export async function createAppFeedback({
       { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
       { key: 'spaceId', value: spaceId },
     ],
-    expiresIn: 31536000,
+    expiresIn,
   });
   
-  // Create notification for user
-  await createNotification({
-    wallet: wallet.toLowerCase(),
-    notificationType: 'app_feedback_submitted',
-    sourceEntityType: 'app_feedback',
-    sourceEntityKey: entityKey,
-    title: feedbackType === 'issue' ? 'Issue Reported' : 'Feedback Submitted',
-    message: hasMessage ? message.substring(0, 100) : `Rating: ${rating}/5`,
-    link: '/notifications',
-    privateKey,
-  });
+  // Create notification for the user who submitted the feedback (tied to their profile wallet)
+  // This confirms their feedback/issue was successfully submitted
+  try {
+    const { createNotification } = await import('./notifications');
+    
+    // Build notification message from feedback data
+    const feedbackPreview = hasMessage 
+      ? (message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim())
+      : `Rating: ${rating}/5`;
+    
+    const notificationTitle = feedbackType === 'issue' 
+      ? 'Issue Reported' 
+      : 'Feedback Submitted';
+    
+    await createNotification({
+      wallet: wallet.toLowerCase(), // Use profile wallet (user who submitted feedback)
+      notificationType: 'app_feedback_submitted',
+      sourceEntityType: 'app_feedback',
+      sourceEntityKey: entityKey,
+      title: notificationTitle,
+      message: feedbackPreview,
+      link: '/notifications',
+      metadata: {
+        feedbackKey: entityKey,
+        userWallet: wallet.toLowerCase(),
+        page,
+        message: hasMessage ? message.trim() : undefined,
+        rating: hasRating ? rating : undefined,
+        feedbackType,
+        createdAt,
+        txHash,
+      },
+      privateKey,
+      spaceId,
+    }).catch((err: any) => {
+      console.warn('[createAppFeedback] Failed to create notification:', err);
+    });
+  } catch (err: any) {
+    // Notification creation failure shouldn't block feedback creation
+    console.warn('[createAppFeedback] Error creating notification:', err);
+  }
   
   return { key: entityKey, txHash };
 }
@@ -462,7 +531,7 @@ export async function resolveAppFeedback({
   feedbackKey,
   resolvedByWallet,
   privateKey,
-  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
+  spaceId = SPACE_ID, // Default in library functions; API routes use SPACE_ID from config
 }: {
   feedbackKey: string;
   resolvedByWallet: string;
@@ -473,23 +542,77 @@ export async function resolveAppFeedback({
   const enc = new TextEncoder();
   const resolvedAt = new Date().toISOString();
   
-  // Create resolution entity (immutable update pattern)
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      resolvedAt,
-    })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'app_feedback_resolution' },
-      { key: 'feedbackKey', value: feedbackKey },
-      { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() }, // Normalize!
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: resolvedAt },
-    ],
-    expiresIn: 31536000, // 1 year
+  // Resolution entities should persist as long as the feedback (1 year)
+  const expiresIn = 31536000; // 1 year in seconds
+  
+  // Wrap in handleTransactionWithTimeout for graceful timeout handling
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        resolvedAt,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'app_feedback_resolution' },
+        { key: 'feedbackKey', value: feedbackKey },
+        { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() }, // Normalize!
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: resolvedAt },
+      ],
+      expiresIn,
+    });
   });
   
-  // Create notification for user
+  // Get feedback to find the user wallet
+  try {
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'app_feedback'))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1000)
+      .fetch();
+    
+    if (result?.entities && Array.isArray(result.entities)) {
+      const feedbackEntity = result.entities.find((e: any) => e.key === feedbackKey);
+      if (feedbackEntity) {
+        const attrs = feedbackEntity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        const userWallet = getAttr('wallet');
+        
+        if (userWallet) {
+          const { createNotification } = await import('./notifications');
+          await createNotification({
+            wallet: userWallet.toLowerCase(),
+            notificationType: 'issue_resolved',
+            sourceEntityType: 'app_feedback',
+            sourceEntityKey: feedbackKey,
+            title: 'Issue Resolved',
+            message: 'Your reported issue has been resolved',
+            link: '/notifications',
+            metadata: {
+              feedbackKey,
+              resolutionKey: entityKey,
+              resolvedBy: resolvedByWallet.toLowerCase(),
+            },
+            privateKey,
+            spaceId,
+          }).catch((err: any) => {
+            console.warn('[resolveAppFeedback] Failed to create notification:', err);
+          });
+        }
+      }
+    }
+  } catch (err: any) {
+    // Notification creation failure shouldn't block resolution
+    console.warn('[resolveAppFeedback] Error creating notification:', err);
+  }
   const feedback = await getAppFeedbackByKey(feedbackKey);
   if (feedback) {
     await createNotification({
@@ -521,7 +644,7 @@ export async function createFeedback({
   notes,
   technicalDxFeedback,
   privateKey,
-  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
+  spaceId = SPACE_ID, // Default in library functions; API routes use SPACE_ID from config
 }: {
   sessionKey: string;
   mentorWallet: string;

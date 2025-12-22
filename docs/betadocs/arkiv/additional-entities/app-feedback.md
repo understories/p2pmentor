@@ -119,16 +119,16 @@ const feedbacks = result.entities
 
 ```typescript
 import { createAppFeedback } from "@/lib/arkiv/appFeedback";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { getWalletClientFromPrivateKey } from "@/lib/arkiv/client";
 
-const walletClient = await getWalletClientFromMetaMask();
+const walletClient = getWalletClientFromPrivateKey(privateKey);
 const { key, txHash } = await createAppFeedback({
   wallet: "0x1234...",
   page: "/network",
   message: "The network graph is slow to load",
   rating: 3,
   feedbackType: "issue",
-  privateKey: walletClient.account.privateKey,
+  privateKey: privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```

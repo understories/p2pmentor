@@ -21,10 +21,7 @@ Admin responses to user app feedback. Allows administrators to respond to user f
 
 ```typescript
 {
-  feedbackKey: string;      // Reference to app_feedback entity
-  wallet: string;           // User wallet who gave feedback
   message: string;          // Admin's response message
-  adminWallet: string;      // Admin wallet responding
   createdAt: string;        // ISO timestamp
 }
 ```
@@ -98,7 +95,8 @@ const { key, txHash } = await createAdminResponse({
 - **One-to-many**: Multiple admin responses can exist for a single feedback
 - **Latest response**: Query and sort by `createdAt` descending to get most recent
 - **Validation**: Message must be non-empty
-- **Notifications**: Admin responses can trigger notifications to users (implementation-specific)
+- **Notifications**: Admin responses trigger notifications to users when created
+- **Transaction Timeouts**: Uses `handleTransactionWithTimeout` for graceful timeout handling
 
 ## Related Entities
 
