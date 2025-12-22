@@ -10,6 +10,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useOnboardingLevel } from './useOnboardingLevel';
+import { hasOnboardingBypass } from './access';
 
 interface RouteProtectionProps {
   children: React.ReactNode;
@@ -24,20 +25,28 @@ export function RouteProtection({
 }: RouteProtectionProps) {
   const router = useRouter();
   const [wallet, setWallet] = useState<string | null>(null);
-  const { level, loading } = useOnboardingLevel(wallet);
+  const { level, loading, error } = useOnboardingLevel(wallet);
+  const [hasBypass, setHasBypass] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      setHasBypass(hasOnboardingBypass());
     }
   }, []);
 
   useEffect(() => {
-    if (!loading && wallet && level < requiredLevel) {
+    // Don't redirect if:
+    // - Still loading
+    // - No wallet
+    // - Bypass is active
+    // - There's an error (be permissive on errors to avoid locking out users)
+    // - Level meets requirement
+    if (!loading && wallet && !hasBypass && !error && level !== null && level < requiredLevel) {
       router.push(redirectTo);
     }
-  }, [loading, wallet, level, requiredLevel, redirectTo, router]);
+  }, [loading, wallet, level, requiredLevel, redirectTo, router, hasBypass, error]);
 
   if (loading || !wallet) {
     return (
@@ -50,7 +59,8 @@ export function RouteProtection({
     );
   }
 
-  if (level < requiredLevel) {
+  // Allow access if bypass is active, error occurred (be permissive), or level meets requirement
+  if (!hasBypass && !error && level !== null && level < requiredLevel) {
     return null; // Will redirect
   }
 

@@ -80,7 +80,17 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
     return 4; // All steps complete
   } catch (error) {
     console.error('[calculateOnboardingLevel] Error:', error);
-    // On error, assume level 0 (most restrictive)
+    // On error, be permissive: if profile exists, assume at least level 1
+    // This prevents locking out users with profiles due to transient errors
+    try {
+      const profile = await getProfileByWallet(wallet);
+      if (profile) {
+        return 1; // Profile exists, assume at least level 1
+      }
+    } catch (profileError) {
+      // If we can't even check profile, default to 0
+      console.error('[calculateOnboardingLevel] Error checking profile:', profileError);
+    }
     return 0;
   }
 }

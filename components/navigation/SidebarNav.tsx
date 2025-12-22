@@ -42,7 +42,7 @@ export function SidebarNav() {
   
   // Get onboarding level for navigation unlocking
   const [wallet, setWallet] = useState<string | null>(null);
-  const { level } = useOnboardingLevel(wallet);
+  const { level, error: levelError } = useOnboardingLevel(wallet);
   const [gardenSkills, setGardenSkills] = useState<any[]>([]);
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
   const [skillsMap, setSkillsMap] = useState<Record<string, Skill>>({});
@@ -210,13 +210,14 @@ export function SidebarNav() {
   const hasBypass = typeof window !== 'undefined' && hasOnboardingBypass();
   
   // Filter nav items based on onboarding level
-  // If bypass is active or level is loading, show all items
+  // If bypass is active, level is loading, or there's an error, show all items
   // Otherwise, filter based on level
   // CRITICAL: Items are filtered out, not redirected to onboarding
+  // On error, be permissive to avoid locking out users
   const navItems = allNavItems
     .filter(item => {
       if (item.minLevel === undefined) return true;
-      if (hasBypass || level === null) return true; // Show all during bypass or while loading
+      if (hasBypass || level === null || levelError) return true; // Show all during bypass, loading, or on error
       return level >= item.minLevel;
     })
     .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
@@ -287,11 +288,12 @@ export function SidebarNav() {
 
               // Check if onboarding is complete (level >= 2 means ask or offer created)
               // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-            if (wallet && level !== null && level < 2) {
+              // Don't block if bypass is active or there's an error (be permissive)
+            if (wallet && !hasBypass && !levelError && level !== null && level < 2) {
                 e.preventDefault();
               setShowOnboardingPopup(true);
                 return;
-            }
+              }
           };
 
           return (
@@ -808,13 +810,14 @@ export function SidebarNav() {
                   return;
                 }
 
-                // Check if onboarding is complete (level >= 2 means ask or offer created)
-                // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-                if (wallet && level !== null && level < 2) {
-                  e.preventDefault();
-                  setShowOnboardingPopup(true);
-                  return;
-                }
+              // Check if onboarding is complete (level >= 2 means ask or offer created)
+              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+              // Don't block if bypass is active or there's an error (be permissive)
+            if (wallet && !hasBypass && !levelError && level !== null && level < 2) {
+                e.preventDefault();
+              setShowOnboardingPopup(true);
+                return;
+              }
               }}
                 className={`
                   relative flex flex-row items-center gap-3

@@ -50,7 +50,16 @@ export function useOnboardingLevel(wallet: string | null | undefined) {
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error('Failed to calculate onboarding level'));
-          setLevel(0); // Default to level 0 on error
+          // On error, be permissive: check if profile exists to avoid locking out users
+          // If profile exists, assume at least level 1; otherwise level 0
+          try {
+            const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+            const profile = await getProfileByWallet(walletAddress);
+            setLevel(profile ? 1 : 0);
+          } catch (profileError) {
+            // If we can't check profile, default to 0
+            setLevel(0);
+          }
           setIsComplete(false);
         }
       } finally {

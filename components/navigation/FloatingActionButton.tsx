@@ -12,18 +12,21 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
+import { hasOnboardingBypass } from '@/lib/onboarding/access';
 
 export function FloatingActionButton() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const [wallet, setWallet] = useState<string | null>(null);
-  const { level } = useOnboardingLevel(wallet);
+  const { level, error: levelError } = useOnboardingLevel(wallet);
+  const [hasBypass, setHasBypass] = useState(false);
 
   // Get wallet from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      setHasBypass(hasOnboardingBypass());
     }
   }, []);
 
@@ -52,7 +55,11 @@ export function FloatingActionButton() {
   ];
 
   // Filter actions based on onboarding level
-  const actions = allActions.filter(action => level >= action.minLevel);
+  // On error or bypass, show all actions to avoid locking out users
+  const actions = allActions.filter(action => {
+    if (hasBypass || levelError) return true; // Show all during bypass or on error
+    return level >= action.minLevel;
+  });
 
   return (
     <>

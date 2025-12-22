@@ -31,7 +31,7 @@ export function BottomNav() {
   const { theme, toggleTheme } = useTheme();
   const notificationCount = useNotificationCount();
   const [wallet, setWallet] = useState<string | null>(null);
-  const { level, loading: levelLoading } = useOnboardingLevel(wallet);
+  const { level, loading: levelLoading, error: levelError } = useOnboardingLevel(wallet);
   const [hasBypass, setHasBypass] = useState(false);
   const [hideText, setHideText] = useState(false);
   const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
@@ -87,12 +87,13 @@ export function BottomNav() {
   }, []);
 
   // Filter nav items based on onboarding level
-  // If bypass is active or level is loading, show all items
+  // If bypass is active, level is loading, or there's an error, show all items
   // Otherwise, filter based on level
+  // On error, be permissive to avoid locking out users
   const navItems = allNavItems
     .filter(item => {
       if (item.minLevel === undefined) return true;
-      if (hasBypass || levelLoading) return true; // Show all during bypass or loading
+      if (hasBypass || levelLoading || levelError) return true; // Show all during bypass, loading, or on error
       return level >= item.minLevel;
     })
     .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
@@ -151,7 +152,8 @@ export function BottomNav() {
 
               // Check if onboarding is complete (level >= 2 means ask or offer created)
               // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-            if (wallet && !levelLoading && level !== null && level < 2) {
+              // Don't block if bypass is active, loading, or there's an error (be permissive)
+            if (wallet && !hasBypass && !levelLoading && !levelError && level !== null && level < 2) {
                 e.preventDefault();
               setShowOnboardingPopup(true);
                 return;
