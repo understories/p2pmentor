@@ -6,6 +6,14 @@ This section covers Arkiv-specific implementation details for p2pmentor. Arkiv i
 
 Arkiv is a blockchain-native storage layer that enables serverless and trustless application development. Instead of storing data in a traditional database, p2pmentor stores all data as immutable entities on the Arkiv blockchain.
 
+## Arkiv Standard
+
+p2pmentor follows the [Arkiv Standards](https://github.com/Arkiv-Network/starter-template-python/blob/main/ARKIV_STANDARD.md), a community-driven specification for naming conventions, attribute formats, and base entity types. As early builders on Arkiv, we're actively contributing to the standard based on production experience.
+
+The standard defines naming conventions (CamelCase attributes, postfix patterns), attribute value formats (timestamps, arrays, references, coordinates), base entity types (UserProfile and others), and anti-patterns to avoid.
+
+Our implementation serves as a reference for the standard, and we contribute improvements back to the Arkiv ecosystem. If you're building on Arkiv or considering it, the standard provides a solid foundation for cross-project interoperability.
+
 ## Core Concepts
 
 ### Entity-Centric Model
@@ -149,6 +157,7 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 
 ## See Also
 
+- [Arkiv Standards](https://github.com/Arkiv-Network/starter-template-python/blob/main/ARKIV_STANDARD.md) - Community-driven specification for Arkiv naming conventions and entity types
 - [Editable Entities](/docs/arkiv/editable-entities) - Mental model: how entities can be "updated" on an immutable blockchain
 - [Data Model](/docs/arkiv/data-model) - Complete entity schemas
 - [Entity Overview](/docs/arkiv/entity-overview) - Detailed schema documentation
