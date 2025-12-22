@@ -697,18 +697,33 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
     // However, we sort by lastActiveTimestamp to ensure we get the most recently updated version
     // This handles edge cases where indexing might be slow or multiple entities exist temporarily
     if (profiles.length > 1) {
-      console.warn(
-        `[getProfileByWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
-        `Expected single canonical entity. Found ${profiles.length} profiles. ` +
-        `This may indicate incomplete migration or old entities not yet cleaned up. ` +
-        `Sorting by lastActiveTimestamp to get most recent.`
-      );
-      // Sort by lastActiveTimestamp descending (most recent first)
+      // Multiple profiles found - this is expected during migration transition
+      // Sort by lastActiveTimestamp descending (most recent first) to get canonical profile
       profiles.sort((a, b) => {
         const aTime = a.lastActiveTimestamp ? new Date(a.lastActiveTimestamp).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
         const bTime = b.lastActiveTimestamp ? new Date(b.lastActiveTimestamp).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
         return bTime - aTime;
       });
+      
+      // Log at info level (not warning) since this is handled correctly
+      // Only log once per wallet to avoid log spam (use a simple cache)
+      const logKey = `multi-profile-${normalizedWallet}`;
+      if (!(globalThis as any).__profileLogCache) {
+        (globalThis as any).__profileLogCache = new Set<string>();
+      }
+      const logCache = (globalThis as any).__profileLogCache as Set<string>;
+      
+      if (!logCache.has(logKey)) {
+        logCache.add(logKey);
+        // Clear cache after 5 minutes to allow re-logging if needed
+        setTimeout(() => logCache.delete(logKey), 5 * 60 * 1000);
+        
+        console.info(
+          `[getProfileByWallet] Multiple profiles found for wallet ${normalizedWallet.slice(0, 10)}... ` +
+          `(${profiles.length} profiles). Using most recent profile (${profiles[0].key.slice(0, 12)}...). ` +
+          `Run consolidation script to clean up duplicates if needed.`
+        );
+      }
     } else if (profiles.length === 1) {
       // Even with single entity, ensure we have the latest version
       // (This is a no-op for single entity, but makes the logic explicit)
