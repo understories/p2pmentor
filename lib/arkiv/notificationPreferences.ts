@@ -35,6 +35,8 @@ export type NotificationPreference = {
  *
  * Deterministic key derivation: (wallet, notification_id) is unique identity.
  * This ensures we can find the canonical preference entity.
+ * 
+ * Uses direct query filtering for efficiency instead of client-side filtering.
  */
 async function getNotificationPreferenceByKey(
   wallet: string,
@@ -42,13 +44,72 @@ async function getNotificationPreferenceByKey(
   spaceId: string = SPACE_ID
 ): Promise<NotificationPreference | null> {
   const normalizedWallet = wallet.toLowerCase();
-  const preferences = await listNotificationPreferences({
-    wallet: normalizedWallet,
-    notificationId,
-    spaceId,
-    limit: 1,
-  });
-  return preferences.length > 0 ? preferences[0] : null;
+  try {
+    const publicClient = getPublicClient();
+    
+    let query = publicClient.buildQuery()
+      .where(eq('type', 'notification_preference'))
+      .where(eq('wallet', normalizedWallet))
+      .where(eq('notificationId', notificationId))
+      .where(eq('spaceId', spaceId))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100); // Get multiple to find latest by updatedAt
+    
+    const result = await query.fetch();
+    
+    if (!result || !result.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return null;
+    }
+    
+    // Parse entities and get the latest one (by updatedAt)
+    const preferences = result.entities.map((entity: any) => {
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('Error decoding notification preference payload:', e);
+      }
+      
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet'),
+        notificationId: getAttr('notificationId'),
+        notificationType: getAttr('notificationType') as NotificationPreferenceType,
+        read: getAttr('read') === 'true' || payload.read === true,
+        archived: getAttr('archived') === 'true' || payload.archived === true,
+        createdAt: getAttr('createdAt') || payload.createdAt,
+        updatedAt: getAttr('updatedAt') || payload.updatedAt,
+        txHash: entity.txHash || payload.txHash,
+      };
+    });
+    
+    // Sort by updatedAt descending and return the latest
+    preferences.sort((a, b) => 
+      new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    );
+    
+    return preferences.length > 0 ? preferences[0] : null;
+  } catch (error: any) {
+    console.error('Error in getNotificationPreferenceByKey:', error);
+    return null;
+  }
 }
 
 /**
