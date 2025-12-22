@@ -82,6 +82,7 @@ export default function SessionsPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'confirmed'>('all');
   const [pendingExpanded, setPendingExpanded] = useState(false);
   const [scheduledExpanded, setScheduledExpanded] = useState(false);
+  const [archivedSessionsExpanded, setArchivedSessionsExpanded] = useState(false);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -646,12 +647,20 @@ export default function SessionsPage() {
   // Arkiv-native: All session lists use the same filtered set (respects type, time, status filters)
   const allSessionsFiltered = applyAllFilters(sessions);
   const pendingSessions = allSessionsFiltered.filter(s => s.status === 'pending');
+  // Helper to identify reconstructed/archived sessions
+  const isReconstructedSession = (session: Session): boolean => {
+    return session.skill === 'Session (expired)' ||
+           session.notes === 'Session expired - reconstructed from feedback';
+  };
+
   // Scheduled sessions: already filtered by applyAllFilters (respects time filter)
   // When timeFilter is "past", includes sessions that have started
   // When timeFilter is "upcoming", includes sessions that haven't ended
   // When timeFilter is "all", includes all scheduled sessions
   const scheduledSessions = allSessionsFiltered.filter(s => s.status === 'scheduled');
-  const completedSessions = allSessionsFiltered.filter(s => s.status === 'completed');
+  const allCompletedSessions = allSessionsFiltered.filter(s => s.status === 'completed');
+  const completedSessions = allCompletedSessions.filter(s => !isReconstructedSession(s));
+  const archivedSessions = allCompletedSessions.filter(s => isReconstructedSession(s));
   const declinedSessions = allSessionsFiltered.filter(s => s.status === 'declined');
   const cancelledSessions = allSessionsFiltered.filter(s => s.status === 'cancelled');
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
@@ -1968,6 +1977,78 @@ export default function SessionsPage() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {/* Archived Sessions (Reconstructed) - Collapsed by default */}
+        {archivedSessions.length > 0 && (
+          <div className="mb-8">
+            <button
+              onClick={() => setArchivedSessionsExpanded(!archivedSessionsExpanded)}
+              className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+            >
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                Archived Sessions ({archivedSessions.length})
+              </span>
+              <span className="text-gray-500 dark:text-gray-400">
+                {archivedSessionsExpanded ? '▼' : '▶'}
+              </span>
+            </button>
+            {archivedSessionsExpanded && (
+              <div className="mt-3 space-y-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                  These sessions were reconstructed from feedback after the original session entities expired. Some details may be incomplete.
+                </p>
+                {archivedSessions.map((session) => {
+                  const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
+                  const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+                  const otherProfile = profiles[otherWallet.toLowerCase()];
+                  const sessionTime = formatSessionDate(session.sessionDate);
+
+                  return (
+                    <div
+                      key={session.key}
+                      className="p-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-75"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
+                        <span className="px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                          Archived
+                        </span>
+                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                          Completed
+                        </span>
+                      </div>
+                      <p className="text-gray-700 dark:text-gray-300 mb-2">
+                        <strong>With:</strong> {otherProfile?.displayName || shortenWallet(otherWallet)}
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                        {sessionTime.date} at {sessionTime.time}
+                      </p>
+                      {session.notes && (
+                        <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
+                        </div>
+                      )}
+                      {arkivBuilderMode && session.key && (
+                        <div className="mt-3 flex items-center gap-2">
+                          <ViewOnArkivLink
+                            entityKey={session.key}
+                            txHash={session.txHash}
+                            label="View Session Entity"
+                            className="text-xs"
+                          />
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            {session.key.slice(0, 12)}...
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

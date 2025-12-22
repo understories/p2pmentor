@@ -73,6 +73,7 @@ export default function ProfileDetailPage() {
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showGardenNoteModal, setShowGardenNoteModal] = useState(false);
   const [viewMode, setViewMode] = useState<'edit' | 'view'>('view'); // 'edit' = show edit controls, 'view' = view as others
+  const [archivedSessionsExpanded, setArchivedSessionsExpanded] = useState(false);
   const arkivBuilderMode = useArkivBuilderMode();
 
   useEffect(() => {
@@ -1248,11 +1249,21 @@ export default function ProfileDetailPage() {
 
         {/* Session History */}
         {(() => {
+          // Helper to identify reconstructed/archived sessions
+          const isReconstructedSession = (session: Session): boolean => {
+            return session.skill === 'Session (expired)' ||
+                   session.notes === 'Session expired - reconstructed from feedback';
+          };
+
           const completedSessions = sessions.filter(s => s.status === 'completed');
           const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
           const allHistorySessions = [...completedSessions, ...scheduledSessions].sort(
             (a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
           );
+
+          // Separate archived (reconstructed) sessions from regular sessions
+          const regularSessions = allHistorySessions.filter(s => !isReconstructedSession(s));
+          const archivedSessions = allHistorySessions.filter(s => isReconstructedSession(s));
           
           // Calculate stats
           const sessionsCompleted = completedSessions.length;
@@ -1263,9 +1274,97 @@ export default function ProfileDetailPage() {
             s.learnerWallet.toLowerCase() === wallet.toLowerCase()
           ).length;
 
-          if (allHistorySessions.length === 0 && sessionsCompleted === 0 && sessionsGiven === 0 && sessionsReceived === 0) {
+          if (regularSessions.length === 0 && archivedSessions.length === 0 && sessionsCompleted === 0 && sessionsGiven === 0 && sessionsReceived === 0) {
             return null; // Don't show section if no sessions
           }
+
+          // Helper to render a session card
+          const renderSessionCard = (session: Session) => {
+            const isMentor = session.mentorWallet.toLowerCase() === wallet.toLowerCase();
+            const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+            const sessionDate = new Date(session.sessionDate);
+            const isPast = sessionDate < new Date();
+            const isReconstructed = isReconstructedSession(session);
+
+            return (
+              <div
+                key={session.key}
+                className={`p-6 border rounded-lg ${
+                  session.status === 'completed'
+                    ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                } ${isReconstructed ? 'opacity-75' : ''}`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="text-lg font-semibold">{session.skill}</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                      {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {shortenWallet(otherWallet)}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isReconstructed && (
+                      <span className="px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                        Archived
+                      </span>
+                    )}
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${
+                      session.status === 'completed'
+                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
+                    }`}>
+                      {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
+                    </span>
+                    {arkivBuilderMode && session.key && (
+                      <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} className="text-xs" />
+                    )}
+                    {!arkivBuilderMode && session.key && (
+                      <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} />
+                    )}
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  <strong>Date:</strong> {sessionDate.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  <strong>Time:</strong> {sessionDate.toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true,
+                  })}
+                </p>
+                {session.duration && (
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <strong>Duration:</strong> {session.duration} minutes
+                  </p>
+                )}
+                {session.notes && (
+                  <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
+                  </div>
+                )}
+                {arkivBuilderMode && session.key && (
+                  <div className="mt-3 flex items-center gap-2">
+                    <ViewOnArkivLink
+                      entityKey={session.key}
+                      txHash={session.txHash}
+                      label="View Session Entity"
+                      className="text-xs"
+                    />
+                    <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                      {session.key.slice(0, 12)}...
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          };
 
           return (
             <div className="mb-8">
@@ -1352,89 +1451,35 @@ export default function ProfileDetailPage() {
                 </div>
               )}
 
-              {/* Session List */}
-              {allHistorySessions.length > 0 && (
-                <div className="space-y-4">
-                  {allHistorySessions.map((session) => {
-                    const isMentor = session.mentorWallet.toLowerCase() === wallet.toLowerCase();
-                    const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
-                    const sessionDate = new Date(session.sessionDate);
-                    const isPast = sessionDate < new Date();
+              {/* Regular Session List */}
+              {regularSessions.length > 0 && (
+                <div className="space-y-4 mb-6">
+                  {regularSessions.map(renderSessionCard)}
+                </div>
+              )}
 
-                    return (
-                      <div
-                        key={session.key}
-                        className={`p-6 border rounded-lg ${
-                          session.status === 'completed'
-                            ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                            : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-3">
-                          <div>
-                            <h3 className="text-lg font-semibold">{session.skill}</h3>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                              {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {shortenWallet(otherWallet)}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 text-xs font-medium rounded ${
-                              session.status === 'completed'
-                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                                : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                            }`}>
-                              {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
-                            </span>
-                            {arkivBuilderMode && session.key && (
-                              <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} className="text-xs" />
-                            )}
-                            {!arkivBuilderMode && session.key && (
-                              <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} />
-                            )}
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                          <strong>Date:</strong> {sessionDate.toLocaleDateString('en-US', {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                          })}
-                        </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                          <strong>Time:</strong> {sessionDate.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          })}
-                        </p>
-                        {session.duration && (
-                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                            <strong>Duration:</strong> {session.duration} minutes
-                          </p>
-                        )}
-                        {session.notes && (
-                          <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
-                          </div>
-                        )}
-                        {arkivBuilderMode && session.key && (
-                          <div className="mt-3 flex items-center gap-2">
-                            <ViewOnArkivLink
-                              entityKey={session.key}
-                              txHash={session.txHash}
-                              label="View Session Entity"
-                              className="text-xs"
-                            />
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                              {session.key.slice(0, 12)}...
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+              {/* Archived Sessions (Reconstructed) - Collapsed by default */}
+              {archivedSessions.length > 0 && (
+                <div className="mt-6">
+                  <button
+                    onClick={() => setArchivedSessionsExpanded(!archivedSessionsExpanded)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                  >
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                      Archived Sessions ({archivedSessions.length})
+                    </span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      {archivedSessionsExpanded ? '▼' : '▶'}
+                    </span>
+                  </button>
+                  {archivedSessionsExpanded && (
+                    <div className="mt-3 space-y-4">
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                        These sessions were reconstructed from feedback after the original session entities expired. Some details may be incomplete.
+                      </p>
+                      {archivedSessions.map(renderSessionCard)}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
