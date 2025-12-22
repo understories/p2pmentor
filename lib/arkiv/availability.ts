@@ -642,6 +642,18 @@ export async function createAvailability({
 
   const { entityKey, txHash } = result;
 
+  // Structured logging (U1.x.1: Explorer Independence)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'availability',
+    entityKey,
+    txHash,
+    wallet: wallet.toLowerCase(),
+    timestamp: createdAt,
+    operation: 'create',
+    spaceId,
+  });
+
   // Create separate txhash entity (like mentor-graph pattern)
   // Don't wait for this one - it's optional metadata
   walletClient.createEntity({

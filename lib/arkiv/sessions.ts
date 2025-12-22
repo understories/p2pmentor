@@ -213,6 +213,18 @@ export async function createSession({
     throw error;
   }
 
+  // Structured logging (U1.x.1: Explorer Independence)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'session',
+    entityKey,
+    txHash,
+    wallet: normalizedMentorWallet, // Primary wallet (mentor)
+    timestamp: createdAt,
+    operation: 'create',
+    spaceId,
+  });
+
   // Store txHash in a separate entity for verifiability (same expiration)
   try {
     await walletClient.createEntity({

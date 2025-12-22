@@ -140,7 +140,7 @@ export async function createFeedback({
   // Feedback entities should persist long-term (1 year) since they're historical records
   const expiresIn = 31536000; // 1 year in seconds
 
-  const { entityKey, txHash } = await walletClient.createEntity({
+  const result = await walletClient.createEntity({
     payload: enc.encode(JSON.stringify(payload)),
     contentType: 'application/json',
     attributes: [
@@ -155,6 +155,20 @@ export async function createFeedback({
       ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
     ],
     expiresIn,
+  });
+
+  const { entityKey, txHash } = result;
+
+  // Structured logging (U1.x.1: Explorer Independence)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'session_feedback',
+    entityKey,
+    txHash,
+    wallet: normalizedFrom,
+    timestamp: createdAt,
+    operation: 'create',
+    spaceId,
   });
 
   // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)

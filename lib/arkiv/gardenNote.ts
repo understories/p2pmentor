@@ -114,6 +114,18 @@ export async function createGardenNote({
 
   const { entityKey, txHash } = result;
 
+  // Structured logging (U1.x.1: Explorer Independence)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'garden_note',
+    entityKey,
+    txHash,
+    wallet: authorWallet.toLowerCase(),
+    timestamp: createdAt,
+    operation: 'create',
+    spaceId,
+  });
+
   // Create separate txhash entity (following existing pattern)
   walletClient.createEntity({
     payload: enc.encode(JSON.stringify({

@@ -102,6 +102,18 @@ export async function createAsk({
 
   const { entityKey, txHash } = result;
 
+  // Structured logging (U1.x.1: Explorer Independence)
+  const { logEntityWrite } = await import('./write-logging');
+  logEntityWrite({
+    entityType: 'ask',
+    entityKey,
+    txHash,
+    wallet: wallet.toLowerCase(),
+    timestamp: createdAt,
+    operation: 'create',
+    spaceId,
+  });
+
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
   walletClient.createEntity({
