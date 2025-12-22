@@ -204,6 +204,10 @@ export default function AdminFeedbackPage() {
         ? localStorage.getItem('wallet_address') || 'admin'
         : 'admin';
 
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
       const res = await fetch('/api/admin/response', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -213,7 +217,10 @@ export default function AdminFeedbackPage() {
           message: responseMessage.trim(),
           adminWallet,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       if (!res.ok) {
@@ -227,7 +234,11 @@ export default function AdminFeedbackPage() {
       loadFeedback();
     } catch (err: any) {
       console.error('Error submitting response:', err);
-      alert(err.message || 'Failed to submit response');
+      if (err.name === 'AbortError') {
+        alert('Request timed out. The response may have been submitted. Please refresh the page to check.');
+      } else {
+        alert(err.message || 'Failed to submit response');
+      }
     } finally {
       setSubmittingResponse(false);
     }

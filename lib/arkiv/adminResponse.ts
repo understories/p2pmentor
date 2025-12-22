@@ -10,6 +10,7 @@
 import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { SPACE_ID } from "@/lib/config";
+import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type AdminResponse = {
   key: string;
@@ -57,22 +58,25 @@ export async function createAdminResponse({
   // Admin responses should persist (1 year) for record keeping
   const expiresIn = 31536000; // 1 year in seconds
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify(payload)),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'admin_response' },
-      { key: 'feedbackKey', value: feedbackKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'adminWallet', value: adminWallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn,
+  // Wrap in handleTransactionWithTimeout for graceful timeout handling
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'admin_response' },
+        { key: 'feedbackKey', value: feedbackKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'adminWallet', value: adminWallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+      ],
+      expiresIn,
+    });
   });
 
-  // Store txHash in a separate entity for reliable querying
-  await walletClient.createEntity({
+  // Store txHash in a separate entity for reliable querying (don't wait for this)
+  walletClient.createEntity({
     payload: enc.encode(JSON.stringify({ txHash })),
     contentType: 'application/json',
     attributes: [
@@ -82,6 +86,9 @@ export async function createAdminResponse({
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn,
+  }).catch((err: any) => {
+    console.warn('[createAdminResponse] Failed to create txHash entity:', err);
+    // Don't throw - txHash entity is optional metadata
   });
 
   // Create notification for the user
