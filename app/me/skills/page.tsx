@@ -404,7 +404,7 @@ export default function SkillsPage() {
                   ``,
                   `On Add Skill Button Click:`,
                   `→ POST /api/profile { action: 'updateProfile', ... }`,
-                  `→ Creates: type='user_profile' entity`,
+                  `→ Updates: type='user_profile' entity (stable entity key)`,
                   `→ Attributes: wallet, displayName, skills, skill_ids, ...`,
                   `→ Payload: Full profile data with updated skill_ids array`,
                   `→ TTL: 1 year (31536000 seconds)`

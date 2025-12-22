@@ -362,7 +362,8 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
                 query={[
                   `Clicking opens expertise level selector`,
                   `Next step: ensureSkillEntity() + POST /api/profile { action: 'updateProfile', ... }`,
-                  `Creates/Updates: type='skill' entity (if new), type='user_profile' entity (update)`,
+                  `Creates: type='skill' entity (if new)`,
+                  `Updates: type='user_profile' entity (stable entity key)`,
                   `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
                   `Payload: Full profile data with updated skills`
                 ]}
