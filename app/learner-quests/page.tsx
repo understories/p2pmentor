@@ -809,9 +809,9 @@ export default function LearnerQuestsPage() {
             );
           })()}
 
-          {/* Garden Board - Suggest Learning Quests */}
+          {/* Garden Board - Learner Quests Board */}
           <GardenBoard
-            channel="public_garden_board"
+            channel="learner_quests_garden_board"
             title="Suggest Learning Quests"
             description="Share ideas for new learning quests or reading materials."
             showCompose={!!wallet}
