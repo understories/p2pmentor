@@ -70,6 +70,11 @@ export default function MePage() {
   const router = useRouter();
   const { level } = useOnboardingLevel(walletAddress);
 
+  const shortenWallet = (wallet: string) => {
+    if (!wallet || wallet.length < 10) return wallet;
+    return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
+  };
+
   useEffect(() => {
     // Check authentication
     if (typeof window !== 'undefined') {
@@ -608,11 +613,25 @@ export default function MePage() {
                   <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.bioLong}</p>
                 </div>
               )}
+
+              {(profile as any).exploringStatement && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Exploring</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">{(profile as any).exploringStatement}</p>
+                </div>
+              )}
               
               {profile.timezone && (
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Timezone</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{profile.timezone}</p>
+                </div>
+              )}
+
+              {profile.seniority && (
+                <div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Seniority</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{profile.seniority}</p>
                 </div>
               )}
               
@@ -697,6 +716,76 @@ export default function MePage() {
                     })}
                   </div>
                 </div>
+              )}
+
+              {/* Arkiv Builder Mode: Metadata Fields */}
+              {arkivBuilderMode && (
+                <>
+                  {profile.npsScore !== undefined && profile.npsScore !== null && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">NPS Score</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.npsScore}</p>
+                    </div>
+                  )}
+
+                  {profile.reputationScore !== undefined && profile.reputationScore !== null && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reputation Score</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">{profile.reputationScore}</p>
+                    </div>
+                  )}
+
+                  {profile.topSkillsUsage && profile.topSkillsUsage.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Top Skills Usage</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.topSkillsUsage.map((usage, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                            {usage.skill} ({usage.count})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.peerTestimonials && profile.peerTestimonials.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Peer Testimonials</p>
+                      <div className="space-y-2">
+                        {profile.peerTestimonials.map((testimonial, idx) => (
+                          <div key={idx} className="text-xs p-2 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                            <p className="text-gray-700 dark:text-gray-300">{testimonial.text}</p>
+                            <p className="text-gray-500 dark:text-gray-400 mt-1">
+                              From {shortenWallet(testimonial.fromWallet)} • {new Date(testimonial.timestamp).toLocaleDateString()}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.trustEdges && profile.trustEdges.length > 0 && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Trust Edges</p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.trustEdges.map((edge, idx) => (
+                          <span key={idx} className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200">
+                            {shortenWallet(edge.toWallet)} (strength: {edge.strength})
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {profile.lastActiveTimestamp && (
+                    <div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Active</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {new Date(profile.lastActiveTimestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
