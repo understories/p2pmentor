@@ -135,6 +135,9 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
         const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
         trackActionCompletion('offer_created');
 
+        // Note: EntityWriteInfo not displayed in onboarding flow (modal closes on success)
+        // But entity info is logged in backend for explorer independence
+
         onComplete();
       } else {
         throw new Error(data.error || 'Failed to create offer');

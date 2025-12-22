@@ -18,6 +18,7 @@ import { EmojiIdentitySeed } from '@/components/profile/EmojiIdentitySeed';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { SkillSelector } from '@/components/SkillSelector';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 
 type MeetingMode = 'request' | 'offer' | 'peer';
 
@@ -48,6 +49,7 @@ export function RequestMeetingModal({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
   const [formData, setFormData] = useState({
     skill: '',
     skill_id: '', // Arkiv-native: skill entity key (preferred)
@@ -349,6 +351,11 @@ export function RequestMeetingModal({
       if (data.ok) {
         const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
         trackActionCompletion('session_created');
+
+        // Store entity info for builder mode display (U1.x.1: Explorer Independence)
+        if (data.key && data.txHash && !data.pending) {
+          setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'session' });
+        }
       }
 
       // Success - handle both immediate success and pending confirmation

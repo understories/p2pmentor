@@ -25,6 +25,7 @@ import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvaila
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 
 export default function AvailabilityPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export default function AvailabilityPage() {
   const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null); // Track which availability is being edited
   const [deletingKey, setDeletingKey] = useState<string | null>(null); // Track which availability is being deleted
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -95,6 +97,7 @@ export default function AvailabilityPage() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastWriteInfo(null); // Clear previous write info
 
     try {
       // Create availability entity
@@ -117,6 +120,10 @@ export default function AvailabilityPage() {
           setTimeout(() => loadData(walletAddress), 2000);
         } else {
           setSuccess(editingKey ? 'Availability updated successfully!' : 'Availability created successfully!');
+          // Store entity info for builder mode display (U1.x.1: Explorer Independence)
+          if (data.key && data.txHash) {
+            setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'availability' });
+          }
           setWeeklyAvailability(null);
           setEditingKey(null);
           await loadData(walletAddress);
@@ -455,6 +462,14 @@ export default function AvailabilityPage() {
             <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-sm text-green-800 dark:text-green-200">
               {success}
             </div>
+          )}
+          {lastWriteInfo && (
+            <EntityWriteInfo
+              entityKey={lastWriteInfo.key}
+              txHash={lastWriteInfo.txHash}
+              entityType={lastWriteInfo.entityType}
+              className="mb-4"
+            />
           )}
 
           <div className="flex gap-3">

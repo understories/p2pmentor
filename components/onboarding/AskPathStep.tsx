@@ -127,6 +127,9 @@ export function AskPathStep({ wallet, onComplete, onError }: AskPathStepProps) {
         const { trackActionCompletion } = await import('@/lib/metrics/actionCompletion');
         trackActionCompletion('ask_created');
 
+        // Note: EntityWriteInfo not displayed in onboarding flow (modal closes on success)
+        // But entity info is logged in backend for explorer independence
+
         onComplete();
       } else {
         throw new Error(data.error || 'Failed to create ask');

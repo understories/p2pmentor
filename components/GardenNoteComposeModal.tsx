@@ -15,6 +15,7 @@
 import { useState, useEffect } from 'react';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import { GARDEN_NOTE_MAX_LENGTH } from '@/lib/arkiv/gardenNote';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 
 interface GardenNoteComposeModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export function GardenNoteComposeModal({
   const [error, setError] = useState('');
   const [status, setStatus] = useState<'draft' | 'submitting' | 'confirmed'>('draft');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
 
   // Reset form when modal opens/closes, or pre-fill initialTags
   useEffect(() => {
@@ -57,6 +59,7 @@ export function GardenNoteComposeModal({
       setError('');
       setStatus('draft');
       setTxHash(null);
+      setLastWriteInfo(null);
     }
   }, [isOpen, initialTags]);
 
@@ -129,6 +132,11 @@ export function GardenNoteComposeModal({
 
       setStatus('confirmed');
       setTxHash(data.txHash);
+
+      // Store entity info for builder mode display (U1.x.1: Explorer Independence)
+      if (data.key && data.txHash) {
+        setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'garden_note' });
+      }
 
       // Call onSuccess after a brief delay to show confirmation
       setTimeout(() => {
@@ -207,30 +215,13 @@ export function GardenNoteComposeModal({
               <p className="text-gray-600 dark:text-gray-400 mb-4">
                 Your note is now part of the public garden.
               </p>
-              {txHash && (
-                <div className="mt-4 p-4 bg-gray-50/80 dark:bg-gray-700/80 backdrop-blur-sm rounded-xl border border-gray-200/50 dark:border-gray-600/50">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                    Transaction Hash:
-                  </p>
-                  <a
-                    href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-green-600 dark:text-green-400 hover:underline font-mono text-xs break-all"
-                  >
-                    {txHash.slice(0, 20)}...
-                  </a>
-                  <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                    <a
-                      href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-green-600 dark:text-green-400 hover:underline"
-                    >
-                      View in Arkiv Explorer →
-                    </a>
-                  </p>
-                </div>
+              {lastWriteInfo && (
+                <EntityWriteInfo
+                  entityKey={lastWriteInfo.key}
+                  txHash={lastWriteInfo.txHash}
+                  entityType={lastWriteInfo.entityType}
+                  className="mt-4"
+                />
               )}
               <p className="text-xs text-gray-500 dark:text-gray-500 mt-4">
                 You can always hide it from your UI, but the data itself remains public.
