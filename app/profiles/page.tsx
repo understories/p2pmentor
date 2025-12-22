@@ -12,6 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { BackButton } from '@/components/BackButton';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
@@ -276,38 +277,26 @@ export default function ProfilesPage() {
                   </div>
                   {profile.profileCount !== undefined && profile.profileCount > 1 && (
                     <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
-                      {arkivBuilderMode ? (
-                        <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                          </svg>
-                          <span>
-                            <strong>{profile.profileCount}</strong> profile version{profile.profileCount !== 1 ? 's' : ''} on-chain
-                          </span>
+                      <Link
+                        href={`/profiles/${profile.wallet}`}
+                        className="group relative inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+                        title="View version history on profile page"
+                      >
+                        {/* DNA/Helix Icon - Double helix representation */}
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 2a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v1a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1H9a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-1a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1V3a1 1 0 011-1h0z" opacity="0.3"/>
+                          <path d="M10 2a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v1a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1H11a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-1a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1V3a1 1 0 00-1-1h0z"/>
+                        </svg>
+                        <span className="font-medium">Version history</span>
+                        {/* Educational Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                          <div className="font-semibold mb-2">Profile version history</div>
+                          <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
+                            Blockchains are immutable at the transaction level, but application data is mutable at the state level. We can update profiles while preserving all historical versions on-chain. The app displays the latest canonical state.
+                          </p>
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                         </div>
-                      ) : (
-                        <div className="group relative inline-block">
-                          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400 cursor-help">
-                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            <span>
-                              <strong>{profile.profileCount}</strong> profile version{profile.profileCount !== 1 ? 's' : ''} on-chain
-                            </span>
-                          </div>
-                          {/* Educational Tooltip - only show when builder mode is OFF */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
-                            <div className="font-semibold mb-2">Profile version history</div>
-                            <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
-                              Blockchains are immutable at the transaction level, but application data is mutable at the state level. We can update profiles while preserving all historical versions on-chain. The app displays the latest canonical state.
-                            </p>
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                          </div>
-                        </div>
-                      )}
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
-                        All versions preserved (immutable ledger)
-                      </p>
+                      </Link>
                     </div>
                   )}
                   {profile.profileCount === 1 && (
