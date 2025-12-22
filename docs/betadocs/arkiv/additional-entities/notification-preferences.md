@@ -4,9 +4,10 @@
 
 Stores user notification preferences and read/unread state as Arkiv entities. Allows users to customize their notification experience while staying Arkiv-native. Tracks read/unread state for individual notifications.
 
-**Entity Type:** `notification_preference`  
-**TTL:** 1 year (31536000 seconds)  
-**Immutability:** Immutable - updates create new entities
+**Entity Type:** `notification_preference`
+**TTL:** 1 year (31536000 seconds)
+**Update Pattern:** Pattern B (updateEntity with stable entity_key)
+**Immutability:** Transactions are immutable, but entity state is mutable via updates
 
 ## Attributes
 
@@ -203,9 +204,10 @@ async function getUnreadCount(wallet: string) {
 
 ## Notes
 
-- **Upsert Pattern**: Creates new entity if doesn't exist, creates new version if exists
-- **Latest Version**: Query and sort by `updatedAt` to get current state
+- **Update Pattern**: Uses Pattern B (updateEntity with stable entity_key)
+- **Stable Identity**: Entity key is stable per (wallet, notificationId) tuple
+- **Full Replacement**: `updateEntity()` replaces all attributes and payload (fetch-merge-write pattern required)
 - **Soft Delete**: Archived notifications are hidden but not deleted
 - **Read State**: Tracks read/unread state per notification
-- **Immutability**: Each state change creates new entity
+- **Transaction History**: All updates create new immutable transactions, preserving full audit trail
 

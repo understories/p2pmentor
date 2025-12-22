@@ -43,8 +43,10 @@
 - `lastActiveTimestamp`: ISO timestamp of last activity
 
 **Notes:**
-- Immutable: updates create new entities
-- Latest version selected via query filtering by wallet and selecting most recent
+- Updates use Pattern B (updateEntity with stable entity_key)
+- Same entity_key is reused for all updates, preserving identity
+- Full transaction history is preserved on-chain
+- See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for details
 
 ### ask
 
