@@ -524,6 +524,13 @@ export default function MePage() {
           )}
         </div>
 
+        {/* Bio Display */}
+        {profile?.bioShort && (
+          <div className="mb-6 text-center">
+            <p className="text-gray-700 dark:text-gray-300">{profile.bioShort}</p>
+          </div>
+        )}
+
         {/* Profile Completeness Indicator */}
         {hasProfile && profile && (() => {
           const completeness = calculateProfileCompleteness(profile, hasAvailability);
