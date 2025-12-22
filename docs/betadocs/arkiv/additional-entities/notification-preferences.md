@@ -114,21 +114,34 @@ const preference = result.entities
 
 ## Creation/Update
 
+**Direct Key Updates (Recommended):** For optimal performance and to avoid race conditions, store the preference entity key client-side and pass it for direct updates:
+
 ```typescript
 import { upsertNotificationPreference } from "@/lib/arkiv/notificationPreferences";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { getPrefKey, setPrefKey } from "@/lib/notifications/prefKeyStore";
 
-const walletClient = await getWalletClientFromMetaMask();
+// Get stored preference key (if exists)
+const preferenceKey = getPrefKey(spaceId, walletAddress.toLowerCase(), notificationId);
+
+// Update preference
 const { key, txHash } = await upsertNotificationPreference({
   wallet: walletAddress,
   notificationId: "meeting_request_sessionKey123",
   notificationType: "meeting_request",
   read: false,
   archived: false,
+  preferenceKey, // Direct update key (bypasses query-first pattern)
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
+
+// Store returned key for future updates
+if (key) {
+  setPrefKey(spaceId, walletAddress.toLowerCase(), notificationId, key);
+}
 ```
+
+**Legacy Pattern (Fallback):** If `preferenceKey` is not provided, the function falls back to query-first pattern (for older clients).
 
 ## Mark as Read
 
@@ -206,8 +219,10 @@ async function getUnreadCount(wallet: string) {
 
 - **Update Pattern**: Uses Pattern B (updateEntity with stable entity_key)
 - **Stable Identity**: Entity key is stable per (wallet, notificationId) tuple
+- **Direct Key Updates**: Store preference entity keys client-side (localStorage) and pass `preferenceKey` parameter for direct updates, bypassing query-first pattern and eliminating race conditions
 - **Full Replacement**: `updateEntity()` replaces all attributes and payload (fetch-merge-write pattern required)
 - **Soft Delete**: Archived notifications are hidden but not deleted
 - **Read State**: Tracks read/unread state per notification
 - **Transaction History**: All updates create new immutable transactions, preserving full audit trail
+- **Race Condition Prevention**: Direct key updates eliminate read-modify-write race conditions that can occur with query-first patterns
 

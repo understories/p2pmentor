@@ -7,7 +7,7 @@
 
 import { eq, and } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID, ENTITY_UPDATE_MODE, isWalletMigrated, markWalletMigrated } from "@/lib/config";
+import { SPACE_ID, ENTITY_UPDATE_MODE } from "@/lib/config";
 import { arkivUpsertEntity } from "./entity-utils";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 
