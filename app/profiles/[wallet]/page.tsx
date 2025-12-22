@@ -585,6 +585,13 @@ export default function ProfileDetailPage() {
             </div>
           )}
 
+          {profile.communityAffiliations && profile.communityAffiliations.length > 0 && (
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Community Affiliations</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.communityAffiliations.join(', ')}</p>
+            </div>
+          )}
+
         {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Links</p>
