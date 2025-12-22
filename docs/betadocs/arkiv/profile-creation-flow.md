@@ -154,7 +154,7 @@ flowchart TD
   M3 --> M4
   M4 --> N[Redirect to /me or stay on /me/profile]
 
-  %% Update flow (creates new entity - immutable)
+  %% Update flow (updates existing entity - stable key)
   U3 --> D
 
   %% =========================

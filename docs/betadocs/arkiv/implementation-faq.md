@@ -2,22 +2,23 @@
 
 This document answers common questions about Arkiv patterns and implementation details in p2pmentor.
 
-## Profile Updates: Immutable Entity Pattern
+## Profile Updates: Stable Entity Key Pattern
 
-**Question:** Does editing a profile create a new entity or mutate the existing one?
+**Question:** Does editing a profile create a new entity or update the existing one?
 
-**Answer:** Editing a profile **creates a new entity**. This follows Arkiv's immutable entity pattern.
+**Answer:** Editing a profile **updates the existing entity** using a stable entity key. This preserves relationships and simplifies queries while maintaining full transaction history on-chain.
 
 **Implementation:**
 - The `createUserProfile()` function is called for both new profiles and updates
 - When updating, the function first fetches the existing profile using `getProfileByWallet()`
 - It preserves certain fields (like `identity_seed`) and recalculates others (like `avgRating`)
-- A new entity is created with all the updated data
-- The old entity remains on Arkiv (immutable history)
+- The existing entity is updated using `updateEntity()` with the same entity key
+- All transaction history is preserved on-chain (immutable ledger)
 
-**Latest Version Selection:**
-- `getProfileByWallet()` queries all profiles for a wallet: `type='user_profile', wallet='<address>'`
-- It sorts by `createdAt` descending and returns the most recent one
+**Query Pattern:**
+- `getProfileByWallet()` queries for the canonical profile entity using the stable entity key
+- For migrated wallets, it returns the single canonical entity
+- For non-migrated wallets, it falls back to querying all profiles and selecting the most recent
 - This means the "current" profile is always the latest entity
 
 **Code Reference:**
@@ -158,23 +159,23 @@ export async function createSkill({
 
 **Question:** If two devices update a profile simultaneously, what happens?
 
-**Answer:** Both updates create new entities. The latest one (by `createdAt`) is selected as the "current" profile.
+**Answer:** Updates use last-write-wins semantics. The most recent update (by transaction timestamp) becomes the canonical state.
 
 **How It Works:**
 1. Device A and Device B both fetch the current profile
-2. Device A updates bio and creates new entity at time T1
-3. Device B updates timezone and creates new entity at time T2
-4. Both entities exist on Arkiv
-5. `getProfileByWallet()` returns the one with the latest `createdAt`
+2. Device A updates bio and calls `updateEntity()` at time T1
+3. Device B updates timezone and calls `updateEntity()` at time T2
+4. Both transactions are recorded on-chain (immutable ledger)
+5. The application displays the state from the most recent transaction
 
 **Potential Issues:**
-- If T1 and T2 are very close, the "latest" might not include both changes
+- If T1 and T2 are very close, one update might overwrite the other
 - Device A's bio update might be "lost" if Device B's update happens milliseconds later
 - This is a form of last-write-wins conflict resolution
 
 **Mitigation Strategies:**
 - Client-side: Check for updates before submitting (optimistic locking)
-- Merge strategy: Fetch latest, merge changes, create new entity
+- Merge strategy: Fetch latest, merge changes, update entity
 - UI: Show "profile updated" notifications to prevent simultaneous edits
 
 **Current Behavior:**
@@ -291,7 +292,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
 
 | Question | Answer | Pattern |
 |----------|--------|---------|
-| Profile updates | Creates new entity | Immutable entities |
+| Profile updates | Updates existing entity (stable key) | Stable entity keys |
 | Wallet lookup | `type='user_profile', wallet='<address>'` | Indexed attribute query |
 | Session references | No direct reference | Implicit via matching |
 | Skills | Separate entities, referenced by key | Entity relationships |

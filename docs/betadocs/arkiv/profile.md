@@ -55,14 +55,13 @@
 
 ## Update Handling
 
-Profile updates create new entities. Arkiv entities are immutable. To update a profile:
+Profile updates use stable entity keys. Arkiv transactions are immutable, but application data is mutable at the state level. To update a profile:
 
-1. Create new `user_profile` entity with updated fields
-2. Query all profiles for wallet address
-3. Select latest by sorting `createdAt` descending
-4. Previous entities remain on-chain for history
+1. Fetch existing profile entity using `getProfileByWallet()`
+2. Update the entity using `updateEntity()` with the same entity key
+3. All transaction history is preserved on-chain (immutable ledger)
 
-Implementation: `lib/arkiv/profile.ts` - `createUserProfile()` and `createUserProfileClient()` both create new entities. `getProfileByWallet()` queries and returns the most recent.
+Implementation: `lib/arkiv/profile.ts` - `createUserProfile()` uses `arkivUpsertEntity()` which updates existing entities when a profile already exists. `getProfileByWallet()` returns the canonical entity for migrated wallets.
 
 ## Query Pattern
 

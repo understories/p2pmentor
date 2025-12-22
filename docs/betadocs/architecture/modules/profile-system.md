@@ -4,25 +4,24 @@
 
 This document explains how we implement user profiles with blockchain data in a serverless, decentralized architecture. Profiles are stored as Arkiv entities, using the immutable entity pattern to track profile changes over time.
 
-**Key Challenge:** Managing profile updates in a decentralized environment where entities are immutable. Each profile change creates a new entity, requiring efficient querying to get the latest version.
+**Key Challenge:** Managing profile updates in a decentralized environment while preserving relationships and state persistence.
 
-**Solution:** Store profiles as Arkiv entities with immutable updates. Query all profiles for a wallet and select the most recent one by `createdAt` timestamp.
+**Solution:** Store profiles as Arkiv entities with stable entity keys. Updates modify the same entity while preserving all transaction history on-chain.
 
 ## Architecture
 
 ### Core Components
 
 1. **Profile Entities** (`user_profile`)
-   - Created when users create or update their profile
-   - Immutable - each update creates a new entity
+   - Created when users create their profile
+   - Updated when users modify their profile (stable entity key)
    - Contains: wallet, displayName, username, bio, skills, timezone, contactLinks, etc.
    - TTL: 1 year (31536000 seconds)
 
 2. **Profile Query Pattern**
-   - Query all profiles for a wallet
-   - Sort by `createdAt` descending
-   - Return the most recent profile (latest version)
-   - Old profiles remain for history/audit
+   - For migrated wallets: Query canonical profile entity using stable entity key
+   - For non-migrated wallets: Query all profiles for a wallet, sort by `createdAt` descending, return most recent
+   - All transaction history is preserved on-chain (immutable ledger)
 
 3. **Client-Side State Management**
    - Optimistic UI updates for immediate feedback
@@ -88,20 +87,19 @@ In a centralized system, profile updates are simple:
 
 In a decentralized system:
 - No centralized database
-- Entities are immutable (cannot be modified)
-- Each update creates a new entity
-- Need to query latest version efficiently
+- Transactions are immutable (cannot be modified)
+- Application data is mutable at the state level
+- Need to preserve relationships and state persistence
 - Need to preserve history for audit
 
 ### Our Solution
 
-**1. Immutable Update Pattern**
+**1. Stable Entity Key Pattern**
 
 When a user updates their profile:
-- Query existing profile entities for that wallet
-- Get the current profile data
-- Create a NEW entity with updated data
-- Old entities remain (for history/audit)
+- Fetch existing profile entity using stable entity key
+- Update the entity using `updateEntity()` with the same entity key
+- All transaction history is preserved on-chain (immutable ledger)
 
 **2. Query Pattern**
 
@@ -135,7 +133,7 @@ if (existingProfile) {
   avgRating = await calculateAverageRating(wallet);
 }
 
-// Create new profile entity (immutable update)
+// Create or update profile entity (stable key)
 const { key, txHash } = await createUserProfile({
   wallet: wallet.toLowerCase(), // Normalize!
   displayName,
@@ -403,7 +401,7 @@ Use for complex or large data:
 
 ### Update Pattern
 
-Profiles use immutable updates - each change creates a new entity:
+Profiles use stable entity keys - updates modify the same entity while preserving all transaction history:
 
 ```typescript
 // Get current profile
@@ -412,7 +410,7 @@ if (!currentProfile) {
   throw new Error('Profile not found');
 }
 
-// Create new profile with updated data
+// Update profile entity (stable key)
 const { key, txHash } = await createUserProfile({
   wallet,
   displayName: currentProfile.displayName,
@@ -422,6 +420,7 @@ const { key, txHash } = await createUserProfile({
   // ... preserve other fields
   privateKey,
 });
+// key will match currentProfile.key (stable)
 ```
 
 ### Regrow Pattern
@@ -594,7 +593,7 @@ if (!currentProfile) {
 // 2. Calculate updated avgRating
 const avgRating = await calculateAverageRating(wallet);
 
-// 3. Create new profile entity with updated data
+// 3. Update profile entity with updated data (stable key)
 const { key, txHash } = await createUserProfile({
   wallet: wallet.toLowerCase(),
   displayName: updatedDisplayName,
@@ -662,14 +661,14 @@ The completion data is loaded asynchronously and does not block profile loading.
 
 ## Summary
 
-The Arkiv-native profile system uses immutable entities to track profile data in a decentralized environment. Key patterns:
+The Arkiv-native profile system uses stable entity keys to track profile data in a decentralized environment. Key patterns:
 
-1. **Immutable Updates:** Each profile change creates a new entity
-2. **Latest Version Query:** Query all profiles, sort by `createdAt`, return most recent
+1. **Stable Entity Keys:** Profile updates modify the same entity while preserving all transaction history
+2. **Canonical Query:** Query canonical profile entity using stable entity key (migrated wallets) or latest by `createdAt` (non-migrated)
 3. **Wallet Normalization:** Always normalize wallet addresses to lowercase
 4. **Identity Seed Preservation:** Preserve `identity_seed` for updates, auto-assign for new profiles
 5. **Derived Field Calculation:** Recalculate `avgRating` and other derived fields from source data
 6. **Skill Entity Keys:** Use `skill_ids` for proper Arkiv-native skill entity references
 
-This approach provides a robust, decentralized profile system that works without a centralized database, preserving full history for audit and allowing users to "regrow" their profiles from historical data.
+This approach provides a robust, decentralized profile system that works without a centralized database, preserving full history for audit while maintaining stable relationships.
 

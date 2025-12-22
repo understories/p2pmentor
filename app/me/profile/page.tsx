@@ -593,7 +593,7 @@ export default function ProfilePage() {
                   </p>
                 )}
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Changes will create a new profile entity on Arkiv.
+                  Changes will update your profile entity on Arkiv. All historical versions are preserved on-chain.
                 </p>
                 {arkivBuilderMode && profile.key && (
                   <div className="mt-3 flex items-center gap-2">
@@ -810,11 +810,11 @@ export default function ProfilePage() {
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
                 query={[
-                  `POST /api/profile { action: 'createProfile', ... }`,
-                  `Creates: type='user_profile' entity (new version)`,
+                  `POST /api/profile { action: 'createProfile' | 'updateProfile', ... }`,
+                  `Creates/Updates: type='user_profile' entity`,
                   `Attributes: wallet, displayName, username, timezone, skills, ...`,
                   `Payload: Full profile data (bio, contactLinks, etc.)`,
-                  `Note: Profile updates create new entities (immutable)`,
+                  `Note: Updates use stable entity key (canonical pattern)`,
                   `TTL: 1 year (31536000 seconds)`
                 ]}
                 label="Profile Entity Creation"

@@ -3,7 +3,7 @@
  * 
  * Add, view, and edit skills using Arkiv profile entities.
  * Skills are stored as references to Skill entities (skill_id) in the profile.
- * Each profile update creates a new immutable profile entity on Arkiv.
+ * Profile updates use stable entity keys while preserving all transaction history on-chain.
  * 
  * Follows the same pattern as asks/offers pages.
  */
@@ -691,7 +691,7 @@ export default function SkillsPage() {
                             `Attributes: wallet, displayName, skills, skill_ids (removed), ...`,
                             `Payload: Full profile data with updated skill_ids array`,
                             `TTL: 1 year (31536000 seconds)`,
-                            `Note: Creates new immutable profile entity on Arkiv`
+                            `Note: Updates profile entity (stable key, preserves history)`
                           ]}
                           label="Remove Skill"
                         >
@@ -729,7 +729,7 @@ export default function SkillsPage() {
           <ul className="text-sm text-yellow-800 dark:text-yellow-200 space-y-1 list-disc list-inside">
             <li>Skills are <strong>Arkiv Skill entities</strong> stored on-chain</li>
             <li>Your profile <strong>references</strong> these Skill entities (by skill_id)</li>
-            <li>Each profile update creates a <strong>new immutable profile entity</strong> on Arkiv</li>
+            <li>Profile updates use a <strong>stable entity key</strong> while preserving all transaction history on-chain</li>
             <li>All changes are permanent and viewable on the <a href="https://explorer.mendoza.hoodi.arkiv.network" target="_blank" rel="noopener noreferrer" className="underline">Arkiv Explorer</a></li>
           </ul>
         </div>

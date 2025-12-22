@@ -18,12 +18,12 @@ All data in p2pmentor is stored as **entities** on Arkiv. An entity consists of:
 
 ### Immutability
 
-Arkiv entities are **immutable**. Once created, they cannot be modified. To update data:
-1. Create a new entity with updated fields
-2. Query all entities for the identifier (e.g., wallet address)
-3. Select the latest version by sorting by `createdAt` descending
+Arkiv transactions are **immutable**. Once created, they cannot be modified. Application data is mutable at the state level. To update data:
+1. Use `updateEntity()` to update an existing entity with a stable entity key
+2. All transaction history is preserved on-chain (immutable ledger)
+3. The application displays the latest canonical state
 
-This provides a complete audit trail and enables data recovery.
+This provides a complete audit trail while allowing editable application data.
 
 ### Wallet-Based Identity
 
