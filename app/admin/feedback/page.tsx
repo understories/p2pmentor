@@ -47,6 +47,7 @@ export default function AdminFeedbackPage() {
   const [githubIssueLinks, setGithubIssueLinks] = useState<Record<string, { issueNumber: number; issueUrl: string }>>({});
   const [resolvingIssue, setResolvingIssue] = useState<AppFeedback | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
+  const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Check authentication
