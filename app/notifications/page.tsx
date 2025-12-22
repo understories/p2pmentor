@@ -197,7 +197,12 @@ export default function NotificationsPage() {
   };
 
   const markAsRead = async (notificationId: string) => {
-    if (!userWallet) return;
+    if (!userWallet) {
+      console.error('[markAsRead] No userWallet, aborting');
+      return;
+    }
+
+    console.log('[markAsRead] Starting for notificationId:', notificationId, 'wallet:', userWallet);
 
     // Store previous state for revert
     const currentPref = notificationPreferences.current.get(notificationId);
@@ -221,42 +226,61 @@ export default function NotificationsPage() {
     // Persist to Arkiv
     try {
       const notification = notifications.find(n => n.id === notificationId);
-      if (notification) {
-        const response = await fetch('/api/notifications/preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet: userWallet,
-            notificationId,
-            notificationType: notification.type,
-            read: true,
-            archived: false,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save preference');
-        }
-
-        // Wait for Arkiv to index the preference update before dispatching event
-        // Single notification update needs less time than bulk updates
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // Success: preferences are now persisted, keep the optimistic update
-        // The preferences ref already has the correct state, so no need to reload
-
-        // Dispatch event to notify other components (e.g., navbar) of the change
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-            detail: { 
-              wallet: userWallet,
-              delay: 500, // Pass delay so sidebar knows to wait before querying
-            }
-          }));
-        }
+      if (!notification) {
+        console.error('[markAsRead] Notification not found:', notificationId);
+        throw new Error('Notification not found');
       }
+
+      console.log('[markAsRead] Making API call with:', {
+        wallet: userWallet,
+        notificationId,
+        notificationType: notification.type,
+        read: true,
+      });
+
+      const response = await fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: userWallet,
+          notificationId,
+          notificationType: notification.type,
+          read: true,
+          archived: false,
+        }),
+      });
+
+      console.log('[markAsRead] API response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[markAsRead] API error response:', errorData);
+        throw new Error(errorData.error || 'Failed to save preference');
+      }
+
+      const responseData = await response.json();
+      console.log('[markAsRead] API success response:', responseData);
+
+      // Wait for Arkiv to index the preference update before dispatching event
+      // Single notification update needs less time than bulk updates
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Success: preferences are now persisted, keep the optimistic update
+      // The preferences ref already has the correct state, so no need to reload
+
+      // Dispatch event to notify other components (e.g., navbar) of the change
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { 
+            wallet: userWallet,
+            delay: 500, // Pass delay so sidebar knows to wait before querying
+          }
+        }));
+      }
+
+      console.log('[markAsRead] Successfully marked as read');
     } catch (err) {
-      console.error('Error marking notification as read:', err);
+      console.error('[markAsRead] Error marking notification as read:', err);
       // Revert on error
       setNotifications(prev =>
         prev.map(n =>

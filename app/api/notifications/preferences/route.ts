@@ -81,7 +81,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { wallet, notificationId, notificationType, read, archived } = body;
 
+    console.log('[POST /api/notifications/preferences] Received request:', {
+      wallet,
+      notificationId,
+      notificationType,
+      read,
+      archived,
+    });
+
     if (!wallet || !notificationId || !notificationType || read === undefined) {
+      console.error('[POST /api/notifications/preferences] Missing required fields');
       return NextResponse.json(
         { ok: false, error: 'Missing required fields: wallet, notificationId, notificationType, read' },
         { status: 400 }
@@ -91,6 +100,7 @@ export async function POST(request: Request) {
     // Get private key for the wallet (use default wallet if available)
     const privateKey = getPrivateKey();
     if (!privateKey) {
+      console.error('[POST /api/notifications/preferences] Private key not configured');
       return NextResponse.json(
         { ok: false, error: 'Private key not configured' },
         { status: 500 }
@@ -100,6 +110,7 @@ export async function POST(request: Request) {
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const spaceId = SPACE_ID;
     
+    console.log('[POST /api/notifications/preferences] Calling upsertNotificationPreference with spaceId:', spaceId);
     const { key, txHash } = await upsertNotificationPreference({
       wallet,
       notificationId,
@@ -110,12 +121,14 @@ export async function POST(request: Request) {
       spaceId,
     });
 
+    console.log('[POST /api/notifications/preferences] Successfully upserted preference:', { key, txHash });
+
     return NextResponse.json({
       ok: true,
       preference: { key, txHash },
     });
   } catch (error: any) {
-    console.error('Notification preferences API error:', error);
+    console.error('[POST /api/notifications/preferences] Error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }

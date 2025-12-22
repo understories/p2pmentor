@@ -143,16 +143,34 @@ export async function upsertNotificationPreference({
   const now = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID;
 
+  console.log('[upsertNotificationPreference] Starting upsert:', {
+    wallet: normalizedWallet,
+    notificationId,
+    notificationType,
+    read,
+    archived,
+    spaceId: finalSpaceId,
+    ENTITY_UPDATE_MODE,
+  });
+
   // Deterministic check: If existing preference found, use Pattern B (updateEntity)
   // Otherwise, use Pattern A (createEntity)
   // This replaces the migration status check which was in-memory only
   const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
+
+  console.log('[upsertNotificationPreference] Existing preference found:', existing ? {
+    key: existing.key,
+    read: existing.read,
+    updatedAt: existing.updatedAt,
+  } : null);
 
   // Check for duplicates: reject if another preference exists for same (wallet, notification_id)
   // This prevents creating multiple preference entities for the same identity
   if (existing && existing.key) {
     // Deterministic check: If entity exists, use Pattern B
     const shouldUpdate = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
+
+    console.log('[upsertNotificationPreference] Should update?', shouldUpdate, '(ENTITY_UPDATE_MODE:', ENTITY_UPDATE_MODE, ')');
 
     if (shouldUpdate) {
       // Use canonical helper to update existing entity (Pattern B)
@@ -197,12 +215,18 @@ export async function upsertNotificationPreference({
         spaceId: finalSpaceId,
       });
 
+      console.log('[upsertNotificationPreference] Successfully updated preference:', {
+        key: updateResult.key,
+        txHash: updateResult.txHash,
+      });
       return updateResult;
     }
     // Fall through to create-new-entity path if update mode is off
+    console.log('[upsertNotificationPreference] Update mode is off, falling through to create');
   }
 
   // Create new preference (old behavior or fallback)
+  console.log('[upsertNotificationPreference] Creating new preference entity');
   // This path is used when:
   // - No existing preference found
   // - Update mode is 'off' and wallet not migrated
@@ -239,6 +263,11 @@ export async function upsertNotificationPreference({
       attributes: attributesWithSigner,
       expiresIn: 31536000, // 1 year
     });
+  });
+
+  console.log('[upsertNotificationPreference] Successfully created new preference:', {
+    key: result.entityKey,
+    txHash: result.txHash,
   });
 
   return { key: result.entityKey, txHash: result.txHash };
