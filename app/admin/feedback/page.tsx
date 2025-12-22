@@ -813,7 +813,9 @@ export default function AdminFeedbackPage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     <strong>Replying to:</strong>
                   </p>
-                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap mb-2">{respondingTo.message}</p>
+                  <div className="max-h-64 overflow-y-auto mb-2">
+                    <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{respondingTo.message}</p>
+                  </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <span>From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)}</span>
                     <span>•</span>
