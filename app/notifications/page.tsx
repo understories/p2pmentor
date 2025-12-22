@@ -259,15 +259,20 @@ export default function NotificationsPage() {
       }
 
       const responseData = await response.json();
-      console.log('[markAsRead] API success response:', responseData);
+      console.log('[markAsRead] API success response:', JSON.stringify(responseData, null, 2));
 
       // Wait for Arkiv to index the preference update before dispatching event
       // Single notification update needs less time than bulk updates
       // Increased delay to 2 seconds to ensure Arkiv has indexed the update
       await new Promise(resolve => setTimeout(resolve, 2000));
 
+      // Clear the save flag BEFORE reloading so the reload actually happens
+      // The flag was preventing reloads during save, but we need to reload after save completes
+      isSavingPreferences.current = false;
+
       // Reload preferences from Arkiv to ensure we have the latest state
       // This ensures the read state persists even if the page is refreshed
+      console.log('[markAsRead] Reloading preferences after save...');
       await loadNotificationPreferences(userWallet);
       await loadNotifications(userWallet);
 
@@ -348,6 +353,9 @@ export default function NotificationsPage() {
         // Single notification update needs less time than bulk updates
         // Increased delay to 2 seconds to ensure Arkiv has indexed the update
         await new Promise(resolve => setTimeout(resolve, 2000));
+
+        // Clear the save flag BEFORE reloading so the reload actually happens
+        isSavingPreferences.current = false;
 
         // Reload preferences from Arkiv to ensure we have the latest state
         // This ensures the read state persists even if the page is refreshed
