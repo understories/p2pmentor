@@ -263,22 +263,25 @@ export default function NotificationsPage() {
 
       // Wait for Arkiv to index the preference update before dispatching event
       // Single notification update needs less time than bulk updates
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Increased delay to 2 seconds to ensure Arkiv has indexed the update
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Success: preferences are now persisted, keep the optimistic update
-      // The preferences ref already has the correct state, so no need to reload
+      // Reload preferences from Arkiv to ensure we have the latest state
+      // This ensures the read state persists even if the page is refreshed
+      await loadNotificationPreferences(userWallet);
+      await loadNotifications(userWallet);
 
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
           detail: { 
             wallet: userWallet,
-            delay: 500, // Pass delay so sidebar knows to wait before querying
+            delay: 2000, // Pass delay so sidebar knows to wait before querying
           }
         }));
       }
 
-      console.log('[markAsRead] Successfully marked as read');
+      console.log('[markAsRead] Successfully marked as read and reloaded preferences');
     } catch (err) {
       console.error('[markAsRead] Error marking notification as read:', err);
       // Revert on error
@@ -343,17 +346,20 @@ export default function NotificationsPage() {
 
         // Wait for Arkiv to index the preference update before dispatching event
         // Single notification update needs less time than bulk updates
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Increased delay to 2 seconds to ensure Arkiv has indexed the update
+        await new Promise(resolve => setTimeout(resolve, 2000));
 
-        // Success: preferences are now persisted, keep the optimistic update
-        // The preferences ref already has the correct state, so no need to reload
+        // Reload preferences from Arkiv to ensure we have the latest state
+        // This ensures the read state persists even if the page is refreshed
+        await loadNotificationPreferences(userWallet);
+        await loadNotifications(userWallet);
 
         // Dispatch event to notify other components (e.g., navbar) of the change
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
             detail: { 
               wallet: userWallet,
-              delay: 500, // Pass delay so sidebar knows to wait before querying
+              delay: 2000, // Pass delay so sidebar knows to wait before querying
             }
           }));
         }
