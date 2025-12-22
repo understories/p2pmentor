@@ -14,13 +14,13 @@ const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
 /**
  * PATCH /api/github/close-issue
  * 
- * Close a GitHub issue and add resolution comment
- * Body: { issueNumber, resolutionNote }
+ * Close a GitHub issue and add resolution comment with Arkiv entity link
+ * Body: { issueNumber, resolutionNote?, resolutionKey?, txHash? }
  */
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { issueNumber, resolutionNote } = body;
+    const { issueNumber, resolutionNote, resolutionKey, txHash } = body;
 
     if (!issueNumber) {
       return NextResponse.json(
@@ -38,35 +38,49 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Add resolution comment if provided
-    if (resolutionNote) {
-      const commentBody = `## Resolution
+    // Build Arkiv explorer link if resolution key is provided
+    const arkivExplorerLink = resolutionKey 
+      ? `https://explorer.mendoza.hoodi.arkiv.network/entity/${resolutionKey}`
+      : null;
 
-${resolutionNote}
+    // Always add a resolution comment (arkiv-native entity update pattern)
+    let commentBody = `## ✅ Issue Resolved
 
----
-*Resolved via admin dashboard*`;
+This issue has been marked as resolved using Arkiv's immutable entity update pattern.`;
 
-      const commentResponse = await fetch(
-        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${issueNumber}/comments`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `token ${githubToken}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            body: commentBody,
-          }),
-        }
-      );
+    if (resolutionNote && resolutionNote.trim()) {
+      commentBody += `\n\n**Resolution Details:**\n${resolutionNote}`;
+    }
 
-      if (!commentResponse.ok) {
-        const error = await commentResponse.json();
-        console.warn('[api/github/close-issue] Failed to add comment:', error);
-        // Continue anyway - closing the issue is more important
+    if (arkivExplorerLink) {
+      commentBody += `\n\n**Resolution Entity:**\n[View resolution entity on Arkiv Explorer](${arkivExplorerLink})`;
+      if (txHash) {
+        const txExplorerUrl = `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`;
+        commentBody += `\n\n**Transaction:** [${txHash.slice(0, 10)}...${txHash.slice(-8)}](${txExplorerUrl})`;
       }
+    }
+
+    commentBody += `\n\n---\n*Resolved via admin dashboard using Arkiv-native entity update pattern*`;
+
+    const commentResponse = await fetch(
+      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues/${issueNumber}/comments`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `token ${githubToken}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          body: commentBody,
+        }),
+      }
+    );
+
+    if (!commentResponse.ok) {
+      const error = await commentResponse.json();
+      console.warn('[api/github/close-issue] Failed to add comment:', error);
+      // Continue anyway - closing the issue is more important
     }
 
     // Close the issue

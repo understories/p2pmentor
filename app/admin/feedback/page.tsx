@@ -307,6 +307,10 @@ export default function AdminFeedbackPage() {
         ? localStorage.getItem('wallet_address') || 'admin'
         : 'admin';
 
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+
       // Resolve on Arkiv
       const res = await fetch('/api/app-feedback', {
         method: 'POST',
@@ -316,7 +320,10 @@ export default function AdminFeedbackPage() {
           feedbackKey: resolvingIssue.key,
           resolvedByWallet: adminWallet,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await res.json();
       if (!res.ok) {
@@ -327,14 +334,22 @@ export default function AdminFeedbackPage() {
       const issueLink = githubIssueLinks[resolvingIssue.key];
       if (issueLink) {
         try {
+          const githubController = new AbortController();
+          const githubTimeoutId = setTimeout(() => githubController.abort(), 30000); // 30 second timeout for GitHub
+
           const githubRes = await fetch('/api/github/close-issue', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               issueNumber: issueLink.issueNumber,
               resolutionNote: resolutionNote.trim() || undefined,
+              resolutionKey: data.key, // Pass the resolution entity key
+              txHash: data.txHash, // Pass the transaction hash
             }),
+            signal: githubController.signal,
           });
+
+          clearTimeout(githubTimeoutId);
 
           const githubData = await githubRes.json();
           if (!githubRes.ok) {
@@ -342,7 +357,11 @@ export default function AdminFeedbackPage() {
             // Continue anyway - Arkiv resolution is more important
           }
         } catch (githubErr: any) {
-          console.warn('Error closing GitHub issue:', githubErr);
+          if (githubErr.name === 'AbortError') {
+            console.warn('GitHub close-issue request timed out, but Arkiv resolution succeeded');
+          } else {
+            console.warn('Error closing GitHub issue:', githubErr);
+          }
           // Continue anyway - Arkiv resolution succeeded
         }
       }
@@ -353,7 +372,11 @@ export default function AdminFeedbackPage() {
       loadFeedback();
     } catch (err: any) {
       console.error('Error resolving feedback:', err);
-      alert(err.message || 'Failed to resolve feedback');
+      if (err.name === 'AbortError') {
+        alert('Request timed out. The issue may have been resolved. Please refresh the page to check.');
+      } else {
+        alert(err.message || 'Failed to resolve feedback');
+      }
     } finally {
       setResolvingFeedback(null);
     }

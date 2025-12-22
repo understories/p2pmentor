@@ -11,6 +11,7 @@ import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { listAdminResponses } from "./adminResponse";
 import { SPACE_ID } from "@/lib/config";
+import { handleTransactionWithTimeout } from "./transaction-utils";
 
 export type AppFeedback = {
   key: string;
@@ -175,19 +176,22 @@ export async function resolveAppFeedback({
   // Resolution entities should persist as long as the feedback (1 year)
   const expiresIn = 31536000; // 1 year in seconds
 
-  const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      resolvedAt,
-    })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'app_feedback_resolution' },
-      { key: 'feedbackKey', value: feedbackKey },
-      { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: resolvedAt },
-    ],
-    expiresIn,
+  // Wrap in handleTransactionWithTimeout for graceful timeout handling
+  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify({
+        resolvedAt,
+      })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'app_feedback_resolution' },
+        { key: 'feedbackKey', value: feedbackKey },
+        { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: resolvedAt },
+      ],
+      expiresIn,
+    });
   });
 
   // Get feedback to find the user wallet
