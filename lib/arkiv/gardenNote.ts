@@ -87,6 +87,25 @@ export async function createGardenNote({
   const visibility = 'public';
   const moderationState = 'active';
 
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'garden_note' },
+    { key: 'authorWallet', value: authorWallet.toLowerCase() },
+    { key: 'channel', value: channel },
+    { key: 'visibility', value: visibility },
+    { key: 'publishConsent', value: String(publishConsent) },
+    { key: 'moderationState', value: moderationState },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    ...(targetWallet ? [{ key: 'targetWallet', value: targetWallet.toLowerCase() }] : []),
+    ...(replyToNoteId ? [{ key: 'replyToNoteId', value: replyToNoteId }] : []),
+    ...(normalizedTags.length > 0 ? [{ key: 'tags', value: normalizedTags.join(',') }] : []),
+  ];
+
+  // Add signer metadata (U1.x.2: Central Signer Metadata)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
@@ -95,19 +114,7 @@ export async function createGardenNote({
         createdAt,
       })),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'garden_note' },
-        { key: 'authorWallet', value: authorWallet.toLowerCase() },
-        { key: 'channel', value: channel },
-        { key: 'visibility', value: visibility },
-        { key: 'publishConsent', value: String(publishConsent) },
-        { key: 'moderationState', value: moderationState },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        ...(targetWallet ? [{ key: 'targetWallet', value: targetWallet.toLowerCase() }] : []),
-        ...(replyToNoteId ? [{ key: 'replyToNoteId', value: replyToNoteId }] : []),
-        ...(normalizedTags.length > 0 ? [{ key: 'tags', value: normalizedTags.join(',') }] : []),
-      ],
+      attributes: attributesWithSigner,
       expiresIn: GARDEN_NOTE_TTL_SECONDS, // 1 year TTL (or could be undefined for permanent)
     });
   });

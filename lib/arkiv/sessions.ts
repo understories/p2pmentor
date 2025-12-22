@@ -182,11 +182,15 @@ export async function createSession({
         throw new Error(`Invalid attribute ${attr.key}: value must be a non-empty string`);
       }
     }
+
+    // Add signer metadata (U1.x.2: Central Signer Metadata)
+    const { addSignerMetadata } = await import('./signer-metadata');
+    const attributesWithSigner = addSignerMetadata(attributes, privateKey);
     
     const result = await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
-      attributes,
+      attributes: attributesWithSigner,
       expiresIn: expiresInSecondsInt,
     });
     entityKey = result.entityKey;

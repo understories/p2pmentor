@@ -89,13 +89,17 @@ export async function createAsk({
     attributes.push({ key: 'skill_label', value: skill_label });
   }
 
+  // Add signer metadata (U1.x.2: Central Signer Metadata)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
         message,
       })),
       contentType: 'application/json',
-      attributes,
+      attributes: attributesWithSigner,
       expiresIn: ttl,
     });
   });

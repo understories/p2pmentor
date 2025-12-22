@@ -97,6 +97,28 @@ export async function createOffer({
     availabilityWindowString = typeof availabilityWindow === 'string' ? availabilityWindow : String(availabilityWindow);
   }
 
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'offer' },
+    { key: 'wallet', value: wallet.toLowerCase() },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    { key: 'status', value: status },
+    { key: 'isPaid', value: String(isPaid) },
+    { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
+    // Add skill fields (legacy for compatibility, new for beta)
+    ...(skill ? [{ key: 'skill', value: skill }] : []),
+    ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
+    ...(skill_label ? [{ key: 'skill_label', value: skill_label }] : []),
+    ...(cost ? [{ key: 'cost', value: cost }] : []),
+    ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
+    ...(availabilityKey ? [{ key: 'availabilityKey', value: availabilityKey }] : []),
+  ];
+
+  // Add signer metadata (U1.x.2: Central Signer Metadata)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
@@ -107,22 +129,7 @@ export async function createOffer({
         paymentAddress: paymentAddress || undefined,
       })),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'offer' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        { key: 'status', value: status },
-        { key: 'isPaid', value: String(isPaid) },
-        { key: 'ttlSeconds', value: String(ttl) }, // Store TTL for retrieval
-        // Add skill fields (legacy for compatibility, new for beta)
-        ...(skill ? [{ key: 'skill', value: skill }] : []),
-        ...(skill_id ? [{ key: 'skill_id', value: skill_id }] : []),
-        ...(skill_label ? [{ key: 'skill_label', value: skill_label }] : []),
-        ...(cost ? [{ key: 'cost', value: cost }] : []),
-        ...(paymentAddress ? [{ key: 'paymentAddress', value: paymentAddress }] : []),
-        ...(availabilityKey ? [{ key: 'availabilityKey', value: availabilityKey }] : []),
-      ],
+      attributes: attributesWithSigner,
       expiresIn: ttl,
     });
   });

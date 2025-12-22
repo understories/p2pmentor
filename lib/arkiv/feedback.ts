@@ -140,20 +140,27 @@ export async function createFeedback({
   // Feedback entities should persist long-term (1 year) since they're historical records
   const expiresIn = 31536000; // 1 year in seconds
 
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'session_feedback' },
+    { key: 'sessionKey', value: sessionKey },
+    { key: 'mentorWallet', value: mentorWallet },
+    { key: 'learnerWallet', value: learnerWallet },
+    { key: 'feedbackFrom', value: feedbackFrom },
+    { key: 'feedbackTo', value: feedbackTo },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
+  ];
+
+  // Add signer metadata (U1.x.2: Central Signer Metadata)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
   const result = await walletClient.createEntity({
     payload: enc.encode(JSON.stringify(payload)),
     contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_feedback' },
-      { key: 'sessionKey', value: sessionKey },
-      { key: 'mentorWallet', value: mentorWallet },
-      { key: 'learnerWallet', value: learnerWallet },
-      { key: 'feedbackFrom', value: feedbackFrom },
-      { key: 'feedbackTo', value: feedbackTo },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-      ...(rating ? [{ key: 'rating', value: String(rating) }] : []),
-    ],
+    attributes: attributesWithSigner,
     expiresIn,
   });
 

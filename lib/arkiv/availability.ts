@@ -620,6 +620,20 @@ export async function createAvailability({
     availabilityVersion = 'legacy';
   }
 
+  // Build attributes array
+  const attributes: Array<{ key: string; value: string }> = [
+    { key: 'type', value: 'availability' },
+    { key: 'wallet', value: wallet.toLowerCase() },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: createdAt },
+    { key: 'timezone', value: timezone },
+    { key: 'availabilityVersion', value: availabilityVersion },
+  ];
+
+  // Add signer metadata (U1.x.2: Central Signer Metadata)
+  const { addSignerMetadata } = await import('./signer-metadata');
+  const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify({
@@ -628,14 +642,7 @@ export async function createAvailability({
         createdAt,
       })),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'availability' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-        { key: 'timezone', value: timezone },
-        { key: 'availabilityVersion', value: availabilityVersion },
-      ],
+      attributes: attributesWithSigner,
       expiresIn: expiresIn,
     });
   });
