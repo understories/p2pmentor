@@ -18,6 +18,7 @@ import type { Notification } from '@/lib/notifications';
 import type { NotificationPreferenceType } from '@/lib/arkiv/notificationPreferences';
 import { getUnreadCount } from '@/lib/notifications';
 import type { Session } from '@/lib/arkiv/sessions';
+import { getPrefKey, setPrefKey } from '@/lib/notifications/prefKeyStore';
 
 const POLL_INTERVAL = 30000; // 30 seconds
 
@@ -40,9 +41,12 @@ export default function NotificationsPage() {
   // Store notification preferences to use for read/archived state
   const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
 
-  // Flag to prevent reloading preferences while a save operation is in progress
-  // This ensures that optimistic updates aren't overwritten by stale API responses
-  const isSavingPreferences = useRef<boolean>(false);
+  // Track pending writes to prevent stale reads from overwriting newer local writes
+  // Key: notificationId, Value: { read: boolean, archived: boolean, writtenAt: number }
+  const pendingWrites = useRef<Map<string, { read: boolean; archived: boolean; writtenAt: number }>>(new Map());
+
+  // Store current spaceId (from API responses)
+  const currentSpaceId = useRef<string>('local-dev'); // Default, will be updated from API
 
   useEffect(() => {
     // Get user wallet from localStorage
@@ -61,12 +65,10 @@ export default function NotificationsPage() {
 
       // Set up polling
       const interval = setInterval(() => {
-        // Don't reload if a save operation is in progress
-        if (!isSavingPreferences.current) {
-          loadNotificationPreferences(storedWallet).then(() => {
-            loadNotifications(storedWallet);
-          });
-        }
+        // Load preferences and notifications (merge logic handles pending writes safely)
+        loadNotificationPreferences(storedWallet).then(() => {
+          loadNotifications(storedWallet);
+        });
       }, POLL_INTERVAL);
 
       return () => clearInterval(interval);
@@ -76,43 +78,44 @@ export default function NotificationsPage() {
   }, []);
 
   // Load notification preferences from Arkiv
-  // CRITICAL: Don't reload if a save operation is in progress to prevent overwriting optimistic updates
+  // Safe merge: Never overwrite a newer local write with stale reads
   const loadNotificationPreferences = async (wallet: string): Promise<void> => {
-    // Skip reload if a save operation is in progress
-    if (isSavingPreferences.current) {
-      return;
-    }
-
     try {
-      const res = await fetch(`/api/notifications/preferences?wallet=${wallet}`);
+      const walletLower = wallet.toLowerCase().trim();
+      const res = await fetch(`/api/notifications/preferences?wallet=${walletLower}`);
       const data = await res.json();
 
       if (data.ok && data.preferences) {
         // Store preferences in ref for use during notification detection
-        // Merge with existing preferences to preserve any optimistic updates
+        // Merge with pending writes: if pending write is newer than server, use pending
         const prefMap = new Map<string, { read: boolean; archived: boolean }>();
         data.preferences.forEach((pref: any) => {
-          prefMap.set(pref.notificationId, {
-            read: pref.read,
-            archived: pref.archived,
-          });
+          const pending = pendingWrites.current.get(pref.notificationId);
+          const serverUpdatedAt = pref.updatedAt ? new Date(pref.updatedAt).getTime() : 0;
+
+          // If pending write exists and is newer than server, use pending
+          if (pending && pending.writtenAt > serverUpdatedAt) {
+            prefMap.set(pref.notificationId, {
+              read: pending.read,
+              archived: pending.archived,
+            });
+            // Clear pending once confirmed (server will catch up eventually)
+            pendingWrites.current.delete(pref.notificationId);
+          } else {
+            // Use server value
+            prefMap.set(pref.notificationId, {
+              read: pref.read,
+              archived: pref.archived,
+            });
+          }
         });
 
-        // Merge with existing preferences (preserve optimistic updates if save is in progress)
-        // Only update preferences that aren't currently being saved
-        if (!isSavingPreferences.current) {
-          notificationPreferences.current = prefMap;
-        } else {
-          // If save is in progress, merge: keep optimistic updates, add new ones from API
-          data.preferences.forEach((pref: any) => {
-            // Only update if we don't have a pending optimistic update
-            if (!notificationPreferences.current.has(pref.notificationId)) {
-              notificationPreferences.current.set(pref.notificationId, {
-                read: pref.read,
-                archived: pref.archived,
-              });
-            }
-          });
+        // Update preferences ref (merge logic already handled pending writes above)
+        notificationPreferences.current = prefMap;
+
+        // Update spaceId from first preference if available
+        if (data.preferences.length > 0 && data.preferences[0].spaceId) {
+          currentSpaceId.current = data.preferences[0].spaceId;
         }
 
         // Also update existing notifications with persisted read/archived state
@@ -202,13 +205,21 @@ export default function NotificationsPage() {
       return;
     }
 
-    console.log('[markAsRead] Starting for notificationId:', notificationId, 'wallet:', userWallet);
+    const walletLower = userWallet.toLowerCase().trim();
+    const spaceId = currentSpaceId.current; // Use stored spaceId from API
+
+    console.log('[markAsRead] Starting for notificationId:', notificationId, 'wallet:', walletLower, 'spaceId:', spaceId);
 
     // Store previous state for revert
     const currentPref = notificationPreferences.current.get(notificationId);
 
-    // Set save flag to prevent reloads from overwriting optimistic updates
-    isSavingPreferences.current = true;
+    // Track pending write
+    const writtenAt = Date.now();
+    pendingWrites.current.set(notificationId, {
+      read: true,
+      archived: currentPref?.archived || false,
+      writtenAt,
+    });
 
     // Optimistic update
     setNotifications(prev =>
@@ -231,22 +242,29 @@ export default function NotificationsPage() {
         throw new Error('Notification not found');
       }
 
+      // Get stored preference key for direct update
+      const preferenceKey = getPrefKey(spaceId, walletLower, notificationId);
+
       console.log('[markAsRead] Making API call with:', {
-        wallet: userWallet,
+        wallet: walletLower,
         notificationId,
         notificationType: notification.type,
         read: true,
+        preferenceKey, // NEW
+        spaceId,
       });
 
       const response = await fetch('/api/notifications/preferences', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          wallet: userWallet,
+          wallet: walletLower,
           notificationId,
           notificationType: notification.type,
           read: true,
           archived: false,
+          preferenceKey, // NEW: Direct update key if known
+          spaceId, // Recommended: pass spaceId for consistency
         }),
       });
 
@@ -261,32 +279,38 @@ export default function NotificationsPage() {
       const responseData = await response.json();
       console.log('[markAsRead] API success response:', JSON.stringify(responseData, null, 2));
 
-      // Wait for Arkiv to index the preference update before dispatching event
-      // Single notification update needs less time than bulk updates
-      // Increased delay to 2 seconds to ensure Arkiv has indexed the update
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Store preference key for future direct updates
+      if (responseData.key) {
+        const returnedSpaceId = responseData.spaceId || spaceId;
+        setPrefKey(returnedSpaceId, walletLower, notificationId, responseData.key);
+        // Update stored spaceId if returned
+        if (responseData.spaceId) {
+          currentSpaceId.current = responseData.spaceId;
+        }
+      }
 
-      // Clear the save flag BEFORE reloading so the reload actually happens
-      // The flag was preventing reloads during save, but we need to reload after save completes
-      isSavingPreferences.current = false;
+      // Log for debugging
+      console.log('[markAsRead] Saved preference:', {
+        wallet: walletLower,
+        spaceId: responseData.spaceId || spaceId,
+        notificationId,
+        preferenceKey: responseData.key,
+      });
 
-      // Reload preferences from Arkiv to ensure we have the latest state
-      // This ensures the read state persists even if the page is refreshed
-      console.log('[markAsRead] Reloading preferences after save...');
-      await loadNotificationPreferences(userWallet);
-      await loadNotifications(userWallet);
+      // DON'T reload - trust optimistic update
+      // Reload will happen on next poll or page refresh, and merge logic will handle it safely
 
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
           detail: { 
-            wallet: userWallet,
-            delay: 2000, // Pass delay so sidebar knows to wait before querying
+            wallet: walletLower,
+            spaceId: responseData.spaceId || spaceId,
           }
         }));
       }
 
-      console.log('[markAsRead] Successfully marked as read and reloaded preferences');
+      console.log('[markAsRead] Successfully marked as read (no reload)');
     } catch (err) {
       console.error('[markAsRead] Error marking notification as read:', err);
       // Revert on error
@@ -301,20 +325,27 @@ export default function NotificationsPage() {
       } else {
         notificationPreferences.current.delete(notificationId);
       }
-    } finally {
-      // Always clear the save flag, even on error
-      isSavingPreferences.current = false;
+      // Clear pending write on error
+      pendingWrites.current.delete(notificationId);
     }
   };
 
   const markAsUnread = async (notificationId: string) => {
     if (!userWallet) return;
 
+    const walletLower = userWallet.toLowerCase().trim();
+    const spaceId = currentSpaceId.current; // Use stored spaceId from API
+
     // Store previous state for revert
     const currentPref = notificationPreferences.current.get(notificationId);
 
-    // Set save flag to prevent reloads from overwriting optimistic updates
-    isSavingPreferences.current = true;
+    // Track pending write
+    const writtenAt = Date.now();
+    pendingWrites.current.set(notificationId, {
+      read: false,
+      archived: currentPref?.archived || false,
+      writtenAt,
+    });
 
     // Optimistic update
     setNotifications(prev =>
@@ -332,48 +363,59 @@ export default function NotificationsPage() {
     // Persist to Arkiv
     try {
       const notification = notifications.find(n => n.id === notificationId);
-      if (notification) {
-        const response = await fetch('/api/notifications/preferences', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet: userWallet,
-            notificationId,
-            notificationType: notification.type,
-            read: false,
-            archived: false,
-          }),
-        });
+      if (!notification) {
+        console.error('[markAsUnread] Notification not found:', notificationId);
+        throw new Error('Notification not found');
+      }
 
-        if (!response.ok) {
-          throw new Error('Failed to save preference');
-        }
+      // Get stored preference key for direct update
+      const preferenceKey = getPrefKey(spaceId, walletLower, notificationId);
 
-        // Wait for Arkiv to index the preference update before dispatching event
-        // Single notification update needs less time than bulk updates
-        // Increased delay to 2 seconds to ensure Arkiv has indexed the update
-        await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await fetch('/api/notifications/preferences', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet: walletLower,
+          notificationId,
+          notificationType: notification.type,
+          read: false,
+          archived: false,
+          preferenceKey, // NEW: Direct update key if known
+          spaceId, // Recommended: pass spaceId for consistency
+        }),
+      });
 
-        // Clear the save flag BEFORE reloading so the reload actually happens
-        isSavingPreferences.current = false;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to save preference');
+      }
 
-        // Reload preferences from Arkiv to ensure we have the latest state
-        // This ensures the read state persists even if the page is refreshed
-        await loadNotificationPreferences(userWallet);
-        await loadNotifications(userWallet);
+      const responseData = await response.json();
 
-        // Dispatch event to notify other components (e.g., navbar) of the change
-        if (typeof window !== 'undefined') {
-          window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-            detail: { 
-              wallet: userWallet,
-              delay: 2000, // Pass delay so sidebar knows to wait before querying
-            }
-          }));
+      // Store preference key for future direct updates
+      if (responseData.key) {
+        const returnedSpaceId = responseData.spaceId || spaceId;
+        setPrefKey(returnedSpaceId, walletLower, notificationId, responseData.key);
+        // Update stored spaceId if returned
+        if (responseData.spaceId) {
+          currentSpaceId.current = responseData.spaceId;
         }
       }
+
+      // DON'T reload - trust optimistic update
+      // Reload will happen on next poll or page refresh, and merge logic will handle it safely
+
+      // Dispatch event to notify other components (e.g., navbar) of the change
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { 
+            wallet: walletLower,
+            spaceId: responseData.spaceId || spaceId,
+          }
+        }));
+      }
     } catch (err) {
-      console.error('Error marking notification as unread:', err);
+      console.error('[markAsUnread] Error marking notification as unread:', err);
       // Revert on error
       setNotifications(prev =>
         prev.map(n =>
@@ -386,9 +428,8 @@ export default function NotificationsPage() {
       } else {
         notificationPreferences.current.delete(notificationId);
       }
-    } finally {
-      // Always clear the save flag, even on error
-      isSavingPreferences.current = false;
+      // Clear pending write on error
+      pendingWrites.current.delete(notificationId);
     }
   };
 
@@ -400,9 +441,6 @@ export default function NotificationsPage() {
 
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
-
-    // Set save flag to prevent reloads from overwriting optimistic updates
-    isSavingPreferences.current = true;
 
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -482,9 +520,6 @@ export default function NotificationsPage() {
       }));
       // Revert preferences ref
       notificationPreferences.current = previousPrefs;
-    } finally {
-      // Always clear the save flag, even on error
-      isSavingPreferences.current = false;
     }
   };
 
@@ -496,9 +531,6 @@ export default function NotificationsPage() {
 
     // Store previous state for revert
     const previousPrefs = new Map(notificationPreferences.current);
-
-    // Set save flag to prevent reloads from overwriting optimistic updates
-    isSavingPreferences.current = true;
 
     // Optimistic update
     setNotifications(prev => prev.map(n => ({ ...n, read: false })));
@@ -564,9 +596,6 @@ export default function NotificationsPage() {
       }));
       // Revert preferences ref
       notificationPreferences.current = previousPrefs;
-    } finally {
-      // Always clear the save flag, even on error
-      isSavingPreferences.current = false;
     }
   };
 

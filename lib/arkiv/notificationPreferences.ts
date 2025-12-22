@@ -127,6 +127,7 @@ export async function upsertNotificationPreference({
   notificationType,
   read,
   archived = false,
+  preferenceKey, // NEW: Direct-update key if known
   privateKey,
   spaceId = SPACE_ID,
 }: {
@@ -135,10 +136,11 @@ export async function upsertNotificationPreference({
   notificationType: NotificationPreferenceType;
   read: boolean;
   archived?: boolean;
+  preferenceKey?: string; // NEW: Direct-update key if known
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
-  const normalizedWallet = wallet.toLowerCase();
+  const normalizedWallet = wallet.toLowerCase().trim();
   const enc = new TextEncoder();
   const now = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID;
@@ -149,13 +151,75 @@ export async function upsertNotificationPreference({
     notificationType,
     read,
     archived,
+    preferenceKey, // NEW
     spaceId: finalSpaceId,
     ENTITY_UPDATE_MODE,
   });
 
-  // Deterministic check: If existing preference found, use Pattern B (updateEntity)
-  // Otherwise, use Pattern A (createEntity)
-  // This replaces the migration status check which was in-memory only
+  // (A) NEW: Direct update by key (bypasses query, eliminates race condition)
+  if (preferenceKey) {
+    // Try to preserve createdAt if we can fetch it, but not required for correctness
+    let createdAt = now;
+    try {
+      const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
+      if (existing && existing.createdAt) {
+        createdAt = existing.createdAt;
+      }
+    } catch (error) {
+      // If fetch fails, use current time - not critical
+      console.warn('[upsertNotificationPreference] Could not fetch existing createdAt, using current time:', error);
+    }
+
+    const payload = {
+      wallet: normalizedWallet,
+      notificationId,
+      notificationType,
+      read,
+      archived,
+      createdAt,
+      updatedAt: now,
+    };
+
+    const updateResult = await arkivUpsertEntity({
+      type: 'notification_preference',
+      key: preferenceKey, // Direct update by key - no query needed
+      attributes: [
+        { key: 'type', value: 'notification_preference' },
+        { key: 'wallet', value: normalizedWallet },
+        { key: 'notificationId', value: notificationId },
+        { key: 'notificationType', value: notificationType },
+        { key: 'read', value: String(read) },
+        { key: 'archived', value: String(archived) },
+        { key: 'spaceId', value: finalSpaceId },
+        { key: 'createdAt', value: createdAt },
+        { key: 'updatedAt', value: now },
+      ],
+      payload: enc.encode(JSON.stringify(payload)),
+      expiresIn: 31536000, // 1 year
+      privateKey,
+    });
+
+    // Structured logging (U1.x.1)
+    const { logEntityWrite } = await import('./write-logging');
+    logEntityWrite({
+      entityType: 'notification_preference',
+      entityKey: updateResult.key,
+      txHash: updateResult.txHash,
+      wallet: normalizedWallet,
+      timestamp: now,
+      operation: 'update',
+      spaceId: finalSpaceId,
+    });
+
+    console.log('[upsertNotificationPreference] Successfully updated preference by key:', {
+      key: updateResult.key,
+      txHash: updateResult.txHash,
+      preferenceKey,
+    });
+    return updateResult;
+  }
+
+  // (B) Legacy fallback: Query-first path (for older clients without preferenceKey)
   const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
 
   console.log('[upsertNotificationPreference] Existing preference found:', existing ? {

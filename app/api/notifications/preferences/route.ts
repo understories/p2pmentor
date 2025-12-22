@@ -79,17 +79,24 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, notificationId, notificationType, read, archived } = body;
+    const { wallet, notificationId, notificationType, read, archived, preferenceKey, spaceId: spaceIdParam } = body;
+
+    // Normalize wallet once at API boundary
+    const walletLower = wallet ? wallet.toLowerCase().trim() : null;
+    // Use provided spaceId or default to SPACE_ID from config
+    const finalSpaceId = spaceIdParam || SPACE_ID;
 
     console.log('[POST /api/notifications/preferences] Received request:', {
-      wallet,
+      wallet: walletLower,
       notificationId,
       notificationType,
       read,
       archived,
+      preferenceKey, // NEW
+      spaceId: finalSpaceId,
     });
 
-    if (!wallet || !notificationId || !notificationType || read === undefined) {
+    if (!walletLower || !notificationId || !notificationType || read === undefined) {
       console.error('[POST /api/notifications/preferences] Missing required fields');
       return NextResponse.json(
         { ok: false, error: 'Missing required fields: wallet, notificationId, notificationType, read' },
@@ -106,26 +113,45 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-
-    // Use SPACE_ID from config (beta-launch in production, local-dev in development)
-    const spaceId = SPACE_ID;
     
-    console.log('[POST /api/notifications/preferences] Calling upsertNotificationPreference with spaceId:', spaceId);
+    console.log('[POST /api/notifications/preferences] Calling upsertNotificationPreference:', {
+      wallet: walletLower,
+      notificationId,
+      preferenceKey, // NEW
+      spaceId: finalSpaceId,
+    });
+
     const { key, txHash } = await upsertNotificationPreference({
-      wallet,
+      wallet: walletLower, // Use normalized wallet
       notificationId,
       notificationType,
       read,
       archived: archived || false,
+      preferenceKey, // NEW: Pass through preferenceKey for direct updates
       privateKey,
-      spaceId,
+      spaceId: finalSpaceId,
     });
 
-    console.log('[POST /api/notifications/preferences] Successfully upserted preference:', { key, txHash });
+    const now = new Date().toISOString();
 
+    console.log('[POST /api/notifications/preferences] Successfully upserted preference:', {
+      key,
+      txHash,
+      wallet: walletLower,
+      spaceId: finalSpaceId,
+    });
+
+    // Return full response with normalized values for debugging and client storage
     return NextResponse.json({
       ok: true,
-      preference: { key, txHash },
+      key, // preference entity key (for client storage)
+      txHash,
+      wallet: walletLower, // normalized
+      notificationId,
+      spaceId: finalSpaceId, // echo back for debugging
+      read,
+      archived: archived || false,
+      updatedAt: now,
     });
   } catch (error: any) {
     console.error('[POST /api/notifications/preferences] Error:', error);
