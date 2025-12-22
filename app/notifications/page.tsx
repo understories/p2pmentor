@@ -303,7 +303,7 @@ export default function NotificationsPage() {
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { 
+          detail: {
             wallet: walletLower,
             spaceId: responseData.spaceId || spaceId,
           }
@@ -408,7 +408,7 @@ export default function NotificationsPage() {
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { 
+          detail: {
             wallet: walletLower,
             spaceId: responseData.spaceId || spaceId,
           }
@@ -505,7 +505,7 @@ export default function NotificationsPage() {
       // This ensures Arkiv has indexed all preference updates before the count is refreshed
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { 
+          detail: {
             wallet: userWallet,
             delay: indexingDelay, // Pass the same delay used for Arkiv indexing
           },
@@ -581,7 +581,7 @@ export default function NotificationsPage() {
       // This ensures Arkiv has indexed all preference updates before the count is refreshed
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { 
+          detail: {
             wallet: userWallet,
             delay: indexingDelay, // Pass the same delay used for Arkiv indexing
           }
