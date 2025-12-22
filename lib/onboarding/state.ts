@@ -17,10 +17,15 @@ import { listOnboardingEvents } from '@/lib/arkiv/onboardingEvent';
  * 
  * Levels:
  * 0: No profile created
- * 1: Profile + ≥1 skill created
+ * 1: Profile created (with or without skills) - allows dashboard access
  * 2: ≥1 Ask OR Offer created
  * 3: Network explored once
  * 4: Joined ≥1 community
+ * 
+ * Note: Level 1 is granted if profile exists, regardless of skills.
+ * This ensures users with profiles can access the dashboard even if
+ * they haven't added skills yet. Skills are encouraged but not required
+ * for basic dashboard access.
  * 
  * @param wallet - Profile wallet address (from localStorage 'wallet_address')
  *                 This is the wallet address used as the 'wallet' attribute on entities.
@@ -36,10 +41,12 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
       return 0;
     }
 
-    // Level 1: Check if profile has skills
+    // Level 1: Profile exists (with or without skills)
+    // This allows dashboard access for users with profiles, even if they haven't added skills yet
+    // Skills are encouraged but not required for basic access
     const hasSkills = profile.skillsArray && profile.skillsArray.length > 0;
     if (!hasSkills) {
-      return 1; // Profile exists but no skills yet
+      return 1; // Profile exists but no skills yet - still level 1 for dashboard access
     }
 
     // Level 2: Check if user has created asks or offers
@@ -52,7 +59,7 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
     const offers = allOffers.filter(o => o.wallet.toLowerCase() === wallet.toLowerCase());
     const hasAskOrOffer = (asks && asks.length > 0) || (offers && offers.length > 0);
     if (!hasAskOrOffer) {
-      return 1; // Has skills but no asks/offers
+      return 1; // Has skills but no asks/offers - still level 1
     }
 
     // Level 3: Check if network was explored
