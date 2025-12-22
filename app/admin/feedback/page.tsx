@@ -35,8 +35,12 @@ export default function AdminFeedbackPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
   const [feedbacks, setFeedbacks] = useState<AppFeedback[]>([]);
+  const [allFeedbacks, setAllFeedbacks] = useState<AppFeedback[]>([]);
   const [filterPage, setFilterPage] = useState('');
   const [filterSince, setFilterSince] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'resolved' | 'responded' | 'waiting'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'feedback' | 'issue'>('all');
+  const [filterRating, setFilterRating] = useState<'all' | '1' | '2' | '3' | '4' | '5'>('all');
   const [respondingTo, setRespondingTo] = useState<AppFeedback | null>(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
@@ -68,6 +72,42 @@ export default function AdminFeedbackPage() {
       loadGitHubIssueLinks();
     }
   }, [authenticated, filterSince, filterPage]);
+
+  // Apply client-side filters
+  useEffect(() => {
+    let filtered = [...allFeedbacks];
+
+    // Status filter
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(f => {
+        if (filterStatus === 'pending') {
+          return f.feedbackType === 'issue' && !f.resolved;
+        }
+        if (filterStatus === 'resolved') {
+          return f.feedbackType === 'issue' && f.resolved;
+        }
+        if (filterStatus === 'responded') {
+          return f.hasResponse;
+        }
+        if (filterStatus === 'waiting') {
+          return !f.hasResponse;
+        }
+        return true;
+      });
+    }
+
+    // Type filter
+    if (filterType !== 'all') {
+      filtered = filtered.filter(f => f.feedbackType === filterType);
+    }
+
+    // Rating filter
+    if (filterRating !== 'all') {
+      filtered = filtered.filter(f => f.rating === parseInt(filterRating));
+    }
+
+    setFeedbacks(filtered);
+  }, [allFeedbacks, filterStatus, filterType, filterRating]);
 
   // Truncate profile paths since wallet is already shown in Wallet column
   const formatPagePath = (page: string): string => {
@@ -433,9 +473,9 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
+    <main className="h-screen flex flex-col text-gray-900 dark:text-gray-100 overflow-hidden">
+      <div className="flex-1 flex flex-col max-w-[1920px] mx-auto w-full p-6 overflow-hidden">
+        <div className="flex-shrink-0 mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
               App Feedback
@@ -461,43 +501,87 @@ export default function AdminFeedbackPage() {
         </div>
 
         {/* Filters */}
-        <div className="mb-6 flex gap-4">
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2">Page</label>
+        <div className="flex-shrink-0 mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Page</label>
             <input
               type="text"
               value={filterPage}
               onChange={(e) => setFilterPage(e.target.value)}
               placeholder="e.g., /network, /me"
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
           </div>
-          <div className="flex-1">
-            <label className="block text-sm font-medium mb-2">Since Date</label>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Since Date</label>
             <input
               type="date"
               value={filterSince}
               onChange={(e) => setFilterSince(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">All</option>
+              <option value="pending">Pending</option>
+              <option value="resolved">Resolved</option>
+              <option value="responded">Responded</option>
+              <option value="waiting">Waiting Response</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Type</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value as any)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">All</option>
+              <option value="issue">Issue</option>
+              <option value="feedback">Feedback</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rating</label>
+            <select
+              value={filterRating}
+              onChange={(e) => setFilterRating(e.target.value as any)}
+              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">All</option>
+              <option value="5">5 Stars</option>
+              <option value="4">4 Stars</option>
+              <option value="3">3 Stars</option>
+              <option value="2">2 Stars</option>
+              <option value="1">1 Star</option>
+            </select>
           </div>
           <div className="flex items-end">
             <button
               onClick={() => {
                 setFilterPage('');
                 setFilterSince('');
+                setFilterStatus('all');
+                setFilterType('all');
+                setFilterRating('all');
               }}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              className="w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
             >
-              Clear
+              Clear All
             </button>
           </div>
         </div>
 
         {/* Feedback Table */}
-        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden">
+        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden min-h-0">
           {feedbacks.length > 0 ? (
-            <div className="overflow-x-auto">
+            <div className="flex-1 overflow-auto">
               <table className="w-full">
                 <thead className="bg-gray-100 dark:bg-gray-700">
                   <tr>
@@ -675,14 +759,14 @@ export default function AdminFeedbackPage() {
               </table>
             </div>
           ) : (
-            <div className="p-6 text-gray-600 dark:text-gray-400">
+            <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
               {loading ? 'Loading feedback...' : 'No feedback found.'}
             </div>
           )}
         </div>
 
-        <div className="mt-4 text-sm text-gray-600 dark:text-gray-400">
-          Showing {feedbacks.length} feedback entries
+        <div className="flex-shrink-0 mt-4 text-sm text-gray-600 dark:text-gray-400">
+          Showing {feedbacks.length} of {allFeedbacks.length} feedback entries
         </div>
       </div>
 
