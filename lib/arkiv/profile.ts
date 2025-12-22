@@ -9,7 +9,7 @@
 import { eq } from "@arkiv-network/sdk/query"
 import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
 import { getWalletClient } from "@/lib/wallet/getWalletClient"
-import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE, isWalletMigrated, markWalletMigrated } from "../config"
+import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE } from "../config"
 import { handleTransactionWithTimeout } from "./transaction-utils"
 import { selectRandomEmoji } from "@/lib/profile/identitySeed"
 import { arkivUpsertEntity } from "./entity-utils"
@@ -687,9 +687,10 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
   const profiles = await listUserProfilesForWallet(normalizedWallet, spaceId);
   if (profiles.length === 0) return null;
 
-  // Check migration mode to determine query strategy
-  const isMigrated = isWalletMigrated(normalizedWallet);
-  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+  // Determine query strategy based on update mode
+  // With Pattern B (updateEntity), we expect a single canonical entity
+  // With Pattern A (createEntity), we may have multiple entities and need to pick latest
+  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
 
   if (useCanonicalPath) {
     // With updates, there should only be one canonical entity per wallet
@@ -734,18 +735,9 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
     });
 
     return profile;
-  } else if (ENTITY_UPDATE_MODE === 'shadow' && !isMigrated) {
-    // Shadow mode but wallet not migrated: try canonical first, fallback to latest
-    // For now, use latest pattern (canonical would require knowing which entity_key is canonical)
-    // This will be improved once migration markers include canonical entity_key
-    profiles.sort((a, b) => {
-      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-      return bTime - aTime;
-    });
-    return profiles[0];
   } else {
-    // Old pattern: Return the most recent profile (sorted by createdAt descending)
+    // Pattern A (createEntity) or shadow mode without existing entity: use latest pattern
+    // Sort by createdAt descending (most recent first)
     profiles.sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
@@ -804,10 +796,11 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
     .limit(100)
     .fetch();
 
-  // Check if multiple profiles found (shouldn't happen with updates)
+  // Determine query strategy based on update mode
+  // With Pattern B (updateEntity), we expect a single canonical entity
+  // With Pattern A (createEntity), we may have multiple entities and need to pick latest
   const normalizedWallet = wallet.toLowerCase();
-  const isMigrated = isWalletMigrated(normalizedWallet);
-  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+  const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
 
   if (!result?.entities || !Array.isArray(result.entities)) {
     return [];
