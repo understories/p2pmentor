@@ -2,7 +2,20 @@
 
 ## Overview
 
-Since Arkiv entities are immutable, updates create new entities. To get the "current" version, we query all entities for an identifier and select the latest one.
+This document describes **Pattern A: Create New Entity per Change** for versioning scenarios. For most mutable application state (profiles, preferences, notifications), use **Pattern B: Update in Place** with stable entity keys instead. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for Pattern B.
+
+**When to use this pattern:**
+- Document revisions where each version needs independent identity
+- Immutable audit logs where version history is a feature
+- Entities that are rarely updated
+- When relationships don't depend on stable `entity_key`
+
+**When NOT to use this pattern:**
+- Frequently updated entities (profiles, preferences)
+- Entities where relationships depend on stable identity
+- When simpler queries are preferred
+
+Since Arkiv transactions are immutable, this pattern creates new entities for each change. To get the "current" version, we query all entities for an identifier and select the latest one.
 
 ## Pattern: Latest Version Selection
 
@@ -29,6 +42,8 @@ async function getLatestProfile(wallet: string) {
 
 ### Update Creates New Entity
 
+**Note:** This example shows Pattern A (versioning). For mutable application state, use Pattern B (update in place) instead. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for Pattern B.
+
 ```typescript
 async function updateProfile(wallet: string, updates: Partial<Profile>) {
   // 1. Get current profile
@@ -42,6 +57,7 @@ async function updateProfile(wallet: string, updates: Partial<Profile>) {
   };
   
   // 3. Create new entity (immutable)
+  // This creates a NEW entity with a NEW entity_key
   return await createProfile({
     wallet,
     ...updated,

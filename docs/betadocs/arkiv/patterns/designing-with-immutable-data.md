@@ -2,17 +2,29 @@
 
 ## Core Principles
 
-When building on Arkiv, data is append-only. This fundamental constraint shapes how we design features and user experiences.
+When building on Arkiv, transactions are immutable, but application data can be mutable at the state level. This fundamental constraint shapes how we design features and user experiences.
 
-## Data is Append-Only
+## Transactions are Immutable
 
-Entities cannot be modified after creation. Updates create new entities. The latest version is determined by querying and selecting the most recent entity, not by mutating an existing record.
+Transactions cannot be modified after creation. Each entity mutation (create or update) creates a new immutable transaction. However, entities can be updated in place using stable entity keys, preserving identity while maintaining full transaction history.
 
-## Updates are New Entities
+## Update Patterns
 
-When a user updates their profile, we create a new `user_profile` entity. The old entity remains on-chain. Queries select the latest entity based on `createdAt` timestamp or by querying all versions and selecting the most recent.
+Arkiv supports two update patterns:
 
-See [Entity Versioning](/docs/arkiv/patterns/entity-versioning) for implementation patterns.
+**Pattern A: Create New Entity per Change** (for versioning scenarios)
+- Each change creates a new entity with a new `entity_key`
+- Queries must select the latest version by `createdAt`
+- Use for: document revisions, immutable audit logs, version history as a feature
+
+**Pattern B: Update in Place** (for mutable application state) ⭐ **Recommended for most cases**
+- Reuse the same `entity_key` for updates
+- Query by `entity_key` always returns current state
+- Use for: profiles, preferences, notifications, frequently updated entities
+
+p2pmentor uses **Pattern B** for mutable entities. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for details on how updates work with stable entity keys.
+
+For Pattern A (versioning), see [Entity Versioning](/docs/arkiv/patterns/entity-versioning) for implementation patterns.
 
 ## Deletion Changes Interpretation, Not History
 

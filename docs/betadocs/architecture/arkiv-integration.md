@@ -93,7 +93,7 @@ Core entities: `user_profile`, `ask`, `offer`, `session`
 
 Supporting entities: `ask_txhash`, `offer_txhash`, `session_txhash`, `session_confirmation`, `session_rejection`, `session_jitsi`, `session_feedback`
 
-TTL used for ephemeral entities (asks: 3600s, offers: 7200s). Entities are immutable - updates create new entities.
+TTL used for ephemeral entities (asks: 3600s, offers: 7200s). Transactions are immutable, but entities can be updated in place using stable entity keys. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for update patterns.
 
 ## No central application database
 
