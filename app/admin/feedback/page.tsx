@@ -299,19 +299,26 @@ export default function AdminFeedbackPage() {
   };
 
   const confirmResolveFeedback = async () => {
-    if (!resolvingIssue) return;
+    if (!resolvingIssue) {
+      console.log('[confirmResolveFeedback] No resolvingIssue set');
+      return;
+    }
 
+    console.log('[confirmResolveFeedback] Starting resolution for issue:', resolvingIssue.key);
     setResolvingFeedback(resolvingIssue.key);
     try {
       const adminWallet = typeof window !== 'undefined'
         ? localStorage.getItem('wallet_address') || 'admin'
         : 'admin';
 
+      console.log('[confirmResolveFeedback] Admin wallet:', adminWallet);
+
       // Add timeout to prevent hanging
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
       // Resolve on Arkiv
+      console.log('[confirmResolveFeedback] Calling /api/app-feedback to resolve on Arkiv...');
       const res = await fetch('/api/app-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -325,45 +332,64 @@ export default function AdminFeedbackPage() {
 
       clearTimeout(timeoutId);
 
+      console.log('[confirmResolveFeedback] Arkiv resolution response status:', res.status);
       const data = await res.json();
+      console.log('[confirmResolveFeedback] Arkiv resolution response data:', data);
+      
       if (!res.ok) {
         throw new Error(data.error || 'Failed to resolve feedback');
       }
 
+      console.log('[confirmResolveFeedback] Arkiv resolution successful. Resolution key:', data.key, 'txHash:', data.txHash);
+
       // Also close GitHub issue if it exists
       const issueLink = githubIssueLinks[resolvingIssue.key];
+      console.log('[confirmResolveFeedback] Checking for GitHub issue link:', issueLink);
+      
       if (issueLink) {
+        console.log('[confirmResolveFeedback] Found GitHub issue link. Issue #:', issueLink.issueNumber);
         try {
           const githubController = new AbortController();
           const githubTimeoutId = setTimeout(() => githubController.abort(), 30000); // 30 second timeout for GitHub
 
+          const githubPayload = {
+            issueNumber: issueLink.issueNumber,
+            resolutionNote: resolutionNote.trim() || undefined,
+            resolutionKey: data.key,
+            txHash: data.txHash,
+          };
+          console.log('[confirmResolveFeedback] Calling /api/github/close-issue with payload:', githubPayload);
+
           const githubRes = await fetch('/api/github/close-issue', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              issueNumber: issueLink.issueNumber,
-              resolutionNote: resolutionNote.trim() || undefined,
-              resolutionKey: data.key, // Pass the resolution entity key
-              txHash: data.txHash, // Pass the transaction hash
-            }),
+            body: JSON.stringify(githubPayload),
             signal: githubController.signal,
           });
 
           clearTimeout(githubTimeoutId);
 
+          console.log('[confirmResolveFeedback] GitHub close-issue response status:', githubRes.status);
           const githubData = await githubRes.json();
+          console.log('[confirmResolveFeedback] GitHub close-issue response data:', githubData);
+          
           if (!githubRes.ok) {
-            console.warn('Failed to close GitHub issue:', githubData.error);
+            console.error('[confirmResolveFeedback] Failed to close GitHub issue:', githubData.error);
             // Continue anyway - Arkiv resolution is more important
+          } else {
+            console.log('[confirmResolveFeedback] GitHub issue closed successfully!');
           }
         } catch (githubErr: any) {
+          console.error('[confirmResolveFeedback] Error closing GitHub issue:', githubErr);
           if (githubErr.name === 'AbortError') {
-            console.warn('GitHub close-issue request timed out, but Arkiv resolution succeeded');
+            console.warn('[confirmResolveFeedback] GitHub close-issue request timed out, but Arkiv resolution succeeded');
           } else {
-            console.warn('Error closing GitHub issue:', githubErr);
+            console.warn('[confirmResolveFeedback] Error closing GitHub issue:', githubErr);
           }
           // Continue anyway - Arkiv resolution succeeded
         }
+      } else {
+        console.log('[confirmResolveFeedback] No GitHub issue link found for this feedback');
       }
 
       alert('Issue marked as resolved' + (issueLink ? ' and GitHub issue closed!' : '!'));
@@ -371,7 +397,7 @@ export default function AdminFeedbackPage() {
       setResolutionNote('');
       loadFeedback();
     } catch (err: any) {
-      console.error('Error resolving feedback:', err);
+      console.error('[confirmResolveFeedback] Error resolving feedback:', err);
       if (err.name === 'AbortError') {
         alert('Request timed out. The issue may have been resolved. Please refresh the page to check.');
       } else {
@@ -379,6 +405,7 @@ export default function AdminFeedbackPage() {
       }
     } finally {
       setResolvingFeedback(null);
+      console.log('[confirmResolveFeedback] Resolution process completed');
     }
   };
 
