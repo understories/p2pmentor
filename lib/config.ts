@@ -66,7 +66,7 @@ export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
  */
 export type EntityUpdateMode = 'off' | 'shadow' | 'on';
 export const ENTITY_UPDATE_MODE: EntityUpdateMode =
-  (process.env.ENTITY_UPDATE_MODE as EntityUpdateMode) || 'off';
+  (process.env.ENTITY_UPDATE_MODE as EntityUpdateMode) || 'on';
 
 /**
  * Per-wallet migration marker

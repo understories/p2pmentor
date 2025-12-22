@@ -152,8 +152,11 @@ export async function createUserProfileClient({
     avgRating = 0;
   }
 
-  // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
-  const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
+  // Use provided identity_seed if explicitly set, otherwise preserve existing, or auto-assign for new profiles
+  // If identity_seed is undefined, preserve existing; if explicitly provided (even empty string), use it
+  const finalIdentitySeed = identity_seed !== undefined
+    ? (identity_seed || undefined) // Allow empty string to clear identity_seed
+    : (existingProfile?.identity_seed || selectRandomEmoji());
 
   // Preserve existing createdAt when updating
   const finalCreatedAt = existingProfile?.createdAt || createdAt;
@@ -334,8 +337,11 @@ export async function createUserProfile({
     avgRating = 0;
   }
 
-  // Use provided identity_seed, or preserve existing, or auto-assign for new profiles
-  const finalIdentitySeed = identity_seed || existingProfile?.identity_seed || selectRandomEmoji();
+  // Use provided identity_seed if explicitly set, otherwise preserve existing, or auto-assign for new profiles
+  // If identity_seed is undefined, preserve existing; if explicitly provided (even empty string), use it
+  const finalIdentitySeed = identity_seed !== undefined
+    ? (identity_seed || undefined) // Allow empty string to clear identity_seed
+    : (existingProfile?.identity_seed || selectRandomEmoji());
 
   // Preserve existing createdAt when updating
   const finalCreatedAt = existingProfile?.createdAt || createdAt;
