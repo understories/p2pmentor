@@ -22,7 +22,7 @@ export type Session = {
   spaceId: string;
   createdAt: string;
   sessionDate: string; // ISO timestamp when session is/was scheduled
-  status: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'declined' | 'cancelled';
+  status: 'pending' | 'scheduled' | 'in-progress' | 'completed' | 'declined' | 'cancelled' | 'expired';
   duration?: number; // Duration in minutes
   notes?: string;
   feedbackKey?: string; // Reference to feedback entity
@@ -1135,14 +1135,34 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   // - If both confirmed, mark as scheduled (unless already completed/in-progress)
   // - Preserve 'completed' and 'in-progress' statuses (don't overwrite)
   // - cancelled is reserved for canceling already-scheduled sessions (future feature)
+  // - expired: session time has passed and not confirmed, or not confirmed before start time (U4.3)
   // - IMPORTANT: Don't trust the entity's status attribute - recalculate based on confirmations
   const entityStatus = (getAttr('status') || payload.status || 'pending') as Session['status'];
   let finalStatus = entityStatus;
+  
+  // Check if session is expired (U4.3: Session State Machine)
+  const sessionDate = getAttr('sessionDate') || payload.sessionDate || '';
+  const duration = payload.duration || 60; // Default 60 minutes
+  const sessionTime = sessionDate ? new Date(sessionDate).getTime() : 0;
+  const durationMs = duration * 60 * 1000; // Convert minutes to milliseconds
+  const bufferMs = 60 * 60 * 1000; // 1 hour buffer
+  const sessionEnd = sessionTime + durationMs + bufferMs;
+  const now = Date.now();
+  const isPast = sessionTime > 0 && now >= sessionTime;
+  const isExpired = sessionTime > 0 && now >= sessionEnd;
+  
+  // Expiry rules (U4.3):
+  // 1. If session is in the past and not confirmed, it's expired
+  // 2. If session time has passed (including buffer) and not confirmed, it's expired
+  const shouldBeExpired = isExpired && (!mentorConfirmed || !learnerConfirmed) && entityStatus !== 'completed' && entityStatus !== 'declined' && entityStatus !== 'cancelled';
   
   if (mentorRejected || learnerRejected) {
     // Rejection of a pending request results in 'declined' status
     // 'cancelled' is reserved for canceling already-scheduled sessions
     finalStatus = 'declined';
+  } else if (shouldBeExpired) {
+    // Session expired: past time and not confirmed
+    finalStatus = 'expired';
   } else if (mentorConfirmed && learnerConfirmed) {
     // Both confirmed - mark as scheduled only if currently pending
     // Preserve 'completed' and 'in-progress' statuses (don't overwrite)
@@ -1158,6 +1178,9 @@ export async function getSessionByKey(key: string): Promise<Session | null> {
   } else if (entityStatus === 'scheduled' && (!mentorConfirmed || !learnerConfirmed)) {
     // Status says scheduled but confirmations don't match - revert to pending
     finalStatus = 'pending';
+  } else if (isPast && entityStatus === 'pending' && (!mentorConfirmed || !learnerConfirmed)) {
+    // Past session that wasn't confirmed - mark as expired
+    finalStatus = 'expired';
   }
 
   // Extract Jitsi info if available
@@ -1353,6 +1376,7 @@ export async function confirmSession({
   // IMPORTANT: Include the current confirmation we just created in the check
   // because the query might not immediately return it due to eventual consistency
   // CRITICAL: Filter by spaceId to ensure we only find confirmations in the correct space
+  // U4.3: Only generate Jitsi if session is scheduled (not expired)
   const allConfirmations = await publicClient.buildQuery()
     .where(eq('type', 'session_confirmation'))
     .where(eq('sessionKey', sessionKey))
@@ -1373,13 +1397,31 @@ export async function confirmSession({
       return getAttr('confirmedBy').toLowerCase();
     })
   );
-
+  
   // CRITICAL: Add the current confirmation to the set since we just created it
   // This ensures we detect both confirmations even if the query hasn't updated yet
   confirmedWallets.add(confirmedByWallet.toLowerCase());
 
   const mentorConfirmed = confirmedWallets.has(verifiedMentorWallet.toLowerCase());
   const learnerConfirmed = confirmedWallets.has(verifiedLearnerWallet.toLowerCase());
+  
+  // U4.3: Check if session is expired before generating Jitsi
+  // Only generate if both confirmed AND session is not expired AND status would be scheduled
+  let shouldGenerateJitsi = mentorConfirmed && learnerConfirmed;
+  if (shouldGenerateJitsi && session) {
+    const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : 0;
+    const duration = session.duration || 60;
+    const durationMs = duration * 60 * 1000;
+    const bufferMs = 60 * 60 * 1000;
+    const sessionEnd = sessionTime + durationMs + bufferMs;
+    const now = Date.now();
+    const isExpired = sessionTime > 0 && now >= sessionEnd;
+    
+    // Don't generate if session is expired
+    if (isExpired || session.status === 'expired') {
+      shouldGenerateJitsi = false;
+    }
+  }
   
   // Arkiv-native: Create notification for the other party when one party confirms
   // This notifies the other participant that their meeting request has been confirmed
@@ -1516,8 +1558,8 @@ export async function confirmSession({
     console.warn('[confirmSession] Error in notification logic:', notificationError);
   }
   
-  // If both confirmed, generate Jitsi meeting and store it
-  if (mentorConfirmed && learnerConfirmed) {
+  // If both confirmed AND session is not expired, generate Jitsi meeting and store it (U4.3)
+  if (shouldGenerateJitsi) {
     
     // Check if Jitsi info already exists
     // CRITICAL: Filter by spaceId to ensure we only find Jitsi entities in the correct space

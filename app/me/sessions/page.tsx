@@ -1759,12 +1759,34 @@ export default function SessionsPage() {
                               </div>
                             ) : (
                               <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                                ⏳ Jitsi link will appear once both parties confirm
-                                {session.mentorConfirmed && session.learnerConfirmed && (
-                                  <span className="block mt-1 text-orange-600 dark:text-orange-400">
-                                    (Both confirmed - link may be generating...)
+                                {session.status === 'expired' ? (
+                                  <span className="text-red-600 dark:text-red-400">
+                                    ⏰ Session expired - Jitsi link not available
                                   </span>
-                                )}
+                                ) : (() => {
+                                  // Check if session is in the past (U4.3: prevent generating for past sessions)
+                                  const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : 0;
+                                  const isPast = sessionTime > 0 && Date.now() >= sessionTime;
+                                  
+                                  if (isPast && session.status !== 'scheduled') {
+                                    return (
+                                      <span className="text-gray-600 dark:text-gray-400">
+                                        ⏰ Session time has passed - Jitsi link not available
+                                      </span>
+                                    );
+                                  }
+                                  
+                                  return (
+                                    <>
+                                      ⏳ Jitsi link will appear once both parties confirm
+                                      {session.mentorConfirmed && session.learnerConfirmed && session.status === 'scheduled' && !isPast && (
+                                        <span className="block mt-1 text-orange-600 dark:text-orange-400">
+                                          (Both confirmed - link may be generating...)
+                                        </span>
+                                      )}
+                                    </>
+                                  );
+                                })()}
                               </div>
                             )}
                           </>
