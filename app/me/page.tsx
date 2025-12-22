@@ -115,8 +115,12 @@ export default function MePage() {
           listLearningFollows({ profile_wallet: address, active: true }),
         ]).then(([skills, follows]) => {
           setAllSkills(skills);
-          setFollowedSkills(follows.map(f => f.skill_id));
-          setSkillsLearningCount(follows.length);
+          // Filter follows to only include skills that exist in allSkills
+          // This ensures the count matches what's actually displayed
+          const skillKeys = new Set(skills.map(s => s.key));
+          const validFollows = follows.filter(f => skillKeys.has(f.skill_id));
+          setFollowedSkills(validFollows.map(f => f.skill_id));
+          setSkillsLearningCount(validFollows.length);
         }).catch(() => {
           // Skills or follows not found - that's okay
         });
@@ -1003,8 +1007,11 @@ export default function MePage() {
                                 if (data.ok) {
                                   await new Promise(resolve => setTimeout(resolve, 1500));
                                   const follows = await listLearningFollows({ profile_wallet: walletAddress, active: true });
-                                  setFollowedSkills(follows.map(f => f.skill_id));
-                                  setSkillsLearningCount(follows.length);
+                                  // Filter follows to only include skills that exist in allSkills
+                                  const skillKeys = new Set(allSkills.map(s => s.key));
+                                  const validFollows = follows.filter(f => skillKeys.has(f.skill_id));
+                                  setFollowedSkills(validFollows.map(f => f.skill_id));
+                                  setSkillsLearningCount(validFollows.length);
                                 } else {
                                   alert(data.error || 'Failed to leave community');
                                 }
