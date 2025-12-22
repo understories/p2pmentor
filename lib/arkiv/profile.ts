@@ -217,25 +217,31 @@ export async function createUserProfileClient({
     });
   }
 
-  // Note: Client-side updates require walletClient directly (no private key available)
-  // For now, preserve existing data but use create-new-entity pattern
-  // TODO: Add client-side update support once SDK API is verified (U0.1)
-  // The migration mode flag can be checked, but client-side updates need different implementation
+  // Deterministic check: If existing profile found, use Pattern B (updateEntity)
+  // Otherwise, use Pattern A (createEntity)
+  // Client-side updates require walletClient directly (no private key available)
   const normalizedWallet = wallet.toLowerCase();
-  const isMigrated = isWalletMigrated(normalizedWallet);
   const shouldUpdate = existingProfile?.key && (
-    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated)
+    ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow'
   );
 
   if (shouldUpdate && existingProfile?.key) {
-    // Mark wallet as migrated if not already
-    if (!isMigrated) {
-      markWalletMigrated(normalizedWallet);
-    }
+    // Client-side update using walletClient.updateEntity
+    // This uses the same pattern as server-side but with walletClient from MetaMask/Passkey
+    const updateResult = await handleTransactionWithTimeout(async () => {
+      const { addSignerMetadata } = await import('./signer-metadata');
+      const attributesWithSigner = addSignerMetadata(attributes, account);
+      
+      return await walletClient.updateEntity({
+        entityKey: existingProfile.key as `0x${string}`,
+        payload: enc.encode(JSON.stringify(payload)),
+        attributes: attributesWithSigner,
+        contentType: 'application/json',
+        expiresIn: 31536000, // 1 year
+      });
+    });
 
-    // TODO: Implement client-side update once SDK API is verified
-    // For now, fall through to create-new-entity (preserves data but creates new entity)
-    // This maintains backward compatibility until client-side update is implemented
+    return { key: updateResult.entityKey, txHash: updateResult.txHash };
   }
 
   // Create new profile (old behavior or fallback)
@@ -400,29 +406,16 @@ export async function createUserProfile({
     });
   }
 
-  // Check if we should use update mode
+  // Deterministic check: If existing profile found, use Pattern B (updateEntity)
+  // Otherwise, use Pattern A (createEntity)
+  // This replaces the migration status check which was in-memory only
   const normalizedWallet = wallet.toLowerCase();
-  const isMigrated = isWalletMigrated(normalizedWallet);
-  
-  // In shadow mode, mark new users as migrated on first profile creation
-  // This ensures subsequent updates use the update path
-  if (ENTITY_UPDATE_MODE === 'shadow' && !existingProfile && !isMigrated) {
-    markWalletMigrated(normalizedWallet);
-  }
-  
   const shouldUpdate = existingProfile?.key && (
-    ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isWalletMigrated(normalizedWallet))
+    ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow'
   );
 
   if (shouldUpdate && existingProfile?.key) {
-    // Mark wallet as migrated if not already (should already be marked in shadow mode)
-    if (!isWalletMigrated(normalizedWallet)) {
-      markWalletMigrated(normalizedWallet);
-    }
-
-    // Use canonical helper to update existing entity
-    // This will throw an error until SDK API is verified (U0.1)
-    // Structure is ready for real update API
+    // Use canonical helper to update existing entity (Pattern B)
     const updateResult = await arkivUpsertEntity({
       type: 'user_profile',
       key: existingProfile.key, // Stable entity_key
@@ -432,17 +425,17 @@ export async function createUserProfile({
       privateKey,
     });
 
-      // Structured logging (U1.x.1)
-      const { logEntityWrite } = await import('./write-logging');
-      logEntityWrite({
-        entityType: 'user_profile',
-        entityKey: updateResult.key,
-        txHash: updateResult.txHash,
-        wallet: normalizedWallet,
-        timestamp: new Date().toISOString(),
-        operation: 'update',
-        spaceId: spaceId,
-      });
+    // Structured logging (U1.x.1)
+    const { logEntityWrite } = await import('./write-logging');
+    logEntityWrite({
+      entityType: 'user_profile',
+      entityKey: updateResult.key,
+      txHash: updateResult.txHash,
+      wallet: normalizedWallet,
+      timestamp: new Date().toISOString(),
+      operation: 'update',
+      spaceId: spaceId,
+    });
 
     return updateResult;
   }

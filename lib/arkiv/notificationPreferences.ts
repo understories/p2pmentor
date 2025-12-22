@@ -82,31 +82,19 @@ export async function upsertNotificationPreference({
   const now = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID;
 
-  // For new users in shadow mode, mark as migrated on first preference creation
-  // This ensures subsequent updates use the update path
-  if (ENTITY_UPDATE_MODE === 'shadow' && !isWalletMigrated(normalizedWallet)) {
-    markWalletMigrated(normalizedWallet);
-  }
-
-  // Deterministic key derivation: (wallet, notification_id) is unique identity
+  // Deterministic check: If existing preference found, use Pattern B (updateEntity)
+  // Otherwise, use Pattern A (createEntity)
+  // This replaces the migration status check which was in-memory only
   const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
 
   // Check for duplicates: reject if another preference exists for same (wallet, notification_id)
   // This prevents creating multiple preference entities for the same identity
   if (existing && existing.key) {
-    // Check if we should use update mode
-    const isMigrated = isWalletMigrated(normalizedWallet);
-    const shouldUpdate = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
+    // Deterministic check: If entity exists, use Pattern B
+    const shouldUpdate = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
 
     if (shouldUpdate) {
-      // Mark wallet as migrated if not already
-      if (!isMigrated) {
-        markWalletMigrated(normalizedWallet);
-      }
-
-      // Use canonical helper to update existing entity
-      // This will throw an error until SDK API is verified (U0.1)
-      // Structure is ready for real update API
+      // Use canonical helper to update existing entity (Pattern B)
       const payload = {
         wallet: normalizedWallet,
         notificationId,

@@ -69,38 +69,32 @@ export const ENTITY_UPDATE_MODE: EntityUpdateMode =
   (process.env.ENTITY_UPDATE_MODE as EntityUpdateMode) || 'on';
 
 /**
- * Per-wallet migration marker
+ * Per-wallet migration marker (DEPRECATED - Use deterministic check instead)
  *
- * Tracks which wallets have been migrated to the new update pattern.
- * Once a wallet is marked as migrated, it always uses update mode.
- *
- * This is stored in-memory for now. Can be persisted to file/DB for durability.
- *
- * Key: normalized wallet address (lowercase)
- * Value: true if migrated
- */
-const migratedWallets = new Set<string>();
-
-/**
- * Check if a wallet has been migrated to the new update pattern
+ * @deprecated Use deterministic entity existence check instead of migration status.
+ * Migration status is now determined by checking if a canonical entity exists.
+ * This function is kept for backward compatibility but always returns false.
  *
  * @param wallet - Wallet address (will be normalized)
- * @returns True if wallet is marked as migrated
+ * @returns Always false (deterministic check should be used instead)
  */
 export function isWalletMigrated(wallet: string): boolean {
-  return migratedWallets.has(wallet.toLowerCase());
+  // Migration status is now determined by checking if canonical entity exists
+  // This function is kept for backward compatibility but always returns false
+  return false;
 }
 
 /**
- * Mark a wallet as migrated to the new update pattern
+ * Mark a wallet as migrated (DEPRECATED - No-op)
  *
- * Once marked, the wallet always uses update mode (no reverting).
+ * @deprecated Migration status is now determined by checking if canonical entity exists.
+ * This function is kept for backward compatibility but does nothing.
  *
  * @param wallet - Wallet address (will be normalized)
  */
 export function markWalletMigrated(wallet: string): void {
-  migratedWallets.add(wallet.toLowerCase());
-  // TODO: Persist to file/DB for durability (can be added later)
+  // No-op: Migration status is now determined by checking if canonical entity exists
+  // This function is kept for backward compatibility
 }
 
 /**
