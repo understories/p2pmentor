@@ -144,8 +144,8 @@ export default function ProfilesPage() {
             )}
           </div>
 
-          {/* Migration Metrics - Teaching Tool */}
-          {migrationMetrics && migrationMetrics.totalWallets > 0 && (
+          {/* Migration Metrics - Only show in Builder Mode */}
+          {arkivBuilderMode && migrationMetrics && migrationMetrics.totalWallets > 0 && (
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
               <p className="text-xs font-medium text-blue-900 dark:text-blue-200 mb-1">
                 📊 Entity Update Migration Progress
@@ -159,25 +159,9 @@ export default function ProfilesPage() {
                   </span>
                 )}
               </p>
-              {arkivBuilderMode ? (
-                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
-                  This shows how Arkiv is immutable (all versions exist) but state is mutable (canonical entity).
-                </p>
-              ) : (
-                <div className="group relative inline-block mt-1">
-                  <p className="text-xs text-blue-600 dark:text-blue-400 italic cursor-help">
-                    This shows how Arkiv is immutable (all versions exist) but state is mutable (canonical entity).
-                  </p>
-                  {/* Educational Tooltip - only show when builder mode is OFF */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
-                    <div className="font-semibold mb-2">Immutable transactions, mutable state</div>
-                    <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
-                      Blockchains are immutable at the transaction level: every transaction is permanently recorded. However, application data is mutable at the state level: we can update entities while preserving all historical versions, allowing profiles to be editable while maintaining a complete audit trail.
-                    </p>
-                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                  </div>
-                </div>
-              )}
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 italic">
+                This shows how Arkiv is immutable (all versions exist) but state is mutable (canonical entity).
+              </p>
             </div>
           )}
         </div>
