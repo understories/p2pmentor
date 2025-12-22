@@ -530,8 +530,26 @@ export default function AdminFeedbackPage() {
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm max-w-md">
-                        <div className="truncate" title={feedback.message}>
-                          {feedback.message}
+                        <div className="space-y-1">
+                          <div className={expandedMessages.has(feedback.id) ? '' : 'truncate'}>
+                            {feedback.message}
+                          </div>
+                          {feedback.message.length > 80 && (
+                            <button
+                              onClick={() => {
+                                const newExpanded = new Set(expandedMessages);
+                                if (newExpanded.has(feedback.id)) {
+                                  newExpanded.delete(feedback.id);
+                                } else {
+                                  newExpanded.add(feedback.id);
+                                }
+                                setExpandedMessages(newExpanded);
+                              }}
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              {expandedMessages.has(feedback.id) ? 'Show less' : 'Show more'}
+                            </button>
+                          )}
                         </div>
                       </td>
                       <td className="px-4 py-2 text-sm">
