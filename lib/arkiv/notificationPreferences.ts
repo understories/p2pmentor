@@ -82,6 +82,12 @@ export async function upsertNotificationPreference({
   const now = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID;
 
+  // For new users in shadow mode, mark as migrated on first preference creation
+  // This ensures subsequent updates use the update path
+  if (ENTITY_UPDATE_MODE === 'shadow' && !isWalletMigrated(normalizedWallet)) {
+    markWalletMigrated(normalizedWallet);
+  }
+
   // Deterministic key derivation: (wallet, notification_id) is unique identity
   const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
 
