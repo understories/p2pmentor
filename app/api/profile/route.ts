@@ -166,6 +166,9 @@ export async function POST(request: NextRequest) {
       });
 
       // Create user-focused notification
+      // Determine if this is an update by checking if existingProfile existed before this operation
+      // This is more reliable than just checking the action parameter
+      const isUpdate = existingProfile !== null && existingProfile !== undefined;
       if (key) {
         try {
           const { createNotification } = await import('@/lib/arkiv/notifications');
@@ -174,13 +177,14 @@ export async function POST(request: NextRequest) {
             notificationType: 'entity_created',
             sourceEntityType: 'user_profile',
             sourceEntityKey: key,
-            title: action === 'updateProfile' ? 'Profile Updated' : 'Profile Created',
-            message: action === 'updateProfile' ? 'You updated your profile' : 'You created your profile',
+            title: isUpdate ? 'Profile Updated' : 'Profile Created',
+            message: isUpdate ? 'You have edited your profile' : 'You created your profile',
             link: '/me/profile',
             metadata: {
               profileKey: key,
               displayName: finalDisplayName,
               action: action,
+              isUpdate: isUpdate,
             },
             privateKey: getPrivateKey(),
           });
