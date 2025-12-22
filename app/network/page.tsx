@@ -55,6 +55,8 @@ export default function NetworkPage() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'asks' | 'offers' | 'matches'>('all');
   const [profiles, setProfiles] = useState<Record<string, UserProfile>>({});
   const [skills, setSkills] = useState<Record<string, Skill>>({});
+  const [skillsByName, setSkillsByName] = useState<Record<string, Skill>>({});
+  const [skillsBySlug, setSkillsBySlug] = useState<Record<string, Skill>>({});
   const [userWallet, setUserWallet] = useState<string | null>(null);
   const [userAsks, setUserAsks] = useState<Ask[]>([]);
   const [userOffers, setUserOffers] = useState<Offer[]>([]);
@@ -196,13 +198,34 @@ export default function NetworkPage() {
         console.error('[Network] Failed to load offers:', offersRes);
       }
 
-      // Build skills map
+      // Build skills map (keyed by entity key)
+      // Also build reverse lookup maps for resolving skill strings to entities
       if (skillsRes.ok && skillsRes.skills) {
         const skillsMap: Record<string, Skill> = {};
+        const skillsByName: Record<string, Skill> = {}; // name_canonical -> skill
+        const skillsBySlug: Record<string, Skill> = {}; // slug -> skill
+        
         skillsRes.skills.forEach((skill: Skill) => {
           skillsMap[skill.key] = skill;
+          // Build reverse lookups for resolving skill strings to entities
+          if (skill.name_canonical) {
+            const normalizedName = skill.name_canonical.toLowerCase().trim();
+            // Only set if not already set (prefer first match)
+            if (!skillsByName[normalizedName]) {
+              skillsByName[normalizedName] = skill;
+            }
+          }
+          if (skill.slug) {
+            const normalizedSlug = skill.slug.toLowerCase().trim();
+            if (!skillsBySlug[normalizedSlug]) {
+              skillsBySlug[normalizedSlug] = skill;
+            }
+          }
         });
         setSkills(skillsMap);
+        // Store reverse lookups for use in grouping logic
+        setSkillsByName(skillsByName);
+        setSkillsBySlug(skillsBySlug);
       }
 
       // Load canopy skills from /api/skills/explore (same as skills page)
@@ -430,11 +453,37 @@ export default function NetworkPage() {
   //         .slice(0, 10);
   //     })();
 
-  // Group asks/offers/matches by skill (use skill_id when available)
+  // Helper function to resolve skill identifier to skill entity key
+  // Handles both skill_id (entity key) and skill (string name/slug)
+  const resolveSkillKey = (skillId?: string, skillString?: string): string => {
+    // If skill_id exists and matches a skill entity, use it
+    if (skillId && skills[skillId]) {
+      return skillId;
+    }
+    
+    // Otherwise, try to resolve skill string to entity
+    if (skillString) {
+      const normalized = skillString.toLowerCase().trim();
+      // Try slug first (more specific)
+      if (skillsBySlug[normalized]) {
+        return skillsBySlug[normalized].key;
+      }
+      // Then try name_canonical
+      if (skillsByName[normalized]) {
+        return skillsByName[normalized].key;
+      }
+    }
+    
+    // Fallback: return the original identifier (skill_id or skill string)
+    // This ensures grouping still works even if skill entity not found
+    return skillId || skillString || 'unknown';
+  };
+
+  // Group asks/offers/matches by skill (resolve skill strings to entity keys)
   const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }>();
   
   filteredAsks.forEach(ask => {
-    const skillKey = ask.skill_id || ask.skill;
+    const skillKey = resolveSkillKey(ask.skill_id, ask.skill);
     if (!skillsMap.has(skillKey)) {
       skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
@@ -442,7 +491,7 @@ export default function NetworkPage() {
   });
   
   filteredOffers.forEach(offer => {
-    const skillKey = offer.skill_id || offer.skill;
+    const skillKey = resolveSkillKey(offer.skill_id, offer.skill);
     if (!skillsMap.has(skillKey)) {
       skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
@@ -450,8 +499,11 @@ export default function NetworkPage() {
   });
   
   filteredMatches.forEach(match => {
-    // Use skill_id from ask/offer if available, otherwise use skillMatch string
-    const skillKey = match.ask.skill_id || match.offer.skill_id || match.skillMatch;
+    // Resolve skill from ask/offer skill_id or skillMatch string
+    const skillKey = resolveSkillKey(
+      match.ask.skill_id || match.offer.skill_id,
+      match.skillMatch || match.ask.skill || match.offer.skill
+    );
     if (!skillsMap.has(skillKey)) {
       skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
