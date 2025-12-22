@@ -798,15 +798,30 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
   const isMigrated = isWalletMigrated(normalizedWallet);
   const useCanonicalPath = ENTITY_UPDATE_MODE === 'on' || (ENTITY_UPDATE_MODE === 'shadow' && isMigrated);
 
-  if (useCanonicalPath && result?.entities && result.entities.length > 1) {
+  if (!result?.entities || !Array.isArray(result.entities)) {
+    return [];
+  }
+
+  // If using canonical path and multiple entities found, prefer the one with the most recent createdAt
+  // This handles the case where old entities exist alongside the canonical one
+  let entitiesToProcess = result.entities;
+  if (useCanonicalPath && result.entities.length > 1) {
     console.warn(
       `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
       `Expected single canonical entity. Found ${result.entities.length} profiles. ` +
-      `This may indicate incomplete migration or old entities not yet cleaned up.`
+      `This may indicate incomplete migration or old entities not yet cleaned up. ` +
+      `Returning most recent entity.`
     );
+    // Sort by createdAt descending and take the first (most recent)
+    entitiesToProcess = result.entities.sort((a: any, b: any) => {
+      const aTime = a.attributes?.createdAt || (Array.isArray(a.attributes) ? a.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
+      const bTime = b.attributes?.createdAt || (Array.isArray(b.attributes) ? b.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
+      if (!aTime || !bTime) return 0;
+      return new Date(bTime).getTime() - new Date(aTime).getTime();
+    });
   }
 
-  return result.entities.map((entity: any) => {
+  return entitiesToProcess.map((entity: any) => {
     let payload: any = {};
     try {
       if (entity.payload) {

@@ -300,13 +300,15 @@ export default function ProfilePage() {
     const skillsArray = profile?.skillsArray;
 
     try {
-      // Always use API route for profile creation (like mentor-graph)
+      // Always use API route for profile creation/updates (like mentor-graph)
       // The API route uses the server's private key to sign transactions
+      // Use 'updateProfile' if profile exists, 'createProfile' if new
+      const action = profile ? 'updateProfile' : 'createProfile';
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action: 'createProfile',
+            action,
             wallet: walletAddress,
             displayName,
             username: username || undefined,
@@ -343,7 +345,7 @@ export default function ProfilePage() {
 
       // Check if transaction is pending
       if (result.pending) {
-        setSuccess('Profile creation submitted! Transaction is being processed. Please refresh in a moment.');
+        setSuccess(profile ? 'Profile update submitted! Transaction is being processed. Please refresh in a moment.' : 'Profile creation submitted! Transaction is being processed. Please refresh in a moment.');
         setTimeout(() => loadProfile(walletAddress), 2000);
       } else {
         setSuccess('Profile saved!');
@@ -351,7 +353,10 @@ export default function ProfilePage() {
         if (result.key && result.txHash) {
           setLastWriteInfo({ key: result.key, txHash: result.txHash, entityType: 'user_profile' });
         }
-        // Reload profile
+        // Reload profile with a small delay to allow Arkiv indexing
+        // For updates with stable entity keys, the query should find the updated entity immediately
+        // But we add a small delay to be safe
+        await new Promise(resolve => setTimeout(resolve, 500));
         await loadProfile(walletAddress);
       }
     } catch (err: any) {
