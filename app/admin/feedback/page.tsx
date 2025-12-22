@@ -792,7 +792,9 @@ export default function AdminFeedbackPage() {
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <strong>Original Feedback:</strong>
               </p>
-              <p className="text-gray-900 dark:text-gray-100">{respondingTo.message}</p>
+              <div className="max-h-64 overflow-y-auto">
+                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{respondingTo.message}</p>
+              </div>
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)} |
                 Page: {respondingTo.page} |
