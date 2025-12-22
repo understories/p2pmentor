@@ -10,6 +10,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
@@ -799,6 +800,22 @@ export function SidebarNav() {
           <div className="mt-auto pt-4 group-hover:border-t group-hover:border-gray-200/50 group-hover:dark:border-gray-700/50 w-full">
             <Link
               href="/notifications"
+              onClick={(e) => {
+                // Check if we're on onboarding page
+                if (pathname === '/onboarding') {
+                  e.preventDefault();
+                  setShowOnboardingPopup(true);
+                  return;
+                }
+
+                // Check if onboarding is complete (level >= 2 means ask or offer created)
+                // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
+                if (wallet && level !== null && level < 2) {
+                  e.preventDefault();
+                  setShowOnboardingPopup(true);
+                  return;
+                }
+              }}
                 className={`
                   relative flex flex-row items-center gap-3
                   w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
@@ -878,8 +895,8 @@ export function SidebarNav() {
         </div>
       </div>
 
-      {/* Onboarding Popup */}
-      {showOnboardingPopup && (
+      {/* Onboarding Popup - rendered as portal for proper centering */}
+      {showOnboardingPopup && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-center">
@@ -898,7 +915,8 @@ export function SidebarNav() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </nav>
   );

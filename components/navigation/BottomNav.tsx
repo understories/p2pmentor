@@ -10,6 +10,7 @@
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme } from '@/lib/theme';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
@@ -277,8 +278,8 @@ export function BottomNav() {
         </button>
       </div>
 
-      {/* Onboarding Popup */}
-      {showOnboardingPopup && (
+      {/* Onboarding Popup - rendered as portal for proper centering */}
+      {showOnboardingPopup && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-center">
@@ -297,7 +298,8 @@ export function BottomNav() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </nav>
   );
