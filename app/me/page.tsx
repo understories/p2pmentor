@@ -665,11 +665,18 @@ export default function MePage() {
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skills</p>
                   <div className="flex flex-wrap gap-2">
-                    {profile.skillsArray.map((skill, idx) => (
-                      <span key={idx} className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                        {skill}
-                      </span>
-                    ))}
+                    {profile.skillsArray.map((skill, idx) => {
+                      const skillIds = (profile as any).skill_ids || [];
+                      const skillId = skillIds[idx];
+                      const level = skillId && profile.skillExpertise?.[skillId] !== undefined
+                        ? profile.skillExpertise[skillId]
+                        : undefined;
+                      return (
+                        <span key={idx} className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
+                          {skill}{level !== undefined && ` (${level}/5)`}
+                        </span>
+                      );
+                    })}
                   </div>
                 </div>
               )}

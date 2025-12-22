@@ -247,14 +247,21 @@ export default function ProfilesPage() {
                 {profile.skillsArray && profile.skillsArray.length > 0 && (
                   <div className="mb-3">
                     <div className="flex flex-wrap gap-1">
-                      {profile.skillsArray.slice(0, 3).map((skill, idx) => (
-                        <span
-                          key={idx}
-                          className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
-                        >
-                          {skill}
-                        </span>
-                      ))}
+                      {profile.skillsArray.slice(0, 3).map((skill, idx) => {
+                        const skillIds = (profile as any).skill_ids || [];
+                        const skillId = skillIds[idx];
+                        const level = skillId && profile.skillExpertise?.[skillId] !== undefined
+                          ? profile.skillExpertise[skillId]
+                          : undefined;
+                        return (
+                          <span
+                            key={idx}
+                            className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
+                          >
+                            {skill}{level !== undefined && ` (${level}/5)`}
+                          </span>
+                        );
+                      })}
                       {profile.skillsArray.length > 3 && (
                         <span className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400">
                           +{profile.skillsArray.length - 3} more
