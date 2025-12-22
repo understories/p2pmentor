@@ -288,11 +288,14 @@ export default function AdminFeedbackPage() {
   };
 
   const handleResolveFeedback = async (feedback: AppFeedback) => {
+    console.log('[handleResolveFeedback] Called for feedback:', feedback.key);
     if (feedback.resolved) {
+      console.log('[handleResolveFeedback] Feedback already resolved');
       alert('This issue is already resolved');
       return;
     }
 
+    console.log('[handleResolveFeedback] Opening resolution modal');
     // Open resolution modal
     setResolvingIssue(feedback);
     setResolutionNote('');
@@ -417,12 +420,14 @@ export default function AdminFeedbackPage() {
         </div>
 
         {/* Resolution Modal */}
-        {resolvingIssue && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                Resolve Issue
-              </h3>
+        {resolvingIssue && (() => {
+          console.log('[Resolution Modal] Modal is rendering for issue:', resolvingIssue.key);
+          return (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+                  Resolve Issue
+                </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                 This will mark the issue as resolved on Arkiv{githubIssueLinks[resolvingIssue.key] ? ' and close the GitHub issue' : ''}.
               </p>
@@ -463,7 +468,8 @@ export default function AdminFeedbackPage() {
               </div>
             </div>
           </div>
-        )}
+          );
+        })()}
       </main>
     );
   }
