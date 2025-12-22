@@ -29,6 +29,7 @@ import { offerColors, offerEmojis, askColors } from '@/lib/colors';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { buildBuilderModeParams } from '@/lib/utils/builderMode';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Offer } from '@/lib/arkiv/offers';
 
@@ -106,6 +107,7 @@ export default function OffersPage() {
   const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
   const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
   const [skillJustCreated, setSkillJustCreated] = useState<string | null>(null); // Track newly created skill
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
@@ -350,6 +352,7 @@ export default function OffersPage() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastWriteInfo(null); // Clear previous write info
 
     try {
       // Convert hours to seconds for expiresIn
@@ -401,6 +404,10 @@ export default function OffersPage() {
           }, 2000);
         } else {
           setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
+          // Store entity info for builder mode display (U1.x.1: Explorer Independence)
+          if (data.key && data.txHash) {
+            setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'offer' });
+          }
           setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
@@ -1199,6 +1206,14 @@ export default function OffersPage() {
             )}
             {success && (
               <Alert type="success" message={success} onClose={() => setSuccess('')} className="mt-4" />
+            )}
+            {lastWriteInfo && (
+              <EntityWriteInfo
+                entityKey={lastWriteInfo.key}
+                txHash={lastWriteInfo.txHash}
+                entityType={lastWriteInfo.entityType}
+                className="mt-4"
+              />
             )}
           </div>
         )}

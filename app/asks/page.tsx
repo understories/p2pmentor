@@ -27,6 +27,7 @@ import { askColors, askEmojis, offerColors } from '@/lib/colors';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { buildBuilderModeParams } from '@/lib/utils/builderMode';
+import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 
@@ -99,6 +100,7 @@ export default function AsksPage() {
   const [selectedAskProfile, setSelectedAskProfile] = useState<UserProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [skillJustCreated, setSkillJustCreated] = useState<string | null>(null); // Track newly created skill
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -307,6 +309,7 @@ export default function AsksPage() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+    setLastWriteInfo(null); // Clear previous write info
 
     try {
       // Convert hours to seconds for expiresIn
@@ -345,6 +348,10 @@ export default function AsksPage() {
           }, 2000);
         } else {
           setSuccess(`Ask created successfully! "${newAsk.skill || 'Your ask'}" is now live and visible to mentors. View it in Network →`);
+          // Store entity info for builder mode display (U1.x.1: Explorer Independence)
+          if (data.key && data.txHash) {
+            setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'ask' });
+          }
           setNewAsk({ skill: '', skill_id: '', message: '', ttlHours: '168', customTtlHours: '' });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
@@ -940,6 +947,14 @@ export default function AsksPage() {
             )}
             {success && (
               <Alert type="success" message={success} onClose={() => setSuccess('')} className="mt-4" />
+            )}
+            {lastWriteInfo && (
+              <EntityWriteInfo
+                entityKey={lastWriteInfo.key}
+                txHash={lastWriteInfo.txHash}
+                entityType={lastWriteInfo.entityType}
+                className="mt-4"
+              />
             )}
           </div>
         )}
