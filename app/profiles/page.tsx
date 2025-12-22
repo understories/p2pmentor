@@ -278,9 +278,9 @@ export default function ProfilesPage() {
                   {profile.profileCount !== undefined && profile.profileCount > 1 && (
                     <div className="mt-2 pt-2 border-t border-gray-300 dark:border-gray-600">
                       <Link
-                        href={`/profiles/${profile.wallet}`}
+                        href={`/profiles/${profile.wallet}/versions`}
                         className="group relative inline-flex items-center gap-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
-                        title="View version history on profile page"
+                        title="View version history"
                       >
                         {/* DNA/Helix Icon - Double helix representation */}
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
