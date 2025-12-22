@@ -700,14 +700,26 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
 
   if (useCanonicalPath) {
     // With updates, there should only be one canonical entity per wallet
+    // However, we sort by lastActiveTimestamp to ensure we get the most recently updated version
+    // This handles edge cases where indexing might be slow or multiple entities exist temporarily
     if (profiles.length > 1) {
       console.warn(
         `[getProfileByWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
         `Expected single canonical entity. Found ${profiles.length} profiles. ` +
-        `This may indicate incomplete migration or old entities not yet cleaned up.`
+        `This may indicate incomplete migration or old entities not yet cleaned up. ` +
+        `Sorting by lastActiveTimestamp to get most recent.`
       );
+      // Sort by lastActiveTimestamp descending (most recent first)
+      profiles.sort((a, b) => {
+        const aTime = a.lastActiveTimestamp ? new Date(a.lastActiveTimestamp).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+        const bTime = b.lastActiveTimestamp ? new Date(b.lastActiveTimestamp).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        return bTime - aTime;
+      });
+    } else if (profiles.length === 1) {
+      // Even with single entity, ensure we have the latest version
+      // (This is a no-op for single entity, but makes the logic explicit)
     }
-    // Return first profile (should be the only one, or canonical if multiple exist)
+    // Return first profile (most recently updated if sorted, or the only one)
     const profile = profiles[0];
 
     // Record performance metrics
@@ -808,20 +820,41 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
     return [];
   }
 
-  // If using canonical path and multiple entities found, prefer the one with the most recent createdAt
+  // If using canonical path and multiple entities found, prefer the one with the most recent lastActiveTimestamp
   // This handles the case where old entities exist alongside the canonical one
+  // We use lastActiveTimestamp because it's updated on each profile update, unlike createdAt
   let entitiesToProcess = result.entities;
   if (useCanonicalPath && result.entities.length > 1) {
     console.warn(
       `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
       `Expected single canonical entity. Found ${result.entities.length} profiles. ` +
       `This may indicate incomplete migration or old entities not yet cleaned up. ` +
-      `Returning most recent entity.`
+      `Sorting by lastActiveTimestamp to get most recent.`
     );
-    // Sort by createdAt descending and take the first (most recent)
+    // Sort by lastActiveTimestamp descending (most recent first)
+    // Fallback to createdAt if lastActiveTimestamp not available
     entitiesToProcess = result.entities.sort((a: any, b: any) => {
-      const aTime = a.attributes?.createdAt || (Array.isArray(a.attributes) ? a.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
-      const bTime = b.attributes?.createdAt || (Array.isArray(b.attributes) ? b.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
+      // Extract lastActiveTimestamp from payload (it's in the payload, not attributes)
+      const getLastActive = (entity: any): string => {
+        try {
+          if (entity.payload) {
+            const decoded = entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
+            const payload = JSON.parse(decoded);
+            return payload.lastActiveTimestamp || payload.createdAt || '';
+          }
+        } catch (e) {
+          // Ignore parse errors
+        }
+        // Fallback to createdAt from attributes
+        const createdAt = entity.attributes?.createdAt || (Array.isArray(entity.attributes) ? entity.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
+        return createdAt;
+      };
+      const aTime = getLastActive(a);
+      const bTime = getLastActive(b);
       if (!aTime || !bTime) return 0;
       return new Date(bTime).getTime() - new Date(aTime).getTime();
     });
