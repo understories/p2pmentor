@@ -424,75 +424,6 @@ export default function AdminFeedbackPage() {
         <div className="flex items-center justify-center">
           <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
         </div>
-
-        {/* Resolution Modal */}
-        {resolvingIssue && (() => {
-          console.log('[Resolution Modal] Modal is rendering for issue:', resolvingIssue.key);
-          return (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
-                  Resolve Issue
-                </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                This will mark the issue as resolved on Arkiv using the immutable entity update pattern.
-                {githubIssueLinks[resolvingIssue.key] ? (
-                  <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    The linked GitHub issue will also be closed with a resolution comment.
-                  </span>
-                ) : (
-                  <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
-                    (No GitHub issue linked - resolution will only be recorded on Arkiv)
-                  </span>
-                )}
-              </p>
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                  Resolution Note (optional)
-                </label>
-                <textarea
-                  value={resolutionNote}
-                  onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="Describe how this issue was resolved..."
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                  rows={4}
-                />
-                {githubIssueLinks[resolvingIssue.key] ? (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    This note will be added as a comment to the GitHub issue.
-                  </p>
-                ) : (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    This note will be stored in the Arkiv resolution entity.
-                  </p>
-                )}
-              </div>
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => {
-                    setResolvingIssue(null);
-                    setResolutionNote('');
-                  }}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    console.log('[Button Click] Mark Resolved button clicked in modal');
-                    console.log('[Button Click] resolvingIssue:', resolvingIssue);
-                    confirmResolveFeedback();
-                  }}
-                  disabled={resolvingFeedback === resolvingIssue.key}
-                  className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
-                >
-                  {resolvingFeedback === resolvingIssue.key ? 'Resolving...' : 'Mark Resolved'}
-                </button>
-              </div>
-            </div>
-          </div>
-          );
-        })()}
       </main>
     );
   }
@@ -755,6 +686,85 @@ export default function AdminFeedbackPage() {
         </div>
       </div>
 
+      {/* Resolution Modal */}
+      {resolvingIssue && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Resolve Issue
+              </h3>
+              <button
+                onClick={() => {
+                  setResolvingIssue(null);
+                  setResolutionNote('');
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              This will mark the issue as resolved on Arkiv using the immutable entity update pattern.
+              {githubIssueLinks[resolvingIssue.key] ? (
+                <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  The linked GitHub issue will also be closed with a resolution comment.
+                </span>
+              ) : (
+                <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  (No GitHub issue linked - resolution will only be recorded on Arkiv)
+                </span>
+              )}
+            </p>
+            <div className="mb-4">
+              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                Resolution Note (optional)
+              </label>
+              <textarea
+                value={resolutionNote}
+                onChange={(e) => setResolutionNote(e.target.value)}
+                placeholder="Describe how this issue was resolved..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                rows={4}
+              />
+              {githubIssueLinks[resolvingIssue.key] ? (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  This note will be added as a comment to the GitHub issue.
+                </p>
+              ) : (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  This note will be stored in the Arkiv resolution entity.
+                </p>
+              )}
+            </div>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setResolvingIssue(null);
+                  setResolutionNote('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  console.log('[Button Click] Mark Resolved button clicked in modal');
+                  console.log('[Button Click] resolvingIssue:', resolvingIssue);
+                  confirmResolveFeedback();
+                }}
+                disabled={resolvingFeedback === resolvingIssue.key}
+                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {resolvingFeedback === resolvingIssue.key ? 'Resolving...' : 'Mark Resolved'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Response Modal */}
       {respondingTo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
@@ -822,7 +832,9 @@ export default function AdminFeedbackPage() {
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
                     <strong>Admin Response:</strong>
                   </p>
-                  <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                  <div className="max-h-96 overflow-y-auto">
+                    <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                  </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
                     By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
