@@ -157,17 +157,13 @@ async function migrateWalletProfiles(
     console.warn(`[migrateWalletProfiles] Profile ${canonical.key} is referenced. Reference updates not yet implemented.`);
   }
   
-  // Mark wallet as migrated (app-layer, not Arkiv)
-  if (!dryRun) {
-    markWalletMigrated(normalizedWallet);
-    console.log(`[migrateWalletProfiles] Marked wallet ${normalizedWallet} as migrated`);
-  } else {
-    console.log(`[migrateWalletProfiles] DRY RUN: Would mark wallet ${normalizedWallet} as migrated`);
-  }
+  // NOTE: Migration markers are deprecated - migration status is now determined
+  // by checking if a canonical entity exists. This script is kept for historical
+  // reference but the migration marker functions are no-ops.
+  // The consolidation script (consolidate-profiles.ts) should be used instead.
   
   // Note: Old entities remain on-chain (immutable)
-  // They are tagged as non-canonical via app-layer mapping (migration marker)
-  // Read paths will ignore them once wallet is marked as migrated
+  // Read paths select the latest entity by lastActiveTimestamp/createdAt
   
   return {
     wallet: normalizedWallet,
