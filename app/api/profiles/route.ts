@@ -63,6 +63,9 @@ export async function GET(request: Request) {
     });
 
     // Get unique profiles by wallet (most recent for each wallet)
+    // CRITICAL: With Pattern B (update in place), createdAt doesn't change on updates.
+    // Use lastActiveTimestamp instead, which is updated on each profile update.
+    // Fallback to createdAt if lastActiveTimestamp not available (legacy profiles).
     const profilesMap = new Map<string, typeof allProfiles[0]>();
     const profileCountsByWallet = new Map<string, number>();
 
@@ -72,9 +75,22 @@ export async function GET(request: Request) {
       profileCountsByWallet.set(wallet, (profileCountsByWallet.get(wallet) || 0) + 1);
 
       // Keep most recent profile for each wallet
+      // Use lastActiveTimestamp (updated on each update) or fallback to createdAt
       const existing = profilesMap.get(wallet);
-      if (!existing || (profile.createdAt && existing.createdAt && new Date(profile.createdAt) > new Date(existing.createdAt))) {
+      if (!existing) {
         profilesMap.set(wallet, profile);
+      } else {
+        // Compare timestamps: prefer lastActiveTimestamp, fallback to createdAt
+        const profileTime = profile.lastActiveTimestamp 
+          ? new Date(profile.lastActiveTimestamp).getTime()
+          : (profile.createdAt ? new Date(profile.createdAt).getTime() : 0);
+        const existingTime = existing.lastActiveTimestamp
+          ? new Date(existing.lastActiveTimestamp).getTime()
+          : (existing.createdAt ? new Date(existing.createdAt).getTime() : 0);
+        
+        if (profileTime > existingTime) {
+          profilesMap.set(wallet, profile);
+        }
       }
     });
 
