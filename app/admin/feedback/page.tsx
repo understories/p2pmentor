@@ -392,10 +392,16 @@ export default function AdminFeedbackPage() {
           // Continue anyway - Arkiv resolution succeeded
         }
       } else {
-        console.log('[confirmResolveFeedback] No GitHub issue link found for this feedback');
+        console.log('[confirmResolveFeedback] No GitHub issue link found for this feedback - resolution completed on Arkiv only');
       }
 
-      alert('Issue marked as resolved' + (issueLink ? ' and GitHub issue closed!' : '!'));
+      // Success message - Arkiv resolution is always the primary action
+      const successMessage = issueLink 
+        ? 'Issue marked as resolved on Arkiv and GitHub issue closed!'
+        : 'Issue marked as resolved on Arkiv!';
+      
+      console.log('[confirmResolveFeedback] ✅ Resolution completed successfully:', successMessage);
+      alert(successMessage);
       setResolvingIssue(null);
       setResolutionNote('');
       loadFeedback();
@@ -429,7 +435,16 @@ export default function AdminFeedbackPage() {
                   Resolve Issue
                 </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                This will mark the issue as resolved on Arkiv{githubIssueLinks[resolvingIssue.key] ? ' and close the GitHub issue' : ''}.
+                This will mark the issue as resolved on Arkiv using the immutable entity update pattern.
+                {githubIssueLinks[resolvingIssue.key] ? (
+                  <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    The linked GitHub issue will also be closed with a resolution comment.
+                  </span>
+                ) : (
+                  <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    (No GitHub issue linked - resolution will only be recorded on Arkiv)
+                  </span>
+                )}
               </p>
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
@@ -442,9 +457,13 @@ export default function AdminFeedbackPage() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
                   rows={4}
                 />
-                {githubIssueLinks[resolvingIssue.key] && (
+                {githubIssueLinks[resolvingIssue.key] ? (
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     This note will be added as a comment to the GitHub issue.
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                    This note will be stored in the Arkiv resolution entity.
                   </p>
                 )}
               </div>
@@ -459,7 +478,11 @@ export default function AdminFeedbackPage() {
                   Cancel
                 </button>
                 <button
-                  onClick={confirmResolveFeedback}
+                  onClick={() => {
+                    console.log('[Button Click] Mark Resolved button clicked in modal');
+                    console.log('[Button Click] resolvingIssue:', resolvingIssue);
+                    confirmResolveFeedback();
+                  }}
                   disabled={resolvingFeedback === resolvingIssue.key}
                   className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
                 >
