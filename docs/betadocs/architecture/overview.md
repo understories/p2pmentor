@@ -21,6 +21,8 @@
 
 ### Integrations
 
+See [Integrations](/docs/architecture/integrations) for detailed integration documentation.
+
 - Wallet based authentication with MetaMask
 - WalletConnect for QR code and deep link wallet connection
 - Passkey authentication (WebAuthn-based) with embedded EVM keypairs
@@ -59,10 +61,14 @@
 /docs                   # Documentation
 ```
 
-See [Arkiv Integration](/docs/arkiv/overview) for detailed data layer architecture.
+See [Arkiv Integration](arkiv-integration.md) for detailed data layer architecture.
 
-## Decentralized Static Client
+## Additional Architecture Topics
 
-We are building a fully decentralized, no-JavaScript version of p2pmentor that works entirely without centralized servers. This static client will be deployable on IPFS and accessible via ENS.
+- [Admin Dashboard](admin-dashboard.md) - Admin interface and tools
+- [GraphQL Performance](graphql-performance.md) - GraphQL query optimization
+- [Decentralized Static Client](decentralized-static-client.md) - IPFS-deployable static version
 
-See [Decentralized Static Client](decentralized-static-client.md) for details.
+## Documentation Structure
+
+For a complete overview of all architecture documentation, see [Architecture Documentation](/docs/architecture/README).

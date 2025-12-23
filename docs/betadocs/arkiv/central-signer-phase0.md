@@ -76,7 +76,7 @@ The `signer_wallet` metadata enables this migration by making it clear which tra
 
 ## Related Documentation
 
-- [Wallet Architecture](/docs/betadocs/arkiv/wallet-architecture.md) - Profile wallet vs. signing wallet
-- [Environments](/docs/betadocs/arkiv/environments.md) - How spaceId provides data isolation
+- [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs. signing wallet
+- [Environments](/docs/arkiv/environments) - How spaceId provides data isolation
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Technical migration details
 

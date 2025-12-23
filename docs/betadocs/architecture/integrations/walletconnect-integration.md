@@ -217,7 +217,7 @@ WalletConnect only affects profile wallet (identity wallet):
 ## Related Documentation
 
 - [MetaMask Integration](metamask-integration.md) - Primary wallet connection method
-- [Passkey Integration](/docs/architecture/passkey-integration) - WebAuthn-based authentication
+- [Passkey Integration](/docs/architecture/integrations/passkey-integration) - WebAuthn-based authentication
 - [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
 - [Environment Variables](/docs/architecture/overview#environment-variables) - Configuration reference
 
