@@ -357,76 +357,134 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
  * @param credentialID - Base64url-encoded credential ID
  * @returns AuthIdentity or null if not found
  */
+/**
+ * Find passkey identity by credential ID
+ *
+ * Used during authentication to find the credential for WebAuthn verification.
+ *
+ * Pattern B migration: Chooses entity with highest counter (tie-break by latest timestamp)
+ * to handle Pattern A duplicates gracefully. Counter is the best "truthy" ordering signal
+ * because it encodes actual usage.
+ *
+ * @param credentialID - Base64url-encoded credential ID
+ * @returns AuthIdentity or null if not found
+ */
 export async function findPasskeyIdentityByCredentialID(credentialID: string): Promise<AuthIdentity | null> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  
+
   // Normalize credentialID for query (trim whitespace)
   const normalizedCredentialID = credentialID.trim();
-  
+
   try {
+    // Fetch up to 20 entities to find the best one (handles Pattern A duplicates)
     const result = await query
       .where(eq('type', 'auth_identity'))
       .where(eq('subtype', 'passkey'))
       .where(eq('credentialId', normalizedCredentialID))
       .withAttributes(true)
       .withPayload(true)
-      .limit(1)
+      .limit(20)
       .fetch();
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return null;
     }
 
-  const entity = result.entities[0];
-  let payload: any = {};
-  try {
-    if (entity.payload) {
-      const decoded = entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-        ? entity.payload
-        : JSON.stringify(entity.payload);
-      payload = JSON.parse(decoded);
-    }
-  } catch (e) {
-    console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
-    return null;
-  }
+    // Choose entity with highest counter (tie-break by latest updatedAt/createdAt)
+    let bestEntity: any = null;
+    let bestCounter = -1;
+    let bestTimestamp = '';
 
-  const attrs = entity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+    for (const entity of result.entities) {
+      // Parse payload to get counter
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.warn('[findPasskeyIdentityByCredentialID] Error decoding payload for entity, skipping:', e);
+        continue;
+      }
 
-  let credential: PasskeyCredential | undefined;
-  if (payload.credentialID && payload.credentialPublicKey) {
-    try {
-      credential = {
-        credentialID: payload.credentialID,
-        credentialPublicKey: payload.credentialPublicKey, // Keep as base64
-        counter: payload.counter || 0,
-        transports: payload.transports || [],
-        deviceName: payload.deviceName,
+      const counter = payload.counter || 0;
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
       };
-    } catch (e) {
-      console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
-    }
-  }
+      // Prefer updatedAt, fallback to createdAt
+      const timestamp = getAttr('updatedAt') || getAttr('createdAt') || '';
 
-  return {
-    key: entity.key,
-    wallet: getAttr('wallet'),
-    subtype: 'passkey' as AuthIdentityType,
-    credentialID: getAttr('credentialId'),
-    createdAt: getAttr('createdAt'),
-    spaceId: getAttr('spaceId'),
-    credential,
-  };
+      if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
+        bestEntity = entity;
+        bestCounter = counter;
+        bestTimestamp = timestamp;
+      }
+    }
+
+    if (!bestEntity) {
+      return null;
+    }
+
+    // Parse best entity
+    let payload: any = {};
+    try {
+      if (bestEntity.payload) {
+        const decoded = bestEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(bestEntity.payload)
+          : typeof bestEntity.payload === 'string'
+          ? bestEntity.payload
+          : JSON.stringify(bestEntity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
+      return null;
+    }
+
+    const attrs = bestEntity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    let credential: PasskeyCredential | undefined;
+    if (payload.credentialID && payload.credentialPublicKey) {
+      try {
+        credential = {
+          credentialID: payload.credentialID,
+          credentialPublicKey: payload.credentialPublicKey, // Keep as base64
+          counter: payload.counter || 0,
+          transports: payload.transports || [],
+          deviceName: payload.deviceName,
+        };
+      } catch (e) {
+        console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
+      }
+    }
+
+    return {
+      key: bestEntity.key,
+      wallet: getAttr('wallet'),
+      subtype: 'passkey' as AuthIdentityType,
+      credentialID: getAttr('credentialId'),
+      createdAt: getAttr('createdAt'),
+      spaceId: getAttr('spaceId'),
+      credential,
+    };
   } catch (fetchError: any) {
     console.error('[findPasskeyIdentityByCredentialID] Arkiv query failed:', {
       message: fetchError?.message,
