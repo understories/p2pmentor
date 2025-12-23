@@ -162,6 +162,9 @@ export default function NotificationsPage() {
         throw new Error(errorData.error || 'Failed to mark as read');
       }
 
+      // Small delay to ensure Arkiv has indexed the update
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
@@ -224,6 +227,9 @@ export default function NotificationsPage() {
         throw new Error(errorData.error || 'Failed to mark as unread');
       }
 
+      // Small delay to ensure Arkiv has indexed the update
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
@@ -258,7 +264,10 @@ export default function NotificationsPage() {
       const walletLower = userWallet.toLowerCase().trim();
       const updates = unreadNotifications.map(n => {
         const notificationId = n.metadata?.notificationId;
-        if (!notificationId) return null;
+        if (!notificationId) {
+          console.warn('[markAllAsRead] Skipping notification without notificationId:', n.id);
+          return null;
+        }
         
         return fetch('/api/notifications/state', {
           method: 'PATCH',
@@ -271,7 +280,17 @@ export default function NotificationsPage() {
         });
       }).filter(Boolean) as Promise<Response>[];
 
-      await Promise.all(updates);
+      // Wait for all updates to complete (use allSettled to handle individual failures)
+      const results = await Promise.allSettled(updates);
+      
+      // Log any failures
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`[markAllAsRead] Failed to update notification ${unreadNotifications[index]?.id}:`, result.reason);
+        } else if (result.status === 'fulfilled' && !result.value.ok) {
+          console.error(`[markAllAsRead] Update failed for notification ${unreadNotifications[index]?.id}:`, result.value.status);
+        }
+      });
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
@@ -319,7 +338,18 @@ export default function NotificationsPage() {
         });
       }).filter(Boolean) as Promise<Response>[];
 
-      await Promise.all(updates);
+      // Wait for all updates to complete
+      const results = await Promise.allSettled(updates);
+      
+      // Log any failures
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          console.error(`[markAllAsUnread] Failed to update notification ${readNotifications[index]?.id}:`, result.reason);
+        }
+      });
+
+      // Small delay to ensure Arkiv has indexed the updates
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
@@ -373,6 +403,9 @@ export default function NotificationsPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to archive notification');
       }
+
+      // Small delay to ensure Arkiv has indexed the update
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
