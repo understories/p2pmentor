@@ -389,6 +389,11 @@ export async function updateNotificationState({
   const entity = result.entities[0];
   const entityKey = entity.key;
   
+  // Validate entity key
+  if (!entityKey || typeof entityKey !== 'string' || !entityKey.startsWith('0x')) {
+    throw new Error(`Invalid entity key: ${entityKey} for notification ${notificationId}`);
+  }
+  
   // Decode current payload
   let currentPayload: any = {};
   try {
@@ -445,17 +450,25 @@ export async function updateNotificationState({
     { key: 'updatedAt', value: now },
   ];
 
-  const { txHash } = await handleTransactionWithTimeout(async () => {
-    const result = await walletClient.updateEntity({
-      entityKey: entityKey as `0x${string}`,
-      payload: enc.encode(JSON.stringify(updatedPayload)),
-      contentType: 'application/json',
-      attributes,
-      expiresIn,
+  let txHash: string;
+  try {
+    const result = await handleTransactionWithTimeout(async () => {
+      const updateResult = await walletClient.updateEntity({
+        entityKey: entityKey as `0x${string}`,
+        payload: enc.encode(JSON.stringify(updatedPayload)),
+        contentType: 'application/json',
+        attributes,
+        expiresIn,
+      });
+      console.log(`[updateNotificationState] Update transaction successful, txHash: ${updateResult.txHash}`);
+      return updateResult;
     });
-    console.log(`[updateNotificationState] Update transaction successful, txHash: ${result.txHash}`);
-    return result;
-  });
+    txHash = result.txHash;
+  } catch (error: any) {
+    console.error(`[updateNotificationState] Failed to update notification ${notificationId}:`, error);
+    // Re-throw with more context
+    throw new Error(`Failed to update notification: ${error.message || error}`);
+  }
 
   console.log(`[updateNotificationState] Update complete for notification ${notificationId}, txHash: ${txHash}`);
   return { key: entityKey, txHash };

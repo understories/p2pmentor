@@ -83,9 +83,29 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
     // Retry with backoff for rate limit errors
     return await retryWithBackoff(createEntityFn, 3, 1000);
   } catch (error: any) {
+    const errorMessage = error?.message || String(error || '');
+    const errorCode = error?.code || error?.status || error?.statusCode;
+    
+    // Log the full error for debugging
+    console.error('[handleTransactionWithTimeout] Error details:', {
+      message: errorMessage,
+      code: errorCode,
+      name: error?.name,
+      error: error,
+    });
+    
     // Handle rate limit errors with user-friendly message
     if (isRateLimitError(error)) {
       throw new Error('Rate limit exceeded. Please wait a moment and try again. The Arkiv network is temporarily limiting requests.');
+    }
+    
+    // Handle RPC/network errors (viem errors)
+    if (errorMessage.includes('An internal error was received') ||
+        errorMessage.includes('did not get any valid response from any backend') ||
+        errorMessage.includes('Internal error') ||
+        (errorCode && errorCode < 0)) {
+      console.error('[handleTransactionWithTimeout] RPC error detected, this may be a temporary network issue');
+      throw new Error('Network error: Unable to connect to Arkiv. Please check your connection and try again in a moment.');
     }
     
     // Handle transaction replacement/nonce errors
@@ -104,13 +124,13 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
     
     // Handle transaction receipt timeout - common on testnets
     // If error mentions receipt not found, the transaction was likely submitted
-    const receiptError = error.message?.includes('Transaction receipt') && 
-                         (error.message?.includes('could not be found') ||
-                          error.message?.includes('not be processed'));
+    const receiptError = errorMessage.includes('Transaction receipt') && 
+                         (errorMessage.includes('could not be found') ||
+                          errorMessage.includes('not be processed'));
     
     if (receiptError) {
       // Try to extract txHash from error message (format: "hash 0x...")
-      const txHashMatch = error.message?.match(/0x[a-fA-F0-9]{40,64}/);
+      const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
       if (txHashMatch) {
         // We have a txHash, transaction was submitted - throw user-friendly error
         throw new Error(`Transaction submitted (${txHashMatch[0].slice(0, 10)}...) but confirmation pending. Please wait a moment and refresh.`);
@@ -118,6 +138,8 @@ export async function handleTransactionWithTimeout<T extends { entityKey: string
       // No txHash found, throw generic user-friendly error
       throw new Error('Transaction submitted but confirmation pending. Please wait a moment and refresh.');
     }
+    
+    // Re-throw with original error for other cases (will be caught by API route)
     throw error;
   }
 }
