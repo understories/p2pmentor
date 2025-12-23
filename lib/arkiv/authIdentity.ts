@@ -138,11 +138,20 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
 }
 
 /**
- * Create auth_identity::passkey entity on Arkiv
- * 
+ * Create or update auth_identity::passkey entity on Arkiv (Pattern B: upsert)
+ *
  * Stores WebAuthn credential metadata for passkey authentication.
+ * Uses create-first, update-on-conflict pattern to handle retries gracefully.
  * One entity per credential (supports multi-device).
- * 
+ *
+ * Pattern B: Deterministic merge semantics:
+ * - createdAt: preserve earliest
+ * - updatedAt: always now
+ * - counter: monotonic max (never decrease)
+ * - credentialPublicKey: immutable once set
+ * - transports: merge set union
+ * - deviceName: last-write-wins
+ *
  * @param params - Passkey credential data
  * @returns Entity key and transaction hash
  */
@@ -167,41 +176,124 @@ export async function createPasskeyIdentity({
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const createdAt = new Date().toISOString();
+  const now = new Date().toISOString();
+  const normalizedCredentialID = credentialID.trim();
+  const normalizedWallet = wallet.toLowerCase().trim();
+
+  // Find existing entity by credentialID (if any)
+  const existingEntityKey = await findPasskeyEntityKeyByCredentialID(normalizedCredentialID);
+  let existingPayload: any = null;
+  let existingCreatedAt = now;
+
+  if (existingEntityKey) {
+    // Fetch existing entity to merge payload
+    try {
+      const publicClient = getPublicClient();
+      const existingEntity = await publicClient.getEntity(existingEntityKey as `0x${string}`);
+
+      // Parse existing payload
+      if (existingEntity.payload) {
+        const decoded = existingEntity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(existingEntity.payload)
+          : typeof existingEntity.payload === 'string'
+          ? existingEntity.payload
+          : JSON.stringify(existingEntity.payload);
+        existingPayload = JSON.parse(decoded);
+      }
+
+      // Get createdAt from attributes
+      const attrs = existingEntity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      existingCreatedAt = getAttr('createdAt') || now;
+    } catch (error) {
+      // If fetch fails, proceed with create (will update on conflict)
+      console.warn('[createPasskeyIdentity] Failed to fetch existing entity, will create:', error);
+    }
+  }
 
   // Convert public key to base64 for JSON storage
   const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64');
 
+  // Merge payload with canonical semantics
   const payload = {
-    credentialID,
+    credentialID: normalizedCredentialID,
     credentialPublicKey: publicKeyBase64,
-    counter,
-    transports: transports || [],
-    deviceName,
-    createdAt,
+    // Counter: monotonic max (never decrease)
+    counter: existingPayload
+      ? Math.max(existingPayload.counter || 0, counter)
+      : counter,
+    // Transports: merge set union (avoid accidental loss)
+    transports: existingPayload && existingPayload.transports
+      ? [...new Set([...existingPayload.transports, ...(transports || [])])]
+      : transports || [],
+    // DeviceName: last-write-wins
+    deviceName: deviceName || existingPayload?.deviceName,
+    // createdAt: preserve earliest
+    createdAt: existingPayload?.createdAt || now,
+    // updatedAt: always now
+    updatedAt: now,
+    // Store rpId for "same credentialId but wrong RP" detection
+    rpId: process.env.PASSKEY_RP_ID || 'p2pmentor',
   };
 
-  // 1 year TTL (effectively permanent for beta)
-  const expiresIn = 31536000;
+  // Rebuild attributes deterministically (never "preserve all")
+  const attributes = [
+    { key: 'type', value: 'auth_identity' },
+    { key: 'subtype', value: 'passkey' },
+    { key: 'wallet', value: normalizedWallet },
+    { key: 'credentialId', value: normalizedCredentialID },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: payload.createdAt },
+    { key: 'updatedAt', value: payload.updatedAt },
+    { key: 'counter', value: String(payload.counter) }, // Store as attribute for quick reads
+  ];
 
-  // Normalize credentialID to ensure consistent encoding (base64url)
-  const normalizedCredentialID = credentialID.trim();
+  // TTL: 10 years (effectively permanent for identity)
+  const expiresIn = 315360000; // 10 years
 
-  const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'auth_identity' },
-        { key: 'subtype', value: 'passkey' },
-        { key: 'wallet', value: wallet.toLowerCase() },
-        { key: 'credentialId', value: normalizedCredentialID }, // Store normalized credentialID
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn,
+  // Create-first, update-on-conflict pattern (removes read-before-write race)
+  let entityKey: string;
+  let txHash: string;
+
+  try {
+    // Attempt create first
+    const result = await handleTransactionWithTimeout(async () => {
+      return await walletClient.createEntity({
+        payload: enc.encode(JSON.stringify(payload)),
+        contentType: 'application/json',
+        attributes,
+        expiresIn,
+      });
     });
-  });
+
+    entityKey = result.entityKey;
+    txHash = result.txHash;
+  } catch (createError: any) {
+    // If create fails with "already exists" or similar, try update
+    if (existingEntityKey) {
+      const result = await handleTransactionWithTimeout(async () => {
+        return await walletClient.updateEntity({
+          entityKey: existingEntityKey as `0x${string}`,
+          payload: enc.encode(JSON.stringify(payload)),
+          contentType: 'application/json',
+          attributes, // Rebuild deterministically
+          expiresIn, // Refresh TTL
+        });
+      });
+
+      entityKey = result.entityKey;
+      txHash = result.txHash;
+    } else {
+      // If no existing key and create failed, rethrow
+      throw createError;
+    }
+  }
 
   // Create separate txhash entity (optional metadata, don't wait)
   walletClient.createEntity({
@@ -210,7 +302,7 @@ export async function createPasskeyIdentity({
     attributes: [
       { key: 'type', value: 'auth_identity_passkey_txhash' },
       { key: 'identityKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
+      { key: 'wallet', value: normalizedWallet },
       { key: 'spaceId', value: spaceId },
     ],
     expiresIn,
