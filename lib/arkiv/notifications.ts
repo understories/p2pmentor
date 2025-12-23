@@ -295,6 +295,8 @@ export async function updateNotificationState({
       const sourceEntityType = parts[0];
       const sourceEntityKey = parts.slice(1).join('_'); // Handle keys that might contain underscores
       
+      console.log(`[updateNotificationState] Fallback query: searching by sourceEntityType=${sourceEntityType}, sourceEntityKey=${sourceEntityKey}`);
+      
       result = await publicClient.buildQuery()
         .where(eq('type', 'notification'))
         .where(eq('wallet', normalizedWallet))
@@ -303,8 +305,70 @@ export async function updateNotificationState({
         .where(eq('spaceId', spaceId))
         .withAttributes(true)
         .withPayload(true)
-        .limit(1)
+        .limit(10) // Get more results to find the right one
         .fetch();
+      
+      // If still multiple, sort by most recent
+      if (result?.entities && result.entities.length > 0) {
+        result.entities.sort((a: any, b: any) => {
+          const aTime = a.updatedAt || a.createdAt || '';
+          const bTime = b.updatedAt || b.createdAt || '';
+          return bTime.localeCompare(aTime);
+        });
+        console.log(`[updateNotificationState] Fallback query found ${result.entities.length} entities, using most recent`);
+      }
+    }
+  }
+  
+  // Last resort: query all notifications for this wallet and find by notificationId in payload or derive it
+  if (!result?.entities || result.entities.length === 0) {
+    console.log(`[updateNotificationState] Last resort: querying all notifications for wallet ${normalizedWallet}`);
+    const allResult = await publicClient.buildQuery()
+      .where(eq('type', 'notification'))
+      .where(eq('wallet', normalizedWallet))
+      .where(eq('spaceId', spaceId))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(100)
+      .fetch();
+    
+    if (allResult?.entities && allResult.entities.length > 0) {
+      // Try to find by matching notificationId or deriving it
+      const matchingEntity = allResult.entities.find((entity: any) => {
+        // Check if notificationId attribute matches
+        const attrs = entity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+        
+        const entityNotificationId = getAttr('notificationId');
+        if (entityNotificationId === notificationId) {
+          return true;
+        }
+        
+        // Try deriving notificationId from sourceEntityType + sourceEntityKey
+        const entitySourceType = getAttr('sourceEntityType');
+        const entitySourceKey = getAttr('sourceEntityKey');
+        if (entitySourceType && entitySourceKey) {
+          const derivedId = deriveNotificationId(entitySourceType, entitySourceKey);
+          if (derivedId === notificationId) {
+            return true;
+          }
+        }
+        
+        return false;
+      });
+      
+      if (matchingEntity) {
+        console.log(`[updateNotificationState] Found notification via last resort query`);
+        // Use the allResult but replace entities array with just the matching one
+        result = allResult;
+        result.entities = [matchingEntity];
+      }
     }
   }
 
