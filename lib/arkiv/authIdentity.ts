@@ -314,6 +314,118 @@ export async function createPasskeyIdentity({
 }
 
 /**
+ * Update passkey counter (Pattern B: update in place)
+ *
+ * Called after successful authentication to prevent replay attacks.
+ * Handles race conditions: two authentications near-simultaneously both read old counter,
+ * both write max(old, newCounter) - monotonicity preserved.
+ *
+ * @param credentialID - Base64url-encoded credential ID
+ * @param newCounter - New counter value from WebAuthn verification
+ * @param privateKey - Private key for signing (global Arkiv wallet)
+ * @returns Updated entity key and transaction hash
+ */
+export async function updatePasskeyCounter(
+  credentialID: string,
+  newCounter: number,
+  privateKey: `0x${string}`
+): Promise<{ key: string; txHash: string }> {
+  const normalizedCredentialID = credentialID.trim();
+
+  // Find entity key by credentialID
+  const entityKey = await findPasskeyEntityKeyByCredentialID(normalizedCredentialID);
+
+  if (!entityKey) {
+    throw new Error(`Passkey identity not found for credentialID: ${normalizedCredentialID}`);
+  }
+
+  // Fetch existing entity
+  const publicClient = getPublicClient();
+  const existingEntity = await publicClient.getEntity(entityKey as `0x${string}`);
+
+  if (!existingEntity) {
+    throw new Error(`Passkey entity not found at key: ${entityKey}`);
+  }
+
+  // Parse existing payload
+  let existingPayload: any = {};
+  try {
+    const decoded = existingEntity.payload instanceof Uint8Array
+      ? new TextDecoder().decode(existingEntity.payload)
+      : typeof existingEntity.payload === 'string'
+      ? existingEntity.payload
+      : JSON.stringify(existingEntity.payload);
+    existingPayload = JSON.parse(decoded);
+  } catch (e) {
+    throw new Error('Failed to parse existing passkey identity payload');
+  }
+
+  // Get current counter (check attribute first for quick read, fallback to payload)
+  const attrs = existingEntity.attributes || {};
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
+    }
+    return String(attrs[key] || '');
+  };
+  const currentCounter = parseInt(getAttr('counter')) || existingPayload.counter || 0;
+
+  // Update counter: monotonic max (never decrease, handles races)
+  const updatedCounter = Math.max(currentCounter, newCounter);
+  const now = new Date().toISOString();
+
+  const updatedPayload = {
+    ...existingPayload,
+    counter: updatedCounter,
+    updatedAt: now,
+  };
+
+  // Rebuild attributes deterministically (never "preserve all")
+  const attributes = [
+    { key: 'type', value: 'auth_identity' },
+    { key: 'subtype', value: 'passkey' },
+    { key: 'wallet', value: getAttr('wallet') },
+    { key: 'credentialId', value: normalizedCredentialID },
+    { key: 'spaceId', value: getAttr('spaceId') },
+    { key: 'createdAt', value: getAttr('createdAt') },
+    { key: 'updatedAt', value: now },
+    { key: 'counter', value: String(updatedCounter) }, // Store as attribute for quick reads
+  ];
+
+  // Update in place with retry logic for transient failures
+  const walletClient = getWalletClientFromPrivateKey(privateKey);
+  const enc = new TextEncoder();
+
+  let lastError: any = null;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { entityKey: finalKey, txHash } = await handleTransactionWithTimeout(async () => {
+        return await walletClient.updateEntity({
+          entityKey: entityKey as `0x${string}`,
+          payload: enc.encode(JSON.stringify(updatedPayload)),
+          contentType: 'application/json',
+          attributes, // Rebuild deterministically
+          expiresIn: 315360000, // Refresh TTL (10 years)
+        });
+      });
+
+      return { key: finalKey, txHash };
+    } catch (error: any) {
+      lastError = error;
+      // Retry once on transient chain/RPC issues
+      if (attempt === 0 && (error.message?.includes('RPC') || error.message?.includes('network'))) {
+        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+        continue;
+      }
+      throw error;
+    }
+  }
+
+  throw lastError;
+}
+
+/**
  * Create auth_identity::backup_wallet entity on Arkiv
  * 
  * Stores backup wallet information for recovery scenarios.
