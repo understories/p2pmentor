@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes **Pattern A: Create New Entity per Change** for versioning scenarios. For most mutable application state (profiles, preferences, notifications), use **Pattern B: Update in Place** with stable entity keys instead. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for Pattern B.
+This document describes **Pattern A: Create New Entity per Change** for versioning scenarios. For most mutable application state (profiles, preferences, notifications), use **Pattern B: Update in Place** with stable entity keys instead. See [Editable Entities](/docs/arkiv/editable-entities) for Pattern B.
 
 **When to use this pattern:**
 - Document revisions where each version needs independent identity
@@ -42,7 +42,7 @@ async function getLatestProfile(wallet: string) {
 
 ### Update Creates New Entity
 
-**Note:** This example shows Pattern A (versioning). For mutable application state, use Pattern B (update in place) instead. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for Pattern B.
+**Note:** This example shows Pattern A (versioning). For mutable application state, use Pattern B (update in place) instead. See [Editable Entities](/docs/arkiv/editable-entities) for Pattern B.
 
 ```typescript
 async function updateProfile(wallet: string, updates: Partial<Profile>) {

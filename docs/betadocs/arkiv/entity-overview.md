@@ -8,7 +8,7 @@ This document provides complete schema documentation for all Arkiv entities used
 
 ## Overview
 
-All entities are stored on Arkiv (blockchain-native storage). Transactions are immutable, but entities can be updated in place using stable entity keys (Pattern B). For versioning scenarios, updates can create new entities (Pattern A). See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for details on update patterns.
+All entities are stored on Arkiv (blockchain-native storage). Transactions are immutable, but entities can be updated in place using stable entity keys (Pattern B). For versioning scenarios, updates can create new entities (Pattern A). See [Editable Entities](/docs/arkiv/editable-entities) for details on update patterns.
 
 **Common Patterns:**
 - All entities have `type` attribute for filtering
@@ -35,7 +35,7 @@ Stores user profile information including identity, skills, availability, and re
 - `skillExpertise`: Map of skillId -> expertise level (0-5)
 - `availabilityWindow`: Text description of availability
 
-**Update Handling:** Profile updates use stable entity keys (Pattern B). The same `entity_key` is reused for all updates, preserving identity while maintaining full transaction history. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for details.
+**Update Handling:** Profile updates use stable entity keys (Pattern B). The same `entity_key` is reused for all updates, preserving identity while maintaining full transaction history. See [Editable Entities](/docs/arkiv/editable-entities) for details.
 
 **Query:** Filter by `type: 'user_profile'` and `wallet: <address>`.
 
@@ -247,7 +247,7 @@ const result = await publicClient.buildQuery()
 
 ## Notes
 
-- **Update Patterns:** Mutable entities (profiles, preferences, notifications) use stable entity keys (Pattern B). Versioning scenarios use new entities per change (Pattern A). See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md).
+- **Update Patterns:** Mutable entities (profiles, preferences, notifications) use stable entity keys (Pattern B). Versioning scenarios use new entities per change (Pattern A). See [Editable Entities](/docs/arkiv/editable-entities).
 - **Transaction History:** All mutations create immutable transactions. Full history is queryable via Arkiv's indexer.
 - **TTL:** Asks and offers have TTL; expired entities filtered client-side.
 - **Normalization:** All wallet addresses normalized to lowercase.

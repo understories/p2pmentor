@@ -22,7 +22,7 @@ Arkiv supports two update patterns:
 - Query by `entity_key` always returns current state
 - Use for: profiles, preferences, notifications, frequently updated entities
 
-p2pmentor uses **Pattern B** for mutable entities. See [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) for details on how updates work with stable entity keys.
+p2pmentor uses **Pattern B** for mutable entities. See [Editable Entities](/docs/arkiv/editable-entities) for details on how updates work with stable entity keys.
 
 For Pattern A (versioning), see [Entity Versioning](/docs/arkiv/patterns/entity-versioning) for implementation patterns.
 

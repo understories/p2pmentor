@@ -116,6 +116,6 @@ If the SDK doesn't support entity updates yet:
 ## Related Documentation
 
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Full technical plan
-- [Entity Update Rollout](/docs/betadocs/arkiv/entity-update-rollout.md) - Rollout phases
-- [Editable Entities](/docs/betadocs/arkiv/editable-entities.md) - Mental model
+- [Entity Update Rollout](/docs/arkiv/entity-update-rollout) - Rollout phases
+- [Editable Entities](/docs/arkiv/editable-entities) - Mental model
 
