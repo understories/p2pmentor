@@ -289,7 +289,7 @@ export default function ProfilesPage() {
                         </svg>
                         <span className="font-medium">Version history</span>
                         {/* Educational Tooltip */}
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-2xl w-96">
                           <div className="font-semibold mb-2">Profile version history</div>
                           <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
                             Blockchains are immutable at the transaction level, but application data is mutable at the state level. We can update profiles while preserving all historical versions on-chain. The app displays the latest canonical state.
