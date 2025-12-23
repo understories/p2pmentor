@@ -4,10 +4,10 @@
 
 Stores passkey credential metadata and backup wallet information on Arkiv. Replaces ephemeral in-memory storage with persistent, on-chain credential tracking. Supports multi-device passkey authentication.
 
-**Entity Type:** `auth_identity` (with subtypes)  
-**Subtypes:** `auth_identity::passkey`, `auth_identity::backup_wallet`  
-**TTL:** 1 year (31536000 seconds)  
-**Immutability:** Immutable - updates create new entities
+**Entity Type:** `auth_identity` (with subtypes)
+**Subtypes:** `auth_identity::passkey`, `auth_identity::backup_wallet`
+**TTL:** 10 years (315360000 seconds)
+**Update Pattern:** Pattern B (update in place with stable entity keys)
 
 ## Attributes
 
@@ -18,7 +18,9 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 - `wallet`: Wallet address (required, lowercase)
 - `credentialId`: Base64url-encoded credential ID (required, stored as attribute `credentialId`)
 - `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `createdAt`: ISO timestamp (required, preserved on updates)
+- `updatedAt`: ISO timestamp (required, set to now on every update)
+- `counter`: Signature counter as string (required, stored as attribute for quick reads)
 
 ### Backup Wallet Identity
 
@@ -36,11 +38,13 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 ```typescript
 {
   credentialID: string;           // Base64url-encoded credential ID
-  credentialPublicKey: string;    // Base64-encoded public key
-  counter: number;                 // Signature counter
-  transports?: string[];           // Transport methods (e.g., ["usb", "nfc"])
-  deviceName?: string;             // Human-readable device name
-  createdAt: string;              // ISO timestamp
+  credentialPublicKey: string;    // Base64-encoded public key (immutable once set)
+  counter: number;                 // Signature counter (monotonic max on updates)
+  transports?: string[];           // Transport methods (e.g., ["usb", "nfc"]) - merged set union on updates
+  deviceName?: string;             // Human-readable device name (last-write-wins)
+  createdAt: string;              // ISO timestamp (preserved earliest on updates)
+  updatedAt: string;              // ISO timestamp (always set to now on updates)
+  rpId?: string;                  // Relying Party ID for RP mismatch detection
 }
 ```
 
@@ -196,10 +200,31 @@ await createBackupWalletIdentity({
 });
 ```
 
+## Pattern B Update Semantics
+
+Passkey identities use Pattern B (update in place) with deterministic merge rules:
+
+- **createdAt**: Preserved earliest (never changed)
+- **updatedAt**: Always set to now on updates
+- **counter**: Monotonic max (never decrease, handles race conditions)
+- **credentialPublicKey**: Immutable once set (if changed, treat as suspicious)
+- **transports**: Merged set union (avoid accidental loss)
+- **deviceName**: Last-write-wins
+- **Attributes**: Rebuilt deterministically on every write (never "preserve all")
+
+### Counter Updates
+
+Counter updates use `updatePasskeyCounter()` function which:
+- Updates counter in-place (no duplicate entities)
+- Handles race conditions with `Math.max()` for monotonicity
+- Stores counter as attribute for quick reads
+- Retries on transient chain/RPC failures
+
 ## Notes
 
-- **Multi-Device Support**: Each device gets its own passkey entity
+- **Multi-Device Support**: Each device gets its own passkey entity (deduplicated by credentialID)
 - **Recovery**: Backup wallet provides account recovery mechanism
-- **Immutability**: Cannot update credentials - create new entity to replace
-- **TTL**: 1 year expiration (effectively permanent for beta)
+- **Pattern B**: Updates use `updateEntity()` with stable entity keys (no duplicates)
+- **TTL**: 10 years expiration (315360000 seconds, effectively permanent)
+- **Migration**: Legacy Pattern A duplicates are handled gracefully (choose highest counter)
 
