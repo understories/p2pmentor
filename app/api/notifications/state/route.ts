@@ -54,6 +54,14 @@ export async function PATCH(request: Request) {
       );
     }
 
+    console.log(`[PATCH /api/notifications/state] Updating notification state:`, {
+      wallet: walletLower,
+      notificationId,
+      read,
+      archived,
+      spaceId: finalSpaceId,
+    });
+
     const { key, txHash } = await updateNotificationState({
       wallet: walletLower,
       notificationId,
@@ -61,6 +69,13 @@ export async function PATCH(request: Request) {
       archived,
       privateKey,
       spaceId: finalSpaceId,
+    });
+
+    console.log(`[PATCH /api/notifications/state] Update successful:`, {
+      key,
+      txHash,
+      wallet: walletLower,
+      notificationId,
     });
 
     return NextResponse.json({

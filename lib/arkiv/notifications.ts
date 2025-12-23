@@ -312,6 +312,16 @@ export async function updateNotificationState({
     throw new Error(`Notification not found: ${notificationId} for wallet ${normalizedWallet}`);
   }
 
+  // If multiple entities found (shouldn't happen with Pattern B, but handle it), use the most recent one
+  if (result.entities.length > 1) {
+    console.warn(`[updateNotificationState] Multiple entities found for notificationId ${notificationId}, using most recent`);
+    result.entities.sort((a: any, b: any) => {
+      const aTime = a.updatedAt || a.createdAt || '';
+      const bTime = b.updatedAt || b.createdAt || '';
+      return bTime.localeCompare(aTime);
+    });
+  }
+
   const entity = result.entities[0];
   const entityKey = entity.key;
   
@@ -341,12 +351,19 @@ export async function updateNotificationState({
   };
 
   // Build updated payload
+  // Ensure read/archived are always explicitly set (important for old notifications)
   const updatedPayload = {
     ...currentPayload,
-    read: read !== undefined ? read : currentPayload.read ?? false,
-    archived: archived !== undefined ? archived : currentPayload.archived ?? false,
+    read: read !== undefined ? read : (currentPayload.read ?? false),
+    archived: archived !== undefined ? archived : (currentPayload.archived ?? false),
     updatedAt: now,
   };
+
+  // Log the update for debugging
+  console.log(`[updateNotificationState] Updating notification ${notificationId} for wallet ${normalizedWallet}`);
+  console.log(`[updateNotificationState] Current payload read: ${currentPayload.read}, archived: ${currentPayload.archived}`);
+  console.log(`[updateNotificationState] New payload read: ${updatedPayload.read}, archived: ${updatedPayload.archived}`);
+  console.log(`[updateNotificationState] Entity key: ${entityKey}`);
 
   // Update entity in place (Pattern B)
   const expiresIn = 31536000; // 1 year
@@ -365,15 +382,18 @@ export async function updateNotificationState({
   ];
 
   const { txHash } = await handleTransactionWithTimeout(async () => {
-    return await walletClient.updateEntity({
+    const result = await walletClient.updateEntity({
       entityKey: entityKey as `0x${string}`,
       payload: enc.encode(JSON.stringify(updatedPayload)),
       contentType: 'application/json',
       attributes,
       expiresIn,
     });
+    console.log(`[updateNotificationState] Update transaction successful, txHash: ${result.txHash}`);
+    return result;
   });
 
+  console.log(`[updateNotificationState] Update complete for notification ${notificationId}, txHash: ${txHash}`);
   return { key: entityKey, txHash };
 }
 
@@ -474,6 +494,24 @@ export async function listNotifications({
     }
 
     let notifications = result.entities.map(decodeNotificationEntity);
+
+    // CRITICAL: Deduplicate by notificationId (handle old Pattern A duplicates)
+    // Keep only the most recent notification for each notificationId
+    const notificationMap = new Map<string, Notification>();
+    for (const notif of notifications) {
+      const existing = notificationMap.get(notif.notificationId);
+      if (!existing) {
+        notificationMap.set(notif.notificationId, notif);
+      } else {
+        // Compare by updatedAt to keep the most recent
+        const existingTime = new Date(existing.updatedAt || existing.createdAt).getTime();
+        const currentTime = new Date(notif.updatedAt || notif.createdAt).getTime();
+        if (currentTime > existingTime) {
+          notificationMap.set(notif.notificationId, notif);
+        }
+      }
+    }
+    notifications = Array.from(notificationMap.values());
 
     // Filter by spaceIds client-side if multiple requested
     if (spaceIds && spaceIds.length > 0) {
