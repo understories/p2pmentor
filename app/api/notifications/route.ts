@@ -48,10 +48,11 @@ export async function GET(request: Request) {
     }
     
     // Query notifications directly from Arkiv entities
+    // Note: read/archived are now in notification payload, not separate preferences
     const notifications = await listNotifications({
       wallet: normalizedWallet,
       notificationType: notificationType as any,
-      status: status || 'active',
+      archived: status === 'archived' ? true : status === 'active' ? false : undefined,
       spaceId,
       spaceIds,
       limit: 100,

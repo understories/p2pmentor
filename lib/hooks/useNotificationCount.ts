@@ -1,13 +1,15 @@
 /**
  * Hook to fetch unread notification count
  * 
- * Uses the EXACT same logic as the notifications page:
- * 1. Loads notifications from /api/notifications
- * 2. Loads preferences from /api/notifications/preferences (Arkiv-native)
- * 3. Filters out archived notifications
- * 4. Counts unread notifications
+ * Complete overhaul following admin notification pattern (Pattern B).
+ * Uses notification.read directly from notification payload, no separate preferences.
  * 
- * This ensures the badge count matches the notifications page count.
+ * Key changes:
+ * - Removed separate notification_preference entities
+ * - Read/archived state stored directly in notification payload
+ * - Simplified code, no preference management needed
+ * 
+ * Reference: refs/docs/admin-vs-regular-notifications-comparison.md
  */
 
 'use client';
@@ -29,54 +31,21 @@ export function useNotificationCount(): number | null {
 
     const loadCount = async () => {
       try {
-        // Normalize wallet to lowercase for consistent querying (same as notifications page)
+        // Normalize wallet to lowercase for consistent querying
         const normalizedWallet = wallet.toLowerCase().trim();
         
-        // Load preferences FIRST (same as notifications page)
-        // This ensures we use Arkiv-native preferences, not localStorage
-        const [notificationsRes, preferencesRes] = await Promise.all([
-          fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&status=active`),
-          fetch(`/api/notifications/preferences?wallet=${encodeURIComponent(normalizedWallet)}`)
-        ]);
+        // Load notifications (read/archived state is in payload)
+        const res = await fetch(`/api/notifications?wallet=${encodeURIComponent(normalizedWallet)}&archived=false`);
+        const data = await res.json();
         
-        const notificationsData = await notificationsRes.json();
-        const preferencesData = await preferencesRes.json();
-        
-        if (!notificationsData.ok) {
+        if (!data.ok) {
           setCount(0);
           return;
         }
         
-        // Build preferences map (same as notifications page)
-        const preferencesMap = new Map<string, { read: boolean; archived: boolean }>();
-        if (preferencesData.ok && preferencesData.preferences) {
-          preferencesData.preferences.forEach((pref: any) => {
-            preferencesMap.set(pref.notificationId, {
-              read: pref.read,
-              archived: pref.archived,
-            });
-          });
-        }
-        
-        // Count unread notifications using EXACT same logic as notifications page
-        const notifications = notificationsData.notifications || [];
-        let unreadCount = 0;
-        
-        notifications.forEach((n: any) => {
-          const notificationId = n.key;
-          const pref = preferencesMap.get(notificationId);
-          
-          // Filter out archived notifications (same as notifications page)
-          if (pref?.archived) {
-            return; // Skip archived notifications
-          }
-          
-          // Count unread (same as notifications page: pref?.read ?? false means default to unread)
-          const isRead = pref?.read ?? false;
-          if (!isRead) {
-            unreadCount++;
-          }
-        });
+        // Count unread notifications (read state is in notification payload)
+        const notifications = data.notifications || [];
+        const unreadCount = notifications.filter((n: any) => !n.archived && !(n.read ?? false)).length;
         
         setCount(unreadCount);
       } catch (err) {
@@ -87,12 +56,12 @@ export function useNotificationCount(): number | null {
 
     loadCount();
     
-    // Poll every 30 seconds to keep count updated (same interval as notifications page)
+    // Poll every 30 seconds to keep count updated
     const interval = setInterval(loadCount, 30000);
     
-    // Listen for preference updates from notifications page
-    const handlePreferenceUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ wallet?: string; delay?: number }>;
+    // Listen for notification updates from notifications page
+    const handleNotificationUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent<{ wallet?: string }>;
       const currentWallet = typeof window !== 'undefined' 
         ? localStorage.getItem('wallet_address')?.toLowerCase().trim()
         : null;
@@ -100,23 +69,21 @@ export function useNotificationCount(): number | null {
       // Only refresh if the update is for the current wallet (or no wallet specified)
       if (!customEvent.detail.wallet || 
           customEvent.detail.wallet.toLowerCase().trim() === currentWallet) {
-        // Add delay to ensure Arkiv has indexed the preference updates
-        // Use delay from event detail if provided, otherwise default to 500ms
-        const delay = customEvent.detail.delay || 500;
+        // Small delay to ensure Arkiv has indexed the update
         setTimeout(() => {
           loadCount();
-        }, delay);
+        }, 500);
       }
     };
     
     if (typeof window !== 'undefined') {
-      window.addEventListener('notification-preferences-updated', handlePreferenceUpdate);
+      window.addEventListener('notification-preferences-updated', handleNotificationUpdate);
     }
     
     return () => {
       clearInterval(interval);
       if (typeof window !== 'undefined') {
-        window.removeEventListener('notification-preferences-updated', handlePreferenceUpdate);
+        window.removeEventListener('notification-preferences-updated', handleNotificationUpdate);
       }
     };
   }, []);

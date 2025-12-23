@@ -20,7 +20,7 @@ async function diagnoseNotifications(walletAddress: string) {
   console.log('📬 Fetching notifications...');
   const notifications = await listNotifications({
     wallet: normalizedWallet,
-    status: 'active',
+    archived: false,
     limit: 100,
   });
   console.log(`Found ${notifications.length} notifications`);

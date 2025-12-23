@@ -24,7 +24,8 @@ export type NotificationType =
   | 'new_garden_note'
   | 'new_skill_created'
   | 'community_meeting_scheduled'
-  | 'session_completed_feedback_needed';
+  | 'session_completed_feedback_needed'
+  | 'entity_created';
 
 export interface Notification {
   id: string;
