@@ -491,18 +491,19 @@ export async function createBackupWalletIdentity({
 
 /**
  * List all passkey identities for a wallet
- * 
+ *
  * Queries Arkiv for all passkey credentials linked to a wallet.
- * Same query pattern as Profile queries.
- * 
+ * Pattern B migration: Deduplicates by credentialID (keeps highest counter, latest timestamp)
+ * to handle Pattern A legacy duplicates gracefully.
+ *
  * @param wallet - Wallet address
- * @returns Array of passkey identities
+ * @returns Array of passkey identities (deduplicated by credentialID)
  */
 export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentity[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   const normalizedWallet = wallet.toLowerCase().trim();
-  
+
   try {
     const result = await query
       .where(eq('type', 'auth_identity'))
@@ -518,57 +519,82 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
       return [];
     }
 
-    return result.entities.map((entity: any) => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
-      }
-    } catch (e) {
-      console.error('[listPasskeyIdentities] Error decoding payload:', e);
-    }
-
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-
-    // Convert base64 public key back to Uint8Array for credential object
-    let credential: PasskeyCredential | undefined;
-    if (payload.credentialID && payload.credentialPublicKey) {
+    // Map entities to AuthIdentity format
+    const identities = result.entities.map((entity: any) => {
+      let payload: any = {};
       try {
-        const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
-        credential = {
-          credentialID: payload.credentialID,
-          credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
-          counter: payload.counter || 0,
-          transports: payload.transports || [],
-          deviceName: payload.deviceName,
-        };
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
       } catch (e) {
-        console.error('[listPasskeyIdentities] Error parsing credential:', e);
+        console.error('[listPasskeyIdentities] Error decoding payload:', e);
+      }
+
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // Convert base64 public key back to Uint8Array for credential object
+      let credential: PasskeyCredential | undefined;
+      if (payload.credentialID && payload.credentialPublicKey) {
+        try {
+          const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
+          credential = {
+            credentialID: payload.credentialID,
+            credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
+            counter: payload.counter || 0,
+            transports: payload.transports || [],
+            deviceName: payload.deviceName,
+          };
+        } catch (e) {
+          console.error('[listPasskeyIdentities] Error parsing credential:', e);
+        }
+      }
+
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet'),
+        subtype: 'passkey' as AuthIdentityType,
+        credentialID: getAttr('credentialId'),
+        createdAt: getAttr('createdAt'),
+        spaceId: getAttr('spaceId'),
+        credential,
+      };
+    });
+
+    // Pattern B migration: Deduplicate by credentialID (keep highest counter, latest timestamp)
+    const identityMap = new Map<string, AuthIdentity>();
+
+    for (const identity of identities) {
+      if (identity.credentialID) {
+        const existing = identityMap.get(identity.credentialID);
+        if (!existing) {
+          identityMap.set(identity.credentialID, identity);
+        } else {
+          // Choose identity with highest counter (tie-break by latest createdAt)
+          const existingCounter = existing.credential?.counter || 0;
+          const newCounter = identity.credential?.counter || 0;
+          const existingTimestamp = existing.createdAt || '';
+          const newTimestamp = identity.createdAt || '';
+
+          if (newCounter > existingCounter || (newCounter === existingCounter && newTimestamp > existingTimestamp)) {
+            identityMap.set(identity.credentialID, identity);
+          }
+        }
       }
     }
 
-    return {
-      key: entity.key,
-      wallet: getAttr('wallet'),
-      subtype: 'passkey' as AuthIdentityType,
-      credentialID: getAttr('credentialId'),
-      createdAt: getAttr('createdAt'),
-      spaceId: getAttr('spaceId'),
-      credential,
-    };
-    });
+    return Array.from(identityMap.values());
   } catch (fetchError: any) {
     console.error('[listPasskeyIdentities] Arkiv query failed:', {
       message: fetchError?.message,
