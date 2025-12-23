@@ -1,9 +1,9 @@
 /**
  * Auth Identity CRUD helpers
- * 
+ *
  * Stores passkey credential metadata on Arkiv (replaces ephemeral in-memory Map).
  * Mirrors MetaMask pattern: wallet address = identity, auth_identity = credential metadata.
- * 
+ *
  * Reference: refs/doc/passkey_levelup.md
  */
 
@@ -21,6 +21,7 @@ export type PasskeyCredential = {
   counter: number;
   transports?: string[];
   deviceName?: string;
+  lastUsedAt?: string; // ISO timestamp of last authentication (for tie-breaking in duplicate selection)
 };
 
 export type AuthIdentity = {
@@ -30,6 +31,7 @@ export type AuthIdentity = {
   credentialID?: string; // For passkey: base64url-encoded credential ID
   backupWalletAddress?: string; // For backup_wallet: backup wallet address
   createdAt: string;
+  updatedAt?: string; // ISO timestamp (for tie-breaking in duplicate selection)
   spaceId: string;
   txHash?: string;
   // Payload data (from entity payload)
@@ -47,6 +49,17 @@ export type AuthIdentity = {
  * Uses keccak256 to avoid length limits, delimiter collisions, and migration pain.
  *
  * Key format: auth_identity:passkey:{base64url(keccak256("passkey|" + credentialID))}
+ *
+ * NOTE: This function is currently unused by design. Our Pattern B implementation
+ * uses query-based entity lookup (findPasskeyEntityKeyByCredentialID) because:
+ * - Arkiv SDK doesn't support custom entity keys in createEntity()
+ * - We update in-place using the earliest discovered entity key
+ * - Deterministic key hashing is reserved for future canonical-indexing
+ *   (if Arkiv supports custom keys or if we add an index entity pattern)
+ *
+ * This means recovery is still query-dependent, not a single getEntity(canonicalKey) call.
+ * We're still reliant on indexing being available for "find by credentialId" queries,
+ * though correctness is now robust (chooses highest counter entity).
  *
  * @param credentialID - Base64url-encoded credential ID (normalized)
  * @returns Deterministic key hash (base64url-encoded)
@@ -83,8 +96,16 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
       .where(eq('credentialId', normalizedCredentialID))
       .withAttributes(true)
       .withPayload(true)
-      .limit(20) // Fetch multiple to choose best one
+      .limit(100) // Fetch multiple to choose best one (increased for worst-case retry storms)
       .fetch();
+
+    // Telemetry: log if we might be truncating
+    if (result?.entities && Array.isArray(result.entities) && result.entities.length === 100) {
+      console.warn('[findPasskeyEntityKeyByCredentialID] Query hit limit (100 entities), may be truncating duplicates', {
+        credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
+        entityCount: result.entities.length,
+      });
+    }
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return null;
@@ -120,9 +141,10 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
         }
         return String(attrs[key] || '');
       };
-      const createdAt = getAttr('createdAt');
-      const updatedAt = getAttr('updatedAt');
-      const timestamp = updatedAt || createdAt || '';
+      const lastUsedAt = getAttr('lastUsedAt') || '';
+      const updatedAt = getAttr('updatedAt') || '';
+      const createdAt = getAttr('createdAt') || '';
+      const timestamp = lastUsedAt || updatedAt || createdAt;
 
       if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
         bestEntity = entity;
@@ -180,10 +202,13 @@ export async function createPasskeyIdentity({
   const normalizedCredentialID = credentialID.trim();
   const normalizedWallet = wallet.toLowerCase().trim();
 
-  // Find existing entity by credentialID (if any)
+  // Find existing entity by credentialID (if any) - for merge semantics only
+  // NOTE: We don't use this for conflict resolution to avoid race conditions.
+  // If create fails, we re-query to get the actual entity key.
   const existingEntityKey = await findPasskeyEntityKeyByCredentialID(normalizedCredentialID);
   let existingPayload: any = null;
   let existingCreatedAt = now;
+  let existingPublicKey: string | null = null;
 
   if (existingEntityKey) {
     // Fetch existing entity to merge payload
@@ -199,6 +224,7 @@ export async function createPasskeyIdentity({
           ? existingEntity.payload
           : JSON.stringify(existingEntity.payload);
         existingPayload = JSON.parse(decoded);
+        existingPublicKey = existingPayload.credentialPublicKey || null;
       }
 
       // Get createdAt from attributes
@@ -220,10 +246,24 @@ export async function createPasskeyIdentity({
   // Convert public key to base64 for JSON storage
   const publicKeyBase64 = Buffer.from(credentialPublicKey).toString('base64');
 
+  // Public key immutability guard: detect suspicious changes
+  if (existingPublicKey && existingPublicKey !== publicKeyBase64) {
+    const errorMsg = `Public key mismatch for credentialID: ${normalizedCredentialID.substring(0, 16)}... (stored: ${existingPublicKey.substring(0, 16)}..., incoming: ${publicKeyBase64.substring(0, 16)}...)`;
+    console.error('[createPasskeyIdentity] SECURITY WARNING: Public key mismatch detected', {
+      credentialID: normalizedCredentialID.substring(0, 32) + '...',
+      storedPublicKeyPrefix: existingPublicKey.substring(0, 32) + '...',
+      incomingPublicKeyPrefix: publicKeyBase64.substring(0, 32) + '...',
+      wallet: normalizedWallet,
+    });
+    // Keep original public key (don't allow mutation)
+    // Log loudly but proceed with update (may be legitimate credential replacement)
+    // TODO: Consider rejecting update if threat model requires it
+  }
+
   // Merge payload with canonical semantics
   const payload = {
     credentialID: normalizedCredentialID,
-    credentialPublicKey: publicKeyBase64,
+    credentialPublicKey: existingPublicKey || publicKeyBase64, // Keep original if exists
     // Counter: monotonic max (never decrease)
     counter: existingPayload
       ? Math.max(existingPayload.counter || 0, counter)
@@ -238,8 +278,10 @@ export async function createPasskeyIdentity({
     createdAt: existingPayload?.createdAt || now,
     // updatedAt: always now
     updatedAt: now,
-    // Store rpId for "same credentialId but wrong RP" detection
+    // Store rpId and origin for "same credentialId but wrong RP" detection
     rpId: process.env.PASSKEY_RP_ID || 'p2pmentor',
+    origin: typeof window !== 'undefined' ? window.location.origin : process.env.PASSKEY_ORIGIN || 'unknown',
+    originHost: typeof window !== 'undefined' ? window.location.hostname : process.env.PASSKEY_ORIGIN?.replace(/^https?:\/\//, '') || 'unknown',
   };
 
   // Rebuild attributes deterministically (never "preserve all")
@@ -264,22 +306,27 @@ export async function createPasskeyIdentity({
   try {
     // Attempt create first
     const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
         attributes,
-        expiresIn,
-      });
+      expiresIn,
     });
+  });
 
     entityKey = result.entityKey;
     txHash = result.txHash;
   } catch (createError: any) {
-    // If create fails with "already exists" or similar, try update
-    if (existingEntityKey) {
+    // If create fails (likely "already exists" / conflict), re-query for entity key
+    // This fixes the race condition: two concurrent requests both see no existing key,
+    // both try create, one succeeds, the other needs to re-query to get the actual key.
+    const conflictEntityKey = await findPasskeyEntityKeyByCredentialID(normalizedCredentialID);
+
+    if (conflictEntityKey) {
+      // Re-query succeeded: update the entity that was just created (or already existed)
       const result = await handleTransactionWithTimeout(async () => {
         return await walletClient.updateEntity({
-          entityKey: existingEntityKey as `0x${string}`,
+          entityKey: conflictEntityKey as `0x${string}`,
           payload: enc.encode(JSON.stringify(payload)),
           contentType: 'application/json',
           attributes, // Rebuild deterministically
@@ -290,7 +337,7 @@ export async function createPasskeyIdentity({
       entityKey = result.entityKey;
       txHash = result.txHash;
     } else {
-      // If no existing key and create failed, rethrow
+      // If re-query also fails, this is a real error (not a conflict)
       throw createError;
     }
   }
@@ -369,6 +416,28 @@ export async function updatePasskeyCounter(
     }
     return String(attrs[key] || '');
   };
+
+  // Validate required attributes before updating (prevent undefined/empty writes)
+  const walletAttr = getAttr('wallet');
+  const spaceIdAttr = getAttr('spaceId');
+  const createdAtAttr = getAttr('createdAt');
+
+  if (!walletAttr || walletAttr.trim() === '') {
+    // Fallback to payload if attribute missing (legacy entity)
+    const walletFromPayload = existingPayload.wallet || '';
+    if (!walletFromPayload || walletFromPayload.trim() === '') {
+      throw new Error(`Legacy entity missing wallet attribute and payload wallet for credentialID: ${normalizedCredentialID}`);
+    }
+  }
+
+  if (!spaceIdAttr || spaceIdAttr.trim() === '') {
+    // Fallback to SPACE_ID from config if missing
+    const spaceIdFromPayload = existingPayload.spaceId || SPACE_ID;
+    if (!spaceIdFromPayload || spaceIdFromPayload.trim() === '') {
+      throw new Error(`Legacy entity missing spaceId attribute for credentialID: ${normalizedCredentialID}`);
+    }
+  }
+
   const currentCounter = parseInt(getAttr('counter')) || existingPayload.counter || 0;
 
   // Update counter: monotonic max (never decrease, handles races)
@@ -379,18 +448,25 @@ export async function updatePasskeyCounter(
     ...existingPayload,
     counter: updatedCounter,
     updatedAt: now,
+    lastUsedAt: now, // Track actual usage for tie-breaking in duplicate selection
   };
 
   // Rebuild attributes deterministically (never "preserve all")
+  // Use validated/fallback values to prevent undefined/empty writes
+  const finalWallet = walletAttr && walletAttr.trim() !== '' ? walletAttr : (existingPayload.wallet || '');
+  const finalSpaceId = spaceIdAttr && spaceIdAttr.trim() !== '' ? spaceIdAttr : (existingPayload.spaceId || SPACE_ID);
+  const finalCreatedAt = createdAtAttr && createdAtAttr.trim() !== '' ? createdAtAttr : (existingPayload.createdAt || now);
+
   const attributes = [
     { key: 'type', value: 'auth_identity' },
     { key: 'subtype', value: 'passkey' },
-    { key: 'wallet', value: getAttr('wallet') },
+    { key: 'wallet', value: finalWallet },
     { key: 'credentialId', value: normalizedCredentialID },
-    { key: 'spaceId', value: getAttr('spaceId') },
-    { key: 'createdAt', value: getAttr('createdAt') },
+    { key: 'spaceId', value: finalSpaceId },
+    { key: 'createdAt', value: finalCreatedAt },
     { key: 'updatedAt', value: now },
     { key: 'counter', value: String(updatedCounter) }, // Store as attribute for quick reads
+    { key: 'lastUsedAt', value: now }, // Track usage for tie-breaking
   ];
 
   // Update in place with retry logic for transient failures
@@ -427,9 +503,9 @@ export async function updatePasskeyCounter(
 
 /**
  * Create auth_identity::backup_wallet entity on Arkiv
- * 
+ *
  * Stores backup wallet information for recovery scenarios.
- * 
+ *
  * @param params - Backup wallet data
  * @returns Entity key and transaction hash
  */
@@ -521,55 +597,57 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
 
     // Map entities to AuthIdentity format
     const identities = result.entities.map((entity: any) => {
-      let payload: any = {};
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('[listPasskeyIdentities] Error decoding payload:', e);
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    // Convert base64 public key back to Uint8Array for credential object
+    let credential: PasskeyCredential | undefined;
+    if (payload.credentialID && payload.credentialPublicKey) {
       try {
-        if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
-          payload = JSON.parse(decoded);
-        }
+        const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
+        credential = {
+          credentialID: payload.credentialID,
+          credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
+          counter: payload.counter || 0,
+          transports: payload.transports || [],
+          deviceName: payload.deviceName,
+          lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
+        };
       } catch (e) {
-        console.error('[listPasskeyIdentities] Error decoding payload:', e);
+        console.error('[listPasskeyIdentities] Error parsing credential:', e);
       }
+    }
 
-      const attrs = entity.attributes || {};
-      const getAttr = (key: string): string => {
-        if (Array.isArray(attrs)) {
-          const attr = attrs.find((a: any) => a.key === key);
-          return String(attr?.value || '');
-        }
-        return String(attrs[key] || '');
-      };
-
-      // Convert base64 public key back to Uint8Array for credential object
-      let credential: PasskeyCredential | undefined;
-      if (payload.credentialID && payload.credentialPublicKey) {
-        try {
-          const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
-          credential = {
-            credentialID: payload.credentialID,
-            credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
-            counter: payload.counter || 0,
-            transports: payload.transports || [],
-            deviceName: payload.deviceName,
-          };
-        } catch (e) {
-          console.error('[listPasskeyIdentities] Error parsing credential:', e);
-        }
-      }
-
-      return {
-        key: entity.key,
-        wallet: getAttr('wallet'),
-        subtype: 'passkey' as AuthIdentityType,
-        credentialID: getAttr('credentialId'),
-        createdAt: getAttr('createdAt'),
-        spaceId: getAttr('spaceId'),
-        credential,
-      };
+    return {
+      key: entity.key,
+      wallet: getAttr('wallet'),
+      subtype: 'passkey' as AuthIdentityType,
+      credentialID: getAttr('credentialId'),
+      createdAt: getAttr('createdAt'),
+      updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
+      spaceId: getAttr('spaceId'),
+      credential,
+    };
     });
 
     // Pattern B migration: Deduplicate by credentialID (keep highest counter, latest timestamp)
@@ -581,11 +659,18 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
         if (!existing) {
           identityMap.set(identity.credentialID, identity);
         } else {
-          // Choose identity with highest counter (tie-break by latest createdAt)
+          // Choose identity with highest counter (tie-break by lastUsedAt, then updatedAt, then createdAt)
           const existingCounter = existing.credential?.counter || 0;
           const newCounter = identity.credential?.counter || 0;
-          const existingTimestamp = existing.createdAt || '';
-          const newTimestamp = identity.createdAt || '';
+
+          // Get timestamps for tie-breaking (prefer lastUsedAt for actual usage tracking)
+          const existingLastUsedAt = existing.credential?.lastUsedAt || '';
+          const newLastUsedAt = identity.credential?.lastUsedAt || '';
+          // Use updatedAt from AuthIdentity if available (stored as attribute), fallback to createdAt
+          const existingUpdatedAt = (existing as any).updatedAt || existing.createdAt || '';
+          const newUpdatedAt = (identity as any).updatedAt || identity.createdAt || '';
+          const existingTimestamp = existingLastUsedAt || existingUpdatedAt || existing.createdAt || '';
+          const newTimestamp = newLastUsedAt || newUpdatedAt || identity.createdAt || '';
 
           if (newCounter > existingCounter || (newCounter === existingCounter && newTimestamp > existingTimestamp)) {
             identityMap.set(identity.credentialID, identity);
@@ -607,14 +692,14 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
 
 /**
  * List all backup wallet identities for a wallet
- * 
+ *
  * @param wallet - Wallet address
  * @returns Array of backup wallet identities
  */
 export async function listBackupWalletIdentities(wallet: string): Promise<AuthIdentity[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  
+
   try {
     const result = await query
       .where(eq('type', 'auth_identity'))
@@ -679,9 +764,9 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
 
 /**
  * Find passkey identity by credential ID
- * 
+ *
  * Used during authentication to find the credential for WebAuthn verification.
- * 
+ *
  * @param credentialID - Base64url-encoded credential ID
  * @returns AuthIdentity or null if not found
  */
@@ -705,15 +790,24 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
   const normalizedCredentialID = credentialID.trim();
 
   try {
-    // Fetch up to 20 entities to find the best one (handles Pattern A duplicates)
+    // Fetch up to 100 entities to find the best one (handles Pattern A duplicates)
+    // Increased limit to handle worst-case retry storms; log if we hit the limit
     const result = await query
       .where(eq('type', 'auth_identity'))
       .where(eq('subtype', 'passkey'))
       .where(eq('credentialId', normalizedCredentialID))
       .withAttributes(true)
       .withPayload(true)
-      .limit(20)
+      .limit(100)
       .fetch();
+
+    // Telemetry: log if we might be truncating (indicates problematic duplicate generation)
+    if (result?.entities && Array.isArray(result.entities) && result.entities.length === 100) {
+      console.warn('[findPasskeyIdentityByCredentialID] Query hit limit (100 entities), may be truncating duplicates', {
+        credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
+        entityCount: result.entities.length,
+      });
+    }
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return null;
@@ -726,23 +820,23 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
 
     for (const entity of result.entities) {
       // Parse payload to get counter
-      let payload: any = {};
-      try {
-        if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
-          payload = JSON.parse(decoded);
-        }
-      } catch (e) {
+  let payload: any = {};
+  try {
+    if (entity.payload) {
+      const decoded = entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+        ? entity.payload
+        : JSON.stringify(entity.payload);
+      payload = JSON.parse(decoded);
+    }
+  } catch (e) {
         console.warn('[findPasskeyIdentityByCredentialID] Error decoding payload for entity, skipping:', e);
         continue;
-      }
+  }
 
       const counter = payload.counter || 0;
-      const attrs = entity.attributes || {};
+  const attrs = entity.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
           const attr = attrs.find((a: any) => a.key === key);
@@ -750,8 +844,11 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
         }
         return String(attrs[key] || '');
       };
-      // Prefer updatedAt, fallback to createdAt
-      const timestamp = getAttr('updatedAt') || getAttr('createdAt') || '';
+      // Tie-break by lastUsedAt (actual usage), then updatedAt, then createdAt
+      const lastUsedAt = getAttr('lastUsedAt') || '';
+      const updatedAt = getAttr('updatedAt') || '';
+      const createdAt = getAttr('createdAt') || '';
+      const timestamp = lastUsedAt || updatedAt || createdAt;
 
       if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
         bestEntity = entity;
@@ -773,46 +870,48 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
           : typeof bestEntity.payload === 'string'
           ? bestEntity.payload
           : JSON.stringify(bestEntity.payload);
-        payload = JSON.parse(decoded);
-      }
-    } catch (e) {
-      console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
-      return null;
+      payload = JSON.parse(decoded);
     }
+  } catch (e) {
+    console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
+    return null;
+  }
 
     const attrs = bestEntity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-
-    let credential: PasskeyCredential | undefined;
-    if (payload.credentialID && payload.credentialPublicKey) {
-      try {
-        credential = {
-          credentialID: payload.credentialID,
-          credentialPublicKey: payload.credentialPublicKey, // Keep as base64
-          counter: payload.counter || 0,
-          transports: payload.transports || [],
-          deviceName: payload.deviceName,
-        };
-      } catch (e) {
-        console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
-      }
+  const getAttr = (key: string): string => {
+    if (Array.isArray(attrs)) {
+      const attr = attrs.find((a: any) => a.key === key);
+      return String(attr?.value || '');
     }
+    return String(attrs[key] || '');
+  };
 
-    return {
-      key: bestEntity.key,
-      wallet: getAttr('wallet'),
-      subtype: 'passkey' as AuthIdentityType,
-      credentialID: getAttr('credentialId'),
-      createdAt: getAttr('createdAt'),
-      spaceId: getAttr('spaceId'),
-      credential,
-    };
+  let credential: PasskeyCredential | undefined;
+  if (payload.credentialID && payload.credentialPublicKey) {
+    try {
+      credential = {
+        credentialID: payload.credentialID,
+        credentialPublicKey: payload.credentialPublicKey, // Keep as base64
+        counter: payload.counter || 0,
+        transports: payload.transports || [],
+        deviceName: payload.deviceName,
+        lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
+      };
+    } catch (e) {
+      console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
+    }
+  }
+
+  return {
+    key: bestEntity.key,
+    wallet: getAttr('wallet'),
+    subtype: 'passkey' as AuthIdentityType,
+    credentialID: getAttr('credentialId'),
+    createdAt: getAttr('createdAt'),
+    updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
+    spaceId: getAttr('spaceId'),
+    credential,
+  };
   } catch (fetchError: any) {
     console.error('[findPasskeyIdentityByCredentialID] Arkiv query failed:', {
       message: fetchError?.message,
