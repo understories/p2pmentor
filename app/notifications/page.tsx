@@ -325,7 +325,10 @@ export default function NotificationsPage() {
       const walletLower = userWallet.toLowerCase().trim();
       const updates = readNotifications.map(n => {
         const notificationId = n.metadata?.notificationId;
-        if (!notificationId) return null;
+        if (!notificationId) {
+          console.warn('[markAllAsUnread] Skipping notification without notificationId:', n.id);
+          return null;
+        }
         
         return fetch('/api/notifications/state', {
           method: 'PATCH',
@@ -345,6 +348,8 @@ export default function NotificationsPage() {
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
           console.error(`[markAllAsUnread] Failed to update notification ${readNotifications[index]?.id}:`, result.reason);
+        } else if (result.status === 'fulfilled' && !result.value.ok) {
+          console.error(`[markAllAsUnread] Update failed for notification ${readNotifications[index]?.id}:`, result.value.status);
         }
       });
 
