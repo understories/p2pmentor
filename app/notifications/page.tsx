@@ -81,24 +81,29 @@ export default function NotificationsPage() {
       // Convert Arkiv notification entities to client Notification format
       const notificationsList = arkivNotifications
         .filter((n: any) => !n.archived) // Filter out archived notifications
-        .map((n: any): Notification => ({
-          id: n.key, // Use entity key as ID
-          type: n.notificationType,
-          title: n.title,
-          message: n.message,
-          timestamp: n.createdAt,
-          link: n.link,
-          read: n.read ?? false, // Read state from notification payload
-          metadata: {
-            ...(n.metadata || {}),
-            // Include full Arkiv entity data for Builder Mode
-            sourceEntityKey: n.sourceEntityKey,
-            sourceEntityType: n.sourceEntityType,
-            notificationKey: n.key,
-            notificationId: n.notificationId, // Store notificationId for state updates
-            notificationTxHash: n.txHash,
-          },
-        }));
+        .map((n: any): Notification => {
+          // Ensure notificationId is available (from attributes, not metadata)
+          const notificationId = n.notificationId || deriveNotificationId(n.sourceEntityType, n.sourceEntityKey);
+          
+          return {
+            id: n.key, // Use entity key as ID
+            type: n.notificationType,
+            title: n.title,
+            message: n.message,
+            timestamp: n.createdAt,
+            link: n.link,
+            read: n.read ?? false, // Read state from notification payload
+            metadata: {
+              ...(n.metadata || {}),
+              // Include full Arkiv entity data for Builder Mode
+              sourceEntityKey: n.sourceEntityKey,
+              sourceEntityType: n.sourceEntityType,
+              notificationKey: n.key,
+              notificationId: notificationId, // Store notificationId for state updates (critical!)
+              notificationTxHash: n.txHash,
+            },
+          };
+        });
 
       // Update state with notifications from Arkiv
       setNotifications(notificationsList.sort((a: Notification, b: Notification) =>
@@ -156,6 +161,9 @@ export default function NotificationsPage() {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to mark as read');
       }
+
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
 
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
@@ -216,6 +224,9 @@ export default function NotificationsPage() {
         throw new Error(errorData.error || 'Failed to mark as unread');
       }
 
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
+
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -262,6 +273,9 @@ export default function NotificationsPage() {
 
       await Promise.all(updates);
 
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
+
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -306,6 +320,9 @@ export default function NotificationsPage() {
       }).filter(Boolean) as Promise<Response>[];
 
       await Promise.all(updates);
+
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
@@ -357,6 +374,9 @@ export default function NotificationsPage() {
         throw new Error(errorData.error || 'Failed to archive notification');
       }
 
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
+
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
@@ -366,7 +386,7 @@ export default function NotificationsPage() {
     } catch (err) {
       console.error('Error deleting notification:', err);
       // Revert on error - reload notifications
-      loadNotifications(userWallet);
+      await loadNotifications(userWallet);
     }
   };
 

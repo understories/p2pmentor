@@ -557,13 +557,21 @@ function decodeNotificationEntity(entity: any): Notification {
     console.error('[decodeNotificationEntity] Error decoding payload:', e);
   }
 
+  // Get notificationId from attributes, or derive it for backward compatibility
+  const notificationIdAttr = getAttr('notificationId');
+  const sourceEntityType = getAttr('sourceEntityType');
+  const sourceEntityKey = getAttr('sourceEntityKey');
+  const notificationId = notificationIdAttr || (sourceEntityType && sourceEntityKey 
+    ? deriveNotificationId(sourceEntityType, sourceEntityKey) 
+    : '');
+
   return {
     key: entity.key,
     wallet: getAttr('wallet'),
-    notificationId: getAttr('notificationId'),
+    notificationId: notificationId,
     notificationType: getAttr('notificationType') as NotificationType,
-    sourceEntityType: getAttr('sourceEntityType'),
-    sourceEntityKey: getAttr('sourceEntityKey'),
+    sourceEntityType: sourceEntityType,
+    sourceEntityKey: sourceEntityKey,
     title: payload.title || '',
     message: payload.message || '',
     link: payload.link,
