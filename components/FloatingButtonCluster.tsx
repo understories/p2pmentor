@@ -210,6 +210,22 @@ export function FloatingButtonCluster() {
       className: 'bg-gray-900 dark:bg-gray-100',
     },
     {
+      id: 'x',
+      href: 'http://x.com/p2pmentor',
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+        </svg>
+      ),
+      tooltip: 'follow us on X',
+      ariaLabel: 'follow us on X',
+      className: 'bg-black dark:bg-gray-900',
+    },
+    {
       id: 'docs',
       href: '/docs',
       icon: (
@@ -291,7 +307,7 @@ export function FloatingButtonCluster() {
               aria-label={button.ariaLabel}
               title={button.tooltip}
             >
-              <div className={button.id === 'github' ? 'text-white dark:text-gray-900' : 'text-white'}>
+              <div className={button.id === 'github' ? 'text-white dark:text-gray-900' : button.id === 'x' ? 'text-white' : 'text-white'}>
                 {button.icon}
               </div>
               
