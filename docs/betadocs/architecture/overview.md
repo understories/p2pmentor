@@ -71,4 +71,4 @@ See [Arkiv Integration](arkiv-integration.md) for detailed data layer architectu
 
 ## Documentation Structure
 
-For a complete overview of all architecture documentation, see [Architecture Documentation](/docs/architecture/README).
+For a complete overview of all architecture documentation, see [Architecture Documentation](README.md).
