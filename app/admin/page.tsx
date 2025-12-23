@@ -118,6 +118,25 @@ interface GraphQLFlagsResponse {
   };
 }
 
+interface AdminNotification {
+  key: string;
+  wallet: string;
+  notificationId: string;
+  notificationType: 'feedback_response' | 'issue_resolved' | 'system_alert';
+  title: string;
+  message: string;
+  link?: string;
+  sourceEntityType?: string;
+  sourceEntityKey?: string;
+  read: boolean;
+  archived: boolean;
+  metadata?: Record<string, any>;
+  spaceId: string;
+  createdAt: string;
+  updatedAt: string;
+  txHash?: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
@@ -161,6 +180,10 @@ export default function AdminDashboard() {
   const [rebuilding, setRebuilding] = useState(false);
   const [buildStatus, setBuildStatus] = useState<{ lastBuild?: string; fileCount?: number; entityCounts?: any } | null>(null);
   const [selectedSpaceId, setSelectedSpaceId] = useState<string | 'all'>('beta-launch');
+  const [notifications, setNotifications] = useState<AdminNotification[]>([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [notificationsExpanded, setNotificationsExpanded] = useState(true); // Default open
+  const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
     // Check authentication
@@ -239,6 +262,11 @@ export default function AdminDashboard() {
       if (savedNavigationMetricsExpanded !== null) {
         setNavigationMetricsExpanded(savedNavigationMetricsExpanded === 'true');
       }
+
+      const savedNotificationsExpanded = localStorage.getItem('admin_notifications_expanded');
+      if (savedNotificationsExpanded !== null) {
+        setNotificationsExpanded(savedNotificationsExpanded === 'true');
+      }
     }
   }, [authenticated]);
 
@@ -295,6 +323,9 @@ export default function AdminDashboard() {
           }
         })
         .catch(err => console.error('Failed to fetch feedback:', err));
+
+      // Fetch admin notifications
+      loadNotifications();
 
       // Check if auto-snapshot should be created
       fetch(`/api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData${spaceIdParams}`)
@@ -482,6 +513,52 @@ export default function AdminDashboard() {
     }
   };
 
+  const loadNotifications = async () => {
+    setNotificationsLoading(true);
+    try {
+      const res = await fetch('/api/admin/notifications?includeArchived=false&limit=50');
+      const data = await res.json();
+      if (data.ok) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(data.unreadCount || 0);
+      }
+    } catch (err) {
+      console.error('Failed to load notifications:', err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  };
+
+  const markNotificationRead = async (notificationId: string) => {
+    try {
+      const res = await fetch('/api/admin/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, read: true }),
+      });
+      if (res.ok) {
+        loadNotifications();
+      }
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
+
+  const archiveNotification = async (notificationId: string) => {
+    try {
+      const res = await fetch('/api/admin/notifications', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notificationId, archived: true }),
+      });
+      if (res.ok) {
+        loadNotifications();
+      }
+    } catch (err) {
+      console.error('Failed to archive notification:', err);
+    }
+  };
+
   const handleLogout = () => {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('admin_authenticated');
@@ -617,6 +694,125 @@ export default function AdminDashboard() {
             </button>
           </div>
         </div>
+
+        {/* Admin Notifications Section - Default Open */}
+        <section className="mb-8 border border-blue-200 dark:border-blue-800 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+          <div className="flex items-center justify-between p-4 border-b border-blue-200 dark:border-blue-800">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔔</span>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-50">
+                  Admin Notifications
+                </h2>
+                {unreadCount > 0 && (
+                  <span className="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  const newState = !notificationsExpanded;
+                  setNotificationsExpanded(newState);
+                  localStorage.setItem('admin_notifications_expanded', String(newState));
+                }}
+                className="ml-2 px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-blue-900/30 rounded border border-blue-300 dark:border-blue-700 transition-colors"
+                title={notificationsExpanded ? 'Collapse notifications' : 'Expand notifications'}
+              >
+                {notificationsExpanded ? '▼ Collapse' : '▶ Expand'}
+              </button>
+            </div>
+            <button
+              onClick={loadNotifications}
+              disabled={notificationsLoading}
+              className="px-3 py-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-white dark:bg-blue-900/30 rounded border border-blue-300 dark:border-blue-700 transition-colors disabled:opacity-50"
+            >
+              {notificationsLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+          {notificationsExpanded && (
+            <div className="p-6">
+              {notificationsLoading ? (
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">Loading notifications...</div>
+              ) : notifications.length === 0 ? (
+                <div className="text-center py-8 text-gray-600 dark:text-gray-400">
+                  No notifications yet. Notifications will appear here when you respond to feedback or resolve issues.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {notifications.map((notification) => (
+                    <div
+                      key={notification.key}
+                      className={`p-4 rounded-lg border ${
+                        notification.read
+                          ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                          : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-gray-900 dark:text-gray-50">
+                              {notification.title}
+                            </h3>
+                            {!notification.read && (
+                              <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded">
+                                New
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded">
+                              {notification.notificationType.replace('_', ' ')}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+                            <span>{new Date(notification.createdAt).toLocaleString()}</span>
+                            {notification.link && (
+                              <Link
+                                href={notification.link}
+                                className="text-blue-600 dark:text-blue-400 hover:underline"
+                                onClick={() => markNotificationRead(notification.notificationId)}
+                              >
+                                View →
+                              </Link>
+                            )}
+                            {notification.sourceEntityKey && (
+                              <ViewOnArkivLink
+                                entityKey={notification.sourceEntityKey}
+                                label="View on Arkiv"
+                                className="text-xs"
+                              />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          {!notification.read && (
+                            <button
+                              onClick={() => markNotificationRead(notification.notificationId)}
+                              className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                              title="Mark as read"
+                            >
+                              Mark Read
+                            </button>
+                          )}
+                          <button
+                            onClick={() => archiveNotification(notification.notificationId)}
+                            className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                            title="Archive"
+                          >
+                            Archive
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Performance Section - Engineering Focused, Default Closed */}
         <section className="mb-8 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800/50">

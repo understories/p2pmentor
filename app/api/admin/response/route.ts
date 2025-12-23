@@ -8,7 +8,8 @@
 
 import { NextResponse } from 'next/server';
 import { createAdminResponse, listAdminResponses, getAdminResponseByKey } from '@/lib/arkiv/adminResponse';
-import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { createAdminNotification } from '@/lib/arkiv/adminNotification';
+import { getPrivateKey, SPACE_ID, ADMIN_WALLET } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
@@ -78,6 +79,24 @@ export async function POST(request: Request) {
       privateKey: getPrivateKey(),
       spaceId: SPACE_ID,
     });
+
+    // Create notification for admin (fire-and-forget)
+    if (ADMIN_WALLET) {
+      createAdminNotification({
+        wallet: ADMIN_WALLET,
+        notificationId: `feedback_response_${feedbackKey}_${Date.now()}`,
+        notificationType: 'feedback_response',
+        title: 'Response Sent',
+        message: `You responded to feedback from ${wallet.slice(0, 6)}...${wallet.slice(-4)}`,
+        link: `/admin/feedback?feedbackKey=${feedbackKey}`,
+        sourceEntityType: 'app_feedback',
+        sourceEntityKey: feedbackKey,
+        privateKey: getPrivateKey(),
+        spaceId: SPACE_ID,
+      }).catch(err => {
+        console.warn('[admin/response] Failed to create notification (non-critical):', err);
+      });
+    }
 
     return NextResponse.json({ ok: true, key, txHash });
   } catch (error: any) {

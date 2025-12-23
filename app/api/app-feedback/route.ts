@@ -8,7 +8,8 @@
 
 import { NextResponse } from 'next/server';
 import { createAppFeedback, listAppFeedback, resolveAppFeedback, getAppFeedbackByKey } from '@/lib/arkiv/appFeedback';
-import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { createAdminNotification } from '@/lib/arkiv/adminNotification';
+import { getPrivateKey, SPACE_ID, ADMIN_WALLET } from '@/lib/config';
 
 export async function POST(request: Request) {
   try {
@@ -64,6 +65,30 @@ export async function POST(request: Request) {
         privateKey: getPrivateKey(),
         spaceId: SPACE_ID,
       });
+
+      // Create notification for admin (fire-and-forget)
+      if (ADMIN_WALLET) {
+        // Get feedback to include message in notification
+        const feedback = await getAppFeedbackByKey(feedbackKey);
+        const feedbackPreview = feedback?.message 
+          ? (feedback.message.length > 50 ? feedback.message.slice(0, 50) + '...' : feedback.message)
+          : 'Issue resolved';
+
+        createAdminNotification({
+          wallet: ADMIN_WALLET,
+          notificationId: `issue_resolved_${feedbackKey}_${Date.now()}`,
+          notificationType: 'issue_resolved',
+          title: 'Issue Resolved',
+          message: `You resolved issue: ${feedbackPreview}`,
+          link: `/admin/feedback?feedbackKey=${feedbackKey}`,
+          sourceEntityType: 'app_feedback',
+          sourceEntityKey: feedbackKey,
+          privateKey: getPrivateKey(),
+          spaceId: SPACE_ID,
+        }).catch(err => {
+          console.warn('[app-feedback] Failed to create notification (non-critical):', err);
+        });
+      }
 
       return NextResponse.json({ ok: true, key, txHash });
     } else {

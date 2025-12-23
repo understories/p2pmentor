@@ -121,3 +121,15 @@ export function getPrivateKey(): `0x${string}` {
   return ARKIV_PRIVATE_KEY;
 }
 
+/**
+ * Admin wallet address for admin notifications and identity
+ * 
+ * Defaults to the address derived from ARKIV_PRIVATE_KEY (signing wallet).
+ * Can be overridden via ADMIN_WALLET_ADDRESS environment variable.
+ * 
+ * This ensures all admins see the same notifications regardless of
+ * which admin is logged into the dashboard.
+ */
+export const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS as `0x${string}` | undefined;
+export const ADMIN_WALLET = ADMIN_WALLET_ADDRESS || CURRENT_WALLET;
+
