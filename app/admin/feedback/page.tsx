@@ -81,15 +81,19 @@ export default function AdminFeedbackPage() {
     if (filterStatus !== 'all') {
       filtered = filtered.filter(f => {
         if (filterStatus === 'pending') {
+          // Pending: issues that are not resolved
           return f.feedbackType === 'issue' && !f.resolved;
         }
         if (filterStatus === 'resolved') {
-          return f.feedbackType === 'issue' && f.resolved;
+          // Resolved: any feedback/issue that has been resolved
+          return f.resolved === true;
         }
         if (filterStatus === 'responded') {
-          return f.hasResponse;
+          // Responded: any feedback that has an admin response
+          return f.hasResponse === true;
         }
         if (filterStatus === 'waiting') {
+          // Waiting: any feedback without an admin response
           return !f.hasResponse;
         }
         return true;
@@ -172,12 +176,14 @@ export default function AdminFeedbackPage() {
         feedbackType: f.feedbackType || 'feedback',
         createdAt: f.createdAt,
         txHash: f.txHash || null,
-        resolved: f.resolved || false,
+        resolved: f.resolved === true, // Explicit boolean check
         resolvedAt: f.resolvedAt,
         resolvedBy: f.resolvedBy,
-        hasResponse: f.hasResponse || false,
+        hasResponse: f.hasResponse === true, // Explicit boolean check
         responseAt: f.responseAt,
       }));
+      setAllFeedbacks(feedbacks); // Set allFeedbacks for client-side filtering
+      // Initial display (will be filtered by useEffect)
       setFeedbacks(feedbacks);
     } catch (err) {
       console.error('Failed to fetch feedback:', err);
