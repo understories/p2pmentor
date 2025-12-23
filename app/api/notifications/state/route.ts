@@ -22,8 +22,9 @@ import { getPrivateKey, SPACE_ID } from '@/lib/config';
  * - spaceId: Override default spaceId (optional)
  */
 export async function PATCH(request: Request) {
+  let body: any = {};
   try {
-    const body = await request.json();
+    body = await request.json();
     const { wallet, notificationId, read, archived, spaceId: spaceIdParam } = body;
 
     // Normalize wallet
@@ -74,7 +75,7 @@ export async function PATCH(request: Request) {
     });
   } catch (error: any) {
     console.error('[PATCH /api/notifications/state] Error:', error);
-    console.error('[PATCH /api/notifications/state] Request body:', { wallet, notificationId, read, archived, spaceId: spaceIdParam });
+    console.error('[PATCH /api/notifications/state] Request body:', body);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }
