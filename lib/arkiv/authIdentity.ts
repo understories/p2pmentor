@@ -8,6 +8,7 @@
  */
 
 import { eq } from "@arkiv-network/sdk/query";
+import { keccak256 } from "viem";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { handleTransactionWithTimeout } from "./transaction-utils";
 import { SPACE_ID } from "@/lib/config";
@@ -38,6 +39,103 @@ export type AuthIdentity = {
     createdAt: string;
   }; // For backup_wallet entities
 };
+
+/**
+ * Derive canonical entity key hash for passkey identity
+ *
+ * Pattern B: Deterministic hash based on credentialID (fixed length).
+ * Uses keccak256 to avoid length limits, delimiter collisions, and migration pain.
+ *
+ * Key format: auth_identity:passkey:{base64url(keccak256("passkey|" + credentialID))}
+ *
+ * @param credentialID - Base64url-encoded credential ID (normalized)
+ * @returns Deterministic key hash (base64url-encoded)
+ */
+function derivePasskeyIdentityKeyHash(credentialID: string): string {
+  const normalized = credentialID.trim();
+  const prefix = 'passkey|';
+  const hashInput = prefix + normalized;
+  const hash = keccak256(new TextEncoder().encode(hashInput));
+  // Convert hex to base64url for key storage
+  const hashBase64 = Buffer.from(hash.slice(2), 'hex').toString('base64url');
+  return `auth_identity:passkey:${hashBase64}`;
+}
+
+/**
+ * Find passkey entity key by credentialID (query-based, for Pattern A compatibility)
+ *
+ * Returns entity key if found, null otherwise.
+ * Used to find existing entity before update in upsert logic.
+ * Chooses entity with highest counter (tie-break by latest timestamp) to handle duplicates.
+ *
+ * @param credentialID - Base64url-encoded credential ID (normalized)
+ * @returns Entity key or null if not found
+ */
+async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise<string | null> {
+  const publicClient = getPublicClient();
+  const query = publicClient.buildQuery();
+  const normalizedCredentialID = credentialID.trim();
+
+  try {
+    const result = await query
+      .where(eq('type', 'auth_identity'))
+      .where(eq('subtype', 'passkey'))
+      .where(eq('credentialId', normalizedCredentialID))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(20) // Fetch multiple to choose best one
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return null;
+    }
+
+    // Choose entity with highest counter (tie-break by latest createdAt/updatedAt)
+    let bestEntity: any = null;
+    let bestCounter = -1;
+    let bestTimestamp = '';
+
+    for (const entity of result.entities) {
+      // Parse payload to get counter
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded = entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        continue;
+      }
+
+      const counter = payload.counter || 0;
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      const createdAt = getAttr('createdAt');
+      const updatedAt = getAttr('updatedAt');
+      const timestamp = updatedAt || createdAt || '';
+
+      if (counter > bestCounter || (counter === bestCounter && timestamp > bestTimestamp)) {
+        bestEntity = entity;
+        bestCounter = counter;
+        bestTimestamp = timestamp;
+      }
+    }
+
+    return bestEntity?.key || null;
+  } catch (error) {
+    return null;
+  }
+}
 
 /**
  * Create auth_identity::passkey entity on Arkiv
