@@ -543,17 +543,29 @@ export async function verifyAuthentication(
     const verification = await verifyAuthenticationResponse(opts);
 
     if (verification.verified) {
-      // Update counter (replay attack protection)
+      // Update counter (replay attack protection) - Pattern B: update in place
       if (arkivIdentity) {
-        // Create new Arkiv entity with updated counter (immutable pattern)
-        // Note: This requires the wallet's private key, which we don't have in API routes
-        // The counter update will be handled client-side after authentication
-        // For now, log the update - client will create new entity if needed
-        console.log('[verifyAuthentication] Counter updated (client will create new entity):', {
-          oldCounter: storedCredential.counter,
-          newCounter: verification.authenticationInfo.newCounter,
-          credentialID: credentialID,
-        });
+        // Pattern B: Update counter in place using updatePasskeyCounter
+        try {
+          const { updatePasskeyCounter } = await import('@/lib/arkiv/authIdentity');
+          const { getPrivateKey } = await import('@/lib/config');
+
+          await updatePasskeyCounter(
+            credentialID,
+            verification.authenticationInfo.newCounter,
+            getPrivateKey() // Use global Arkiv signing wallet
+          );
+
+          console.log('[verifyAuthentication] Counter updated (Pattern B: update in place):', {
+            oldCounter: storedCredential.counter,
+            newCounter: verification.authenticationInfo.newCounter,
+            credentialID: credentialID,
+          });
+        } catch (error: any) {
+          console.error('[verifyAuthentication] Failed to update counter:', error);
+          // Non-fatal: authentication succeeded, counter update can retry
+          // Log warning but don't fail authentication
+        }
       } else {
         // Update in-memory Map (backward compatibility)
         const userCredentials = credentialStore.get(foundUserId) || [];
