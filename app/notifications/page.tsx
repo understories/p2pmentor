@@ -428,6 +428,94 @@ export default function NotificationsPage() {
     }
   };
 
+  const deleteAllNotifications = async () => {
+    if (!userWallet) return;
+
+    // Confirm with user
+    if (!confirm(`Are you sure you want to delete all ${notifications.length} notifications? This cannot be undone.`)) {
+      return;
+    }
+
+    // Optimistic update
+    setNotifications([]);
+
+    try {
+      const walletLower = userWallet.toLowerCase().trim();
+      const response = await fetch(`/api/notifications?wallet=${encodeURIComponent(walletLower)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete all notifications');
+      }
+
+      const data = await response.json();
+      console.log(`[deleteAllNotifications] Deleted ${data.archived || 0} notifications`);
+
+      // Small delay to ensure Arkiv has indexed the updates
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
+
+      // Dispatch event to notify other components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { wallet: walletLower },
+        }));
+      }
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+      // Revert on error - reload notifications
+      await loadNotifications(userWallet);
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    if (!userWallet) return;
+
+    // Confirm with user
+    if (!confirm(`Are you sure you want to delete all ${notifications.length} notifications? This cannot be undone.`)) {
+      return;
+    }
+
+    // Optimistic update
+    setNotifications([]);
+
+    try {
+      const walletLower = userWallet.toLowerCase().trim();
+      const response = await fetch(`/api/notifications?wallet=${encodeURIComponent(walletLower)}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete all notifications');
+      }
+
+      const data = await response.json();
+      console.log(`[deleteAllNotifications] Deleted ${data.archived || 0} notifications`);
+
+      // Small delay to ensure Arkiv has indexed the updates
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Refresh notifications to get updated state from Arkiv
+      await loadNotifications(userWallet);
+
+      // Dispatch event to notify other components
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
+          detail: { wallet: walletLower },
+        }));
+      }
+    } catch (err) {
+      console.error('Error deleting all notifications:', err);
+      // Revert on error - reload notifications
+      await loadNotifications(userWallet);
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();

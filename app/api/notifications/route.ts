@@ -6,8 +6,8 @@
  */
 
 import { NextResponse } from 'next/server';
-import { listNotifications } from '@/lib/arkiv/notifications';
-import { SPACE_ID } from '@/lib/config';
+import { listNotifications, archiveAllNotifications } from '@/lib/arkiv/notifications';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 export async function GET(request: Request) {
   try {
@@ -64,6 +64,65 @@ export async function GET(request: Request) {
     });
   } catch (error: any) {
     console.error('Notifications API error:', error);
+    return NextResponse.json(
+      { ok: false, error: error.message || 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/notifications
+ * 
+ * Archives (soft deletes) all notifications for a wallet.
+ * This allows users to "nuke" all their notifications.
+ * 
+ * Query params:
+ * - wallet: User wallet address (required)
+ * - spaceId: Override default spaceId (optional)
+ */
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const wallet = searchParams.get('wallet');
+    
+    if (!wallet) {
+      return NextResponse.json(
+        { ok: false, error: 'Wallet parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Normalize wallet address to lowercase for consistent querying
+    const normalizedWallet = wallet.toLowerCase();
+
+    // Get spaceId from query params or use default
+    const spaceIdParam = searchParams.get('spaceId');
+    const finalSpaceId = spaceIdParam || SPACE_ID;
+
+    const privateKey = getPrivateKey();
+    if (!privateKey) {
+      return NextResponse.json(
+        { ok: false, error: 'Private key not configured' },
+        { status: 500 }
+      );
+    }
+
+    console.log(`[DELETE /api/notifications] Archiving all notifications for wallet ${normalizedWallet}`);
+
+    const results = await archiveAllNotifications({
+      wallet: normalizedWallet,
+      privateKey,
+      spaceId: finalSpaceId,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      archived: results.length,
+      results,
+    });
+  } catch (error: any) {
+    console.error('[DELETE /api/notifications] Error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }

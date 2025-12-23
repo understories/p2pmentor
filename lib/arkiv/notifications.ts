@@ -672,6 +672,80 @@ export async function archiveNotification({
 }
 
 /**
+ * Archive all notifications for a wallet (bulk delete)
+ * 
+ * Uses Pattern B: updateEntity to set archived=true for all notifications
+ * This allows users to "nuke" all their notifications if needed.
+ * 
+ * IMPORTANT: Uses server signing wallet (ARKIV_PRIVATE_KEY), not user's wallet.
+ * The wallet parameter is the recipient wallet (whose notifications to archive).
+ * 
+ * @param wallet - User wallet address (recipient of notifications)
+ * @param privateKey - Server signing key (ARKIV_PRIVATE_KEY from getPrivateKey())
+ * @param spaceId - Space ID (defaults to SPACE_ID)
+ * @returns Array of results with keys and txHashes
+ */
+export async function archiveAllNotifications({
+  wallet,
+  privateKey,
+  spaceId = SPACE_ID,
+}: {
+  wallet: string;
+  privateKey: `0x${string}`;
+  spaceId?: string;
+}): Promise<Array<{ key: string; txHash: string; notificationId: string }>> {
+  const normalizedWallet = wallet.toLowerCase();
+  
+  // Get all non-archived notifications for this wallet
+  const notifications = await listNotifications({
+    wallet: normalizedWallet,
+    archived: false,
+    spaceId,
+    limit: 1000, // Get all notifications
+  });
+  
+  if (notifications.length === 0) {
+    return [];
+  }
+  
+  console.log(`[archiveAllNotifications] Archiving ${notifications.length} notifications for wallet ${normalizedWallet}`);
+  
+  // Archive each notification
+  const results: Array<{ key: string; txHash: string; notificationId: string }> = [];
+  const errors: Array<{ notificationId: string; error: string }> = [];
+  
+  for (const notification of notifications) {
+    try {
+      const result = await updateNotificationState({
+        wallet: normalizedWallet,
+        notificationId: notification.notificationId,
+        archived: true,
+        privateKey,
+        spaceId,
+      });
+      results.push({
+        key: result.key,
+        txHash: result.txHash,
+        notificationId: notification.notificationId,
+      });
+    } catch (error: any) {
+      console.error(`[archiveAllNotifications] Failed to archive notification ${notification.notificationId}:`, error);
+      errors.push({
+        notificationId: notification.notificationId,
+        error: error.message || String(error),
+      });
+    }
+  }
+  
+  if (errors.length > 0) {
+    console.warn(`[archiveAllNotifications] ${errors.length} notifications failed to archive:`, errors);
+  }
+  
+  console.log(`[archiveAllNotifications] Successfully archived ${results.length}/${notifications.length} notifications`);
+  return results;
+}
+
+/**
  * Decode notification entity from Arkiv response
  */
 function decodeNotificationEntity(entity: any): Notification {
