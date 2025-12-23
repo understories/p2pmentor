@@ -74,6 +74,7 @@ export async function PATCH(request: Request) {
     });
   } catch (error: any) {
     console.error('[PATCH /api/notifications/state] Error:', error);
+    console.error('[PATCH /api/notifications/state] Request body:', { wallet, notificationId, read, archived, spaceId: spaceIdParam });
     return NextResponse.json(
       { ok: false, error: error.message || 'Internal server error' },
       { status: 500 }

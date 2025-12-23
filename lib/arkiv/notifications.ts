@@ -207,24 +207,24 @@ export async function createNotification({
     txHash = result.txHash;
   } else {
     // Create new notification entity
-    const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(payload)),
-        contentType: 'application/json',
-        attributes: [
-          { key: 'type', value: 'notification' },
+  const result = await handleTransactionWithTimeout(async () => {
+    return await walletClient.createEntity({
+      payload: enc.encode(JSON.stringify(payload)),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'notification' },
           { key: 'wallet', value: normalizedWallet },
           { key: 'notificationId', value: notificationId },
-          { key: 'notificationType', value: notificationType },
-          { key: 'sourceEntityType', value: sourceEntityType },
-          { key: 'sourceEntityKey', value: sourceEntityKey },
-          { key: 'spaceId', value: spaceId },
+        { key: 'notificationType', value: notificationType },
+        { key: 'sourceEntityType', value: sourceEntityType },
+        { key: 'sourceEntityKey', value: sourceEntityKey },
+        { key: 'spaceId', value: spaceId },
           { key: 'createdAt', value: now },
           { key: 'updatedAt', value: now },
-        ],
-        expiresIn,
-      });
+      ],
+      expiresIn,
     });
+  });
     entityKey = result.entityKey;
     txHash = result.txHash;
   }
@@ -274,8 +274,9 @@ export async function updateNotificationState({
   const normalizedWallet = wallet.toLowerCase();
 
   // Get current notification state by wallet + notificationId (stable query)
+  // First try querying by notificationId attribute (new notifications)
   const publicClient = getPublicClient();
-  const result = await publicClient.buildQuery()
+  let result = await publicClient.buildQuery()
     .where(eq('type', 'notification'))
     .where(eq('wallet', normalizedWallet))
     .where(eq('notificationId', notificationId))
@@ -284,6 +285,28 @@ export async function updateNotificationState({
     .withPayload(true)
     .limit(1)
     .fetch();
+
+  // If not found, try querying by deriving from sourceEntityType + sourceEntityKey (old notifications)
+  if (!result?.entities || result.entities.length === 0) {
+    // Parse notificationId to get sourceEntityType and sourceEntityKey
+    // Format: sourceEntityType_sourceEntityKey
+    const parts = notificationId.split('_');
+    if (parts.length >= 2) {
+      const sourceEntityType = parts[0];
+      const sourceEntityKey = parts.slice(1).join('_'); // Handle keys that might contain underscores
+      
+      result = await publicClient.buildQuery()
+        .where(eq('type', 'notification'))
+        .where(eq('wallet', normalizedWallet))
+        .where(eq('sourceEntityType', sourceEntityType))
+        .where(eq('sourceEntityKey', sourceEntityKey))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(1)
+        .fetch();
+    }
+  }
 
   if (!result?.entities || result.entities.length === 0) {
     throw new Error(`Notification not found: ${notificationId} for wallet ${normalizedWallet}`);
@@ -327,22 +350,26 @@ export async function updateNotificationState({
 
   // Update entity in place (Pattern B)
   const expiresIn = 31536000; // 1 year
+  
+  // Build attributes array, ensuring notificationId is always included
+  const attributes = [
+    { key: 'type', value: 'notification' },
+    { key: 'wallet', value: normalizedWallet },
+    { key: 'notificationId', value: notificationId }, // Always include notificationId
+    { key: 'notificationType', value: getAttr('notificationType') || '' },
+    { key: 'sourceEntityType', value: getAttr('sourceEntityType') || '' },
+    { key: 'sourceEntityKey', value: getAttr('sourceEntityKey') || '' },
+    { key: 'spaceId', value: spaceId },
+    { key: 'createdAt', value: getAttr('createdAt') || now },
+    { key: 'updatedAt', value: now },
+  ];
+
   const { txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.updateEntity({
       entityKey: entityKey as `0x${string}`,
       payload: enc.encode(JSON.stringify(updatedPayload)),
       contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'notification' },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'notificationId', value: notificationId },
-        { key: 'notificationType', value: getAttr('notificationType') },
-        { key: 'sourceEntityType', value: getAttr('sourceEntityType') },
-        { key: 'sourceEntityKey', value: getAttr('sourceEntityKey') },
-        { key: 'spaceId', value: spaceId },
-        { key: 'createdAt', value: getAttr('createdAt') || now },
-        { key: 'updatedAt', value: now },
-      ],
+      attributes,
       expiresIn,
     });
   });
