@@ -793,6 +793,15 @@ export default function NotificationsPage() {
             >
               {showFilters ? 'Hide' : 'Show'} Filters
             </button>
+            {notifications.length > 0 && (
+              <button
+                onClick={deleteAllNotifications}
+                className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
+                title="Delete all notifications (cannot be undone)"
+              >
+                Delete All
+              </button>
+            )}
           </div>
         </div>
 
