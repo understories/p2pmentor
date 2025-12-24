@@ -19,6 +19,7 @@ import { isMobileBrowser, isMetaMaskBrowser, isMetaMaskAvailable, getMobilePlatf
 import { openInMetaMaskBrowser, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -541,9 +542,14 @@ export default function AuthPage() {
                 <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
               </div>
 
-              <div className="w-full px-6 py-3 text-base font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg opacity-60 cursor-not-allowed text-center">
-                Passkey Login (Coming Soon)
-              </div>
+              <PasskeyLoginButton
+                onSuccess={(address) => {
+                  // Wallet connected via passkey, redirect handled by component
+                }}
+                onError={(error) => {
+                  setError(error.message);
+                }}
+              />
             </>
           )}
 

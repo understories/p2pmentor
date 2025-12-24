@@ -345,7 +345,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
         className="w-full px-6 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-blue-500 dark:disabled:hover:bg-blue-600 relative group"
         title="Powered by Fusaka upgrade (EIP-7951) - native secp256r1 signature verification"
       >
-        {isLoading ? 'Authenticating...' : 'Continue with Face ID or Touch ID'}
+        {isLoading ? 'Authenticating...' : 'Continue with Face ID or Touch ID (experimental)'}
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 p-3 rounded-lg shadow-lg bg-white/95 dark:bg-gray-800 text-gray-900 dark:text-white text-xs text-center border border-gray-200 dark:border-gray-700 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
           Powered by Fusaka upgrade ({' '}
           <a
