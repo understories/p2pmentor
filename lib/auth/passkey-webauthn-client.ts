@@ -1,25 +1,25 @@
 /**
  * WebAuthn client-side helpers for passkey authentication
- * 
+ *
  * Wraps native WebAuthn API (navigator.credentials.*) and calls server API routes.
  * This layer is purely WebAuthn ceremony - does NOT manage EVM keys.
- * 
+ *
  * Reference: Arkiv Passkey Wallet Beta Implementation Plan
  */
 
 /**
  * Register a new passkey for a user
- * 
+ *
  * Flow:
  * 1. Fetch registration options from server (server queries Arkiv for existing credentials)
  * 2. Call navigator.credentials.create() with options (excludeCredentials prevents duplicates)
  * 3. Send response to server for verification
  * 4. Return credential ID on success
- * 
+ *
  * CRITICAL: Pass walletAddress to enable Arkiv-native duplicate prevention.
  * The server will query Arkiv and populate excludeCredentials, preventing
  * the WebAuthn API from creating duplicate passkeys even if client-side checks miss something.
- * 
+ *
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (optional, defaults to userId)
  * @param walletAddress - Wallet address (optional, for Arkiv query to prevent duplicates)
@@ -30,8 +30,8 @@ export async function registerPasskey(
   userId: string,
   userName?: string,
   walletAddress?: string
-): Promise<{ 
-  credentialID: string; 
+): Promise<{
+  credentialID: string;
   challenge: string;
   credentialPublicKey?: Uint8Array;
   counter?: number;
@@ -76,6 +76,11 @@ export async function registerPasskey(
 
     // Step 2: Transform options for WebAuthn API
     // The server returns base64url strings, but WebAuthn requires ArrayBuffers
+    // CRITICAL: Check if platform authenticator is available on client side
+    // If yes, explicitly set authenticatorAttachment: 'platform' to force local Touch ID/Face ID
+    // This prevents Safari from showing QR dialog when it detects phone passkeys
+    const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
+
     const publicKeyOptions: PublicKeyCredentialCreationOptions = {
       ...options,
       challenge: base64URLToArrayBuffer(options.challenge),
@@ -89,6 +94,24 @@ export async function registerPasskey(
         id: base64URLToArrayBuffer(cred.id),
       })) || [],
     };
+
+    // If platform authenticator is available, force it to prevent QR dialog
+    if (platformAuthAvailable) {
+      if (publicKeyOptions.authenticatorSelection) {
+        publicKeyOptions.authenticatorSelection = {
+          ...publicKeyOptions.authenticatorSelection,
+          authenticatorAttachment: 'platform' as const, // Force platform authenticator (Touch ID, Face ID)
+        };
+      } else {
+        // If authenticatorSelection doesn't exist, create it
+        publicKeyOptions.authenticatorSelection = {
+          authenticatorAttachment: 'platform' as const,
+          userVerification: 'preferred' as const,
+          requireResidentKey: true, // Require resident key for platform authenticator
+        };
+      }
+      console.log('[passkey-webauthn-client] Platform authenticator available - forcing platform attachment to prevent QR dialog');
+    }
 
     console.log('[passkey-webauthn-client] Registering passkey with options:', {
       challengeLength: publicKeyOptions.challenge.byteLength,
@@ -173,13 +196,13 @@ export async function registerPasskey(
 
 /**
  * Authenticate using a passkey
- * 
+ *
  * Flow:
  * 1. Fetch authentication options from server
  * 2. Call navigator.credentials.get() with options
  * 3. Send response to server for verification
  * 4. Return userId on success
- * 
+ *
  * @param userId - User identifier (optional, for allowCredentials filtering)
  * @returns User ID on success
  * @throws Error if WebAuthn is not supported or authentication fails
@@ -307,7 +330,7 @@ export async function loginWithPasskey(
 
     // Extract walletAddress from localStorage if available (for recovery scenarios)
     const storedWallet = typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
-    
+
     const completeResponse = await fetch('/api/passkey/login/complete', {
       method: 'POST',
       headers: {
@@ -323,7 +346,7 @@ export async function loginWithPasskey(
 
     if (!completeResponse.ok) {
       const errorData = await completeResponse.json();
-      
+
       // If credential was found on Arkiv but verification failed, include recovery info
       if (errorData.foundOnArkiv && errorData.credentialID && errorData.walletAddress) {
         const recoveryError: any = new Error(errorData.error || 'Authentication verification failed');
@@ -333,7 +356,7 @@ export async function loginWithPasskey(
         recoveryError.recoveryPossible = errorData.recoveryPossible;
         throw recoveryError;
       }
-      
+
       // Include credentialID in error for recovery scenarios
       const error: any = new Error(errorData.error || 'Authentication verification failed');
       error.credentialID = credential.id; // Include credentialID from WebAuthn response
@@ -362,7 +385,7 @@ export async function loginWithPasskey(
 
 /**
  * Check if WebAuthn is supported in the current browser
- * 
+ *
  * @returns true if WebAuthn is supported, false otherwise
  */
 export function isWebAuthnSupported(): boolean {
@@ -371,7 +394,7 @@ export function isWebAuthnSupported(): boolean {
 
 /**
  * Check if platform authenticators (Touch ID, Face ID, Windows Hello) are available
- * 
+ *
  * @returns Promise that resolves to true if platform authenticators are available
  */
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
@@ -388,7 +411,7 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
 
 /**
  * Convert ArrayBuffer to base64url string
- * 
+ *
  * @param buffer - ArrayBuffer to convert
  * @returns Base64url-encoded string
  */
@@ -407,7 +430,7 @@ function arrayBufferToBase64URL(buffer: ArrayBuffer): string {
 
 /**
  * Convert base64url string to ArrayBuffer
- * 
+ *
  * @param base64url - Base64url-encoded string
  * @returns ArrayBuffer
  */
