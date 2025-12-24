@@ -153,6 +153,19 @@ export async function getRegistrationOptions(
     displayName = userId;
   }
 
+  // Build authenticatorSelection options
+  // CRITICAL: Don't force 'platform' attachment - this causes Safari to show QR dialog
+  // Instead, let the browser choose, but prefer resident keys for local storage
+  // When requireResidentKey is 'preferred' or 'required', browsers prefer platform authenticators
+  const authenticatorSelection: any = {
+    userVerification: 'preferred' as const, // Prefer user verification but don't require
+    requireResidentKey: 'preferred' as const, // Prefer resident keys (encourages platform authenticators)
+    // NOTE: We intentionally DON'T set authenticatorAttachment here
+    // Setting it to 'platform' causes Safari to show QR dialog when it detects phone passkeys
+    // By omitting it, we let the browser choose, and requireResidentKey: 'preferred' 
+    // naturally guides it toward platform authenticators (Touch ID, Face ID) when available
+  };
+
   const opts = {
     rpName,
     rpID,
@@ -161,11 +174,7 @@ export async function getRegistrationOptions(
     timeout: 60000, // 60 seconds
     attestationType: 'none' as const, // We don't need attestation for beta
     excludeCredentials, // Populated from Arkiv to prevent duplicates
-    authenticatorSelection: {
-      authenticatorAttachment: 'platform' as const, // Prefer platform authenticators (Touch ID, Face ID, etc.)
-      userVerification: 'preferred' as const, // Prefer user verification but don't require
-      requireResidentKey: false, // Don't require resident keys for beta
-    },
+    authenticatorSelection,
     supportedAlgorithmIDs: [-7, -257], // ES256 (P-256) and RS256
   };
 
