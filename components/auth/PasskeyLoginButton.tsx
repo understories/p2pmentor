@@ -382,7 +382,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       >
         {isLoading ? 'Authenticating...' : 'Use this device (Touch ID / Windows Hello)'}
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 p-3 rounded-lg shadow-lg bg-white/95 dark:bg-gray-800 text-gray-900 dark:text-white text-xs text-center border border-gray-200 dark:border-gray-700 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-          Uses strict platform-only constraints to prevent QR dialog. Future-compatible with{' '}
+          Future-compatible with{' '}
           <a
             href="https://eips.ethereum.org/EIPS/eip-7951"
             target="_blank"
