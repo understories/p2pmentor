@@ -2,24 +2,35 @@
 
 For architectural rationale, see [Serverless and Trustless](/docs/philosophy/serverless-and-trustless).
 
-Custom passkey implementation for beta while waiting for Mendoza to support EIP-7951 natively.
+Custom passkey-based authentication layer for beta while waiting for Mendoza to support EIP-7951 natively.
 
-## Current Implementation
+**Mental model:**
+- Today: Passkey → authorizes → server signs → Arkiv
+- Future: Passkey → signs → chain verifies → Arkiv
 
-We built a local secp256k1 wallet gated by WebAuthn passkeys. This is an interim solution until Arkiv's Mendoza testnet supports EIP-7951 (Fusaka upgrade), which enables native P-256 signature verification on-chain.
+## Current Implementation (Beta)
 
-**How it works:**
-- WebAuthn passkey authenticates the user
-- Unlocks a local secp256k1 private key stored in IndexedDB (encrypted)
-- Wallet address is the canonical identity (same as MetaMask)
-- All data stored on Arkiv (no server-side storage)
+This is an interim solution until Arkiv's Mendoza testnet supports EIP-7951 (Fusaka upgrade), which enables native P-256 signature verification on-chain.
 
-**Limitations:**
-- Credentials currently stored in server memory (ephemeral, lost on restart)
-- Local wallet only (not on-chain)
-- Requires browser storage (IndexedDB)
+**How it works (today):**
+- WebAuthn passkey authenticates the user (Touch ID / Face ID / Windows Hello)
+- The passkey signs a WebAuthn challenge (P-256) inside the OS authenticator
+- The server verifies the assertion (WebAuthn standard verification)
+- On success, the server signs Arkiv transactions using a funded secp256k1 Arkiv key
+- Passkey credential metadata is stored on Arkiv as `auth_identity` entities
 
-## Stability Plan
+**Important:** In the current beta, passkeys authorize actions but do not directly sign Arkiv transactions. Arkiv writes are signed by a server-held secp256k1 key after successful passkey authentication.
+
+- Wallet address remains the canonical identity (same model as MetaMask)
+- Passkeys act as an authentication layer authorizing Arkiv writes
+
+**Limitations (current beta):**
+- Arkiv transactions are signed by a server-held key
+- Passkeys are not yet verified on-chain
+- Full trustless client-side signing is not yet enabled
+- The server-held signing key is tightly scoped and cannot be used without successful passkey verification
+
+## Identity Stability Plan
 
 We're upgrading to make passkey identities as stable as MetaMask identities:
 
@@ -35,10 +46,14 @@ We're upgrading to make passkey identities as stable as MetaMask identities:
 
 ## Future: EIP-7951 / Fusaka
 
-When Mendoza supports EIP-7951:
-- Passkey P-256 key signs directly on-chain (no local wallet needed)
-- Native smart account support
-- No credential storage needed (WebAuthn handles it)
+When Arkiv's Mendoza testnet supports EIP-7951 (Fusaka upgrade), passkey signatures (P-256 / secp256r1) can be verified directly on-chain.
+
+This enables passkeys to become first-class cryptographic signers for blockchain actions, removing the need for a server-held signing key.
+
+**What changes:**
+- Passkey P-256 signatures are verified on-chain
+- Server-held signing keys become unnecessary
+- Native smart account / account abstraction patterns become possible
 - Same wallet address model (compatible with current implementation)
 
 **Migration path:**
@@ -120,6 +135,6 @@ When Mendoza supports EIP-7951:
 
 ## Status
 
-**In progress**: Implementing Arkiv-native credential storage and recovery mechanisms.
+**In progress**: Hardening Arkiv-native credential storage and recovery mechanisms.
 
 See `refs/doc/passkey_levelup.md` for detailed engineering plan.
