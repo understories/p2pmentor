@@ -55,7 +55,8 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
     return null;
   }
 
-  const handlePasskeyAuth = async () => {
+  // Shared authentication handler - supports both platform-only and cross-device flows
+  const handlePasskeyAuth = async (platformOnly: boolean = false) => {
     setIsLoading(true);
     setError(null);
 
@@ -199,7 +200,8 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
         
         // Step 1: Register passkey
         // Server will query Arkiv and populate excludeCredentials to prevent duplicates
-        const registerResult = await registerPasskey(userIdToUse, userNameToUse, storedWallet || undefined);
+        // platformOnly: use strict platform-only constraints to prevent QR dialog
+        const registerResult = await registerPasskey(userIdToUse, userNameToUse, storedWallet || undefined, platformOnly);
         credentialID = registerResult.credentialID;
         
         // Type guard for credential metadata
@@ -328,26 +330,59 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Passkey authentication failed');
-      setError(error.message);
-      if (onError) {
-        onError(error);
+      const errorName = (error as any).name || (err as any)?.name;
+      const errorMessage = error.message || String(err);
+
+      // Better error messages for platform-only failures
+      // Check for constraint errors that indicate platform authenticator unavailable
+      if (platformOnly && (
+        errorName === 'ConstraintError' ||
+        errorName === 'NotSupportedError' ||
+        errorMessage.toLowerCase().includes('constraint') ||
+        errorMessage.toLowerCase().includes('not supported') ||
+        errorMessage.toLowerCase().includes('platform authenticator')
+      )) {
+        const friendlyError = new Error('This device doesn\'t have Touch ID / Windows Hello enabled. Try "Use a phone or security key" instead.');
+        setError(friendlyError.message);
+        if (onError) {
+          onError(friendlyError);
+        }
+      } else {
+        setError(errorMessage);
+        if (onError) {
+          onError(error);
+        }
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Platform-only handler (strict constraints, no QR dialog)
+  const handlePlatformOnly = async () => {
+    // CRITICAL: Pure user gesture - call WebAuthn immediately
+    // No async delays, no modals, no analytics before the call
+    await handlePasskeyAuth(true);
+  };
+
+  // Cross-device handler (allows QR dialog)
+  const handleCrossDevice = async () => {
+    // CRITICAL: Pure user gesture - call WebAuthn immediately
+    await handlePasskeyAuth(false);
+  };
+
   return (
-    <div className="w-full">
+    <div className="w-full space-y-3">
+      {/* Platform-only button - strict constraints to prevent QR dialog */}
       <button
-        onClick={handlePasskeyAuth}
-        disabled={isLoading || !isPlatformAvailable}
+        onClick={handlePlatformOnly}
+        disabled={isLoading}
         className="w-full px-6 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-blue-500 dark:disabled:hover:bg-blue-600 relative group"
-        title="Powered by Fusaka upgrade (EIP-7951) - native secp256r1 signature verification"
+        title="Use Touch ID, Face ID, or Windows Hello on this device"
       >
-        {isLoading ? 'Authenticating...' : 'Continue with Face ID or Touch ID (experimental)'}
+        {isLoading ? 'Authenticating...' : 'Use this device (Touch ID / Windows Hello)'}
         <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 p-3 rounded-lg shadow-lg bg-white/95 dark:bg-gray-800 text-gray-900 dark:text-white text-xs text-center border border-gray-200 dark:border-gray-700 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
-          Powered by Fusaka upgrade ({' '}
+          Uses strict platform-only constraints to prevent QR dialog. Future-compatible with{' '}
           <a
             href="https://eips.ethereum.org/EIPS/eip-7951"
             target="_blank"
@@ -356,13 +391,23 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           >
             EIP-7951
           </a>
-          {' '}) - enables native secp256r1 signature verification for efficient passkey authentication
+          {' '}(Fusaka upgrade) for native secp256r1 signature verification on-chain
         </div>
+      </button>
+
+      {/* Cross-device button - allows QR dialog */}
+      <button
+        onClick={handleCrossDevice}
+        disabled={isLoading}
+        className="w-full px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        title="Use a phone or security key (may show QR code)"
+      >
+        Use a phone or security key
       </button>
       
       {!isPlatformAvailable && isSupported && (
         <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
-          Platform authenticator (Touch ID, Face ID, Windows Hello) not available
+          Platform authenticator (Touch ID, Face ID, Windows Hello) not available on this device
         </p>
       )}
 
