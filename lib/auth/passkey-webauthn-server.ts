@@ -97,12 +97,14 @@ const credentialStore = new Map<string, StoredCredential[]>();
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (for display in browser)
  * @param walletAddress - Wallet address (optional, for Arkiv query to find existing credentials)
+ * @param platformOnly - If true, use strict platform-only constraints to prevent QR dialog
  * @returns WebAuthn registration options with excludeCredentials populated from Arkiv
  */
 export async function getRegistrationOptions(
   userId: string,
   userName?: string,
-  walletAddress?: string
+  walletAddress?: string,
+  platformOnly: boolean = false
 ): Promise<any> {
   // CRITICAL: Query Arkiv for existing passkey identities BEFORE generating options
   // This prevents duplicate registrations at the WebAuthn API level
@@ -154,17 +156,19 @@ export async function getRegistrationOptions(
   }
 
   // Build authenticatorSelection options
-  // CRITICAL: Don't force 'platform' attachment - this causes Safari to show QR dialog
-  // Instead, let the browser choose, but prefer resident keys for local storage
-  // When requireResidentKey is 'preferred' or 'required', browsers prefer platform authenticators
-  const authenticatorSelection: any = {
-    userVerification: 'preferred' as const, // Prefer user verification but don't require
-    requireResidentKey: 'preferred' as const, // Prefer resident keys (encourages platform authenticators)
-    // NOTE: We intentionally DON'T set authenticatorAttachment here
-    // Setting it to 'platform' causes Safari to show QR dialog when it detects phone passkeys
-    // By omitting it, we let the browser choose, and requireResidentKey: 'preferred' 
-    // naturally guides it toward platform authenticators (Touch ID, Face ID) when available
-  };
+  // For platform-only: use strict constraints to prevent cross-device eligibility
+  // For cross-device: explicitly set cross-platform to make QR/phone flow deterministic
+  const authenticatorSelection: any = platformOnly
+    ? {
+        authenticatorAttachment: 'platform' as const, // Force platform authenticator only
+        userVerification: 'required' as const, // Required (not preferred) for strictness
+        residentKey: 'required' as const, // Modern WebAuthn guidance (not requireResidentKey)
+      }
+    : {
+        authenticatorAttachment: 'cross-platform' as const, // Explicitly allow cross-platform (QR/phone/USB key)
+        userVerification: 'preferred' as const, // Prefer user verification but don't require
+        residentKey: 'preferred' as const, // Prefer resident keys
+      };
 
   const opts = {
     rpName,
@@ -178,7 +182,22 @@ export async function getRegistrationOptions(
     supportedAlgorithmIDs: [-7, -257], // ES256 (P-256) and RS256
   };
 
-  return generateRegistrationOptions(opts as any);
+  const generatedOptions = await generateRegistrationOptions(opts as any);
+
+  // CRITICAL: Log what SimpleWebAuthn actually returns
+  // This helps verify if it maps residentKey to requireResidentKey internally
+  console.log('[PASSKEY][REGISTER][SERVER] SimpleWebAuthn generated options:', {
+    platformOnly,
+    authenticatorSelection: {
+      authenticatorAttachment: generatedOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
+      userVerification: generatedOptions.authenticatorSelection?.userVerification || 'not_set',
+      residentKey: (generatedOptions.authenticatorSelection as any)?.residentKey || 'not_set',
+      requireResidentKey: (generatedOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
+    },
+    note: 'Verify browser receives intended constraints',
+  });
+
+  return generatedOptions;
 }
 
 /**

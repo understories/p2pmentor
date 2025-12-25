@@ -23,13 +23,15 @@
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (optional, defaults to userId)
  * @param walletAddress - Wallet address (optional, for Arkiv query to prevent duplicates)
+ * @param platformOnly - If true, use strict platform-only constraints to prevent QR dialog
  * @returns Credential ID and metadata on success
  * @throws Error if WebAuthn is not supported or registration fails
  */
 export async function registerPasskey(
   userId: string,
   userName?: string,
-  walletAddress?: string
+  walletAddress?: string,
+  platformOnly: boolean = false
 ): Promise<{
   credentialID: string;
   challenge: string;
@@ -63,7 +65,7 @@ export async function registerPasskey(
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ userId, userName, walletAddress }),
+      body: JSON.stringify({ userId, userName, walletAddress, platformOnly }),
     });
 
     if (!optionsResponse.ok) {
@@ -76,11 +78,6 @@ export async function registerPasskey(
 
     // Step 2: Transform options for WebAuthn API
     // The server returns base64url strings, but WebAuthn requires ArrayBuffers
-    // CRITICAL: Check if platform authenticator is available on client side
-    // If yes, explicitly set authenticatorAttachment: 'platform' to force local Touch ID/Face ID
-    // This prevents Safari from showing QR dialog when it detects phone passkeys
-    const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
-
     const publicKeyOptions: PublicKeyCredentialCreationOptions = {
       ...options,
       challenge: base64URLToArrayBuffer(options.challenge),
@@ -95,29 +92,35 @@ export async function registerPasskey(
       })) || [],
     };
 
-    // If platform authenticator is available, force it to prevent QR dialog
-    if (platformAuthAvailable) {
-      if (publicKeyOptions.authenticatorSelection) {
-        publicKeyOptions.authenticatorSelection = {
-          ...publicKeyOptions.authenticatorSelection,
-          authenticatorAttachment: 'platform' as const, // Force platform authenticator (Touch ID, Face ID)
-        };
-      } else {
-        // If authenticatorSelection doesn't exist, create it
-        publicKeyOptions.authenticatorSelection = {
-          authenticatorAttachment: 'platform' as const,
-          userVerification: 'preferred' as const,
-          requireResidentKey: true, // Require resident key for platform authenticator
-        };
-      }
-      console.log('[passkey-webauthn-client] Platform authenticator available - forcing platform attachment to prevent QR dialog');
-    }
+    // CRITICAL: Log final options before calling navigator.credentials.create()
+    // This helps diagnose why QR dialog appears
+    const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
+    const browserInfo = {
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+      isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+      isChrome: typeof navigator !== 'undefined' && /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent),
+      isFirefox: typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent),
+      platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
+    };
 
-    console.log('[passkey-webauthn-client] Registering passkey with options:', {
+    console.log('[PASSKEY][REGISTER][CLIENT] Final options before navigator.credentials.create():', {
+      platformOnly,
+      isPlatformAuthenticatorAvailable: platformAuthAvailable,
+      browserInfo,
+      authenticatorSelection: {
+        authenticatorAttachment: publicKeyOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
+        userVerification: publicKeyOptions.authenticatorSelection?.userVerification || 'not_set',
+        residentKey: (publicKeyOptions.authenticatorSelection as any)?.residentKey || 'not_set',
+        requireResidentKey: (publicKeyOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
+      },
       challengeLength: publicKeyOptions.challenge.byteLength,
       userIdLength: publicKeyOptions.user.id.byteLength,
       rpId: publicKeyOptions.rp.id,
       userName: publicKeyOptions.user.name,
+      excludeCredentialsCount: publicKeyOptions.excludeCredentials?.length || 0,
+      note: platformOnly
+        ? 'Platform-only mode: strict constraints should prevent QR dialog'
+        : 'Cross-device mode: QR dialog may appear if cross-device options are available',
     });
 
     // Step 3: Call WebAuthn API to create credential
@@ -182,6 +185,18 @@ export async function registerPasskey(
       transports: result.transports,
     };
   } catch (error: any) {
+    // CRITICAL: Log exact error name for debugging
+    console.error('[PASSKEY][REGISTER][ERROR]', {
+      errorName: error.name,
+      errorMessage: error.message,
+      platformOnly,
+      isPlatformAuthenticatorAvailable: await isPlatformAuthenticatorAvailable().catch(() => false),
+      browserInfo: {
+        userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+        isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+      },
+    });
+
     // Re-throw with context
     if (error.name === 'NotAllowedError') {
       throw new Error('Passkey registration was cancelled or timed out');
@@ -189,6 +204,8 @@ export async function registerPasskey(
       throw new Error('A passkey already exists for this device');
     } else if (error.name === 'NotSupportedError') {
       throw new Error('Passkeys are not supported on this device');
+    } else if (error.name === 'ConstraintError') {
+      throw new Error('Passkey registration constraint error - platform authenticator may not be available');
     }
     throw error;
   }
