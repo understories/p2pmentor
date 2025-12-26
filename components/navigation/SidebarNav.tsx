@@ -19,7 +19,7 @@ import { hasOnboardingBypass } from '@/lib/onboarding/access';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
-import { getSidebarSkillId } from '@/lib/sessions/display';
+import { formatSessionTitle } from '@/lib/sessions/display';
 import { listLearningFollows } from '@/lib/arkiv/learningFollow';
 import { listSkills, normalizeSkillSlug } from '@/lib/arkiv/skill';
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -458,8 +458,9 @@ export function SidebarNav() {
             const skillId = session.skill_id || session.community || '[legacy data]';
             const normalizedSkillId = skillId.toLowerCase().trim();
             
-            // Get skill name from skills map (will use skill_id as fallback if not found)
-            const skillTitle = getSidebarSkillId(session, skillsMap);
+            // Use formatSessionTitle for consistent skill name display (same as main content)
+            // This handles skill title lookup, legacy data, and community sessions correctly
+            const skillTitle = formatSessionTitle(session, skillsMap);
             
             const isCommunity = Boolean(
               session.skill === 'virtual_gathering_rsvp' || 
