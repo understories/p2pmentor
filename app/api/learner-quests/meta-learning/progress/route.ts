@@ -50,7 +50,10 @@ export async function GET(request: NextRequest) {
       includeExpired,
     });
 
+    // getMetaLearningProgress returns null only on error, not when no progress exists
+    // When no artifacts exist, it returns a valid progress object with status 'not_started'
     if (!progress) {
+      console.error('[meta-learning/progress] getMetaLearningProgress returned null');
       return NextResponse.json(
         { ok: false, error: 'Failed to fetch progress' },
         { status: 500 }

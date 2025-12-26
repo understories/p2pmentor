@@ -164,24 +164,29 @@ export default function LearnerQuestsPage() {
             }
           } else if (quest.questType === 'meta_learning') {
             // Load meta-learning quest progress
-            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
-            const data = await res.json();
+            try {
+              const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+              const data = await res.json();
 
-            if (data.ok && data.progress) {
-              const progress = data.progress;
-              const completedSteps = progress.completedSteps || 0;
-              const totalSteps = progress.totalSteps || 6;
-              const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+              if (data.ok && data.progress) {
+                const progress = data.progress;
+                const completedSteps = progress.completedSteps || 0;
+                const totalSteps = progress.totalSteps || 6;
+                const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
-              return {
-                questId: quest.questId,
-                progress: {
-                  completedSteps,
-                  totalSteps,
-                  progressPercent,
-                },
-              };
+                return {
+                  questId: quest.questId,
+                  progress: {
+                    completedSteps,
+                    totalSteps,
+                    progressPercent,
+                  },
+                };
+              }
+            } catch (err) {
+              console.error(`Error loading meta-learning progress for quest ${quest.questId}:`, err);
             }
+            // Return 0 progress if API fails or returns error
             return {
               questId: quest.questId,
               progress: {
@@ -249,22 +254,29 @@ export default function LearnerQuestsPage() {
       }
 
       // Load meta-learning quest progress
-      const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
-      const data = await res.json();
+      try {
+        const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+        const data = await res.json();
 
-      if (data.ok && data.progress) {
-        const progress = data.progress;
-        const completedSteps = progress.completedSteps || 0;
-        const totalSteps = progress.totalSteps || 6; // Default to 6 steps for meta-learning
-        const percent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+        if (data.ok && data.progress) {
+          const progress = data.progress;
+          const completedSteps = progress.completedSteps || 0;
+          const totalSteps = progress.totalSteps || 6; // Default to 6 steps for meta-learning
+          const percent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
-        setOverallCompletion({
-          percent,
-          readCount: completedSteps,
-          totalMaterials: totalSteps
-        });
-      } else {
-        setOverallCompletion({ percent: 0, readCount: 0, totalMaterials: 6 });
+          setOverallCompletion({
+            percent,
+            readCount: completedSteps,
+            totalMaterials: totalSteps
+          });
+        } else {
+          // If API returns error, show 0% progress (quest exists but no progress yet)
+          setOverallCompletion({ percent: 0, readCount: 0, totalMaterials: 6 });
+        }
+      } catch (fetchErr: any) {
+        // If fetch fails, don't show progress bar (quest might not be seeded yet)
+        console.error('Error fetching meta-learning progress:', fetchErr);
+        setOverallCompletion(null);
       }
     } catch (err: any) {
       console.error('Error loading overall completion:', err);
