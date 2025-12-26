@@ -62,14 +62,15 @@ export async function GET(request: NextRequest) {
                 questId: questData.questId,
                 title: questData.title,
                 description: questData.description,
-                source: questData.source,
+                source: questData.sourceRef || questData.source || '', // Map sourceRef to source for backward compatibility
                 questType: 'meta_learning',
-                questVersion: '1',
-                status: 'active',
+                questVersion: String(questData.version || 1),
+                status: questData.status || 'active',
                 spaceId: SPACE_ID,
                 createdAt: new Date().toISOString(),
                 steps: questData.steps,
                 metadata: questData.metadata,
+                ui: questData.ui, // Include TTL UI configuration
               },
             });
           }
@@ -146,14 +147,15 @@ export async function GET(request: NextRequest) {
                 questId: questData.questId,
                 title: questData.title,
                 description: questData.description,
-                source: questData.source,
+                source: questData.sourceRef || questData.source || '', // Map sourceRef to source for backward compatibility
                 questType: 'meta_learning',
-                questVersion: '1',
-                status: 'active',
+                questVersion: String(questData.version || 1),
+                status: questData.status || 'active',
                 spaceId: SPACE_ID,
                 createdAt: new Date().toISOString(),
                 steps: questData.steps,
                 metadata: questData.metadata,
+                ui: questData.ui, // Include TTL UI configuration
               });
             }
           }

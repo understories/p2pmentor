@@ -1,8 +1,10 @@
 {
   "questId": "meta_learning",
+  "version": 1,
+  "status": "active",
   "title": "Meta-Learning: Learn How to Learn",
   "description": "A foundational quest that teaches effective learning behaviors and mental models. Apply to any learning goal you already have on the platform.",
-  "source": "refs/meta-learning-quest-implementation-plan.md",
+  "sourceRef": "refs/meta-learning-quest-implementation-plan.md",
   "questType": "meta_learning",
   "steps": [
     {
@@ -12,7 +14,7 @@
       "estimatedDuration": "5 minutes",
       "conceptCard": {
         "title": "Learning is skill-agnostic",
-        "body": "Learning works the same way across subjects. Languages, math, programming, philosophy, and music all rely on the same underlying processes.\n\nBy choosing a concrete learning target, you give your brain something specific to work on. The process you practice here will transfer to other skills later.\n\nThis quest is not about *what* you learn. It is about *how* you learn anything."
+        "body": "Learning works the same way across subjects. Languages, math, programming, philosophy, and music all rely on the same underlying processes.\n\nBy choosing a concrete learning target, you give your brain something specific to work on. The process you practice here will transfer to other skills later.\n\nThis quest is not about what you learn. It is about how you learn anything."
       }
     },
     {
@@ -58,8 +60,9 @@
     {
       "stepId": "spacing_check",
       "title": "Spacing Check",
-      "description": "After ≥24 hours, revisit the topic briefly and note what persisted, what decayed, what re-clicked quickly.",
+      "description": "After at least 24 hours, revisit the topic briefly and note what persisted, what decayed, what re-clicked quickly.",
       "estimatedDuration": "10-15 minutes",
+      "minimumTimeGapSeconds": 86400,
       "conceptCard": {
         "title": "Forgetting is part of learning",
         "body": "Memory strengthens when learning is spread out over time. Revisiting material after forgetting has begun makes it more durable.\n\nIf everything feels familiar immediately, learning is shallow. If some things faded and need rebuilding, learning is working.\n\nSpacing turns short-term understanding into long-term skill."
@@ -69,7 +72,15 @@
   "metadata": {
     "totalSteps": 6,
     "estimatedTotalTime": "5-7 days (flexible)",
-    "completionCriteria": "All artifact types exist + minimum time separation met"
+    "completionCriteria": "All required artifact types exist for a single target + spacing check time gap is met"
+  },
+  "ui": {
+    "ttl": {
+      "defaultTtlSeconds": 31536000,
+      "presetsSeconds": [86400, 604800, 2592000, 15552000, 31536000, 94608000],
+      "allowCustom": true,
+      "showAdvancedToggleByDefault": false,
+      "allowApplyToRemainingSteps": true
+    }
   }
 }
-

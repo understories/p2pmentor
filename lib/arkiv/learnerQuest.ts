@@ -48,12 +48,22 @@ export type LearnerQuest = {
     title: string;
     description: string;
     estimatedDuration: string;
+    minimumTimeGapSeconds?: number; // in seconds (from JSON)
     conceptCard?: {
       title: string;
       body: string;
     } | null;
-    minimumTimeGap?: number; // in milliseconds
   }[];
+  // TTL UI configuration (for meta_learning quests loaded from JSON)
+  ui?: {
+    ttl?: {
+      defaultTtlSeconds: number;
+      presetsSeconds: number[];
+      allowCustom: boolean;
+      showAdvancedToggleByDefault: boolean;
+      allowApplyToRemainingSteps: boolean;
+    };
+  };
   // For language_assessment quests (stored in payload, not directly accessible here):
   // Use parseLanguageAssessmentQuest() from languageQuest.ts to extract
   createdAt: string;
