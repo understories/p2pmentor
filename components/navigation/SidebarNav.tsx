@@ -859,8 +859,10 @@ export function SidebarNav() {
             <button
               onClick={async () => {
                 if (typeof window !== 'undefined') {
-                  // Disconnect MetaMask if it's a MetaMask wallet
+                  // Disconnect wallet based on type
                   const walletType = localStorage.getItem(`wallet_type_${wallet.toLowerCase()}`);
+
+                  // Disconnect MetaMask if it's a MetaMask wallet
                   if (walletType === 'metamask' && window.ethereum) {
                     try {
                       const { disconnectWallet } = await import('@/lib/auth/metamask');
@@ -871,6 +873,17 @@ export function SidebarNav() {
                     }
                   }
                   
+                  // Disconnect WalletConnect if it's a WalletConnect wallet
+                  if (walletType === 'walletconnect') {
+                    try {
+                      const { disconnectWalletConnect } = await import('@/lib/wallet/walletconnectProvider');
+                      await disconnectWalletConnect(wallet);
+                    } catch (error) {
+                      // Silently fail - clearing localStorage is the important part
+                      console.warn('Failed to disconnect WalletConnect:', error);
+                    }
+                  }
+
                   // Clear all wallet-related localStorage
                   localStorage.removeItem('wallet_address');
                   localStorage.removeItem('passkey_user_id');

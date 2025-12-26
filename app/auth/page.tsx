@@ -474,7 +474,7 @@ export default function AuthPage() {
                 disabled={isConnectingWalletConnect || isConnecting}
                 className="w-full px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-gray-700"
               >
-                {isConnectingWalletConnect ? 'Connecting...' : 'Connect with WalletConnect (implementation in progress)'}
+                {isConnectingWalletConnect ? 'Connecting...' : 'Connect with WalletConnect'}
               </button>
             </ArkivQueryTooltip>
           )}
