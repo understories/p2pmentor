@@ -10,6 +10,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getLearnerQuest, listLearnerQuests, markMaterialAsRead } from '@/lib/arkiv/learnerQuest';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
+import fs from 'fs';
+import path from 'path';
 
 /**
  * GET /api/learner-quests
@@ -47,6 +49,35 @@ export async function GET(request: NextRequest) {
     }
 
     if (questId) {
+      // Load meta_learning quest from JSON file if requested (server-side only)
+      if (questId === 'meta_learning') {
+        try {
+          const questPath = path.join(process.cwd(), 'static-data/meta-learning-quest.json');
+          if (fs.existsSync(questPath)) {
+            const questData = JSON.parse(fs.readFileSync(questPath, 'utf-8'));
+            return NextResponse.json({
+              ok: true,
+              quest: {
+                key: 'meta_learning_json',
+                questId: questData.questId,
+                title: questData.title,
+                description: questData.description,
+                source: questData.source,
+                questType: 'meta_learning',
+                questVersion: '1',
+                status: 'active',
+                spaceId: SPACE_ID,
+                createdAt: new Date().toISOString(),
+                steps: questData.steps,
+                metadata: questData.metadata,
+              },
+            });
+          }
+        } catch (jsonError) {
+          console.warn('[learner-quests] Failed to load meta-learning quest from JSON:', jsonError);
+        }
+      }
+
       // Fetch specific quest
       const quest = await getLearnerQuest(questId);
       if (!quest) {
@@ -95,11 +126,42 @@ export async function GET(request: NextRequest) {
         SPACE_ID,
         builderMode,
       });
-      const quests = await listLearnerQuests({
+      let quests = await listLearnerQuests({
         ...(questType ? { questType } : {}),
         ...(spaceId ? { spaceId } : {}),
         ...(spaceIds ? { spaceIds } : {}),
       });
+
+      // Load meta_learning quest from JSON file if requested (server-side only)
+      if (!questType || questType === 'meta_learning') {
+        try {
+          const questPath = path.join(process.cwd(), 'static-data/meta-learning-quest.json');
+          if (fs.existsSync(questPath)) {
+            const questData = JSON.parse(fs.readFileSync(questPath, 'utf-8'));
+            // Check if meta_learning quest already exists in quests
+            const existingQuest = quests.find(q => q.questId === 'meta_learning');
+            if (!existingQuest) {
+              quests.push({
+                key: 'meta_learning_json', // Synthetic key for JSON-based quests
+                questId: questData.questId,
+                title: questData.title,
+                description: questData.description,
+                source: questData.source,
+                questType: 'meta_learning',
+                questVersion: '1',
+                status: 'active',
+                spaceId: SPACE_ID,
+                createdAt: new Date().toISOString(),
+                steps: questData.steps,
+                metadata: questData.metadata,
+              });
+            }
+          }
+        } catch (jsonError) {
+          console.warn('[learner-quests] Failed to load meta-learning quest from JSON:', jsonError);
+        }
+      }
+
       console.log('[learner-quests] Found quests:', {
         count: quests.length,
         questIds: quests.map(q => q.questId),

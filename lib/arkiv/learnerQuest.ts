@@ -34,10 +34,26 @@ export type LearnerQuest = {
   // For reading_list quests:
   materials?: LearnerQuestMaterial[];
   metadata?: {
-    totalMaterials: number;
-    categories: string[];
-    lastUpdated: string;
+    totalMaterials?: number;
+    categories?: string[];
+    lastUpdated?: string;
+    // For meta_learning quests:
+    totalSteps?: number;
+    estimatedTotalTime?: string;
+    completionCriteria?: string;
   };
+  // For meta_learning quests (loaded from JSON file):
+  steps?: {
+    stepId: string;
+    title: string;
+    description: string;
+    estimatedDuration: string;
+    conceptCard?: {
+      title: string;
+      body: string;
+    } | null;
+    minimumTimeGap?: number; // in milliseconds
+  }[];
   // For language_assessment quests (stored in payload, not directly accessible here):
   // Use parseLanguageAssessmentQuest() from languageQuest.ts to extract
   createdAt: string;
@@ -219,8 +235,8 @@ export async function listLearnerQuests(options?: {
       queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(100);
     }
 
-    // Filter by quest type if specified
-    if (options?.questType) {
+    // Filter by quest type if specified (but exclude meta_learning since we load from JSON)
+    if (options?.questType && options.questType !== 'meta_learning') {
       queryBuilder = queryBuilder.where(eq('questType', options.questType));
     }
 
@@ -236,6 +252,7 @@ export async function listLearnerQuests(options?: {
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       console.log('[listLearnerQuests] No entities found');
+      // Return empty array (meta_learning quest is loaded from JSON in API route)
       return [];
     }
 
@@ -319,6 +336,9 @@ export async function listLearnerQuests(options?: {
  */
 export async function getLearnerQuest(questId: string): Promise<LearnerQuest | null> {
   try {
+    // Note: meta_learning quest is loaded from JSON file in API route, not here
+    // This keeps fs/path imports out of the library code
+
     const publicClient = getPublicClient();
     const result = await publicClient.buildQuery()
       .where(eq('type', 'learner_quest'))
