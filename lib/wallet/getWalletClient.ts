@@ -58,13 +58,28 @@ export async function getWalletClient(walletAddress: `0x${string}`) {
     // Guard: Check feature flag
     const isWalletConnectEnabled = process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
     if (!isWalletConnectEnabled) {
-      throw new Error('WalletConnect is disabled');
+      // Clear, actionable error message for feature flag disabled
+      const error = new Error('WalletConnect is temporarily unavailable. Please use MetaMask or reconnect via /auth to use a different wallet.');
+      console.error('[WalletConnect] WC_FEATURE_FLAG_DISABLED', {
+        walletAddress: `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`,
+        reason: 'Feature flag disabled but wallet_type is walletconnect',
+      });
+      throw error;
     }
 
     // Use WalletConnect provider
     const provider = getWalletConnectProvider();
     
     if (!provider) {
+      // Explicit logging for Phase 0 session expiry (known limitation)
+      // This helps distinguish from other auth failures in telemetry
+      console.error('[WalletConnect] WC_SESSION_MISSING_PHASE0', {
+        walletAddress: `${walletAddress.substring(0, 6)}...${walletAddress.substring(walletAddress.length - 4)}`,
+        reason: 'Provider singleton is null after page reload (Phase 0 limitation)',
+        phase: 'Phase 0',
+        limitation: 'In-memory session, no persistence across reloads',
+        action: 'User must reconnect via /auth',
+      });
       throw new Error('WalletConnect session expired. Please reconnect via /auth.');
     }
     
