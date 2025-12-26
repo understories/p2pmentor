@@ -356,7 +356,7 @@ export default function MePage() {
       const allQuests = questsData.quests;
       const readingListQuests = allQuests.filter((q: any) => q.questType === 'reading_list');
 
-      // Load progress for all quests in parallel (both reading_list and language_assessment)
+      // Load progress for all quests in parallel (reading_list, language_assessment, and meta_learning)
       const progressPromises = allQuests.map(async (quest: any) => {
         try {
           if (quest.questType === 'reading_list') {
@@ -383,6 +383,33 @@ export default function MePage() {
               progressPercent: 0,
               readCount: 0,
               totalMaterials: quest.materials?.length || 0,
+            };
+          } else if (quest.questType === 'meta_learning') {
+            // Load meta-learning quest progress
+            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`);
+            const data = await res.json();
+
+            if (data.ok && data.progress) {
+              const progress = data.progress;
+              const completedSteps = progress.completedSteps || 0;
+              const totalSteps = progress.totalSteps || 6;
+              const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+              return {
+                questId: quest.questId,
+                title: quest.title,
+                questType: quest.questType,
+                progressPercent,
+                completedSteps,
+                totalSteps,
+              };
+            }
+            return {
+              questId: quest.questId,
+              title: quest.title,
+              questType: quest.questType,
+              progressPercent: 0,
+              completedSteps: 0,
+              totalSteps: 6,
             };
           } else if (quest.questType === 'language_assessment') {
             // Load assessment results for language assessments

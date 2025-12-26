@@ -162,6 +162,34 @@ export default function LearnerQuestsPage() {
                 },
               };
             }
+          } else if (quest.questType === 'meta_learning') {
+            // Load meta-learning quest progress
+            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+            const data = await res.json();
+
+            if (data.ok && data.progress) {
+              const progress = data.progress;
+              const completedSteps = progress.completedSteps || 0;
+              const totalSteps = progress.totalSteps || 6;
+              const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+
+              return {
+                questId: quest.questId,
+                progress: {
+                  completedSteps,
+                  totalSteps,
+                  progressPercent,
+                },
+              };
+            }
+            return {
+              questId: quest.questId,
+              progress: {
+                completedSteps: 0,
+                totalSteps: 6,
+                progressPercent: 0,
+              },
+            };
           } else if (quest.questType === 'language_assessment') {
             // Load assessment results for language assessments
             try {
@@ -213,36 +241,31 @@ export default function LearnerQuestsPage() {
     if (!wallet) return;
 
     try {
-      // Calculate overall completion across all reading_list quests
-      const readingListQuests = quests.filter(q => q.questType === 'reading_list');
-      if (readingListQuests.length === 0) {
+      // Show ONLY meta-learning quest progress to nudge users to learn how to learn first
+      const metaLearningQuest = quests.find(q => q.questType === 'meta_learning');
+      if (!metaLearningQuest) {
         setOverallCompletion(null);
         return;
       }
 
-      const progressPromises = readingListQuests.map(async (quest) => {
-        try {
-          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
-          const data = await res.json();
+      // Load meta-learning quest progress
+      const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+      const data = await res.json();
 
-          if (data.ok && data.progress && quest.materials) {
-            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
-            const totalMaterials = quest.materials.length;
-            return { readCount, totalMaterials };
-          }
-          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
-        } catch (err) {
-          console.error(`Error loading progress for quest ${quest.questId}:`, err);
-          return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
-        }
-      });
+      if (data.ok && data.progress) {
+        const progress = data.progress;
+        const completedSteps = progress.completedSteps || 0;
+        const totalSteps = progress.totalSteps || 6; // Default to 6 steps for meta-learning
+        const percent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
-      const results = await Promise.all(progressPromises);
-      const totalRead = results.reduce((sum, r) => sum + r.readCount, 0);
-      const totalMaterials = results.reduce((sum, r) => sum + r.totalMaterials, 0);
-      const percent = totalMaterials > 0 ? Math.round((totalRead / totalMaterials) * 100) : 0;
-
-      setOverallCompletion({ percent, readCount: totalRead, totalMaterials });
+        setOverallCompletion({
+          percent,
+          readCount: completedSteps,
+          totalMaterials: totalSteps
+        });
+      } else {
+        setOverallCompletion({ percent: 0, readCount: 0, totalMaterials: 6 });
+      }
     } catch (err: any) {
       console.error('Error loading overall completion:', err);
       setOverallCompletion(null);
@@ -686,7 +709,7 @@ export default function LearnerQuestsPage() {
                 />
               </div>
               <p className="text-xs text-gray-600 dark:text-gray-400">
-                {overallCompletion.readCount} / {overallCompletion.totalMaterials} materials completed across all reading list quests
+                {overallCompletion.readCount} / {overallCompletion.totalMaterials} steps completed
               </p>
             </div>
           )}

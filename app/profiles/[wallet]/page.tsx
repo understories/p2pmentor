@@ -223,21 +223,37 @@ export default function ProfileDetailPage() {
 
       const quests = questsData.quests;
 
-      // Load progress for all quests in parallel
+      // Load progress for all quests in parallel (reading_list and meta_learning)
       const progressPromises = quests.map(async (quest: any) => {
         try {
-          const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
-          const data = await res.json();
+          if (quest.questType === 'meta_learning') {
+            // Load meta-learning quest progress
+            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`);
+            const data = await res.json();
 
-          if (data.ok && data.progress) {
-            const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
-            const totalMaterials = quest.materials.length;
-            return { readCount, totalMaterials };
+            if (data.ok && data.progress) {
+              const progress = data.progress;
+              const completedSteps = progress.completedSteps || 0;
+              const totalSteps = progress.totalSteps || 6;
+              // Convert to readCount/totalMaterials format for consistency
+              return { readCount: completedSteps, totalMaterials: totalSteps };
+            }
+            return { readCount: 0, totalMaterials: 6 };
+          } else {
+            // Reading list quests
+            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+            const data = await res.json();
+
+            if (data.ok && data.progress) {
+              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const totalMaterials = quest.materials?.length || 0;
+              return { readCount, totalMaterials };
+            }
+            return { readCount: 0, totalMaterials: quest.materials?.length || 0 };
           }
-          return { readCount: 0, totalMaterials: quest.materials.length };
         } catch (err) {
           console.error(`Error loading progress for quest ${quest.questId}:`, err);
-          return { readCount: 0, totalMaterials: quest.materials.length };
+          return { readCount: 0, totalMaterials: quest.materials?.length || 6 };
         }
       });
 
