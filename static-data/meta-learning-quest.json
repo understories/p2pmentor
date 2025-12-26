@@ -2,7 +2,7 @@
   "questId": "meta_learning",
   "version": 1,
   "status": "active",
-  "title": "Meta-Learning: Learn How to Learn",
+  "title": "Learn How to Learn",
   "description": "A foundational quest that teaches effective learning behaviors and mental models. Apply to any learning goal you already have on the platform.",
   "sourceRef": "refs/meta-learning-quest-implementation-plan.md",
   "questType": "meta_learning",
