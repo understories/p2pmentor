@@ -28,7 +28,7 @@ export type LearnerQuest = {
   title: string;
   description: string;
   source: string;
-  questType: 'reading_list' | 'language_assessment';
+  questType: 'reading_list' | 'language_assessment' | 'meta_learning';
   questVersion?: string; // Optional, defaults to '1' for backward compatibility
   creatorWallet?: string; // Optional, defaults to server signing wallet for admin-created
   // For reading_list quests:
@@ -82,17 +82,35 @@ export async function createLearnerQuest({
   creatorWallet,
   privateKey,
   spaceId = SPACE_ID,
+  // For meta_learning quests, pass steps and metadata
+  steps,
+  metadata,
 }: {
   questId: string;
   title: string;
   description: string;
   source: string;
-  materials: LearnerQuestMaterial[];
-  questType?: 'reading_list' | 'language_assessment';
+  materials?: LearnerQuestMaterial[]; // Optional for meta_learning quests
+  questType?: 'reading_list' | 'language_assessment' | 'meta_learning';
   questVersion?: string; // Optional, defaults to '1'
   creatorWallet?: string; // Optional, defaults to server signing wallet
   privateKey: `0x${string}`;
   spaceId?: string;
+  steps?: Array<{
+    stepId: string;
+    title: string;
+    description: string;
+    estimatedDuration: string;
+    conceptCard?: {
+      title: string;
+      body: string;
+    } | null;
+  }>;
+  metadata?: {
+    totalSteps?: number;
+    estimatedTotalTime?: string;
+    completionCriteria?: string;
+  };
 }): Promise<{ key: string; txHash: string } | null> {
   try {
     const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -103,16 +121,24 @@ export async function createLearnerQuest({
     const enc = new TextEncoder();
     const createdAt = new Date().toISOString();
 
-    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({
-          materials,
+    // For meta_learning quests, store steps in payload instead of materials
+    const payloadData = questType === 'meta_learning'
+      ? {
+          steps: steps || [],
+          metadata: metadata || {},
+        }
+      : {
+          materials: materials || [],
           metadata: {
-            totalMaterials: materials.length,
-            categories: [...new Set(materials.map(m => m.category))],
+            totalMaterials: (materials || []).length,
+            categories: [...new Set((materials || []).map(m => m.category))],
             lastUpdated: createdAt,
           },
-        })),
+        };
+
+    const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
+      return await walletClient.createEntity({
+        payload: enc.encode(JSON.stringify(payloadData)),
         contentType: 'application/json',
         attributes: [
           { key: 'type', value: 'learner_quest' },
@@ -166,7 +192,7 @@ export async function createLearnerQuest({
  * Optionally filter by quest type and spaceId.
  */
 export async function listLearnerQuests(options?: {
-  questType?: 'reading_list' | 'language_assessment';
+  questType?: 'reading_list' | 'language_assessment' | 'meta_learning';
   spaceId?: string;
   spaceIds?: string[];
 }): Promise<LearnerQuest[]> {
@@ -235,7 +261,7 @@ export async function listLearnerQuests(options?: {
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment';
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment' | 'meta_learning';
 
           const quest: LearnerQuest = {
             key: entity.key,
@@ -329,7 +355,7 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment';
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment' | 'meta_learning';
 
           // For reading_list quests, payload contains materials
           // For language_assessment quests, payload contains the full LanguageAssessmentQuest structure

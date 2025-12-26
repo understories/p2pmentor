@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const questId = searchParams.get('questId');
-    const questType = searchParams.get('questType') as 'reading_list' | 'language_assessment' | null;
+    const questType = searchParams.get('questType') as 'reading_list' | 'language_assessment' | 'meta_learning' | null;
 
     // Check if builder mode is enabled (from query param)
     const builderMode = searchParams.get('builderMode') === 'true';
