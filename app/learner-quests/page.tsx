@@ -703,12 +703,12 @@ export default function LearnerQuestsPage() {
             )}
           </div>
 
-          {/* Overall Completion Rate (only for reading_list quests) */}
+          {/* Overall Completion Rate (Meta-Learning Quest) */}
           {overallCompletion && questTypeFilter !== 'language_assessment' && (
             <div className="mb-6 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Overall Progress (Reading Lists)
+                  Meta-Learning Quest Progress
                 </span>
                 <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
                   {overallCompletion.percent}%
