@@ -87,6 +87,7 @@ export async function POST(request: NextRequest) {
       questVersion: '1', // First version
       privateKey,
       spaceId: SPACE_ID,
+      // steps and metadata are undefined for reading_list quests
     });
 
     if (!result) {

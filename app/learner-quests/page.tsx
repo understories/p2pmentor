@@ -40,12 +40,12 @@ type LearnerQuest = {
   title: string;
   description: string;
   source: string;
-  questType: 'reading_list' | 'language_assessment';
-  materials: LearnerQuestMaterial[];
-  metadata: {
-    totalMaterials: number;
-    categories: string[];
-    lastUpdated: string;
+  questType: 'reading_list' | 'language_assessment' | 'meta_learning';
+  materials?: LearnerQuestMaterial[];
+  metadata?: {
+    totalMaterials?: number;
+    categories?: string[];
+    lastUpdated?: string;
   };
   createdAt: string;
   status: 'active' | 'archived';
@@ -73,7 +73,7 @@ export default function LearnerQuestsPage() {
   const [materialProgress, setMaterialProgress] = useState<Record<string, { status: string; readAt?: string; key?: string; txHash?: string }>>({});
   const [markingRead, setMarkingRead] = useState<string | null>(null);
   const [overallCompletion, setOverallCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
-  const [questTypeFilter, setQuestTypeFilter] = useState<'all' | 'reading_list' | 'language_assessment'>('all');
+  const [questTypeFilter, setQuestTypeFilter] = useState<'all' | 'reading_list' | 'language_assessment' | 'meta_learning'>('all');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -321,6 +321,9 @@ export default function LearnerQuestsPage() {
     if (quest.questType === 'language_assessment') {
       // Navigate to language assessment page
       router.push(`/learner-quests/${quest.questId}`);
+    } else if (quest.questType === 'meta_learning') {
+      // Navigate to meta-learning quest page
+      router.push(`/learner-quests/meta_learning`);
     } else {
       // Show reading list detail view
       setSelectedQuestId(quest.questId);
@@ -698,7 +701,7 @@ export default function LearnerQuestsPage() {
             if (filteredQuests.length === 0) {
               return (
                 <EmptyState
-                  title={`No ${questTypeFilter === 'all' ? 'learner quests' : questTypeFilter === 'reading_list' ? 'reading list quests' : 'language assessment quests'} available yet`}
+                  title={`No ${questTypeFilter === 'all' ? 'learner quests' : questTypeFilter === 'reading_list' ? 'reading list quests' : questTypeFilter === 'language_assessment' ? 'language assessment quests' : 'meta-learning quests'} available yet`}
                   description="Check back soon for curated learning materials."
                 />
               );
