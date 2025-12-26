@@ -786,18 +786,26 @@ export default function LearnerQuestsPage() {
                       <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
                         quest.questType === 'language_assessment'
                           ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          : quest.questType === 'meta_learning'
+                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
                           : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
                       }`}>
-                        {quest.questType === 'language_assessment' ? 'Language Assessment' : 'Reading List'}
+                        {quest.questType === 'language_assessment' 
+                          ? 'Language Assessment' 
+                          : quest.questType === 'meta_learning'
+                          ? 'Activity Quest'
+                          : 'Reading List'}
                       </span>
                     </div>
 
-                    {/* Progress (only for reading_list quests) */}
-                    {quest.questType === 'reading_list' && (
+                    {/* Progress (for reading_list and meta_learning quests) */}
+                    {(quest.questType === 'reading_list' || quest.questType === 'meta_learning') && (
                       <div className="mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {progress.readCount} / {progress.totalMaterials} materials
+                            {quest.questType === 'meta_learning' 
+                              ? `${progress.readCount || 0} / ${progress.totalMaterials || 6} steps`
+                              : `${progress.readCount} / ${progress.totalMaterials} materials`}
                           </span>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
                             {progress.progressPercent}%
@@ -805,7 +813,11 @@ export default function LearnerQuestsPage() {
                         </div>
                         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
                           <div
-                            className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                            className={`h-2 rounded-full transition-all duration-300 ${
+                              quest.questType === 'meta_learning'
+                                ? 'bg-purple-600 dark:bg-purple-500'
+                                : 'bg-emerald-600'
+                            }`}
                             style={{ width: `${progress.progressPercent}%` }}
                           />
                         </div>
