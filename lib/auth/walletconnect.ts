@@ -32,6 +32,20 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
   }
 
   try {
+    // Clean up any existing WalletConnect provider first
+    // This prevents conflicts when switching from MetaMask to WalletConnect for the same address
+    try {
+      const { getWalletConnectProvider, disconnectWalletConnect } = await import('@/lib/wallet/walletconnectProvider');
+      const existingProvider = getWalletConnectProvider();
+      if (existingProvider) {
+        console.log('[WalletConnect] Cleaning up existing provider before new connection');
+        await disconnectWalletConnect();
+      }
+    } catch (cleanupError) {
+      // Non-critical - continue with new connection even if cleanup fails
+      console.warn('[WalletConnect] Failed to cleanup existing provider (non-critical):', cleanupError);
+    }
+
     // Initialize WalletConnect provider with Mendoza chain only
     // Reuse mendoza config from SDK for consistency
     console.log('[WalletConnect] Initializing provider', {

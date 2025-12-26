@@ -274,6 +274,34 @@ export default function AuthPage() {
     setError('');
 
     try {
+      // If user is already connected with MetaMask for the same address, disconnect first
+      // This prevents conflicts when switching connection methods
+      if (typeof window !== 'undefined') {
+        const existingWallet = localStorage.getItem('wallet_address');
+        const existingWalletType = existingWallet
+          ? localStorage.getItem(`wallet_type_${existingWallet.toLowerCase()}`)
+          : null;
+
+        if (existingWalletType === 'metamask' && window.ethereum) {
+          console.log('[Auth Page] Disconnecting existing MetaMask connection before WalletConnect');
+          try {
+            const { disconnectWallet } = await import('@/lib/auth/metamask');
+            await disconnectWallet();
+            // Clear wallet type to prevent conflicts
+            if (existingWallet) {
+              localStorage.removeItem(`wallet_type_${existingWallet.toLowerCase()}`);
+            }
+          } catch (disconnectError) {
+            // Non-critical - continue with WalletConnect even if MetaMask disconnect fails
+            console.warn('[Auth Page] Failed to disconnect MetaMask (non-critical):', disconnectError);
+            // Still clear wallet type to prevent conflicts
+            if (existingWallet) {
+              localStorage.removeItem(`wallet_type_${existingWallet.toLowerCase()}`);
+            }
+          }
+        }
+      }
+
       const address = await connectWalletConnect();
       console.log('[Auth Page] WalletConnect connected successfully', {
         address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
