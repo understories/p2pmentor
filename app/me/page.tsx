@@ -54,10 +54,12 @@ export default function MePage() {
   const [individualQuestProgress, setIndividualQuestProgress] = useState<Array<{
     questId: string;
     title: string;
-    questType: 'reading_list' | 'language_assessment';
+    questType: 'reading_list' | 'language_assessment' | 'meta_learning';
     progressPercent: number;
     readCount?: number;
     totalMaterials?: number;
+    completedSteps?: number;
+    totalSteps?: number;
   }>>([]);
   const [hasAvailability, setHasAvailability] = useState<boolean>(false);
   const arkivBuilderMode = useArkivBuilderMode();
@@ -953,9 +955,9 @@ export default function MePage() {
                 href="/learner-quests"
                 className="col-span-2 group relative p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all duration-200 cursor-pointer"
               >
-                <div className="flex flex-col md:flex-row gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Reading Lists Section */}
-                  <div className="flex-1">
+                  <div>
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Reading Lists
                     </h3>
@@ -981,11 +983,8 @@ export default function MePage() {
                     </div>
                   </div>
 
-                  {/* Divider */}
-                  <div className="w-px bg-emerald-200 dark:bg-emerald-700"></div>
-
                   {/* Language Assessments Section */}
-                  <div className="flex-1">
+                  <div>
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Language Assessments
                     </h3>
@@ -1007,6 +1006,33 @@ export default function MePage() {
                         ))}
                       {individualQuestProgress.filter(q => q.questType === 'language_assessment').length === 0 && (
                         <p className="text-xs text-gray-500 dark:text-gray-400">No language assessments</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Meta-Learning Quest Section */}
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      Meta-Learning Quest
+                    </h3>
+                    <div className="space-y-2">
+                      {individualQuestProgress
+                        .filter(q => q.questType === 'meta_learning')
+                        .map((quest) => (
+                          <div
+                            key={quest.questId}
+                            className="flex items-center justify-between text-sm"
+                          >
+                            <span className="text-gray-700 dark:text-gray-300 truncate flex-1">
+                              {quest.title}
+                            </span>
+                            <span className="text-purple-600 dark:text-purple-400 font-medium ml-2">
+                              {quest.progressPercent}%
+                            </span>
+                          </div>
+                        ))}
+                      {individualQuestProgress.filter(q => q.questType === 'meta_learning').length === 0 && (
+                        <p className="text-xs text-gray-500 dark:text-gray-400">No meta-learning quest</p>
                       )}
                     </div>
                   </div>
