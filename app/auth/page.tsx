@@ -600,7 +600,15 @@ export default function AuthPage() {
               className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
             >
               Mendoza testnet
-            </a>. Do not use a wallet containing real funds.
+            </a>. You do not need any funds to use the application.{' '}
+            <a
+              href="/docs/arkiv/wallet-architecture"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
+            >
+              Learn more about profile wallet vs signing wallet
+            </a>.
           </p>
           <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
             Blockchain data is immutable and transparent by design. All data inputted on this beta is viewable on the{' '}
