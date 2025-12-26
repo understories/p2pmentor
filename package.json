@@ -12,7 +12,8 @@
     "seed:app-feedback": "tsx scripts/seed-app-feedback.ts",
     "build:static-data": "tsx scripts/build-static-data.ts",
     "build:static-html": "tsx scripts/generate-static-html.ts",
-    "build:static": "npm run build:static-data && npm run build:static-html"
+    "build:static": "npm run build:static-data && npm run build:static-html",
+    "serve:static": "cd static-app/public && python3 -m http.server 8080"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^0.4.4",
