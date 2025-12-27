@@ -100,17 +100,19 @@ export async function GET(request: Request) {
     );
 
     // Calculate summary statistics
+    // CRITICAL: Use walletCount (from beta_access entities) as source of truth for usage
+    // This ensures usage = unique wallets (Arkiv-native, verifiable)
     const totalCodes = codesWithAccess.length;
-    const totalUsage = codesWithAccess.reduce((sum, code) => sum + code.usageCount, 0);
+    const totalUsage = codesWithAccess.reduce((sum, code) => sum + (code.walletCount || 0), 0);
     const totalLimit = codesWithAccess.reduce((sum, code) => sum + code.limit, 0);
     const totalWallets = new Set(codesWithAccess.flatMap(code => code.wallets)).size;
-    const codesAtLimit = codesWithAccess.filter(code => code.usageCount >= code.limit).length;
-    const codesAvailable = codesWithAccess.filter(code => code.usageCount < code.limit).length;
+    const codesAtLimit = codesWithAccess.filter(code => (code.walletCount || 0) >= code.limit).length;
+    const codesAvailable = codesWithAccess.filter(code => (code.walletCount || 0) < code.limit).length;
 
     // Debug logging for admin dashboard (Arkiv-native debugging)
     console.log('[admin/beta-code-usage] Summary:', {
       totalCodes,
-      totalUsage,
+      totalUsage, // Now based on walletCount (source of truth)
       totalLimit,
       totalWallets,
       codesAtLimit,
@@ -118,10 +120,10 @@ export async function GET(request: Request) {
       utilizationRate: totalLimit > 0 ? (totalUsage / totalLimit) * 100 : 0,
     });
 
-    // Log any codes with mismatched usageCount vs walletCount (potential issue indicator)
+    // Log any codes with mismatched usageCount vs walletCount (potential sync issue)
     codesWithAccess.forEach(code => {
       if (code.usageCount !== code.walletCount) {
-        console.warn(`[admin/beta-code-usage] Mismatch for code "${code.code}": usageCount=${code.usageCount}, walletCount=${code.walletCount}`);
+        console.warn(`[admin/beta-code-usage] Mismatch for code "${code.code}": usageCount=${code.usageCount}, walletCount=${code.walletCount} (walletCount is source of truth)`);
       }
     });
 
@@ -129,15 +131,19 @@ export async function GET(request: Request) {
       ok: true,
       summary: {
         totalCodes,
-        totalUsage,
+        totalUsage, // Based on walletCount (unique wallets from beta_access entities)
         totalLimit,
         totalWallets,
         codesAtLimit,
         codesAvailable,
         utilizationRate: totalLimit > 0 ? (totalUsage / totalLimit) * 100 : 0,
       },
-      codes: codesWithAccess.sort((a, b) => {
-        // Sort by usage count descending, then by code name
+      codes: codesWithAccess.map(code => ({
+        ...code,
+        // Override usageCount with walletCount for display (source of truth)
+        usageCount: code.walletCount || 0,
+      })).sort((a, b) => {
+        // Sort by usage count (walletCount) descending, then by code name
         if (b.usageCount !== a.usageCount) {
           return b.usageCount - a.usageCount;
         }

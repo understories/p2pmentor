@@ -1809,16 +1809,13 @@ export default function AdminDashboard() {
                                     {new Date(code.createdAt).toLocaleDateString()}
                                   </td>
                                   <td className="px-3 py-2">
-                                    {code.txHash ? (
-                                      <a
-                                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${code.txHash}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    {code.key ? (
+                                      <ViewOnArkivLink
+                                        entityKey={code.key}
+                                        label=""
+                                        icon="🔗"
                                         className="text-blue-600 dark:text-blue-400 hover:underline text-xs"
-                                        title="Verify on-chain"
-                                      >
-                                        🔗
-                                      </a>
+                                      />
                                     ) : (
                                       <span className="text-gray-400 text-xs">—</span>
                                     )}
