@@ -311,8 +311,8 @@ Before picking charts, decide what's *allowed*:
 
 **Data Collected:**
 - `code` - Beta code string (normalized to lowercase)
-- `usageCount` - Number of times the code has been used
-- `limit` - Maximum number of uses allowed (default: 50)
+- `usageCount` - Number of unique wallets that have used the code
+- `limit` - Maximum number of unique wallets allowed (default: 50)
 - `createdAt` - ISO timestamp when code was first used
 - `lastUsedAt` - ISO timestamp when code was last used
 - `txHash` - Transaction hash for entity creation/update
@@ -344,7 +344,7 @@ Before picking charts, decide what's *allowed*:
 **Where It Lives:**
 - Stored as Arkiv entities with type `beta_code_usage`
 - Beta access records stored as type `beta_access` (links wallet to code)
-- Verifiable on-chain via transaction hash
+- Verifiable on-chain via entity keys and transaction hashes
 - Expires after 1 year
 - Queryable via `/api/beta-code`
 
@@ -363,8 +363,8 @@ Before picking charts, decide what's *allowed*:
 **How Beta Code Gating Works:**
 1. User enters beta code on `/beta` page
 2. Code is validated against Arkiv `beta_code_usage` entity
-3. Usage count is checked against limit
-4. If valid, usage count is incremented and `beta_access` entity is created
+3. Unique wallet count is checked against limit (from `beta_access` entities)
+4. If valid, `beta_access` entity is created and usage count is synced
 5. Access is stored in cookies and localStorage for session persistence
 6. All routes (client and server) verify beta access before allowing access
 7. Wallet address is linked to beta access after authentication (for audit)

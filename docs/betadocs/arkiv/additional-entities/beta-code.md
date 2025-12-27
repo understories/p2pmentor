@@ -30,8 +30,8 @@ Tracks beta code usage on Arkiv to enforce limits. Each beta code has a usage li
 ## Key Fields
 
 - **code**: Beta code string (normalized to lowercase, trimmed)
-- **usageCount**: Current number of times this code has been used
-- **limit**: Maximum number of uses allowed (default: 50)
+- **usageCount**: Current number of unique wallets that have used this code (synced with `beta_access` entities)
+- **limit**: Maximum number of unique wallets allowed (default: 50)
 - **lastUsedAt**: When the code was last used (optional)
 - **createdAt**: When this entity version was created
 
