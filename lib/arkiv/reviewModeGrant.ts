@@ -49,14 +49,34 @@ export async function issueReviewModeGrant({
   appBuild?: string;
   grantReason?: string;
 }): Promise<{ key: string; txHash: string; expiresAt: string }> {
-  // Use server signer wallet (ARKIV_PRIVATE_KEY)
+  // CRITICAL: Use server signer wallet (ARKIV_PRIVATE_KEY), NEVER user wallet
+  // This function must ONLY be called from server-side API routes
   const privateKey = getPrivateKey();
+  
+  // Validate we have a proper private key (not a wallet address)
+  if (!privateKey.startsWith('0x') || privateKey.length !== 66) {
+    throw new Error('Invalid private key format. Must be 0x followed by 64 hex characters.');
+  }
+  
+  // Derive server signer address from private key
+  const { privateKeyToAccount } = await import('@arkiv-network/sdk/accounts');
+  const serverSignerAccount = privateKeyToAccount(privateKey);
+  const serverSignerAddress = serverSignerAccount.address.toLowerCase();
+  
+  // CRITICAL: Ensure we're using server signer, not user wallet
+  // Log for debugging (remove sensitive data in production)
+  console.log('[issueReviewModeGrant] Using server signer wallet:', {
+    serverSignerAddress: `${serverSignerAddress.substring(0, 6)}...${serverSignerAddress.substring(serverSignerAddress.length - 4)}`,
+    subjectWallet: `${subjectWallet.substring(0, 6)}...${subjectWallet.substring(subjectWallet.length - 4)}`,
+    note: 'subjectWallet is the grant recipient, serverSignerAddress signs the transaction',
+  });
+  
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   
   const enc = new TextEncoder();
   const issuedAt = new Date().toISOString(); // ISO-8601 UTC
   const spaceId = SPACE_ID;
-  const issuedBy = CURRENT_WALLET || ''; // Server signer address
+  const issuedBy = serverSignerAddress; // Server signer address (explicit, not from CURRENT_WALLET)
   
   // Default expiry: 7 days from now (ISO-8601 UTC)
   const defaultExpiresAt = expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
