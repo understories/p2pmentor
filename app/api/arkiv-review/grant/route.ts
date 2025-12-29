@@ -16,6 +16,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { issueReviewModeGrant } from '@/lib/arkiv/reviewModeGrant';
+import { getBetaAccessByWallet } from '@/lib/arkiv/betaAccess';
+import { SPACE_ID } from '@/lib/config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,6 +33,16 @@ export async function POST(request: NextRequest) {
 
     // Normalize wallet address
     const normalizedWallet = subjectWallet.toLowerCase().trim();
+
+    // Defensive check: verify beta_access exists (prevents accidental exposure if routing misconfigured)
+    // Beta code is already verified at /beta page, but this adds an extra safety layer
+    const betaAccess = await getBetaAccessByWallet(normalizedWallet, SPACE_ID);
+    if (!betaAccess) {
+      return NextResponse.json(
+        { ok: false, error: 'Beta access required. Please enter invite code at /beta' },
+        { status: 403 }
+      );
+    }
 
     // Issue grant using server signer
     const { key, txHash, expiresAt } = await issueReviewModeGrant({
