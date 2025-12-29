@@ -529,14 +529,26 @@ export default function AuthPage() {
         return;
       }
 
-      // Query Arkiv to confirm grant
+      // Grant issued successfully - wait a moment for Arkiv indexing, then verify
+      // Use retry mechanism with exponential backoff
       const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
       const { getProfileByWallet } = await import('@/lib/arkiv/profile');
 
-      const [grant, profile] = await Promise.all([
-        getLatestValidReviewModeGrant(reviewModeWallet),
-        getProfileByWallet(reviewModeWallet),
-      ]);
+      let grant = null;
+      const maxRetries = 5;
+      const initialDelay = 1000; // Start with 1 second
+
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, initialDelay * Math.pow(2, attempt)));
+
+        grant = await getLatestValidReviewModeGrant(reviewModeWallet);
+        if (grant) {
+          break; // Grant found, exit retry loop
+        }
+      }
+
+      // Check profile
+      const profile = await getProfileByWallet(reviewModeWallet).catch(() => null);
 
       if (grant) {
         // Success - clear review mode state and route
@@ -553,8 +565,15 @@ export default function AuthPage() {
           router.push('/review');
         }
       } else {
-        setError('Grant issued but not found on Arkiv. Please try again.');
+        // Grant was issued but not yet queryable - route anyway and let /review page handle it
+        // The /review page will retry the grant check
+        console.warn('[Auth Page] Grant issued but not yet queryable, routing to /review anyway');
+        setIsReviewModeEnabled(false);
+        setReviewModePassword('');
+        setIsPasswordVerified(false);
+        setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
+        router.push('/review');
       }
     } catch (err) {
       console.error('[Auth Page] Review mode grant issuance error', {
