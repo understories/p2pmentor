@@ -455,6 +455,16 @@ export default function AuthPage() {
       // Compare to public env var (inlined at build time in Next.js)
       // Handle missing config deterministically
       const expectedHash = process.env.NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256;
+      
+      // Debug logging (remove in production)
+      console.log('[Review Mode] Password hash debug:', {
+        passwordLength: reviewModePassword.length,
+        computedHash: hashHex,
+        expectedHash: expectedHash || 'NOT SET',
+        expectedHashLength: expectedHash?.length || 0,
+        hashesMatch: hashHex.toLowerCase() === expectedHash?.toLowerCase(),
+      });
+      
       if (!expectedHash) {
         setError('Review mode not configured');
         setIsActivatingReviewMode(false);
@@ -463,7 +473,7 @@ export default function AuthPage() {
 
       // Normalize case for comparison (hash should be lowercase)
       if (hashHex.toLowerCase() !== expectedHash.toLowerCase()) {
-        setError('Invalid password');
+        setError(`Invalid password. Debug: computed=${hashHex.substring(0, 16)}..., expected=${expectedHash.substring(0, 16)}...`);
         setIsActivatingReviewMode(false);
         return;
       }
