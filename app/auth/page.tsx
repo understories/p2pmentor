@@ -612,6 +612,22 @@ export default function AuthPage() {
           </div>
         )}
 
+        {/* Arkiv Review Mode Button - Before wallet connection */}
+        {mounted && (
+          <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <button
+              onClick={handleReviewModeEntry}
+              disabled={isConnecting || isActivatingReviewMode}
+              className="text-sm text-purple-800 dark:text-purple-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Arkiv Review Mode (Testing Only)
+            </button>
+            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+              For reviewers: Connect wallet, then enter password to request review mode grant.
+            </p>
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 mb-6">
           {/* Connect Wallet Button - Always visible per acceptance criteria */}
           <ArkivQueryTooltip
