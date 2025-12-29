@@ -5,7 +5,7 @@
  * These entities grant temporary capability to bypass onboarding for reviewers.
  * 
  * IMPORTANT: Grants are signed by the server signer wallet (ARKIV_PRIVATE_KEY), not the user wallet.
- * This ensures only the app can issue grants, preventing users from minting their own grants.
+ * This ensures only the app can issue grants, preventing users from issuing their own grants.
  */
 
 import { eq } from "@arkiv-network/sdk/query";
@@ -159,7 +159,7 @@ export async function getLatestValidReviewModeGrant(
           }
         }
         
-        // Verify issuer is server signer (prevent user-minted grants)
+        // Verify issuer is server signer (prevent user-issued grants)
         const issuedBy = entity.attributes?.find((attr: any) => attr.key === 'issuedBy')?.value;
         if (serverSignerAddress && issuedBy) {
           if (issuedBy.toLowerCase() !== serverSignerAddress) {
