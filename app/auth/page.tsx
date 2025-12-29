@@ -40,6 +40,8 @@ export default function AuthPage() {
   const [reviewModePassword, setReviewModePassword] = useState('');
   const [reviewModeWallet, setReviewModeWallet] = useState<string | null>(null);
   const [isActivatingReviewMode, setIsActivatingReviewMode] = useState(false);
+  const [isPasswordVerified, setIsPasswordVerified] = useState(false);
+  const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   // Check if WalletConnect is enabled via feature flag
   const isWalletConnectEnabled = typeof window !== 'undefined' &&
@@ -162,6 +164,12 @@ export default function AuthPage() {
   }, []);
 
   const handleMetaMaskConnect = async () => {
+    // If review mode is enabled, password must be verified first
+    if (isReviewModeEnabled && !isPasswordVerified) {
+      setError('Please verify password first');
+      return;
+    }
+
     // Mobile Safari/Chrome won't have window.ethereum even if MetaMask is installed.
     // Redirect users into MetaMask's in-app browser instead.
     if (mounted && isMobile && !isMetaMaskMobileBrowser) {
@@ -189,12 +197,19 @@ export default function AuthPage() {
       isMobile,
       isMetaMaskMobileBrowser,
       hasMetaMask,
+      isReviewModeEnabled,
+      isPasswordVerified,
     });
 
     setIsConnecting(true);
     setError('');
 
     try {
+      // For review mode, always force account selection by clearing stored wallet
+      if (isReviewModeEnabled && typeof window !== 'undefined') {
+        localStorage.removeItem('wallet_address');
+      }
+
       const address = await connectWallet();
       console.log('[Auth Page] Wallet connected successfully', {
         address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
@@ -211,8 +226,15 @@ export default function AuthPage() {
         localStorage.setItem('wallet_connection_method', 'metamask');
       }
 
+      // If review mode is enabled and password verified, issue grant and route to review onboarding
+      if (isReviewModeEnabled && isPasswordVerified) {
+        setReviewModeWallet(address);
+        await handleReviewModeActivate();
+        return; // handleReviewModeActivate will handle routing
+      }
+
       // Check Arkiv for review mode grant and profile
-      // Routing policy: profile exists → /me, else if grant exists → /arkiv-review/profile, else → onboarding
+      // Routing policy: profile exists → /me, else if grant exists → /review, else → onboarding
       const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
       const { getProfileByWallet } = await import('@/lib/arkiv/profile');
 
@@ -225,8 +247,8 @@ export default function AuthPage() {
         // Profile exists - normal user
         router.push('/me');
       } else if (grant) {
-        // Review mode grant exists - skip onboarding
-        router.push('/arkiv-review/profile');
+        // Review mode grant exists - route to review onboarding
+        router.push('/review');
       } else {
         // Normal flow - check onboarding level
         // Only create beta access record for NEW users (level === 0) to avoid double-counting
@@ -294,10 +316,20 @@ export default function AuthPage() {
       return;
     }
 
+    // If review mode is enabled, password must be verified first
+    if (isReviewModeEnabled && !isPasswordVerified) {
+      setError('Please verify password first');
+      return;
+    }
+
     setIsConnectingWalletConnect(true);
     setError('');
 
     try {
+      // For review mode, always force account selection by clearing stored wallet
+      if (isReviewModeEnabled && typeof window !== 'undefined') {
+        localStorage.removeItem('wallet_address');
+      }
       // If user is already connected with MetaMask for the same address, disconnect first
       // This prevents conflicts when switching connection methods
       if (typeof window !== 'undefined') {
@@ -340,15 +372,15 @@ export default function AuthPage() {
         localStorage.setItem('wallet_connection_method', 'walletconnect');
       }
 
-      // If review mode is enabled, verify password and issue grant
-      if (isReviewModeEnabled && reviewModePassword.trim()) {
+      // If review mode is enabled and password verified, issue grant and route to review onboarding
+      if (isReviewModeEnabled && isPasswordVerified) {
         setReviewModeWallet(address);
         await handleReviewModeActivate();
         return; // handleReviewModeActivate will handle routing
       }
 
       // Check Arkiv for review mode grant and profile
-      // Routing policy: profile exists → /me, else if grant exists → /arkiv-review/profile, else → onboarding
+      // Routing policy: profile exists → /me, else if grant exists → /review, else → onboarding
       const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
       const { getProfileByWallet } = await import('@/lib/arkiv/profile');
 
@@ -361,8 +393,8 @@ export default function AuthPage() {
         // Profile exists - normal user
         router.push('/me');
       } else if (grant) {
-        // Review mode grant exists - skip onboarding
-        router.push('/arkiv-review/profile');
+        // Review mode grant exists - route to review onboarding
+        router.push('/review');
       } else {
         // Normal flow - check onboarding level
         import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
@@ -417,12 +449,62 @@ export default function AuthPage() {
   const handleReviewModeToggle = () => {
     setIsReviewModeEnabled(!isReviewModeEnabled);
     if (!isReviewModeEnabled) {
-      // When enabling, clear password
+      // When enabling, clear password and verification state
       setReviewModePassword('');
+      setIsPasswordVerified(false);
+    } else {
+      // When disabling, clear verification state
+      setIsPasswordVerified(false);
     }
   };
 
-  // Handle password verification and grant minting request
+  // Verify password BEFORE wallet connection
+  const handleVerifyPassword = async () => {
+    if (!reviewModePassword.trim()) {
+      setError('Please enter a password');
+      return;
+    }
+
+    setIsVerifyingPassword(true);
+    setError('');
+
+    try {
+      // Client-side password hashing (SHA-256)
+      const encoder = new TextEncoder();
+      const data = encoder.encode(reviewModePassword.trim());
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Compare to public env var (inlined at build time in Next.js)
+      const expectedHash = process.env.NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256;
+      
+      if (!expectedHash) {
+        setError('Review mode not configured');
+        setIsVerifyingPassword(false);
+        return;
+      }
+
+      // Normalize case for comparison (hash should be lowercase)
+      if (hashHex.toLowerCase() !== expectedHash.toLowerCase()) {
+        setError('Invalid password');
+        setIsPasswordVerified(false);
+        setIsVerifyingPassword(false);
+        return;
+      }
+
+      // Password verified - show green check and enable wallet connection
+      setIsPasswordVerified(true);
+      setIsVerifyingPassword(false);
+    } catch (err) {
+      console.error('[Auth Page] Password verification error', err);
+      setError(err instanceof Error ? err.message : 'Failed to verify password');
+      setIsPasswordVerified(false);
+      setIsVerifyingPassword(false);
+    }
+  };
+
+  // Handle grant issuance after wallet connection (password already verified)
   const handleReviewModeActivate = async () => {
     if (!reviewModeWallet) return;
 
@@ -430,47 +512,7 @@ export default function AuthPage() {
     setError('');
 
     try {
-      // Trim password to remove any accidental whitespace
-      const trimmedPassword = reviewModePassword.trim();
-      
-      // Client-side password hashing (SHA-256)
-      const encoder = new TextEncoder();
-      const data = encoder.encode(trimmedPassword);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
-      // Compare to public env var (inlined at build time in Next.js)
-      // Handle missing config deterministically
-      const expectedHash = process.env.NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256;
-      
-      // Debug logging (remove in production)
-      console.log('[Review Mode] Password hash debug:', {
-        passwordValue: trimmedPassword, // Show actual password value for debugging
-        passwordLength: trimmedPassword.length,
-        originalLength: reviewModePassword.length,
-        passwordCharCodes: Array.from(trimmedPassword).map(c => c.charCodeAt(0)), // Check for hidden chars
-        hasWhitespace: trimmedPassword !== reviewModePassword,
-        computedHash: hashHex,
-        expectedHash: expectedHash || 'NOT SET',
-        expectedHashLength: expectedHash?.length || 0,
-        hashesMatch: hashHex.toLowerCase() === expectedHash?.toLowerCase(),
-      });
-      
-      if (!expectedHash) {
-        setError('Review mode not configured');
-        setIsActivatingReviewMode(false);
-        return;
-      }
-
-      // Normalize case for comparison (hash should be lowercase)
-      if (hashHex.toLowerCase() !== expectedHash.toLowerCase()) {
-        setError(`Invalid password. Debug: computed=${hashHex.substring(0, 16)}..., expected=${expectedHash.substring(0, 16)}...`);
-        setIsActivatingReviewMode(false);
-        return;
-      }
-
-      // Password verified - request server to issue review mode grant
+      // Password already verified - request server to issue review mode grant
       // Beta code is already verified at /beta page before user reaches /auth
       const grantRes = await fetch('/api/arkiv-review/grant', {
         method: 'POST',
@@ -489,15 +531,27 @@ export default function AuthPage() {
 
       // Query Arkiv to confirm grant
       const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
-      const grant = await getLatestValidReviewModeGrant(reviewModeWallet);
+      const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+
+      const [grant, profile] = await Promise.all([
+        getLatestValidReviewModeGrant(reviewModeWallet),
+        getProfileByWallet(reviewModeWallet),
+      ]);
 
       if (grant) {
-        // Success - redirect to review profile page
+        // Success - clear review mode state and route
         setIsReviewModeEnabled(false);
         setReviewModePassword('');
+        setIsPasswordVerified(false);
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
-        router.push('/arkiv-review/profile');
+
+        // Route to review onboarding if no profile, otherwise to dashboard
+        if (profile) {
+          router.push('/me');
+        } else {
+          router.push('/review');
+        }
       } else {
         setError('Grant issued but not found on Arkiv. Please try again.');
         setIsActivatingReviewMode(false);
@@ -643,23 +697,44 @@ export default function AuthPage() {
               </label>
             </div>
             {isReviewModeEnabled && (
-              <div className="mt-3">
-                <input
-                  type="password"
-                  value={reviewModePassword}
-                  onChange={(e) => setReviewModePassword(e.target.value)}
-                  placeholder="Enter review password"
-                  disabled={isConnecting || isActivatingReviewMode}
-                  className="w-full px-3 py-2 text-sm border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !isConnecting && !isActivatingReviewMode && reviewModePassword.trim()) {
-                      // Allow Enter to trigger wallet connection if password is entered
-                      e.preventDefault();
-                    }
-                  }}
-                />
-                <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
-                  Enter password, then click "Connect Wallet" to activate review mode.
+              <div className="mt-3 space-y-2">
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={reviewModePassword}
+                    onChange={(e) => {
+                      setReviewModePassword(e.target.value);
+                      setIsPasswordVerified(false); // Reset verification when password changes
+                    }}
+                    placeholder="Enter review password"
+                    disabled={isConnecting || isActivatingReviewMode || isVerifyingPassword}
+                    className="flex-1 px-3 py-2 text-sm border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !isConnecting && !isActivatingReviewMode && !isVerifyingPassword && reviewModePassword.trim()) {
+                        e.preventDefault();
+                        handleVerifyPassword();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleVerifyPassword}
+                    disabled={isConnecting || isActivatingReviewMode || isVerifyingPassword || !reviewModePassword.trim()}
+                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {isVerifyingPassword ? 'Verifying...' : 'Verify'}
+                  </button>
+                </div>
+                {isPasswordVerified && (
+                  <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <span>Password verified</span>
+                  </div>
+                )}
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  Verify password first, then click "Connect Wallet" to activate review mode.
                 </p>
               </div>
             )}
@@ -679,7 +754,7 @@ export default function AuthPage() {
           >
             <button
               onClick={handleMetaMaskConnect}
-              disabled={isConnecting}
+              disabled={isConnecting || (isReviewModeEnabled && !isPasswordVerified)}
               className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
             >
               {isConnecting ? 'Connecting...' : (
@@ -703,7 +778,7 @@ export default function AuthPage() {
             >
               <button
                 onClick={handleWalletConnectConnect}
-                disabled={isConnectingWalletConnect || isConnecting}
+                disabled={isConnectingWalletConnect || isConnecting || (isReviewModeEnabled && !isPasswordVerified)}
                 className="w-full px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-gray-700"
               >
                 {isConnectingWalletConnect ? 'Connecting...' : 'Connect with WalletConnect'}
