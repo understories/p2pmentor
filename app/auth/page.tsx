@@ -445,9 +445,12 @@ export default function AuthPage() {
     setError('');
 
     try {
+      // Trim password to remove any accidental whitespace
+      const trimmedPassword = reviewModePassword.trim();
+      
       // Client-side password hashing (SHA-256)
       const encoder = new TextEncoder();
-      const data = encoder.encode(reviewModePassword);
+      const data = encoder.encode(trimmedPassword);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -458,9 +461,11 @@ export default function AuthPage() {
       
       // Debug logging (remove in production)
       console.log('[Review Mode] Password hash debug:', {
-        passwordValue: reviewModePassword, // Show actual password value for debugging
-        passwordLength: reviewModePassword.length,
-        passwordCharCodes: Array.from(reviewModePassword).map(c => c.charCodeAt(0)), // Check for hidden chars
+        passwordValue: trimmedPassword, // Show actual password value for debugging
+        passwordLength: trimmedPassword.length,
+        originalLength: reviewModePassword.length,
+        passwordCharCodes: Array.from(trimmedPassword).map(c => c.charCodeAt(0)), // Check for hidden chars
+        hasWhitespace: trimmedPassword !== reviewModePassword,
         computedHash: hashHex,
         expectedHash: expectedHash || 'NOT SET',
         expectedHashLength: expectedHash?.length || 0,
