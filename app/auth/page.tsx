@@ -20,7 +20,6 @@ import { openInMetaMaskBrowser, getMetaMaskInstallUrl } from '@/lib/auth/deep-li
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
-import { ReviewModePasswordModal } from '@/components/auth/ReviewModePasswordModal';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -341,6 +340,13 @@ export default function AuthPage() {
         localStorage.setItem('wallet_connection_method', 'walletconnect');
       }
 
+      // If review mode is enabled, verify password and issue grant
+      if (isReviewModeEnabled && reviewModePassword.trim()) {
+        setReviewModeWallet(address);
+        await handleReviewModeActivate();
+        return; // handleReviewModeActivate will handle routing
+      }
+
       // Check Arkiv for review mode grant and profile
       // Routing policy: profile exists → /me, else if grant exists → /arkiv-review/profile, else → onboarding
       const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
@@ -487,7 +493,7 @@ export default function AuthPage() {
 
       if (grant) {
         // Success - redirect to review profile page
-        setShowReviewModePrompt(false);
+        setIsReviewModeEnabled(false);
         setReviewModePassword('');
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
@@ -830,20 +836,6 @@ export default function AuthPage() {
         </div>
       </div>
 
-      {/* Review Mode Password Modal */}
-      {showReviewModePrompt && (
-        <ReviewModePasswordModal
-          password={reviewModePassword}
-          setPassword={setReviewModePassword}
-          onConfirm={handleReviewModeActivate}
-          onCancel={() => {
-            setShowReviewModePrompt(false);
-            setReviewModePassword('');
-            setReviewModeWallet(null);
-          }}
-          isActivating={isActivatingReviewMode}
-        />
-      )}
     </main>
   );
 }
