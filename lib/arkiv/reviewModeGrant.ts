@@ -85,12 +85,24 @@ export async function issueReviewModeGrant({
     attributes.push({ key: 'appBuild', value: appBuild });
   }
 
+  // CRITICAL: Calculate expiresIn and ensure it's always an integer (BigInt requirement)
+  // Division produces float, must floor immediately and validate
+  const expirationTime = new Date(defaultExpiresAt).getTime();
+  const now = Date.now();
+  const expiresInSecondsRaw = (expirationTime - now) / 1000;
+  const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
+  
+  // Final safety check: ensure it's definitely an integer for BigInt conversion
+  if (!Number.isInteger(expiresInSeconds) || expiresInSeconds < 1) {
+    throw new Error(`expiresIn must be a positive integer, got: ${expiresInSeconds} (raw: ${expiresInSecondsRaw})`);
+  }
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
       contentType: 'application/json',
       attributes,
-      expiresIn: Math.floor((new Date(defaultExpiresAt).getTime() - Date.now()) / 1000),
+      expiresIn: expiresInSeconds,
     });
   });
 
