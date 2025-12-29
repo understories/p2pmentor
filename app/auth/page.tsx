@@ -458,7 +458,9 @@ export default function AuthPage() {
       
       // Debug logging (remove in production)
       console.log('[Review Mode] Password hash debug:', {
+        passwordValue: reviewModePassword, // Show actual password value for debugging
         passwordLength: reviewModePassword.length,
+        passwordCharCodes: Array.from(reviewModePassword).map(c => c.charCodeAt(0)), // Check for hidden chars
         computedHash: hashHex,
         expectedHash: expectedHash || 'NOT SET',
         expectedHashLength: expectedHash?.length || 0,
