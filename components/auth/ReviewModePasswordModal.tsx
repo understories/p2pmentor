@@ -27,7 +27,7 @@ export function ReviewModePasswordModal({
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
         <h2 className="text-xl font-bold mb-4">Arkiv Review Mode</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Enter password to request review mode grant. This will mint a grant entity on Arkiv signed by the app.
+          Enter password to request review mode grant. This will issue a grant entity on Arkiv signed by the app.
         </p>
         <input
           type="password"
