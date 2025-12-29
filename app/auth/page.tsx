@@ -37,7 +37,7 @@ export default function AuthPage() {
   const arkivBuilderMode = useArkivBuilderMode();
 
   // Review mode state
-  const [showReviewModePrompt, setShowReviewModePrompt] = useState(false);
+  const [isReviewModeEnabled, setIsReviewModeEnabled] = useState(false);
   const [reviewModePassword, setReviewModePassword] = useState('');
   const [reviewModeWallet, setReviewModeWallet] = useState<string | null>(null);
   const [isActivatingReviewMode, setIsActivatingReviewMode] = useState(false);
@@ -407,33 +407,12 @@ export default function AuthPage() {
     }
   };
 
-  // Handle review mode entry (connect wallet first, then show password)
-  const handleReviewModeEntry = async () => {
-    try {
-      setIsConnecting(true);
-      setError('');
-
-      // Connect wallet first
-      const address = await connectWallet();
-      setReviewModeWallet(address);
-
-      // Store wallet for session
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('wallet_address', address);
-        setWalletType(address, 'metamask');
-        localStorage.setItem('wallet_connection_method', 'metamask');
-      }
-
-      // Show password prompt
-      setShowReviewModePrompt(true);
-      setIsConnecting(false);
-    } catch (err) {
-      console.error('[Auth Page] Review mode entry error', {
-        error: err instanceof Error ? err.message : 'Unknown error',
-        errorObject: err,
-      });
-      setError('Failed to connect wallet');
-      setIsConnecting(false);
+  // Toggle review mode on/off
+  const handleReviewModeToggle = () => {
+    setIsReviewModeEnabled(!isReviewModeEnabled);
+    if (!isReviewModeEnabled) {
+      // When enabling, clear password
+      setReviewModePassword('');
     }
   };
 
@@ -629,19 +608,55 @@ export default function AuthPage() {
           </div>
         )}
 
-        {/* Arkiv Review Mode Button - Before wallet connection */}
+        {/* Arkiv Review Mode Toggle - Before wallet connection */}
         {mounted && (
-          <div className="mb-4 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-            <button
-              onClick={handleReviewModeEntry}
-              disabled={isConnecting || isActivatingReviewMode}
-              className="text-sm text-purple-800 dark:text-purple-300 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Arkiv Review Mode (Testing Only)
-            </button>
-            <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
-              For reviewers: Connect wallet, then enter password to request review mode grant.
-            </p>
+          <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+            <div className="flex items-center gap-3 mb-3">
+              <button
+                type="button"
+                onClick={handleReviewModeToggle}
+                disabled={isConnecting || isActivatingReviewMode}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isReviewModeEnabled
+                    ? 'bg-purple-600 dark:bg-purple-500'
+                    : 'bg-gray-200 dark:bg-gray-700'
+                }`}
+                aria-label="Toggle Arkiv Review Mode"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isReviewModeEnabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <label
+                onClick={handleReviewModeToggle}
+                className="text-sm font-medium text-purple-800 dark:text-purple-300 cursor-pointer select-none"
+              >
+                Arkiv Review Mode
+              </label>
+            </div>
+            {isReviewModeEnabled && (
+              <div className="mt-3">
+                <input
+                  type="password"
+                  value={reviewModePassword}
+                  onChange={(e) => setReviewModePassword(e.target.value)}
+                  placeholder="Enter review password"
+                  disabled={isConnecting || isActivatingReviewMode}
+                  className="w-full px-3 py-2 text-sm border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isConnecting && !isActivatingReviewMode && reviewModePassword.trim()) {
+                      // Allow Enter to trigger wallet connection if password is entered
+                      e.preventDefault();
+                    }
+                  }}
+                />
+                <p className="text-xs text-purple-600 dark:text-purple-400 mt-2">
+                  Enter password, then click "Connect Wallet" to activate review mode.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
