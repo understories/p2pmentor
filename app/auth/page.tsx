@@ -20,6 +20,7 @@ import { openInMetaMaskBrowser, getMetaMaskInstallUrl } from '@/lib/auth/deep-li
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { PasskeyLoginButton } from '@/components/auth/PasskeyLoginButton';
+import { ReviewModePasswordModal } from '@/components/auth/ReviewModePasswordModal';
 
 export default function AuthPage() {
   const [isConnecting, setIsConnecting] = useState(false);
@@ -35,8 +36,14 @@ export default function AuthPage() {
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
+  // Review mode state
+  const [showReviewModePrompt, setShowReviewModePrompt] = useState(false);
+  const [reviewModePassword, setReviewModePassword] = useState('');
+  const [reviewModeWallet, setReviewModeWallet] = useState<string | null>(null);
+  const [isActivatingReviewMode, setIsActivatingReviewMode] = useState(false);
+
   // Check if WalletConnect is enabled via feature flag
-  const isWalletConnectEnabled = typeof window !== 'undefined' && 
+  const isWalletConnectEnabled = typeof window !== 'undefined' &&
     process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
 
   // Check if user has already passed invite gate
@@ -51,13 +58,13 @@ export default function AuthPage() {
         window.location.href = fixedHref;
         return; // Let the redirect happen, will re-run this effect
       }
-      
+
       // Normalize encoded pathname BEFORE any other logic (prevents redirect loops)
       // Only normalize the specific leading "%2F" case ("/%2Fauth" -> "/auth")
       // Case-insensitive regex handles both %2F and %2f
       const currentPath = window.location.pathname;
       const normalizedPath = currentPath.replace(/^\/%2F/i, '/');
-      
+
       if (normalizedPath !== currentPath) {
         window.history.replaceState({}, '', normalizedPath + window.location.search);
         console.log('[Auth Page] Fixed encoded URL from MetaMask redirect', {
@@ -65,12 +72,12 @@ export default function AuthPage() {
           normalizedPath,
         });
       }
-      
+
       // Detection tripwire: warn if encoded pathname still exists after normalization
       if (window.location.pathname.toLowerCase().startsWith('/%2f')) {
         console.warn('[Pathname encoded]', window.location.href);
       }
-      
+
       // Now check beta access (after normalization)
       const inviteCode = localStorage.getItem('beta_invite_code');
       if (!inviteCode) {
@@ -205,40 +212,58 @@ export default function AuthPage() {
         localStorage.setItem('wallet_connection_method', 'metamask');
       }
 
-      // Check if user has profile for this profile wallet - redirect to onboarding if not
-      // Only create beta access record for NEW users (level === 0) to avoid double-counting
-      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-        calculateOnboardingLevel(address).then(level => {
-          if (level === 0) {
-            // No profile for this profile wallet - new user, create beta access record
-            // This tracks which profile wallets have used which beta codes (only for new users)
-            const betaCode = localStorage.getItem('beta_invite_code');
-            if (betaCode) {
-              // Create beta access record asynchronously (don't block auth flow)
-              fetch('/api/beta-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  code: betaCode,
-                  action: 'createAccess',
-                  wallet: address.toLowerCase(), // Use profile wallet, not signing wallet
-                }),
-              }).catch(err => {
-                // Don't block auth flow if beta access creation fails
-                console.warn('[auth] Failed to create beta access record:', err);
-              });
+      // Check Arkiv for review mode grant and profile
+      // Routing policy: profile exists → /me, else if grant exists → /arkiv-review/profile, else → onboarding
+      const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
+      const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+
+      const [grant, profile] = await Promise.all([
+        getLatestValidReviewModeGrant(address),
+        getProfileByWallet(address),
+      ]);
+
+      if (profile) {
+        // Profile exists - normal user
+        router.push('/me');
+      } else if (grant) {
+        // Review mode grant exists - skip onboarding
+        router.push('/arkiv-review/profile');
+      } else {
+        // Normal flow - check onboarding level
+        // Only create beta access record for NEW users (level === 0) to avoid double-counting
+        import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+          calculateOnboardingLevel(address).then(level => {
+            if (level === 0) {
+              // No profile for this profile wallet - new user, create beta access record
+              // This tracks which profile wallets have used which beta codes (only for new users)
+              const betaCode = localStorage.getItem('beta_invite_code');
+              if (betaCode) {
+                // Create beta access record asynchronously (don't block auth flow)
+                fetch('/api/beta-code', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    code: betaCode,
+                    action: 'createAccess',
+                    wallet: address.toLowerCase(), // Use profile wallet, not signing wallet
+                  }),
+                }).catch(err => {
+                  // Don't block auth flow if beta access creation fails
+                  console.warn('[auth] Failed to create beta access record:', err);
+                });
+              }
+              // Redirect to onboarding for new users
+              router.push('/onboarding');
+            } else {
+              // Has profile - existing user, don't create beta access (already counted)
+              router.push('/me');
             }
-            // Redirect to onboarding for new users
-            router.push('/onboarding');
-          } else {
-            // Has profile - existing user, don't create beta access (already counted)
+          }).catch(() => {
+            // On error, default to /me (don't block on calculation failure)
             router.push('/me');
-          }
-        }).catch(() => {
-          // On error, default to /me (don't block on calculation failure)
-          router.push('/me');
+          });
         });
-      });
+      }
     } catch (err) {
       console.error('[Auth Page] Connection error', {
         error: err instanceof Error ? err.message : 'Unknown error',
@@ -316,33 +341,51 @@ export default function AuthPage() {
         localStorage.setItem('wallet_connection_method', 'walletconnect');
       }
 
-      // Check if user has profile for this profile wallet - redirect to onboarding if not
-      import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-        calculateOnboardingLevel(address).then(level => {
-          if (level === 0) {
-            // No profile for this profile wallet - new user, create beta access record
-            const betaCode = localStorage.getItem('beta_invite_code');
-            if (betaCode) {
-              fetch('/api/beta-code', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  code: betaCode,
-                  action: 'createAccess',
-                  wallet: address.toLowerCase(),
-                }),
-              }).catch(err => {
-                console.warn('[auth] Failed to create beta access record:', err);
-              });
+      // Check Arkiv for review mode grant and profile
+      // Routing policy: profile exists → /me, else if grant exists → /arkiv-review/profile, else → onboarding
+      const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
+      const { getProfileByWallet } = await import('@/lib/arkiv/profile');
+
+      const [grant, profile] = await Promise.all([
+        getLatestValidReviewModeGrant(address),
+        getProfileByWallet(address),
+      ]);
+
+      if (profile) {
+        // Profile exists - normal user
+        router.push('/me');
+      } else if (grant) {
+        // Review mode grant exists - skip onboarding
+        router.push('/arkiv-review/profile');
+      } else {
+        // Normal flow - check onboarding level
+        import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
+          calculateOnboardingLevel(address).then(level => {
+            if (level === 0) {
+              // No profile for this profile wallet - new user, create beta access record
+              const betaCode = localStorage.getItem('beta_invite_code');
+              if (betaCode) {
+                fetch('/api/beta-code', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    code: betaCode,
+                    action: 'createAccess',
+                    wallet: address.toLowerCase(),
+                  }),
+                }).catch(err => {
+                  console.warn('[auth] Failed to create beta access record:', err);
+                });
+              }
+              router.push('/onboarding');
+            } else {
+              router.push('/me');
             }
-            router.push('/onboarding');
-          } else {
+          }).catch(() => {
             router.push('/me');
-          }
-        }).catch(() => {
-          router.push('/me');
+          });
         });
-      });
+      }
     } catch (err) {
       console.error('[Auth Page] WalletConnect connection error', {
         error: err instanceof Error ? err.message : 'Unknown error',
@@ -361,6 +404,109 @@ export default function AuthPage() {
       }
       setError(errorMessage);
       setIsConnectingWalletConnect(false);
+    }
+  };
+
+  // Handle review mode entry (connect wallet first, then show password)
+  const handleReviewModeEntry = async () => {
+    try {
+      setIsConnecting(true);
+      setError('');
+
+      // Connect wallet first
+      const address = await connectWallet();
+      setReviewModeWallet(address);
+
+      // Store wallet for session
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wallet_address', address);
+        setWalletType(address, 'metamask');
+        localStorage.setItem('wallet_connection_method', 'metamask');
+      }
+
+      // Show password prompt
+      setShowReviewModePrompt(true);
+      setIsConnecting(false);
+    } catch (err) {
+      console.error('[Auth Page] Review mode entry error', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorObject: err,
+      });
+      setError('Failed to connect wallet');
+      setIsConnecting(false);
+    }
+  };
+
+  // Handle password verification and grant minting request
+  const handleReviewModeActivate = async () => {
+    if (!reviewModeWallet) return;
+
+    setIsActivatingReviewMode(true);
+    setError('');
+
+    try {
+      // Client-side password hashing (SHA-256)
+      const encoder = new TextEncoder();
+      const data = encoder.encode(reviewModePassword);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      // Compare to public env var (inlined at build time in Next.js)
+      // Handle missing config deterministically
+      const expectedHash = process.env.NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256;
+      if (!expectedHash) {
+        setError('Review mode not configured');
+        setIsActivatingReviewMode(false);
+        return;
+      }
+
+      // Normalize case for comparison (hash should be lowercase)
+      if (hashHex.toLowerCase() !== expectedHash.toLowerCase()) {
+        setError('Invalid password');
+        setIsActivatingReviewMode(false);
+        return;
+      }
+
+      // Password verified - request server to mint review mode grant
+      // Beta code is already verified at /beta page before user reaches /auth
+      const grantRes = await fetch('/api/arkiv-review/grant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subjectWallet: reviewModeWallet,
+        }),
+      });
+
+      const grantData = await grantRes.json();
+      if (!grantData.ok) {
+        setError(grantData.error || 'Failed to mint review mode grant');
+        setIsActivatingReviewMode(false);
+        return;
+      }
+
+      // Query Arkiv to confirm grant
+      const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
+      const grant = await getLatestValidReviewModeGrant(reviewModeWallet);
+
+      if (grant) {
+        // Success - redirect to review profile page
+        setShowReviewModePrompt(false);
+        setReviewModePassword('');
+        setReviewModeWallet(null);
+        setIsActivatingReviewMode(false);
+        router.push('/arkiv-review/profile');
+      } else {
+        setError('Grant minted but not found on Arkiv. Please try again.');
+        setIsActivatingReviewMode(false);
+      }
+    } catch (err) {
+      console.error('[Auth Page] Review mode grant minting error', {
+        error: err instanceof Error ? err.message : 'Unknown error',
+        errorObject: err,
+      });
+      setError(err instanceof Error ? err.message : 'Failed to mint review mode grant');
+      setIsActivatingReviewMode(false);
     }
   };
 
@@ -516,7 +662,7 @@ export default function AuthPage() {
               Use any mobile wallet via QR / deep link. Works on desktop and mobile.
             </p>
           )}
-          
+
           {/* Mobile helper text - show appropriate message based on context */}
           {mounted && isMobile && (
             <>
@@ -635,6 +781,21 @@ export default function AuthPage() {
           </a>
         </div>
       </div>
+
+      {/* Review Mode Password Modal */}
+      {showReviewModePrompt && (
+        <ReviewModePasswordModal
+          password={reviewModePassword}
+          setPassword={setReviewModePassword}
+          onConfirm={handleReviewModeActivate}
+          onCancel={() => {
+            setShowReviewModePrompt(false);
+            setReviewModePassword('');
+            setReviewModeWallet(null);
+          }}
+          isActivating={isActivatingReviewMode}
+        />
+      )}
     </main>
   );
 }
