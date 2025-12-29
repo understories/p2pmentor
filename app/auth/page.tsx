@@ -468,7 +468,7 @@ export default function AuthPage() {
         return;
       }
 
-      // Password verified - request server to mint review mode grant
+      // Password verified - request server to issue review mode grant
       // Beta code is already verified at /beta page before user reaches /auth
       const grantRes = await fetch('/api/arkiv-review/grant', {
         method: 'POST',
@@ -497,15 +497,15 @@ export default function AuthPage() {
         setIsActivatingReviewMode(false);
         router.push('/arkiv-review/profile');
       } else {
-        setError('Grant minted but not found on Arkiv. Please try again.');
+        setError('Grant issued but not found on Arkiv. Please try again.');
         setIsActivatingReviewMode(false);
       }
     } catch (err) {
-      console.error('[Auth Page] Review mode grant minting error', {
+      console.error('[Auth Page] Review mode grant issuance error', {
         error: err instanceof Error ? err.message : 'Unknown error',
         errorObject: err,
       });
-      setError(err instanceof Error ? err.message : 'Failed to mint review mode grant');
+      setError(err instanceof Error ? err.message : 'Failed to issue review mode grant');
       setIsActivatingReviewMode(false);
     }
   };
