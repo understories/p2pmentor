@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
     // Normalize wallet address
     const normalizedWallet = subjectWallet.toLowerCase().trim();
 
-    // Mint grant using server signer
-    const { key, txHash, expiresAt } = await mintReviewModeGrant({
+    // Issue grant using server signer
+    const { key, txHash, expiresAt } = await issueReviewModeGrant({
       subjectWallet: normalizedWallet,
     });
 
