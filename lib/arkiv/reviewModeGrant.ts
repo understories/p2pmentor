@@ -27,7 +27,7 @@ export type ReviewModeGrant = {
 };
 
 /**
- * Mint review mode grant entity (SERVER-ONLY)
+ * Issue review mode grant entity (SERVER-ONLY)
  * 
  * This function must be called from a server-side API route.
  * It uses the server signer wallet (ARKIV_PRIVATE_KEY) to sign the grant entity.
@@ -38,7 +38,7 @@ export type ReviewModeGrant = {
  * @param grantReason - Optional reason for grant (defaults to 'review_mode')
  * @returns Entity key and transaction hash
  */
-export async function mintReviewModeGrant({
+export async function issueReviewModeGrant({
   subjectWallet,
   expiresAt,
   appBuild,
