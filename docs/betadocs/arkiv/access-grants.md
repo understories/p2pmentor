@@ -4,7 +4,7 @@ Access grants are Arkiv entities that encode capabilities. Instead of using serv
 
 ## Overview
 
-During beta, reviewers need to test specific flows without going through the normal onboarding process. Rather than adding special backend permissions, we use an access grant entity that lives on Arkiv.
+During beta, reviewers need to test specific flows without going through the normal onboarding process. Rather than storing permissions in server sessions or feature flags, we use an access grant entity that lives on Arkiv.
 
 The access grant pattern treats access as **data**, not configuration. Access state is stored on Arkiv, signed by the issuer, and readable by any client.
 
@@ -74,17 +74,16 @@ There is no separate "review account" or test space. Review grants live in the s
 
 ## Security Model (Beta)
 
-Review mode uses a shared secret (password) during beta to control who can request a grant:
+Review mode uses a shared secret to reduce accidental use during beta. This is intentionally lightweight and is not a production authorization system.
 
-- Password is hashed client-side (SHA256)
-- Hash is stored in public environment variable (`NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256`)
-- Password verification is client-side only
-- Grant issuance requires server signer (prevents user-issued grants)
-- Client verifies `issuer_wallet` matches server signer (mandatory check)
+- The reviewer enters a password in the UI.
+- The client hashes the typed password with SHA256 and compares it to a build-time public hash (`NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256`).
+- The hash is public; hashing is used to avoid shipping a plaintext password in the client bundle, not to provide strong secrecy.
+- If the password check passes, the client requests grant issuance from the app.
+- The app signer issues the `review_mode_grant` entity on Arkiv.
+- Clients must verify `issuer_wallet` matches the configured app signer address before recognizing a grant.
 
-This is intentionally lightweight for beta testing. It prevents accidental access without requiring whitelists.
-
-In production systems, access grants can be issued by trusted wallets or DAOs instead of shared passwords.
+This design keeps the capability itself Arkiv-native (expressed as signed Arkiv data) while keeping beta gating simple and operationally low-friction.
 
 ## Alternative Patterns
 
