@@ -480,7 +480,7 @@ export default function AuthPage() {
 
       const grantData = await grantRes.json();
       if (!grantData.ok) {
-        setError(grantData.error || 'Failed to mint review mode grant');
+        setError(grantData.error || 'Failed to issue review mode grant');
         setIsActivatingReviewMode(false);
         return;
       }
