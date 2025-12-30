@@ -560,6 +560,81 @@ git commit -m "descriptive message"
 git push
 ```
 
+### Systematic Debugging Approach
+
+When encountering complex bugs or issues that require careful investigation:
+
+1. **Create Audit Plan:**
+   - Create a detailed audit plan in `refs/docs/` (internal, never commit)
+   - Document all relevant information from screenshots, console logs, user reports
+   - Include problem summary, root cause analysis, and implementation plan
+   - Write clear success criteria that can be verified
+
+2. **Test and Capture Context:**
+   - Test the issue yourself in the browser
+   - Capture all relevant context notes (console errors, network requests, state)
+   - Document edge cases and error scenarios
+   - Add findings to the audit plan
+
+3. **Implement Step-by-Step:**
+   - Use the audit plan notes to implement fixes step by step
+   - Take detailed notes in the audit plan as you go
+   - Commit each file change separately so changes can be reviewed carefully
+   - Check against success criteria after each step
+
+4. **Test Before Committing:**
+   - Test carefully before each commit
+   - Verify the fix works and doesn't break other functionality
+   - Run build to ensure no errors introduced
+   - Check against success criteria
+
+5. **Review Engineering Guidelines:**
+   - Review relevant engineering guidelines before beginning
+   - Ensure fixes follow established patterns
+   - Document any new patterns discovered
+
+**Example Audit Plan Structure:**
+```markdown
+# Issue Name Audit
+
+## Problem Summary
+- Clear description of the issue
+- Screenshot analysis
+- Console error analysis
+
+## Root Cause Analysis
+- Code locations involved
+- Flow analysis
+- State management issues
+
+## Success Criteria
+- Must have (critical)
+- Should have (important)
+- Nice to have
+
+## Implementation Plan
+- Step 1: [Description]
+- Step 2: [Description]
+- ...
+
+## Implementation Notes
+- Step 1: [Status and findings]
+- Step 2: [Status and findings]
+- ...
+
+## Testing Checklist
+- [ ] Test scenario 1
+- [ ] Test scenario 2
+- ...
+```
+
+**Key Principles:**
+- Go slowly and carefully
+- One fix per commit
+- Test after each change
+- Document everything in the audit plan
+- Verify against success criteria at each step
+
 ### Testing Standards
 
 1. **Real Data:**
