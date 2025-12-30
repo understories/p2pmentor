@@ -924,24 +924,161 @@ function AvailabilityStep({ wallet, onError }: {
   );
 }
 
-// Asks Step Component (simplified - links to /asks)
+// Asks Step Component
 function AsksStep({ wallet, profile, onError }: {
   wallet: string;
   profile: any;
   onError: (error: string) => void;
 }) {
+  const [skillId, setSkillId] = useState('');
+  const [skillName, setSkillName] = useState('');
+  const [message, setMessage] = useState('');
+  const [ttlHours, setTtlHours] = useState('168'); // Default 1 week
+  const [customTtlHours, setCustomTtlHours] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string } | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!skillId || !message.trim()) {
+      onError('Please select a skill and enter a message');
+      return;
+    }
+
+    setIsSubmitting(true);
+    onError('');
+
+    try {
+      const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
+      const ttlHoursNum = parseFloat(ttlValue);
+      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600);
+
+      const res = await fetch('/api/asks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createAsk',
+          wallet,
+          skill: skillName.trim(),
+          skill_id: skillId,
+          skill_label: skillName.trim(),
+          message: message.trim(),
+          expiresIn,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to create ask');
+      }
+
+      if (data.key && data.txHash) {
+        setLastWriteInfo({ key: data.key, txHash: data.txHash });
+      }
+
+      setMessage('');
+      setSkillId('');
+      setSkillName('');
+      setTtlHours('168');
+      setCustomTtlHours('');
+    } catch (err: any) {
+      onError(err.message || 'Failed to create ask');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">Create Asks</h2>
       <p className="text-gray-600 dark:text-gray-400 mb-4">
         Create learning requests (asks). Each ask is a separate entity on Arkiv with TTL.
       </p>
-      <Link
-        href="/asks"
-        className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-      >
-        Go to Asks Page →
-      </Link>
+
+      {lastWriteInfo && (
+        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Ask created successfully!</p>
+          <div className="space-y-1 text-sm mb-2">
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.key}
+              </code>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.txHash}
+              </code>
+            </div>
+          </div>
+          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Skill <span className="text-red-500">*</span>
+          </label>
+          <SkillSelector
+            value={skillId}
+            onChange={(id, name) => {
+              setSkillId(id);
+              setSkillName(name);
+            }}
+            allowCreate={true}
+            placeholder="Select or create a skill..."
+            required
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Message <span className="text-red-500">*</span>
+          </label>
+          <textarea
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            required
+            rows={4}
+            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            placeholder="Describe what you want to learn..."
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Expiration (TTL)</label>
+          <select
+            value={ttlHours}
+            onChange={(e) => setTtlHours(e.target.value)}
+            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+          >
+            <option value="24">24 hours</option>
+            <option value="168">1 week</option>
+            <option value="720">1 month</option>
+            <option value="custom">Custom</option>
+          </select>
+          {ttlHours === 'custom' && (
+            <input
+              type="number"
+              value={customTtlHours}
+              onChange={(e) => setCustomTtlHours(e.target.value)}
+              placeholder="Hours"
+              min="1"
+              className="mt-2 w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            />
+          )}
+        </div>
+
+        <button
+          type="submit"
+          disabled={!skillId || !message.trim() || isSubmitting}
+          className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSubmitting ? 'Creating...' : 'Create Ask'}
+        </button>
+      </form>
     </div>
   );
 }
