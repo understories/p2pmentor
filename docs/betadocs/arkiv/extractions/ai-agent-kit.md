@@ -122,9 +122,10 @@ All changes must pass:
 
 ### Related
 
-- **Arkiv App Primitives** (`@understories/arkiv-app-kit`) - Shared core package used by templates
-- **Arkiv Patterns Catalog** - Full pattern documentation
-- **Engineering Guidelines** - Complete guidelines (this repo includes public-safe version)
+- [Arkiv App Primitives](./arkiv-app-primitives.md) - Shared core package used by templates
+- [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Full pattern documentation
+- [Top 8 Patterns](../top-8-patterns.md) - Essential patterns demonstrated in templates
+- [Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) - Complete guidelines (this repo includes public-safe version)
 
 ---
 

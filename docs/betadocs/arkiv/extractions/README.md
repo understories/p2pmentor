@@ -37,6 +37,10 @@ Composable building blocks for Arkiv integrations. Provides the "boring but esse
 - [Top 8 Patterns](../top-8-patterns.md) - Essential patterns demonstrated in templates
 - [Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) - Complete engineering standards
 
+## Navigation
+
+- [Back to Arkiv Documentation](../README.md) - Return to main Arkiv documentation index
+
 ---
 
 **Last Updated:** 2025-12-30
