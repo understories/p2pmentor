@@ -812,10 +812,12 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 ## Next Steps
 
-1. **Add "Patterns Used" sections** to entity specs:
-   - `profile.md` → PAT-UPDATE-001, PAT-QUERY-001
-   - `session.md` → PAT-SESSION-001, PAT-QUERY-001
-   - `ask.md`, `offer.md` → PAT-QUERY-001, PAT-DELETE-001
+1. ~~**Add "Patterns Used" sections** to entity specs:~~ ✅ Complete
+   - ✅ `profile.md` → PAT-UPDATE-001, PAT-QUERY-001, PAT-IDENTITY-001, PAT-SPACE-001
+   - ✅ `session.md` → PAT-SESSION-001, PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
+   - ✅ `ask.md` → PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
+   - ✅ `offer.md` → PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
+   - ✅ `availability.md` → PAT-DELETE-001, PAT-QUERY-001, PAT-SPACE-001
 
 3. **Create public-facing "Top 8 Patterns" page** for beta docs:
    - PAT-IMMUTABLE-001: Designing with Immutable Data
