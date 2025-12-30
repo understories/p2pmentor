@@ -538,8 +538,8 @@ Privacy consent is modeled as a state machine on Arkiv. Consent can be granted, 
 
 ### PAT-REVOKE-001: Revocation via Marker Entities
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/revocation-pattern.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/revocation-pattern.md`](./patterns/revocation-pattern.md)
 
 **What problem it solves:**  
 Arkiv has no built-in revocation. To revoke grants, consent, invites, or any capability-like entity, create a revocation marker entity that indicates the original entity is revoked.
@@ -549,13 +549,19 @@ Arkiv has no built-in revocation. To revoke grants, consent, invites, or any cap
 - Revocation markers reference the original entity (via `entity_key` or logical ID)
 - Queries check for revocation markers before granting access
 - Revocation is queryable and auditable
+- Revocation markers have same TTL as original entity (or longer)
 
 **Threat model / failure modes:**
 - **Missing revocation check:** If queries don't check revocation markers, revoked grants still work
 - **Revocation timing:** Revocation markers may not be immediately queryable (indexer lag)
-- **TTL mismatch:** Revocation markers should have same TTL as original entity
+- **TTL mismatch:** Revocation markers with shorter TTL than original entity expire first
 
-**Must document:** revocation marker schema, query pattern, timing considerations, TTL alignment, audit trail.
+**Related patterns:**
+- [PAT-ACCESS-001: Arkiv-Native Access Grants](./access-grants.md)
+- [PAT-CONSENT-001: Privacy Consent State Machine](./privacy-consent.md)
+- [PAT-INDEXER-001: Read-Your-Writes Under Indexer Lag](./patterns/indexer-lag-handling.md)
+
+**Full details:** See [`patterns/revocation-pattern.md`](./patterns/revocation-pattern.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 **Applies to:** grants (PAT-ACCESS-001), consent (PAT-CONSENT-001), invites, any capability-like entity.
 
@@ -745,6 +751,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/pagination-conventions.md` → PAT-PAGINATION-001
 - `patterns/canonical-upsert.md` → PAT-UPSERT-001
 - `patterns/indexer-lag-handling.md` → PAT-INDEXER-001
+- `patterns/revocation-pattern.md` → PAT-REVOKE-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
