@@ -190,11 +190,33 @@ export async function getLatestValidReviewModeGrant(
     // Get server signer address for validation
     const serverSignerAddress = CURRENT_WALLET?.toLowerCase() || '';
     
-    // Filter expired grants and validate issuer
+    // Filter expired grants, validate issuer, and check for revocation
     // Both issuedAt and expiresAt must be ISO-8601 UTC timestamps
     const now = new Date().toISOString();
-    const validGrants = result.entities
-      .filter((entity: any) => {
+    
+    // Check revocation for all grants in parallel (efficient)
+    const grantRevocationChecks = await Promise.all(
+      result.entities.map(async (entity: any) => {
+        const grantKey = entity.key || (entity as any).entityKey || '';
+        if (!grantKey) return { entity, isRevoked: false };
+        
+        const revoked = await isEntityRevoked({
+          originalType: 'review_mode_grant',
+          entityKey: grantKey,
+          spaceId: finalSpaceId,
+        });
+        
+        return { entity, isRevoked: revoked };
+      })
+    );
+    
+    const validGrants = grantRevocationChecks
+      .filter(({ entity, isRevoked }) => {
+        // Check revocation first (PAT-REVOKE-001)
+        if (isRevoked) {
+          return false; // Revoked
+        }
+        
         // Check expiration (required check)
         const expiresAt = entity.attributes?.find((attr: any) => attr.key === 'expires_at')?.value;
         if (expiresAt) {
@@ -224,6 +246,7 @@ export async function getLatestValidReviewModeGrant(
         
         return true;
       })
+      .map(({ entity }) => entity)
       .sort((a: any, b: any) => {
         // Get issued_at, treat missing as oldest
         const aTime = a.attributes?.find((attr: any) => attr.key === 'issued_at')?.value || '';

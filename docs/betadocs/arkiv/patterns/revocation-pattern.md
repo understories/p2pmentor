@@ -54,10 +54,11 @@ Arkiv has no built-in revocation. To revoke grants, consent, invites, or any cap
 
 ## Implementation Hooks
 
-**Primary implementation:** ⚠️ Pattern documented, implementation pending
-- Revocation pattern is described but not yet implemented in codebase
+**Primary implementation:** ✅ Verified in repo
+- `lib/arkiv/revocation.ts` - Generic revocation marker creation and checking
+- `lib/arkiv/grant-revocation.ts` - Grant-specific revocation helpers
+- `lib/arkiv/reviewModeGrant.ts` - `getLatestValidReviewModeGrant()` checks for revocation markers
 - Applies to: grants (PAT-ACCESS-001), consent (PAT-CONSENT-001), invites
-- Future implementation: `lib/arkiv/revocation.ts` (to be created)
 
 **Code examples:**
 ```typescript
