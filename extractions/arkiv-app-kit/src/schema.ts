@@ -26,6 +26,7 @@ export const ATTR_KEYS = {
   STATUS: 'status',
   CREATED_AT: 'created_at',
   UPDATED_AT: 'updated_at',
+  TXHASH: 'txHash',                 // Transaction hash (for txHash companion entities)
 } as const;
 
 /**
