@@ -341,8 +341,8 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 
 ### PAT-SPACE-001: Space ID as Environment Boundary
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/space-isolation.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/space-isolation.md`](./patterns/space-isolation.md)
 
 **What problem it solves:**  
 `spaceId` provides data isolation between environments (test/beta/prod). Every write must include correct `spaceId`; every read must scope by `spaceId` to prevent cross-environment data leaks.
@@ -358,14 +358,19 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 - **Hardcoded spaceId:** Breaks when deploying to different environments
 - **Missing scope:** Queries without `spaceId` filter may return wrong data
 
-**Must document:** spaceId derivation, config management, query scoping, environment boundaries, testing isolation.
+**Related patterns:**
+- [Environments](../environments.md) - Complete environment setup guide
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md)
+- [PAT-IDENTITY-001: Wallet Normalization](./patterns/wallet-normalization.md)
+
+**Full details:** See [`patterns/space-isolation.md`](./patterns/space-isolation.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
 ### PAT-IDENTITY-001: Wallet Normalization + Canonical Form
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/wallet-normalization.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/wallet-normalization.md`](./patterns/wallet-normalization.md)
 
 **What problem it solves:**  
 Wallet addresses must be normalized to lowercase for storage/query to prevent entire classes of bugs (case-sensitivity mismatches, duplicate entities, broken relationships).
@@ -381,7 +386,12 @@ Wallet addresses must be normalized to lowercase for storage/query to prevent en
 - **Duplicate entities:** Same wallet creates multiple profiles due to case mismatch
 - **Broken relationships:** References fail due to case mismatch
 
-**Must document:** normalization rules, when to normalize, display formatting, query patterns, relationship integrity.
+**Related patterns:**
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md)
+- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md)
+- [PAT-REF-001: Relationship References](#pat-ref-001-relationship-references-that-survive-updates)
+
+**Full details:** See [`patterns/wallet-normalization.md`](./patterns/wallet-normalization.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -676,6 +686,8 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
 | PAT-PAGINATION-001 | Pagination Conventions | ⚠️ unverified: `lib/arkiv/profile.ts::listUserProfilesForWallet()` | ⚠️ needs verification |
+| PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
+| PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
 | PAT-ACCESS-001 | Arkiv-Native Access Grants | ⚠️ unverified: `lib/arkiv/access-grants.ts` (if exists) | ⚠️ needs verification |
 | PAT-CONSENT-001 | Privacy Consent State Machine | ⚠️ unverified: `lib/arkiv/consent.ts` (if exists) | ⚠️ needs verification |
 | PAT-WRITE-AUTHZ-001 | Server-Signed Writes | ⚠️ unverified: `lib/arkiv/signer-metadata.ts::addSignerMetadata()` | ⚠️ needs verification |
@@ -710,6 +722,8 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/error-handling.md` → PAT-ERROR-001
 - `patterns/query-optimization.md` → PAT-QUERY-001
 - `patterns/transaction-timeouts.md` → PAT-TIMEOUT-001
+- `patterns/wallet-normalization.md` → PAT-IDENTITY-001
+- `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
 - `access-grants.md` → PAT-ACCESS-001
 - `central-signer-phase0.md` → PAT-WRITE-AUTHZ-001
@@ -732,15 +746,15 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
   - ☐ verified with code pointers
   - ☐ reviewed
 - `patterns/space-isolation.md` → PAT-SPACE-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
+  - ☑ stub created
+  - ☑ implemented in code
+  - ☑ verified with code pointers
+  - ☑ reviewed
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
+  - ☑ stub created
+  - ☑ implemented in code
+  - ☑ verified with code pointers
+  - ☑ reviewed
 - `patterns/reference-integrity.md` → PAT-REF-001
   - ☐ stub created
   - ☐ implemented in code
