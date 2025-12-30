@@ -392,7 +392,12 @@ export default function AuthPage() {
 
       // If review mode is enabled and password verified, issue grant and route to review onboarding
       if (isReviewModeEnabled && isPasswordVerified) {
+        console.log('[Auth Page] Review mode enabled and password verified (WalletConnect), activating review mode', {
+          address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+        });
         setReviewModeWallet(address);
+        // Reset connecting state before activating review mode
+        setIsConnectingWalletConnect(false);
         await handleReviewModeActivate();
         return; // handleReviewModeActivate will handle routing
       }
