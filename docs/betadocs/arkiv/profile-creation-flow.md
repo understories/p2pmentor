@@ -200,7 +200,7 @@ flowchart TD
    - Returns 409 Conflict with `canRegrow: true` if duplicate found
 
 5. **Update Flow**: 
-   - Updates create new entities (immutable pattern)
+   - Uses [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Updates use stable entity keys, preserving transaction history
    - Merges new data with existing profile data
    - Preserves fields not provided in update
 
@@ -214,10 +214,8 @@ flowchart TD
    - For new profiles: Auto-generates random emoji if not provided
 
 8. **Transaction Handling**: 
-   - Wrapped in `handleTransactionWithTimeout()` for timeout handling
-   - Handles rate limit errors (429 status)
-   - Handles transaction timeout (returns `pending: true`)
-   - Other errors return 500 status
+   - Uses [PAT-TIMEOUT-001: Transaction Timeouts](../patterns/transaction-timeouts.md) - Wrapped in `handleTransactionWithTimeout()` for timeout handling
+   - Uses [PAT-ERROR-001: Error Handling](../patterns/error-handling.md) - Handles rate limit errors (429 status), transaction timeout (returns `pending: true`), and other errors (500 status)
 
 9. **Notification Creation**: 
    - Always creates notification entity after successful profile creation

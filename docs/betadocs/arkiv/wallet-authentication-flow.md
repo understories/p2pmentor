@@ -226,6 +226,10 @@ flowchart TD
 
 10. **Error Handling**: Distinguishes between user cancellation (4001), missing provider, and other errors with appropriate messages.
 
+## Related Patterns
+
+This flow implements [PAT-AUTH-001: Wallet Authentication Flow](../arkiv-patterns-catalog.md#pat-auth-001-wallet-authentication-flow). See the pattern documentation for invariants, threat model, and implementation details.
+
 ## Files Referenced
 
 - `lib/auth/metamask.ts` - Core connection logic
