@@ -21,6 +21,9 @@ import { getProfileByWallet, checkUsernameExists } from '@/lib/arkiv/profile';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { SkillSelector } from '@/components/SkillSelector';
+import { listSkills } from '@/lib/arkiv/skill';
+import type { Skill } from '@/lib/arkiv/skill';
 import Link from 'next/link';
 
 type ReviewStep = 'profile' | 'skills' | 'availability' | 'asks' | 'offers' | 'complete';
@@ -493,25 +496,247 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
   );
 }
 
-// Skills Step Component (simplified - links to /me/skills)
+// Skills Step Component
 function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
   wallet: string;
   profile: any;
   onProfileUpdated: (profile: any) => void;
   onError: (error: string) => void;
 }) {
+  const [allSkills, setAllSkills] = useState<Skill[]>([]);
+  const [selectedSkillId, setSelectedSkillId] = useState('');
+  const [selectedSkillName, setSelectedSkillName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const skills = await listSkills({ status: 'active', limit: 500 });
+        setAllSkills(skills);
+      } catch (err) {
+        console.error('Error loading skills:', err);
+        onError('Failed to load skills');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, []);
+
+  const getUserSkillIds = (): string[] => {
+    if (!profile) return [];
+    return (profile as any).skill_ids || [];
+  };
+
+  const getUserSkills = (): Skill[] => {
+    const skillIds = getUserSkillIds();
+    return allSkills.filter(skill => skillIds.includes(skill.key));
+  };
+
+  const handleAddSkill = async () => {
+    if (!selectedSkillId || !selectedSkillName || !profile) {
+      onError('Please select a skill');
+      return;
+    }
+
+    const currentSkillIds = getUserSkillIds();
+    if (currentSkillIds.includes(selectedSkillId)) {
+      onError('Skill already added');
+      return;
+    }
+
+    setIsSubmitting(true);
+    onError('');
+
+    try {
+      const updatedSkillIds = [...currentSkillIds, selectedSkillId];
+      const currentSkills = profile.skillsArray || [];
+      const updatedSkills = [...currentSkills, selectedSkillName];
+
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateProfile',
+          wallet,
+          displayName: profile.displayName,
+          username: profile.username,
+          profileImage: profile.profileImage,
+          bio: profile.bio,
+          bioShort: profile.bioShort,
+          bioLong: profile.bioLong,
+          skills: updatedSkills.join(', '),
+          skillsArray: updatedSkills,
+          skill_ids: updatedSkillIds,
+          timezone: profile.timezone,
+          languages: profile.languages,
+          contactLinks: profile.contactLinks,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      if (data.key && data.txHash) {
+        setLastWriteInfo({ key: data.key, txHash: data.txHash });
+      }
+
+      const updatedProfile = await getProfileByWallet(wallet);
+      if (updatedProfile) {
+        onProfileUpdated(updatedProfile);
+      }
+
+      setSelectedSkillId('');
+      setSelectedSkillName('');
+    } catch (err: any) {
+      onError(err.message || 'Failed to add skill');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleRemoveSkill = async (skillId: string) => {
+    if (!profile) return;
+
+    const skill = allSkills.find(s => s.key === skillId);
+    if (!skill) return;
+
+    if (!confirm(`Remove "${skill.name_canonical}" from your skills?`)) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    onError('');
+
+    try {
+      const currentSkillIds = getUserSkillIds();
+      const updatedSkillIds = currentSkillIds.filter(id => id !== skillId);
+      const currentSkills = profile.skillsArray || [];
+      const updatedSkills = currentSkills.filter(s => s.toLowerCase() !== skill.name_canonical.toLowerCase());
+
+      const res = await fetch('/api/profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateProfile',
+          wallet,
+          displayName: profile.displayName,
+          username: profile.username,
+          profileImage: profile.profileImage,
+          bio: profile.bio,
+          bioShort: profile.bioShort,
+          bioLong: profile.bioLong,
+          skills: updatedSkills.join(', '),
+          skillsArray: updatedSkills,
+          skill_ids: updatedSkillIds,
+          timezone: profile.timezone,
+          languages: profile.languages,
+          contactLinks: profile.contactLinks,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to update profile');
+      }
+
+      if (data.key && data.txHash) {
+        setLastWriteInfo({ key: data.key, txHash: data.txHash });
+      }
+
+      const updatedProfile = await getProfileByWallet(wallet);
+      if (updatedProfile) {
+        onProfileUpdated(updatedProfile);
+      }
+    } catch (err: any) {
+      onError(err.message || 'Failed to remove skill');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-gray-600 dark:text-gray-400">Loading skills...</div>;
+  }
+
+  const userSkills = getUserSkills();
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">Manage Skills</h2>
       <p className="text-gray-600 dark:text-gray-400 mb-4">
         Add, remove, or edit skills on your profile. Skills are stored in the profile entity's skillsArray.
       </p>
-      <Link
-        href="/me/skills"
-        className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-      >
-        Go to Skills Page →
-      </Link>
+
+      {lastWriteInfo && (
+        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Profile updated successfully!</p>
+          <div className="space-y-1 text-sm mb-2">
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.key}
+              </code>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.txHash}
+              </code>
+            </div>
+          </div>
+          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2">Add Skill</label>
+          <SkillSelector
+            value={selectedSkillId}
+            onChange={(skillId, skillName) => {
+              setSelectedSkillId(skillId);
+              setSelectedSkillName(skillName);
+            }}
+            allowCreate={true}
+            placeholder="Select or create a skill..."
+            required
+          />
+          <button
+            onClick={handleAddSkill}
+            disabled={!selectedSkillId || isSubmitting}
+            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSubmitting ? 'Adding...' : 'Add Skill'}
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2">Your Skills</label>
+          {userSkills.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400">No skills added yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {userSkills.map((skill) => (
+                <div key={skill.key} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                  <span>{skill.name_canonical}</span>
+                  <button
+                    onClick={() => handleRemoveSkill(skill.key)}
+                    disabled={isSubmitting}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
