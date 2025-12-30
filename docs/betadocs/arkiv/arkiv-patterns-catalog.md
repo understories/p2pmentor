@@ -289,7 +289,8 @@ Indexer lag means writes may not be immediately queryable. This pattern handles 
 
 ### PAT-IDEMPOTENT-001: Idempotent Writes
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)
+**Status:** ✅ Documented  
+**Location:** [`patterns/idempotent-writes.md`](./patterns/idempotent-writes.md)
 
 **What problem it solves:**  
 Network retries, user double-clicks, or race conditions can cause duplicate writes. Idempotent writes ensure the same operation produces the same result.
@@ -299,9 +300,10 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 - Deterministic `entity_key` derivation prevents duplicates
 - Operation keys (if used) are unique per operation
 - Duplicate writes are detected and ignored
+- Retrying an operation produces the same result
 
 **Threat model / failure modes:**
-- **Double-submission:** User double-clicks submit button
+- **Double-submission:** User double-clicks submit button (creates duplicates)
 - **Network retries:** Failed requests are retried, creating duplicates
 - **Race conditions:** Concurrent writes create conflicting state
 
@@ -309,7 +311,7 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 - [PAT-UPDATE-001: Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)
 - [PAT-UPSERT-001: Canonical Upsert Helper](#pat-upsert-001-canonical-upsert-helper-create-or-update)
 
-**Full details:** See extraction target `patterns/idempotent-writes.md` (not yet created).
+**Full details:** See [`patterns/idempotent-writes.md`](./patterns/idempotent-writes.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -682,7 +684,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-DELETE-001 | Deletion Patterns | ⚠️ unverified: `lib/arkiv/availability.ts`, `lib/arkiv/learningFollow.ts` | ⚠️ needs verification |
 | PAT-SESSION-001 | Session State Machine | ⚠️ unverified: `lib/arkiv/sessions.ts::listSessions()`, `confirmSession()` | ⚠️ needs verification |
 | PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
-| PAT-IDEMPOTENT-001 | Idempotent Writes | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
+| PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
 | PAT-PAGINATION-001 | Pagination Conventions | ⚠️ unverified: `lib/arkiv/profile.ts::listUserProfilesForWallet()` | ⚠️ needs verification |
 | PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
@@ -722,6 +724,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/query-optimization.md` → PAT-QUERY-001
 - `patterns/transaction-timeouts.md` → PAT-TIMEOUT-001
 - `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
+- `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
@@ -730,11 +733,6 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `wallet-authentication-flow.md` → PAT-AUTH-001 (flow doc; pattern extraction needed)
 
 ⚠️ **Implicit (Not Yet Extracted):**
-- `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
 - `patterns/pagination-conventions.md` → PAT-PAGINATION-001
   - ☐ stub created
   - ☐ implemented in code
