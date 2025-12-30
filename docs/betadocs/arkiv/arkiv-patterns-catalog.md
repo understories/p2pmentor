@@ -731,7 +731,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
 | PAT-REVOKE-001 | Revocation via Marker Entities | ✅ verified: `lib/arkiv/revocation.ts`, `lib/arkiv/grant-revocation.ts`, `lib/arkiv/reviewModeGrant.ts` | ✅ verified |
 | PAT-ACCESS-001 | Arkiv-Native Access Grants | ✅ verified: `lib/arkiv/reviewModeGrant.ts::issueReviewModeGrant()`, `getLatestValidReviewModeGrant()` | ✅ verified |
-| PAT-CONSENT-001 | Privacy Consent State Machine | ⚠️ unverified: `lib/arkiv/consent.ts` (if exists) | ⚠️ needs verification |
+| PAT-CONSENT-001 | Privacy Consent State Machine | ⚠️ documented but not implemented: Pattern described in `privacy-consent.md`, no implementation code exists | ⚠️ needs implementation |
 | PAT-WRITE-AUTHZ-001 | Server-Signed Writes | ✅ verified: `lib/arkiv/signer-metadata.ts::addSignerMetadata()`, `lib/arkiv/reviewModeGrant.ts::issueReviewModeGrant()` (server signer) | ✅ verified |
 | PAT-AUTH-001 | Wallet Authentication Flow | ✅ verified: `lib/auth/metamask.ts::connectWallet()`, `requestAccounts()`, `switchChain()` | ✅ verified |
 | PAT-TIMEOUT-001 | Transaction Timeouts | ✅ verified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()` (30s timeout, retry logic) | ✅ verified |
