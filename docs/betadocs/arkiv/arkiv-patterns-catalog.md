@@ -807,20 +807,9 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `implementation-faq.md` - Implementation FAQ
 - `wallet-architecture.md` - Wallet architecture reference
 - `sdk-api-verification-guide.md` - SDK API verification (likely becomes PAT-VERIFY-001: SDK/API Verification)
+- `top-8-patterns.md` - Public-facing Top 8 essential patterns for beta docs
 
 ---
-
-## Next Steps
-
-1. **Create public-facing "Top 8 Patterns" page** for beta docs:
-   - PAT-IMMUTABLE-001: Designing with Immutable Data
-   - PAT-UPDATE-001: Stable Entity Key Updates
-   - PAT-SESSION-001: Session State Machine
-   - PAT-ACCESS-001: Arkiv-Native Access Grants
-   - PAT-QUERY-001: Indexer-Friendly Query Shapes
-   - PAT-ERROR-001: Error Handling
-   - PAT-TIMEOUT-001: Transaction Timeouts
-   - PAT-AUTH-001: Wallet Authentication Flow
 
 ---
 
