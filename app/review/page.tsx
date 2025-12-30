@@ -67,25 +67,58 @@ export default function ReviewOnboardingPage() {
   // Check review mode activation on Arkiv (guards)
   useEffect(() => {
     const checkReviewMode = async () => {
-      if (!wallet) return;
+      if (!wallet) {
+        console.log('[Review Onboarding] No wallet, skipping grant check');
+        return;
+      }
+      
+      console.log('[Review Onboarding] Checking for review mode grant', {
+        wallet: `${wallet.substring(0, 6)}...${wallet.substring(wallet.length - 4)}`,
+      });
       
       setCheckingGuards(true);
       
       try {
-        const grant = await getLatestValidReviewModeGrant(wallet);
+        // Retry grant check with exponential backoff (grant may not be indexed yet)
+        const maxRetries = 5;
+        const initialDelay = 1000;
+        let grant = null;
+        
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          const delay = initialDelay * Math.pow(2, attempt);
+          if (attempt > 0) {
+            console.log(`[Review Onboarding] Grant not found, retry ${attempt}/${maxRetries - 1}, waiting ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+          
+          grant = await getLatestValidReviewModeGrant(wallet);
+          if (grant) {
+            console.log('[Review Onboarding] Grant found', {
+              key: grant.key,
+              txHash: grant.txHash,
+              attempt: attempt + 1,
+            });
+            break;
+          }
+        }
         
         // Guards: wallet connected, grant exists
         if (!grant) {
+          console.warn('[Review Onboarding] No grant found after all retries, redirecting to /auth');
           router.push('/auth');
           return;
         }
         
         // Load profile if it exists
+        console.log('[Review Onboarding] Loading profile');
         const existingProfile = await getProfileByWallet(wallet);
         if (existingProfile) {
+          console.log('[Review Onboarding] Profile found, starting at skills step');
           setProfile(existingProfile);
           // If profile exists, start at skills step
           setCurrentStep('skills');
+        } else {
+          console.log('[Review Onboarding] No profile found, starting at profile step');
         }
         
         setCheckingGuards(false);
