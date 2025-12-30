@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-and-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Whitespace check (git diff --check)
+        run: |
+          git diff --check
+
+      - name: refs/ must not be tracked
+        run: |
+          if git ls-files | grep -q '^refs/'; then
+            echo "ERROR: refs/ files are tracked by git. Remove them."
+            git ls-files | grep '^refs/' || true
+            exit 1
+          fi
+
+      - name: Heuristic secret scan (repository)
+        run: |
+          if git grep -nE '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----|SECRET_KEY|API[_-]?KEY|PRIVATE[_-]?KEY|PASSWORD\s*=|TOKEN\s*=)' -- ':!package-lock.json' ':!pnpm-lock.yaml' ':!yarn.lock' >/dev/null; then
+            echo "ERROR: Potential secret pattern found."
+            git grep -nE '(AKIA[0-9A-Z]{16}|-----BEGIN (RSA|EC|OPENSSH) PRIVATE KEY-----|SECRET_KEY|API[_-]?KEY|PRIVATE[_-]?KEY|PASSWORD\s*=|TOKEN\s*=)' -- ':!package-lock.json' ':!pnpm-lock.yaml' ':!yarn.lock' || true
+            exit 1
+          fi
+
+      - name: Public docs scan (docs/)
+        run: |
+          if [ -d "docs" ]; then
+            if git grep -nE '(seed phrase|mnemonic|private key|BEGIN .* PRIVATE KEY|password\s*:|token\s*:)' docs >/dev/null; then
+              echo "ERROR: docs/ appears to contain secrets or sensitive ops language."
+              git grep -nE '(seed phrase|mnemonic|private key|BEGIN .* PRIVATE KEY|password\s*:|token\s*:)' docs || true
+              exit 1
+            fi
+          fi
+
