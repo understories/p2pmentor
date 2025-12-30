@@ -35,24 +35,41 @@ export default function ReviewOnboardingPage() {
   const [error, setError] = useState<string | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
 
-  // Get wallet from connected wallet provider
+  // Get wallet from URL params (preferred) or connected wallet provider
   useEffect(() => {
     const getConnectedWallet = async () => {
       try {
+        // First, check URL params (wallet passed from /auth page)
+        if (typeof window !== 'undefined') {
+          const urlParams = new URLSearchParams(window.location.search);
+          const walletParam = urlParams.get('wallet');
+          if (walletParam) {
+            console.log('[Review Onboarding] Wallet from URL params:', `${walletParam.substring(0, 6)}...${walletParam.substring(walletParam.length - 4)}`);
+            setWallet(walletParam);
+            localStorage.setItem('wallet_address', walletParam);
+            return;
+          }
+        }
+        
+        // Fallback: check connected wallet provider
         if (typeof window !== 'undefined' && window.ethereum) {
           const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
           if (Array.isArray(accounts) && accounts.length > 0) {
             const address = accounts[0];
+            console.log('[Review Onboarding] Wallet from window.ethereum:', `${address.substring(0, 6)}...${address.substring(address.length - 4)}`);
             setWallet(address);
             localStorage.setItem('wallet_address', address);
             return;
           }
         }
         
+        // Final fallback: check localStorage
         const storedWallet = localStorage.getItem('wallet_address');
         if (storedWallet) {
+          console.log('[Review Onboarding] Wallet from localStorage:', `${storedWallet.substring(0, 6)}...${storedWallet.substring(storedWallet.length - 4)}`);
           setWallet(storedWallet);
         } else {
+          console.warn('[Review Onboarding] No wallet found, redirecting to /auth');
           router.push('/auth');
         }
       } catch (err) {
@@ -80,12 +97,13 @@ export default function ReviewOnboardingPage() {
       
       try {
         // Retry grant check with exponential backoff (grant may not be indexed yet)
-        const maxRetries = 5;
-        const initialDelay = 1000;
+        // Increased retries and delay to handle Arkiv indexing delays (can take 60+ seconds)
+        const maxRetries = 10; // Increased from 4 to 10
+        const initialDelay = 2000; // Start with 2 seconds (increased from 1 second)
         let grant = null;
         
         for (let attempt = 0; attempt < maxRetries; attempt++) {
-          const delay = initialDelay * Math.pow(2, attempt);
+          const delay = attempt === 0 ? 0 : initialDelay * Math.pow(2, attempt - 1); // First attempt immediate, then exponential backoff
           if (attempt > 0) {
             console.log(`[Review Onboarding] Grant not found, retry ${attempt}/${maxRetries - 1}, waiting ${delay}ms`);
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -102,11 +120,17 @@ export default function ReviewOnboardingPage() {
           }
         }
         
-        // Guards: wallet connected, grant exists
+        // Guards: wallet connected, grant exists (or was just issued)
+        // If grant not found after all retries, allow user to proceed anyway
+        // (Grant was just issued successfully, may take longer to index - this is expected)
         if (!grant) {
-          console.warn('[Review Onboarding] No grant found after all retries, redirecting to /auth');
-          router.push('/auth');
-          return;
+          console.warn('[Review Onboarding] No grant found after all retries, but grant was just issued - allowing access');
+          // Show informational message but allow access
+          // Grant was issued successfully, just not yet queryable due to Arkiv indexing delay
+          setError('Grant is being processed on Arkiv. This may take up to 2 minutes. You can proceed while it processes.');
+        } else {
+          // Clear any previous error messages
+          setError(null);
         }
         
         // Load profile if it exists

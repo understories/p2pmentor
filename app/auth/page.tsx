@@ -604,13 +604,15 @@ export default function AuthPage() {
       const { getProfileByWallet } = await import('@/lib/arkiv/profile');
 
       let grant = null;
-      const maxRetries = 5;
-      const initialDelay = 1000; // Start with 1 second
+      const maxRetries = 10; // Increased from 5 to 10 to handle longer indexing delays
+      const initialDelay = 2000; // Start with 2 seconds (increased from 1 second)
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`[Auth Page] Grant verification attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        const delay = attempt === 0 ? 0 : initialDelay * Math.pow(2, attempt - 1); // First attempt immediate, then exponential backoff
+        if (attempt > 0) {
+          console.log(`[Auth Page] Grant verification attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
 
         grant = await getLatestValidReviewModeGrant(address);
         if (grant) {
@@ -626,6 +628,10 @@ export default function AuthPage() {
 
       // Always route to /review page (regardless of profile existence)
       // The /review page will show "Create Profile" or "Edit Profile" based on profile
+      // IMPORTANT: Pass wallet address via URL params so review page can access it
+      // (localStorage is cleared on /auth mount to prevent auto-login)
+      const reviewUrl = `/review?wallet=${encodeURIComponent(address)}`;
+      
       if (grant) {
         // Success - clear review mode state and route
         console.log('[Auth Page] Grant verified, routing to /review');
@@ -638,11 +644,11 @@ export default function AuthPage() {
         setIsConnectingWalletConnect(false);
 
         // Always route to /review (review mode always goes to review page)
-        console.log('[Auth Page] Routing to /review');
-        router.push('/review');
+        console.log('[Auth Page] Routing to /review with wallet param');
+        router.push(reviewUrl);
       } else {
         // Grant was issued but not yet queryable - route anyway and let /review page handle it
-        // The /review page will retry the grant check
+        // The /review page will retry the grant check with longer delays
         console.warn('[Auth Page] Grant issued but not yet queryable after all retries, routing to /review anyway');
         setIsReviewModeEnabled(false);
         setReviewModePassword('');
@@ -651,8 +657,8 @@ export default function AuthPage() {
         setIsActivatingReviewMode(false);
         setIsConnecting(false); // Ensure connecting state is reset
         setIsConnectingWalletConnect(false);
-        console.log('[Auth Page] Routing to /review (grant not yet queryable)');
-        router.push('/review');
+        console.log('[Auth Page] Routing to /review (grant not yet queryable) with wallet param');
+        router.push(reviewUrl);
       }
     } catch (err) {
       console.error('[Auth Page] Review mode grant issuance error', {
