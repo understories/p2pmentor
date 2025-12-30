@@ -121,7 +121,7 @@ export default function ReviewOnboardingPage() {
             Arkiv Review Mode
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Barebones step-by-step UI to test M1 acceptance criteria. Each step creates/edits Arkiv entities.
+            Barebones step-by-step UI for testing Arkiv functionality
           </p>
         </div>
 
