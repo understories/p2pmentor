@@ -29,6 +29,19 @@ Composable building blocks for Arkiv integrations. Provides the "boring but esse
 - Testnet-native (Mendoza-focused with local node support for CI)
 - Composable design (primitives, not a framework)
 
+### [Arkiv Next.js Starter](./arkiv-nextjs-starter.md)
+
+Complete starter template for building Arkiv applications with Next.js. Demonstrates read paths, write paths, optimistic UI, and error handling in a working example.
+
+**Status:** Available in `extractions/arkiv-nextjs-starter/` (will be published as standalone repo)
+
+**Key Features:**
+- Next.js App Router with server-signed writes (Phase 0)
+- Optimistic UI with indexer lag handling
+- Complete error handling (timeouts, rate limits, network errors)
+- Testnet-native (Mendoza-focused with local node support for CI)
+- Uses Arkiv App Primitives for all Arkiv operations
+
 ---
 
 ## Related Documentation
