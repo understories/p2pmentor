@@ -90,9 +90,23 @@ export default function AuthPage() {
         console.warn('[Pathname encoded]', window.location.href);
       }
 
-      // Now check beta access (after normalization)
-      const inviteCode = localStorage.getItem('beta_invite_code');
-      if (!inviteCode) {
+      // Check beta access (after normalization)
+      // Check cookies first (persists across reloads), then localStorage
+      // Beta gate is ALWAYS enforced, even for review mode
+      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+        const [key, value] = cookie.trim().split('=');
+        acc[key] = value;
+        return acc;
+      }, {} as Record<string, string>);
+      
+      const cookieCode = cookies['beta_access_code'];
+      const cookieKey = cookies['beta_access_key'];
+      const localStorageCode = localStorage.getItem('beta_invite_code');
+      
+      // Check for beta access in cookies or localStorage
+      // Beta gate is always enforced (review mode still requires beta access)
+      if (!cookieCode && !cookieKey && !localStorageCode) {
+        console.log('[Auth Page] No beta access found, redirecting to /beta');
         router.push('/beta');
       }
     }

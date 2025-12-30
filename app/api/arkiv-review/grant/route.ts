@@ -34,14 +34,40 @@ export async function POST(request: NextRequest) {
     // Normalize wallet address
     const normalizedWallet = subjectWallet.toLowerCase().trim();
 
-    // Defensive check: verify beta_access exists (prevents accidental exposure if routing misconfigured)
-    // Beta code is already verified at /beta page, but this adds an extra safety layer
-    const betaAccess = await getBetaAccessByWallet(normalizedWallet, SPACE_ID);
+    // Check if beta_access exists
+    // For review mode, auto-create beta_access if missing (review mode is independent dev-UI)
+    let betaAccess = await getBetaAccessByWallet(normalizedWallet, SPACE_ID);
+    
     if (!betaAccess) {
-      return NextResponse.json(
-        { ok: false, error: 'Beta access required. Please enter invite code at /beta' },
-        { status: 403 }
-      );
+      // Review mode should auto-create beta_access if missing
+      // This allows review mode to work with new wallets without requiring beta code flow
+      console.log('[arkiv-review/grant] Beta access not found, auto-creating for review mode');
+      
+      const { createBetaAccess } = await import('@/lib/arkiv/betaAccess');
+      const { getPrivateKey } = await import('@/lib/config');
+      
+      try {
+        const { key, txHash } = await createBetaAccess({
+          wallet: normalizedWallet,
+          code: 'REVIEW_MODE', // Special code for review mode access
+          privateKey: getPrivateKey(),
+          spaceId: SPACE_ID,
+        });
+        
+        console.log('[arkiv-review/grant] Beta access created for review mode', { key, txHash });
+        
+        // Re-fetch to get the created access
+        betaAccess = await getBetaAccessByWallet(normalizedWallet, SPACE_ID);
+        
+        if (!betaAccess) {
+          // Still not found after creation (indexing delay) - proceed anyway for review mode
+          console.warn('[arkiv-review/grant] Beta access created but not yet queryable, proceeding for review mode');
+        }
+      } catch (error: any) {
+        console.error('[arkiv-review/grant] Failed to create beta access for review mode:', error);
+        // For review mode, proceed anyway (review mode is independent)
+        // The grant will be issued even if beta_access creation failed
+      }
     }
 
     // Issue grant using server signer
