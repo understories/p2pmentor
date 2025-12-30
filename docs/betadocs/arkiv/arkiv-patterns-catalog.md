@@ -706,6 +706,11 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 ## Code Cross-References
 
+**Implementation Status Legend:**
+- ✅ **verified:** Code references verified in codebase
+- ⚠️ **unverified:** Code exists but references not yet verified (needs verification pass)
+- ⚠️ **needs implementation:** Pattern documented but not yet implemented in code
+
 ### Pattern → Implementation Mapping
 
 | Pattern ID | Pattern Name | Primary Implementation | Status |
