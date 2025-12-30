@@ -747,7 +747,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | ✅ verified: `lib/arkiv/transaction-utils.ts` | PAT-TIMEOUT-001, PAT-ERROR-001, PAT-OPTIMISTIC-001 | ✅ verified |
 | ✅ verified: `lib/arkiv/signer-metadata.ts` | PAT-WRITE-AUTHZ-001 | ✅ verified |
 | ✅ verified: `lib/auth/metamask.ts` | PAT-AUTH-001 | ✅ verified |
-| ⚠️ unverified: `app/api/profile/route.ts` | PAT-UPDATE-001, PAT-ERROR-001 | ⚠️ needs verification |
+| ✅ verified: `app/api/profile/route.ts` | PAT-UPDATE-001, PAT-ERROR-001 | ✅ verified |
 | ⚠️ unverified: `app/api/sessions/route.ts` | PAT-SESSION-001, PAT-ERROR-001 | ⚠️ needs verification |
 
 ---
