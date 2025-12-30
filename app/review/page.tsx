@@ -24,6 +24,8 @@ import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { SkillSelector } from '@/components/SkillSelector';
 import { listSkills } from '@/lib/arkiv/skill';
 import type { Skill } from '@/lib/arkiv/skill';
+import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
+import { listAvailabilityForWallet, type Availability, type WeeklyAvailability } from '@/lib/arkiv/availability';
 import Link from 'next/link';
 
 type ReviewStep = 'profile' | 'skills' | 'availability' | 'asks' | 'offers' | 'complete';
@@ -741,23 +743,183 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
   );
 }
 
-// Availability Step Component (simplified - links to /me/availability)
+// Availability Step Component
 function AvailabilityStep({ wallet, onError }: {
   wallet: string;
   onError: (error: string) => void;
 }) {
+  const [availabilities, setAvailabilities] = useState<Availability[]>([]);
+  const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability | null>(null);
+  const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const data = await listAvailabilityForWallet(wallet);
+        setAvailabilities(data);
+      } catch (err) {
+        console.error('Error loading availability:', err);
+        onError('Failed to load availability');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadData();
+  }, [wallet]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!weeklyAvailability) {
+      onError('Please set your availability');
+      return;
+    }
+
+    setIsSubmitting(true);
+    onError('');
+
+    try {
+      const res = await fetch('/api/availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          wallet,
+          timeBlocks: weeklyAvailability,
+          timezone,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to create availability');
+      }
+
+      if (data.key && data.txHash) {
+        setLastWriteInfo({ key: data.key, txHash: data.txHash });
+      }
+
+      setWeeklyAvailability(null);
+      const updated = await listAvailabilityForWallet(wallet);
+      setAvailabilities(updated);
+    } catch (err: any) {
+      onError(err.message || 'Failed to create availability');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (availabilityKey: string) => {
+    if (!confirm('Are you sure you want to delete this availability block?')) {
+      return;
+    }
+
+    setIsDeleting(availabilityKey);
+    onError('');
+
+    try {
+      const res = await fetch('/api/availability', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          availabilityKey,
+          wallet,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.error || 'Failed to delete availability');
+      }
+
+      const updated = await listAvailabilityForWallet(wallet);
+      setAvailabilities(updated);
+    } catch (err: any) {
+      onError(err.message || 'Failed to delete availability');
+    } finally {
+      setIsDeleting(null);
+    }
+  };
+
+  if (loading) {
+    return <div className="text-gray-600 dark:text-gray-400">Loading availability...</div>;
+  }
+
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-4">Manage Availability</h2>
       <p className="text-gray-600 dark:text-gray-400 mb-4">
         Add, remove, or edit availability blocks. Each availability block is a separate entity on Arkiv.
       </p>
-      <Link
-        href="/me/availability"
-        className="inline-block px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-      >
-        Go to Availability Page →
-      </Link>
+
+      {lastWriteInfo && (
+        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Availability created successfully!</p>
+          <div className="space-y-1 text-sm mb-2">
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.key}
+              </code>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {lastWriteInfo.txHash}
+              </code>
+            </div>
+          </div>
+          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+        </div>
+      )}
+
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Add Availability Block</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <WeeklyAvailabilityEditor
+              value={weeklyAvailability}
+              onChange={setWeeklyAvailability}
+              timezone={timezone}
+              onTimezoneChange={setTimezone}
+            />
+            <button
+              type="submit"
+              disabled={!weeklyAvailability || isSubmitting}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? 'Creating...' : 'Create Availability'}
+            </button>
+          </form>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-semibold mb-2">Your Availability Blocks</h3>
+          {availabilities.length === 0 ? (
+            <p className="text-gray-500 dark:text-gray-400">No availability blocks yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {availabilities.map((availability) => (
+                <div key={availability.key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{availability.timezone}</div>
+                    <ViewOnArkivLink entityKey={availability.key} txHash={availability.txHash} label="View on Arkiv" />
+                  </div>
+                  <button
+                    onClick={() => handleDelete(availability.key)}
+                    disabled={isDeleting === availability.key}
+                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {isDeleting === availability.key ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
