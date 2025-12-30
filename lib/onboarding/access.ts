@@ -44,6 +44,32 @@ export function setOnboardingBypass(value: boolean = true): void {
 }
 
 /**
+ * Check if review mode bypass is active
+ * Uses sessionStorage to persist bypass flag for the session
+ */
+export function hasReviewModeBypass(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const bypass = sessionStorage.getItem('review_mode_bypass');
+  return bypass === 'true';
+}
+
+/**
+ * Set review mode bypass flag
+ * Call this when user is in review mode (dev-UI flow)
+ * Similar to onboarding bypass, allows access to review page
+ */
+export function setReviewModeBypass(value: boolean = true): void {
+  if (typeof window === 'undefined') return;
+  
+  if (value) {
+    sessionStorage.setItem('review_mode_bypass', 'true');
+  } else {
+    sessionStorage.removeItem('review_mode_bypass');
+  }
+}
+
+/**
  * Verify onboarding access
  * 
  * @param wallet - User wallet address

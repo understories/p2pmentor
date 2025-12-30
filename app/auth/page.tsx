@@ -598,68 +598,30 @@ export default function AuthPage() {
 
       console.log('[Auth Page] Grant issued successfully, starting verification retry loop');
 
-      // Grant issued successfully - wait a moment for Arkiv indexing, then verify
-      // Use retry mechanism with exponential backoff
-      const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
-      const { getProfileByWallet } = await import('@/lib/arkiv/profile');
-
-      let grant = null;
-      const maxRetries = 10; // Increased from 5 to 10 to handle longer indexing delays
-      const initialDelay = 2000; // Start with 2 seconds (increased from 1 second)
-
-      for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const delay = attempt === 0 ? 0 : initialDelay * Math.pow(2, attempt - 1); // First attempt immediate, then exponential backoff
-        if (attempt > 0) {
-          console.log(`[Auth Page] Grant verification attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        grant = await getLatestValidReviewModeGrant(address);
-        if (grant) {
-          console.log('[Auth Page] Grant found on attempt', attempt + 1, {
-            key: grant.key,
-            txHash: grant.txHash,
-          });
-          break; // Grant found, exit retry loop
-        } else {
-          console.log(`[Auth Page] Grant not found on attempt ${attempt + 1}, continuing...`);
-        }
-      }
-
-      // Always route to /review page (regardless of profile existence)
-      // The /review page will show "Create Profile" or "Edit Profile" based on profile
-      // IMPORTANT: Pass wallet address via URL params so review page can access it
-      // (localStorage is cleared on /auth mount to prevent auto-login)
-      const reviewUrl = `/review?wallet=${encodeURIComponent(address)}`;
+      // Grant issued successfully - trust the API response and proceed immediately
+      // Store wallet in localStorage (like regular flow does) and route to /review
+      // No need to wait for grant indexing - we trust the API response
+      console.log('[Auth Page] Grant issued successfully, storing wallet and routing to /review');
       
-      if (grant) {
-        // Success - clear review mode state and route
-        console.log('[Auth Page] Grant verified, routing to /review');
-        setIsReviewModeEnabled(false);
-        setReviewModePassword('');
-        setIsPasswordVerified(false);
-        setReviewModeWallet(null);
-        setIsActivatingReviewMode(false);
-        setIsConnecting(false); // Ensure connecting state is reset
-        setIsConnectingWalletConnect(false);
-
-        // Always route to /review (review mode always goes to review page)
-        console.log('[Auth Page] Routing to /review with wallet param');
-        router.push(reviewUrl);
-      } else {
-        // Grant was issued but not yet queryable - route anyway and let /review page handle it
-        // The /review page will retry the grant check with longer delays
-        console.warn('[Auth Page] Grant issued but not yet queryable after all retries, routing to /review anyway');
-        setIsReviewModeEnabled(false);
-        setReviewModePassword('');
-        setIsPasswordVerified(false);
-        setReviewModeWallet(null);
-        setIsActivatingReviewMode(false);
-        setIsConnecting(false); // Ensure connecting state is reset
-        setIsConnectingWalletConnect(false);
-        console.log('[Auth Page] Routing to /review (grant not yet queryable) with wallet param');
-        router.push(reviewUrl);
+      // Store wallet in localStorage (reuse existing pattern from regular flow)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('wallet_address', address);
+        // Store connection method for reconnection handling
+        localStorage.setItem('wallet_connection_method', 'metamask');
       }
+      
+      // Clear review mode state
+      setIsReviewModeEnabled(false);
+      setReviewModePassword('');
+      setIsPasswordVerified(false);
+      setReviewModeWallet(null);
+      setIsActivatingReviewMode(false);
+      setIsConnecting(false);
+      setIsConnectingWalletConnect(false);
+
+      // Route immediately to /review (like regular flow routes to /me or /onboarding)
+      console.log('[Auth Page] Routing to /review');
+      router.push('/review');
     } catch (err) {
       console.error('[Auth Page] Review mode grant issuance error', {
         error: err instanceof Error ? err.message : 'Unknown error',
