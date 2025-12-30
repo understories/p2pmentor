@@ -720,6 +720,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
 | PAT-PAGINATION-001 | Pagination Conventions | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/asks.ts`, `lib/arkiv/offers.ts` | ✅ verified |
+| PAT-REF-001 | Relationship References | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/notificationPreferences.ts`, `lib/arkiv/learnerQuest.ts` | ✅ verified |
 | PAT-UPSERT-001 | Canonical Upsert Helper | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ✅ verified |
 | PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
 | PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
