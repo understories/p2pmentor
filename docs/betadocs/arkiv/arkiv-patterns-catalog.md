@@ -715,7 +715,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 | Pattern ID | Pattern Name | Primary Implementation | Status |
 |------------|--------------|----------------------|--------|
-| PAT-IMMUTABLE-001 | Designing with Immutable Data | ⚠️ unverified: `lib/arkiv/entity-utils.ts` | ⚠️ needs verification |
+| PAT-IMMUTABLE-001 | Designing with Immutable Data | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()`, all `createEntity()`/`updateEntity()` calls | ✅ verified |
 | PAT-UPDATE-001 | Stable Entity Key Updates | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
 | PAT-VERSION-001 | Entity Versioning | ⚠️ unverified: `lib/arkiv/profile.ts` (legacy) | ⚠️ needs verification |
 | PAT-DELETE-001 | Deletion Patterns | ⚠️ unverified: `lib/arkiv/availability.ts`, `lib/arkiv/learningFollow.ts` | ⚠️ needs verification |
