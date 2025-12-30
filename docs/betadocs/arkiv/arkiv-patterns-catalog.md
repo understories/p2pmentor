@@ -699,6 +699,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-DELETE-001 | Deletion Patterns | ⚠️ unverified: `lib/arkiv/availability.ts`, `lib/arkiv/learningFollow.ts` | ⚠️ needs verification |
 | PAT-SESSION-001 | Session State Machine | ⚠️ unverified: `lib/arkiv/sessions.ts::listSessions()`, `confirmSession()` | ⚠️ needs verification |
 | PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
+| PAT-INDEXER-001 | Read-Your-Writes Under Indexer Lag | ✅ verified: `app/api/skills/route.ts`, `app/notifications/page.tsx` | ✅ verified |
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
 | PAT-PAGINATION-001 | Pagination Conventions | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/asks.ts`, `lib/arkiv/offers.ts` | ✅ verified |
