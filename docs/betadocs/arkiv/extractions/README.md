@@ -39,7 +39,7 @@ Composable building blocks for Arkiv integrations. Provides the "boring but esse
 
 ## Navigation
 
-- [Back to Arkiv Documentation](../README.md) - Return to main Arkiv documentation index
+- [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Main Arkiv patterns documentation
 
 ---
 
