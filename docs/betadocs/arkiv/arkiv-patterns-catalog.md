@@ -411,18 +411,29 @@ Wallet addresses must be normalized to lowercase for storage/query to prevent en
 
 ### PAT-REF-001: Relationship References That Survive Updates
 
-**Status:** ⚠️ Stub (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/reference-integrity.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/reference-integrity.md`](./patterns/reference-integrity.md)
 
 **What problem it solves:**  
 Relationships between entities must survive updates. Use stable identifiers (wallet, stable entity_key, or explicit logical IDs) instead of volatile `entity_key` when using Pattern A.
 
-**Must document:**
-- Stable identifier selection
-- When to use `entity_key` vs logical ID
-- Backlink patterns
-- Denormalization rules
-- Update safety guarantees
+**Invariants:**
+- Relationships use stable identifiers (never change)
+- Pattern B: `entity_key` is stable (relationships never break)
+- Pattern A: Reference `wallet` or logical ID, not volatile `entity_key`
+- Backlinks use same stable identifier strategy
+- Denormalization preserves stable references
+
+**Threat model / failure modes:**
+- **Broken relationships:** Volatile `entity_key` references break when entity updates
+- **Orphaned references:** References to deleted/updated entities become invalid
+- **Inconsistent state:** Relationships and entities get out of sync
+
+**Related patterns:**
+- [PAT-UPDATE-001: Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)
+- [PAT-VERSION-001: Entity Versioning](./patterns/entity-versioning.md)
+
+**Full details:** See [`patterns/reference-integrity.md`](./patterns/reference-integrity.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -752,6 +763,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/pagination-conventions.md` → PAT-PAGINATION-001
 - `patterns/canonical-upsert.md` → PAT-UPSERT-001
 - `patterns/indexer-lag-handling.md` → PAT-INDEXER-001
+- `patterns/reference-integrity.md` → PAT-REF-001
 - `patterns/revocation-pattern.md` → PAT-REVOKE-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
