@@ -16,7 +16,7 @@
 
 import { listRecords } from '../src/lib/arkiv/queries';
 import { createRecord } from '../src/lib/arkiv/writes';
-import { waitForIndexer } from '../../../arkiv-app-kit/src/indexer';
+import { waitForIndexer } from '../../../../arkiv-app-kit/src/indexer';
 
 async function smokeTest() {
   const target = process.env.ARKIV_TARGET || 'mendoza';

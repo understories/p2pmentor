@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createRecord } from '@/src/lib/arkiv/writes';
-import { isTransactionTimeoutError, isRateLimitError } from '../../../arkiv-app-kit/src/transactions';
+import { isTransactionTimeoutError, isRateLimitError } from '../../../../arkiv-app-kit/src/transactions';
 
 export async function POST(request: NextRequest) {
   try {
