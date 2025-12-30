@@ -88,13 +88,13 @@ export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
  * ```
  */
 export function getWalletClientFromMetaMask(account: `0x${string}`) {
-  if (typeof window === 'undefined' || !window.ethereum) {
+  if (typeof window === 'undefined' || !(window as any).ethereum) {
     throw new Error('MetaMask not available - this function must be called in browser context');
   }
   
   return createWalletClient({
     chain: mendoza,
-    transport: custom(window.ethereum),
+    transport: custom((window as any).ethereum),
     account,
   });
 }

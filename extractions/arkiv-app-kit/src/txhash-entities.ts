@@ -118,7 +118,7 @@ export async function queryByTxHash(
   const txHashType = `${originalType}_txhash`;
   
   // Query txHash entities
-  const { buildSafeQuery, executeQuery } = await import('./queries');
+  const { buildSafeQuery, executeQuery } = await import('./queries.js');
   const query = buildSafeQuery(txHashType, { limit: 100 });
   
   // Filter by txHash (client-side, since we can't query by arbitrary attribute easily)

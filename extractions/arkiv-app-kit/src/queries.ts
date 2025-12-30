@@ -7,6 +7,7 @@
  * Pattern: PAT-QUERY-001 (Indexer-Friendly Query Shapes)
  */
 
+import { eq } from '@arkiv-network/sdk/query';
 import { getPublicClient } from './client';
 import { getSpaceId } from './space';
 import { normalizeWallet } from './wallet';
@@ -74,11 +75,11 @@ export function buildSafeQuery(type: string, options: QueryOptions = {}) {
   const query = publicClient.buildQuery();
   
   // Always include type filter
-  const queryBuilder = query.where((q: any) => q.eq('type', type));
+  const queryBuilder = query.where(eq('type', type));
   
   // Always include spaceId filter (from config or provided)
   const spaceId = options.spaceId || getSpaceId();
-  const queryWithSpace = queryBuilder.where((q: any) => q.eq('spaceId', spaceId));
+  const queryWithSpace = queryBuilder.where(eq('spaceId', spaceId));
   
   // Set safe limit (default: 100, max: 500)
   const limit = Math.min(options.limit || 100, 500);
@@ -119,7 +120,7 @@ export function buildWalletQuery(
   const baseQuery = buildSafeQuery(type, options);
   
   // Add wallet filter
-  return baseQuery.where((q: any) => q.eq('wallet', normalizedWallet));
+  return baseQuery.where(eq('wallet', normalizedWallet));
 }
 
 /**
