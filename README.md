@@ -219,3 +219,7 @@ curl -fsSL https://bun.sh/install | bash
 
 Developer experience updates for Arkiv live in `/docs/dx_arkiv_runbook.md`.  
 This beta is intentionally small so we can ship quickly and learn from real usage.
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

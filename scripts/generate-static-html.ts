@@ -79,6 +79,7 @@ function generateFooter(): string {
   <footer>
     <p>p2pmentor - Decentralized mentorship platform</p>
     <p>Data from <a href="https://mendoza.arkiv.org">Arkiv Network</a></p>
+    <p>Licensed under <a href="https://github.com/understories/p2pmentor/blob/main/LICENSE">MIT License</a></p>
   </footer>
 </body>
 </html>`;
