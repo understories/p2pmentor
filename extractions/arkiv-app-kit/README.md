@@ -315,17 +315,22 @@ This package is **testnet-native** (Mendoza-focused):
 
 ---
 
-## Pattern Alignment
+## Patterns Implemented
 
-All code in this package follows established patterns from the Arkiv Patterns Catalog:
+Each module maps to specific patterns from the Arkiv Patterns Catalog:
 
-- **PAT-QUERY-001:** Indexer-Friendly Query Shapes
-- **PAT-TIMEOUT-001:** Transaction Timeouts
-- **PAT-ERROR-001:** Error Handling
-- **PAT-SPACE-001:** Space ID as Environment Boundary
-- **PAT-IDENTITY-001:** Wallet Normalization
-- **PAT-UPDATE-001:** Stable Entity Key Updates
-- **PAT-INDEXER-001:** Read-Your-Writes Under Indexer Lag
+| Module | Pattern ID | Pattern Name |
+|--------|-----------|--------------|
+| `queries.ts` | PAT-QUERY-001 | Indexer-Friendly Query Shapes |
+| `transactions.ts` | PAT-TIMEOUT-001 | Transaction Timeouts |
+| `transactions.ts` | PAT-ERROR-001 | Error Handling |
+| `space.ts` | PAT-SPACE-001 | Space ID as Environment Boundary |
+| `wallet.ts` | PAT-IDENTITY-001 | Wallet Normalization |
+| `keys.ts` | PAT-UPDATE-001 | Stable Entity Key Updates |
+| `indexer.ts` | PAT-INDEXER-001 | Read-Your-Writes Under Indexer Lag |
+| `txhash-entities.ts` | Engineering Guidelines | Transaction Hash Companion Entities |
+
+This mapping ensures all templates use pattern-aligned code and reduces drift with the patterns catalog.
 
 ---
 
