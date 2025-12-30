@@ -289,8 +289,9 @@ const result = await handleTransactionWithTimeout(async () => {
   });
 });
 
-// Create companion txHash entity (strongly recommended)
+// Create companion txHash entity (strongly recommended, canonical signature)
 await createTxHashEntity('user_profile', result.txHash, result.entityKey);
+// Signature: createTxHashEntity(originalType, txHash, entityKey?, privateKey?)
 ```
 
 ### Querying Entities

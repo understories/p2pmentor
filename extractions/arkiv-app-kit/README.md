@@ -1,6 +1,12 @@
-# Arkiv App Primitives
+# Arkiv App Kit
 
 **Composable building blocks for Arkiv integrations.**
+
+**Package name:** `@understories/arkiv-app-kit` (when published)
+
+**Product name:** Arkiv App Kit
+
+**Internal concept:** The modules in this package are **Arkiv application primitives** - composable building blocks with restraint, not opinionated abstractions.
 
 This package provides the "boring but essential" Arkiv plumbing that every app needs: wallet normalization, query builders, transaction timeouts, space ID management, and more.
 
