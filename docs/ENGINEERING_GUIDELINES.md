@@ -635,6 +635,57 @@ When encountering complex bugs or issues that require careful investigation:
 - Document everything in the audit plan
 - Verify against success criteria at each step
 
+### Signing Wallet Balance Check
+
+**CRITICAL:** Before debugging transaction failures, always check if the signing wallet has sufficient testnet tokens.
+
+**When to Check:**
+- Transaction errors like "gas required exceeds allowance"
+- "Missing or invalid parameters" errors during entity creation
+- Any `eth_estimateGas` failures
+- Before assuming code issues, verify signing wallet has funds
+
+**How to Check:**
+
+1. **Derive signing wallet address from private key:**
+   ```typescript
+   import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
+   import { getPrivateKey } from '@/lib/config';
+   
+   const privateKey = getPrivateKey();
+   const account = privateKeyToAccount(privateKey);
+   const signingWalletAddress = account.address;
+   ```
+
+2. **Check balance on Mendoza testnet:**
+   - Use Arkiv Explorer: [https://explorer.mendoza.hoodi.arkiv.network](https://explorer.mendoza.hoodi.arkiv.network)
+   - Search for the signing wallet address
+   - Verify balance is sufficient for transactions
+
+3. **If balance is low or zero, use the faucet:**
+   - **Faucet URL pattern:** `https://mendoza.hoodi.arkiv.network/faucet/?address={SIGNING_WALLET_ADDRESS}`
+   - **Example:** `https://mendoza.hoodi.arkiv.network/faucet/?address=0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F`
+   - **Manual process only:** Do NOT automate faucet requests to avoid overloading the faucet
+   - **Rate limits:** Follow Arkiv's faucet guidelines and rate limits
+   - **Amount:** Typically 0.001 ETH test tokens per request
+
+**Important Notes:**
+- The signing wallet is the server-side wallet (`ARKIV_PRIVATE_KEY` environment variable)
+- This is separate from user profile wallets (which don't need funds)
+- All server-side entity creation requires the signing wallet to have testnet tokens
+- If the signing wallet runs out of funds, all server-side transactions will fail
+- Always check balance before assuming code issues
+
+**Quick Check Script:**
+```bash
+# Derive address from private key (for manual faucet use)
+node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts'); const pk = process.env.ARKIV_PRIVATE_KEY; if (!pk) { console.error('ARKIV_PRIVATE_KEY not set'); process.exit(1); } const account = privateKeyToAccount(pk); console.log('Signing wallet address:', account.address); console.log('Faucet URL:', \`https://mendoza.hoodi.arkiv.network/faucet/?address=\${account.address}\`);"
+```
+
+**Documentation Reference:**
+- See [Wallet Architecture](/docs/betadocs/arkiv/wallet-architecture) for details on profile wallet vs signing wallet
+- See [Mendoza Faucet](https://mendoza.hoodi.arkiv.network/faucet) for testnet token requests
+
 ### Testing Standards
 
 1. **Real Data:**
