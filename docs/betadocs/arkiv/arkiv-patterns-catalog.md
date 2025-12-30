@@ -729,7 +729,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-UPSERT-001 | Canonical Upsert Helper | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ✅ verified |
 | PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
 | PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
-| PAT-REVOKE-001 | Revocation via Marker Entities | ⚠️ pattern documented, implementation pending | ⚠️ needs implementation |
+| PAT-REVOKE-001 | Revocation via Marker Entities | ✅ verified: `lib/arkiv/revocation.ts`, `lib/arkiv/grant-revocation.ts`, `lib/arkiv/reviewModeGrant.ts` | ✅ verified |
 | PAT-ACCESS-001 | Arkiv-Native Access Grants | ⚠️ unverified: `lib/arkiv/access-grants.ts` (if exists) | ⚠️ needs verification |
 | PAT-CONSENT-001 | Privacy Consent State Machine | ⚠️ unverified: `lib/arkiv/consent.ts` (if exists) | ⚠️ needs verification |
 | PAT-WRITE-AUTHZ-001 | Server-Signed Writes | ⚠️ unverified: `lib/arkiv/signer-metadata.ts::addSignerMetadata()` | ⚠️ needs verification |
