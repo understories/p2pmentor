@@ -269,21 +269,29 @@ Blockchain writes have latency (seconds to minutes). UI should update optimistic
 
 ### PAT-INDEXER-001: Read-Your-Writes Under Indexer Lag
 
-**Status:** ⚠️ Stub (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/indexer-lag-handling.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/indexer-lag-handling.md`](./patterns/indexer-lag-handling.md)
 
 **What problem it solves:**  
 Indexer lag means writes may not be immediately queryable. This pattern handles the state machine: pending → confirmed (receipt) → indexed (queryable), without conflating receipt vs indexer visibility.
 
-**Must document:**
-- State machine: pending → confirmed (receipt) → indexed (queryable)
-- Receipt vs indexer distinction
-- Polling policy
-- Stale-while-revalidate strategies
-- Read-your-writes patterns
+**Invariants:**
+- Receipt confirmation ≠ indexer visibility (distinct states)
+- Read-your-writes requires polling until indexed
+- Polling uses exponential backoff to avoid rate limits
+- Stale-while-revalidate: Show optimistic state while polling
+- Timeout after max retries (entity may be confirmed but not yet indexed)
+
+**Threat model / failure modes:**
+- **Indexer lag:** Writes confirmed but not yet queryable (polling required)
+- **Polling exhaustion:** Max retries reached, entity still not visible (timeout)
+- **Rate limits:** Too aggressive polling hits rate limits (use backoff)
 
 **Related patterns:**
-- [PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation](#pat-optimistic-001-optimistic-ui--reconciliation)
+- [PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation](./patterns/optimistic-ui-reconciliation.md)
+- [PAT-TIMEOUT-001: Transaction Timeouts](./patterns/transaction-timeouts.md)
+
+**Full details:** See [`patterns/indexer-lag-handling.md`](./patterns/indexer-lag-handling.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -735,6 +743,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
 - `patterns/pagination-conventions.md` → PAT-PAGINATION-001
 - `patterns/canonical-upsert.md` → PAT-UPSERT-001
+- `patterns/indexer-lag-handling.md` → PAT-INDEXER-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
