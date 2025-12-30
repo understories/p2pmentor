@@ -812,12 +812,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 ## Next Steps
 
-1. **Extract implicit patterns** into dedicated docs:
-   - PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation
-   - PAT-IDEMPOTENT-001: Idempotent Writes
-   - PAT-PAGINATION-001: Pagination Conventions
-
-2. **Add "Patterns Used" sections** to entity specs:
+1. **Add "Patterns Used" sections** to entity specs:
    - `profile.md` → PAT-UPDATE-001, PAT-QUERY-001
    - `session.md` → PAT-SESSION-001, PAT-QUERY-001
    - `ask.md`, `offer.md` → PAT-QUERY-001, PAT-DELETE-001
