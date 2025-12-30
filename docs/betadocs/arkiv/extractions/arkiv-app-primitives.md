@@ -68,6 +68,8 @@ These defaults are pinned to prevent template drift. All templates must use thes
 - **Maximum cap:** `500` entities per query (enforced in `buildSafeQuery()`)
 - **Rationale:** Prevents indexer overload and ensures predictable performance
 
+**Important:** Limits are **UX/latency knobs, not correctness knobs**. Correctness comes from deterministic keys + reconciliation, not fetching "everything". If you need pagination, use cursor-based pagination (e.g., `created_at` timestamp or entity key as cursor). Do not solve missing records by cranking limits to 500 everywhere - this will cause UI performance issues and doesn't address the root cause (indexer lag or missing reconciliation).
+
 ### Canonical Attribute Keys
 
 The `ATTR_KEYS` constant defines all standard attribute keys:
@@ -410,6 +412,22 @@ All code in this package follows established patterns from the [Arkiv Patterns C
 ## TypeScript
 
 Full TypeScript support with strict mode. All functions are typed and documented.
+
+---
+
+## Minimal Conformance Test
+
+Every template using Arkiv App Kit must pass a minimal conformance test that proves these invariants:
+
+1. **Wallet normalization applied** - All wallet addresses are normalized to lowercase in writes and queries
+2. **Query shape contains type + spaceId + limit** - All queries include required filters
+3. **Transaction wrapper times out** - Transaction wrapper doesn't hang indefinitely (returns error after timeout)
+4. **TxHash companion entity is written** - If write succeeded, companion `*_txhash` entity is created (non-blocking)
+5. **Reconciliation distinguishes submitted vs indexed** - UI/API correctly represents "submitted" (txHash exists) vs "indexed" (queryable)
+
+This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Mendoza testnet.
+
+See `arkiv-nextjs-starter/scripts/smoke-test.ts` for a reference implementation.
 
 ---
 

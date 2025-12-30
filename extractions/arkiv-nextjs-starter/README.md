@@ -138,7 +138,7 @@ See `docs/failure-modes.md` for detailed information on:
 
 ## Mainnet Migration Checklist (Non-Operational)
 
-This section is intentionally non-operational (checklist, not instructions) to avoid divergence before Arkiv team finalizes mainnet guidance.
+This section is intentionally non-operational (checklist, not instructions) to avoid divergent folklore while Arkiv finalizes mainnet guidance. Do not convert this into an operational runbook until official mainnet documentation is available.
 
 - [ ] Update RPC endpoint to mainnet
 - [ ] Update `SPACE_ID` to production space

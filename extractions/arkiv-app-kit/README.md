@@ -334,6 +334,22 @@ This mapping ensures all templates use pattern-aligned code and reduces drift wi
 
 ---
 
+## Minimal Conformance Test
+
+Every template using Arkiv App Kit must pass a minimal conformance test that proves these invariants:
+
+1. **Wallet normalization applied** - All wallet addresses are normalized to lowercase in writes and queries
+2. **Query shape contains type + spaceId + limit** - All queries include required filters
+3. **Transaction wrapper times out** - Transaction wrapper doesn't hang indefinitely (returns error after timeout)
+4. **TxHash companion entity is written** - If write succeeded, companion `*_txhash` entity is created (non-blocking)
+5. **Reconciliation distinguishes submitted vs indexed** - UI/API correctly represents "submitted" (txHash exists) vs "indexed" (queryable)
+
+This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Mendoza testnet.
+
+See `arkiv-nextjs-starter/scripts/smoke-test.ts` for a reference implementation.
+
+---
+
 ## TypeScript
 
 Full TypeScript support with strict mode. All functions are typed and documented.
