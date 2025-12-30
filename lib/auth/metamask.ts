@@ -186,16 +186,16 @@ export async function connectWallet(): Promise<`0x${string}`> {
     console.warn('Failed to switch to Mendoza chain, continuing with connection:', error);
   }
 
-  // Check if we have a stored wallet address in localStorage
-  // If not, this is a fresh login, so we should revoke permissions first
-  // to ensure account selection dialog appears
-  const storedWallet = typeof window !== 'undefined'
-    ? localStorage.getItem('wallet_address')
-    : null;
+  // CRITICAL: Always force account selection on /auth page
+  // Even if storedWallet exists, we're on /auth so user explicitly wants to connect
+  // This prevents auto-login and ensures user always selects account
+  const isOnAuthPage = typeof window !== 'undefined' && window.location.pathname === '/auth';
 
-  if (!storedWallet) {
-    // Fresh login - revoke existing permissions to force account selection
+  // Always revoke permissions and request new ones when on /auth page
+  // This ensures account selection dialog always appears
+  if (isOnAuthPage) {
     try {
+      // Revoke existing permissions to force account selection
       await window.ethereum.request({
         method: "wallet_revokePermissions",
         params: [
@@ -210,7 +210,6 @@ export async function connectWallet(): Promise<`0x${string}`> {
     }
 
     // Request permissions explicitly - this will show account selection dialog
-    // after permissions were revoked, or if this is the first connection
     try {
       await window.ethereum.request({
         method: "wallet_requestPermissions",
@@ -228,9 +227,52 @@ export async function connectWallet(): Promise<`0x${string}`> {
       // If wallet_requestPermissions fails, fall back to eth_requestAccounts
       // This maintains backward compatibility
     }
+  } else {
+    // Not on /auth page - check if we have a stored wallet address
+    // If not, this is a fresh login, so we should revoke permissions first
+    const storedWallet = typeof window !== 'undefined'
+      ? localStorage.getItem('wallet_address')
+      : null;
+
+    if (!storedWallet) {
+      // Fresh login - revoke existing permissions to force account selection
+      try {
+        await window.ethereum.request({
+          method: "wallet_revokePermissions",
+          params: [
+            {
+              eth_accounts: {},
+            },
+          ],
+        });
+      } catch (error) {
+        // If wallet_revokePermissions is not supported or fails, continue anyway
+        // Some wallets may not support this method
+      }
+
+      // Request permissions explicitly - this will show account selection dialog
+      // after permissions were revoked, or if this is the first connection
+      try {
+        await window.ethereum.request({
+          method: "wallet_requestPermissions",
+          params: [
+            {
+              eth_accounts: {},
+            },
+          ],
+        });
+      } catch (error: any) {
+        // If user denies, throw a clear error
+        if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+          throw new Error('Connection cancelled by user');
+        }
+        // If wallet_requestPermissions fails, fall back to eth_requestAccounts
+        // This maintains backward compatibility
+      }
+    }
+    // If storedWallet exists (reconnecting), skip wallet_requestPermissions
+    // and go directly to eth_requestAccounts since permissions already exist
   }
-  // If storedWallet exists (reconnecting), skip wallet_requestPermissions
-  // and go directly to eth_requestAccounts since permissions already exist
 
   // Then request accounts (this will use the selected account)
   try {
