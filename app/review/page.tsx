@@ -349,12 +349,36 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
   if (createdProfile) {
     return (
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Profile {profile ? 'Updated' : 'Created'}</h2>
+        <h2 className="text-2xl font-semibold mb-4">Profile Created</h2>
         <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-          <p className="text-green-800 dark:text-green-300">
-            Profile {profile ? 'updated' : 'created'} successfully!
+          <p className="text-green-800 dark:text-green-300 font-medium mb-4">
+            Profile created successfully!
           </p>
-          <ViewOnArkivLink entityKey={createdProfile.key} txHash={createdProfile.txHash} />
+          
+          {/* Full Entity Information */}
+          <div className="space-y-2 mb-4 text-sm">
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {createdProfile.key}
+              </code>
+            </div>
+            <div>
+              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
+              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+                {createdProfile.txHash}
+              </code>
+            </div>
+          </div>
+
+          {/* View on Arkiv Link */}
+          <div className="mt-4">
+            <ViewOnArkivLink 
+              entityKey={createdProfile.key} 
+              txHash={createdProfile.txHash}
+              label="View on Arkiv Explorer"
+            />
+          </div>
         </div>
         <button
           onClick={() => {
