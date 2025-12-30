@@ -10,7 +10,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "seed": "tsx scripts/seed.ts",
-    "test:smoke": "tsx scripts/smoke-test.ts"
+    "test:smoke": "tsx scripts/smoke-test.ts",
+    "test:conformance": "tsx scripts/smoke-test.ts"
   },
   "dependencies": {
     "@arkiv-network/sdk": "^0.1.0",
