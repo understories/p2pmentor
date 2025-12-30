@@ -287,13 +287,13 @@ Potential future enhancements to the Review UI:
 
 ## Related Documentation
 
-- [Access Grants: Review Mode](./access-grants.md)
-- [Wallet Architecture](./wallet-architecture.md)
-- [Profile Entity](./profile.md)
-- [Skill Entity](./skill.md)
-- [Availability Entity](./availability.md)
-- [Ask Entity](./ask.md)
-- [Offer Entity](./offer.md)
-- [Top 8 Arkiv Patterns](./top-8-patterns.md)
-- [Arkiv Patterns Catalog](./arkiv-patterns-catalog.md)
+- [Access Grants: Review Mode](./access-grants.md) - Access control pattern for review mode
+- [Wallet Architecture](./wallet-architecture.md) - Two-wallet system (profile wallet vs signing wallet)
+- [Profile Entity](./profile.md) - Profile entity structure and operations
+- [Skill Entity](./skill.md) - Skill entity structure and operations
+- [Availability Entity](./availability.md) - Availability entity structure and operations
+- [Ask Entity](./ask.md) - Ask entity structure and operations
+- [Offer Entity](./offer.md) - Offer entity structure and operations
+- [Top 8 Arkiv Patterns](./top-8-patterns.md) - Essential Arkiv patterns
+- [Arkiv Patterns Catalog](./arkiv-patterns-catalog.md) - Complete catalog of Arkiv patterns
 
