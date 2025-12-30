@@ -180,7 +180,7 @@ Polling helpers to wait for indexer to catch up after writes.
 Creates parallel `*_txhash` entities for reliable querying and observability.
 
 **Functions:**
-- `createTxHashEntity(originalType, txHash, entityKey, privateKey)` - Create companion entity
+- `createTxHashEntity(originalType, txHash, entityKey?, privateKey?)` - Create companion entity (non-blocking, handles errors gracefully)
 - `queryByTxHash(txHash, originalType)` - Query entities by transaction hash
 
 **Why:** Directly addresses observability and reliable querying, which are core Arkiv realities.
