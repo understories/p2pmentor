@@ -719,23 +719,23 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-UPDATE-001 | Stable Entity Key Updates | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
 | PAT-VERSION-001 | Entity Versioning | ✅ verified: `lib/arkiv/profile.ts::getProfileByWallet()` (legacy Pattern A), `lib/arkiv/learnerQuest.ts::updateLearnerQuest()` | ✅ verified |
 | PAT-DELETE-001 | Deletion Patterns | ✅ verified: `lib/arkiv/availability.ts::deleteAvailability()` (marker), `lib/arkiv/learningFollow.ts::unfollowSkill()` (status flag), `lib/arkiv/notifications.ts::archiveNotification()` (status flag) | ✅ verified |
-| PAT-SESSION-001 | Session State Machine | ⚠️ unverified: `lib/arkiv/sessions.ts::listSessions()`, `confirmSession()` | ⚠️ needs verification |
+| PAT-SESSION-001 | Session State Machine | ✅ verified: `lib/arkiv/sessions.ts::listSessions()` (computes status from confirmations, rejects stored status) | ✅ verified |
 | PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
 | PAT-INDEXER-001 | Read-Your-Writes Under Indexer Lag | ✅ verified: `app/api/skills/route.ts`, `app/notifications/page.tsx` | ✅ verified |
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
-| PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
+| PAT-QUERY-001 | Indexer-Friendly Query Shapes | ✅ verified: `lib/arkiv/profile.ts::listUserProfiles()`, `lib/arkiv/sessions.ts::listSessions()`, all `buildQuery().where(eq(...)).limit().fetch()` patterns | ✅ verified |
 | PAT-PAGINATION-001 | Pagination Conventions | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/asks.ts`, `lib/arkiv/offers.ts` | ✅ verified |
 | PAT-REF-001 | Relationship References | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/notificationPreferences.ts`, `lib/arkiv/learnerQuest.ts` | ✅ verified |
 | PAT-UPSERT-001 | Canonical Upsert Helper | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ✅ verified |
 | PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
 | PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
 | PAT-REVOKE-001 | Revocation via Marker Entities | ✅ verified: `lib/arkiv/revocation.ts`, `lib/arkiv/grant-revocation.ts`, `lib/arkiv/reviewModeGrant.ts` | ✅ verified |
-| PAT-ACCESS-001 | Arkiv-Native Access Grants | ⚠️ unverified: `lib/arkiv/access-grants.ts` (if exists) | ⚠️ needs verification |
+| PAT-ACCESS-001 | Arkiv-Native Access Grants | ✅ verified: `lib/arkiv/reviewModeGrant.ts::issueReviewModeGrant()`, `getLatestValidReviewModeGrant()` | ✅ verified |
 | PAT-CONSENT-001 | Privacy Consent State Machine | ⚠️ unverified: `lib/arkiv/consent.ts` (if exists) | ⚠️ needs verification |
-| PAT-WRITE-AUTHZ-001 | Server-Signed Writes | ⚠️ unverified: `lib/arkiv/signer-metadata.ts::addSignerMetadata()` | ⚠️ needs verification |
-| PAT-AUTH-001 | Wallet Authentication Flow | ⚠️ unverified: `lib/auth/metamask.ts` | ⚠️ needs verification |
-| PAT-TIMEOUT-001 | Transaction Timeouts | ⚠️ unverified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()` | ⚠️ needs verification |
-| PAT-ERROR-001 | Error Handling | ⚠️ unverified: `lib/arkiv/transaction-utils.ts` | ⚠️ needs verification |
+| PAT-WRITE-AUTHZ-001 | Server-Signed Writes | ✅ verified: `lib/arkiv/signer-metadata.ts::addSignerMetadata()`, `lib/arkiv/reviewModeGrant.ts::issueReviewModeGrant()` (server signer) | ✅ verified |
+| PAT-AUTH-001 | Wallet Authentication Flow | ✅ verified: `lib/auth/metamask.ts::connectWallet()`, `requestAccounts()`, `switchChain()` | ✅ verified |
+| PAT-TIMEOUT-001 | Transaction Timeouts | ✅ verified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()` (30s timeout, retry logic) | ✅ verified |
+| PAT-ERROR-001 | Error Handling | ✅ verified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()` (error classification, user-friendly messages) | ✅ verified |
 
 ### Implementation → Pattern Mapping
 
