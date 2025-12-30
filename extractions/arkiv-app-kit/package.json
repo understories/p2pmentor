@@ -1,0 +1,28 @@
+{
+  "name": "@understories/arkiv-app-kit",
+  "version": "0.1.0",
+  "description": "Arkiv application primitives - composable building blocks for Arkiv integrations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "arkiv",
+    "blockchain",
+    "decentralized",
+    "primitives"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@arkiv-network/sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
+
