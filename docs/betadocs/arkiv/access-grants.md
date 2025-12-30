@@ -45,7 +45,7 @@ const query = publicClient.buildQuery()
 // This prevents user-issued grants from being recognized
 ```
 
-The app queries for the latest non-expired grant entity with matching `issuer_wallet`. If found, onboarding is skipped and the reviewer can create a profile directly.
+**Note:** In the current implementation, the client trusts the API response and proceeds immediately after grant issuance. The grant entity is still created on Arkiv and can be queried later for verification/audit purposes, but the client does not wait for it to be queryable before proceeding. This avoids Arkiv indexing delays while maintaining the Arkiv-native pattern.
 
 ### Flow
 
@@ -54,9 +54,13 @@ The app queries for the latest non-expired grant entity with matching `issuer_wa
 3. Reviewer enters shared password (client-side SHA256 hash verification)
 4. If password matches, client calls API route to issue grant
 5. Server issues `review_mode_grant` entity (signed by app signer)
-6. App queries Arkiv for grant entity (verifies `issuer_wallet`)
-7. If grant exists and is not expired, redirect to review profile creation
-8. After profile creation, reviewer behaves like any normal user
+6. **Client trusts API response and proceeds immediately** (no waiting for Arkiv indexing)
+7. Wallet stored in `localStorage` (same pattern as regular flow)
+8. Route to `/review` page immediately
+9. Review page uses bypass pattern (similar to onboarding bypass) - allows access without grant querying
+10. After profile creation, reviewer behaves like any normal user
+
+**Note:** The grant entity is still created on Arkiv for auditability and verification. However, the client trusts the API response and proceeds immediately rather than waiting for the grant to be queryable on Arkiv. This avoids indexing delays while maintaining the Arkiv-native pattern of storing access as data.
 
 There is no separate "review account" or test space. Review grants live in the same beta space as user data.
 
@@ -81,9 +85,11 @@ Review mode uses a shared secret to reduce accidental use during beta. This is i
 - The hash is public; hashing is used to avoid shipping a plaintext password in the client bundle, not to provide strong secrecy.
 - If the password check passes, the client requests grant issuance from the app.
 - The app signer issues the `review_mode_grant` entity on Arkiv.
-- Clients must verify `issuer_wallet` matches the configured app signer address before recognizing a grant.
+- **Client trusts API response and proceeds immediately** (no waiting for grant indexing).
+- Review page uses bypass pattern (similar to onboarding bypass) stored in `sessionStorage`.
+- Grant entity can be queried later for verification/audit (clients verify `issuer_wallet` matches server signer address).
 
-This design keeps the capability itself Arkiv-native (expressed as signed Arkiv data) while keeping beta gating simple and operationally low-friction.
+This design keeps the capability itself Arkiv-native (expressed as signed Arkiv data) while keeping beta gating simple and operationally low-friction. The bypass pattern allows immediate access while the grant entity is still being indexed on Arkiv.
 
 ## Alternative Patterns
 
