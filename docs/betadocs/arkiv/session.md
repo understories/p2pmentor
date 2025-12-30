@@ -3,6 +3,13 @@
 ## Entity Type
 `session`
 
+## Patterns Used
+
+- [PAT-SESSION-001: Session State Machine](./session-state-machine.md) - Status computed from supporting entities, not stored attribute
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Queries use indexed attributes (type, mentorWallet, learnerWallet, spaceId)
+- [PAT-REF-001: Relationship References That Survive Updates](./patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
+- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - spaceId attribute for data isolation
+
 ## Field Table
 
 | Field Name | Type | Required | Location | Description |
