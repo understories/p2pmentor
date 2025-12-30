@@ -51,9 +51,10 @@ export default function AuthPage() {
   // /auth should ALWAYS require explicit user action to connect wallet
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Clear wallet address to force explicit connection
+      // Clear wallet address and connection method to force explicit connection
       localStorage.removeItem('wallet_address');
-      console.log('[Auth Page] Cleared wallet_address to prevent auto-login');
+      localStorage.removeItem('wallet_connection_method');
+      console.log('[Auth Page] Cleared wallet_address and connection_method to prevent auto-login');
     }
   }, []);
 
@@ -147,11 +148,17 @@ export default function AuthPage() {
   }, []);
 
   // Clear timeout on unmount to prevent state update warnings
+  // Also reset connection states on unmount to prevent stuck states
   useEffect(() => {
     return () => {
       if (openingTimerRef.current) {
         window.clearTimeout(openingTimerRef.current);
       }
+      // Reset all connection states on unmount
+      setIsConnecting(false);
+      setIsConnectingWalletConnect(false);
+      setIsActivatingReviewMode(false);
+      setIsVerifyingPassword(false);
     };
   }, []);
 
