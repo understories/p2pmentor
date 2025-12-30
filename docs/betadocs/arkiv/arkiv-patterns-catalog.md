@@ -778,42 +778,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `central-signer-phase0.md` → PAT-WRITE-AUTHZ-001
 - `wallet-authentication-flow.md` → PAT-AUTH-001 (flow doc; pattern extraction needed)
 
-⚠️ **Implicit (Not Yet Extracted):**
-- `patterns/space-isolation.md` → PAT-SPACE-001
-  - ☑ stub created
-  - ☑ implemented in code
-  - ☑ verified with code pointers
-  - ☑ reviewed
-- `patterns/wallet-normalization.md` → PAT-IDENTITY-001
-  - ☑ stub created
-  - ☑ implemented in code
-  - ☑ verified with code pointers
-  - ☑ reviewed
-- `patterns/reference-integrity.md` → PAT-REF-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
-- `patterns/revocation-pattern.md` → PAT-REVOKE-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
-- `patterns/canonical-upsert.md` → PAT-UPSERT-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
-- `patterns/indexer-lag-handling.md` → PAT-INDEXER-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
-- Privacy Consent State Machine → PAT-CONSENT-001 (brief doc exists, needs expansion)
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
+**Note:** All patterns listed above are now fully documented. Implementation status is tracked in the "Code Cross-References" section below.
 
 ### Entity Specs (Schema Definitions)
 
