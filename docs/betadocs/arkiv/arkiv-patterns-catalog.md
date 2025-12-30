@@ -445,7 +445,8 @@ Arkiv indexer has specific indexing rules. Queries must use indexed attributes f
 
 ### PAT-PAGINATION-001: Pagination and Cursor Conventions
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)
+**Status:** ✅ Documented  
+**Location:** [`patterns/pagination-conventions.md`](./patterns/pagination-conventions.md)
 
 **What problem it solves:**  
 Large result sets need pagination. Arkiv doesn't support offset, so use cursor-based pagination or client-side pagination.
@@ -455,6 +456,7 @@ Large result sets need pagination. Arkiv doesn't support offset, so use cursor-b
 - Use cursor-based pagination (e.g., `createdAt` timestamp)
 - Or paginate client-side after fetching all results
 - Always use `.limit()` to bound queries
+- Cursor values must be stable and sortable
 
 **Threat model / failure modes:**
 - **Large result sets:** Missing pagination causes performance issues
@@ -464,7 +466,7 @@ Large result sets need pagination. Arkiv doesn't support offset, so use cursor-b
 **Related patterns:**
 - [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md)
 
-**Full details:** See extraction target `patterns/pagination-conventions.md` (not yet created).
+**Full details:** See [`patterns/pagination-conventions.md`](./patterns/pagination-conventions.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -686,7 +688,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
-| PAT-PAGINATION-001 | Pagination Conventions | ⚠️ unverified: `lib/arkiv/profile.ts::listUserProfilesForWallet()` | ⚠️ needs verification |
+| PAT-PAGINATION-001 | Pagination Conventions | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/asks.ts`, `lib/arkiv/offers.ts` | ✅ verified |
 | PAT-SPACE-001 | Space ID as Environment Boundary | ✅ verified: `lib/config.ts::SPACE_ID` | ✅ verified |
 | PAT-IDENTITY-001 | Wallet Normalization | ✅ verified: `lib/arkiv/profile.ts`, `lib/identity/rootIdentity.ts` | ✅ verified |
 | PAT-ACCESS-001 | Arkiv-Native Access Grants | ⚠️ unverified: `lib/arkiv/access-grants.ts` (if exists) | ⚠️ needs verification |
@@ -725,6 +727,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/transaction-timeouts.md` → PAT-TIMEOUT-001
 - `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
 - `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
+- `patterns/pagination-conventions.md` → PAT-PAGINATION-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
@@ -733,11 +736,6 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `wallet-authentication-flow.md` → PAT-AUTH-001 (flow doc; pattern extraction needed)
 
 ⚠️ **Implicit (Not Yet Extracted):**
-- `patterns/pagination-conventions.md` → PAT-PAGINATION-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
 - `patterns/space-isolation.md` → PAT-SPACE-001
   - ☑ stub created
   - ☑ implemented in code
