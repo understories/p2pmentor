@@ -681,7 +681,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-VERSION-001 | Entity Versioning | ⚠️ unverified: `lib/arkiv/profile.ts` (legacy) | ⚠️ needs verification |
 | PAT-DELETE-001 | Deletion Patterns | ⚠️ unverified: `lib/arkiv/availability.ts`, `lib/arkiv/learningFollow.ts` | ⚠️ needs verification |
 | PAT-SESSION-001 | Session State Machine | ⚠️ unverified: `lib/arkiv/sessions.ts::listSessions()`, `confirmSession()` | ⚠️ needs verification |
-| PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ⚠️ unverified: `lib/arkiv/transaction-utils.ts` | ⚠️ needs verification |
+| PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ⚠️ unverified: Most query functions in `lib/arkiv/` | ⚠️ needs verification |
 | PAT-PAGINATION-001 | Pagination Conventions | ⚠️ unverified: `lib/arkiv/profile.ts::listUserProfilesForWallet()` | ⚠️ needs verification |
