@@ -317,24 +317,29 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 
 ### PAT-UPSERT-001: Canonical Upsert Helper (Create-or-Update)
 
-**Status:** ⚠️ Stub (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/canonical-upsert.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/canonical-upsert.md`](./patterns/canonical-upsert.md)
 
 **What problem it solves:**  
 The `arkivUpsertEntity()` helper provides a single canonical path for create-or-update operations, ensuring deterministic key derivation, single writer path, and consistent return values.
 
-**Must document:**
-- Key derivation rules
-- Create vs update logic
-- Return value contract: ⚠️ unverified (expected: `{ entityKey, txHash }`)
-- Wait-for-indexer policy
-- Error handling
+**Invariants:**
+- Single canonical path for all create-or-update operations
+- Deterministic key derivation when `key` is provided
+- Consistent return values: `{ key: string, txHash: string }`
+- Signer metadata is automatically added to attributes
+- Transaction timeout handling is built-in
 
-**Implementation hooks:** ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()`
+**Threat model / failure modes:**
+- **Non-deterministic keys:** Random keys prevent idempotency
+- **Missing key parameter:** Creates new entity instead of updating existing
+- **Race conditions:** Concurrent writes may conflict
 
 **Related patterns:**
 - [PAT-UPDATE-001: Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)
-- [PAT-IDEMPOTENT-001: Idempotent Writes](#pat-idempotent-001-idempotent-writes)
+- [PAT-IDEMPOTENT-001: Idempotent Writes](./patterns/idempotent-writes.md)
+
+**Full details:** See [`patterns/canonical-upsert.md`](./patterns/canonical-upsert.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -728,6 +733,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
 - `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
 - `patterns/pagination-conventions.md` → PAT-PAGINATION-001
+- `patterns/canonical-upsert.md` → PAT-UPSERT-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
