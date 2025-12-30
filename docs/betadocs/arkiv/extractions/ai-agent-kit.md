@@ -55,6 +55,54 @@ arkiv-ai-agent-kit/
 
 ---
 
+## Recommended Invocation Pattern
+
+For maximum leverage, use this single invocation pattern with your AI coding tool:
+
+```
+Read and apply the following Arkiv integration guidelines:
+
+1. Read AGENTS.md (operating manual for Arkiv + repo rules)
+2. Apply these prompts in order:
+   - PROMPTS/00_repo_rules.md (build, secrets, refs/, whitespace)
+   - PROMPTS/10_arkiv_entity_patterns.md (wallet normalization, stable keys, timeouts)
+   - PROMPTS/20_query_shapes.md (type+spaceId+limit, defensive reading)
+   - PROMPTS/30_timeouts_and_retries.md (submitted vs indexed, reconciliation)
+3. Do not touch refs/ (internal-only, never committed)
+4. Run precommit script mentally: ensure build would pass, no secrets, no refs/, clean whitespace
+
+When implementing:
+- Use smallest number of files possible
+- Include smoke test or minimal repro path
+- Follow Arkiv-native patterns (immutable history, indexer lag is normal)
+- Never assume immediate read-your-writes
+```
+
+This pattern ensures the agent follows all Engineering Guidelines and Arkiv best practices automatically.
+
+---
+
+## When NOT to Use Arkiv
+
+Arkiv is not suitable for all use cases. Use this section to prevent agent hallucination:
+
+**Arkiv cannot do:**
+- **OR queries across spaceId** - Arkiv doesn't support OR in queries. Strategy: Query broadly by `type`, then filter client-side by allowed spaceIds.
+- **Instant read-your-writes** - Indexer lag is normal. "Submitted" ≠ "Indexed". Always implement reconciliation.
+- **Mutable state without stable keys** - Use Pattern B (stable entity keys) for mutable state. Avoid "query first, then decide create" for mutable entities.
+- **Large payloads** - Keep payloads reasonable (prefer attributes for queryable data).
+- **Real-time subscriptions** - Arkiv is eventually consistent. Poll for updates if needed.
+
+**When to use centralized DB instead:**
+- Real-time collaborative editing
+- High-frequency writes (thousands per second)
+- Complex relational queries with joins
+- Immediate consistency requirements
+
+If your use case requires these, consider a hybrid approach or a different stack.
+
+---
+
 ## README Content (When Published)
 
 The README will include:
@@ -122,7 +170,7 @@ All changes must pass:
 
 ### Related
 
-- [Arkiv App Primitives](./arkiv-app-primitives.md) - Shared core package used by templates
+- [Arkiv App Kit](./arkiv-app-primitives.md) - Shared core package used by templates
 - [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Full pattern documentation
 - [Top 8 Patterns](../top-8-patterns.md) - Essential patterns demonstrated in templates
 - [Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) - Complete guidelines (this repo includes public-safe version)

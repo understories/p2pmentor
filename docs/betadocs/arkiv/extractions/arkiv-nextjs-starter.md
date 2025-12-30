@@ -59,6 +59,42 @@ arkiv-nextjs-starter/
 
 ---
 
+## End-to-End Mental Model
+
+This template demonstrates the complete flow from user action to indexed state:
+
+```mermaid
+sequenceDiagram
+    participant UI as User Interface
+    participant API as API Route
+    participant Signer as Server Signer
+    participant Arkiv as Arkiv Network
+    participant Indexer as Arkiv Indexer
+    participant Client as Client State
+
+    UI->>API: POST /api/records
+    API->>Signer: Create entity (server-signed)
+    Signer->>Arkiv: Submit transaction
+    Arkiv-->>Signer: Return txHash
+    Signer-->>API: Return {entityKey, txHash, status: "submitted"}
+    API-->>UI: Return {ok: true, txHash, status: "submitted"}
+    UI->>Client: Update optimistic state (pending)
+    
+    Note over Arkiv,Indexer: Transaction confirmed on-chain
+    
+    UI->>Indexer: Poll for entity (reconciliation)
+    Indexer-->>UI: Entity found
+    UI->>Client: Update state (indexed)
+```
+
+**Key points:**
+- **Server signer** handles all writes (Phase 0)
+- **Optimistic UI** shows "submitted" immediately
+- **Reconciliation** polls indexer until entity appears
+- **Indexer lag** is normal - UI represents it as a state, not an error
+
+---
+
 ## Quick Start
 
 1. **Install dependencies:**
@@ -92,9 +128,9 @@ arkiv-nextjs-starter/
 
 ---
 
-## Arkiv App Primitives Integration
+## Arkiv App Kit Integration
 
-This template uses [Arkiv App Primitives](./arkiv-app-primitives.md) via **copy-in** approach (simplest for templates).
+This template uses [Arkiv App Kit](./arkiv-app-primitives.md) via **copy-in** approach (simplest for templates).
 
 The app-kit is located at `../arkiv-app-kit/` relative to this template.
 
@@ -103,7 +139,18 @@ The app-kit is located at `../arkiv-app-kit/` relative to this template.
 - **Git submodule:** Add as a git submodule
 - **Copy-in:** Copy `src/` directory into your project
 
-See [Arkiv App Primitives](./arkiv-app-primitives.md) for distribution strategies.
+See [Arkiv App Kit](./arkiv-app-primitives.md) for distribution strategies.
+
+### Update Policy
+
+This template uses **copy-in** for app-kit by default. To pull improvements:
+
+1. **Check for updates:** Review `../arkiv-app-kit/` for changes
+2. **Copy updated files:** Copy changed files from `arkiv-app-kit/src/` to `src/lib/arkiv/`
+3. **Test:** Run `npm run build` and `npm run test:smoke` to verify compatibility
+4. **Commit:** Document which app-kit changes were incorporated
+
+**Alternative:** Switch to workspace monorepo or git submodule for easier updates (see [Arkiv App Kit](./arkiv-app-primitives.md) for setup).
 
 ---
 
@@ -193,7 +240,7 @@ If you need to query across multiple spaces:
 
 - Arkiv doesn't support OR queries across `spaceId`
 - Strategy: Query broadly by `type` with safe limit, then filter client-side by allowed spaceIds
-- See [Arkiv App Primitives](./arkiv-app-primitives.md) for `queryMultipleSpaces()` helper
+- See [Arkiv App Kit](./arkiv-app-primitives.md) for `queryMultipleSpaces()` helper
 
 ---
 
@@ -202,7 +249,7 @@ If you need to query across multiple spaces:
 - [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Comprehensive pattern documentation
 - [Top 8 Patterns](../top-8-patterns.md) - Essential patterns demonstrated in templates
 - [Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) - Complete engineering standards
-- [Arkiv App Primitives](./arkiv-app-primitives.md) - Shared core package used by this template
+- [Arkiv App Kit](./arkiv-app-primitives.md) - Shared core package used by this template
 - [AI Agent Kit](./ai-agent-kit.md) - LLM context for building Arkiv integrations
 
 ---

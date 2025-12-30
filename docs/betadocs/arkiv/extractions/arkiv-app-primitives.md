@@ -1,8 +1,8 @@
-# Arkiv App Primitives
+# Arkiv App Kit
 
 **Purpose:** Composable building blocks for Arkiv integrations.
 
-**Status:** Available in `extractions/arkiv-app-kit/` (will be published as standalone package)
+**Status:** Available in `extractions/arkiv-app-kit/` (will be published as standalone package `@understories/arkiv-app-kit`)
 
 **Target Audience:** Developers building Arkiv applications who need consistent, pattern-aligned primitives for common operations.
 
@@ -10,7 +10,11 @@
 
 ## What This Package Does
 
-The Arkiv App Primitives package provides the "boring but essential" Arkiv plumbing that every app needs: wallet normalization, query builders, transaction timeouts, space ID management, and more.
+The Arkiv App Kit provides the "boring but essential" Arkiv plumbing that every app needs: wallet normalization, query builders, transaction timeouts, space ID management, and more.
+
+## Primitives
+
+The modules in this package are **Arkiv application primitives** - composable building blocks with restraint, not opinionated abstractions. They enforce Arkiv-native invariants while remaining flexible for different use cases.
 
 **Key Capabilities:**
 
@@ -51,6 +55,59 @@ arkiv-app-kit/
 ├── tsconfig.json
 └── README.md
 ```
+
+---
+
+## Contract Defaults (Executable Constants)
+
+These defaults are pinned to prevent template drift. All templates must use these values unless explicitly overriding for a specific reason.
+
+### Query Limits
+
+- **Default limit:** `100` entities per query
+- **Maximum cap:** `500` entities per query (enforced in `buildSafeQuery()`)
+- **Rationale:** Prevents indexer overload and ensures predictable performance
+
+### Canonical Attribute Keys
+
+The `ATTR_KEYS` constant defines all standard attribute keys:
+
+- `ATTR_KEYS.TYPE` = `'type'` (required on all entities)
+- `ATTR_KEYS.SPACE_ID` = `'spaceId'` (required on all entities)
+- `ATTR_KEYS.WALLET` = `'wallet'` (general wallet field)
+- `ATTR_KEYS.SUBJECT_WALLET` = `'subject_wallet'` (Phase 0: wallet that owns the entity)
+- `ATTR_KEYS.ISSUER_WALLET` = `'issuer_wallet'` (grants: wallet that issued the grant)
+- `ATTR_KEYS.STATUS` = `'status'` (entity status)
+- `ATTR_KEYS.CREATED_AT` = `'created_at'` (ISO timestamp)
+- `ATTR_KEYS.UPDATED_AT` = `'updated_at'` (ISO timestamp)
+- `ATTR_KEYS.TXHASH` = `'txHash'` (transaction hash for companion entities)
+
+Templates must use these constants, not string literals.
+
+### Error Taxonomy
+
+Transaction wrapper errors are classified as:
+
+- **Rate limit errors:** HTTP 429, error code -32016, or message contains "rate limit"
+- **Transaction replacement errors:** Message contains "replacement transaction underpriced", "nonce too low", "nonce too high", or "already known"
+- **Transaction timeout errors:** Message contains "Transaction receipt", "confirmation pending", "Transaction submitted", or "could not be found" + "hash"
+
+All errors return user-friendly messages suitable for UI display.
+
+### Indexer Wait Policy Defaults
+
+- **Initial delay:** `1000ms` (1 second)
+- **Max attempts:** `10` polling attempts
+- **Backoff multiplier:** `1.5x` (exponential backoff)
+- **Total max time:** Approximately 30 seconds (10 attempts with exponential backoff)
+
+These defaults balance indexer load with user experience. Adjust only if you have specific requirements.
+
+### Transaction Retry Policy
+
+- **Rate limit retries:** `3` attempts with exponential backoff (initial delay: 1000ms)
+- **Nonce/replacement retries:** `1` attempt (single retry with delay)
+- **Timeout handling:** No retries (returns user-friendly error immediately)
 
 ---
 
@@ -181,6 +238,10 @@ Creates parallel `*_txhash` entities for reliable querying and observability.
 
 **Functions:**
 - `createTxHashEntity(originalType, txHash, entityKey?, privateKey?)` - Create companion entity (non-blocking, handles errors gracefully)
+  - **Canonical signature:** `(originalType: string, txHash: string, entityKey?: string, privateKey?: \`0x${string}\`)`
+  - **Required:** `originalType`, `txHash`
+  - **Optional:** `entityKey` (for linking), `privateKey` (defaults to `ARKIV_PRIVATE_KEY`)
+  - **Returns:** `Promise<TransactionResult | null>` (null if creation failed gracefully)
 - `queryByTxHash(txHash, originalType)` - Query entities by transaction hash
 
 **Why:** Directly addresses observability and reliable querying, which are core Arkiv realities.
