@@ -240,31 +240,30 @@ Sessions have complex state transitions (pending → scheduled → completed). S
 
 ### PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation
 
-**Status:** ⚠️ Implicit (not yet extracted to dedicated doc)  
-**Extraction target:** `patterns/optimistic-ui-reconciliation.md`
+**Status:** ✅ Documented  
+**Location:** [`patterns/optimistic-ui-reconciliation.md`](./patterns/optimistic-ui-reconciliation.md)
 
 **What problem it solves:**  
 Blockchain writes have latency (seconds to minutes). UI should update optimistically, then reconcile with indexer truth when available.
-
-**Must document:** pending state machine, txHash handling, receipt vs indexer visibility, rollback rules, UI messaging, reconciliation polling policy.
 
 **Invariants:**
 - UI updates immediately on user action (optimistic)
 - Background reconciliation checks indexer for truth
 - UI shows "pending" state until reconciliation confirms
 - Errors are surfaced when reconciliation fails
+- Optimistic updates are reversible (rollback on failure)
 
 **Threat model / failure modes:**
-- **Transaction failures:** Optimistic update may not match reality
-- **Indexer lag:** Reconciliation may take time
-- **Race conditions:** Multiple optimistic updates may conflict
+- **Transaction failures:** Optimistic update may not match reality (must rollback)
+- **Indexer lag:** Reconciliation may take time (polling required)
+- **Race conditions:** Multiple optimistic updates may conflict (use transaction ordering)
 
 **Related patterns:**
 - [PAT-TIMEOUT-001: Transaction Timeouts](./patterns/transaction-timeouts.md)
 - [PAT-ERROR-001: Error Handling](./patterns/error-handling.md)
 - [PAT-INDEXER-001: Read-Your-Writes Under Indexer Lag](#pat-indexer-001-read-your-writes-under-indexer-lag)
 
-**Full details:** See extraction target `patterns/optimistic-ui-reconciliation.md` (not yet created).
+**Full details:** See [`patterns/optimistic-ui-reconciliation.md`](./patterns/optimistic-ui-reconciliation.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
 
 ---
 
@@ -722,6 +721,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/error-handling.md` → PAT-ERROR-001
 - `patterns/query-optimization.md` → PAT-QUERY-001
 - `patterns/transaction-timeouts.md` → PAT-TIMEOUT-001
+- `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
 - `patterns/wallet-normalization.md` → PAT-IDENTITY-001
 - `patterns/space-isolation.md` → PAT-SPACE-001
 - `session-state-machine.md` → PAT-SESSION-001
@@ -730,11 +730,6 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `wallet-authentication-flow.md` → PAT-AUTH-001 (flow doc; pattern extraction needed)
 
 ⚠️ **Implicit (Not Yet Extracted):**
-- `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
-  - ☐ stub created
-  - ☐ implemented in code
-  - ☐ verified with code pointers
-  - ☐ reviewed
 - `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
   - ☐ stub created
   - ☐ implemented in code
