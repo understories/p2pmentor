@@ -6,9 +6,9 @@
  */
 
 import { getServerWalletClient } from './client';
-import { handleTransactionWithTimeout } from '../../../../arkiv-app-kit/src/transactions';
-import { makeAttributes } from '../../../../arkiv-app-kit/src/schema';
-import { createTxHashEntity } from '../../../../arkiv-app-kit/src/txhash-entities';
+import { handleTransactionWithTimeout } from '../../../../../arkiv-app-kit/src/transactions';
+import { makeAttributes } from '../../../../../arkiv-app-kit/src/schema';
+import { createTxHashEntity } from '../../../../../arkiv-app-kit/src/txhash-entities';
 
 /**
  * Create a record entity
