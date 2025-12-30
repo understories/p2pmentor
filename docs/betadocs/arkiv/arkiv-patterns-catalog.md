@@ -626,9 +626,9 @@ Users authenticate via MetaMask wallet connection. The flow handles mobile/deskt
 - Chain switching is best-effort and must not brick login
 - Onboarding redirect based on user level (0 → onboarding, >0 → dashboard)
 
-**Current implementation notes:** ⚠️ unverified
-- Wallet address stored in `localStorage` as `wallet_address` (implementation detail, not invariant)
-- Connection method stored as `wallet_connection_method` (implementation detail, not invariant)
+**Current implementation notes:** ✅ verified
+- Wallet address stored in `localStorage` as `wallet_address` (✅ verified: `lib/auth/metamask.ts`, `app/auth/page.tsx`)
+- Connection method stored as `wallet_connection_method` (✅ verified: `app/auth/page.tsx`)
 - Chain switching happens AFTER connection (not before)
 
 **Threat model / failure modes:**
@@ -650,7 +650,7 @@ Users authenticate via MetaMask wallet connection. The flow handles mobile/deskt
 Arkiv transactions can take time to confirm. Timeout handling ensures UI doesn't hang indefinitely and provides graceful degradation.
 
 **Invariants:**
-- All transactions have timeout (default: ⚠️ unverified - see code/config)
+- All transactions have timeout (✅ verified: SDK handles timeout, wrapper handles receipt timeouts in `lib/arkiv/transaction-utils.ts`)
 - Timeout errors are retryable (with backoff)
 - Receipt waiting is optional (entity may still be created)
 - User feedback shows pending state during timeout
@@ -665,9 +665,9 @@ Arkiv transactions can take time to confirm. Timeout handling ensures UI doesn't
 - **Gas issues:** Transactions may fail due to insufficient gas
 - **Indexer lag:** Receipt may not be available immediately
 
-**Timeout configuration:** ⚠️ unverified (default: 30 seconds - see code/config)
+**Timeout configuration:** ✅ verified (SDK handles transaction submission timeout; wrapper handles receipt timeouts)
 
-**Implementation hooks:** ⚠️ unverified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()`
+**Implementation hooks:** ✅ verified: `lib/arkiv/transaction-utils.ts::handleTransactionWithTimeout()` (handles receipt timeouts, retry logic, error classification)
 
 **Related patterns:**
 - [PAT-ERROR-001: Error Handling](./patterns/error-handling.md)
