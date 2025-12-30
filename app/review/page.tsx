@@ -15,9 +15,9 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProfileByWallet } from '@/lib/arkiv/profile';
+import { getProfileByWallet, checkUsernameExists } from '@/lib/arkiv/profile';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { EntityWriteInfo } from '@/components/EntityWriteInfo';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
@@ -241,6 +241,64 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [createdProfile, setCreatedProfile] = useState<{ key: string; txHash: string } | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
+  const usernameCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Real-time username uniqueness checking (reuse from IdentityStep)
+  useEffect(() => {
+    if (usernameCheckTimeoutRef.current) {
+      clearTimeout(usernameCheckTimeoutRef.current);
+    }
+
+    if (!formData.username.trim()) {
+      setUsernameError(null);
+      return;
+    }
+
+    // Skip check if profile exists (username cannot be changed)
+    if (profile) {
+      setUsernameError(null);
+      return;
+    }
+
+    // Validate username format (alphanumeric, underscore, hyphen, 3-20 chars)
+    const usernameRegex = /^[a-zA-Z0-9_-]{3,20}$/;
+    if (!usernameRegex.test(formData.username.trim())) {
+      setUsernameError('Username must be 3-20 characters, alphanumeric with _ or -');
+      return;
+    }
+
+    // Debounce username check
+    setIsCheckingUsername(true);
+    usernameCheckTimeoutRef.current = setTimeout(async () => {
+      try {
+        const existingProfiles = await checkUsernameExists(formData.username.trim());
+        // Filter out profiles from the same wallet (user can reuse their own username)
+        const otherWalletProfiles = existingProfiles.filter(p => 
+          p.wallet.toLowerCase() !== wallet.toLowerCase()
+        );
+        
+        if (otherWalletProfiles.length > 0) {
+          setUsernameError('Username already taken');
+        } else {
+          setUsernameError(null);
+        }
+      } catch (err) {
+        console.error('Error checking username:', err);
+        // Don't block on check error, let API handle it
+        setUsernameError(null);
+      } finally {
+        setIsCheckingUsername(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => {
+      if (usernameCheckTimeoutRef.current) {
+        clearTimeout(usernameCheckTimeoutRef.current);
+      }
+    };
+  }, [formData.username, wallet, profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -250,6 +308,10 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
     try {
       if (!formData.displayName.trim() || !formData.username.trim() || !formData.bio.trim()) {
         throw new Error('Display name, username, and bio are required');
+      }
+
+      if (usernameError) {
+        throw new Error(usernameError);
       }
 
       const res = await fetch('/api/profile', {
@@ -333,14 +395,35 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
           <label className="block text-sm font-medium mb-2">
             Username <span className="text-red-500">*</span>
           </label>
-          <input
-            type="text"
-            value={formData.username}
-            onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
-            required
-            disabled={!!profile}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 disabled:opacity-50"
-          />
+          <div className="relative">
+            <input
+              type="text"
+              value={formData.username}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
+                setFormData(prev => ({ ...prev, username: value }));
+              }}
+              required
+              disabled={!!profile || isSubmitting}
+              maxLength={20}
+              minLength={3}
+              className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 disabled:opacity-50 ${
+                usernameError
+                  ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                  : formData.username.trim() && !usernameError && !isCheckingUsername
+                  ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                  : 'border-gray-300 dark:border-gray-600'
+              }`}
+            />
+            {isCheckingUsername && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+              </div>
+            )}
+          </div>
+          {usernameError && (
+            <p className="text-xs text-red-500 dark:text-red-400 mt-1">{usernameError}</p>
+          )}
           {profile && (
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Username cannot be changed after creation
