@@ -306,6 +306,7 @@ export default function AuthPage() {
       }
       setError(errorMessage);
       setIsConnecting(false);
+      setIsActivatingReviewMode(false);
     }
   };
 
