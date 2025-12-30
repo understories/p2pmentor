@@ -167,8 +167,27 @@ export default function ReviewOnboardingPage() {
             Arkiv Review Mode
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Test M1 acceptance criteria scenarios. Each step can be completed independently.
+            Barebones step-by-step UI to test M1 acceptance criteria. Each step creates/edits Arkiv entities.
           </p>
+        </div>
+
+        {/* Profile Action Button at Top */}
+        <div className="mb-6">
+          {profile ? (
+            <button
+              onClick={() => setCurrentStep('profile')}
+              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+            >
+              Edit Profile
+            </button>
+          ) : (
+            <button
+              onClick={() => setCurrentStep('profile')}
+              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+            >
+              Create Profile
+            </button>
+          )}
         </div>
 
         {/* Step Navigation */}
