@@ -742,7 +742,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | File | Patterns Used | Status |
 |------|---------------|--------|
 | ⚠️ unverified: `lib/arkiv/entity-utils.ts` | PAT-IMMUTABLE-001, PAT-UPDATE-001, PAT-IDEMPOTENT-001, PAT-UPSERT-001, PAT-WRITE-AUTHZ-001 | ⚠️ needs verification |
-| ⚠️ unverified: `lib/arkiv/profile.ts` | PAT-UPDATE-001, PAT-QUERY-001, PAT-PAGINATION-001 | ⚠️ needs verification |
+| ✅ verified: `lib/arkiv/profile.ts` | PAT-UPDATE-001, PAT-QUERY-001, PAT-PAGINATION-001 | ✅ verified |
 | ⚠️ unverified: `lib/arkiv/sessions.ts` | PAT-SESSION-001, PAT-QUERY-001 | ⚠️ needs verification |
 | ⚠️ unverified: `lib/arkiv/transaction-utils.ts` | PAT-TIMEOUT-001, PAT-ERROR-001, PAT-OPTIMISTIC-001 | ⚠️ needs verification |
 | ⚠️ unverified: `lib/arkiv/signer-metadata.ts` | PAT-WRITE-AUTHZ-001 | ⚠️ needs verification |
