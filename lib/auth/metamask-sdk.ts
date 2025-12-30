@@ -69,7 +69,7 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
 
   try {
     const sdk = getMetaMaskSDK();
-    const provider = sdk.getProvider();
+    let provider = sdk.getProvider();
 
     console.log('[MetaMask SDK] Provider check', {
       hasProvider: !!provider,
@@ -77,9 +77,22 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
       hasWindowEthereum: typeof window !== 'undefined' && !!window.ethereum,
     });
 
+    // If SDK provider is not available but window.ethereum exists, use window.ethereum directly
+    // This handles cases where SDK is initialized but provider is not properly connected
+    if (!provider && typeof window !== 'undefined' && window.ethereum) {
+      console.warn('[MetaMask SDK] SDK provider not available, but window.ethereum exists - SDK may not be needed');
+      throw new Error('MetaMask SDK provider not available, will fallback to window.ethereum');
+    }
+
     if (!provider) {
-      console.error('[MetaMask SDK] Provider not available');
+      console.error('[MetaMask SDK] Provider not available and window.ethereum not found');
       throw new Error('MetaMask provider not available');
+    }
+
+    // Verify provider is actually connected by checking if it has request method
+    if (typeof provider.request !== 'function') {
+      console.error('[MetaMask SDK] Provider exists but request method not available');
+      throw new Error('MetaMask provider request method not available');
     }
 
     // Request accounts - SDK handles deep linking on mobile automatically
@@ -116,6 +129,10 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
     // Re-throw with more context
     if (error?.code === 4001 || error?.message?.includes('User rejected') || error?.message?.includes('user rejected')) {
       throw new Error('Connection cancelled by user');
+    }
+    // If SDK provider issue but window.ethereum exists, throw a specific error that triggers fallback
+    if (error?.message?.includes('SDK provider not available') && typeof window !== 'undefined' && window.ethereum) {
+      throw error; // Re-throw to trigger fallback in connectWallet
     }
     if (error?.message) {
       throw new Error(`MetaMask SDK connection failed: ${error.message}`);

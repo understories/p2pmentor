@@ -15,6 +15,7 @@ import {
 import { mendoza } from "@arkiv-network/sdk/chains";
 import "viem/window";
 import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
+import { isMobileBrowser } from './mobile-detection';
 
 /**
  * Switch to Mendoza chain in MetaMask
@@ -120,9 +121,13 @@ export async function connectWallet(): Promise<`0x${string}`> {
     currentUrl: typeof window !== 'undefined' ? window.location.href : 'N/A',
   });
 
-  // Try SDK first (works on both desktop and mobile)
+  // On desktop with extension, prefer direct window.ethereum to avoid SDK issues
+  // SDK is primarily for mobile browsers without window.ethereum
+  const isDesktopWithExtension = typeof window !== 'undefined' && window.ethereum && !isMobileBrowser();
+
+  // Try SDK first only on mobile or when window.ethereum is not available
   // SDK automatically handles deep linking on mobile
-  if (isSDKAvailable()) {
+  if (isSDKAvailable() && !isDesktopWithExtension) {
     console.log('[MetaMask] Attempting connection via SDK');
     try {
       const address = await connectWithSDK();
@@ -159,7 +164,11 @@ export async function connectWallet(): Promise<`0x${string}`> {
       console.warn('[MetaMask] Falling back to direct window.ethereum connection');
     }
   } else {
-    console.log('[MetaMask] SDK not available, using direct window.ethereum');
+    if (isDesktopWithExtension) {
+      console.log('[MetaMask] Desktop with extension detected, using direct window.ethereum (skipping SDK)');
+    } else {
+      console.log('[MetaMask] SDK not available, using direct window.ethereum');
+    }
   }
 
   // Fallback to direct window.ethereum (desktop extension or MetaMask browser)
