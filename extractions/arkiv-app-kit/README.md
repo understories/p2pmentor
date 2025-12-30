@@ -304,6 +304,36 @@ const result = await handleTransactionWithTimeout(async () => {
 
 ---
 
+## Contract Defaults (Executable Constants)
+
+These defaults are pinned to prevent template drift. All templates must use these values unless explicitly overriding for a specific reason.
+
+### Query Limits
+
+- **Default limit:** `100` entities per query
+- **Maximum cap:** `500` entities per query (enforced in `buildSafeQuery()`)
+- **Rationale:** Prevents indexer overload and ensures predictable performance
+
+**Important:** Limits are **UX/latency knobs, not correctness knobs**. Correctness comes from deterministic keys + reconciliation, not fetching "everything". If you need pagination, use cursor-based pagination (e.g., `created_at` timestamp or entity key as cursor). Do not solve missing records by cranking limits to 500 everywhere - this will cause UI performance issues and doesn't address the root cause (indexer lag or missing reconciliation).
+
+### Indexer Wait Policy Defaults
+
+The default policy is designed for **server/worker contexts** (longer polling, can wait):
+
+- **Initial delay:** `1000ms` (1 second)
+- **Max attempts:** `10` polling attempts
+- **Backoff multiplier:** `1.5x` (exponential backoff)
+- **Total max time:** Approximately 30 seconds (10 attempts with exponential backoff)
+
+**Two distinct policies:**
+
+- **UI Policy (short, humane):** Use fewer attempts (e.g., 3-5) with shorter delays. Give up early and show "Pending indexing" with a retry button. Users should not wait 30 seconds in the UI.
+- **Server/Worker Policy (longer, can poll):** Use the default (10 attempts) or more. Can log metrics, retry in background. Suitable for background jobs, webhooks, or server-side reconciliation.
+
+**Why this matters:** Using the server policy in UI creates slow, unresponsive interfaces. Using the UI policy in server flows creates brittle systems that give up too early. Choose the right policy for the context.
+
+---
+
 ## Testnet-Native Design
 
 This package is **testnet-native** (Mendoza-focused):
