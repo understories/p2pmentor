@@ -524,7 +524,12 @@ export default function AuthPage() {
 
   // Handle grant issuance after wallet connection (password already verified)
   const handleReviewModeActivate = async () => {
+    console.log('[Auth Page] handleReviewModeActivate called', {
+      reviewModeWallet: reviewModeWallet ? `${reviewModeWallet.substring(0, 6)}...${reviewModeWallet.substring(reviewModeWallet.length - 4)}` : null,
+    });
+
     if (!reviewModeWallet) {
+      console.warn('[Auth Page] handleReviewModeActivate: No reviewModeWallet, exiting');
       setIsConnecting(false);
       return;
     }
@@ -533,6 +538,10 @@ export default function AuthPage() {
     setError('');
 
     try {
+      console.log('[Auth Page] Requesting review mode grant issuance', {
+        subjectWallet: `${reviewModeWallet.substring(0, 6)}...${reviewModeWallet.substring(reviewModeWallet.length - 4)}`,
+      });
+
       // Password already verified - request server to issue review mode grant
       // Beta code is already verified at /beta page before user reaches /auth
       const grantRes = await fetch('/api/arkiv-review/grant', {
@@ -543,12 +552,25 @@ export default function AuthPage() {
         }),
       });
 
+      console.log('[Auth Page] Grant API response status:', grantRes.status);
+
       const grantData = await grantRes.json();
+      console.log('[Auth Page] Grant API response data:', {
+        ok: grantData.ok,
+        error: grantData.error,
+        key: grantData.key,
+        txHash: grantData.txHash,
+      });
+
       if (!grantData.ok) {
+        console.error('[Auth Page] Grant issuance failed:', grantData.error);
         setError(grantData.error || 'Failed to issue review mode grant');
         setIsActivatingReviewMode(false);
+        setIsConnecting(false);
         return;
       }
+
+      console.log('[Auth Page] Grant issued successfully, starting verification retry loop');
 
       // Grant issued successfully - wait a moment for Arkiv indexing, then verify
       // Use retry mechanism with exponential backoff
@@ -560,19 +582,35 @@ export default function AuthPage() {
       const initialDelay = 1000; // Start with 1 second
 
       for (let attempt = 0; attempt < maxRetries; attempt++) {
-        await new Promise(resolve => setTimeout(resolve, initialDelay * Math.pow(2, attempt)));
+        const delay = initialDelay * Math.pow(2, attempt);
+        console.log(`[Auth Page] Grant verification attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
 
         grant = await getLatestValidReviewModeGrant(reviewModeWallet);
         if (grant) {
+          console.log('[Auth Page] Grant found on attempt', attempt + 1, {
+            key: grant.key,
+            txHash: grant.txHash,
+          });
           break; // Grant found, exit retry loop
+        } else {
+          console.log(`[Auth Page] Grant not found on attempt ${attempt + 1}, continuing...`);
         }
       }
 
       // Check profile
-      const profile = await getProfileByWallet(reviewModeWallet).catch(() => null);
+      console.log('[Auth Page] Checking for existing profile');
+      const profile = await getProfileByWallet(reviewModeWallet).catch((err) => {
+        console.warn('[Auth Page] Error checking profile (non-critical):', err);
+        return null;
+      });
 
       if (grant) {
         // Success - clear review mode state and route
+        console.log('[Auth Page] Grant verified, routing user', {
+          hasProfile: !!profile,
+          targetRoute: profile ? '/me' : '/review',
+        });
         setIsReviewModeEnabled(false);
         setReviewModePassword('');
         setIsPasswordVerified(false);
@@ -582,26 +620,30 @@ export default function AuthPage() {
 
         // Route to review onboarding if no profile, otherwise to dashboard
         if (profile) {
+          console.log('[Auth Page] Routing to /me (profile exists)');
           router.push('/me');
         } else {
+          console.log('[Auth Page] Routing to /review (no profile)');
           router.push('/review');
         }
       } else {
         // Grant was issued but not yet queryable - route anyway and let /review page handle it
         // The /review page will retry the grant check
-        console.warn('[Auth Page] Grant issued but not yet queryable, routing to /review anyway');
+        console.warn('[Auth Page] Grant issued but not yet queryable after all retries, routing to /review anyway');
         setIsReviewModeEnabled(false);
         setReviewModePassword('');
         setIsPasswordVerified(false);
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
         setIsConnecting(false); // Ensure connecting state is reset
+        console.log('[Auth Page] Routing to /review (grant not yet queryable)');
         router.push('/review');
       }
     } catch (err) {
       console.error('[Auth Page] Review mode grant issuance error', {
         error: err instanceof Error ? err.message : 'Unknown error',
         errorObject: err,
+        stack: err instanceof Error ? err.stack : undefined,
       });
       setError(err instanceof Error ? err.message : 'Failed to issue review mode grant');
       setIsActivatingReviewMode(false);
