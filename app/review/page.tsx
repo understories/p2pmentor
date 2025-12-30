@@ -616,7 +616,7 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
       const currentSkillIds = getUserSkillIds();
       const updatedSkillIds = currentSkillIds.filter(id => id !== skillId);
       const currentSkills = profile.skillsArray || [];
-      const updatedSkills = currentSkills.filter(s => s.toLowerCase() !== skill.name_canonical.toLowerCase());
+      const updatedSkills = currentSkills.filter((s: string) => s.toLowerCase() !== skill.name_canonical.toLowerCase());
 
       const res = await fetch('/api/profile', {
         method: 'POST',
