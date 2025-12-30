@@ -7,8 +7,8 @@
 
 // Import from app-kit (using copy-in approach for this template)
 // In production, you could use workspace monorepo or git submodule
-import { getPublicClient, getWalletClientFromPrivateKey } from '../../../arkiv-app-kit/src/client';
-import { requireEnv } from '../../../arkiv-app-kit/src/env';
+import { getPublicClient, getWalletClientFromPrivateKey } from '../../../../arkiv-app-kit/src/client';
+import { requireEnv } from '../../../../arkiv-app-kit/src/env';
 
 // Re-export for convenience
 export { getPublicClient, getWalletClientFromPrivateKey };
