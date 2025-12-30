@@ -262,10 +262,11 @@ export default function AuthPage() {
         console.log('[Auth Page] Review mode enabled and password verified (MetaMask), activating review mode', {
           address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
         });
-        // Reset connecting state before activating review mode
-        setIsConnecting(false);
+        // Keep isConnecting true to show "Connecting..." state during review mode activation
         // Pass address directly to avoid React state update timing issues
         await handleReviewModeActivate(address);
+        // Reset connecting state after review mode activation completes
+        setIsConnecting(false);
         return; // handleReviewModeActivate will handle routing
       }
 
@@ -596,8 +597,6 @@ export default function AuthPage() {
         return;
       }
 
-      console.log('[Auth Page] Grant issued successfully, starting verification retry loop');
-
       // Grant issued successfully - trust the API response and proceed immediately
       // Store wallet in localStorage (like regular flow does) and route to /review
       // No need to wait for grant indexing - we trust the API response
@@ -822,10 +821,10 @@ export default function AuthPage() {
           >
             <button
               onClick={handleMetaMaskConnect}
-              disabled={isConnecting || (isReviewModeEnabled && !isPasswordVerified)}
+              disabled={isConnecting || isActivatingReviewMode || (isReviewModeEnabled && !isPasswordVerified)}
               className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
             >
-              {isConnecting ? 'Connecting...' : (
+              {(isConnecting || isActivatingReviewMode) ? 'Connecting...' : (
                 <>
                   Connect Wallet (MetaMask) <span className="text-sm opacity-90">← recommended</span>
                 </>
