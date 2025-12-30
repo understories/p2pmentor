@@ -812,14 +812,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 ## Next Steps
 
-1. ~~**Add "Patterns Used" sections** to entity specs:~~ ✅ Complete
-   - ✅ `profile.md` → PAT-UPDATE-001, PAT-QUERY-001, PAT-IDENTITY-001, PAT-SPACE-001
-   - ✅ `session.md` → PAT-SESSION-001, PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
-   - ✅ `ask.md` → PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
-   - ✅ `offer.md` → PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
-   - ✅ `availability.md` → PAT-DELETE-001, PAT-QUERY-001, PAT-SPACE-001
-
-3. **Create public-facing "Top 8 Patterns" page** for beta docs:
+1. **Create public-facing "Top 8 Patterns" page** for beta docs:
    - PAT-IMMUTABLE-001: Designing with Immutable Data
    - PAT-UPDATE-001: Stable Entity Key Updates
    - PAT-SESSION-001: Session State Machine
@@ -828,10 +821,6 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
    - PAT-ERROR-001: Error Handling
    - PAT-TIMEOUT-001: Transaction Timeouts
    - PAT-AUTH-001: Wallet Authentication Flow
-
-4. **Refactor flow docs** to reference patterns:
-   - `profile-creation-flow.md` → reference PAT-UPDATE-001, PAT-ERROR-001
-   - `wallet-authentication-flow.md` → already a pattern (PAT-AUTH-001)
 
 ---
 
