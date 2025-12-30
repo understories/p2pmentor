@@ -717,7 +717,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 |------------|--------------|----------------------|--------|
 | PAT-IMMUTABLE-001 | Designing with Immutable Data | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()`, all `createEntity()`/`updateEntity()` calls | ✅ verified |
 | PAT-UPDATE-001 | Stable Entity Key Updates | ⚠️ unverified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ⚠️ needs verification |
-| PAT-VERSION-001 | Entity Versioning | ⚠️ unverified: `lib/arkiv/profile.ts` (legacy) | ⚠️ needs verification |
+| PAT-VERSION-001 | Entity Versioning | ✅ verified: `lib/arkiv/profile.ts::getProfileByWallet()` (legacy Pattern A), `lib/arkiv/learnerQuest.ts::updateLearnerQuest()` | ✅ verified |
 | PAT-DELETE-001 | Deletion Patterns | ⚠️ unverified: `lib/arkiv/availability.ts`, `lib/arkiv/learningFollow.ts` | ⚠️ needs verification |
 | PAT-SESSION-001 | Session State Machine | ⚠️ unverified: `lib/arkiv/sessions.ts::listSessions()`, `confirmSession()` | ⚠️ needs verification |
 | PAT-OPTIMISTIC-001 | Optimistic UI + Reconciliation | ✅ verified: `app/notifications/page.tsx`, `lib/arkiv/transaction-utils.ts` | ✅ verified |
