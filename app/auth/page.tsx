@@ -517,7 +517,10 @@ export default function AuthPage() {
 
   // Handle grant issuance after wallet connection (password already verified)
   const handleReviewModeActivate = async () => {
-    if (!reviewModeWallet) return;
+    if (!reviewModeWallet) {
+      setIsConnecting(false);
+      return;
+    }
 
     setIsActivatingReviewMode(true);
     setError('');
@@ -568,6 +571,7 @@ export default function AuthPage() {
         setIsPasswordVerified(false);
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
+        setIsConnecting(false); // Ensure connecting state is reset
 
         // Route to review onboarding if no profile, otherwise to dashboard
         if (profile) {
@@ -584,6 +588,7 @@ export default function AuthPage() {
         setIsPasswordVerified(false);
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
+        setIsConnecting(false); // Ensure connecting state is reset
         router.push('/review');
       }
     } catch (err) {
@@ -593,6 +598,7 @@ export default function AuthPage() {
       });
       setError(err instanceof Error ? err.message : 'Failed to issue review mode grant');
       setIsActivatingReviewMode(false);
+      setIsConnecting(false); // Ensure connecting state is reset on error
     }
   };
 
