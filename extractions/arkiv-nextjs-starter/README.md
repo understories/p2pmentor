@@ -68,7 +68,7 @@ arkiv-nextjs-starter/
     └── failure-modes.md        # Common issues and solutions
 ```
 
-## Arkiv App Primitives Integration
+## Arkiv App Kit Integration
 
 This template uses `arkiv-app-kit` via **copy-in** approach (simplest for templates).
 
@@ -80,6 +80,17 @@ The app-kit is located at `../arkiv-app-kit/` relative to this template.
 - **Copy-in:** Copy `src/` directory into your project
 
 See `arkiv-app-kit/README.md` for distribution strategies.
+
+### Update Policy
+
+This template uses **copy-in** for app-kit by default. To pull improvements:
+
+1. **Check for updates:** Review `../arkiv-app-kit/` for changes
+2. **Copy updated files:** Copy changed files from `arkiv-app-kit/src/` to `src/lib/arkiv/`
+3. **Test:** Run `npm run build` and `npm run test:smoke` to verify compatibility
+4. **Commit:** Document which app-kit changes were incorporated
+
+**Alternative:** Switch to workspace monorepo or git submodule for easier updates (see `arkiv-app-kit/README.md` for setup).
 
 ## Measurable Proof
 
@@ -162,7 +173,7 @@ If you need to query across multiple spaces:
 - [Arkiv Patterns Catalog](../../docs/betadocs/arkiv/arkiv-patterns-catalog.md) - Comprehensive pattern documentation
 - [Top 8 Patterns](../../docs/betadocs/arkiv/top-8-patterns.md) - Essential patterns
 - [Engineering Guidelines](../../docs/ENGINEERING_GUIDELINES.md) - Complete engineering standards
-- [Arkiv App Primitives](../arkiv-app-kit/README.md) - Shared core package
+- [Arkiv App Kit](../arkiv-app-kit/README.md) - Shared core package
 - [AI Agent Kit](../arkiv-ai-agent-kit/README.md) - LLM context for building Arkiv integrations
 
 ---
