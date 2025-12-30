@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       const { getPrivateKey } = await import('@/lib/config');
       
       try {
+        console.log('[arkiv-review/grant] Creating beta_access entity with server signer...');
         const { key, txHash } = await createBetaAccess({
           wallet: normalizedWallet,
           code: 'REVIEW_MODE', // Special code for review mode access
@@ -71,9 +72,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Issue grant using server signer
+    console.log('[arkiv-review/grant] Issuing review_mode_grant entity with server signer...');
     const { key, txHash, expiresAt } = await issueReviewModeGrant({
       subjectWallet: normalizedWallet,
     });
+    console.log('[arkiv-review/grant] Review mode grant issued successfully', { key, txHash });
 
     return NextResponse.json({
       ok: true,

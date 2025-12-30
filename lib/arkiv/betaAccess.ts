@@ -41,7 +41,31 @@ export async function createBetaAccess({
   privateKey: `0x${string}`;
   spaceId?: string;
 }): Promise<{ key: string; txHash: string }> {
+  // CRITICAL: Verify we're using server signer, not user wallet
+  const { privateKeyToAccount } = await import('@arkiv-network/sdk/accounts');
+  const serverSignerAccount = privateKeyToAccount(privateKey);
+  const serverSignerAddress = serverSignerAccount.address.toLowerCase();
+  
   const walletClient = getWalletClientFromPrivateKey(privateKey);
+  
+  // Verify wallet client account matches server signer
+  const walletClientAccount = walletClient.account;
+  if (!walletClientAccount) {
+    throw new Error('[createBetaAccess] Wallet client missing account - cannot sign transaction');
+  }
+  const walletClientAddress = walletClientAccount.address.toLowerCase();
+  
+  if (walletClientAddress !== serverSignerAddress) {
+    throw new Error(`[createBetaAccess] Wallet client account mismatch: expected ${serverSignerAddress}, got ${walletClientAddress}`);
+  }
+  
+  console.log('[createBetaAccess] Using server signer wallet:', {
+    serverSignerAddress: `${serverSignerAddress.substring(0, 6)}...${serverSignerAddress.substring(serverSignerAddress.length - 4)}`,
+    walletClientAddress: `${walletClientAddress.substring(0, 6)}...${walletClientAddress.substring(walletClientAddress.length - 4)}`,
+    wallet: `${wallet.toLowerCase().substring(0, 6)}...${wallet.toLowerCase().substring(wallet.length - 4)}`,
+    note: 'wallet is the grant recipient, serverSignerAddress signs the transaction',
+  });
+  
   const enc = new TextEncoder();
   const grantedAt = new Date().toISOString();
   const normalizedCode = code.toLowerCase().trim();

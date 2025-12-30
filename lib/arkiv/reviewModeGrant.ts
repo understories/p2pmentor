@@ -12,6 +12,7 @@ import { eq } from "@arkiv-network/sdk/query";
 import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
 import { SPACE_ID, getPrivateKey, CURRENT_WALLET } from "@/lib/config";
 import { handleTransactionWithTimeout } from "./transaction-utils";
+import { isEntityRevoked } from "./revocation";
 
 export type ReviewModeGrant = {
   key: string;
@@ -72,6 +73,24 @@ export async function issueReviewModeGrant({
   });
   
   const walletClient = getWalletClientFromPrivateKey(privateKey);
+  
+  // CRITICAL: Verify wallet client is using server signer account
+  // Log the account address to ensure it matches server signer
+  const walletClientAccount = walletClient.account;
+  if (!walletClientAccount) {
+    throw new Error('Wallet client missing account - cannot sign transaction');
+  }
+  const walletClientAddress = walletClientAccount.address.toLowerCase();
+  
+  if (walletClientAddress !== serverSignerAddress) {
+    throw new Error(`Wallet client account mismatch: expected ${serverSignerAddress}, got ${walletClientAddress}`);
+  }
+  
+  console.log('[issueReviewModeGrant] Wallet client verified:', {
+    serverSignerAddress: `${serverSignerAddress.substring(0, 6)}...${serverSignerAddress.substring(serverSignerAddress.length - 4)}`,
+    walletClientAddress: `${walletClientAddress.substring(0, 6)}...${walletClientAddress.substring(walletClientAddress.length - 4)}`,
+    match: walletClientAddress === serverSignerAddress,
+  });
   
   const enc = new TextEncoder();
   const issuedAt = new Date().toISOString(); // ISO-8601 UTC
