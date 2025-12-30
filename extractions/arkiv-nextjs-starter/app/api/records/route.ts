@@ -85,3 +85,33 @@ export async function POST(request: NextRequest) {
   }
 }
 
+/**
+ * GET handler for listing records
+ * 
+ * Queries all records using app-kit query helpers.
+ */
+export async function GET() {
+  try {
+    const { listRecords } = await import('@/src/lib/arkiv/queries');
+    const records = await listRecords('record', { withPayload: true });
+    
+    return NextResponse.json({
+      ok: true,
+      records,
+    });
+  } catch (error: any) {
+    console.error('[records/route] Error listing records:', {
+      message: error?.message,
+      error,
+    });
+    
+    return NextResponse.json(
+      {
+        ok: false,
+        error: error?.message || 'Failed to list records',
+        records: [], // Return empty array on failure (graceful degradation)
+      },
+      { status: 500 }
+    );
+  }
+}
