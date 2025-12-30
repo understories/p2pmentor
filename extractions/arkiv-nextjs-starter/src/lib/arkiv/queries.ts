@@ -5,7 +5,7 @@
  * Follows PAT-QUERY-001 (Indexer-Friendly Query Shapes).
  */
 
-import { buildSafeQuery, executeQuery, validateQueryResult } from '../../../../../arkiv-app-kit/src/queries';
+import { buildSafeQuery, executeQuery, validateQueryResult } from '../../../../arkiv-app-kit/src/queries';
 
 /**
  * Query all records of a type
@@ -32,7 +32,7 @@ export async function listRecordsByWallet(
   wallet: string,
   options?: { limit?: number; withPayload?: boolean }
 ) {
-  const { buildWalletQuery } = await import('../../../../../arkiv-app-kit/src/queries');
+  const { buildWalletQuery } = await import('../../../../arkiv-app-kit/src/queries');
   const query = buildWalletQuery(type, wallet, {
     limit: options?.limit || 50,
     withPayload: options?.withPayload !== false,
