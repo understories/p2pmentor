@@ -47,6 +47,16 @@ export default function AuthPage() {
   const isWalletConnectEnabled = typeof window !== 'undefined' &&
     process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
 
+  // CRITICAL: Clear wallet_address on /auth mount to prevent auto-login
+  // /auth should ALWAYS require explicit user action to connect wallet
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Clear wallet address to force explicit connection
+      localStorage.removeItem('wallet_address');
+      console.log('[Auth Page] Cleared wallet_address to prevent auto-login');
+    }
+  }, []);
+
   // Check if user has already passed invite gate
   // IMPORTANT: Normalize encoded pathname FIRST before any redirect logic
   useEffect(() => {
