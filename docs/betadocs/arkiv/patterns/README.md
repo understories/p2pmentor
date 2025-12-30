@@ -2,7 +2,18 @@
 
 Development patterns and best practices for building on Arkiv.
 
-## Patterns
+## 📚 Patterns Catalog
+
+**Start here:** [Arkiv Patterns Catalog](/docs/arkiv/arkiv-patterns-catalog) - Comprehensive index of all patterns with code cross-references.
+
+The catalog includes:
+- Pattern IDs and standardized structure
+- Invariants, threat models, and failure modes
+- Canonical algorithms and implementation hooks
+- Code cross-references mapping patterns to implementation
+- Document classification (Pattern/Entity Spec/System/Flow/Reference)
+
+## Individual Pattern Docs
 
 - [Error Handling](/docs/arkiv/patterns/error-handling) - Robust error handling for Arkiv integration
 - [Entity Versioning](/docs/arkiv/patterns/entity-versioning) - Pattern A: Creating new entities for versioning scenarios
