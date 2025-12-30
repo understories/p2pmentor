@@ -77,6 +77,8 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'environments': 8,
     'privacy-consent': 9,
     'implementation-faq': 10,
+    // Extractions section
+    'extractions': 11,
     // Entity schemas (alphabetical, grouped under entity-schemas folder)
     'ask': 1,
     'availability': 2,
@@ -85,6 +87,13 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'profile': 5,
     'session': 6,
     'skill': 7,
+  },
+  // Extractions section (subdirectory of arkiv)
+  'arkiv/extractions': {
+    'README': 1,
+    'ai-agent-kit': 2,
+    'arkiv-app-primitives': 3,
+    'arkiv-nextjs-starter': 4,
   },
   // Modules section
   'modules': {
