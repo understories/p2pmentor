@@ -245,8 +245,13 @@ export default function AuthPage() {
 
       // If review mode is enabled and password verified, issue grant and route to review onboarding
       if (isReviewModeEnabled && isPasswordVerified) {
-        setReviewModeWallet(address);
-        await handleReviewModeActivate();
+        console.log('[Auth Page] Review mode enabled and password verified (MetaMask), activating review mode', {
+          address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+        });
+        // Reset connecting state before activating review mode
+        setIsConnecting(false);
+        // Pass address directly to avoid React state update timing issues
+        await handleReviewModeActivate(address);
         return; // handleReviewModeActivate will handle routing
       }
 
