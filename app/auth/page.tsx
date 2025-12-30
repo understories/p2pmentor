@@ -395,10 +395,10 @@ export default function AuthPage() {
         console.log('[Auth Page] Review mode enabled and password verified (WalletConnect), activating review mode', {
           address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
         });
-        setReviewModeWallet(address);
         // Reset connecting state before activating review mode
         setIsConnectingWalletConnect(false);
-        await handleReviewModeActivate();
+        // Pass address directly to avoid React state update timing issues
+        await handleReviewModeActivate(address);
         return; // handleReviewModeActivate will handle routing
       }
 
@@ -528,14 +528,16 @@ export default function AuthPage() {
   };
 
   // Handle grant issuance after wallet connection (password already verified)
-  const handleReviewModeActivate = async () => {
+  // Accept address directly to avoid React state update timing issues
+  const handleReviewModeActivate = async (address: string) => {
     console.log('[Auth Page] handleReviewModeActivate called', {
-      reviewModeWallet: reviewModeWallet ? `${reviewModeWallet.substring(0, 6)}...${reviewModeWallet.substring(reviewModeWallet.length - 4)}` : null,
+      address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
     });
 
-    if (!reviewModeWallet) {
-      console.warn('[Auth Page] handleReviewModeActivate: No reviewModeWallet, exiting');
+    if (!address) {
+      console.warn('[Auth Page] handleReviewModeActivate: No address provided, exiting');
       setIsConnecting(false);
+      setIsConnectingWalletConnect(false);
       return;
     }
 
@@ -544,7 +546,7 @@ export default function AuthPage() {
 
     try {
       console.log('[Auth Page] Requesting review mode grant issuance', {
-        subjectWallet: `${reviewModeWallet.substring(0, 6)}...${reviewModeWallet.substring(reviewModeWallet.length - 4)}`,
+        subjectWallet: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
       });
 
       // Password already verified - request server to issue review mode grant
@@ -553,7 +555,7 @@ export default function AuthPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subjectWallet: reviewModeWallet,
+          subjectWallet: address,
         }),
       });
 
@@ -591,7 +593,7 @@ export default function AuthPage() {
         console.log(`[Auth Page] Grant verification attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms`);
         await new Promise(resolve => setTimeout(resolve, delay));
 
-        grant = await getLatestValidReviewModeGrant(reviewModeWallet);
+        grant = await getLatestValidReviewModeGrant(address);
         if (grant) {
           console.log('[Auth Page] Grant found on attempt', attempt + 1, {
             key: grant.key,
@@ -603,34 +605,22 @@ export default function AuthPage() {
         }
       }
 
-      // Check profile
-      console.log('[Auth Page] Checking for existing profile');
-      const profile = await getProfileByWallet(reviewModeWallet).catch((err) => {
-        console.warn('[Auth Page] Error checking profile (non-critical):', err);
-        return null;
-      });
-
+      // Always route to /review page (regardless of profile existence)
+      // The /review page will show "Create Profile" or "Edit Profile" based on profile
       if (grant) {
         // Success - clear review mode state and route
-        console.log('[Auth Page] Grant verified, routing user', {
-          hasProfile: !!profile,
-          targetRoute: profile ? '/me' : '/review',
-        });
+        console.log('[Auth Page] Grant verified, routing to /review');
         setIsReviewModeEnabled(false);
         setReviewModePassword('');
         setIsPasswordVerified(false);
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
         setIsConnecting(false); // Ensure connecting state is reset
+        setIsConnectingWalletConnect(false);
 
-        // Route to review onboarding if no profile, otherwise to dashboard
-        if (profile) {
-          console.log('[Auth Page] Routing to /me (profile exists)');
-          router.push('/me');
-        } else {
-          console.log('[Auth Page] Routing to /review (no profile)');
-          router.push('/review');
-        }
+        // Always route to /review (review mode always goes to review page)
+        console.log('[Auth Page] Routing to /review');
+        router.push('/review');
       } else {
         // Grant was issued but not yet queryable - route anyway and let /review page handle it
         // The /review page will retry the grant check
@@ -641,6 +631,7 @@ export default function AuthPage() {
         setReviewModeWallet(null);
         setIsActivatingReviewMode(false);
         setIsConnecting(false); // Ensure connecting state is reset
+        setIsConnectingWalletConnect(false);
         console.log('[Auth Page] Routing to /review (grant not yet queryable)');
         router.push('/review');
       }
