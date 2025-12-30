@@ -40,7 +40,7 @@ Complete starter template for building Arkiv applications with Next.js. Demonstr
 - Optimistic UI with indexer lag handling
 - Complete error handling (timeouts, rate limits, network errors)
 - Testnet-native (Mendoza-focused with local node support for CI)
-- Uses Arkiv App Primitives for all Arkiv operations
+- Uses Arkiv App Kit for all Arkiv operations
 
 ---
 
