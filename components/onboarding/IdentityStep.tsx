@@ -173,6 +173,32 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
         >
           Your identity is the seed from which everything grows.
         </p>
+        <p 
+          className="text-gray-300 dark:text-gray-400 text-sm mt-3 drop-shadow-md max-w-2xl mx-auto"
+          style={{
+            textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+          }}
+        >
+          All data you enter here is stored on the Arkiv network. This means it is visible and verifiable on their{' '}
+          <a 
+            href="https://arkiv.network" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-green-400 hover:text-green-300 underline"
+          >
+            Arkiv explorer
+          </a>
+          {' '}— and until we implement encrypted data, your data is NOT private.{' '}
+          <a 
+            href="https://arkiv.network" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-green-400 hover:text-green-300 underline"
+          >
+            Learn more about Arkiv here
+          </a>
+          .
+        </p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
