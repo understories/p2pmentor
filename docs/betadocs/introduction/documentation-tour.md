@@ -21,7 +21,7 @@ This documentation serves three audiences. Choose your entry point:
 - [Modules](/docs/architecture/modules) - Core system modules
 - [Integrations](/docs/architecture/integrations) - External service integrations
 - [Arkiv Concepts](/docs/arkiv/overview/overview) - Arkiv-specific implementation
-- [Patterns](/docs/arkiv/patterns/README) - Development patterns and best practices
+- [Patterns](/docs/arkiv/patterns/pattern-catalog) - Development patterns and best practices
 
 ## If you want to audit
 

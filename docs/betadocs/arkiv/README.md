@@ -7,12 +7,12 @@ Navigation guide for Arkiv implementation in p2pmentor.
 ## If you are new, start here
 
 1. **[Overview](/docs/arkiv/overview/overview)** - What is Arkiv and how does it work conceptually?
-2. **[Patterns Catalog](/docs/arkiv/patterns/README)** - Essential patterns every engineer should know
+2. **[Patterns Catalog](/docs/arkiv/patterns/pattern-catalog)** - Essential patterns every engineer should know
 3. **[Entity Overview](/docs/arkiv/overview/entity-overview)** - What entities exist in p2pmentor?
 
 ## If you are building features
 
-1. **[Patterns Catalog](/docs/arkiv/patterns/README)** - Complete pattern reference (single source of truth)
+1. **[Patterns Catalog](/docs/arkiv/patterns/pattern-catalog)** - Complete pattern reference (single source of truth)
 2. **[Entities](/docs/arkiv/entities/README)** - Entity schemas and specifications
 3. **[Toolkits](/docs/arkiv/toolkits/README)** - Starter templates and examples (non-authoritative)
 
@@ -23,7 +23,7 @@ Navigation guide for Arkiv implementation in p2pmentor.
 
 ## If you are auditing or reviewing
 
-1. **[Patterns Catalog](/docs/arkiv/patterns/README)** - Invariants, failure modes, and canonical rules
+1. **[Patterns Catalog](/docs/arkiv/patterns/pattern-catalog)** - Invariants, failure modes, and canonical rules
 2. **[Operations](/docs/arkiv/operations/README)** - Operational procedures and stability notes
 3. **[Access Grants](/docs/arkiv/operations/access-grants)** - Access control implementation
 

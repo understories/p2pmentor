@@ -317,10 +317,10 @@ export default function ProfilesPage() {
                             <span>Canonical profile (single version)</span>
                           </div>
                           {/* Educational Tooltip - only show when builder mode is OFF */}
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-md">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-2xl w-96">
                             <div className="font-semibold mb-2">Canonical profile</div>
                             <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
-                              This profile uses a stable entity key. Updates modify the same entity rather than creating new versions, ensuring consistent references while maintaining full transaction history on-chain.
+                              Blockchains are immutable at the transaction level, but application data is mutable at the state level. This profile uses a stable entity key, so edits update the same entity rather than creating new versions. All transaction history is preserved on-chain, ensuring a complete audit trail while maintaining consistent identity.
                             </p>
                             <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                           </div>

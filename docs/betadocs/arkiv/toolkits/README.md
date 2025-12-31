@@ -6,7 +6,7 @@
 
 This directory contains documentation for extracted templates and shared packages that will be published as standalone repositories for the broader Arkiv builder community.
 
-**Non-authoritative:** Nothing here defines rules. These are optional starting points that assume specific patterns. Always verify against the [Patterns Catalog](../patterns/README.md).
+**Non-authoritative:** Nothing here defines rules. These are optional starting points that assume specific patterns. Always verify against the [Patterns Catalog](../patterns/pattern-catalog.md).
 
 ## Contents
 

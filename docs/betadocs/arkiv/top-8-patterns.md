@@ -19,8 +19,6 @@ Arkiv transactions are immutable, but application data can be mutable at the sta
 
 **When to use:** Always. This is the foundational pattern for all Arkiv development.
 
-**See pattern [PAT-IMMUTABLE-001](/docs/arkiv/patterns/designing-with-immutable-data.md) for the canonical rule.**
-
 ---
 
 ## 2. PAT-UPDATE-001: Stable Entity Key Updates
@@ -38,15 +36,13 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 
 **When to use:** For frequently updated entities like profiles, preferences, notifications, or any entity that needs stable identity.
 
-**See pattern [PAT-UPDATE-001](/docs/arkiv/patterns/stable-entity-key-updates.md) for the canonical rule.**
-
-**Alternative:** [PAT-VERSION-001: Entity Versioning](/docs/arkiv/patterns/entity-versioning.md) for when version history is a feature.
+**Alternative:** [PAT-VERSION-001: Entity Versioning](./patterns/entity-versioning.md) for when version history is a feature.
 
 ---
 
 ## 3. PAT-SESSION-001: Session State Machine
 
-**Location:** [`flows/session-state-machine.md`](/docs/arkiv/flows/session-state-machine.md)
+**Location:** [`session-state-machine.md`](./session-state-machine.md)
 
 **What problem it solves:**  
 Sessions have complex state transitions (pending → scheduled → completed). Status is computed from supporting entities, not stored directly, ensuring consistency.
@@ -58,8 +54,6 @@ Sessions have complex state transitions (pending → scheduled → completed). S
 - Requester is auto-confirmed on creation
 
 **When to use:** For any entity with complex state transitions that depend on multiple supporting entities or multi-party interactions (sessions are a canonical example).
-
-**See pattern [PAT-SESSION-001](../flows/session-state-machine.md) for the canonical rule.**
 
 ---
 
@@ -78,8 +72,6 @@ Access control is modeled as Arkiv entities, not server-side permissions. Capabi
 
 **When to use:** For any access control, capability, or permission system where you want portable, verifiable grants.
 
-**See pattern [PAT-ACCESS-001](../operations/access-grants.md) for the canonical rule.**
-
 ---
 
 ## 5. PAT-QUERY-001: Indexer-Friendly Query Shapes
@@ -96,8 +88,6 @@ Arkiv queries must be optimized for indexer performance. This pattern ensures qu
 - Offset-based pagination is not supported by our current query strategy
 
 **When to use:** For all queries. This is a fundamental requirement for efficient Arkiv queries.
-
-**See pattern [PAT-QUERY-001](../patterns/query-optimization.md) for the canonical rule.**
 
 ---
 
@@ -116,8 +106,6 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 
 **When to use:** Always. All Arkiv operations should have proper error handling.
 
-**See pattern [PAT-ERROR-001](../patterns/error-handling.md) for the canonical rule.**
-
 ---
 
 ## 7. PAT-TIMEOUT-001: Transaction Timeouts
@@ -134,8 +122,6 @@ Arkiv transactions can take time to confirm. Timeout handling ensures UI doesn't
 - User feedback shows pending state during timeout
 
 **When to use:** For all transaction operations. Essential for good UX on blockchain applications.
-
-**See pattern [PAT-TIMEOUT-001](../patterns/transaction-timeouts.md) for the canonical rule.**
 
 ---
 
@@ -156,18 +142,16 @@ Users authenticate via MetaMask wallet connection. The flow handles mobile/deskt
 
 **When to use:** For any application that requires wallet-based authentication.
 
-**See pattern [PAT-AUTH-001](../operations/wallet-authentication-flow.md) for the canonical rule.**
-
 ---
 
 ## Full Pattern Catalog
 
-For the complete list of all patterns, see the [Arkiv Patterns Catalog](../patterns/pattern-catalog.md).
+For the complete list of all patterns, see the [Arkiv Patterns Catalog](./arkiv-patterns-catalog.md).
 
 ## Related Documentation
 
 - [Arkiv Overview](./overview.md) - Introduction to Arkiv
 - [Entity Overview](./entity-overview.md) - Understanding Arkiv entities
-- [Implementation FAQ](../operations/implementation-faq.md) - Common questions and answers
-- [Server-Signed Writes (Phase 0)](../operations/central-signer-phase0.md) - Write authorization pattern (separate from authentication)
+- [Implementation FAQ](./implementation-faq.md) - Common questions and answers
+- [Server-Signed Writes (Phase 0)](./central-signer-phase0.md) - Write authorization pattern (separate from authentication)
 

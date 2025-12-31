@@ -45,7 +45,7 @@ Operational docs should link to:
 
 ## See Also
 
-- **[Patterns](../patterns/README.md)** - Single source of truth for rules and invariants
+- **[Patterns](../patterns/pattern-catalog.md)** - Single source of truth for rules and invariants
 - **[Entities](../entities/README.md)** - Entity schemas and specifications
 - **[Overview](../overview/overview.md)** - Conceptual introduction to Arkiv
 

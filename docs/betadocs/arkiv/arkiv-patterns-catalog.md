@@ -1,6 +1,6 @@
 # Arkiv Patterns Catalog (Moved)
 
-**This file has been moved.** The canonical location is [`arkiv/patterns/README.md`](/docs/arkiv/patterns/README).
+**This file has been moved.** The canonical location is [`arkiv/patterns/pattern-catalog.md`](/docs/arkiv/patterns/pattern-catalog).
 
 The patterns catalog is now integrated into the patterns README with full authority statement and "How to Use This Section" guidance.
 
@@ -17,7 +17,7 @@ The patterns catalog is now integrated into the patterns README with full author
 
 ## Full Catalog
 
-See [`patterns/README.md`](/docs/arkiv/patterns/README) for the complete patterns catalog with:
+See [`patterns/pattern-catalog.md`](/docs/arkiv/patterns/pattern-catalog) for the complete patterns catalog with:
 - Pattern IDs and standardized structure
 - Invariants, threat models, and failure modes
 - Canonical algorithms and implementation hooks
@@ -25,4 +25,4 @@ See [`patterns/README.md`](/docs/arkiv/patterns/README) for the complete pattern
 
 ---
 
-**Note:** This redirect stub will be removed after beta docs freeze. All references should be updated to point to `patterns/README.md`.
+**Note:** This redirect stub will be removed after beta docs freeze. All references should be updated to point to `patterns/pattern-catalog.md`.

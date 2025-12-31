@@ -50,6 +50,7 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'engineering-guidelines': 5,
     'a-platform-that-teaches': 6,
     'serverless-and-trustless': 7,
+    'license': 8,
   },
   // History & Future section
   'history-future': {
