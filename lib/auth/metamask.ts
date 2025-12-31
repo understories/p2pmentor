@@ -191,26 +191,14 @@ export async function connectWallet(): Promise<`0x${string}`> {
   // This prevents auto-login and ensures user always selects account
   const isOnAuthPage = typeof window !== 'undefined' && window.location.pathname === '/auth';
 
-  // Always revoke permissions and request new ones when on /auth page
-  // This ensures account selection dialog always appears
+  // On /auth page, request permissions explicitly to show account selection dialog
+  // NOTE: We skip wallet_revokePermissions to avoid popup conflicts.
+  // wallet_requestPermissions should show account selection dialog even if permissions exist.
   if (isOnAuthPage) {
+    console.log('[MetaMask] On /auth page, requesting permissions to show account selection');
     try {
-      // Revoke existing permissions to force account selection
-      await window.ethereum.request({
-        method: "wallet_revokePermissions",
-        params: [
-          {
-            eth_accounts: {},
-          },
-        ],
-      });
-    } catch (error) {
-      // If wallet_revokePermissions is not supported or fails, continue anyway
-      // Some wallets may not support this method
-    }
-
-    // Request permissions explicitly - this will show account selection dialog
-    try {
+      // Request permissions explicitly - this will show account selection dialog
+      // MetaMask should show the dialog even if permissions already exist when on /auth page
       await window.ethereum.request({
         method: "wallet_requestPermissions",
         params: [
@@ -219,7 +207,13 @@ export async function connectWallet(): Promise<`0x${string}`> {
           },
         ],
       });
+      console.log('[MetaMask] wallet_requestPermissions succeeded');
     } catch (error: any) {
+      console.log('[MetaMask] wallet_requestPermissions result', {
+        error: error?.message || 'Unknown error',
+        code: error?.code,
+        willFallback: true,
+      });
       // If user denies, throw a clear error
       if (error?.code === 4001 || error?.message?.includes('User rejected')) {
         throw new Error('Connection cancelled by user');
@@ -235,23 +229,10 @@ export async function connectWallet(): Promise<`0x${string}`> {
       : null;
 
     if (!storedWallet) {
-      // Fresh login - revoke existing permissions to force account selection
-      try {
-        await window.ethereum.request({
-          method: "wallet_revokePermissions",
-          params: [
-            {
-              eth_accounts: {},
-            },
-          ],
-        });
-      } catch (error) {
-        // If wallet_revokePermissions is not supported or fails, continue anyway
-        // Some wallets may not support this method
-      }
-
-      // Request permissions explicitly - this will show account selection dialog
-      // after permissions were revoked, or if this is the first connection
+      // Fresh login - request permissions explicitly to show account selection dialog
+      // NOTE: We skip wallet_revokePermissions to avoid popup conflicts.
+      // wallet_requestPermissions should handle account selection.
+      console.log('[MetaMask] Fresh login (no stored wallet), requesting permissions');
       try {
         await window.ethereum.request({
           method: "wallet_requestPermissions",
@@ -261,7 +242,13 @@ export async function connectWallet(): Promise<`0x${string}`> {
             },
           ],
         });
+        console.log('[MetaMask] wallet_requestPermissions succeeded');
       } catch (error: any) {
+        console.log('[MetaMask] wallet_requestPermissions result', {
+          error: error?.message || 'Unknown error',
+          code: error?.code,
+          willFallback: true,
+        });
         // If user denies, throw a clear error
         if (error?.code === 4001 || error?.message?.includes('User rejected')) {
           throw new Error('Connection cancelled by user');
@@ -274,9 +261,9 @@ export async function connectWallet(): Promise<`0x${string}`> {
     // and go directly to eth_requestAccounts since permissions already exist
   }
 
-  // Then request accounts (this will use the selected account)
+  // Then request accounts (this will use the selected account from wallet_requestPermissions)
   try {
-    console.log('[MetaMask] Requesting accounts via window.ethereum.request');
+    console.log('[MetaMask] Requesting accounts via eth_requestAccounts');
     const accounts = await window.ethereum.request({
       method: "eth_requestAccounts",
     }) as string[];
