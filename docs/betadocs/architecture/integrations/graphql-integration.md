@@ -44,5 +44,5 @@ const data = await graphRequest(`
 
 GraphQL is used as an index and query layer. Arkiv remains the canonical store. All resolvers use the same Arkiv functions as direct JSON-RPC calls. This makes the GraphQL API a reusable tool for any Arkiv-based application.
 
-See [GraphQL Tool Documentation](../../ARKIV_GRAPHQL_TOOL.md) for complete API documentation.
+See [GraphQL Tool Documentation](/docs/ARKIV_GRAPHQL_TOOL.md) for complete API documentation.
 

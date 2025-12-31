@@ -247,7 +247,7 @@ If you need to query across multiple spaces:
 ## Related Documentation
 
 - [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Comprehensive pattern documentation
-- [Top 8 Patterns](../top-8-patterns.md) - Essential patterns demonstrated in templates
+- [Top 8 Patterns](../overview/top-8-patterns.md) - Essential patterns demonstrated in templates
 - [Engineering Guidelines](../../../ENGINEERING_GUIDELINES.md) - Complete engineering standards
 - [Arkiv App Kit](./arkiv-app-primitives.md) - Shared core package used by this template
 - [AI Agent Kit](./ai-agent-kit.md) - LLM context for building Arkiv integrations

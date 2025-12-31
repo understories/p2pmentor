@@ -10,10 +10,10 @@
 
 ## Patterns Used
 
-- [PAT-UPDATE-001: Stable Entity Key Updates](./patterns/stable-entity-key-updates.md) - Profile updates use stable entity keys
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
-- [PAT-IDENTITY-001: Wallet Normalization](./patterns/wallet-normalization.md) - Wallet addresses normalized to lowercase
-- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Profile updates use stable entity keys
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
+- [PAT-IDENTITY-001: Wallet Normalization](../patterns/wallet-normalization.md) - Wallet addresses normalized to lowercase
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
 
 ## Field Table
 

@@ -355,8 +355,8 @@ Graceful error handling:
 
 ## Related Documentation
 
-- [Beta Code Entity Schema](../additional-entities/beta-code.md)
-- [Beta Access Entity Schema](../additional-entities/beta-access.md)
+- [Beta Code Entity Schema](../entities/beta-code.md)
+- [Beta Access Entity Schema](../entities/beta-access.md)
 - [Wallet Authentication Flow](./wallet-authentication-flow.md)
 
 ## Code References

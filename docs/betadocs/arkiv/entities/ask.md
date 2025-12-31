@@ -5,9 +5,9 @@
 
 ## Patterns Used
 
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, skill_id, spaceId)
-- [PAT-REF-001: Relationship References That Survive Updates](./patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
-- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, skill_id, spaceId)
+- [PAT-REF-001: Relationship References That Survive Updates](../patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
 
 ## Field Table
 

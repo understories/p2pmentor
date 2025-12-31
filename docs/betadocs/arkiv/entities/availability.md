@@ -5,9 +5,9 @@
 
 ## Patterns Used
 
-- [PAT-DELETE-001: Deletion Patterns](./patterns/deletion-patterns.md) - Deletion via marker entities (availability_deletion)
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
-- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-DELETE-001: Deletion Patterns](../patterns/deletion-patterns.md) - Deletion via marker entities (availability_deletion)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
 
 ## Field Table
 

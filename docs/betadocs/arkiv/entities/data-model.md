@@ -296,4 +296,4 @@ const result = await query
   .fetch();
 ```
 
-See [`docs/dx_arkiv_runbook.md`](../../../dx_arkiv_runbook.md) for detailed query patterns and examples.
+See [`docs/dx_arkiv_runbook.md`](/docs/dx_arkiv_runbook.md) for detailed query patterns and examples.

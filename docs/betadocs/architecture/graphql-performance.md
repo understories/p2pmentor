@@ -28,4 +28,4 @@ Location: `lib/arkiv/perfSnapshots.ts`, `lib/arkiv/dxMetrics.ts`
 
 Performance metrics stored as `dx_metric` entities on Arkiv. Performance snapshots stored as `perf_snapshot` entities. All data verifiable on-chain via transaction hashes. All measurements include timestamps, operation names, and source ('arkiv' vs 'graphql').
 
-See [GraphQL Tool Documentation](../../../ARKIV_GRAPHQL_TOOL.md) for detailed API documentation.
+See [GraphQL Tool Documentation](/docs/ARKIV_GRAPHQL_TOOL.md) for detailed API documentation.

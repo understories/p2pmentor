@@ -28,7 +28,7 @@ The Review UI serves several purposes:
 
 ## Access Control
 
-The Review UI is gated using the [Access Grants pattern](./access-grants.md). Access is controlled through:
+The Review UI is gated using the [Access Grants pattern](../operations/access-grants.md). Access is controlled through:
 
 1. **Password Verification**: Client-side password verification (SHA-256 hash comparison)
 2. **Access Grant Entity**: Server issues a `review_mode_grant` entity on Arkiv
@@ -46,13 +46,13 @@ The Review UI is gated using the [Access Grants pattern](./access-grants.md). Ac
 
 **Note**: The client trusts the API response and proceeds immediately after grant issuance. The grant entity is still created on Arkiv for auditability, but the client does not wait for it to be queryable before proceeding. This avoids Arkiv indexing delays while maintaining the Arkiv-native pattern.
 
-For detailed information about the access grant pattern, see [Access Grants: Review Mode](./access-grants.md).
+For detailed information about the access grant pattern, see [Access Grants: Review Mode](../operations/access-grants.md).
 
 ## Architecture
 
 ### Two-Wallet System
 
-The Review UI follows the same [two-wallet architecture](./wallet-architecture.md) as the main application:
+The Review UI follows the same [two-wallet architecture](../operations/wallet-architecture.md) as the main application:
 
 - **Profile Wallet**: User's MetaMask or WalletConnect wallet (no funds needed)
   - Used as the `wallet` attribute on entities
@@ -97,9 +97,9 @@ This ensures that testing the Review UI verifies the same code paths used by the
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
-- [Profile Creation Flow](./profile-creation-flow.md)
+- [Profile Creation Flow](../operations/profile-creation-flow.md)
 - [Profile Entity](./profile.md)
-- [Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)
+- [Stable Entity Key Updates](../patterns/stable-entity-key-updates.md)
 
 ### 2. Skills Management
 
@@ -120,7 +120,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 
 **Related Documentation**:
 - [Skill Entity](./skill.md)
-- [Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)
+- [Stable Entity Key Updates](../patterns/stable-entity-key-updates.md)
 
 ### 3. Availability Management
 
@@ -141,7 +141,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 
 **Related Documentation**:
 - [Availability Entity](./availability.md)
-- [Deletion Patterns](./patterns/deletion-patterns.md)
+- [Deletion Patterns](../patterns/deletion-patterns.md)
 
 ### 4. Asks Creation
 
@@ -248,12 +248,12 @@ All steps include error handling:
 
 The Review UI demonstrates and uses several key Arkiv patterns:
 
-- **[Access Grants](./access-grants.md)**: Gated access using Arkiv entities
-- **[Stable Entity Key Updates](./patterns/stable-entity-key-updates.md)**: Profile updates reuse same entity key
-- **[Deletion Patterns](./patterns/deletion-patterns.md)**: Availability deletion uses marker entities
-- **[Wallet Normalization](./patterns/wallet-normalization.md)**: All wallet addresses normalized to lowercase
+- **[Access Grants](../operations/access-grants.md)**: Gated access using Arkiv entities
+- **[Stable Entity Key Updates](../patterns/stable-entity-key-updates.md)**: Profile updates reuse same entity key
+- **[Deletion Patterns](../patterns/deletion-patterns.md)**: Availability deletion uses marker entities
+- **[Wallet Normalization](../patterns/wallet-normalization.md)**: All wallet addresses normalized to lowercase
 - **[TTL/Expiration](./ask.md#ttlexpiration-handling)**: Asks and offers use TTL for automatic expiration
-- **[Two-Wallet Architecture](./wallet-architecture.md)**: Profile wallet vs signing wallet separation
+- **[Two-Wallet Architecture](../operations/wallet-architecture.md)**: Profile wallet vs signing wallet separation
 
 ## Testing Workflow
 
@@ -289,13 +289,13 @@ Potential future enhancements to the Review UI:
 
 ## Related Documentation
 
-- [Access Grants: Review Mode](./access-grants.md) - Access control pattern for review mode
-- [Wallet Architecture](./wallet-architecture.md) - Two-wallet system (profile wallet vs signing wallet)
+- [Access Grants: Review Mode](../operations/access-grants.md) - Access control pattern for review mode
+- [Wallet Architecture](../operations/wallet-architecture.md) - Two-wallet system (profile wallet vs signing wallet)
 - [Profile Entity](./profile.md) - Profile entity structure and operations
 - [Skill Entity](./skill.md) - Skill entity structure and operations
 - [Availability Entity](./availability.md) - Availability entity structure and operations
 - [Ask Entity](./ask.md) - Ask entity structure and operations
 - [Offer Entity](./offer.md) - Offer entity structure and operations
-- [Top 8 Arkiv Patterns](./top-8-patterns.md) - Essential Arkiv patterns
-- [Arkiv Patterns Catalog](./arkiv-patterns-catalog.md) - Complete catalog of Arkiv patterns
+- [Top 8 Arkiv Patterns](../overview/top-8-patterns.md) - Essential Arkiv patterns
+- [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Complete catalog of Arkiv patterns
 
