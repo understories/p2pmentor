@@ -113,13 +113,48 @@ Engineering principles for p2pmentor development ensuring code quality, transpar
 - No mock data in production code
 - Document test procedures and expected results
 
+## Git and Version Control
+
+**Commit Discipline:**
+- **One logical change per commit** - Each commit should represent a single, coherent change
+- **Review before committing** - Always run `git status` and `git diff` before committing
+- **No unrelated changes** - Don't bundle unrelated changes (e.g., license updates, UI tweaks, file renames) in the same commit
+- **Scope verification** - Verify all staged files belong to the commit's stated purpose
+
+**Pre-Commit Checklist:**
+1. Run `git status` to see all changes
+2. Review `git diff --cached` to verify what's staged
+3. Verify no unrelated files are included
+4. Check that file locations are correct (no duplicates in wrong directories)
+5. Ensure build passes: `npm run build`
+6. Verify no secrets or sensitive data in diff
+
+**File Organization:**
+- **Verify file locations** - Before adding files, check if they already exist in proper subdirectories
+- **No duplicate files** - Never create duplicate files in wrong locations (e.g., root vs subdirectory)
+- **Use `git mv` for renames** - Always use `git mv` instead of delete + create to preserve history
+- **Check existing structure** - Before adding files, verify the intended directory structure
+
+**Documentation Changes:**
+- **Preserve existing structure** - When reorganizing docs, verify files don't already exist in target locations
+- **Update references atomically** - File moves and reference updates should be in the same commit
+- **Verify links after moves** - After moving files, verify all internal links still work
+- **No accidental additions** - Review `git status` to catch files accidentally added to wrong locations
+
+**Common Mistakes to Avoid:**
+- ❌ Bundling unrelated changes (license updates + file renames + UI tweaks)
+- ❌ Adding duplicate files to root when they belong in subdirectories
+- ❌ Committing without reviewing `git status` first
+- ❌ Using delete + create instead of `git mv` for renames
+- ❌ Not verifying file locations before adding new files
+
 ## Best Practices
 
 **Code:** Clean, auditable, verifiable, real data only, proper error handling, type-safe, well-documented
 
 **Documentation:** Public in `docs/`, internal in `refs/docs/`, clear and comprehensive
 
-**Commits:** Clear descriptive messages, logical grouping, one feature per commit
+**Commits:** Clear descriptive messages, logical grouping, one feature per commit, reviewed before committing
 
 **Data:** Real and verifiable, stored on-chain when important, traceable via transaction hashes, no secrets
 
