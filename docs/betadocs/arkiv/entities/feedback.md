@@ -1,5 +1,10 @@
 # Feedback Entity Schema
 
+## Status
+- Canonical for p2pmentor: Yes
+- Mutability: Pattern A
+- Pattern dependencies: PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
+
 ## Entity Type
 `session_feedback`
 

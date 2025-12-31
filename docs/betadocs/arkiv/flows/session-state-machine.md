@@ -1,5 +1,7 @@
 # Session State Machine
 
+**Note:** This document describes *derived logic*, not a schema. Session status is computed from supporting entities (confirmations, rejections), not stored directly.
+
 Technical documentation of session state transitions and workflow.
 
 ## Conceptual State Machine Diagram

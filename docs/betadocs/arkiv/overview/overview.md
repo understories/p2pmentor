@@ -1,5 +1,7 @@
 # Arkiv Overview
 
+**Authority:** If anything here conflicts with `arkiv/patterns/`, patterns are canonical.
+
 This section covers Arkiv-specific implementation details for p2pmentor. Arkiv is a decentralized blockchain network that serves as the primary data layer, eliminating the need for a central database.
 
 ## What is Arkiv?
@@ -26,16 +28,16 @@ All data in p2pmentor is stored as **entities** on Arkiv. An entity consists of:
 
 ### Immutability
 
-Arkiv transactions are **immutable**. Once created, they cannot be modified. Application data is mutable at the state level. To update data:
-1. Use `updateEntity()` to update an existing entity with a stable entity key
+Arkiv transactions are **immutable**. Once created, they cannot be modified. Application data is mutable at the state level. To change application state:
+1. Use `updateEntity()` to create a new transaction that updates an existing entity with a stable entity key
 2. All transaction history is preserved on-chain (immutable ledger)
-3. The application displays the latest canonical state
+3. The application displays the latest canonical state derived from transactions
 
 This provides a complete audit trail while allowing editable application data.
 
 ### Wallet-Based Identity
 
-User identity is tied to wallet addresses:
+User **wallet identity** (subject) is tied to wallet addresses:
 - Wallet address is the primary identifier (normalized to lowercase)
 - No user accounts or passwords required
 - Users sign transactions with their wallet (MetaMask or Passkey)
@@ -158,13 +160,13 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 ## See Also
 
 - [Arkiv Standards](https://github.com/Arkiv-Network/starter-template-python/blob/main/ARKIV_STANDARD.md) - Community-driven specification for Arkiv naming conventions and entity types
-- [Editable Entities](/docs/arkiv/editable-entities) - Mental model: how entities can be "updated" on an immutable blockchain
-- [Data Model](/docs/arkiv/data-model) - Complete entity schemas
-- [Entity Overview](/docs/arkiv/entity-overview) - Detailed schema documentation
-- [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
-- [Environments](/docs/arkiv/environments) - Using different signing wallets for separate data environments
-- [Invite Code System](/docs/arkiv/invite-code-system) - Arkiv-native invite code implementation with usage tracking
+- [Editable Entities](/docs/arkiv/overview/editable-entities) - Mental model: how entities can be "updated" on an immutable blockchain
+- [Data Model](/docs/arkiv/entities/data-model) - Complete entity schemas
+- [Entity Overview](/docs/arkiv/overview/entity-overview) - Detailed schema documentation
+- [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs signing wallet
+- [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
+- [Invite Code System](/docs/arkiv/operations/invite-code-system) - Arkiv-native invite code implementation with usage tracking
 - [Builder Mode](/docs/architecture/modules/builder-mode) - Developer-focused query visibility
 - [Learner Quests](/docs/architecture/modules/learner-quests) - Curated reading lists and language assessment quests with progress tracking
-- [Implementation FAQ](/docs/arkiv/implementation-faq) - Common patterns and Q&A
+- [Implementation FAQ](/docs/arkiv/operations/implementation-faq) - Common patterns and Q&A
 - [Arkiv Integration](/docs/architecture/arkiv-integration) - Architecture details

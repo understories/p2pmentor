@@ -118,6 +118,6 @@ All without special backend logic. Access becomes just another Arkiv entity type
 
 ## Related Documentation
 
-- [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs. signing wallet
-- [Central Signer Phase 0](/docs/arkiv/central-signer-phase0) - Current signing model
-- [Profile Creation Flow](/docs/arkiv/profile-creation-flow) - How profiles are created
+- [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs. signing wallet
+- [Central Signer Phase 0](/docs/arkiv/operations/central-signer-phase0) - Current signing model
+- [Profile Creation Flow](/docs/arkiv/operations/profile-creation-flow) - How profiles are created

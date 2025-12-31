@@ -1,5 +1,10 @@
 # Profile Entity Schema
 
+## Status
+- Canonical for p2pmentor: Yes
+- Mutability: Pattern B
+- Pattern dependencies: PAT-UPDATE-001, PAT-QUERY-001, PAT-IDENTITY-001, PAT-SPACE-001
+
 ## Entity Type
 `user_profile`
 

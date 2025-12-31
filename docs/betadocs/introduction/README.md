@@ -9,7 +9,7 @@ Own your data.
 This documentation is organized into sections covering concepts, architecture, features, and technical implementation details.
 
 Start with [Introduction](/docs/introduction/introduction) for an overview, then explore sections based on your needs:
-- **Builders**: Start with [Architecture](/docs/architecture/overview) and [Arkiv Integration](/docs/arkiv/overview)
+- **Builders**: Start with [Architecture](/docs/architecture/overview) and [Arkiv Integration](/docs/arkiv/overview/overview)
 - **Designers/PMs**: Start with [User Flows](/docs/user-flows/overview)
 - **Users**: Start with [Getting Started](/docs/introduction/getting-started)
 

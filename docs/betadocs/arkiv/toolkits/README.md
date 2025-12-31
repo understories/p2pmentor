@@ -1,6 +1,12 @@
-# Arkiv Extractions
+# Arkiv Toolkits
+
+**Authority:** If anything here conflicts with `arkiv/patterns/`, patterns are canonical.
+
+> **⚠️ These are accelerators. They may lag behind current patterns. Patterns are canonical.**
 
 This directory contains documentation for extracted templates and shared packages that will be published as standalone repositories for the broader Arkiv builder community.
+
+**Non-authoritative:** Nothing here defines rules. These are optional starting points that assume specific patterns. Always verify against the [Patterns Catalog](../patterns/README.md).
 
 ## Contents
 

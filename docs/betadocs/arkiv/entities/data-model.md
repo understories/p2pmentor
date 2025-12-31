@@ -46,7 +46,7 @@
 - Updates use Pattern B (updateEntity with stable entity_key)
 - Same entity_key is reused for all updates, preserving identity
 - Full transaction history is preserved on-chain
-- See [Editable Entities](/docs/arkiv/editable-entities) for details
+- See [Editable Entities](/docs/arkiv/overview/editable-entities) for details
 
 ### ask
 

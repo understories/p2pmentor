@@ -457,7 +457,7 @@ Currently using "archived" flag for soft delete. Consider:
 
 ## Related Documentation
 
-- [Notification Preferences Entity](/docs/arkiv/additional-entities/notification-preferences)
+- [Notification Preferences Entity](/docs/arkiv/entities/notification-preferences)
 - [Profile System](/docs/architecture/modules/profile-system)
 - [Feedback System](/docs/architecture/modules/feedback-system)
 

@@ -655,7 +655,7 @@ The completion data is loaded asynchronously and does not block profile loading.
 
 ## Related Documentation
 
-- [Profile Entity](/docs/arkiv/profile)
+- [Profile Entity](/docs/arkiv/entities/profile)
 - [Learner Quests](/docs/architecture/modules/learner-quests)
 - [Notification System](/docs/architecture/modules/notification-system)
 

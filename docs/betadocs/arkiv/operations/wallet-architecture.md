@@ -4,19 +4,19 @@ For architectural rationale, see [Serverless and Trustless](/docs/philosophy/ser
 
 ## Overview
 
-p2pmentor uses a two-wallet architecture that separates user identity (profile wallet) from transaction signing (signing wallet). This design provides security, flexibility, and prepares for full data sovereignty when Arkiv moves to mainnet.
+p2pmentor uses a two-wallet architecture that separates user **wallet identity** (profile wallet) from transaction signing (**signer identity** - signing wallet). This design provides security, flexibility, and prepares for full data sovereignty when Arkiv moves to mainnet.
 
 ## Two-Wallet System
 
 ### Profile Wallet
 
-The **profile wallet** is your identity on p2pmentor:
+The **profile wallet** is your **wallet identity** on p2pmentor:
 
-- **Purpose**: Represents your user identity and ownership of data
+- **Purpose**: Represents your **wallet identity** (user subject) and ownership of data
 - **Storage**: Stored in `localStorage` as `wallet_address`
 - **Usage**: Used as the `wallet` attribute on all entities (profiles, asks, offers, sessions)
 - **Funds**: **No funds required** - we recommend using a wallet without any funds
-- **Security**: This wallet is your identity, not used for signing transactions
+- **Security**: This wallet is your **wallet identity**, not used for signing transactions
 
 **Example:**
 ```typescript
@@ -65,7 +65,7 @@ const profileWallet = '0xUSER...'; // Your profile wallet (no funds)
 // User creates an ask
 const ask = {
   type: 'ask',
-  wallet: profileWallet, // Your identity
+  wallet: profileWallet, // Your wallet identity
   skill: 'Solidity',
   // ... other fields
 };
@@ -146,7 +146,7 @@ All entities and transactions are viewable on the [Arkiv Explorer](https://explo
 
 - **Use a separate wallet** from your main funds
 - **No funds required** - keep it empty
-- **Backup your wallet** - it's your identity
+- **Backup your wallet** - it's your wallet identity
 - **Don't share private keys** - treat it like a password
 
 ### Signing Wallet (For Builders)
@@ -193,7 +193,7 @@ const query = publicClient.buildQuery()
 
 ## Summary
 
-- **Profile Wallet**: Your identity, no funds needed, stored in localStorage
+- **Profile Wallet**: Your **wallet identity**, no funds needed, stored in localStorage
 - **Signing Wallet**: Server-side, signs transactions, has testnet funds
 - **Current State**: Server signs all transactions (beta architecture)
 - **Future State**: Users sign their own transactions (mainnet)
@@ -202,9 +202,9 @@ const query = publicClient.buildQuery()
 
 ## See Also
 
-- [Arkiv Overview](/docs/arkiv/overview) - Core Arkiv concepts
-- [Environments](/docs/arkiv/environments) - Using different signing wallets for separate data environments
-- [Data Model](/docs/arkiv/data-model) - Entity schemas
-- [Client Wrapper](/docs/arkiv/overview#client-wrapper) - Wallet client implementation
+- [Arkiv Overview](/docs/arkiv/overview/overview) - Core Arkiv concepts
+- [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
+- [Data Model](/docs/arkiv/entities/data-model) - Entity schemas
+- [Client Wrapper](/docs/arkiv/overview/overview#client-wrapper) - Wallet client implementation
 - [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network) - View your data on-chain
 

@@ -198,6 +198,6 @@ Complete implementation includes all entity types, advanced features, automated 
 ## Related Documentation
 
 - **Implementation Plan**: `refs/static-build-experiment-implementation-plan.md` (internal)
-- **Arkiv Data Model**: [Arkiv Data Model](/docs/arkiv/data-model)
+- **Arkiv Data Model**: [Arkiv Data Model](/docs/arkiv/entities/data-model)
 - **Serverless Architecture**: [Serverless & Trustless](/docs/philosophy/serverless-and-trustless)
 

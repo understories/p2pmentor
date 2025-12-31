@@ -270,9 +270,9 @@ const current = profiles[0]; // Only one canonical entity
 ## See Also
 
 - [Entity Versioning Patterns](/docs/arkiv/patterns/entity-versioning.md) - Pattern A implementation details
-- [Implementation FAQ](/docs/arkiv/implementation-faq.md) - Common patterns and Q&A
-- [Arkiv Overview](/docs/arkiv/overview.md) - Core Arkiv concepts
-- [Entity Overview](/docs/arkiv/entity-overview.md) - Entity schemas and structure
+- [Implementation FAQ](/docs/arkiv/operations/implementation-faq.md) - Common patterns and Q&A
+- [Arkiv Overview](/docs/arkiv/overview/overview.md) - Core Arkiv concepts
+- [Entity Overview](/docs/arkiv/overview/entity-overview.md) - Entity schemas and structure
 
 ---
 

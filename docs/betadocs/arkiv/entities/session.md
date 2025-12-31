@@ -1,11 +1,16 @@
 # Session Entity Schema
 
+## Status
+- Canonical for p2pmentor: Yes
+- Mutability: Pattern B
+- Pattern dependencies: PAT-SESSION-001, PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
+
 ## Entity Type
 `session`
 
 ## Patterns Used
 
-- [PAT-SESSION-001: Session State Machine](./session-state-machine.md) - Status computed from supporting entities, not stored attribute
+- [PAT-SESSION-001: Session State Machine](../flows/session-state-machine.md) - Status computed from supporting entities, not stored attribute
 - [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Queries use indexed attributes (type, mentorWallet, learnerWallet, spaceId)
 - [PAT-REF-001: Relationship References That Survive Updates](./patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
 - [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - spaceId attribute for data isolation
@@ -38,7 +43,7 @@
 
 ## State Machine Diagram
 
-For the detailed session state machine diagram, see [Session State Machine](./session-state-machine.md).
+For the detailed session state machine diagram, see [Session State Machine](../flows/session-state-machine.md).
 
 ## Implementation Details
 

@@ -93,10 +93,10 @@ Core entities: `user_profile`, `ask`, `offer`, `session`
 
 Supporting entities: `ask_txhash`, `offer_txhash`, `session_txhash`, `session_confirmation`, `session_rejection`, `session_jitsi`, `session_feedback`
 
-TTL used for ephemeral entities (asks: 3600s, offers: 7200s). Transactions are immutable, but entities can be updated in place using stable entity keys. See [Editable Entities](/docs/arkiv/editable-entities) for update patterns.
+TTL used for ephemeral entities (asks: 3600s, offers: 7200s). Transactions are immutable, but entities can be updated in place using stable entity keys. See [Editable Entities](/docs/arkiv/overview/editable-entities) for update patterns.
 
 ## No central application database
 
 Any additional storage is viewed as cache or index, not the source of truth. GraphQL layer is a thin wrapper over Arkiv JSON-RPC.
 
-See [Data Model](/docs/arkiv/data-model) for detailed entity schemas.
+See [Data Model](/docs/arkiv/entities/data-model) for detailed entity schemas.

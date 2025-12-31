@@ -16,7 +16,7 @@ This section provides an overview of the p2pmentor beta documentation structure 
 
 ## Getting Started
 
-- **Builders**: Start with [Architecture](/docs/architecture/overview) and [Arkiv Integration](/docs/arkiv/overview)
+- **Builders**: Start with [Architecture](/docs/architecture/overview) and [Arkiv Integration](/docs/arkiv/overview/overview)
 - **Designers/PMs**: Start with [User Flows](/docs/user-flows/overview)
 - **Users**: Start with [Getting Started](/docs/introduction/getting-started)
 

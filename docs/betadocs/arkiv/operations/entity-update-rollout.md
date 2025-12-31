@@ -39,7 +39,7 @@ The entity update pattern allows profiles and notifications to use stable entity
 - ✅ Implementation updated in `lib/arkiv/entity-utils.ts`
 
 **Implementation:**
-The `arkivUpsertEntity` function now uses the actual SDK `updateEntity` call when a `key` is provided. See [SDK API Verification Guide](/docs/arkiv/sdk-api-verification-guide) for details.
+The `arkivUpsertEntity` function now uses the actual SDK `updateEntity` call when a `key` is provided. See [SDK API Verification Guide](/docs/arkiv/operations/sdk-api-verification-guide) for details.
 
 ### Phase 3: Full Rollout (On Mode)
 
@@ -91,6 +91,6 @@ To disable entity updates:
 ## Related Documentation
 
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Technical details
-- [Editable Entities](/docs/arkiv/editable-entities) - Mental model explanation
-- [Wallet Architecture](/docs/arkiv/wallet-architecture) - Profile wallet vs signing wallet
+- [Editable Entities](/docs/arkiv/overview/editable-entities) - Mental model explanation
+- [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs signing wallet
 

@@ -13,8 +13,8 @@
 
 import { createRecord } from '../src/lib/arkiv/writes';
 import { listRecords } from '../src/lib/arkiv/queries';
-import { waitForIndexer } from '../../../../arkiv-app-kit/src/indexer';
-import { getArkivTarget } from '../../../../arkiv-app-kit/src/env';
+import { waitForIndexer } from '../../arkiv-app-kit/src/indexer';
+import { getArkivTarget } from '../../arkiv-app-kit/src/env';
 
 async function runConformanceTest() {
   console.log(`Running conformance test against ARKIV_TARGET: ${getArkivTarget()}`);

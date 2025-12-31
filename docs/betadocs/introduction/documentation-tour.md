@@ -20,11 +20,11 @@ This documentation serves three audiences. Choose your entry point:
 - [Architecture Overview](/docs/architecture/overview) - Technical architecture and system design
 - [Modules](/docs/architecture/modules) - Core system modules
 - [Integrations](/docs/architecture/integrations) - External service integrations
-- [Arkiv Concepts](/docs/arkiv/overview) - Arkiv-specific implementation
+- [Arkiv Concepts](/docs/arkiv/overview/overview) - Arkiv-specific implementation
 - [Patterns](/docs/arkiv/patterns/README) - Development patterns and best practices
 
 ## If you want to audit
 
-- [Arkiv Data Model](/docs/arkiv/data-model) - Complete entity schemas
-- [Signals and Metrics](/docs/arkiv/additional-entities/README) - Observability and metrics
+- [Arkiv Data Model](/docs/arkiv/entities/data-model) - Complete entity schemas
+- [Signals and Metrics](/docs/arkiv/entities/README) - Observability and metrics
 

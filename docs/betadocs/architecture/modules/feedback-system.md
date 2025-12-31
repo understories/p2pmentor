@@ -936,8 +936,8 @@ Feedback has 1 year TTL. Consider:
 
 ## Related Documentation
 
-- [App Feedback Entity](/docs/arkiv/additional-entities/app-feedback)
-- [Admin Response Entity](/docs/arkiv/additional-entities/admin-response)
+- [App Feedback Entity](/docs/arkiv/entities/app-feedback)
+- [Admin Response Entity](/docs/arkiv/entities/admin-response)
 - [Notification System](/docs/architecture/modules/notification-system)
 
 ## Summary

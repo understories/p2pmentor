@@ -93,5 +93,5 @@ No external database needed. Easy to reuse in other Arkiv-based apps that need e
 
 ## Related Documentation
 
-- [Session Entity](/docs/arkiv/session)
+- [Session Entity](/docs/arkiv/entities/session)
 - [Session Confirmation Flow](/docs/user-flows/sessions)

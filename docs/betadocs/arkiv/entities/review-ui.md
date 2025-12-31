@@ -1,5 +1,7 @@
 # Review UI: Developer Testing Interface
 
+**Note:** This document describes *UI behavior*, not a schema. For the feedback entity schema, see [Feedback Entity](./feedback.md).
+
 The Review UI (also called "Developer UI") is a simplified, barebones interface for testing Arkiv functionality. It provides a streamlined way to audit and verify that all core Arkiv operations work correctly, without the complexity of the full user-facing product.
 
 ## Overview
