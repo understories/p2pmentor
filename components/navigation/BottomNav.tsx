@@ -14,7 +14,9 @@ import { createPortal } from 'react-dom';
 import { useTheme } from '@/lib/theme';
 import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
-import { hasOnboardingBypass } from '@/lib/onboarding/access';
+import { hasOnboardingBypass, hasReviewModeBypass } from '@/lib/onboarding/access';
+import { getProfileByWallet } from '@/lib/arkiv/profile';
+import type { UserProfile } from '@/lib/arkiv/profile';
 import { navTokens } from '@/lib/design/navTokens';
 
 interface NavItem {
@@ -35,6 +37,7 @@ export function BottomNav() {
   const [hasBypass, setHasBypass] = useState(false);
   const [hideText, setHideText] = useState(false);
   const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   // Primary navigation items with unlock levels - same as SidebarNav
   const allNavItems: Array<NavItem> = [
@@ -83,6 +86,18 @@ export function BottomNav() {
       setWallet(storedWallet);
       // Check bypass flag
       setHasBypass(hasOnboardingBypass());
+      
+      // Load user profile to check if they're an existing user
+      if (storedWallet) {
+        getProfileByWallet(storedWallet)
+          .then((profile) => {
+            setUserProfile(profile);
+          })
+          .catch(() => {
+            // Profile not found - that's okay, user is new
+            setUserProfile(null);
+          });
+      }
     }
   }, []);
 
@@ -142,7 +157,7 @@ export function BottomNav() {
           const isDashboard = item.href === '/me';
 
           // Intercept all navigation clicks during onboarding
-          const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+          const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
               // Check if we're on onboarding page
               if (pathname === '/onboarding') {
                 e.preventDefault();
@@ -150,10 +165,42 @@ export function BottomNav() {
                 return;
               }
 
-              // Check if onboarding is complete (level >= 2 means ask or offer created)
-              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-              // Don't block if bypass is active, loading, or there's an error (be permissive)
-            if (wallet && !hasBypass && !levelLoading && !levelError && level !== null && level < 2) {
+              // Don't block if bypass is active, review mode bypass is active, loading, or there's an error
+              if (hasBypass || hasReviewModeBypass() || levelLoading || levelError) {
+                return; // Allow navigation
+              }
+
+              // Check if user has a profile (existing user) - if yes, never lock
+              if (userProfile) {
+                return; // Existing user with profile - allow navigation
+              }
+
+              // If no profile, check if they have skills
+              // Load profile if not already loaded
+              if (!userProfile && wallet) {
+                try {
+                  const profile = await getProfileByWallet(wallet);
+                  if (profile) {
+                    setUserProfile(profile);
+                    return; // Profile exists - allow navigation
+                  }
+                } catch {
+                  // Profile not found - continue to check skills
+                }
+              }
+
+              // Check if user has skills (even without profile)
+              // If they have skills, they're progressing and shouldn't be locked
+              if (userProfile) {
+                const skills = (userProfile as UserProfile).skillsArray;
+                if (skills && skills.length > 0) {
+                  return; // User has skills - allow navigation
+                }
+              }
+
+              // Only lock if: no profile AND no skills AND no review toggle
+              // This matches the requirement: "ONLY apply to users with zero skills that log in without the arkiv review toggle"
+              if (wallet && !hasBypass && !hasReviewModeBypass() && !levelLoading && !levelError && level !== null && level < 2) {
                 e.preventDefault();
               setShowOnboardingPopup(true);
                 return;

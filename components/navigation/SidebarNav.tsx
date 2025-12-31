@@ -15,7 +15,7 @@ import { useNotificationCount } from '@/lib/hooks/useNotificationCount';
 import { navTokens } from '@/lib/design/navTokens';
 import { ConstellationLines } from '@/components/navigation/ConstellationLines';
 import { useOnboardingLevel } from '@/lib/onboarding/useOnboardingLevel';
-import { hasOnboardingBypass } from '@/lib/onboarding/access';
+import { hasOnboardingBypass, hasReviewModeBypass } from '@/lib/onboarding/access';
 import { getProfileByWallet } from '@/lib/arkiv/profile';
 import { profileToGardenSkills, levelToEmoji } from '@/lib/garden/types';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
@@ -50,6 +50,7 @@ export function SidebarNav() {
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   const [pendingConfirmationsCount, setPendingConfirmationsCount] = useState(0);
   const [showOnboardingPopup, setShowOnboardingPopup] = useState(false);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   // Load Arkiv Builder Mode from localStorage
   useEffect(() => {
@@ -82,6 +83,18 @@ export function SidebarNav() {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       setWallet(storedWallet);
+      
+      // Load user profile to check if they're an existing user
+      if (storedWallet) {
+        getProfileByWallet(storedWallet)
+          .then((profile) => {
+            setUserProfile(profile);
+          })
+          .catch(() => {
+            // Profile not found - that's okay, user is new
+            setUserProfile(null);
+          });
+      }
       
       // Load all skills for mapping skill_id to name_canonical
       // This is used to display skill names in sessions sidebar
@@ -278,7 +291,7 @@ export function SidebarNav() {
           const isDashboard = item.href === '/me';
 
           // Intercept all navigation clicks during onboarding
-          const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+          const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
               // Check if we're on onboarding page
               if (pathname === '/onboarding') {
                 e.preventDefault();
@@ -286,10 +299,42 @@ export function SidebarNav() {
                 return;
               }
 
-              // Check if onboarding is complete (level >= 2 means ask or offer created)
-              // Level 0 = no profile, Level 1 = profile + skills, Level 2+ = has ask/offer
-              // Don't block if bypass is active or there's an error (be permissive)
-            if (wallet && !hasBypass && !levelError && level !== null && level < 2) {
+              // Don't block if bypass is active, review mode bypass is active, or there's an error
+              if (hasBypass || hasReviewModeBypass() || levelError) {
+                return; // Allow navigation
+              }
+
+              // Check if user has a profile (existing user) - if yes, never lock
+              if (userProfile) {
+                return; // Existing user with profile - allow navigation
+              }
+
+              // If no profile, check if they have skills
+              // Load profile if not already loaded
+              if (!userProfile && wallet) {
+                try {
+                  const profile = await getProfileByWallet(wallet);
+                  if (profile) {
+                    setUserProfile(profile);
+                    return; // Profile exists - allow navigation
+                  }
+                } catch {
+                  // Profile not found - continue to check skills
+                }
+              }
+
+              // Check if user has skills (even without profile)
+              // If they have skills, they're progressing and shouldn't be locked
+              if (userProfile) {
+                const skills = (userProfile as UserProfile).skillsArray;
+                if (skills && skills.length > 0) {
+                  return; // User has skills - allow navigation
+                }
+              }
+
+              // Only lock if: no profile AND no skills AND no review toggle
+              // This matches the requirement: "ONLY apply to users with zero skills that log in without the arkiv review toggle"
+              if (wallet && !hasBypass && !hasReviewModeBypass() && !levelError && level !== null && level < 2) {
                 e.preventDefault();
               setShowOnboardingPopup(true);
                 return;
