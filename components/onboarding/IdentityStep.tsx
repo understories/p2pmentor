@@ -188,7 +188,8 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           >
             Arkiv explorer
           </a>
-          {' '}— and until we implement encrypted data, your data is NOT private.{' '}
+          . Until we implement encrypted data, your data is NOT private.
+          <br />
           <a 
             href="http://explorer.mendoza.hoodi.arkiv.network/" 
             target="_blank" 
