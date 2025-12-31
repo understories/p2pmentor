@@ -826,12 +826,26 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
   // We use lastActiveTimestamp because it's updated on each profile update, unlike createdAt
   let entitiesToProcess = result.entities;
   if (useCanonicalPath && result.entities.length > 1) {
-    console.warn(
-      `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet}. ` +
-      `Expected single canonical entity. Found ${result.entities.length} profiles. ` +
-      `This may indicate incomplete migration or old entities not yet cleaned up. ` +
-      `Sorting by lastActiveTimestamp to get most recent.`
-    );
+    // Deduplicate warning logs to avoid log spam (log once per wallet per 5 minutes)
+    const logKey = `multi-profile-list-${normalizedWallet}`;
+    if (!(globalThis as any).__profileLogCache) {
+      (globalThis as any).__profileLogCache = new Set<string>();
+    }
+    const logCache = (globalThis as any).__profileLogCache as Set<string>;
+
+    if (!logCache.has(logKey)) {
+      logCache.add(logKey);
+      // Clear cache after 5 minutes to allow re-logging if needed
+      setTimeout(() => logCache.delete(logKey), 5 * 60 * 1000);
+
+      // Use console.info instead of console.warn since this is handled correctly
+      console.info(
+        `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet.slice(0, 10)}... ` +
+        `(${result.entities.length} profiles). Using most recent profile. ` +
+        `This may indicate incomplete migration or old entities not yet cleaned up. ` +
+        `Run consolidation script to clean up duplicates if needed.`
+      );
+    }
     // Sort by lastActiveTimestamp descending (most recent first)
     // Fallback to createdAt if lastActiveTimestamp not available
     entitiesToProcess = result.entities.sort((a: any, b: any) => {
