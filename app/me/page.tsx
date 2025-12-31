@@ -417,19 +417,31 @@ export default function MePage() {
             // Load assessment results for language assessments
             try {
               const resultRes = await fetch(`/api/learner-quests/assessment/result?questId=${quest.questId}&wallet=${walletAddress}`);
-              const resultData = await resultRes.json();
               
-              if (resultData.ok && resultData.result) {
-                const result = resultData.result;
-                return {
-                  questId: quest.questId,
-                  title: quest.title,
-                  questType: quest.questType,
-                  progressPercent: result.percentage || 0,
-                  assessmentResult: result, // Store full result for display
-                };
+              // 404 is expected when user hasn't completed assessment - don't log as error
+              if (resultRes.status === 404) {
+                // Silently fall through to fallback (no result found)
+              } else if (!resultRes.ok) {
+                // Log actual errors (500, network failures, etc.) but not 404
+                console.error(`Error loading assessment result for quest ${quest.questId}:`, {
+                  status: resultRes.status,
+                  statusText: resultRes.statusText,
+                });
+              } else {
+                const resultData = await resultRes.json();
+                if (resultData.ok && resultData.result) {
+                  const result = resultData.result;
+                  return {
+                    questId: quest.questId,
+                    title: quest.title,
+                    questType: quest.questType,
+                    progressPercent: result.percentage || 0,
+                    assessmentResult: result, // Store full result for display
+                  };
+                }
               }
             } catch (err) {
+              // Only log actual network/parsing errors, not expected 404s
               console.error(`Error loading assessment result for quest ${quest.questId}:`, err);
             }
             // Fallback if no result found
