@@ -93,6 +93,14 @@ export default function EntityDetailPage() {
     if (entity.type === 'skill' && 'name_canonical' in entity) {
       return (entity as any).name_canonical || entity.title || 'Unknown Skill';
     }
+    if (entity.type === 'ask' && 'message' in entity) {
+      const ask = entity as any;
+      return entity.title || `Ask: ${ask.skill || ask.skill_label || 'Unknown'}` || 'Unknown Ask';
+    }
+    if (entity.type === 'offer' && 'message' in entity) {
+      const offer = entity as any;
+      return entity.title || `Offer: ${offer.skill || offer.skill_label || 'Unknown'}` || 'Unknown Offer';
+    }
     return entity.title || entity.key || 'Unknown Entity';
   };
 
