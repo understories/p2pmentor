@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Vercel provides the hosting and deployment infrastructure for p2pmentor. It is our one central dependency for serving the web application and running serverless functions.
+Vercel provides the hosting and deployment infrastructure for p2pmentor. It is our one central dependency for serving the web application and running serverless functions. It is not a dependency for the persistence or verification of public application data.
 
 ## What Vercel Does
 
@@ -18,7 +18,7 @@ Vercel hosts p2pmentor as a Next.js application and provides:
 Vercel does **not** act as a source of truth for application data.
 
 * No database storage for public records
-* No data persistence beyond ephemeral caching
+* No persistence of public application data beyond ephemeral caching
 * No control over the data layer (Arkiv handles that)
 
 If Vercel disappeared, the public data would still exist on Arkiv and could be read by any compatible client.
@@ -44,7 +44,7 @@ Configuration is managed through Vercel's environment variable system:
 
 Key variables include:
 
-* `ARKIV_PRIVATE_KEY`: Private key for server-side operations
+* `ARKIV_PRIVATE_KEY`: Private key used by serverless functions to submit Arkiv transactions on behalf of the application (not for custody of user funds)
 * `ARKIV_RPC_URL`: Arkiv RPC endpoint
 * `JITSI_BASE_URL`: Jitsi instance URL
 * `NEXT_PUBLIC_*`: Public variables accessible in browser
@@ -58,7 +58,7 @@ Vercel cron jobs run periodic tasks defined in `vercel.json`:
 * **Daily aggregates**: `/api/cron/daily-aggregates` runs daily at midnight UTC
 * **Weekly retention**: `/api/cron/weekly-retention` runs weekly on Mondays at midnight UTC
 
-These tasks read from Arkiv, compute metrics, and write aggregated results back to Arkiv. They do not use a private database.
+These tasks read from Arkiv, compute metrics, and write aggregated results back to Arkiv. They do not use a private database. This ensures that derived data remains verifiable and does not introduce a secondary source of truth.
 
 ## Deployment
 
