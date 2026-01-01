@@ -7,8 +7,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { BackButton } from '@/components/BackButton';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EmptyState } from '@/components/EmptyState';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntityResponse {
@@ -19,7 +22,6 @@ interface EntityResponse {
 
 export default function EntityDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const type = params.type as string;
   const id = params.id as string;
   const [entity, setEntity] = useState<(PublicEntity & { provenance?: any }) | null>(null);
@@ -57,49 +59,49 @@ export default function EntityDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen p-8">
-        <div className="max-w-4xl mx-auto">Loading...</div>
+      <div className="min-h-screen p-4 md:p-8">
+        <div className="max-w-4xl mx-auto">
+          <BackButton href="/explorer" className="mb-6" />
+          <LoadingSpinner text="Loading entity..." />
+        </div>
       </div>
     );
   }
 
   if (error || !entity) {
     return (
-      <div className="min-h-screen p-8">
+      <div className="min-h-screen p-4 md:p-8">
         <div className="max-w-4xl mx-auto">
-          <p className="text-red-600">{error || 'Entity not found'}</p>
-          <Link href="/explorer" className="text-blue-600 hover:underline mt-4 inline-block">
-            Back to Explorer
-          </Link>
+          <BackButton href="/explorer" className="mb-6" />
+          <EmptyState
+            icon="⚠️"
+            title={error || 'Entity not found'}
+            description="The entity you're looking for doesn't exist or couldn't be loaded."
+            action={<BackButton href="/explorer" label="Back to Explorer" />}
+          />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen p-8">
+    <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <Link
-          href="/explorer"
-          className="text-blue-600 hover:underline mb-6 inline-block"
-        >
-          ← Back to Explorer
-        </Link>
+        <BackButton href="/explorer" className="mb-6" />
 
-        <div className="bg-white dark:bg-gray-800 border rounded-lg p-6 dark:border-gray-700">
-          <div className="mb-4">
-            <span className="px-2 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
+        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
+          <div className="mb-6">
+            <span className="px-3 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
               {entity.type}
             </span>
           </div>
 
-          <h1 className="text-3xl font-bold mb-4">{entity.title || entity.key}</h1>
+          <PageHeader
+            title={entity.title || entity.key}
+            description={entity.summary}
+          />
 
-          {entity.summary && (
-            <p className="text-gray-600 dark:text-gray-400 mb-6">{entity.summary}</p>
-          )}
-
-          <div className="space-y-4 mb-6">
+          <div className="space-y-4 mb-6 mt-6">
             <div>
               <strong>Key:</strong> <code className="text-sm">{entity.key}</code>
             </div>

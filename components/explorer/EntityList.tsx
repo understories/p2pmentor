@@ -8,6 +8,8 @@
 
 import { useEffect, useState } from 'react';
 import { EntityCard } from './EntityCard';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EmptyState } from '@/components/EmptyState';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntitiesResponse {
@@ -73,17 +75,32 @@ export function EntityList() {
     <div className="mb-8">
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <input
-          type="text"
-          placeholder="Search by wallet, key, tx hash, or content..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
-        />
+        <div className="flex-1 relative">
+          <input
+            type="text"
+            placeholder="Search by wallet, key, tx hash, or content..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+          />
+          <svg
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        </div>
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="px-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
         >
           <option value="all">All Types</option>
           <option value="profile">Profiles</option>
@@ -93,28 +110,46 @@ export function EntityList() {
         </select>
       </div>
 
+      {/* Loading State */}
+      {loading && entities.length === 0 && (
+        <div className="py-12">
+          <LoadingSpinner text="Loading entities..." />
+        </div>
+      )}
+
       {/* Entity Cards */}
-      <div className="space-y-4">
-        {entities.map((entity) => (
-          <EntityCard key={entity.key} entity={entity} />
-        ))}
-      </div>
+      {!loading && entities.length > 0 && (
+        <div className="space-y-4">
+          {entities.map((entity) => (
+            <EntityCard key={entity.key} entity={entity} />
+          ))}
+        </div>
+      )}
 
       {/* Load More */}
-      {hasMore && (
+      {hasMore && entities.length > 0 && (
         <div className="mt-6 text-center">
           <button
             onClick={loadMore}
             disabled={loading}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? 'Loading...' : 'Load More'}
           </button>
         </div>
       )}
 
+      {/* Empty State */}
       {entities.length === 0 && !loading && (
-        <div className="text-center text-gray-500 py-8">No entities found.</div>
+        <EmptyState
+          icon="🔍"
+          title="No entities found"
+          description={
+            search || type !== 'all'
+              ? 'Try adjusting your search or filter criteria.'
+              : 'No entities are available at this time.'
+          }
+        />
       )}
     </div>
   );

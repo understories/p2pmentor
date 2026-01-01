@@ -10,6 +10,8 @@
 import { useEffect, useState } from 'react';
 import { EntityList } from '@/components/explorer/EntityList';
 import { HowItWorks } from '@/components/explorer/HowItWorks';
+import { PageHeader } from '@/components/PageHeader';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 interface Summary {
   profiles: number;
@@ -58,39 +60,33 @@ export default function ExplorerPage() {
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">p2pmentor Data Explorer</h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-4">
-            Browse public p2pmentor records stored on Arkiv. All data is verifiable
-            on-chain and doesn't depend on a private database as the source of truth.
-          </p>
-          <p className="text-sm text-gray-500 dark:text-gray-500">
-            We serve this page as a viewer, but the records themselves are verifiable
-            from the network and don't depend on a private p2pmentor database as the
-            source of truth.
-          </p>
-        </div>
+        <PageHeader
+          title="p2pmentor Data Explorer"
+          description="Browse public p2pmentor records stored on Arkiv. All data is verifiable on-chain and doesn't depend on a private database as the source of truth. We serve this page as a viewer, but the records themselves are verifiable from the network and don't depend on a private p2pmentor database as the source of truth."
+        />
 
         {/* Stats Section */}
         {loading ? (
-          <div className="mb-8 text-gray-500">Loading stats...</div>
+          <div className="mb-8">
+            <LoadingSpinner text="Loading stats..." />
+          </div>
         ) : summary ? (
           <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold">{summary.profiles}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Profiles</div>
+            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-1">{summary.profiles}</div>
+              <div className="text-sm font-medium text-blue-600 dark:text-blue-400">Profiles</div>
             </div>
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold">{summary.asks}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Asks</div>
+            <div className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-purple-700 dark:text-purple-300 mb-1">{summary.asks}</div>
+              <div className="text-sm font-medium text-purple-600 dark:text-purple-400">Asks</div>
             </div>
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold">{summary.offers}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Offers</div>
+            <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-green-700 dark:text-green-300 mb-1">{summary.offers}</div>
+              <div className="text-sm font-medium text-green-600 dark:text-green-400">Offers</div>
             </div>
-            <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <div className="text-2xl font-bold">{summary.skills}</div>
-              <div className="text-sm text-gray-600 dark:text-gray-400">Skills</div>
+            <div className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-orange-700 dark:text-orange-300 mb-1">{summary.skills}</div>
+              <div className="text-sm font-medium text-orange-600 dark:text-orange-400">Skills</div>
             </div>
           </div>
         ) : null}
