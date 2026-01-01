@@ -8,10 +8,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { EntityList } from '@/components/explorer/EntityList';
-import { HowItWorks } from '@/components/explorer/HowItWorks';
 import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { EntityList } from '@/components/explorer/EntityList';
+import { HowItWorks } from '@/components/explorer/HowItWorks';
 
 interface Summary {
   profiles: number;
