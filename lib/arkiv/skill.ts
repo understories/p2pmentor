@@ -402,19 +402,17 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
     const publicClient = getPublicClient();
     const result = await publicClient.buildQuery()
       .where(eq('type', 'skill'))
+      .where(eq('key', key))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
       .fetch();
 
-    if (!result?.entities || !Array.isArray(result.entities)) {
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return null;
     }
 
-    const entity = result.entities.find((e: any) => e.key === key);
-    if (!entity) {
-      return null;
-    }
+    const entity = result.entities[0];
 
     // Fetch txHash
     const txHashResult = await publicClient.buildQuery()
