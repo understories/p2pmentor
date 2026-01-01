@@ -2,8 +2,8 @@
  * Public data contracts for the explorer
  * 
  * Defines the shape of public entities exposed via the explorer API.
- * All entities are serialized through allowlist-based serializers to ensure
- * private data is never exposed.
+ * All entities include ALL data stored on Arkiv to demonstrate transparency.
+ * All data shown here is verifiable via transaction hashes.
  */
 
 /**
@@ -32,16 +32,45 @@ export interface PublicEntity {
 }
 
 /**
- * Public profile (whitelist-only fields)
+ * Public profile (all fields stored on Arkiv)
  */
 export interface PublicProfile extends PublicEntity {
   type: 'profile';
   wallet: string;
   displayName: string;
   username?: string;
+  profileImage?: string;
+  identity_seed?: string;
+  exploringStatement?: string;
+  bio?: string;
   bioShort?: string;
+  bioLong?: string;
+  skills?: string;
   skillsArray?: string[];
+  skillExpertise?: Record<string, number>;
   timezone?: string;
+  languages?: string[];
+  contactLinks?: {
+    twitter?: string;
+    github?: string;
+    telegram?: string;
+    discord?: string;
+  };
+  seniority?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+  domainsOfInterest?: string[];
+  mentorRoles?: string[];
+  learnerRoles?: string[];
+  availabilityWindow?: string;
+  sessionsCompleted?: number;
+  sessionsGiven?: number;
+  sessionsReceived?: number;
+  npsScore?: number;
+  topSkillsUsage?: Array<{ skill: string; count: number }>;
+  peerTestimonials?: Array<{ text: string; timestamp: string; fromWallet: string }>;
+  trustEdges?: Array<{ toWallet: string; strength: number; createdAt: string }>;
+  communityAffiliations?: string[];
+  reputationScore?: number;
+  lastActiveTimestamp?: string;
 }
 
 /**

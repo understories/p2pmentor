@@ -1,11 +1,11 @@
 /**
  * Public entity serializers
  * 
- * Whitelist-based serializers that only expose public fields.
- * Private fields (email, phone, contactLinks, etc.) are explicitly excluded.
+ * Serializers that expose ALL data stored on Arkiv.
+ * The explorer demonstrates transparency by showing everything stored on-chain.
  * 
- * This is a privacy firewall - if a field is not explicitly allowed,
- * it will not be exposed via the explorer API.
+ * Note: Email addresses are NOT stored on Arkiv, so they are not included.
+ * All other fields stored on Arkiv are included here.
  */
 
 import type { UserProfile } from '@/lib/arkiv/profile';
@@ -17,13 +17,10 @@ import type { PublicProfile, PublicAsk, PublicOffer, PublicSkill } from './types
 /**
  * Serialize a user profile to public format
  * 
- * Only includes public fields:
- * - displayName, username, bioShort, skills, timezone, wallet
+ * Includes ALL fields stored on Arkiv to demonstrate transparency.
+ * All data shown here is verifiable via transaction hashes.
  * 
- * Explicitly excludes:
- * - email, phone, contactLinks (private-by-default)
- * - private notes, session details, notifications
- * - access grants, internal metadata
+ * Note: Email addresses are NOT stored on Arkiv, so they are not included.
  */
 export function serializePublicProfile(profile: UserProfile): PublicProfile {
   return {
@@ -32,17 +29,35 @@ export function serializePublicProfile(profile: UserProfile): PublicProfile {
     wallet: profile.wallet,
     displayName: profile.displayName,
     username: profile.username,
+    profileImage: profile.profileImage,
+    identity_seed: profile.identity_seed,
+    exploringStatement: profile.exploringStatement,
+    bio: profile.bio,
     bioShort: profile.bioShort,
+    bioLong: profile.bioLong,
+    skills: profile.skills,
     skillsArray: profile.skillsArray,
+    skillExpertise: profile.skillExpertise,
     timezone: profile.timezone,
+    languages: profile.languages,
+    contactLinks: profile.contactLinks, // Stored on Arkiv, so we show it
+    seniority: profile.seniority,
+    domainsOfInterest: profile.domainsOfInterest,
+    mentorRoles: profile.mentorRoles,
+    learnerRoles: profile.learnerRoles,
+    availabilityWindow: profile.availabilityWindow,
+    sessionsCompleted: profile.sessionsCompleted,
+    sessionsGiven: profile.sessionsGiven,
+    sessionsReceived: profile.sessionsReceived,
+    npsScore: profile.npsScore,
+    topSkillsUsage: profile.topSkillsUsage,
+    peerTestimonials: profile.peerTestimonials,
+    trustEdges: profile.trustEdges,
+    communityAffiliations: profile.communityAffiliations,
+    reputationScore: profile.reputationScore,
+    lastActiveTimestamp: profile.lastActiveTimestamp,
     createdAt: profile.createdAt,
     txHash: profile.txHash,
-    // Explicitly exclude: email, phone, contactLinks, bio, bioLong,
-    // profileImage, identity_seed, exploringStatement, languages,
-    // seniority, domainsOfInterest, mentorRoles, learnerRoles,
-    // availabilityWindow, sessionsCompleted, sessionsGiven, sessionsReceived,
-    // avgRating, npsScore, topSkillsUsage, peerTestimonials, trustEdges,
-    // communityAffiliations, reputationScore, lastActiveTimestamp
   };
 }
 

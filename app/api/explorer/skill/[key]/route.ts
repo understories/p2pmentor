@@ -1,16 +1,17 @@
 /**
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
  * Explorer Skill Detail Endpoint
- * 
+ *
  * Returns a single skill by key with provenance.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getSkillByKey } from '@/lib/arkiv/skill';
+import { getSkillByKey, getSkillBySlug } from '@/lib/arkiv/skill';
 import { serializePublicSkill } from '@/lib/explorer/serializers';
 import { getTransactionMetadata, getExplorerTxUrl } from '@/lib/explorer/txMeta';
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
 import type { Provenance } from '@/lib/explorer/types';
+import { SPACE_ID } from '@/lib/config';
 
 export async function GET(
   request: NextRequest,
@@ -35,9 +36,26 @@ export async function GET(
   try {
     const { key } = await params;
 
-    // Get skill
-    const skill = await getSkillByKey(key);
+    // Decode URL parameter (Next.js should auto-decode, but be safe)
+    let decodedKey = key;
+    try {
+      decodedKey = decodeURIComponent(key);
+    } catch (e) {
+      // If decoding fails, use as-is
+      console.warn('[explorer/skill] Failed to decode key, using as-is:', key);
+    }
+
+    // Get skill by key first
+    let skill = await getSkillByKey(decodedKey);
+
+    // Fallback: if not found by key, try by slug (in case the URL uses slug instead of key)
     if (!skill) {
+      console.warn('[explorer/skill] Skill not found by key, trying slug:', { key: decodedKey, originalKey: key });
+      skill = await getSkillBySlug(decodedKey, SPACE_ID);
+    }
+
+    if (!skill) {
+      console.error('[explorer/skill] Skill not found by key or slug:', { key: decodedKey, originalKey: key });
       return NextResponse.json(
         { ok: false, error: 'Skill not found' },
         { status: 404 }

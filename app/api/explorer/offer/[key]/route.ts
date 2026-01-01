@@ -1,7 +1,7 @@
 /**
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
  * Explorer Offer Detail Endpoint
- * 
+ *
  * Returns a single offer by key with provenance.
  */
 
@@ -35,9 +35,19 @@ export async function GET(
   try {
     const { key } = await params;
 
+    // Decode URL parameter (Next.js should auto-decode, but be safe)
+    let decodedKey = key;
+    try {
+      decodedKey = decodeURIComponent(key);
+    } catch (e) {
+      // If decoding fails, use as-is
+      console.warn('[explorer/offer] Failed to decode key, using as-is:', key);
+    }
+
     // Get offer
-    const offer = await getOfferByKey(key);
+    const offer = await getOfferByKey(decodedKey);
     if (!offer) {
+      console.error('[explorer/offer] Offer not found:', { key: decodedKey, originalKey: key });
       return NextResponse.json(
         { ok: false, error: 'Offer not found' },
         { status: 404 }
