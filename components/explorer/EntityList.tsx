@@ -19,10 +19,16 @@ interface EntitiesResponse {
   generatedAt: string;
 }
 
-export function EntityList() {
+interface EntityListProps {
+  spaceId?: string;
+  onSpaceIdChange?: (spaceId: string) => void;
+}
+
+export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityListProps = {} as EntityListProps) {
   const [entities, setEntities] = useState<(PublicEntity & { provenance?: any })[]>([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<string>('all');
+  const [spaceId, setSpaceId] = useState<string>(propSpaceId || 'all');
   const [search, setSearch] = useState('');
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
@@ -37,6 +43,9 @@ export function EntityList() {
       });
       if (search) {
         params.set('q', search);
+      }
+      if (spaceId && spaceId !== 'all') {
+        params.set('spaceId', spaceId);
       }
       if (cursor) {
         params.set('cursor', cursor);
@@ -61,9 +70,23 @@ export function EntityList() {
     }
   };
 
+  // Sync with prop if provided
+  useEffect(() => {
+    if (propSpaceId !== undefined) {
+      setSpaceId(propSpaceId);
+    }
+  }, [propSpaceId]);
+
+  const handleSpaceIdChange = (newSpaceId: string) => {
+    setSpaceId(newSpaceId);
+    if (onSpaceIdChange) {
+      onSpaceIdChange(newSpaceId);
+    }
+  };
+
   useEffect(() => {
     fetchEntities(null, true);
-  }, [type, search]);
+  }, [type, spaceId, search]);
 
   const loadMore = () => {
     if (nextCursor && !loading) {
@@ -107,6 +130,16 @@ export function EntityList() {
           <option value="ask">Asks</option>
           <option value="offer">Offers</option>
           <option value="skill">Skills</option>
+        </select>
+        <select
+          value={spaceId}
+          onChange={(e) => handleSpaceIdChange(e.target.value)}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+        >
+          <option value="all">All Spaces</option>
+          <option value="beta-launch">Beta Launch</option>
+          <option value="local-dev">Local Dev</option>
+          <option value="local-dev-seed">Local Dev Seed</option>
         </select>
       </div>
 

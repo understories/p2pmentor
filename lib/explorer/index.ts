@@ -179,21 +179,41 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
  * Get explorer index (cached)
  * 
  * Returns cached index if available and not expired, otherwise rebuilds.
+ * If spaceId is provided, filters the cached index by spaceId.
  */
-export async function getExplorerIndex(): Promise<ExplorerIndex> {
+export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex> {
   const now = Date.now();
 
   // Check if cache is valid
-  if (cachedIndex && now < cacheExpiresAt) {
-    return cachedIndex;
+  let index = cachedIndex;
+  if (!index || now >= cacheExpiresAt) {
+    // Rebuild index
+    index = await buildExplorerIndex();
+    // Update cache
+    cachedIndex = index;
+    cacheExpiresAt = now + CACHE_DURATION_MS;
   }
 
-  // Rebuild index
-  const index = await buildExplorerIndex();
+  // Filter by spaceId if provided
+  if (spaceId) {
+    const filteredEntities = index.entities.filter((entity) => {
+      // Check if entity has spaceId field (all entities should have it)
+      const entitySpaceId = (entity as any).spaceId;
+      return entitySpaceId === spaceId;
+    });
 
-  // Update cache
-  cachedIndex = index;
-  cacheExpiresAt = now + CACHE_DURATION_MS;
+    return {
+      ...index,
+      entities: filteredEntities,
+      counts: {
+        profiles: filteredEntities.filter((e) => e.type === 'profile').length,
+        asks: filteredEntities.filter((e) => e.type === 'ask').length,
+        offers: filteredEntities.filter((e) => e.type === 'offer').length,
+        skills: filteredEntities.filter((e) => e.type === 'skill').length,
+        total: filteredEntities.length,
+      },
+    };
+  }
 
   return index;
 }

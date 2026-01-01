@@ -45,13 +45,17 @@ export async function GET(
       console.warn('[explorer/skill] Failed to decode key, using as-is:', key);
     }
 
+    console.log('[explorer/skill] Received key:', { original: key, decoded: decodedKey, length: decodedKey.length });
+
     // Get skill by key first
     let skill = await getSkillByKey(decodedKey);
+    console.log('[explorer/skill] getSkillByKey result:', skill ? { key: skill.key, name: skill.name_canonical } : 'null');
 
     // Fallback: if not found by key, try by slug (in case the URL uses slug instead of key)
     if (!skill) {
       console.warn('[explorer/skill] Skill not found by key, trying slug:', { key: decodedKey, originalKey: key });
       skill = await getSkillBySlug(decodedKey, SPACE_ID);
+      console.log('[explorer/skill] getSkillBySlug result:', skill ? { key: skill.key, name: skill.name_canonical } : 'null');
     }
 
     if (!skill) {

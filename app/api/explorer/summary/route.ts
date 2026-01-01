@@ -28,7 +28,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const index = await getExplorerIndex();
+    const { searchParams } = new URL(request.url);
+    const spaceId = searchParams.get('spaceId') || undefined;
+
+    const index = await getExplorerIndex(spaceId);
 
     const summary = {
       profiles: index.counts.profiles,

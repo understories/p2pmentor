@@ -38,12 +38,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all';
     const q = searchParams.get('q') || '';
+    const spaceId = searchParams.get('spaceId') || undefined;
     const cursorParam = searchParams.get('cursor');
     const limit = Math.min(parseInt(searchParams.get('limit') || '25'), 50);
     const includeProvenance = searchParams.get('includeProvenance') !== 'false';
 
-    // Get cached explorer index
-    const index = await getExplorerIndex();
+    // Get cached explorer index (with spaceId filtering if provided)
+    const index = await getExplorerIndex(spaceId);
 
     // Parse cursor (if provided)
     let startIndex = 0;
@@ -61,11 +62,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter by type and search
+    // Filter by type, spaceId, and search
     let filtered = index.entities;
     if (type !== 'all') {
       filtered = filtered.filter((e) => e.type === type);
     }
+    // Note: spaceId filtering is already done in getExplorerIndex
     if (q) {
       const queryLower = q.toLowerCase();
       filtered = filtered.filter((e) => {

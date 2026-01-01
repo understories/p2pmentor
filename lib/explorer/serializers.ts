@@ -118,6 +118,7 @@ export function serializePublicSkill(skill: Skill): PublicSkill {
     slug: skill.slug,
     description: skill.description,
     status: skill.status,
+    spaceId: skill.spaceId,
     createdAt: skill.createdAt,
     txHash: skill.txHash,
   };

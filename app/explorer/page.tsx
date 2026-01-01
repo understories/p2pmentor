@@ -25,6 +25,7 @@ interface Summary {
 export default function ExplorerPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [spaceId, setSpaceId] = useState<string>('all');
 
   useEffect(() => {
     // Add noindex meta tag
@@ -33,8 +34,24 @@ export default function ExplorerPage() {
     meta.content = 'noindex,nofollow';
     document.head.appendChild(meta);
 
-    // Fetch summary
-    fetch('/api/explorer/summary')
+    return () => {
+      // Cleanup meta tag on unmount
+      const existing = document.querySelector('meta[name="robots"][content="noindex,nofollow"]');
+      if (existing) {
+        existing.remove();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    // Fetch summary (with spaceId filter if not 'all')
+    const params = new URLSearchParams();
+    if (spaceId && spaceId !== 'all') {
+      params.set('spaceId', spaceId);
+    }
+    const url = `/api/explorer/summary${params.toString() ? `?${params}` : ''}`;
+
+    fetch(url)
       .then((res) => res.json())
       .then((data) => {
         if (data.ok) {
@@ -46,15 +63,7 @@ export default function ExplorerPage() {
         console.error('Failed to fetch summary:', error);
         setLoading(false);
       });
-
-    return () => {
-      // Cleanup meta tag on unmount
-      const existing = document.querySelector('meta[name="robots"][content="noindex,nofollow"]');
-      if (existing) {
-        existing.remove();
-      }
-    };
-  }, []);
+  }, [spaceId]);
 
   return (
     <div className="min-h-screen p-4 md:p-8">
@@ -92,7 +101,7 @@ export default function ExplorerPage() {
         ) : null}
 
         {/* Entity List */}
-        <EntityList />
+        <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
 
         {/* How It Works */}
         <HowItWorks />
