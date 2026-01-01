@@ -422,3 +422,94 @@ export async function listAsksForWallet(wallet: string, spaceId?: string): Promi
   });
 }
 
+/**
+ * Get an ask by key (entity key)
+ */
+export async function getAskByKey(key: string): Promise<Ask | null> {
+  try {
+    const publicClient = getPublicClient();
+    const result = await publicClient.buildQuery()
+      .where(eq('type', 'ask'))
+      .where(eq('key', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+      return null;
+    }
+
+    const entity = result.entities[0];
+
+    // Fetch txHash
+    const txHashResult = await publicClient.buildQuery()
+      .where(eq('type', 'ask_txhash'))
+      .where(eq('askKey', key))
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(1)
+      .fetch();
+
+    let txHash: string | undefined;
+    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+      try {
+        const txHashEntity = txHashResult.entities[0];
+        if (txHashEntity.payload) {
+          const decoded = txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+            ? txHashEntity.payload
+            : JSON.stringify(txHashEntity.payload);
+          const payload = JSON.parse(decoded);
+          txHash = payload.txHash;
+        }
+      } catch (e) {
+        // Ignore decode errors
+      }
+    }
+
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    let payload: any = {};
+    try {
+      if (entity.payload) {
+        const decoded = entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('[getAskByKey] Error decoding payload:', e);
+    }
+
+    const ttlSeconds = parseInt(getAttr('ttlSeconds')) || ASK_TTL_SECONDS;
+
+    return {
+      key: entity.key,
+      wallet: getAttr('wallet') || payload.wallet || '',
+      skill: getAttr('skill') || payload.skill || '',
+      skill_id: getAttr('skill_id') || payload.skill_id || undefined,
+      skill_label: getAttr('skill_label') || payload.skill_label || undefined,
+      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
+      createdAt: getAttr('createdAt') || payload.createdAt || '',
+      status: getAttr('status') || payload.status || 'open',
+      message: payload.message || '',
+      ttlSeconds: isNaN(ttlSeconds) ? ASK_TTL_SECONDS : ttlSeconds,
+      txHash: txHash || getAttr('txHash') || payload.txHash || undefined,
+    };
+  } catch (error: any) {
+    console.error('[getAskByKey] Error:', error);
+    return null;
+  }
+}
+
