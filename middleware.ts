@@ -15,12 +15,14 @@ const PUBLIC_ROUTES = [
   '/',
   '/beta',
   '/docs', // Documentation is public
+  '/explorer', // Data explorer is public
 ];
 
 // API routes that don't require beta access
 const PUBLIC_API_ROUTES = [
   '/api/beta-code', // Beta code validation itself
   '/api/docs', // Documentation API routes (list, content, git-history)
+  '/api/explorer', // Explorer API routes (all /api/explorer/* routes)
 ];
 
 // Admin API routes require beta access (same as admin dashboard)
