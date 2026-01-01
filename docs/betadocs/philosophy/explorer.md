@@ -56,9 +56,9 @@ The network provides the proof.
 
 **We do run software for:**
 
-* serving this website,
+* [serving this website](/docs/architecture/integrations/vercel-integration),
 * formatting and displaying public data,
-* coordinating user interactions (for example, video calls).
+* [coordinating user interactions](/docs/architecture/integrations/jitsi-integration) (for example, video calls).
 
 **We do not run a private database that acts as the source of truth for public records.**
 

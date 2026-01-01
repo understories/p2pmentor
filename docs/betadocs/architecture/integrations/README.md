@@ -4,6 +4,7 @@ External service integrations for p2pmentor.
 
 ## Available Integrations
 
+- [Vercel Integration](vercel-integration.md) - Hosting and deployment infrastructure
 - [MetaMask Integration](metamask-integration.md) - Wallet connection and mobile browser handling
 - [WalletConnect Integration](walletconnect-integration.md) - QR code and deep link wallet connection
 - [Passkey Integration](passkey-integration.md) - WebAuthn-based authentication with embedded EVM keypairs
