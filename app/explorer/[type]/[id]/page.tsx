@@ -101,62 +101,97 @@ export default function EntityDetailPage() {
             description={entity.summary}
           />
 
-          <div className="space-y-4 mb-6 mt-6">
-            <div>
-              <strong>Key:</strong> <code className="text-sm">{entity.key}</code>
+          {/* Entity Details */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 mt-6">
+            <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Entity Key</div>
+              <code className="text-sm text-gray-900 dark:text-gray-100 break-all">{entity.key}</code>
             </div>
             {entity.wallet && (
-              <div>
-                <strong>Wallet:</strong> <code className="text-sm">{entity.wallet}</code>
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Wallet Address</div>
+                <code className="text-sm text-gray-900 dark:text-gray-100 break-all">{entity.wallet}</code>
               </div>
             )}
             {entity.createdAt && (
-              <div>
-                <strong>Created:</strong>{' '}
-                {new Date(entity.createdAt).toLocaleString()}
+              <div className="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700">
+                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Created</div>
+                <div className="text-sm text-gray-900 dark:text-gray-100">
+                  {new Date(entity.createdAt).toLocaleString()}
+                </div>
               </div>
             )}
           </div>
 
+          {/* Provenance Section */}
           {entity.provenance && (
-            <div className="border-t pt-6 mt-6">
-              <h2 className="text-xl font-semibold mb-4">Provenance</h2>
-              <div className="space-y-2">
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Provenance
+              </h2>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3">
                 <div>
-                  <strong>Transaction Hash:</strong>{' '}
+                  <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Transaction Hash</div>
                   <a
                     href={entity.provenance.explorerTxUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-2 text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 hover:underline break-all"
                   >
-                    {entity.provenance.txHash}
+                    <code>{entity.provenance.txHash}</code>
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
                   </a>
                 </div>
                 {entity.provenance.blockNumber && (
                   <div>
-                    <strong>Block Number:</strong> {entity.provenance.blockNumber}
+                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Block Number</div>
+                    <div className="text-sm text-green-800 dark:text-green-200 font-mono">{entity.provenance.blockNumber}</div>
                   </div>
                 )}
                 {entity.provenance.blockTimestamp && (
                   <div>
-                    <strong>Block Timestamp:</strong>{' '}
-                    {new Date(entity.provenance.blockTimestamp * 1000).toLocaleString()}
+                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Block Timestamp</div>
+                    <div className="text-sm text-green-800 dark:text-green-200">
+                      {new Date(entity.provenance.blockTimestamp * 1000).toLocaleString()}
+                    </div>
                   </div>
                 )}
                 {entity.provenance.status && (
                   <div>
-                    <strong>Status:</strong> {entity.provenance.status}
+                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Status</div>
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      entity.provenance.status === 'success'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+                        : entity.provenance.status === 'failed'
+                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'
+                    }`}>
+                      {entity.provenance.status}
+                    </span>
                   </div>
                 )}
               </div>
             </div>
           )}
 
+          {/* Raw JSON (Collapsible) */}
           <div className="mt-6">
-            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded text-xs overflow-auto">
-              {JSON.stringify(entity, null, 2)}
-            </pre>
+            <details className="group">
+              <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-2">
+                Raw JSON Data
+                <svg className="inline-block w-4 h-4 ml-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </summary>
+              <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-lg text-xs overflow-auto mt-2">
+                {JSON.stringify(entity, null, 2)}
+              </pre>
+            </details>
           </div>
         </div>
       </div>
