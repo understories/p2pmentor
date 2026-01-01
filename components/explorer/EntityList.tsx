@@ -112,8 +112,26 @@ export function EntityList() {
 
       {/* Loading State */}
       {loading && entities.length === 0 && (
-        <div className="py-12">
-          <LoadingSpinner text="Loading entities..." />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div
+              key={i}
+              className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg animate-pulse"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                    <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  </div>
+                  <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                  <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
+                  <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                </div>
+                <div className="h-10 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -142,12 +160,14 @@ export function EntityList() {
       {/* Empty State */}
       {entities.length === 0 && !loading && (
         <EmptyState
-          icon="🔍"
-          title="No entities found"
+          icon={search || type !== 'all' ? '🔍' : '📭'}
+          title={search || type !== 'all' ? 'No entities found' : 'No entities available'}
           description={
-            search || type !== 'all'
-              ? 'Try adjusting your search or filter criteria.'
-              : 'No entities are available at this time.'
+            search
+              ? `No entities match "${search}". Try a different search term or clear the filter.`
+              : type !== 'all'
+              ? `No ${type} entities are available. Try selecting "All Types" or a different type.`
+              : 'No entities are available at this time. Check back later or create some content!'
           }
         />
       )}
