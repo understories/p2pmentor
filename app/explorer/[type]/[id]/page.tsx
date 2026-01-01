@@ -180,15 +180,15 @@ export default function EntityDetailPage() {
           )}
 
           {/* Raw JSON (Collapsible) */}
-          <div className="mt-6">
+          <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-6">
             <details className="group">
-              <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-2">
-                Raw JSON Data
-                <svg className="inline-block w-4 h-4 ml-2 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <summary className="cursor-pointer text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 mb-2 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 -mx-2">
+                <svg className="w-4 h-4 transform group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
+                Raw JSON Data
               </summary>
-              <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-lg text-xs overflow-auto mt-2">
+              <pre className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4 rounded-lg text-xs overflow-auto mt-2 font-mono">
                 {JSON.stringify(entity, null, 2)}
               </pre>
             </details>

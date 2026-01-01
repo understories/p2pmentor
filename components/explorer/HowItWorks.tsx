@@ -19,16 +19,16 @@ export function HowItWorks() {
     <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
       <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">How This Works</h2>
       <div className="space-y-3">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
           <button
             onClick={() => toggleSection('data')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
           >
             <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span className="text-lg">📊</span>
               What data is shown?
             </span>
-            <span className="text-gray-500 dark:text-gray-400 text-xl font-light">
+            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'data' ? 'rotate-180' : ''}`}>
               {openSection === 'data' ? '−' : '+'}
             </span>
           </button>
@@ -43,16 +43,16 @@ export function HowItWorks() {
           )}
         </div>
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
           <button
             onClick={() => toggleSection('source')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
           >
             <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span className="text-lg">🔗</span>
               Where does the data come from?
             </span>
-            <span className="text-gray-500 dark:text-gray-400 text-xl font-light">
+            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'source' ? 'rotate-180' : ''}`}>
               {openSection === 'source' ? '−' : '+'}
             </span>
           </button>
@@ -68,16 +68,16 @@ export function HowItWorks() {
           )}
         </div>
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
           <button
             onClick={() => toggleSection('verification')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
           >
             <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <span className="text-lg">✓</span>
               How can I verify the data?
             </span>
-            <span className="text-gray-500 dark:text-gray-400 text-xl font-light">
+            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'verification' ? 'rotate-180' : ''}`}>
               {openSection === 'verification' ? '−' : '+'}
             </span>
           </button>
