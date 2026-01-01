@@ -56,6 +56,7 @@ export function serializePublicProfile(profile: UserProfile): PublicProfile {
     communityAffiliations: profile.communityAffiliations,
     reputationScore: profile.reputationScore,
     lastActiveTimestamp: profile.lastActiveTimestamp,
+    spaceId: profile.spaceId,
     createdAt: profile.createdAt,
     txHash: profile.txHash,
   };
@@ -76,6 +77,7 @@ export function serializePublicAsk(ask: Ask): PublicAsk {
     skill_label: ask.skill_label,
     message: ask.message,
     status: ask.status,
+    spaceId: ask.spaceId,
     createdAt: ask.createdAt,
     txHash: ask.txHash,
   };
@@ -100,6 +102,7 @@ export function serializePublicOffer(offer: Offer): PublicOffer {
     isPaid: offer.isPaid,
     cost: offer.cost,
     paymentAddress: offer.paymentAddress,
+    spaceId: offer.spaceId,
     createdAt: offer.createdAt,
     txHash: offer.txHash,
   };

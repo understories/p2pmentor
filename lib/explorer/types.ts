@@ -71,6 +71,7 @@ export interface PublicProfile extends PublicEntity {
   communityAffiliations?: string[];
   reputationScore?: number;
   lastActiveTimestamp?: string;
+  spaceId?: string;
 }
 
 /**
@@ -84,6 +85,7 @@ export interface PublicAsk extends PublicEntity {
   skill_label?: string;
   message: string;
   status: string;
+  spaceId?: string;
 }
 
 /**
@@ -101,6 +103,7 @@ export interface PublicOffer extends PublicEntity {
   isPaid: boolean;
   cost?: string;
   paymentAddress?: string;
+  spaceId?: string;
 }
 
 /**
@@ -112,5 +115,6 @@ export interface PublicSkill extends PublicEntity {
   slug: string;
   description?: string;
   status: 'active' | 'archived';
+  spaceId?: string;
 }
 
