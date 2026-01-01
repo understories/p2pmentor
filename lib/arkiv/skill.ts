@@ -399,29 +399,34 @@ export async function getSkillBySlug(slug: string, spaceId?: string): Promise<Sk
  */
 export async function getSkillByKey(key: string): Promise<Skill | null> {
   try {
-    console.log('[getSkillByKey] Querying for skill with key:', { key, length: key.length, startsWith0x: key.startsWith('0x') });
+    console.log('[getSkillByKey] Fetching skill with key:', { key, length: key.length, startsWith0x: key.startsWith('0x') });
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
-      .where(eq('type', 'skill'))
-      .where(eq('key', key))
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
 
-    console.log('[getSkillByKey] Query result:', {
-      hasEntities: !!result?.entities,
-      entityCount: result?.entities?.length || 0,
-      firstEntityKey: result?.entities?.[0]?.key
-    });
+    // Use getEntity for direct entity key lookup (more reliable than querying)
+    const entity = await publicClient.getEntity(key as `0x${string}`);
 
-    if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
-      console.log('[getSkillByKey] No entities found for key:', key);
+    if (!entity) {
+      console.log('[getSkillByKey] Entity not found for key:', key);
       return null;
     }
 
-    const entity = result.entities[0];
-    console.log('[getSkillByKey] Found entity:', { entityKey: entity.key, matchesQuery: entity.key === key });
+    // Verify this is a skill entity
+    const attrs = entity.attributes || {};
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
+
+    const entityType = getAttr('type');
+    if (entityType !== 'skill') {
+      console.log('[getSkillByKey] Entity is not a skill:', { entityType, key });
+      return null;
+    }
+
+    console.log('[getSkillByKey] Found skill entity:', { entityKey: entity.key, name: getAttr('name_canonical') });
 
     // Fetch txHash
     const txHashResult = await publicClient.buildQuery()
@@ -449,15 +454,6 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
         // Ignore decode errors
       }
     }
-
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
 
     let payload: any = {};
     try {
