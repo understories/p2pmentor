@@ -12,6 +12,8 @@ This documentation serves three audiences. Choose your entry point:
 
 - [First Principles](/docs/philosophy/first-principles) - Core design philosophy
 - [Design Values](/docs/philosophy/design-values) - What guides our decisions
+- [Serverless & Verifiable by Design](/docs/philosophy/serverless-and-trustless) - How we build without a central database
+- [Data Explorer](/docs/philosophy/explorer) - Inspect and verify public p2pmentor data
 - [Tracking and Privacy](/docs/philosophy/tracking-and-privacy) - What we track and why
 - [History & Future](/docs/history-future/context) - Project history and roadmap
 

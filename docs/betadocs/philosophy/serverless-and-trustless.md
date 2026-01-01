@@ -1,68 +1,139 @@
-# Serverless & Trustless
+# Serverless & Verifiable by Design
+
+*(Deeper architectural context)*
 
 ## How does an app work without a central database?
 
-Instead of storing data in our own database, we store everything on Arkiv, a decentralized blockchain network. Think of it like this:
+Most applications store user data in a private database that the company controls.
 
-**Traditional app:**
-- User creates profile → stored in our database
-- User creates session → stored in our database
-- We control the data, we can delete it, we can change it
+p2pmentor works differently.
 
-**p2pmentor:**
-- User creates profile → stored as an entity on Arkiv blockchain
-- User creates session → stored as an entity on Arkiv blockchain
-- We don't control the data, users do. It's verifiable and cryptographically secured.
+Instead of storing public application data in our own database, we store it as **entities on Arkiv**, a decentralized data layer anchored to a blockchain network.
 
-When you create a profile, we write it to Arkiv. When you view your profile, we read it from Arkiv. We're just a client that helps you interact with the blockchain. The data lives on Arkiv, not on our servers.
+**Traditional app**
 
-**Entity Expiration and Archival:**
-All entities on Arkiv have an expiry block. When you query an entity after its expiry block, standard RPC nodes will no longer return it. However, archival nodes can query historical data by providing a specific block number. Access to archival nodes may require payment and is not guaranteed to be free. This means entities are verifiable and cryptographically secured during their active period, but after expiry they may only be accessible through specialized archival infrastructure.
+* User creates a profile → stored in the company's database
+* User creates an ask or offer → stored in the company's database
+* The company controls the data: it can be changed, deleted, or made unavailable
 
-## Why would we not want a central server?
+**p2pmentor**
 
-**Single point of failure**
-If our server goes down, the app breaks. If our database gets corrupted, data is lost. If we shut down, all user data disappears. With Arkiv, the data lives on a decentralized network. Even if we disappear, your data remains accessible.
+* User creates a profile → written as an entity on Arkiv
+* User creates an ask or offer → written as an entity on Arkiv
+* Each write produces a transaction that can be independently verified
 
-**Trust requirement**
-With a central server, users must trust us to:
-- Not delete their data
-- Not sell their data
-- Not change their data
-- Keep the service running
-- Protect their data from hackers
+When you view public data in p2pmentor, the app reads it from Arkiv.
+Our infrastructure acts as a **viewer and coordinator**, not as the source of truth.
 
-With Arkiv, users don't need to trust us. The blockchain provides cryptographic proof that data exists and hasn't been tampered with. Anyone can verify it independently.
+You can inspect this yourself in the [p2pmentor Data Explorer](/docs/philosophy/explorer), which shows public p2pmentor records alongside the transactions that created them.
 
-**Data ownership**
-With a central server, we own the data. Users are just borrowing it. With Arkiv, users own their data. It's stored on the blockchain with their wallet address. They can access it from any app that reads from Arkiv, not just ours.
+---
 
-**Censorship resistance**
-A central server can be censored, blocked, or shut down. A decentralized blockchain network is much harder to censor. As long as the network exists, the data is accessible.
+## What "serverless" means here (and what it doesn't)
 
-## How Arkiv enables serverless and trustless development from day 1
+**Serverless does not mean "no computers are running."**
 
-**Serverless means no backend database**
-Arkiv IS the database. We don't need to set up PostgreSQL, MongoDB, or any other database. We don't need to manage database servers, backups, or migrations. Arkiv handles all of that.
+It means we do **not rely on a private backend database** to store or validate public application data.
 
-**Trustless means no trust required**
-Arkiv uses blockchain technology to provide cryptographic proof of data existence. Users can verify their data independently using the Arkiv explorer. They don't need to trust us or any central authority.
+Arkiv functions as the data layer:
 
-**From day 1 means it's built in**
-Unlike traditional apps that start centralized and try to decentralize later, p2pmentor was built serverless and trustless from the beginning. Every entity is stored on Arkiv. Every query reads from Arkiv. There's no migration path needed because there's no central database to migrate from.
+* No PostgreSQL
+* No MongoDB
+* No internal data warehouse holding public records
 
-**What we still need servers for**
-We still run servers, but only for:
-- Serving the web app (Next.js frontend)
-- API routes that help format data (GraphQL wrapper)
-- Video calls (Jitsi integration)
+Our servers are used only to:
 
-But we don't need servers for:
-- Storing user data (Arkiv does this)
-- Storing profiles, sessions, asks, offers (all on Arkiv)
-- Data backups (Arkiv network handles this)
-- Data verification (blockchain provides this)
+* Serve the web interface
+* Format and display public data
+* Coordinate interactions with external services (for example, video calls)
 
-**The result**
-A simpler architecture. Less infrastructure to manage. More resilient to failures. Users own their data. No trust required. All from day 1, not as an afterthought.
+If our web servers disappeared, the public data would still exist on Arkiv and could be read by any compatible client.
 
+---
+
+## Verifiability instead of blind trust
+
+With a traditional server-based app, users must trust the operator to:
+
+* Not silently change or delete data
+* Not selectively hide records
+* Not misuse stored data
+* Keep infrastructure running indefinitely
+
+With p2pmentor:
+
+* Public records are written as transactions
+* Those transactions are timestamped and immutable
+* Anyone can verify them independently using a network explorer
+
+This doesn't eliminate trust entirely, but it **dramatically reduces the trust surface**.
+Claims can be checked against the network, not just against our UI.
+
+The [explorer page](/docs/philosophy/explorer) exists specifically to make this visible.
+
+---
+
+## Data ownership (precise version)
+
+Public p2pmentor records are associated with wallet addresses and written to Arkiv.
+
+In the current beta:
+
+* Transactions are submitted by an operational signer on behalf of users
+* Once written, records are publicly verifiable and not dependent on our private systems
+
+Ownership here means:
+
+* The data is not locked inside a proprietary database
+* The data can be read by any application that understands Arkiv
+* The history of changes is anchored to verifiable transactions
+
+Future versions may expand who signs transactions, but the core guarantee already holds: **no private database is required to validate public data.**
+
+---
+
+## Censorship resistance (properly scoped)
+
+A centralized server can be:
+
+* Shut down
+* Blocked
+* Forced to remove or alter data
+
+A decentralized data layer makes this harder.
+
+As long as the underlying network exists, previously written public records can be verified.
+Availability may vary by node type (standard vs archival), but **existence and integrity remain provable**.
+
+---
+
+## Entity expiration and archival (important nuance)
+
+Arkiv entities have an **expiry block**.
+
+* Before expiry: entities are queryable from standard nodes
+* After expiry: entities may only be accessible via archival nodes
+* Archival access may require payment and is not guaranteed to be free
+
+This means:
+
+* Data is verifiable and accessible during its active lifetime
+* Historical verification remains possible, but may depend on archival infrastructure
+
+The explorer reflects this reality rather than hiding it.
+
+---
+
+## Why this matters
+
+This architecture produces a different set of tradeoffs:
+
+* Fewer moving parts
+* No private database to secure or migrate
+* Clear separation between **data truth** and **user interface**
+* Public claims that can be independently checked
+
+p2pmentor is not "decentralized later."
+The core data model is verifiable from the start.
+
+The [explorer page](/docs/philosophy/explorer) exists so you don't have to take our word for it.
