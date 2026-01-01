@@ -7,8 +7,6 @@
 
 'use client';
 
-import { useEffect } from 'react';
-
 import { useEffect, useState } from 'react';
 import { EntityList } from '@/components/explorer/EntityList';
 import { HowItWorks } from '@/components/explorer/HowItWorks';

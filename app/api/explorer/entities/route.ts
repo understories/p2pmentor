@@ -1,4 +1,5 @@
 /**
+import { checkRateLimit } from '@/lib/explorer/rateLimit';
  * Explorer Entities List Endpoint
  * 
  * Returns paginated list of public entities with optional search and filtering.
@@ -8,6 +9,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getExplorerIndex } from '@/lib/explorer/index';
 import { getTransactionMetadata, getExplorerTxUrl } from '@/lib/explorer/txMeta';
+import { checkRateLimit } from '@/lib/explorer/rateLimit';
 import type { Provenance } from '@/lib/explorer/types';
 
 /**
@@ -16,6 +18,22 @@ import type { Provenance } from '@/lib/explorer/types';
 type Cursor = { i: number; v: string };
 
 export async function GET(request: NextRequest) {
+  // Rate limiting
+  const rateLimit = checkRateLimit(request);
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { ok: false, error: 'rate_limited' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+          'X-Robots-Tag': 'noindex, nofollow',
+        },
+      }
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all';
@@ -101,17 +119,31 @@ export async function GET(request: NextRequest) {
           ).toString('base64')
         : null;
 
-    return NextResponse.json({
-      ok: true,
-      entities: entitiesWithProvenance,
-      nextCursor,
-      generatedAt: index.generatedAt.toISOString(),
-    });
+    return NextResponse.json(
+      {
+        ok: true,
+        entities: entitiesWithProvenance,
+        nextCursor,
+        generatedAt: index.generatedAt.toISOString(),
+      },
+      {
+        headers: {
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': new Date(rateLimit.resetAt).toISOString(),
+          'X-Robots-Tag': 'noindex, nofollow',
+        },
+      }
+    );
   } catch (error: any) {
     console.error('[explorer/entities] Error:', error);
     return NextResponse.json(
       { ok: false, error: error.message || 'Failed to fetch entities' },
-      { status: 500 }
+      {
+        status: 500,
+        headers: {
+          'X-Robots-Tag': 'noindex, nofollow',
+        },
+      }
     );
   }
 }
