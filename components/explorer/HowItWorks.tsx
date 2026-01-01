@@ -35,9 +35,10 @@ export function HowItWorks() {
           {openSection === 'data' && (
             <div className="px-5 pb-4 text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
               <p>
-                The explorer shows public p2pmentor records stored on Arkiv. This includes
-                profiles (display name, bio, skills), asks, offers, and skills. Private
-                information like email addresses and contact links are not included.
+                The explorer shows all p2pmentor records stored on Arkiv. This includes
+                profiles (display name, bio, skills, contact links), asks, offers, and skills.
+                All data stored on Arkiv is visible here and verifiable via transaction hashes.
+                Email addresses are not stored on Arkiv, so they are not shown.
               </p>
             </div>
           )}

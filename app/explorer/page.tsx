@@ -62,7 +62,7 @@ export default function ExplorerPage() {
         {/* Hero Section */}
         <PageHeader
           title="p2pmentor Data Explorer"
-          description="Browse public p2pmentor records stored on Arkiv. All data is verifiable on-chain and doesn't depend on a private database as the source of truth. We serve this page as a viewer, but the records themselves are verifiable from the network and don't depend on a private p2pmentor database as the source of truth."
+          description="Browse p2pmentor records stored on Arkiv. All data is verifiable on-chain and doesn't depend on a private database as the source of truth."
         />
 
         {/* Stats Section */}
