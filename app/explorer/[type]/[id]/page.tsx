@@ -27,6 +27,7 @@ export default function EntityDetailPage() {
   const [entity, setEntity] = useState<(PublicEntity & { provenance?: any }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showProvenance, setShowProvenance] = useState(false);
 
   useEffect(() => {
     if (!type || !id) return;
@@ -84,20 +85,33 @@ export default function EntityDetailPage() {
     );
   }
 
+  // Get human-readable title
+  const getHumanTitle = () => {
+    if (entity.type === 'profile' && 'displayName' in entity) {
+      return (entity as any).displayName || entity.wallet || 'Unknown Profile';
+    }
+    if (entity.type === 'skill' && 'name_canonical' in entity) {
+      return (entity as any).name_canonical || entity.title || 'Unknown Skill';
+    }
+    return entity.title || entity.key || 'Unknown Entity';
+  };
+
   return (
     <div className="min-h-screen p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         <BackButton href="/explorer" className="mb-6" />
 
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 shadow-sm">
-          <div className="mb-6">
-            <span className="px-3 py-1 text-xs font-semibold bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+          {/* Type badge - small and subtle */}
+          <div className="mb-4">
+            <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded">
               {entity.type}
             </span>
           </div>
 
+          {/* Human-readable title - LARGE and PROMINENT */}
           <PageHeader
-            title={entity.title || entity.key}
+            title={getHumanTitle()}
             description={entity.summary}
           />
 
@@ -353,59 +367,62 @@ export default function EntityDetailPage() {
             </div>
           )}
 
-          {/* Provenance Section */}
+          {/* Blockchain Provenance - Collapsible Section at Bottom */}
           {entity.provenance && (
-            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-8">
+              <button
+                onClick={() => setShowProvenance(!showProvenance)}
+                className="w-full flex items-center justify-between text-left text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              >
+                <span className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  Blockchain Verification
+                </span>
+                <svg
+                  className={`w-4 h-4 transition-transform ${showProvenance ? 'rotate-180' : ''}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
-                Provenance
-              </h2>
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-3">
-                <div>
-                  <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Transaction Hash</div>
-                  <a
-                    href={entity.provenance.explorerTxUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200 hover:underline break-all"
-                  >
-                    <code>{entity.provenance.txHash}</code>
-                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
-                </div>
-                {entity.provenance.blockNumber && (
+              </button>
+              {showProvenance && (
+                <div className="mt-4 space-y-3 text-xs text-gray-500 dark:text-gray-500">
                   <div>
-                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Block Number</div>
-                    <div className="text-sm text-green-800 dark:text-green-200 font-mono">{entity.provenance.blockNumber}</div>
+                    <span className="font-medium">Transaction:</span>{' '}
+                    <a
+                      href={entity.provenance.explorerTxUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline break-all"
+                    >
+                      {entity.provenance.txHash.slice(0, 20)}...
+                    </a>
                   </div>
-                )}
-                {entity.provenance.blockTimestamp && (
-                  <div>
-                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Block Timestamp</div>
-                    <div className="text-sm text-green-800 dark:text-green-200">
+                  {entity.provenance.blockNumber && (
+                    <div>
+                      <span className="font-medium">Block:</span> {entity.provenance.blockNumber}
+                    </div>
+                  )}
+                  {entity.provenance.blockTimestamp && (
+                    <div>
+                      <span className="font-medium">Timestamp:</span>{' '}
                       {new Date(entity.provenance.blockTimestamp * 1000).toLocaleString()}
                     </div>
-                  </div>
-                )}
-                {entity.provenance.status && (
-                  <div>
-                    <div className="text-xs font-semibold text-green-700 dark:text-green-300 mb-1">Status</div>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      entity.provenance.status === 'success'
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
-                        : entity.provenance.status === 'failed'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200'
-                    }`}>
-                      {entity.provenance.status}
-                    </span>
-                  </div>
-                )}
-              </div>
+                  )}
+                  {entity.provenance.status && (
+                    <div>
+                      <span className="font-medium">Status:</span>{' '}
+                      <span className={entity.provenance.status === 'success' ? 'text-green-600 dark:text-green-400' : ''}>
+                        {entity.provenance.status}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
