@@ -26,9 +26,11 @@ interface Summary {
 
 export default function ExplorerPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
+  const [transactionCount, setTransactionCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [spaceId, setSpaceId] = useState<string>('all');
   const [showTransactions, setShowTransactions] = useState(false);
+  const [showEntities, setShowEntities] = useState(false);
 
   useEffect(() => {
     // Add noindex meta tag
@@ -66,6 +68,22 @@ export default function ExplorerPage() {
         console.error('Failed to fetch summary:', error);
         setLoading(false);
       });
+
+    // Fetch transaction count
+    const txParams = new URLSearchParams({ limit: '1' });
+    if (spaceId && spaceId !== 'all') {
+      txParams.set('spaceId', spaceId);
+    }
+    fetch(`/api/explorer/transactions?${txParams}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.ok) {
+          setTransactionCount(data.total || 0);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to fetch transaction count:', error);
+      });
   }, [spaceId]);
 
   return (
@@ -91,7 +109,7 @@ export default function ExplorerPage() {
             <LoadingSpinner text="Loading stats..." />
           </div>
         ) : summary ? (
-          <div className="mb-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-4">
             <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
               <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-1">{summary.profiles}</div>
               <div className="text-sm font-medium text-blue-600 dark:text-blue-400">Profiles</div>
@@ -108,11 +126,30 @@ export default function ExplorerPage() {
               <div className="text-3xl font-bold text-orange-700 dark:text-orange-300 mb-1">{summary.skills}</div>
               <div className="text-sm font-medium text-orange-600 dark:text-orange-400">Skills</div>
             </div>
+            <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
+              <div className="text-3xl font-bold text-gray-700 dark:text-gray-300 mb-1">{transactionCount !== null ? transactionCount : '...'}</div>
+              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Transactions</div>
+            </div>
           </div>
         ) : null}
 
-        {/* Entity List */}
-        <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
+        {/* Entities - Collapsible Entity List */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Entities</h2>
+            <button
+              onClick={() => setShowEntities(!showEntities)}
+              className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              {showEntities ? 'Hide Entities' : 'Show Entities'}
+            </button>
+          </div>
+          {showEntities && (
+            <div className="mt-4">
+              <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
+            </div>
+          )}
+        </div>
 
         {/* Recent Activity - Collapsible Transaction Feed */}
         <div className="mb-8">
