@@ -69,16 +69,16 @@ export default function ExplorerPage() {
         setLoading(false);
       });
 
-    // Fetch transaction count
-    const txParams = new URLSearchParams({ limit: '1' });
+    // Fetch transaction count from Arkiv network directly
+    const txCountParams = new URLSearchParams();
     if (spaceId && spaceId !== 'all') {
-      txParams.set('spaceId', spaceId);
+      txCountParams.set('spaceId', spaceId);
     }
-    fetch(`/api/explorer/transactions?${txParams}`)
+    fetch(`/api/explorer/transaction-count?${txCountParams}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.ok) {
-          setTransactionCount(data.total || 0);
+          setTransactionCount(data.count || 0);
         }
       })
       .catch((error) => {
