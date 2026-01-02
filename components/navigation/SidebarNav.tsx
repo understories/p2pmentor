@@ -239,11 +239,14 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
     })
     .map(({ minLevel, ...item }) => item); // Remove minLevel from final items
 
-  // Don't show on landing, auth, beta, or admin pages
-  const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
-  if (hideNavPaths.some(path => pathname === path || pathname.startsWith('/admin'))) {
-    return null;
-  }
+  // Update hide logic - explicit checks for clarity
+  const isAdmin = pathname?.startsWith('/admin');
+  const isHidden = pathname === '/' || pathname === '/auth' || pathname === '/beta';
+
+  // Explicit ordering: check admin first, then explorer, then other hidden paths
+  if (isAdmin) return null;
+  if (pathname === '/explorer' && !allowOnExplorer) return null;
+  if (isHidden) return null;
 
   const isActive = (href: string) => {
     if (href === '/me') {
