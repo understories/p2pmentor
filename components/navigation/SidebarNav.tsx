@@ -36,9 +36,10 @@ interface NavItem {
 
 interface SidebarNavProps {
   allowOnExplorer?: boolean; // Explicit opt-in for explorer rendering
+  nested?: boolean; // If true, render without fixed positioning (for nesting in ExplorerSidebar)
 }
 
-export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
+export function SidebarNav({ allowOnExplorer = false, nested = false }: SidebarNavProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const notificationCount = useNotificationCount();
@@ -271,24 +272,42 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
     return pathname === item.href || pathname.startsWith(`${item.href}/`);
   });
 
+  // When nested, use relative positioning instead of fixed
+  // ExplorerSidebar handles the container positioning
+  const navClasses = nested
+    ? "group w-full h-full flex flex-col overflow-visible"
+    : "group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 group-hover:border-r group-hover:border-gray-200/30 group-hover:dark:border-gray-700/30 transition-all duration-300 ease-out overflow-visible bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm";
+
+  const containerClasses = nested
+    ? "relative flex flex-col items-start h-full w-full px-3 min-w-full overflow-y-auto overflow-x-visible"
+    : "relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300 pointer-events-none";
+
+  // Label opacity: always visible when nested, hover-revealed when not nested
+  const labelOpacityClass = nested ? "opacity-100" : "opacity-0 group-hover:opacity-100";
+
   return (
-    <nav className="group hidden md:flex fixed left-0 top-0 bottom-0 w-4 hover:w-56 z-30 group-hover:border-r group-hover:border-gray-200/30 group-hover:dark:border-gray-700/30 transition-all duration-300 ease-out overflow-visible bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm">
-      {/* Pointer events capture area - only 4 units wide when collapsed, full width when expanded */}
-      <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-56 transition-all duration-300 ease-out pointer-events-auto" />
-      {/* Visual indicator - vertical line with emerald glow */}
-      <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
-      <div className="relative flex flex-col items-start h-full w-full px-0 group-hover:px-3 min-w-[224px] overflow-y-auto overflow-x-visible transition-all duration-300 pointer-events-none">
+    <nav className={navClasses}>
+      {/* Pointer events and visual indicator - only when not nested */}
+      {!nested && (
+        <>
+          <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-56 transition-all duration-300 ease-out pointer-events-auto" />
+          <div className="absolute left-0 top-0 bottom-0 w-4 group-hover:w-1 bg-gradient-to-b from-emerald-500/20 via-emerald-400/40 to-emerald-500/20 dark:from-emerald-400/30 dark:via-emerald-300/50 dark:to-emerald-400/30 opacity-60 group-hover:opacity-100 transition-all duration-300 pointer-events-none" />
+        </>
+      )}
+      <div className={containerClasses}>
         <div className="flex flex-col items-start py-4 space-y-2 w-full flex-shrink-0 min-h-0">
-        {/* Constellation Lines - only show when sidebar is expanded */}
-        <div className="hidden group-hover:block">
-          <ConstellationLines
-            itemCount={navItems.length}
-            itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
-            containerHeight={navItems.length * 48}
-            activeIndex={activeIndex >= 0 ? activeIndex : undefined}
-            hoveredIndex={hoveredIndex}
-          />
-        </div>
+        {/* Constellation Lines - only show when sidebar is expanded (not in nested mode) */}
+        {!nested && (
+          <div className="hidden group-hover:block">
+            <ConstellationLines
+              itemCount={navItems.length}
+              itemHeight={48} // Approximate height per item (py-2.5 + space-y-2)
+              containerHeight={navItems.length * 48}
+              activeIndex={activeIndex >= 0 ? activeIndex : undefined}
+              hoveredIndex={hoveredIndex}
+            />
+          </div>
+        )}
         
         {navItems.map((item, index) => {
           const active = isActive(item.href);
@@ -356,12 +375,12 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                 onClick={handleNavClick}
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 ${nested ? 'pl-2 pr-1' : 'pl-1 group-hover:pl-2 group-hover:pr-1'}
                   rounded-lg
                   transition-all duration-150 ease-out
                   pointer-events-auto
                   ${active
-                    ? 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                    ? `${nested ? 'bg-blue-50 dark:bg-blue-900/20' : 'group-hover:bg-blue-50 group-hover:dark:bg-blue-900/20'} text-blue-600 dark:text-blue-400`
                     : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                   }
                 `}
@@ -395,7 +414,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                   </span>
                 )}
               </span>
-              <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+              <div className={`flex flex-col ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>
                 <span className="text-sm font-medium leading-tight">
                   {item.label}
                 </span>
@@ -448,7 +467,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                 href="/me/sessions"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 ${nested ? 'pl-2 pr-1' : 'pl-1 group-hover:pl-2 group-hover:pr-1'}
                   rounded-lg
                   transition-all duration-150 ease-out
                   pointer-events-auto
@@ -463,7 +482,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                   boxShadow: `0 0 8px ${navTokens.node.hover.glow}`,
                 } : undefined}
               >
-                <span className="text-3xl flex-shrink-0 relative flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">
+                <span className={`text-3xl flex-shrink-0 relative flex items-center justify-center ${nested ? 'w-8 h-10' : 'w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10'} transition-all duration-300`}>
                   📅
                   {pendingConfirmationsCount > 0 && (
                     <span className="absolute -top-1 -right-1 bg-emerald-500 text-white text-xs font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 animate-pulse">
@@ -471,7 +490,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                     </span>
                   )}
                 </span>
-                <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Sessions</span>
+                <span className={`text-sm font-medium leading-tight ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>Sessions</span>
                 {(isActive('/me/sessions') || pendingConfirmationsCount > 0) && (
                   <div 
                     className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -560,7 +579,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                           title={`${skillName} - ${dateStr} at ${timeStr}`}
                         >
                           <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">📖</span>
-                          <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+                          <div className={`flex flex-col ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>
                             <span className="text-sm font-medium leading-tight">
                               {skillName}
                             </span>
@@ -602,7 +621,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                 href="/network"
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 ${nested ? 'pl-2 pr-1' : 'pl-1 group-hover:pl-2 group-hover:pr-1'}
                   rounded-lg
                   transition-all duration-150 ease-out
                   pointer-events-auto
@@ -613,7 +632,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                 `}
             >
               <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">🌐</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Network</span>
+              <span className={`text-sm font-medium leading-tight ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>Network</span>
               {isActive('/network') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -874,7 +893,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
               }}
                 className={`
                   relative flex flex-row items-center gap-3
-                  w-full py-2.5 pl-1 group-hover:pl-2 group-hover:pr-1
+                  w-full py-2.5 ${nested ? 'pl-2 pr-1' : 'pl-1 group-hover:pl-2 group-hover:pr-1'}
                   rounded-lg
                   transition-all duration-150 ease-out
                   pointer-events-auto
@@ -892,7 +911,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
                   </span>
                 )}
               </span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Notifications</span>
+              <span className={`text-sm font-medium leading-tight ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>Notifications</span>
               {isActive('/notifications') && (
                 <div 
                   className="absolute left-0 top-0 bottom-0 w-1 bg-emerald-500 dark:bg-emerald-400 rounded-r"
@@ -957,7 +976,7 @@ export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
               title="Disconnect wallet and logout"
             >
               <span className="text-3xl flex-shrink-0 flex items-center justify-center w-6 h-8 overflow-visible group-hover:w-8 group-hover:h-10 transition-all duration-300">⚡</span>
-              <span className="text-sm font-medium leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">Logout</span>
+              <span className={`text-sm font-medium leading-tight ${labelOpacityClass} transition-opacity duration-200 whitespace-nowrap`}>Logout</span>
             </button>
           </div>
         )}

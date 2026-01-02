@@ -57,8 +57,9 @@ export function ExplorerSidebar() {
       <div className="flex-1 overflow-y-auto">
         {isLoggedIn ? (
           // Logged in: Show full sidebar navigation
-          // Pass allowOnExplorer prop to prevent path-based hiding
-          <SidebarNav allowOnExplorer />
+          // Pass allowOnExplorer and nested props
+          // nested=true disables fixed positioning (ExplorerSidebar handles container)
+          <SidebarNav allowOnExplorer nested />
         ) : (
           // Not logged in: Show login prompt
           <div className="p-4 flex flex-col items-center justify-center h-full space-y-4">
