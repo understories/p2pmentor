@@ -126,14 +126,20 @@ function normalizeEntity(entity: PublicEntity): ExplorerEntity {
 
 /**
  * Build explorer index from Arkiv entities
+ *
+ * Fetches entities from ALL known spaces to support spaceId filtering.
+ * Uses spaceIds array to fetch from multiple spaces in one query.
  */
 async function buildExplorerIndex(): Promise<ExplorerIndex> {
-  // Fetch all entity types in parallel
+  // Known spaceIds - fetch from all spaces to support filtering
+  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed'];
+
+  // Fetch all entity types in parallel from all spaces
   const [profiles, asks, offers, skills] = await Promise.all([
-    listUserProfiles({ spaceId: SPACE_ID }).catch(() => []),
-    listAsks({ spaceId: SPACE_ID, limit: 1000, includeExpired: false }).catch(() => []),
-    listOffers({ spaceId: SPACE_ID, limit: 1000, includeExpired: false }).catch(() => []),
-    listSkills({ spaceId: SPACE_ID, limit: 1000, status: 'active' }).catch(() => []),
+    listUserProfiles({ spaceIds: allSpaceIds }).catch(() => []),
+    listAsks({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
+    listOffers({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
+    listSkills({ spaceIds: allSpaceIds, limit: 1000, status: 'active' }).catch(() => []),
   ]);
 
   // Serialize all entities using public serializers
