@@ -43,7 +43,7 @@ export function EntityCard({ entity }: EntityCardProps) {
     }
     // Fallback: if we have entity key but no provenance, link to entity on Arkiv
     if (entity.key) {
-      return { text: 'View on Arkiv', url: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entity.key}` };
+      return { text: 'View on Arkiv', url: getArkivExplorerEntityUrl(entity.key) };
     }
     return null;
   };
