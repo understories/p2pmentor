@@ -180,7 +180,7 @@ export function EntityCard({ entity }: EntityCardProps) {
         <div className="flex-shrink-0">
           <Link
             href={`/explorer/${entity.type}/${entity.type === 'profile' ? entity.wallet : entity.key}`}
-            className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
           >
             View Details
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
