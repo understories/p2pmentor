@@ -1,6 +1,6 @@
 /**
  * Transaction History Helper
- * 
+ *
  * Fetches transaction history for entities.
  * Handles different entity types appropriately.
  */
@@ -21,6 +21,12 @@ export interface TransactionHistoryItem {
   explorerEntityUrl: string | null;
   createdAt: string;
   operation?: 'create' | 'update';
+  // Additional context for human legibility (from tx_event entity)
+  entityType?: 'profile' | 'ask' | 'offer' | 'skill';
+  entityKey?: string;
+  entityLabel?: string;
+  wallet?: string;
+  spaceId?: string;
 }
 
 /**
@@ -30,7 +36,7 @@ export interface TransactionHistoryItem {
 export async function getProfileTransactionHistory(wallet: string, spaceId?: string): Promise<TransactionHistoryItem[]> {
   try {
     const profiles = await listUserProfilesForWallet(wallet.toLowerCase(), spaceId || SPACE_ID);
-    
+
     // Sort by createdAt descending (most recent first)
     const sortedProfiles = profiles.sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -40,13 +46,13 @@ export async function getProfileTransactionHistory(wallet: string, spaceId?: str
 
     // Build transaction history items
     const transactions: TransactionHistoryItem[] = [];
-    
+
     for (const profile of sortedProfiles) {
       if (!profile.txHash) continue;
-      
+
       // Get transaction metadata
       const metadata = await getTransactionMetadata(profile.txHash);
-      
+
       transactions.push({
         txHash: profile.txHash,
         blockNumber: metadata?.blockNumber?.toString() || null,
@@ -77,10 +83,10 @@ export async function getEntityTransactionHistory(
   try {
     const publicClient = getPublicClient();
     const txHashType = `${entityType}_txhash`;
-    
+
     // Determine the attribute key based on entity type
     const entityKeyAttr = entityType === 'ask' ? 'askKey' : entityType === 'offer' ? 'offerKey' : 'skillKey';
-    
+
     // Query all txhash entities for this entity key
     const result = await publicClient.buildQuery()
       .where(eq('type', txHashType))
@@ -95,7 +101,7 @@ export async function getEntityTransactionHistory(
     }
 
     const transactions: TransactionHistoryItem[] = [];
-    
+
     for (const txHashEntity of result.entities) {
       // Extract txHash from payload
       let txHash: string | null = null;
@@ -118,7 +124,7 @@ export async function getEntityTransactionHistory(
 
       // Get transaction metadata
       const metadata = await getTransactionMetadata(txHash);
-      
+
       // Get createdAt from attributes
       const attrs = txHashEntity.attributes || {};
       const getAttr = (key: string): string => {
@@ -153,6 +159,206 @@ export async function getEntityTransactionHistory(
   } catch (error) {
     console.error('[getEntityTransactionHistory] Error:', error);
     return [];
+  }
+}
+
+/**
+ * Get all app-recorded transaction events across all entity types
+ *
+ * Queries tx_event entities (single entity type for simple pagination).
+ *
+ * NOTE: This shows "app-recorded transaction events" (txhash log),
+ * NOT all chain transactions. See scope definition in plan.
+ *
+ * @param params - Query parameters
+ * @returns Transaction list with pagination cursor
+ */
+export async function getAllTransactions(params?: {
+  spaceId?: string;
+  spaceIds?: string[];
+  entityType?: 'profile' | 'ask' | 'offer' | 'skill';
+  status?: 'success' | 'failed' | 'pending';
+  txHash?: string;
+  wallet?: string;
+  entityKey?: string;
+  blockNumber?: string;
+  limit?: number;
+  cursor?: string;
+}): Promise<{
+  transactions: TransactionHistoryItem[];
+  nextCursor: string | null;
+  total: number;
+}> {
+  try {
+    const publicClient = getPublicClient();
+    const query = publicClient.buildQuery();
+    const limit = Math.min(params?.limit || 50, 100); // Default 50, max 100
+
+    // Build query for tx_event entities
+    let queryBuilder = query.where(eq('type', 'tx_event'));
+
+    // Filter by spaceId
+    if (params?.spaceId) {
+      queryBuilder = queryBuilder.where(eq('space_id', params.spaceId));
+    }
+
+    // Filter by entityType
+    if (params?.entityType) {
+      queryBuilder = queryBuilder.where(eq('entity_type', params.entityType));
+    }
+
+    // Filter by txHash (if stored as attribute)
+    if (params?.txHash) {
+      queryBuilder = queryBuilder.where(eq('txhash', params.txHash));
+    }
+
+    // Filter by wallet (normalize)
+    if (params?.wallet) {
+      queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
+    }
+
+    // Filter by entityKey
+    if (params?.entityKey) {
+      queryBuilder = queryBuilder.where(eq('entity_key', params.entityKey));
+    }
+
+    // Handle cursor for pagination
+    let startIndex = 0;
+    if (params?.cursor) {
+      try {
+        const cursor: { i: number; v: string } = JSON.parse(
+          Buffer.from(params.cursor, 'base64').toString()
+        );
+        startIndex = cursor.i;
+      } catch {
+        // Invalid cursor, start from beginning
+      }
+    }
+
+    // Query tx_event entities
+    const result = await queryBuilder
+      .withAttributes(true)
+      .withPayload(true)
+      .limit(limit * 2) // Overfetch for status filtering
+      .fetch();
+
+    if (!result?.entities || !Array.isArray(result.entities)) {
+      return { transactions: [], nextCursor: null, total: 0 };
+    }
+
+    // Process entities and extract transaction data
+    const allTransactions: TransactionHistoryItem[] = [];
+
+    for (const txEvent of result.entities) {
+      // Extract attributes
+      const attrs = txEvent.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      const txHash = getAttr('txhash');
+      if (!txHash) continue;
+
+      const entityType = getAttr('entity_type') as 'profile' | 'ask' | 'offer' | 'skill' | '';
+      const entityKey = getAttr('entity_key');
+      const wallet = getAttr('wallet');
+      const operation = getAttr('op') as 'create' | 'update' | 'write' | '';
+      const createdAt = getAttr('created_at') || new Date().toISOString();
+      const spaceId = getAttr('space_id');
+
+      // Extract entity_label from payload
+      let entityLabel: string | undefined;
+      try {
+        if (txEvent.payload) {
+          const decoded = txEvent.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txEvent.payload)
+            : typeof txEvent.payload === 'string'
+            ? txEvent.payload
+            : JSON.stringify(txEvent.payload);
+          const payload = JSON.parse(decoded);
+          entityLabel = payload.entity_label;
+        }
+      } catch (e) {
+        // Ignore payload decode errors
+      }
+
+      // Build entity URL
+      const explorerEntityUrl = entityKey ? getArkivExplorerEntityUrl(entityKey) : null;
+
+      allTransactions.push({
+        txHash,
+        blockNumber: null, // Will be filled from metadata if needed
+        blockTimestamp: null, // Will be filled from metadata if needed
+        status: null, // Will be filled from metadata if needed
+        explorerTxUrl: getArkivExplorerTxUrl(txHash),
+        explorerEntityUrl,
+        createdAt,
+        operation: operation === 'create' ? 'create' : operation === 'update' ? 'update' : undefined,
+        // Additional context for human legibility
+        entityType: entityType || undefined,
+        entityKey: entityKey || undefined,
+        entityLabel,
+        wallet: wallet || undefined,
+        spaceId: spaceId || undefined,
+      });
+    }
+
+    // Sort by createdAt descending (most recent first)
+    allTransactions.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime;
+    });
+
+    // Apply pagination first (before metadata fetch for efficiency)
+    const paginatedForMetadata = allTransactions.slice(startIndex, startIndex + limit);
+
+    // Fetch metadata for paginated transactions only (cap at limit)
+    const metadataPromises = paginatedForMetadata.map(async (tx) => {
+      const metadata = await getTransactionMetadata(tx.txHash);
+      return {
+        ...tx,
+        blockNumber: metadata?.blockNumber?.toString() || null,
+        blockTimestamp: metadata?.blockTimestamp || null,
+        status: metadata?.status || null,
+      };
+    });
+
+    let transactionsWithMetadata = await Promise.all(metadataPromises);
+
+    // Apply status filter if provided (best-effort within page window)
+    if (params?.status) {
+      transactionsWithMetadata = transactionsWithMetadata.filter(
+        (tx) => tx.status === params.status
+      );
+    }
+
+    // Filter by blockNumber if provided (requires metadata, already fetched)
+    if (params?.blockNumber) {
+      transactionsWithMetadata = transactionsWithMetadata.filter(
+        (tx) => tx.blockNumber === params.blockNumber
+      );
+    }
+
+    // Generate next cursor
+    // If we have more transactions in the full list beyond current page, there's a next page
+    const hasMore = startIndex + limit < allTransactions.length;
+    const nextCursor = hasMore
+      ? Buffer.from(JSON.stringify({ i: startIndex + limit, v: '1' })).toString('base64')
+      : null;
+
+    return {
+      transactions: transactionsWithMetadata,
+      nextCursor,
+      total: allTransactions.length, // Total before filtering (approximate)
+    };
+  } catch (error) {
+    console.error('[getAllTransactions] Error:', error);
+    return { transactions: [], nextCursor: null, total: 0 };
   }
 }
 
