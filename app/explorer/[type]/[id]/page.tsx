@@ -13,6 +13,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { TransactionList } from '@/components/explorer/TransactionList';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntityResponse {
@@ -29,6 +30,7 @@ export default function EntityDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showProvenance, setShowProvenance] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'transactions'>('details');
 
   useEffect(() => {
     if (!type || !id) return;
@@ -135,8 +137,37 @@ export default function EntityDetailPage() {
             </div>
           </div>
 
-          {/* Entity Details - Show all fields stored on Arkiv */}
-          {entity.type === 'profile' && (
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+            <nav className="flex gap-4">
+              <button
+                onClick={() => setActiveTab('details')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'details'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Details
+              </button>
+              <button
+                onClick={() => setActiveTab('transactions')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === 'transactions'
+                    ? 'border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                }`}
+              >
+                Transactions
+              </button>
+            </nav>
+          </div>
+
+          {/* Tab Content */}
+          {activeTab === 'details' && (
+            <>
+              {/* Entity Details - Show all fields stored on Arkiv */}
+              {entity.type === 'profile' && (
             <div className="mt-6 space-y-6">
               {/* Core Identity */}
               <div>
@@ -460,6 +491,12 @@ export default function EntityDetailPage() {
               </pre>
             </details>
           </div>
+            </>
+          )}
+
+          {activeTab === 'transactions' && (
+            <TransactionList type={type} id={id} />
+          )}
         </div>
       </div>
     </div>
