@@ -149,6 +149,11 @@ export function EntityCard({ entity }: EntityCardProps) {
                 {content.meta}
               </span>
             )}
+            {(entity as any).spaceId && (
+              <span className="text-gray-600 dark:text-gray-400">
+                Space: {(entity as any).spaceId}
+              </span>
+            )}
           </div>
 
           {/* Blockchain provenance - SMALL and SECONDARY at bottom */}
