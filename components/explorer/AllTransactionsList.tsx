@@ -275,18 +275,18 @@ export function AllTransactionsList({
                 </div>
 
                 {/* Entity Context */}
-                {tx.entityLabel && (
+                {(tx.entityLabel || tx.entityType) && (
                   <div className="mb-2">
                     {entityLink ? (
                       <Link
                         href={entityLink}
                         className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
                       >
-                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType}: {tx.entityLabel}
+                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
                       </Link>
                     ) : (
                       <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType}: {tx.entityLabel}
+                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
                       </span>
                     )}
                   </div>
