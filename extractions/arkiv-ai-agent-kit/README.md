@@ -7,7 +7,7 @@ This repo is designed to be dropped into an AI coding tool's context (Cursor/Cop
 ## What's Included
 
 - **`AGENTS.md`** - Operating manual for AI agents working with Arkiv
-- **`PROMPTS/`** - Six prompt files covering repo rules, entity patterns, query shapes, timeouts, and debugging
+- **`PROMPTS/`** - Seven prompt files covering repo rules, entity patterns, query shapes, timeouts, debugging, and seed scripts
 - **`docs/ENGINEERING_GUIDELINES.md`** - Public-safe version of Engineering Guidelines
 - **`docs/CHECKLISTS.md`** - PR and review checklists with anti-patterns
 - **`scripts/precommit-check.sh`** - Precommit validation (build, typecheck, refs/, secrets, whitespace)
