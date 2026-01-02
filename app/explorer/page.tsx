@@ -12,6 +12,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EntityList } from '@/components/explorer/EntityList';
 import { HowItWorks } from '@/components/explorer/HowItWorks';
+import { ExplorerSidebar } from '@/components/explorer/ExplorerSidebar';
 
 interface Summary {
   profiles: number;
@@ -66,8 +67,15 @@ export default function ExplorerPage() {
   }, [spaceId]);
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen flex">
+      {/* New Adaptive Sidebar - Hidden on mobile, visible on desktop */}
+      <div className="hidden md:block">
+        <ExplorerSidebar />
+      </div>
+
+      {/* Main Content - No margin on mobile (sidebar hidden), margin on desktop */}
+      <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+        <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <PageHeader
           title="p2pmentor Data Explorer"
@@ -105,6 +113,7 @@ export default function ExplorerPage() {
 
         {/* How It Works */}
         <HowItWorks />
+        </div>
       </div>
     </div>
   );
