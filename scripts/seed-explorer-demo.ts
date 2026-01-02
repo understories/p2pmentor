@@ -402,6 +402,14 @@ async function seedExplorerDemo() {
     console.log(`\n⏰ Note: Explorer index cache refreshes every 60 seconds.`);
     console.log(`   If entities don't appear immediately, wait up to 60 seconds and refresh.\n`);
 
+    if (errors > 0) {
+      console.log('💡 Tips for resolving errors:');
+      console.log('   - "Transaction conflict": Wait 30-60 seconds and run the script again');
+      console.log('   - "Rate limit": Wait a few minutes between runs');
+      console.log('   - "Insufficient funds": Fund the signing wallet on Mendoza testnet');
+      console.log('   - Check Arkiv explorer for pending transactions: https://explorer.mendoza.hoodi.arkiv.network\n');
+    }
+
     process.exit(0);
   } catch (error: any) {
     console.error('\n❌ Fatal error:', error);
