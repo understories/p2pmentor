@@ -7,6 +7,7 @@
 'use client';
 
 import Link from 'next/link';
+import { getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntityCardProps {
