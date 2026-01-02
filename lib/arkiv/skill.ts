@@ -105,6 +105,21 @@ export async function createSkill({
     console.warn('[skill] Failed to create skill_txhash entity, but skill was created:', error);
   }
 
+  // Create tx_event entity (non-blocking, best-effort)
+  const { createTxEvent } = await import('./txEvent');
+  createTxEvent({
+    txHash,
+    entityType: 'skill',
+    entityKey,
+    wallet: created_by_profile?.toLowerCase(), // Optional - skills may not have a wallet
+    operation: 'create',
+    entityLabel: name_canonical,
+    privateKey,
+    spaceId,
+  }).catch((error: any) => {
+    console.warn('[createSkill] Failed to create tx_event:', error);
+  });
+
   // Automatically add creator as a member of the community (if created_by_profile is provided)
   // This ensures the creator sees "Leave" instead of "Join" immediately after creation
   if (created_by_profile) {

@@ -162,6 +162,24 @@ export async function createOffer({
         { key: 'spaceId', value: spaceId },
     ],
     expiresIn: ttl,
+  }).catch((error: any) => {
+    console.warn('[createOffer] Failed to create offer_txhash entity:', error);
+  });
+
+  // Create tx_event entity (non-blocking, best-effort)
+  const { createTxEvent } = await import('./txEvent');
+  const entityLabel = skill_label || skill || message.substring(0, 50);
+  createTxEvent({
+    txHash,
+    entityType: 'offer',
+    entityKey,
+    wallet: wallet.toLowerCase(),
+    operation: 'create',
+    entityLabel,
+    privateKey,
+    spaceId,
+  }).catch((error: any) => {
+    console.warn('[createOffer] Failed to create tx_event:', error);
   });
 
   return { key: entityKey, txHash };

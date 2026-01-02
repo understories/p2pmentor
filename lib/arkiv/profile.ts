@@ -437,6 +437,21 @@ export async function createUserProfile({
       spaceId: spaceId,
     });
 
+    // Create tx_event entity (non-blocking, best-effort)
+    const { createTxEvent } = await import('./txEvent');
+    createTxEvent({
+      txHash: updateResult.txHash,
+      entityType: 'profile',
+      entityKey: updateResult.key,
+      wallet: normalizedWallet,
+      operation: 'update',
+      entityLabel: displayName,
+      privateKey,
+      spaceId,
+    }).catch((error: any) => {
+      console.warn('[createUserProfile] Failed to create tx_event:', error);
+    });
+
     return updateResult;
   }
 
@@ -463,6 +478,21 @@ export async function createUserProfile({
     timestamp: new Date().toISOString(),
     operation: 'create',
     spaceId: spaceId,
+  });
+
+  // Create tx_event entity (non-blocking, best-effort)
+  const { createTxEvent } = await import('./txEvent');
+  createTxEvent({
+    txHash: result.txHash,
+    entityType: 'profile',
+    entityKey: result.entityKey,
+    wallet: normalizedWallet,
+    operation: 'create',
+    entityLabel: displayName,
+    privateKey,
+    spaceId,
+  }).catch((error: any) => {
+    console.warn('[createUserProfile] Failed to create tx_event:', error);
   });
 
   return { key: result.entityKey, txHash: result.txHash };
