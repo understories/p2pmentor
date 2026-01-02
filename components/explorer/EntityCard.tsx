@@ -32,7 +32,7 @@ export function EntityCard({ entity }: EntityCardProps) {
     // If we have provenance with txHash, use that
     if (entity.provenance) {
       const { blockNumber, blockTimestamp, explorerTxUrl } = entity.provenance;
-      const parts: string[] = ['Verified on-chain'];
+      const parts: string[] = ['View on Arkiv'];
       if (blockNumber) {
         parts.push(`Block ${blockNumber}`);
       }

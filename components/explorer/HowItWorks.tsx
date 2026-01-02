@@ -86,7 +86,7 @@ export function HowItWorks() {
             <div className="px-5 pb-4 text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
               <p>
                 Each entity includes a transaction hash and block number. Click the
-                "Verified on-chain" link to view the transaction on the Mendoza blockchain
+                "View on Arkiv" link to view the transaction on the Mendoza blockchain
                 explorer. You can verify that the data matches what's stored on-chain.
               </p>
             </div>
