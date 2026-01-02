@@ -26,6 +26,11 @@
  * - 400ms delay between each entity creation
  * - Sequential execution (not parallel)
  * - Graceful error handling (continues on error)
+ *
+ * **Common Errors:**
+ * - "replacement transaction underpriced": A previous transaction is still pending. Wait a moment and try again.
+ * - "rate limit exceeded": Too many requests. Wait a moment and try again.
+ * - "insufficient funds": Signing wallet needs funds for transaction fees.
  */
 
 import 'dotenv/config';
@@ -107,8 +112,18 @@ async function seedSkills(privateKey: `0x${string}`) {
       console.log(`✅ Created skill "${skill.name}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
       results.push({ skill: skill.name, status: 'created', key, txHash });
     } catch (error: any) {
-      console.error(`❌ Failed to create skill "${skill.name}":`, error.message);
-      results.push({ skill: skill.name, status: 'error', error: error.message });
+      const errorMsg = error?.message || String(error || 'Unknown error');
+      // Provide user-friendly error messages for common blockchain errors
+      let friendlyError = errorMsg;
+      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+        friendlyError = 'Transaction conflict (nonce issue). This usually means a previous transaction is still pending. Wait a moment and try again.';
+      } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many requests')) {
+        friendlyError = 'Rate limit exceeded. Please wait a moment and try again.';
+      } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('balance')) {
+        friendlyError = 'Insufficient funds. Make sure the signing wallet has enough funds for transaction fees.';
+      }
+      console.error(`❌ Failed to create skill "${skill.name}": ${friendlyError}`);
+      results.push({ skill: skill.name, status: 'error', error: friendlyError });
     }
   }
 
@@ -149,12 +164,21 @@ async function seedProfile(privateKey: `0x${string}`, wallet: string) {
       privateKey,
     });
 
-    console.log(`✅ Created/updated profile "Explorer Demo User" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
-    return { profile: 'Explorer Demo User', status: existingProfile ? 'updated' : 'created', key, txHash };
-  } catch (error: any) {
-    console.error(`❌ Failed to create profile:`, error.message);
-    return { profile: 'Explorer Demo User', status: 'error', error: error.message };
-  }
+      console.log(`✅ Created/updated profile "Explorer Demo User" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
+      return { profile: 'Explorer Demo User', status: existingProfile ? 'updated' : 'created', key, txHash };
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error || 'Unknown error');
+      let friendlyError = errorMsg;
+      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+        friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
+      } else if (errorMsg.includes('rate limit')) {
+        friendlyError = 'Rate limit exceeded. Please wait and try again.';
+      } else if (errorMsg.includes('insufficient funds')) {
+        friendlyError = 'Insufficient funds. Check signing wallet balance.';
+      }
+      console.error(`❌ Failed to create profile: ${friendlyError}`);
+      return { profile: 'Explorer Demo User', status: 'error', error: friendlyError };
+    }
 }
 
 /**
@@ -197,8 +221,17 @@ async function seedAsks(privateKey: `0x${string}`, wallet: string) {
       console.log(`✅ Created ask "${ask.skill}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
       results.push({ ask: ask.skill, status: 'created', key, txHash });
     } catch (error: any) {
-      console.error(`❌ Failed to create ask "${ask.skill}":`, error.message);
-      results.push({ ask: ask.skill, status: 'error', error: error.message });
+      const errorMsg = error?.message || String(error || 'Unknown error');
+      let friendlyError = errorMsg;
+      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+        friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
+      } else if (errorMsg.includes('rate limit')) {
+        friendlyError = 'Rate limit exceeded. Please wait and try again.';
+      } else if (errorMsg.includes('insufficient funds')) {
+        friendlyError = 'Insufficient funds. Check signing wallet balance.';
+      }
+      console.error(`❌ Failed to create ask "${ask.skill}": ${friendlyError}`);
+      results.push({ ask: ask.skill, status: 'error', error: friendlyError });
     }
   }
 
@@ -266,8 +299,17 @@ async function seedOffers(privateKey: `0x${string}`, wallet: string) {
       );
       results.push({ offer: offer.skill, status: 'created', key, txHash });
     } catch (error: any) {
-      console.error(`❌ Failed to create offer "${offer.skill}":`, error.message);
-      results.push({ offer: offer.skill, status: 'error', error: error.message });
+      const errorMsg = error?.message || String(error || 'Unknown error');
+      let friendlyError = errorMsg;
+      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+        friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
+      } else if (errorMsg.includes('rate limit')) {
+        friendlyError = 'Rate limit exceeded. Please wait and try again.';
+      } else if (errorMsg.includes('insufficient funds')) {
+        friendlyError = 'Insufficient funds. Check signing wallet balance.';
+      }
+      console.error(`❌ Failed to create offer "${offer.skill}": ${friendlyError}`);
+      results.push({ offer: offer.skill, status: 'error', error: friendlyError });
     }
   }
 
