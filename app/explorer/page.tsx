@@ -74,7 +74,8 @@ export default function ExplorerPage() {
       </div>
 
       {/* Main Content - No margin on mobile (sidebar hidden), margin on desktop */}
-      <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8">
+      {/* Add backdrop-blur-sm to match other pages (blurry effect over background garden) */}
+      <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8 relative z-10 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto">
         {/* Hero Section */}
         <PageHeader
