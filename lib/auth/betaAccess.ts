@@ -82,3 +82,30 @@ export async function verifyBetaAccess(
     accessKey: betaAccessKey 
   };
 }
+
+/**
+ * Check beta access from cookie string (client-side helper)
+ *
+ * Centralized cookie parsing for beta access detection.
+ * Used by client components to check beta access without duplicating logic.
+ *
+ * @param cookieString - document.cookie string
+ * @returns True if beta access cookies are present
+ */
+export function hasBetaAccessFromCookieString(cookieString: string): boolean {
+  if (!cookieString) return false;
+
+  // Parse cookies - handle values containing '='
+  const cookies = cookieString.split(';').reduce((acc, cookie) => {
+    const trimmed = cookie.trim();
+    const eqIndex = trimmed.indexOf('=');
+    if (eqIndex === -1) return acc;
+    const key = trimmed.slice(0, eqIndex);
+    const value = trimmed.slice(eqIndex + 1);
+    acc[key] = value; // Values are already decoded by browser
+    return acc;
+  }, {} as Record<string, string>);
+
+  // Check for either beta access cookie type
+  return !!(cookies['beta_access_code'] || cookies['beta_access_key']);
+}

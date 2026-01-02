@@ -48,9 +48,12 @@ Read and apply the following Arkiv integration guidelines:
 1. Read AGENTS.md (operating manual for Arkiv + repo rules)
 2. Apply these prompts in order:
    - PROMPTS/00_repo_rules.md (build, secrets, refs/, whitespace)
-   - PROMPTS/10_arkiv_entity_patterns.md (wallet normalization, stable keys, timeouts)
-   - PROMPTS/20_query_shapes.md (type+spaceId+limit, defensive reading)
-   - PROMPTS/30_timeouts_and_retries.md (submitted vs indexed, reconciliation)
+   - PROMPTS/01_arkiv_entity_patterns.md (wallet normalization, stable keys, timeouts)
+   - PROMPTS/02_query_shapes.md (type+spaceId+limit, defensive reading)
+   - PROMPTS/03_timeouts_and_retries.md (submitted vs indexed, reconciliation)
+   - PROMPTS/04_debug_playbook.md (systematic debugging approach)
+   - PROMPTS/05_docs_separation.md (public vs internal docs)
+   - PROMPTS/06_seed_scripts.md (seed script safety patterns)
 3. Do not touch refs/ (internal-only, never committed)
 4. Run precommit script mentally: ensure build would pass, no secrets, no refs/, clean whitespace
 

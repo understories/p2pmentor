@@ -34,7 +34,11 @@ interface NavItem {
   badge?: number;
 }
 
-export function SidebarNav() {
+interface SidebarNavProps {
+  allowOnExplorer?: boolean; // Explicit opt-in for explorer rendering
+}
+
+export function SidebarNav({ allowOnExplorer = false }: SidebarNavProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
   const notificationCount = useNotificationCount();
