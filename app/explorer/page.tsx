@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EntityList } from '@/components/explorer/EntityList';
+import { AllTransactionsList } from '@/components/explorer/AllTransactionsList';
 import { HowItWorks } from '@/components/explorer/HowItWorks';
 import { ExplorerSidebar } from '@/components/explorer/ExplorerSidebar';
 
@@ -27,6 +28,7 @@ export default function ExplorerPage() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [spaceId, setSpaceId] = useState<string>('all');
+  const [showTransactions, setShowTransactions] = useState(false);
 
   useEffect(() => {
     // Add noindex meta tag
@@ -111,6 +113,24 @@ export default function ExplorerPage() {
 
         {/* Entity List */}
         <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
+
+        {/* Recent Activity - Collapsible Transaction Feed */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h2>
+            <button
+              onClick={() => setShowTransactions(!showTransactions)}
+              className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              {showTransactions ? 'Hide Transactions' : 'Show All Transactions'}
+            </button>
+          </div>
+          {showTransactions && (
+            <div className="mt-4">
+              <AllTransactionsList spaceId={spaceId} />
+            </div>
+          )}
+        </div>
 
         {/* How It Works */}
         <HowItWorks />
