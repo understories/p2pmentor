@@ -13,8 +13,8 @@ The signing wallet is derived from `ARKIV_PRIVATE_KEY`:
 ```typescript
 // lib/config.ts
 export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY;
-export const CURRENT_WALLET = ARKIV_PRIVATE_KEY 
-  ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address 
+export const CURRENT_WALLET = ARKIV_PRIVATE_KEY
+  ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address
   : undefined;
 ```
 
@@ -161,22 +161,226 @@ Changing `ARKIV_PRIVATE_KEY` creates a different signing wallet, but this does N
 
 ### Seed Scripts
 
-Seed scripts use the signing wallet to create initial data, but use `spaceId` to separate seeds:
+Seed scripts use the signing wallet to create initial data, but use `spaceId` to separate seeds. This section covers best practices for writing safe, reliable seed scripts.
+
+#### Prerequisites
+
+Before running a seed script:
+
+1. **Install dependencies:** `npm install` or `pnpm install`
+2. **Set environment variables:** Create a `.env` file in the project root with:
+   - `ARKIV_PRIVATE_KEY=0x...` (required for creating entities)
+   - `BETA_SPACE_ID=...` (optional, defaults based on `NODE_ENV`)
+3. **Fund the signing wallet:** The wallet derived from `ARKIV_PRIVATE_KEY` must have funds for transaction fees (on Mendoza testnet, use the faucet)
+
+#### SpaceId Safety Verification
+
+**Critical Finding:** Not all entity creation functions accept `spaceId` as a parameter:
+
+- `createAsk()`, `createOffer()`, `createUserProfile()` use `SPACE_ID` from config (not a parameter)
+- `createSkill()` and some other functions accept `spaceId` parameter (defaults to `SPACE_ID`)
+
+**Best Practice:** Always verify `SPACE_ID` matches your target before creating entities:
 
 ```typescript
-// scripts/seed-learner-quest.ts
-const privateKey = getPrivateKey(); // From ARKIV_PRIVATE_KEY
-// spaceId defaults to 'local-dev' in library functions
-// Can be overridden via BETA_SPACE_ID env var or passed explicitly
-await createLearnerQuest({
-  questId: 'web3privacy_foundations',
-  spaceId: 'local-dev-seed', // Use spaceId to separate seed data
-  // ...
-  privateKey,
-});
+import { SPACE_ID } from '@/lib/config';
+
+const TARGET_SPACE_ID = 'local-dev-seed';
+
+// Verify spaceId before proceeding
+if (SPACE_ID !== TARGET_SPACE_ID) {
+  console.error(`❌ ERROR: SPACE_ID is "${SPACE_ID}", expected "${TARGET_SPACE_ID}"`);
+  console.error(`   Set BETA_SPACE_ID=${TARGET_SPACE_ID} environment variable`);
+  process.exit(1);
+}
 ```
 
-**Note:** Library functions (like `createLearnerQuest`) default to `'local-dev'` if no `spaceId` is provided. API routes use `SPACE_ID` from config (which respects `BETA_SPACE_ID` env var).
+This prevents accidentally seeding to the wrong space.
+
+#### Rate Limiting
+
+Arkiv has rate limits on transaction submission. To avoid errors:
+
+- Add 300-500ms delay between each entity creation
+- Use sequential execution (not parallel)
+- Handle rate limit errors gracefully
+
+```typescript
+const DELAY_MS = 400;
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+for (const entity of entitiesToCreate) {
+  await delay(DELAY_MS);
+  // Create entity...
+}
+```
+
+#### Existing Entity Checks
+
+Prevent duplicate entities by checking if they already exist:
+
+```typescript
+const existing = await listEntities({
+  spaceId: TARGET_SPACE_ID,
+  // ... other filters
+  limit: 1
+});
+
+if (existing.length > 0) {
+  console.log(`⏭️  Skipping (already exists)`);
+  continue;
+}
+```
+
+#### Error Handling
+
+Handle blockchain errors gracefully with user-friendly messages:
+
+```typescript
+try {
+  const result = await createEntity(...);
+  console.log(`✅ Created: ${result.key}`);
+} catch (error: any) {
+  const errorMsg = error?.message || String(error || 'Unknown error');
+  let friendlyError = errorMsg;
+
+  // Provide user-friendly error messages
+  if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+    friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
+  } else if (errorMsg.includes('rate limit')) {
+    friendlyError = 'Rate limit exceeded. Please wait a moment and try again.';
+  } else if (errorMsg.includes('insufficient funds')) {
+    friendlyError = 'Insufficient funds. Make sure the signing wallet has enough funds.';
+  }
+
+  console.error(`❌ Failed: ${friendlyError}`);
+  // Continue with next entity, don't fail entire script
+}
+```
+
+#### Complete Example
+
+Here's a complete seed script pattern with all safety checks:
+
+```typescript
+/**
+ * Seed script example with safety patterns
+ *
+ * Prerequisites:
+ * 1. Install dependencies: npm install
+ * 2. Set ARKIV_PRIVATE_KEY in .env file
+ * 3. Set BETA_SPACE_ID=target-space-id
+ *
+ * Usage:
+ *   BETA_SPACE_ID=local-dev-seed npx tsx scripts/seed-example.ts
+ */
+
+import 'dotenv/config';
+import { createSkill } from '../lib/arkiv/skill';
+import { getPrivateKey, SPACE_ID } from '../lib/config';
+import { listSkills } from '../lib/arkiv/skill';
+
+const TARGET_SPACE_ID = 'local-dev-seed';
+const DELAY_MS = 400;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Verify spaceId safety
+function verifySpaceIdSafety() {
+  if (SPACE_ID !== TARGET_SPACE_ID) {
+    console.error(`❌ ERROR: SPACE_ID is "${SPACE_ID}", expected "${TARGET_SPACE_ID}"`);
+    console.error(`   Set BETA_SPACE_ID=${TARGET_SPACE_ID} environment variable`);
+    process.exit(1);
+  }
+}
+
+async function seedSkills() {
+  verifySpaceIdSafety();
+
+  if (!process.env.ARKIV_PRIVATE_KEY) {
+    console.error('❌ ERROR: ARKIV_PRIVATE_KEY is not set');
+    process.exit(1);
+  }
+
+  const privateKey = getPrivateKey();
+  const skillsToSeed = [
+    { name: 'React', description: 'React framework' },
+    { name: 'TypeScript', description: 'TypeScript language' },
+  ];
+
+  for (const skill of skillsToSeed) {
+    await delay(DELAY_MS);
+
+    try {
+      // Check if exists
+      const existing = await listSkills({
+        slug: skill.name.toLowerCase().replace(/\s+/g, '-'),
+        spaceId: TARGET_SPACE_ID,
+        limit: 1,
+      });
+
+      if (existing.length > 0) {
+        console.log(`⏭️  Skipping "${skill.name}" (already exists)`);
+        continue;
+      }
+
+      // Create with explicit spaceId
+      const { key, txHash } = await createSkill({
+        name_canonical: skill.name,
+        description: skill.description,
+        privateKey,
+        spaceId: TARGET_SPACE_ID, // Explicit parameter
+      });
+
+      console.log(`✅ Created "${skill.name}" (key: ${key.slice(0, 16)}...)`);
+    } catch (error: any) {
+      const errorMsg = error?.message || String(error || 'Unknown error');
+      let friendlyError = errorMsg;
+
+      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+        friendlyError = 'Transaction conflict. Wait a moment and try again.';
+      } else if (errorMsg.includes('rate limit')) {
+        friendlyError = 'Rate limit exceeded. Please wait and try again.';
+      }
+
+      console.error(`❌ Failed to create "${skill.name}": ${friendlyError}`);
+    }
+  }
+}
+
+seedSkills().catch(console.error);
+```
+
+#### Seed Script Safety Checklist
+
+Before running a seed script, verify:
+
+- [ ] `BETA_SPACE_ID` environment variable is set correctly
+- [ ] Script verifies `SPACE_ID` matches target before proceeding
+- [ ] Script checks for existing entities before creating
+- [ ] Script has rate limiting (300-500ms delays)
+- [ ] Script handles errors gracefully (continues on error)
+- [ ] Script logs all operations clearly
+- [ ] `ARKIV_PRIVATE_KEY` is set and valid
+- [ ] Signing wallet has sufficient funds for transaction fees
+
+#### Common Errors and Solutions
+
+**"replacement transaction underpriced":**
+- A previous transaction with the same nonce is still pending
+- Solution: Wait 30-60 seconds for pending transaction to confirm, then try again
+
+**"rate limit exceeded":**
+- Too many requests in a short time
+- Solution: Wait a few minutes between runs, or increase delays between entity creation
+
+**"insufficient funds":**
+- Signing wallet doesn't have enough funds for transaction fees
+- Solution: Fund the signing wallet on Mendoza testnet (use faucet)
+
+**"SPACE_ID mismatch":**
+- Script is trying to seed to wrong space
+- Solution: Set `BETA_SPACE_ID` environment variable correctly before running
 
 ### Multiple Seeds
 
@@ -187,6 +391,8 @@ You can maintain multiple data seeds using different `spaceId` values:
 3. **Production**: `BETA_SPACE_ID=beta-launch` → Creates entities with `spaceId: 'beta-launch'`
 
 All seeds coexist on Arkiv. Queries filter by `spaceId` to show only the relevant seed data.
+
+**Note:** Library functions (like `createLearnerQuest`) default to `'local-dev'` if no `spaceId` is provided. API routes use `SPACE_ID` from config (which respects `BETA_SPACE_ID` env var).
 
 ## Important Considerations
 
