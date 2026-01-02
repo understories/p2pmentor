@@ -28,17 +28,24 @@ export function EntityCard({ entity }: EntityCardProps) {
   };
 
   const formatProvenance = () => {
-    if (!entity.provenance) return null;
-    const { blockNumber, blockTimestamp, explorerTxUrl } = entity.provenance;
-    const parts: string[] = ['Verified on-chain'];
-    if (blockNumber) {
-      parts.push(`Block ${blockNumber}`);
+    // If we have provenance with txHash, use that
+    if (entity.provenance) {
+      const { blockNumber, blockTimestamp, explorerTxUrl } = entity.provenance;
+      const parts: string[] = ['Verified on-chain'];
+      if (blockNumber) {
+        parts.push(`Block ${blockNumber}`);
+      }
+      if (blockTimestamp) {
+        const date = new Date(blockTimestamp * 1000);
+        parts.push(formatDate(date.toISOString()));
+      }
+      return { text: parts.join(' · '), url: explorerTxUrl };
     }
-    if (blockTimestamp) {
-      const date = new Date(blockTimestamp * 1000);
-      parts.push(formatDate(date.toISOString()));
+    // Fallback: if we have entity key but no provenance, link to entity on Arkiv
+    if (entity.key) {
+      return { text: 'View on Arkiv', url: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entity.key}` };
     }
-    return { text: parts.join(' · '), url: explorerTxUrl };
+    return null;
   };
 
   const provenance = formatProvenance();

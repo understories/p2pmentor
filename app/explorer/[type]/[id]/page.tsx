@@ -12,6 +12,7 @@ import { BackButton } from '@/components/BackButton';
 import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntityResponse {
@@ -118,10 +119,21 @@ export default function EntityDetailPage() {
           </div>
 
           {/* Human-readable title - LARGE and PROMINENT */}
-          <PageHeader
-            title={getHumanTitle()}
-            description={entity.summary}
-          />
+          <div className="mb-4">
+            <PageHeader
+              title={getHumanTitle()}
+              description={entity.summary}
+            />
+            {/* View on Arkiv link */}
+            <div className="mt-3">
+              <ViewOnArkivLink
+                entityKey={entity.key}
+                txHash={entity.txHash}
+                label="View on Arkiv Explorer"
+                className="text-sm"
+              />
+            </div>
+          </div>
 
           {/* Entity Details - Show all fields stored on Arkiv */}
           {entity.type === 'profile' && (
