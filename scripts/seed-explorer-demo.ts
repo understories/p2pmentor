@@ -10,10 +10,19 @@
  * - Fails immediately if spaceId is incorrect
  * - Only seeds to local-dev-seed, never to other spaces
  *
- * Usage:
+ * **Prerequisites:**
+ * 1. Install dependencies: `npm install` or `pnpm install`
+ * 2. Set ARKIV_PRIVATE_KEY in .env file (required for creating entities)
+ * 3. Ensure .env file exists in project root
+ *
+ * **Usage:**
  *   BETA_SPACE_ID=local-dev-seed npx tsx scripts/seed-explorer-demo.ts
  *
- * Rate Limiting:
+ * **Alternative (if tsx is installed locally):**
+ *   BETA_SPACE_ID=local-dev-seed pnpm tsx scripts/seed-explorer-demo.ts
+ *   BETA_SPACE_ID=local-dev-seed npm run -- tsx scripts/seed-explorer-demo.ts
+ *
+ * **Rate Limiting:**
  * - 400ms delay between each entity creation
  * - Sequential execution (not parallel)
  * - Graceful error handling (continues on error)
@@ -278,14 +287,31 @@ async function seedExplorerDemo() {
   // Check for private key
   if (!process.env.ARKIV_PRIVATE_KEY) {
     console.error('\n❌ ERROR: ARKIV_PRIVATE_KEY is not set');
-    console.error('   Set ARKIV_PRIVATE_KEY in environment variables');
+    console.error('\n   This script requires ARKIV_PRIVATE_KEY to create entities on Arkiv.');
+    console.error('\n   To fix this:');
+    console.error('   1. Make sure you have a .env file in the project root');
+    console.error('   2. Add ARKIV_PRIVATE_KEY=0x... to your .env file');
+    console.error('   3. Or export it: export ARKIV_PRIVATE_KEY=0x...');
+    console.error('\n   Example .env file:');
+    console.error('     ARKIV_PRIVATE_KEY=0x1234567890abcdef...');
+    console.error('     BETA_SPACE_ID=local-dev-seed');
+    console.error('\n   After setting ARKIV_PRIVATE_KEY, run the script again.\n');
     process.exit(1);
   }
 
   const privateKey = getPrivateKey();
+  if (!privateKey) {
+    console.error('\n❌ ERROR: Could not get private key from ARKIV_PRIVATE_KEY');
+    console.error('   Make sure ARKIV_PRIVATE_KEY is set correctly in your .env file');
+    console.error('   Format should be: ARKIV_PRIVATE_KEY=0x...\n');
+    process.exit(1);
+  }
+
   const wallet = CURRENT_WALLET;
   if (!wallet) {
     console.error('\n❌ ERROR: Could not derive wallet from ARKIV_PRIVATE_KEY');
+    console.error('   The ARKIV_PRIVATE_KEY may be invalid or incorrectly formatted');
+    console.error('   Expected format: ARKIV_PRIVATE_KEY=0x... (must start with 0x)\n');
     process.exit(1);
   }
 
