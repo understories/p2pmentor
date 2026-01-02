@@ -39,6 +39,13 @@ export function ExplorerSidebar() {
     );
   }
 
+  // When logged in, let SidebarNav work normally (with its hover expansion)
+  // SidebarNav handles its own positioning and styling
+  if (isLoggedIn) {
+    return <SidebarNav allowOnExplorer />;
+  }
+
+  // When not logged in, show custom sidebar with login prompt
   return (
     <aside className="hidden md:block w-64 h-screen fixed left-0 top-0 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col">
       {/* Theme Toggle - Always Visible */}
@@ -53,32 +60,22 @@ export function ExplorerSidebar() {
         </button>
       </div>
 
-      {/* Conditional Content */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoggedIn ? (
-          // Logged in: Show full sidebar navigation
-          // Pass allowOnExplorer and nested props
-          // nested=true disables fixed positioning (ExplorerSidebar handles container)
-          <SidebarNav allowOnExplorer nested />
-        ) : (
-          // Not logged in: Show login prompt
-          <div className="p-4 flex flex-col items-center justify-center h-full space-y-4">
-            <div className="text-center">
-              <div className="text-4xl mb-2">🔐</div>
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                {hasBetaAccess
-                  ? 'Log in to access your dashboard and network'
-                  : 'Log in to explore p2pmentor'}
-              </p>
-            </div>
-            <Link
-              href="/auth"
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
-            >
-              Log In
-            </Link>
-          </div>
-        )}
+      {/* Login Prompt */}
+      <div className="flex-1 overflow-y-auto flex flex-col items-center justify-center p-4 space-y-4">
+        <div className="text-center">
+          <div className="text-4xl mb-2">🔐</div>
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            {hasBetaAccess
+              ? 'Log in to access your dashboard and network'
+              : 'Log in to explore p2pmentor'}
+          </p>
+        </div>
+        <Link
+          href="/auth"
+          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors text-sm font-medium"
+        >
+          Log In
+        </Link>
       </div>
 
       {/* Footer (optional) */}
