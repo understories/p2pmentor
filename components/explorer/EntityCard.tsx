@@ -11,7 +11,7 @@ import { getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntityCardProps {
-  entity: PublicEntity & { provenance?: any };
+  entity: PublicEntity & { provenance?: any; versionCount?: number };
 }
 
 export function EntityCard({ entity }: EntityCardProps) {
@@ -115,11 +115,40 @@ export function EntityCard({ entity }: EntityCardProps) {
     <div className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-sm hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-200">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          {/* Type badge - smaller and less prominent */}
-          <div className="mb-2">
+          {/* Type badge and version badge */}
+          <div className="mb-2 flex items-center gap-2 flex-wrap">
             <span className={`px-2 py-0.5 text-xs font-medium rounded ${getTypeBadgeClass(entity.type)}`}>
               {entity.type}
             </span>
+            {/* Version badge for profiles with multiple versions */}
+            {entity.type === 'profile' && entity.versionCount && entity.versionCount > 1 && entity.wallet && (
+              <Link
+                href={`/profiles/${entity.wallet}/versions`}
+                className="group relative inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 border border-purple-200 dark:border-purple-800 hover:bg-purple-200 dark:hover:bg-purple-900/50 transition-colors"
+                title="View version history"
+              >
+                {/* DNA/Helix Icon - Double helix representation */}
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v1a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1H9a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-1a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1V3a1 1 0 011-1h0z" opacity="0.3"/>
+                  <path d="M10 2a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v.5a1 1 0 01-1 1h-.5a1 1 0 00-1 1v1a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1h.5a1 1 0 011 1v.5a1 1 0 001 1H11a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-.5a1 1 0 011-1h.5a1 1 0 001-1v-1a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1v-.5a1 1 0 00-1-1h-.5a1 1 0 01-1-1V3a1 1 0 00-1-1h0z"/>
+                </svg>
+                <span>{entity.versionCount} versions</span>
+                {/* Educational Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-4 py-3 bg-gray-900 dark:bg-gray-800 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 whitespace-normal max-w-2xl w-96">
+                  <div className="font-semibold mb-2">Profile version history</div>
+                  <p className="text-gray-300 dark:text-gray-400 leading-relaxed">
+                    Blockchains are immutable at the transaction level, but application data is mutable at the state level. This profile has {entity.versionCount} versions preserved on-chain. The explorer shows the current canonical version, but all historical versions are accessible.
+                  </p>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                </div>
+              </Link>
+            )}
+            {/* Canonical badge for profiles with single version */}
+            {entity.type === 'profile' && (!entity.versionCount || entity.versionCount === 1) && (
+              <span className="px-2 py-0.5 text-xs font-medium rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800">
+                Canonical
+              </span>
+            )}
           </div>
 
           {/* Primary human-readable content - LARGE and PROMINENT */}

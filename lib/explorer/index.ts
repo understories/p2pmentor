@@ -32,6 +32,7 @@ import { SPACE_ID } from '@/lib/config';
 export interface ExplorerEntity extends Omit<PublicEntity, 'title' | 'summary'> {
   title: string;
   summary?: string;
+  versionCount?: number; // For profiles: number of versions (if > 1)
 }
 
 /**
@@ -116,12 +117,65 @@ function generateEntitySummary(entity: PublicEntity): string | undefined {
 /**
  * Normalize entity for explorer index
  */
-function normalizeEntity(entity: PublicEntity): ExplorerEntity {
+function normalizeEntity(entity: PublicEntity, versionCount?: number): ExplorerEntity {
   return {
     ...entity,
     title: generateEntityTitle(entity),
     summary: generateEntitySummary(entity),
+    ...(versionCount !== undefined && { versionCount }),
   };
+}
+
+/**
+ * Group profiles by wallet and deduplicate
+ * 
+ * Returns canonical profiles (most recent per wallet) with version count metadata.
+ * This ensures explorer shows one profile per wallet (like /profiles page) while
+ * preserving information about version history.
+ */
+function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
+  const byWallet = new Map<string, ExplorerEntity[]>();
+  
+  // Group profiles by wallet
+  profiles.forEach(profile => {
+    if (profile.type === 'profile' && profile.wallet) {
+      const wallet = profile.wallet.toLowerCase();
+      const existing = byWallet.get(wallet) || [];
+      existing.push(profile);
+      byWallet.set(wallet, existing);
+    }
+  });
+  
+  // For each wallet, keep canonical (most recent) and add version count
+  const canonicalProfiles: ExplorerEntity[] = [];
+  
+  for (const [wallet, walletProfiles] of byWallet.entries()) {
+    if (walletProfiles.length === 0) continue;
+    
+    // Sort by createdAt descending (most recent first)
+    // Also consider lastActiveTimestamp if available (for Pattern B updates)
+    walletProfiles.sort((a, b) => {
+      const aTime = (a as any).lastActiveTimestamp 
+        ? new Date((a as any).lastActiveTimestamp).getTime()
+        : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
+      const bTime = (b as any).lastActiveTimestamp
+        ? new Date((b as any).lastActiveTimestamp).getTime()
+        : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      return bTime - aTime;
+    });
+    
+    // Canonical is the most recent
+    const canonical = walletProfiles[0];
+    const versionCount = walletProfiles.length;
+    
+    // Add version count metadata if multiple versions exist
+    canonicalProfiles.push({
+      ...canonical,
+      versionCount: versionCount > 1 ? versionCount : undefined,
+    });
+  }
+  
+  return canonicalProfiles;
 }
 
 /**
@@ -148,12 +202,24 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const serializedOffers = offers.map(serializePublicOffer);
   const serializedSkills = skills.map(serializePublicSkill);
 
-  // Normalize all entities for index
+  // Normalize profiles first (before deduplication)
+  const normalizedProfiles = serializedProfiles.map(normalizeEntity);
+  
+  // Deduplicate profiles by wallet (keep canonical, add version count)
+  // This ensures explorer shows one profile per wallet (like /profiles page)
+  const deduplicatedProfiles = deduplicateProfiles(normalizedProfiles);
+  
+  // Normalize other entity types
+  const normalizedAsks = serializedAsks.map(normalizeEntity);
+  const normalizedOffers = serializedOffers.map(normalizeEntity);
+  const normalizedSkills = serializedSkills.map(normalizeEntity);
+
+  // Combine all entities (profiles are now deduplicated)
   const allEntities: ExplorerEntity[] = [
-    ...serializedProfiles.map(normalizeEntity),
-    ...serializedAsks.map(normalizeEntity),
-    ...serializedOffers.map(normalizeEntity),
-    ...serializedSkills.map(normalizeEntity),
+    ...deduplicatedProfiles,
+    ...normalizedAsks,
+    ...normalizedOffers,
+    ...normalizedSkills,
   ];
 
   // Sort by createdAt (newest first)
@@ -172,7 +238,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     generatedAt,
     entities: allEntities,
     counts: {
-      profiles: serializedProfiles.length,
+      // Count deduplicated profiles (one per wallet)
+      profiles: deduplicatedProfiles.length,
       asks: serializedAsks.length,
       offers: serializedOffers.length,
       skills: serializedSkills.length,
@@ -208,6 +275,8 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
       return entitySpaceId === spaceId;
     });
 
+    // After filtering, counts are based on filtered entities
+    // Note: profiles are already deduplicated in the index
     return {
       ...index,
       entities: filteredEntities,
