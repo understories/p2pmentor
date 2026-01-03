@@ -14,7 +14,7 @@ import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntitiesResponse {
   ok: boolean;
-  entities: (PublicEntity & { provenance?: any })[];
+  entities: (PublicEntity & { provenance?: any; versionCount?: number })[];
   nextCursor: string | null;
   generatedAt: string;
 }
@@ -25,7 +25,7 @@ interface EntityListProps {
 }
 
 export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityListProps = {} as EntityListProps) {
-  const [entities, setEntities] = useState<(PublicEntity & { provenance?: any })[]>([]);
+  const [entities, setEntities] = useState<(PublicEntity & { provenance?: any; versionCount?: number })[]>([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<string>('all');
   const [spaceId, setSpaceId] = useState<string>(propSpaceId || 'all');
