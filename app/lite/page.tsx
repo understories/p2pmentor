@@ -480,7 +480,9 @@ export default function LitePage() {
         {/* Arkiv Explanation */}
         <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
           <p className="text-gray-700 dark:text-gray-300 text-sm">
-            All data you enter here is stored on the Arkiv network. This means it is visible and verifiable on their{' '}
+            All data you enter here is stored on the Arkiv network for 30 days.
+            <br />
+            This means it is visible and verifiable on their{' '}
             <a 
               href="http://explorer.mendoza.hoodi.arkiv.network/" 
               target="_blank" 
@@ -498,7 +500,7 @@ export default function LitePage() {
             >
               p2pmentor explorer here
             </a>
-            {' '}to demonstrate this. Until we implement encrypted data, your data is NOT private.
+            {' '}to demonstrate this. In other words, your data is not private.
             <br />
             <a 
               href="/docs/arkiv/overview" 
