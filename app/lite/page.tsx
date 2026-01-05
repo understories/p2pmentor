@@ -25,6 +25,7 @@ interface Match {
 }
 
 export default function LitePage() {
+  const [spaceId, setSpaceId] = useState<string>('nsjan26'); // Default spaceId
   const [asks, setAsks] = useState<LiteAsk[]>([]);
   const [offers, setOffers] = useState<LiteOffer[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -54,7 +55,7 @@ export default function LitePage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [spaceId]); // Reload data when spaceId changes
 
   // Recompute matches whenever asks or offers change
   useEffect(() => {
@@ -69,8 +70,8 @@ export default function LitePage() {
     try {
       setLoading(true);
       const [asksRes, offersRes] = await Promise.all([
-        fetch('/api/lite/asks').then(r => r.json()),
-        fetch('/api/lite/offers').then(r => r.json()),
+        fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
+        fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
       ]);
 
       if (asksRes.ok) {
@@ -180,6 +181,7 @@ export default function LitePage() {
           skill: newOffer.skill.trim(),
           description: newOffer.description.trim() || undefined,
           cost: newOffer.cost.trim() || undefined,
+          spaceId: spaceId,
         }),
       });
 
@@ -265,6 +267,25 @@ export default function LitePage() {
           title="Lite Ask/Offer Board"
           description="Simple ask and offer board. No login required. All data stored on Arkiv."
         />
+
+        {/* Space ID Selector */}
+        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+          <label htmlFor="spaceId" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            Space ID
+          </label>
+          <select
+            id="spaceId"
+            value={spaceId}
+            onChange={(e) => setSpaceId(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="nsjan26">nsjan26 (Default)</option>
+            <option value="test">test</option>
+          </select>
+          <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+            Select the space ID to use for data isolation. Changing this will reload all data.
+          </p>
+        </div>
 
         {/* Arkiv Explanation */}
         <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
