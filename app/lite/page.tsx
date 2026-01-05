@@ -264,8 +264,8 @@ export default function LitePage() {
     <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
       <div className="max-w-4xl mx-auto">
         <PageHeader
-          title="Lite Ask/Offer Board"
-          description="Simple ask and offer board. No login required. All data stored on Arkiv."
+          title="Mentorship Matching: Ask & Offer Board"
+          description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
         />
 
         {/* Space ID Selector */}
