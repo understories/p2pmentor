@@ -26,6 +26,9 @@ interface Match {
 
 export default function LitePage() {
   const [spaceId, setSpaceId] = useState<string>('nsjan26'); // Default spaceId
+  const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>(['nsjan26', 'test']); // Available space IDs
+  const [showCreateNewSpaceId, setShowCreateNewSpaceId] = useState(false);
+  const [newSpaceIdInput, setNewSpaceIdInput] = useState('');
   const [asks, setAsks] = useState<LiteAsk[]>([]);
   const [offers, setOffers] = useState<LiteOffer[]>([]);
   const [matches, setMatches] = useState<Match[]>([]);
@@ -57,6 +60,39 @@ export default function LitePage() {
   useEffect(() => {
     loadData();
   }, [spaceId]); // Reload data when spaceId changes
+
+  // Load available space IDs from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('lite_space_ids');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setAvailableSpaceIds(parsed);
+            // If current spaceId is not in the list, add it
+            if (!parsed.includes(spaceId)) {
+              const updated = [...parsed, spaceId];
+              setAvailableSpaceIds(updated);
+              localStorage.setItem('lite_space_ids', JSON.stringify(updated));
+            }
+          }
+        } catch (err) {
+          console.error('Error loading space IDs from localStorage:', err);
+        }
+      } else {
+        // Initialize with default space IDs
+        localStorage.setItem('lite_space_ids', JSON.stringify(availableSpaceIds));
+      }
+    }
+  }, []); // Only run on mount
+
+  // Save available space IDs to localStorage whenever they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && availableSpaceIds.length > 0) {
+      localStorage.setItem('lite_space_ids', JSON.stringify(availableSpaceIds));
+    }
+  }, [availableSpaceIds]);
 
   // Recompute matches whenever asks or offers change
   useEffect(() => {
@@ -164,6 +200,36 @@ export default function LitePage() {
     setMatches(matchesList);
   };
 
+  const handleCreateNewSpaceId = () => {
+    if (!newSpaceIdInput.trim()) {
+      setError('Please enter a space ID');
+      return;
+    }
+
+    const trimmedSpaceId = newSpaceIdInput.trim();
+    
+    // Check if it already exists
+    if (availableSpaceIds.includes(trimmedSpaceId)) {
+      setError('This space ID already exists');
+      setShowCreateNewSpaceId(false);
+      setSpaceId(trimmedSpaceId); // Switch to existing space ID
+      setNewSpaceIdInput('');
+      return;
+    }
+
+    // Add to available space IDs
+    const updated = [...availableSpaceIds, trimmedSpaceId];
+    setAvailableSpaceIds(updated);
+    
+    // Set as current space ID (this will trigger useEffect to reload data)
+    setSpaceId(trimmedSpaceId);
+    
+    // Reset create new UI
+    setShowCreateNewSpaceId(false);
+    setNewSpaceIdInput('');
+    setError('');
+  };
+
   const handleCreateAsk = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAsk.name.trim() || !newAsk.discordHandle.trim() || !newAsk.skill.trim()) {
@@ -184,6 +250,7 @@ export default function LitePage() {
           discordHandle: newAsk.discordHandle.trim(),
           skill: newAsk.skill.trim(),
           description: newAsk.description.trim() || undefined,
+          spaceId,
         }),
       });
 
@@ -358,16 +425,55 @@ export default function LitePage() {
           <label htmlFor="spaceId" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Space ID
           </label>
-          <input
-            type="text"
+          <select
             id="spaceId"
-            value={spaceId}
-            onChange={(e) => setSpaceId(e.target.value.trim())}
-            placeholder="nsjan26"
+            value={showCreateNewSpaceId ? 'create-new' : spaceId}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (value === 'create-new') {
+                setShowCreateNewSpaceId(true);
+                setNewSpaceIdInput('');
+              } else {
+                setShowCreateNewSpaceId(false);
+                setSpaceId(value);
+              }
+            }}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+          >
+            {availableSpaceIds.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+            <option value="create-new">Create new</option>
+          </select>
+          
+          {showCreateNewSpaceId && (
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                value={newSpaceIdInput}
+                onChange={(e) => setNewSpaceIdInput(e.target.value.trim())}
+                placeholder="Enter new space ID"
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && newSpaceIdInput) {
+                    handleCreateNewSpaceId();
+                  }
+                }}
+              />
+              <button
+                onClick={handleCreateNewSpaceId}
+                disabled={!newSpaceIdInput}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+              >
+                Create
+              </button>
+            </div>
+          )}
+          
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Enter a space ID to use for data isolation. Changing this will reload all data. Default: nsjan26
+            Select a space ID for data isolation. Changing this will reload all data.
           </p>
         </div>
 
