@@ -1,6 +1,6 @@
 # What is Arkiv?
 
-**Arkiv** is a decentralized blockchain network that serves as the primary data storage layer for p2pmentor. Instead of using a traditional database, all data in p2pmentor is stored as **immutable entities** on the Arkiv blockchain.
+**Arkiv** is a decentralized blockchain network that serves as the primary data storage layer for p2pmentor. Instead of using a traditional database, all data in p2pmentor is stored as **immutable entities** on the Arkiv blockchain. <a href="https://arkiv.network/docs" target="_blank" rel="noopener noreferrer">Read Arkiv's official documentation here.</a>
 
 ## For Everyone: Why This Matters
 
