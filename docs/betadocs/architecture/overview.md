@@ -33,7 +33,6 @@ See [Integrations](/docs/architecture/integrations) for detailed integration doc
 
 ### Modules
 
-- Builder Mode: Developer-focused query visibility
 - Feedback System: User feedback and issue tracking
 - Learner Quests: Reading lists and language assessments
 - Notification System: Read/unread state management

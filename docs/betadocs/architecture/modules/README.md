@@ -4,7 +4,6 @@ Core system modules that implement major features of p2pmentor.
 
 ## Available Modules
 
-- [Builder Mode](builder-mode.md) - Developer-focused query visibility
 - [Feedback System](feedback-system.md) - User feedback and issue tracking
 - [Learner Quests](learner-quests.md) - Reading lists and language assessments
 - [Notification System](notification-system.md) - Read/unread state management

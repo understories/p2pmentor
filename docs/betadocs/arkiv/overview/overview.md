@@ -166,7 +166,6 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 - [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs signing wallet
 - [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
 - [Invite Code System](/docs/arkiv/operations/invite-code-system) - Arkiv-native invite code implementation with usage tracking
-- [Builder Mode](/docs/architecture/modules/builder-mode) - Developer-focused query visibility
 - [Learner Quests](/docs/architecture/modules/learner-quests) - Curated reading lists and language assessment quests with progress tracking
 - [Implementation FAQ](/docs/arkiv/operations/implementation-faq) - Common patterns and Q&A
 - [Arkiv Integration](/docs/architecture/arkiv-integration) - Architecture details

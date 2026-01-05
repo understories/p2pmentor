@@ -15,7 +15,6 @@ Technical architecture and design decisions for p2pmentor.
 Core system modules that implement major features.
 
 - [Modules Overview](modules/README.md) - All available modules
-- [Builder Mode](modules/builder-mode.md) - Developer-focused query visibility
 - [Feedback System](modules/feedback-system.md) - User feedback and issue tracking
 - [Learner Quests](modules/learner-quests.md) - Reading lists and language assessments
 - [Notification System](modules/notification-system.md) - Read/unread state management
