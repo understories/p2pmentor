@@ -235,7 +235,7 @@ export function FloatingButtonCluster() {
       ),
       tooltip: 'View on GitHub',
       ariaLabel: 'View source code on GitHub',
-      className: 'bg-gray-900 dark:bg-gray-100',
+      className: 'bg-gray-800 dark:bg-gray-100',
     },
     {
       id: 'x',
@@ -275,8 +275,8 @@ export function FloatingButtonCluster() {
       ariaLabel: isLitePage ? 'View lite version documentation' : 'View beta documentation',
       className: 'bg-amber-600 hover:bg-amber-700',
     },
-    // Theme toggle button
-    {
+    // Theme toggle button - only on lite page
+    ...(isLitePage ? [{
       id: 'theme',
       onClick: handleThemeToggle,
       icon: (
@@ -287,7 +287,7 @@ export function FloatingButtonCluster() {
       tooltip: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
       ariaLabel: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
       className: 'bg-gray-700 dark:bg-gray-300 hover:bg-gray-600 dark:hover:bg-gray-400',
-    },
+    }] : []),
     // Hide feedback button on lite page
     ...(isLitePage ? [] : [{
       id: 'feedback',
@@ -361,7 +361,7 @@ export function FloatingButtonCluster() {
               title={button.tooltip}
             >
               <div className={
-                button.id === 'github' ? 'text-white dark:text-gray-900' : 
+                button.id === 'github' ? 'text-white dark:text-gray-800' : 
                 button.id === 'x' ? 'text-white' : 
                 button.id === 'theme' ? 'text-white dark:text-gray-900' : 
                 'text-white'

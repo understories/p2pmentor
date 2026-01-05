@@ -18,6 +18,11 @@ export function GlobalToggles() {
   const pathname = usePathname();
   const isLitePage = pathname === '/lite';
   const isExplorerPage = pathname === '/explorer';
+  const isLandingPage = pathname === '/';
+  // Main app pages: any page that's not docs, lite, explorer, beta, or auth
+  const isMainApp = pathname && !pathname.startsWith('/docs') && !isLitePage && !isExplorerPage && pathname !== '/beta' && pathname !== '/auth';
+  // Only show theme toggle on docs pages (not on landing, main app, lite, or explorer)
+  const showThemeToggle = pathname && pathname.startsWith('/docs');
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   
   useEffect(() => {
@@ -76,7 +81,8 @@ export function GlobalToggles() {
     <div 
       className={`${mobileClass} fixed ${topPosition} right-4 z-50 flex flex-row items-center justify-end gap-2`}
     >
-      {/* Theme Toggle */}
+      {/* Theme Toggle - only show on docs pages (not on landing, main app, lite, or explorer) */}
+      {showThemeToggle && (
       <button
         onClick={handleThemeToggle}
         className="flex items-center justify-center p-3 rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 flex-shrink-0"
@@ -103,6 +109,7 @@ export function GlobalToggles() {
           {theme === 'dark' ? '☀️' : '🌙'}
         </span>
       </button>
+      )}
 
       {/* Arkiv Builder Mode Toggle - hidden on lite and explorer pages */}
       {!isLitePage && !isExplorerPage && (
