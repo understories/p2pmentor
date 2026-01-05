@@ -361,9 +361,9 @@ export function FloatingButtonCluster() {
               title={button.tooltip}
             >
               <div className={
-                button.id === 'github' ? 'text-white dark:text-gray-800' : 
-                button.id === 'x' ? 'text-white' : 
-                button.id === 'theme' ? 'text-white dark:text-gray-900' : 
+                button.id === 'github' ? 'text-white dark:text-gray-800' :
+                button.id === 'x' ? 'text-white' :
+                button.id === 'theme' ? 'text-white dark:text-gray-900' :
                 'text-white'
               }>
                 {button.icon}
