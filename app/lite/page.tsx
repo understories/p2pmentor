@@ -15,6 +15,7 @@ import { PageHeader } from '@/components/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Alert } from '@/components/Alert';
 import { EmptyState } from '@/components/EmptyState';
+import { EntityDataToggle } from '@/components/lite/EntityDataToggle';
 import type { LiteAsk } from '@/lib/arkiv/liteAsks';
 import type { LiteOffer } from '@/lib/arkiv/liteOffers';
 
@@ -55,6 +56,15 @@ export default function LitePage() {
     loadData();
   }, []);
 
+  // Recompute matches whenever asks or offers change
+  useEffect(() => {
+    if (asks.length > 0 || offers.length > 0) {
+      computeMatches(asks, offers);
+    } else {
+      setMatches([]);
+    }
+  }, [asks, offers]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -69,9 +79,6 @@ export default function LitePage() {
       if (offersRes.ok) {
         setOffers(offersRes.offers || []);
       }
-
-      // Compute matches
-      computeMatches(asksRes.asks || [], offersRes.offers || []);
     } catch (err) {
       console.error('Error loading data:', err);
       setError('Failed to load data');
@@ -241,6 +248,10 @@ export default function LitePage() {
     return (
       <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
         <div className="max-w-4xl mx-auto">
+          <PageHeader
+            title="Lite Ask/Offer Board"
+            description="Simple ask and offer board. No login required. All data stored on Arkiv."
+          />
           <LoadingSpinner text="Loading asks and offers..." className="py-12" />
         </div>
       </div>
@@ -513,9 +524,14 @@ export default function LitePage() {
                   className="p-6 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      {match.ask.skill}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        {match.ask.skill}
+                      </h3>
+                      <EntityDataToggle entityKey={match.ask.key} txHash={match.ask.txHash} />
+                      <span className="text-gray-400 dark:text-gray-500">·</span>
+                      <EntityDataToggle entityKey={match.offer.key} txHash={match.offer.txHash} />
+                    </div>
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                       Match
                     </span>
@@ -579,10 +595,13 @@ export default function LitePage() {
                   className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                        {ask.skill}
-                      </h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                          {ask.skill}
+                        </h3>
+                        <EntityDataToggle entityKey={ask.key} txHash={ask.txHash} />
+                      </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {formatDate(ask.createdAt)}
                       </p>
@@ -622,10 +641,13 @@ export default function LitePage() {
                   className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
                 >
                   <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
-                        {offer.skill}
-                      </h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
+                          {offer.skill}
+                        </h3>
+                        <EntityDataToggle entityKey={offer.key} txHash={offer.txHash} />
+                      </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
                         {formatDate(offer.createdAt)}
                       </p>
