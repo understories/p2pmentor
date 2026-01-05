@@ -642,9 +642,6 @@ export default function LitePage() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {match.ask.skill}
                       </h3>
-                      <EntityDataToggle entityKey={match.ask.key} txHash={match.ask.txHash} />
-                      <span className="text-gray-400 dark:text-gray-500">·</span>
-                      <EntityDataToggle entityKey={match.offer.key} txHash={match.offer.txHash} />
                     </div>
                     <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
                       Match
