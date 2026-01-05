@@ -200,7 +200,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           {' '}to demonstrate this. Until we implement encrypted data, your data is NOT private.
           <br />
           <a 
-            href="http://explorer.mendoza.hoodi.arkiv.network/" 
+            href="/docs/arkiv/overview" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-green-400 hover:text-green-300 underline"
