@@ -17,6 +17,7 @@ export function GlobalToggles() {
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
   const isLitePage = pathname === '/lite';
+  const isExplorerPage = pathname === '/explorer';
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   
   useEffect(() => {
@@ -103,8 +104,8 @@ export function GlobalToggles() {
         </span>
       </button>
 
-      {/* Arkiv Builder Mode Toggle - hidden on lite page */}
-      {!isLitePage && (
+      {/* Arkiv Builder Mode Toggle - hidden on lite and explorer pages */}
+      {!isLitePage && !isExplorerPage && (
         <ArkivBuilderModeToggle
           enabled={arkivBuilderMode}
           onToggle={handleArkivBuilderModeToggle}

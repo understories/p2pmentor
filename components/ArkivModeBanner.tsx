@@ -8,10 +8,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivBuilderModeToggle } from './ArkivBuilderModeToggle';
 
 export function ArkivModeBanner() {
+  const pathname = usePathname();
+  const isExplorerPage = pathname === '/explorer';
   const arkivBuilderMode = useArkivBuilderMode();
   const [queryCount, setQueryCount] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
@@ -36,7 +39,7 @@ export function ArkivModeBanner() {
     return () => window.removeEventListener('arkiv-query', handleQuery);
   }, [arkivBuilderMode]);
 
-  if (!mounted || !arkivBuilderMode) return null;
+  if (!mounted || !arkivBuilderMode || isExplorerPage) return null;
 
   const handleToggle = (enabled: boolean) => {
     setArkivBuilderModeState(enabled);
