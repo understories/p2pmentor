@@ -25,9 +25,9 @@ import type { GardenSkill } from '@/lib/garden/types';
 export function FixedBackgroundGarden() {
   const pathname = usePathname();
 
-  // Hide garden on landing, beta, auth, onboarding, and documentation pages
+  // Hide garden on landing, beta, auth, onboarding, lite, and documentation pages
   // Onboarding has its own GardenLayer that shows during the skills step
-  const hideGardenPaths = ['/', '/beta', '/auth', '/onboarding'];
+  const hideGardenPaths = ['/', '/beta', '/auth', '/onboarding', '/lite'];
   if (hideGardenPaths.includes(pathname) || pathname?.startsWith('/docs')) {
     return null;
   }
