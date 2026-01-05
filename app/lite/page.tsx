@@ -395,7 +395,7 @@ export default function LitePage() {
             {' '}to demonstrate this. Until we implement encrypted data, your data is NOT private.
             <br />
             <a 
-              href="/docs/arkiv/overview/overview" 
+              href="/docs/arkiv/overview" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
