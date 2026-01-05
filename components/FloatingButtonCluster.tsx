@@ -5,10 +5,12 @@
  * 
  * Organic cluster of logo buttons that grow on hover.
  * Matches the garden aesthetic with proximity-based scaling.
+ * On mobile, buttons are fixed below content (for lite page).
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
+import { useTheme } from '@/lib/theme';
 import { AppFeedbackModal } from './AppFeedbackModal';
 
 interface FloatingButton {
@@ -24,12 +26,25 @@ interface FloatingButton {
 export function FloatingButtonCluster() {
   const pathname = usePathname();
   const isLitePage = pathname === '/lite';
+  const { theme, toggleTheme } = useTheme();
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [wallet, setWallet] = useState<string | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768); // md breakpoint
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Track wallet from localStorage
   useEffect(() => {
@@ -77,8 +92,10 @@ export function FloatingButtonCluster() {
     return () => clearInterval(interval);
   }, [wallet]);
 
-  // Track mouse position for proximity-based scaling
+  // Track mouse position for proximity-based scaling (desktop only)
   useEffect(() => {
+    if (isMobile) return; // Skip on mobile
+    
     const handleMouseMove = (e: MouseEvent) => {
       if (clusterRef.current) {
         const rect = clusterRef.current.getBoundingClientRect();
@@ -93,11 +110,19 @@ export function FloatingButtonCluster() {
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [isMobile]);
 
-  // Calculate distance from mouse to cluster center
+  // Calculate distance from mouse to cluster center (desktop only)
   const distance = Math.sqrt(mousePos.x ** 2 + mousePos.y ** 2);
-  const proximityScale = Math.max(1, 1.1 - distance / 1000); // Scale up when mouse is close
+  const proximityScale = isMobile ? 1 : Math.max(1, 1.1 - distance / 1000); // Scale up when mouse is close
+
+  const handleThemeToggle = () => {
+    toggleTheme();
+    // Mark that user has manually toggled (stops auto-switching on landing page)
+    if (pathname === '/') {
+      window.dispatchEvent(new Event('theme-toggled'));
+    }
+  };
 
   const buttons: FloatingButton[] = [
     {
@@ -250,6 +275,19 @@ export function FloatingButtonCluster() {
       ariaLabel: isLitePage ? 'View lite version documentation' : 'View beta documentation',
       className: 'bg-amber-600 hover:bg-amber-700',
     },
+    // Theme toggle button
+    {
+      id: 'theme',
+      onClick: handleThemeToggle,
+      icon: (
+        <span className="text-lg">
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </span>
+      ),
+      tooltip: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+      ariaLabel: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+      className: 'bg-gray-700 dark:bg-gray-300 hover:bg-gray-600 dark:hover:bg-gray-400',
+    },
     // Hide feedback button on lite page
     ...(isLitePage ? [] : [{
       id: 'feedback',
@@ -275,15 +313,26 @@ export function FloatingButtonCluster() {
     }]),
   ];
 
+  // On mobile for lite page, position below content instead of floating
+  const isMobileLite = isMobile && isLitePage;
+  
   return (
     <>
       <div
         ref={clusterRef}
-        className="fixed bottom-6 right-6 z-50 flex items-center gap-1.5"
-        style={{
-          transform: `scale(${proximityScale})`,
-          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-        }}
+        className={
+          isMobileLite
+            ? "sticky bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-2 p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700"
+            : "fixed bottom-6 right-6 z-50 flex items-center gap-1.5"
+        }
+        style={
+          isMobileLite
+            ? {}
+            : {
+                transform: `scale(${proximityScale})`,
+                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              }
+        }
       >
         {buttons.map((button) => {
           const isHovered = hoveredId === button.id;
@@ -311,7 +360,12 @@ export function FloatingButtonCluster() {
               aria-label={button.ariaLabel}
               title={button.tooltip}
             >
-              <div className={button.id === 'github' ? 'text-white dark:text-gray-900' : button.id === 'x' ? 'text-white' : 'text-white'}>
+              <div className={
+                button.id === 'github' ? 'text-white dark:text-gray-900' : 
+                button.id === 'x' ? 'text-white' : 
+                button.id === 'theme' ? 'text-white dark:text-gray-900' : 
+                'text-white'
+              }>
                 {button.icon}
               </div>
               
