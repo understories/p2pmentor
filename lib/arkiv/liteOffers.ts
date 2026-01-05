@@ -41,6 +41,7 @@ export async function createLiteOffer({
   skill,
   description,
   cost,
+  spaceId = 'nsjan26',
   privateKey,
 }: {
   name: string;
@@ -48,6 +49,7 @@ export async function createLiteOffer({
   skill: string;
   description?: string;
   cost?: string;
+  spaceId?: string;
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   // Input validation
@@ -80,7 +82,7 @@ export async function createLiteOffer({
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'lite'; // Fixed spaceId for lite version
+  const finalSpaceId = spaceId || 'nsjan26'; // Use provided spaceId or default to 'nsjan26'
   const status = 'active';
   const createdAt = new Date().toISOString();
   const ttl = LITE_OFFER_TTL_SECONDS;
@@ -145,7 +147,7 @@ export async function createLiteOffer({
       { key: 'type', value: 'lite_offer_txhash' },
       { key: 'offerKey', value: entityKey },
       { key: 'discordHandle', value: normalizedDiscordHandle },
-      { key: 'spaceId', value: spaceId },
+      { key: 'spaceId', value: finalSpaceId },
     ],
     expiresIn: ttl,
   }).catch((error: any) => {
@@ -165,17 +167,18 @@ export async function createLiteOffer({
  * @param params - Optional filters
  * @returns Array of lite offers
  */
-export async function listLiteOffers(params?: { skill?: string; limit?: number; includeExpired?: boolean }): Promise<LiteOffer[]> {
+export async function listLiteOffers(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<LiteOffer[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   
   try {
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500;
+    const spaceId = params?.spaceId || 'nsjan26'; // Default to 'nsjan26' if not provided
     let queryBuilder = query
       .where(eq('type', 'lite_offer'))
       .where(eq('status', 'active'))
-      .where(eq('spaceId', 'lite')); // Always filter by 'lite' spaceId
+      .where(eq('spaceId', spaceId)); // Filter by provided spaceId
     
     let result: any = null;
     let txHashResult: any = null;
@@ -185,7 +188,7 @@ export async function listLiteOffers(params?: { skill?: string; limit?: number; 
         queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
         publicClient.buildQuery()
           .where(eq('type', 'lite_offer_txhash'))
-          .where(eq('spaceId', 'lite'))
+          .where(eq('spaceId', spaceId))
           .withAttributes(true)
           .withPayload(true)
           .limit(limit)
@@ -274,7 +277,7 @@ export async function listLiteOffers(params?: { skill?: string; limit?: number; 
         skill: getAttr('skill') || '',
         description: payload.description || undefined,
         cost: getAttr('cost') || payload.cost || undefined,
-        spaceId: getAttr('spaceId') || 'lite',
+        spaceId: getAttr('spaceId') || 'nsjan26',
         createdAt: getAttr('createdAt') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'active',
         ttlSeconds: isNaN(ttlSeconds) ? LITE_OFFER_TTL_SECONDS : ttlSeconds,

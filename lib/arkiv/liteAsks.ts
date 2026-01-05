@@ -39,12 +39,14 @@ export async function createLiteAsk({
   discordHandle,
   skill,
   description,
+  spaceId = 'nsjan26',
   privateKey,
 }: {
   name: string;
   discordHandle: string;
   skill: string;
   description?: string;
+  spaceId?: string;
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   // Input validation
@@ -74,7 +76,7 @@ export async function createLiteAsk({
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const spaceId = 'lite'; // Fixed spaceId for lite version
+  const finalSpaceId = spaceId || 'nsjan26'; // Use provided spaceId or default to 'nsjan26'
   const status = 'open';
   const createdAt = new Date().toISOString();
   const ttl = LITE_ASK_TTL_SECONDS;
@@ -88,7 +90,7 @@ export async function createLiteAsk({
     { key: 'name', value: name.trim() },
     { key: 'discordHandle', value: normalizedDiscordHandle },
     { key: 'skill', value: skill.trim() },
-    { key: 'spaceId', value: spaceId },
+      { key: 'spaceId', value: finalSpaceId },
     { key: 'createdAt', value: createdAt },
     { key: 'status', value: status },
     { key: 'ttlSeconds', value: String(ttl) },
@@ -118,10 +120,10 @@ export async function createLiteAsk({
     entityKey,
     txHash,
     wallet: '', // No wallet for lite version
-    timestamp: createdAt,
-    operation: 'create',
-    spaceId,
-  });
+      timestamp: createdAt,
+      operation: 'create',
+      spaceId: finalSpaceId,
+    });
 
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
@@ -134,7 +136,7 @@ export async function createLiteAsk({
       { key: 'type', value: 'lite_ask_txhash' },
       { key: 'askKey', value: entityKey },
       { key: 'discordHandle', value: normalizedDiscordHandle },
-      { key: 'spaceId', value: spaceId },
+      { key: 'spaceId', value: finalSpaceId },
     ],
     expiresIn: ttl,
   }).catch((error: any) => {
@@ -154,17 +156,18 @@ export async function createLiteAsk({
  * @param params - Optional filters
  * @returns Array of lite asks
  */
-export async function listLiteAsks(params?: { skill?: string; limit?: number; includeExpired?: boolean }): Promise<LiteAsk[]> {
+export async function listLiteAsks(params?: { skill?: string; spaceId?: string; limit?: number; includeExpired?: boolean }): Promise<LiteAsk[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
   
   try {
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500;
+    const spaceId = params?.spaceId || 'nsjan26'; // Default to 'nsjan26' if not provided
     let queryBuilder = query
       .where(eq('type', 'lite_ask'))
       .where(eq('status', 'open'))
-      .where(eq('spaceId', 'lite')); // Always filter by 'lite' spaceId
+      .where(eq('spaceId', spaceId)); // Filter by provided spaceId
     
     let result: any = null;
     let txHashResult: any = null;
@@ -174,7 +177,7 @@ export async function listLiteAsks(params?: { skill?: string; limit?: number; in
         queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
         publicClient.buildQuery()
           .where(eq('type', 'lite_ask_txhash'))
-          .where(eq('spaceId', 'lite'))
+          .where(eq('spaceId', spaceId))
           .withAttributes(true)
           .withPayload(true)
           .limit(limit)
@@ -262,7 +265,7 @@ export async function listLiteAsks(params?: { skill?: string; limit?: number; in
         discordHandle: getAttr('discordHandle') || '',
         skill: getAttr('skill') || '',
         description: payload.description || undefined,
-        spaceId: getAttr('spaceId') || 'lite',
+        spaceId: getAttr('spaceId') || 'nsjan26',
         createdAt: getAttr('createdAt') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'open',
         ttlSeconds: isNaN(ttlSeconds) ? LITE_ASK_TTL_SECONDS : ttlSeconds,
