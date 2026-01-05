@@ -67,9 +67,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Call getAllTransactions
+    // Determine final spaceId (default to SPACE_ID for data isolation, unless explicitly 'all')
+    // Frontend passes spaceId only when it's not 'all', so undefined means use default
+    const finalSpaceId = spaceId && spaceId !== 'all' ? spaceId : SPACE_ID;
+
+    // Call getAllTransactions with proper spaceId filtering
     const result = await getAllTransactions({
-      spaceId: spaceId || SPACE_ID,
+      spaceId: finalSpaceId,
       entityType: entityType || undefined,
       status: status || undefined,
       txHash: parsedTxHash,

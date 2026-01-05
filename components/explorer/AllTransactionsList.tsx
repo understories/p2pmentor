@@ -38,13 +38,15 @@ interface AllTransactionsListProps {
   entityType?: 'profile' | 'ask' | 'offer' | 'skill' | 'all';
   status?: 'success' | 'failed' | 'pending' | 'all';
   search?: string;
+  onSpaceIdChange?: (spaceId: string) => void;
 }
 
 export function AllTransactionsList({
-  spaceId,
+  spaceId: propSpaceId,
   entityType = 'all',
   status = 'all',
   search = '',
+  onSpaceIdChange,
 }: AllTransactionsListProps) {
   const [transactions, setTransactions] = useState<TransactionHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +54,7 @@ export function AllTransactionsList({
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(false);
   const [filtered, setFiltered] = useState(false);
+  const [spaceId, setSpaceId] = useState<string>(propSpaceId || 'all');
 
   const fetchTransactions = async (cursor?: string | null, reset = false) => {
     setLoading(true);
@@ -96,6 +99,20 @@ export function AllTransactionsList({
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Sync with prop if provided
+  useEffect(() => {
+    if (propSpaceId !== undefined) {
+      setSpaceId(propSpaceId);
+    }
+  }, [propSpaceId]);
+
+  const handleSpaceIdChange = (newSpaceId: string) => {
+    setSpaceId(newSpaceId);
+    if (onSpaceIdChange) {
+      onSpaceIdChange(newSpaceId);
     }
   };
 
@@ -232,24 +249,52 @@ export function AllTransactionsList({
     );
   }
 
-  if (transactions.length === 0) {
+  if (transactions.length === 0 && !loading) {
     return (
-      <div className="py-8">
-        <EmptyState
-          icon="📋"
-          title="No transactions found"
-          description={
-            search || entityType !== 'all' || status !== 'all'
+      <div className="space-y-4">
+        {/* SpaceId Filter */}
+        <div className="mb-6 flex justify-end">
+          <select
+            value={spaceId}
+            onChange={(e) => handleSpaceIdChange(e.target.value)}
+            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+          >
+            <option value="all">All Spaces</option>
+            <option value="beta-launch">Beta Launch</option>
+            <option value="local-dev">Local Dev</option>
+            <option value="local-dev-seed">Local Dev Seed</option>
+          </select>
+        </div>
+        <div className="py-8">
+          <EmptyState
+            icon="📋"
+            title="No transactions found"
+            description={
+              search || entityType !== 'all' || status !== 'all' || spaceId !== 'all'
               ? 'No transactions match your filters. Try adjusting your search or filters.'
               : 'No app-recorded transaction events found yet.'
-          }
-        />
+            }
+          />
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* SpaceId Filter */}
+      <div className="mb-6 flex justify-end">
+        <select
+          value={spaceId}
+          onChange={(e) => handleSpaceIdChange(e.target.value)}
+          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+        >
+          <option value="all">All Spaces</option>
+          <option value="beta-launch">Beta Launch</option>
+          <option value="local-dev">Local Dev</option>
+          <option value="local-dev-seed">Local Dev Seed</option>
+        </select>
+      </div>
       {/* Filter note if status filtering is applied */}
       {filtered && (
         <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">

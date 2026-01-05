@@ -164,7 +164,7 @@ export default function ExplorerPage() {
           </div>
           {showTransactions && (
             <div className="mt-4">
-              <AllTransactionsList spaceId={spaceId} />
+              <AllTransactionsList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
             </div>
           )}
         </div>
