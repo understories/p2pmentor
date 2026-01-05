@@ -263,6 +263,7 @@ export function AllTransactionsList({
             <option value="beta-launch">Beta Launch</option>
             <option value="local-dev">Local Dev</option>
             <option value="local-dev-seed">Local Dev Seed</option>
+            <option value="lite">Lite</option>
           </select>
         </div>
         <div className="py-8">
@@ -293,6 +294,7 @@ export function AllTransactionsList({
           <option value="beta-launch">Beta Launch</option>
           <option value="local-dev">Local Dev</option>
           <option value="local-dev-seed">Local Dev Seed</option>
+          <option value="lite">Lite</option>
         </select>
       </div>
       {/* Filter note if status filtering is applied */}
