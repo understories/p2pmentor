@@ -333,7 +333,7 @@ export default function LitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm pb-24 md:pb-4">
         <div className="max-w-4xl mx-auto">
           <PageHeader
             title="Mentorship Matching: Ask & Offer Board"
@@ -346,7 +346,7 @@ export default function LitePage() {
   }
 
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm pb-24 md:pb-4">
         <div className="max-w-4xl mx-auto">
           <PageHeader
             title="Mentorship Matching: Ask & Offer Board"
