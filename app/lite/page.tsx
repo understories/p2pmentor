@@ -248,11 +248,11 @@ export default function LitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto">
           <PageHeader
-            title="Lite Ask/Offer Board"
-            description="Simple ask and offer board. No login required. All data stored on Arkiv."
+            title="Mentorship Matching: Ask & Offer Board"
+            description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
           />
           <LoadingSpinner text="Loading asks and offers..." className="py-12" />
         </div>
@@ -260,13 +260,13 @@ export default function LitePage() {
     );
   }
 
-  return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <PageHeader
-          title="Mentorship Matching: Ask & Offer Board"
-          description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
-        />
+    return (
+      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto">
+          <PageHeader
+            title="Mentorship Matching: Ask & Offer Board"
+            description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
+          />
 
         {/* Space ID Selector */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
