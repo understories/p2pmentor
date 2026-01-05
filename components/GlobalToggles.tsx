@@ -19,10 +19,10 @@ export function GlobalToggles() {
   const isLitePage = pathname === '/lite';
   const isExplorerPage = pathname === '/explorer';
   const isLandingPage = pathname === '/';
-  // Main app pages: any page that's not docs, lite, explorer, beta, or auth
-  const isMainApp = pathname && !pathname.startsWith('/docs') && !isLitePage && !isExplorerPage && pathname !== '/beta' && pathname !== '/auth';
-  // Only show theme toggle on docs pages (not on landing, main app, lite, or explorer)
-  const showThemeToggle = pathname && pathname.startsWith('/docs');
+  // Main app pages: any page that's not docs, lite, explorer, beta, auth, or landing
+  const isMainApp = pathname && !pathname.startsWith('/docs') && !isLitePage && !isExplorerPage && pathname !== '/beta' && pathname !== '/auth' && pathname !== '/';
+  // Show theme toggle on landing page and docs pages (not on main app, lite, or explorer)
+  const showThemeToggle = isLandingPage || (pathname && pathname.startsWith('/docs'));
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   
   useEffect(() => {
