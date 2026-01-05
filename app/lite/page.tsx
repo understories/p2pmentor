@@ -33,6 +33,7 @@ export default function LitePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [polling, setPolling] = useState(false);
   const [showCreateAskForm, setShowCreateAskForm] = useState(false);
   const [showCreateOfferForm, setShowCreateOfferForm] = useState(false);
   
@@ -66,9 +67,11 @@ export default function LitePage() {
     }
   }, [asks, offers]);
 
-  const loadData = async () => {
+  const loadData = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const [asksRes, offersRes] = await Promise.all([
         fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
         fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
@@ -84,8 +87,56 @@ export default function LitePage() {
       console.error('Error loading data:', err);
       setError('Failed to load data');
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
+  };
+
+  // Poll for new data after creation (waits for blockchain indexing)
+  const pollForNewData = async (
+    checkFn: (asks: LiteAsk[], offers: LiteOffer[]) => boolean,
+    maxAttempts = 10,
+    initialDelay = 2000
+  ) => {
+    setPolling(true);
+    let attempt = 0;
+
+    while (attempt < maxAttempts) {
+      // Wait before checking (exponential backoff)
+      if (attempt > 0) {
+        const delay = initialDelay * Math.pow(1.5, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+
+      // Load data without showing full loading state
+      try {
+        const [asksRes, offersRes] = await Promise.all([
+          fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
+          fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
+        ]);
+
+        const currentAsks = asksRes.ok ? (asksRes.asks || []) : [];
+        const currentOffers = offersRes.ok ? (offersRes.offers || []) : [];
+
+        // Update state
+        setAsks(currentAsks);
+        setOffers(currentOffers);
+
+        // Check if new data appeared
+        if (checkFn(currentAsks, currentOffers)) {
+          setPolling(false);
+          return true;
+        }
+      } catch (err) {
+        console.error('Error polling for data:', err);
+      }
+
+      attempt++;
+    }
+
+    setPolling(false);
+    return false;
   };
 
   const computeMatches = (asksList: LiteAsk[], offersList: LiteOffer[]) => {
@@ -138,17 +189,34 @@ export default function LitePage() {
 
       const data = await res.json();
       if (data.ok) {
-        if (data.pending) {
-          setSuccess('Ask submitted! Transaction is being processed. Please refresh in a moment.');
-        } else {
-          setSuccess('Ask created successfully!');
-        }
+        const submittedName = newAsk.name.trim();
+        const submittedSkill = newAsk.skill.trim();
+        const submittedDiscordHandle = newAsk.discordHandle.trim();
+        
         setNewAsk({ name: '', discordHandle: '', skill: '', description: '' });
         setShowCreateAskForm(false);
-        // Reload data after a delay
-        setTimeout(() => {
-          loadData();
-        }, 2000);
+        
+        if (data.pending) {
+          setSuccess('Ask submitted! Waiting for transaction to be indexed...');
+        } else {
+          setSuccess('Ask created successfully! Waiting for it to appear...');
+        }
+
+        // Poll for the new ask to appear
+        const found = await pollForNewData((currentAsks, currentOffers) => {
+          return currentAsks.some(
+            ask =>
+              ask.name === submittedName &&
+              ask.skill === submittedSkill &&
+              ask.discordHandle === submittedDiscordHandle
+          );
+        });
+
+        if (found) {
+          setSuccess('Ask created successfully!');
+        } else {
+          setSuccess('Ask created! It may take a moment to appear. Refresh if needed.');
+        }
       } else {
         setError(data.error || 'Failed to create ask');
       }
@@ -187,17 +255,34 @@ export default function LitePage() {
 
       const data = await res.json();
       if (data.ok) {
-        if (data.pending) {
-          setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-        } else {
-          setSuccess('Offer created successfully!');
-        }
+        const submittedName = newOffer.name.trim();
+        const submittedSkill = newOffer.skill.trim();
+        const submittedDiscordHandle = newOffer.discordHandle.trim();
+        
         setNewOffer({ name: '', discordHandle: '', skill: '', description: '', cost: '' });
         setShowCreateOfferForm(false);
-        // Reload data after a delay
-        setTimeout(() => {
-          loadData();
-        }, 2000);
+        
+        if (data.pending) {
+          setSuccess('Offer submitted! Waiting for transaction to be indexed...');
+        } else {
+          setSuccess('Offer created successfully! Waiting for it to appear...');
+        }
+
+        // Poll for the new offer to appear
+        const found = await pollForNewData((currentAsks, currentOffers) => {
+          return currentOffers.some(
+            offer =>
+              offer.name === submittedName &&
+              offer.skill === submittedSkill &&
+              offer.discordHandle === submittedDiscordHandle
+          );
+        });
+
+        if (found) {
+          setSuccess('Offer created successfully!');
+        } else {
+          setSuccess('Offer created! It may take a moment to appear. Refresh if needed.');
+        }
       } else {
         setError(data.error || 'Failed to create offer');
       }
@@ -328,6 +413,14 @@ export default function LitePage() {
         )}
         {success && (
           <Alert type="success" message={success} onClose={() => setSuccess('')} className="mb-4" />
+        )}
+        {polling && (
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-sm">
+              <LoadingSpinner text="" className="py-0" />
+              <span>Waiting for transaction to be indexed on the blockchain...</span>
+            </div>
+          </div>
         )}
 
         {/* Create Ask Section */}
