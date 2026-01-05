@@ -10,3 +10,4 @@ Core mentorship flows in the beta:
 4. [Network Discovery](/docs/user-flows/network-discovery)
 5. [Sessions](/docs/user-flows/sessions)
 6. [Feedback](/docs/user-flows/feedback)
+7. [Lite Version](/docs/user-flows/lite-version) - Simplified no-authentication ask/offer board
