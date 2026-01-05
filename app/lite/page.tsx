@@ -787,9 +787,6 @@ export default function LitePage() {
                       )}
                     </div>
                   </div>
-                  <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    {formatDate(match.ask.createdAt)} · {formatTimeRemaining(match.ask.createdAt, match.ask.ttlSeconds)}
-                  </div>
                 </div>
               ))}
             </div>
