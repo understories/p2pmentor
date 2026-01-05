@@ -57,7 +57,7 @@ Matches are displayed on the same page as asks and offers. Since the Lite Versio
 - `name`: User's name (required, max 100 characters)
 - `discordHandle`: Discord handle (required, max 50 characters, normalized to lowercase)
 - `skill`: Skill/topic name (required, simple string, max 200 characters)
-- `spaceId`: `'lite'` (fixed, isolates lite data from main app)
+- `spaceId`: User-selectable (default: `'nsjan26'`, option: `'test'`)
 - `createdAt`: ISO timestamp
 - `status`: `'open'`
 - `ttlSeconds`: `'2592000'` (1 month)
@@ -75,7 +75,7 @@ Matches are displayed on the same page as asks and offers. Since the Lite Versio
 - `discordHandle`: Discord handle (required, max 50 characters, normalized to lowercase)
 - `skill`: Skill/topic name (required, simple string, max 200 characters)
 - `cost`: Optional cost information (max 50 characters, offers only)
-- `spaceId`: `'lite'` (fixed, isolates lite data from main app)
+- `spaceId`: User-selectable (default: `'nsjan26'`, option: `'test'`)
 - `createdAt`: ISO timestamp
 - `status`: `'active'`
 - `ttlSeconds`: `'2592000'` (1 month)
@@ -93,7 +93,7 @@ All data is stored on the Arkiv network:
 - Data is visible and verifiable on the Arkiv explorer
 - All transactions are signed by an app-wide wallet (stored as an environment variable)
 - Data is NOT private (until encrypted data is implemented)
-- Lite data is isolated in the `'lite'` spaceId
+- Space ID is user-selectable (default: `'nsjan26'`, option: `'test'`) for data isolation and testing
 
 ## Differences from Main App
 
@@ -150,10 +150,12 @@ All entity creation uses an app-wide wallet stored as an environment variable (`
 
 ### Space Isolation
 
-All lite entities use `spaceId: 'lite'`:
-- Isolates lite data from main app data
-- Allows filtering in explorer by spaceId
-- Prevents data mixing between versions
+The lite page includes a spaceId selector (default: `'nsjan26'`, option: `'test'`):
+- Users can choose the spaceId for data isolation
+- Default `'nsjan26'` is used for production data
+- `'test'` option enables testing without affecting production data
+- All queries and entity creation use the selected spaceId
+- Changing spaceId reloads all data from the selected space
 
 ### Matching Logic
 
