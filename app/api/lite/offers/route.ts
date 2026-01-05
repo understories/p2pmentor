@@ -15,7 +15,7 @@ import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, discordHandle, skill, description, cost } = body;
+    const { name, discordHandle, skill, description, cost, spaceId } = body;
 
     // Validation
     if (!name || !name.trim()) {
@@ -37,6 +37,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate spaceId
+    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsjan26';
+
     try {
       const { key, txHash } = await createLiteOffer({
         name: name.trim(),
@@ -44,6 +47,7 @@ export async function POST(request: NextRequest) {
         skill: skill.trim(),
         description: description?.trim(),
         cost: cost?.trim(),
+        spaceId: finalSpaceId,
         privateKey: getPrivateKey(),
       });
 
@@ -74,11 +78,12 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get('skill') || undefined;
+    const spaceId = searchParams.get('spaceId') || 'nsjan26';
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
     const includeExpired = searchParams.get('includeExpired') === 'true';
 
     // List all lite offers (with optional filters)
-    const offers = await listLiteOffers({ skill, limit, includeExpired });
+    const offers = await listLiteOffers({ skill, spaceId, limit, includeExpired });
     return NextResponse.json({ ok: true, offers });
   } catch (error: any) {
     console.error('Lite Offers API error:', error);

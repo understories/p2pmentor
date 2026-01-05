@@ -15,7 +15,7 @@ import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, discordHandle, skill, description } = body;
+    const { name, discordHandle, skill, description, spaceId } = body;
 
     // Validation
     if (!name || !name.trim()) {
@@ -37,12 +37,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate spaceId
+    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsjan26';
+
     try {
       const { key, txHash } = await createLiteAsk({
         name: name.trim(),
         discordHandle: discordHandle.trim(),
         skill: skill.trim(),
         description: description?.trim(),
+        spaceId: finalSpaceId,
         privateKey: getPrivateKey(),
       });
 
@@ -73,11 +77,12 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get('skill') || undefined;
+    const spaceId = searchParams.get('spaceId') || 'nsjan26';
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
     const includeExpired = searchParams.get('includeExpired') === 'true';
 
     // List all lite asks (with optional filters)
-    const asks = await listLiteAsks({ skill, limit, includeExpired });
+    const asks = await listLiteAsks({ skill, spaceId, limit, includeExpired });
     return NextResponse.json({ ok: true, asks });
   } catch (error: any) {
     console.error('Lite Asks API error:', error);
