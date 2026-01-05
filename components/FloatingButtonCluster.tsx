@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { usePathname } from 'next/navigation';
 import { AppFeedbackModal } from './AppFeedbackModal';
 
 interface FloatingButton {
@@ -21,6 +22,8 @@ interface FloatingButton {
 }
 
 export function FloatingButtonCluster() {
+  const pathname = usePathname();
+  const isLitePage = pathname === '/lite';
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
@@ -227,7 +230,7 @@ export function FloatingButtonCluster() {
     },
     {
       id: 'docs',
-      href: '/docs',
+      href: isLitePage ? '/docs/betadocs/user-flows/lite-version' : '/docs',
       icon: (
         <svg
           className="w-5 h-5"
@@ -243,11 +246,12 @@ export function FloatingButtonCluster() {
           />
         </svg>
       ),
-      tooltip: 'Beta docs',
-      ariaLabel: 'View beta documentation',
+      tooltip: isLitePage ? 'Lite version docs' : 'Beta docs',
+      ariaLabel: isLitePage ? 'View lite version documentation' : 'View beta documentation',
       className: 'bg-amber-600 hover:bg-amber-700',
     },
-    {
+    // Hide feedback button on lite page
+    ...(isLitePage ? [] : [{
       id: 'feedback',
       onClick: () => setIsFeedbackOpen(true),
       icon: (
@@ -268,7 +272,7 @@ export function FloatingButtonCluster() {
       tooltip: 'Share feedback',
       ariaLabel: 'Share feedback',
       className: 'bg-blue-600 hover:bg-blue-700',
-    },
+    }]),
   ];
 
   return (
