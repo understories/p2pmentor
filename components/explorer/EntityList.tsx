@@ -140,7 +140,7 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
           <option value="beta-launch">Beta Launch</option>
           <option value="local-dev">Local Dev</option>
           <option value="local-dev-seed">Local Dev Seed</option>
-          <option value="lite">Lite</option>
+          <option value="nsjan26">nsjan26</option>
         </select>
       </div>
 
