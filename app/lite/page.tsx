@@ -358,17 +358,16 @@ export default function LitePage() {
           <label htmlFor="spaceId" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
             Space ID
           </label>
-          <select
+          <input
+            type="text"
             id="spaceId"
             value={spaceId}
-            onChange={(e) => setSpaceId(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="nsjan26">nsjan26 (Default)</option>
-            <option value="test">test</option>
-          </select>
+            onChange={(e) => setSpaceId(e.target.value.trim())}
+            placeholder="nsjan26"
+            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            Select the space ID to use for data isolation. Changing this will reload all data.
+            Enter a space ID to use for data isolation. Changing this will reload all data. Default: nsjan26
           </p>
         </div>
 
