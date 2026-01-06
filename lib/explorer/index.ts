@@ -186,7 +186,8 @@ function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
  */
 async function buildExplorerIndex(): Promise<ExplorerIndex> {
   // Known spaceIds - fetch from all spaces to support filtering
-  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed'];
+  // Includes: production spaces (beta-launch), dev spaces (local-dev, local-dev-seed), and lite spaces (nsjan26, test)
+  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsjan26', 'test'];
 
   // Fetch all entity types in parallel from all spaces
   const [profiles, asks, offers, skills] = await Promise.all([
