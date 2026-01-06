@@ -155,12 +155,22 @@ export default function ExplorerPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h2>
-            <button
-              onClick={() => setShowTransactions(!showTransactions)}
-              className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              {showTransactions ? 'Hide Transactions' : 'Show All Transactions'}
-            </button>
+            <div className="flex items-center gap-2">
+              <a
+                href="https://explorer.mendoza.hoodi.arkiv.network/address/0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F?tab=txs"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-sm font-medium border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+              >
+                View on Arkiv Explorer
+              </a>
+              <button
+                onClick={() => setShowTransactions(!showTransactions)}
+                className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                {showTransactions ? 'Hide Transactions' : 'Show All Transactions'}
+              </button>
+            </div>
           </div>
           {showTransactions && (
             <div className="mt-4">
