@@ -220,13 +220,14 @@ export async function getAllTransactions(params?: {
       queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
     }
 
-    // Filter by signer_wallet (the wallet that signed the tx_event entity creation)
+    // NOTE: We do NOT filter by signer_wallet in the query because:
+    // 1. Old tx_event entities (created before we added signer_wallet metadata) don't have this attribute
+    // 2. Arkiv doesn't support OR queries, so we can't query for "signer_wallet = X OR signer_wallet is missing"
+    // 3. Instead, we query broadly and filter client-side (see below after fetching)
+    // 
     // CRITICAL: Always use CURRENT_WALLET (signing wallet from env PK), NEVER a user's logged-in wallet
     // This ensures we only show transactions from our app's signing wallet, not from any user's auth wallet
     // The explorer is a public data view, not a user-specific view
-    if (!params?.wallet && CURRENT_WALLET) {
-      queryBuilder = queryBuilder.where(eq('signer_wallet', CURRENT_WALLET.toLowerCase()));
-    }
 
     // Filter by entityKey
     if (params?.entityKey) {
@@ -270,6 +271,22 @@ export async function getAllTransactions(params?: {
         }
         return String(attrs[key] || '');
       };
+
+      // Filter by signer_wallet (client-side for backward compatibility)
+      // CRITICAL: Only show transactions from our app's signing wallet (CURRENT_WALLET)
+      // Include entities that either:
+      // 1. Have signer_wallet = CURRENT_WALLET (new entities with metadata), OR
+      // 2. Don't have signer_wallet at all (old entities created before we added this metadata)
+      // This ensures backward compatibility while maintaining security
+      if (!params?.wallet && CURRENT_WALLET) {
+        const signerWallet = getAttr('signer_wallet');
+        // If entity has signer_wallet, it must match CURRENT_WALLET
+        // If entity doesn't have signer_wallet, include it (backward compatibility)
+        if (signerWallet && signerWallet.toLowerCase() !== CURRENT_WALLET.toLowerCase()) {
+          continue; // Skip entities signed by different wallet
+        }
+        // If signerWallet is empty/missing, include it (old entity, backward compatibility)
+      }
 
       const txHash = getAttr('txhash');
       if (!txHash) continue;
