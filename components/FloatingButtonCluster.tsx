@@ -255,7 +255,7 @@ export function FloatingButtonCluster() {
     },
     {
       id: 'docs',
-      href: isLitePage ? '/docs/betadocs/user-flows/lite-version' : '/docs',
+      href: isLitePage ? '/docs/user-flows/lite-version' : '/docs',
       icon: (
         <svg
           className="w-5 h-5"
