@@ -282,12 +282,12 @@ export function AllTransactionsList({
         </div>
         <div className="py-8">
           <EmptyState
-            icon="📋"
-            title="No transactions found"
+            icon="🔧"
+            title="Human-legible transactions currently being implemented"
             description={
               search || entityType !== 'all' || status !== 'all' || spaceId !== 'all'
-              ? 'No transactions match your filters. Try adjusting your search or filters.'
-              : 'No app-recorded transaction events found yet.'
+              ? 'No transactions match your filters. Try adjusting your search or filters. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
+              : 'Human-legible transactions currently being implemented. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
             }
           />
         </div>
