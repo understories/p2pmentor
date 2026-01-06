@@ -17,11 +17,15 @@ import { listUserProfiles } from '@/lib/arkiv/profile';
 import { listAsks } from '@/lib/arkiv/asks';
 import { listOffers } from '@/lib/arkiv/offers';
 import { listSkills } from '@/lib/arkiv/skill';
+import { listLiteAsks } from '@/lib/arkiv/liteAsks';
+import { listLiteOffers } from '@/lib/arkiv/liteOffers';
 import {
   serializePublicProfile,
   serializePublicAsk,
   serializePublicOffer,
   serializePublicSkill,
+  serializePublicLiteAsk,
+  serializePublicLiteOffer,
 } from './serializers';
 import type { PublicEntity } from './types';
 import { SPACE_ID } from '@/lib/config';
@@ -83,6 +87,14 @@ function generateEntityTitle(entity: PublicEntity): string {
       const skill = entity as import('./types').PublicSkill;
       return skill.name_canonical || skill.slug || entity.key;
     }
+    case 'lite_ask': {
+      const liteAsk = entity as import('./types').PublicLiteAsk;
+      return `${liteAsk.skill || 'Lite Ask'}: ${liteAsk.name} (${liteAsk.discordHandle})`;
+    }
+    case 'lite_offer': {
+      const liteOffer = entity as import('./types').PublicLiteOffer;
+      return `${liteOffer.skill || 'Lite Offer'}: ${liteOffer.name} (${liteOffer.discordHandle})`;
+    }
     default:
       return entity.key;
   }
@@ -108,6 +120,14 @@ function generateEntitySummary(entity: PublicEntity): string | undefined {
     case 'skill': {
       const skill = entity as import('./types').PublicSkill;
       return skill.description;
+    }
+    case 'lite_ask': {
+      const liteAsk = entity as import('./types').PublicLiteAsk;
+      return liteAsk.description;
+    }
+    case 'lite_offer': {
+      const liteOffer = entity as import('./types').PublicLiteOffer;
+      return liteOffer.description;
     }
     default:
       return undefined;
@@ -190,11 +210,19 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsjan26', 'test'];
 
   // Fetch all entity types in parallel from all spaces
-  const [profiles, asks, offers, skills] = await Promise.all([
+  // Note: lite entities are queried per spaceId since they don't support spaceIds array
+  const [profiles, asks, offers, skills, liteAsksAll, liteOffersAll] = await Promise.all([
     listUserProfiles({ spaceIds: allSpaceIds }).catch(() => []),
     listAsks({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
     listOffers({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
     listSkills({ spaceIds: allSpaceIds, limit: 1000, status: 'active' }).catch(() => []),
+    // Fetch lite entities from each spaceId (they don't support spaceIds array)
+    Promise.all(
+      allSpaceIds.map(spaceId => listLiteAsks({ spaceId, limit: 1000, includeExpired: false }).catch(() => []))
+    ).then(results => results.flat()),
+    Promise.all(
+      allSpaceIds.map(spaceId => listLiteOffers({ spaceId, limit: 1000, includeExpired: false }).catch(() => []))
+    ).then(results => results.flat()),
   ]);
 
   // Serialize all entities using public serializers
@@ -202,6 +230,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const serializedAsks = asks.map(serializePublicAsk);
   const serializedOffers = offers.map(serializePublicOffer);
   const serializedSkills = skills.map(serializePublicSkill);
+  const serializedLiteAsks = liteAsksAll.map(serializePublicLiteAsk);
+  const serializedLiteOffers = liteOffersAll.map(serializePublicLiteOffer);
 
   // Normalize profiles first (before deduplication)
   const normalizedProfiles = serializedProfiles.map(normalizeEntity);
@@ -214,6 +244,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const normalizedAsks = serializedAsks.map(normalizeEntity);
   const normalizedOffers = serializedOffers.map(normalizeEntity);
   const normalizedSkills = serializedSkills.map(normalizeEntity);
+  const normalizedLiteAsks = serializedLiteAsks.map(normalizeEntity);
+  const normalizedLiteOffers = serializedLiteOffers.map(normalizeEntity);
 
   // Combine all entities (profiles are now deduplicated)
   const allEntities: ExplorerEntity[] = [
@@ -221,6 +253,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     ...normalizedAsks,
     ...normalizedOffers,
     ...normalizedSkills,
+    ...normalizedLiteAsks,
+    ...normalizedLiteOffers,
   ];
 
   // Sort by createdAt (newest first)
@@ -241,8 +275,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     counts: {
       // Count deduplicated profiles (one per wallet)
       profiles: deduplicatedProfiles.length,
-      asks: serializedAsks.length,
-      offers: serializedOffers.length,
+      asks: serializedAsks.length + serializedLiteAsks.length, // Include lite asks in ask count
+      offers: serializedOffers.length + serializedLiteOffers.length, // Include lite offers in offer count
       skills: serializedSkills.length,
       total: allEntities.length,
     },
@@ -283,8 +317,8 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
       entities: filteredEntities,
       counts: {
         profiles: filteredEntities.filter((e) => e.type === 'profile').length,
-        asks: filteredEntities.filter((e) => e.type === 'ask').length,
-        offers: filteredEntities.filter((e) => e.type === 'offer').length,
+        asks: filteredEntities.filter((e) => e.type === 'ask' || e.type === 'lite_ask').length,
+        offers: filteredEntities.filter((e) => e.type === 'offer' || e.type === 'lite_offer').length,
         skills: filteredEntities.filter((e) => e.type === 'skill').length,
         total: filteredEntities.length,
       },
