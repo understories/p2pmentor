@@ -500,7 +500,7 @@ export default function LitePage() {
             >
               p2pmentor explorer here
             </a>
-            {' '}to demonstrate this. In other words, your data is not private.
+            {' '}to demonstrate this. <strong>In other words, your data is not private.</strong>
             <br />
             <a 
               href="https://p2pmentor.com/docs/user-flows/lite-version" 
