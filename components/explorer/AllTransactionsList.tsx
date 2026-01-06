@@ -172,6 +172,19 @@ export function AllTransactionsList({
     return `${txHash.slice(0, 6)}...${txHash.slice(-4)}`;
   };
 
+  const formatAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
+  const copyToClipboard = async (text: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      // Could add toast notification here if needed
+    } catch (err) {
+      console.error(`Failed to copy ${label}:`, err);
+    }
+  };
+
   const getStatusBadge = (status: string | null) => {
     switch (status) {
       case 'success':
@@ -320,69 +333,134 @@ export function AllTransactionsList({
         </div>
       )}
 
-      {/* Transaction Cards */}
+      {/* Transaction Cards - Human-Legible Format (Inspired by Arkiv Explorer) */}
       {transactions.map((tx) => {
         const entityLink = getEntityLink(tx);
+        // Arkiv contract address (standard for entity writes)
+        const arkivContractAddress = '0x0000000000000000000000000000000000006976';
+        
         return (
           <div
             key={tx.txHash}
-            className="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+            className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
           >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                {/* Badges */}
+            {/* Header: Status, Transaction Hash, Timestamp */}
+            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Status Badge */}
+                {getStatusBadge(tx.status)}
+                {/* Transaction Label */}
+                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded">
+                  Transaction
+                </span>
+                {/* Transaction Hash */}
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-400 dark:text-gray-500">↔</span>
+                  <button
+                    onClick={() => copyToClipboard(tx.txHash, 'transaction hash')}
+                    className="text-sm font-mono text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                    title="Click to copy"
+                  >
+                    {formatTxHash(tx.txHash)}
+                  </button>
+                </div>
+              </div>
+              {/* Timestamp */}
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                {formatDate(tx.blockTimestamp, tx.createdAt)}
+              </div>
+            </div>
+
+            {/* Block Information */}
+            {tx.blockNumber && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                Block {tx.blockNumber}
+                {tx.spaceId && (
+                  <span className="ml-2">· Space: {tx.spaceId}</span>
+                )}
+              </div>
+            )}
+
+            {/* From/To Addresses */}
+            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* From Address */}
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-blue-400 flex-shrink-0" />
+                  <button
+                    onClick={() => copyToClipboard(CURRENT_WALLET || '', 'from address')}
+                    className="text-sm font-mono text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    title="Click to copy"
+                  >
+                    {CURRENT_WALLET ? formatAddress(CURRENT_WALLET) : 'N/A'}
+                  </button>
+                </div>
+                {/* Arrow */}
+                <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+                  <span className="text-white text-xs">→</span>
+                </div>
+                {/* To Address (Arkiv Contract) */}
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-blue-400 flex-shrink-0" />
+                  <button
+                    onClick={() => copyToClipboard(arkivContractAddress, 'to address')}
+                    className="text-sm font-mono text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    title="Click to copy"
+                  >
+                    {formatAddress(arkivContractAddress)}
+                  </button>
+                  <button
+                    onClick={() => copyToClipboard(arkivContractAddress, 'to address')}
+                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    title="Copy address"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Transaction Details */}
+            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
+              <div>Value: <span className="font-medium text-gray-900 dark:text-gray-100">0 GLM</span></div>
+            </div>
+
+            {/* Entity Context (p2pmentor-native) */}
+            {(tx.entityLabel || tx.entityType) && (
+              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <div className="flex items-center gap-2 mb-2 flex-wrap">
-                  {getStatusBadge(tx.status)}
                   {getOperationBadge(tx.operation)}
                   {getEntityTypeBadge(tx.entityType)}
                 </div>
-
-                {/* Entity Context */}
-                {(tx.entityLabel || tx.entityType) && (
-                  <div className="mb-2">
-                    {entityLink ? (
-                      <Link
-                        href={entityLink}
-                        className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
-                      >
-                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
-                      </Link>
-                    ) : (
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">
-                        {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
-                      </span>
-                    )}
+                {entityLink ? (
+                  <Link
+                    href={entityLink}
+                    className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                  >
+                    {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
+                  </Link>
+                ) : (
+                  <span className="font-semibold text-gray-900 dark:text-gray-100">
+                    {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
+                  </span>
+                )}
+                {tx.wallet && (
+                  <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
+                    Entity owner: {formatAddress(tx.wallet)}
                   </div>
                 )}
-
-                {/* Date and Block */}
-                <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {formatDate(tx.blockTimestamp, tx.createdAt)}
-                  {tx.blockNumber && (
-                    <span className="ml-2">· Block {tx.blockNumber}</span>
-                  )}
-                  {tx.spaceId && (
-                    <span className="ml-2">· Space: {tx.spaceId}</span>
-                  )}
-                </div>
-
-                {/* Transaction Hash and Links */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs font-mono text-gray-500 dark:text-gray-500">
-                    {formatTxHash(tx.txHash)}
-                  </span>
-                  <ViewOnArkivLink
-                    txHash={tx.txHash}
-                    label="View on Arkiv"
-                    className="text-xs"
-                  />
-                  {tx.wallet && (
-                    <span className="text-xs text-gray-500 dark:text-gray-500">
-                      · Wallet: {tx.wallet.slice(0, 6)}...{tx.wallet.slice(-4)}
-                    </span>
-                  )}
-                </div>
               </div>
+            )}
+
+            {/* View on Arkiv Link */}
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <ViewOnArkivLink
+                txHash={tx.txHash}
+                label="View transaction on Arkiv Explorer"
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+              />
             </div>
           </div>
         );

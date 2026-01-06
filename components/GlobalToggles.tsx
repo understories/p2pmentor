@@ -18,11 +18,9 @@ export function GlobalToggles() {
   const pathname = usePathname();
   const isLitePage = pathname === '/lite';
   const isExplorerPage = pathname === '/explorer';
-  const isLandingPage = pathname === '/';
-  // Main app pages: any page that's not docs, lite, explorer, beta, auth, or landing
-  const isMainApp = pathname && !pathname.startsWith('/docs') && !isLitePage && !isExplorerPage && pathname !== '/beta' && pathname !== '/auth' && pathname !== '/';
-  // Show theme toggle on landing page and docs pages (not on main app, lite, or explorer)
-  const showThemeToggle = isLandingPage || (pathname && pathname.startsWith('/docs'));
+  // Show theme toggle on all pages except lite (which has it in FloatingButtonCluster) and explorer
+  // Explorer page doesn't need theme toggle as it's a data viewing page
+  const showThemeToggle = !isLitePage && !isExplorerPage;
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   
   useEffect(() => {
@@ -81,7 +79,7 @@ export function GlobalToggles() {
     <div 
       className={`${mobileClass} fixed ${topPosition} right-4 z-50 flex flex-row items-center justify-end gap-2`}
     >
-      {/* Theme Toggle - only show on docs pages (not on landing, main app, lite, or explorer) */}
+      {/* Theme Toggle - show on all pages except lite (has it in FloatingButtonCluster) and explorer */}
       {showThemeToggle && (
       <button
         onClick={handleThemeToggle}

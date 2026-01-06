@@ -67,3 +67,4 @@ docs/TTL_TESTING_GUIDE.md
 docs/ARKIV_TTL_IMPLEMENTATION_PLAN.md
 docs/DIAGRAM_BACKUP_*.md
 refs/
+scripts/test-tx-event-entities.ts
