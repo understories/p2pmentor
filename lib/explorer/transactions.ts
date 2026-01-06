@@ -255,11 +255,16 @@ export async function getAllTransactions(params?: {
       .fetch();
 
     if (!result?.entities || !Array.isArray(result.entities)) {
+      console.log('[getAllTransactions] No entities returned from query');
       return { transactions: [], nextCursor: null, total: 0 };
     }
 
+    console.log(`[getAllTransactions] Found ${result.entities.length} tx_event entities before filtering`);
+
     // Process entities and extract transaction data
     const allTransactions: TransactionHistoryItem[] = [];
+    let filteredBySigner = 0;
+    let missingTxHash = 0;
 
     for (const txEvent of result.entities) {
       // Extract attributes
@@ -283,13 +288,17 @@ export async function getAllTransactions(params?: {
         // If entity has signer_wallet, it must match CURRENT_WALLET
         // If entity doesn't have signer_wallet, include it (backward compatibility)
         if (signerWallet && signerWallet.toLowerCase() !== CURRENT_WALLET.toLowerCase()) {
+          filteredBySigner++;
           continue; // Skip entities signed by different wallet
         }
         // If signerWallet is empty/missing, include it (old entity, backward compatibility)
       }
 
       const txHash = getAttr('txhash');
-      if (!txHash) continue;
+      if (!txHash) {
+        missingTxHash++;
+        continue;
+      }
 
       const entityType = getAttr('entity_type') as 'profile' | 'ask' | 'offer' | 'skill' | '';
       const entityKey = getAttr('entity_key');
@@ -334,6 +343,8 @@ export async function getAllTransactions(params?: {
         spaceId: spaceId || undefined,
       });
     }
+
+    console.log(`[getAllTransactions] After filtering: ${allTransactions.length} transactions (filtered by signer: ${filteredBySigner}, missing txhash: ${missingTxHash})`);
 
     // Sort by createdAt descending (most recent first)
     allTransactions.sort((a, b) => {
