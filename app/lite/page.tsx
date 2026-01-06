@@ -503,12 +503,12 @@ export default function LitePage() {
             {' '}to demonstrate this. In other words, your data is not private.
             <br />
             <a 
-              href="/docs/arkiv/overview" 
+              href="https://p2pmentor.com/docs/user-flows/lite-version" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             >
-              Learn more about Arkiv here
+              Learn more about the Lite Version here
             </a>
             .
           </p>
