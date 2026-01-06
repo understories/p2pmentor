@@ -18,9 +18,9 @@ export function GlobalToggles() {
   const pathname = usePathname();
   const isLitePage = pathname === '/lite';
   const isExplorerPage = pathname === '/explorer';
-  // Show theme toggle on all pages except lite (which has it in FloatingButtonCluster) and explorer
-  // Explorer page doesn't need theme toggle as it's a data viewing page
-  const showThemeToggle = !isLitePage && !isExplorerPage;
+  // Show theme toggle on all pages except lite (which has it in FloatingButtonCluster)
+  // Explorer page should have theme toggle in top right
+  const showThemeToggle = !isLitePage;
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
   
   useEffect(() => {
