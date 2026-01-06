@@ -194,45 +194,50 @@ export async function getAllTransactions(params?: {
     const query = publicClient.buildQuery();
     const limit = Math.min(params?.limit || 50, 100); // Default 50, max 100
 
-    // Build query for tx_event entities
-    let queryBuilder = query.where(eq('type', 'tx_event'));
+    // When spaceId is undefined (meaning "all spaces"), query all known spaces
+    // Arkiv doesn't support OR queries, so we query each space separately and combine
+    const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsjan26', 'test'];
+    const spaceIdsToQuery = params?.spaceId 
+      ? [params.spaceId] 
+      : params?.spaceIds || allSpaceIds;
 
-    // Filter by spaceId
-    if (params?.spaceId) {
-      queryBuilder = queryBuilder.where(eq('space_id', params.spaceId));
+    // Query each space separately and combine results
+    const queryPromises = spaceIdsToQuery.map(spaceId => {
+      let queryBuilder = query.where(eq('type', 'tx_event'));
+      queryBuilder = queryBuilder.where(eq('space_id', spaceId));
+      
+      // Apply other filters to each query
+      if (params?.entityType) {
+        queryBuilder = queryBuilder.where(eq('entity_type', params.entityType));
+      }
+      if (params?.txHash) {
+        queryBuilder = queryBuilder.where(eq('txhash', params.txHash));
+      }
+      if (params?.wallet) {
+        queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
+      }
+      if (params?.entityKey) {
+        queryBuilder = queryBuilder.where(eq('entity_key', params.entityKey));
+      }
+
+      return queryBuilder
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit * 2) // Overfetch for status filtering
+        .fetch();
+    });
+
+    const results = await Promise.all(queryPromises);
+    
+    // Combine all results into a single array
+    const allEntities = results.flatMap(result => result?.entities || []);
+
+    if (!allEntities || allEntities.length === 0) {
+      console.log('[getAllTransactions] No entities returned from queries');
+      return { transactions: [], nextCursor: null, total: 0 };
     }
 
-    // Filter by entityType
-    if (params?.entityType) {
-      queryBuilder = queryBuilder.where(eq('entity_type', params.entityType));
-    }
-
-    // Filter by txHash (if stored as attribute)
-    if (params?.txHash) {
-      queryBuilder = queryBuilder.where(eq('txhash', params.txHash));
-    }
-
-    // Filter by wallet (normalize)
-    // NOTE: This wallet parameter is for filtering by entity owner's wallet (user's wallet in profiles/asks/offers),
-    // NOT for using a logged-in user's auth wallet. The explorer always uses the signing wallet (CURRENT_WALLET)
-    // from environment variables, never a user's logged-in wallet.
-    if (params?.wallet) {
-      queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
-    }
-
-    // NOTE: We do NOT filter by signer_wallet in the query because:
-    // 1. Old tx_event entities (created before we added signer_wallet metadata) don't have this attribute
-    // 2. Arkiv doesn't support OR queries, so we can't query for "signer_wallet = X OR signer_wallet is missing"
-    // 3. Instead, we query broadly and filter client-side (see below after fetching)
-    // 
-    // CRITICAL: Always use CURRENT_WALLET (signing wallet from env PK), NEVER a user's logged-in wallet
-    // This ensures we only show transactions from our app's signing wallet, not from any user's auth wallet
-    // The explorer is a public data view, not a user-specific view
-
-    // Filter by entityKey
-    if (params?.entityKey) {
-      queryBuilder = queryBuilder.where(eq('entity_key', params.entityKey));
-    }
+    console.log(`[getAllTransactions] Found ${allEntities.length} tx_event entities from ${spaceIdsToQuery.length} space(s) before filtering`);
 
     // Handle cursor for pagination
     let startIndex = 0;
@@ -247,26 +252,12 @@ export async function getAllTransactions(params?: {
       }
     }
 
-    // Query tx_event entities
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(limit * 2) // Overfetch for status filtering
-      .fetch();
-
-    if (!result?.entities || !Array.isArray(result.entities)) {
-      console.log('[getAllTransactions] No entities returned from query');
-      return { transactions: [], nextCursor: null, total: 0 };
-    }
-
-    console.log(`[getAllTransactions] Found ${result.entities.length} tx_event entities before filtering`);
-
     // Process entities and extract transaction data
     const allTransactions: TransactionHistoryItem[] = [];
     let filteredBySigner = 0;
     let missingTxHash = 0;
 
-    for (const txEvent of result.entities) {
+    for (const txEvent of allEntities) {
       // Extract attributes
       const attrs = txEvent.attributes || {};
       const getAttr = (key: string): string => {
