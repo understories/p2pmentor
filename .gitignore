@@ -45,8 +45,12 @@ next-env.d.ts
 !/static-data/language-quests/
 !/static-data/language-quests/*.json
 
-# reference repos
+# reference repos (internal, never commit)
 refs/
+
+# workshop tutorial (should only exist in refs/, never in app/)
+app/workshop-tutorial/
+app/api/workshop-tutorial/
 
 # testing and issue tracking docs (temporary)
 docs/TESTING_*.md
