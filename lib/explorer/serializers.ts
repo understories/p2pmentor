@@ -12,7 +12,9 @@ import type { UserProfile } from '@/lib/arkiv/profile';
 import type { Ask } from '@/lib/arkiv/asks';
 import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
-import type { PublicProfile, PublicAsk, PublicOffer, PublicSkill } from './types';
+import type { LiteAsk } from '@/lib/arkiv/liteAsks';
+import type { LiteOffer } from '@/lib/arkiv/liteOffers';
+import type { PublicProfile, PublicAsk, PublicOffer, PublicSkill, PublicLiteAsk, PublicLiteOffer } from './types';
 
 /**
  * Serialize a user profile to public format
@@ -124,6 +126,49 @@ export function serializePublicSkill(skill: Skill): PublicSkill {
     spaceId: skill.spaceId,
     createdAt: skill.createdAt,
     txHash: skill.txHash,
+  };
+}
+
+/**
+ * Serialize a lite ask to public format
+ * 
+ * All fields are public by design (lite asks are meant to be discoverable).
+ */
+export function serializePublicLiteAsk(liteAsk: LiteAsk): PublicLiteAsk {
+  return {
+    key: liteAsk.key,
+    type: 'lite_ask',
+    name: liteAsk.name,
+    discordHandle: liteAsk.discordHandle,
+    skill: liteAsk.skill,
+    description: liteAsk.description,
+    status: liteAsk.status,
+    spaceId: liteAsk.spaceId,
+    ttlSeconds: liteAsk.ttlSeconds,
+    createdAt: liteAsk.createdAt,
+    txHash: liteAsk.txHash,
+  };
+}
+
+/**
+ * Serialize a lite offer to public format
+ * 
+ * All fields are public by design (lite offers are meant to be discoverable).
+ */
+export function serializePublicLiteOffer(liteOffer: LiteOffer): PublicLiteOffer {
+  return {
+    key: liteOffer.key,
+    type: 'lite_offer',
+    name: liteOffer.name,
+    discordHandle: liteOffer.discordHandle,
+    skill: liteOffer.skill,
+    description: liteOffer.description,
+    cost: liteOffer.cost,
+    status: liteOffer.status,
+    spaceId: liteOffer.spaceId,
+    ttlSeconds: liteOffer.ttlSeconds,
+    createdAt: liteOffer.createdAt,
+    txHash: liteOffer.txHash,
   };
 }
 
