@@ -38,6 +38,9 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') as 'success' | 'failed' | 'pending' | null;
     const q = searchParams.get('q') || '';
     const txHash = searchParams.get('txHash') || undefined;
+    // NOTE: wallet parameter is for filtering by entity owner's wallet (for search/filter purposes),
+    // NOT for using a logged-in user's auth wallet. The explorer always uses the signing wallet
+    // (CURRENT_WALLET from env) via getAllTransactions(), never a user's logged-in wallet.
     const wallet = searchParams.get('wallet') || undefined;
     const entityKey = searchParams.get('entityKey') || undefined;
     const block = searchParams.get('block') || undefined;
