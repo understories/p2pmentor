@@ -372,7 +372,7 @@ export function FloatingButtonCluster() {
               {/* Tooltip */}
               {isHovered && (
                 <div
-                  className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg whitespace-nowrap shadow-lg pointer-events-none"
+                  className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white dark:text-white text-xs rounded-lg whitespace-nowrap shadow-lg pointer-events-none"
                   style={{
                     animation: 'fadeIn 0.2s ease-out',
                   }}
