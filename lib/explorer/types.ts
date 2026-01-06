@@ -22,7 +22,7 @@ export interface Provenance {
  */
 export interface PublicEntity {
   key: string;
-  type: 'profile' | 'ask' | 'offer' | 'skill';
+  type: 'profile' | 'ask' | 'offer' | 'skill' | 'lite_ask' | 'lite_offer';
   wallet?: string;
   title?: string;
   summary?: string;
@@ -116,5 +116,34 @@ export interface PublicSkill extends PublicEntity {
   description?: string;
   status: 'active' | 'archived';
   spaceId?: string;
+}
+
+/**
+ * Public lite ask (all fields are public by design)
+ */
+export interface PublicLiteAsk extends PublicEntity {
+  type: 'lite_ask';
+  name: string;
+  discordHandle: string;
+  skill: string;
+  description?: string;
+  status: string;
+  spaceId: string;
+  ttlSeconds: number;
+}
+
+/**
+ * Public lite offer (all fields are public by design)
+ */
+export interface PublicLiteOffer extends PublicEntity {
+  type: 'lite_offer';
+  name: string;
+  discordHandle: string;
+  skill: string;
+  description?: string;
+  cost?: string;
+  status: string;
+  spaceId: string;
+  ttlSeconds: number;
 }
 
