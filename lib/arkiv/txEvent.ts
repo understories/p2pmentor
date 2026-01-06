@@ -12,6 +12,7 @@
 import { getWalletClientFromPrivateKey } from './client';
 import { SPACE_ID } from '@/lib/config';
 import { handleTransactionWithTimeout } from './transaction-utils';
+import { addSignerMetadata } from './signer-metadata';
 
 export type TxEventEntityType = 'profile' | 'ask' | 'offer' | 'skill';
 export type TxEventOperation = 'create' | 'update' | 'write';
@@ -70,6 +71,10 @@ export async function createTxEvent({
       attributes.push({ key: 'wallet', value: wallet.toLowerCase() });
     }
 
+    // Add signer metadata (U1.x.2: Central Signer Metadata)
+    // This tracks which wallet signed the tx_event entity creation (the signing wallet)
+    const attributesWithSigner = addSignerMetadata(attributes, privateKey);
+
     // Build payload (user-facing content)
     const payload = {
       txhash: txHash,
@@ -83,7 +88,7 @@ export async function createTxEvent({
       return await walletClient.createEntity({
         payload: enc.encode(JSON.stringify(payload)),
         contentType: 'application/json',
-        attributes,
+        attributes: attributesWithSigner,
         expiresIn: 31536000, // 1 year (same as main entities)
       });
     });
