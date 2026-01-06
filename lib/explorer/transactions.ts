@@ -230,21 +230,31 @@ export async function getAllTransactions(params?: {
 
     const results = await Promise.all(queryPromises);
     
+    // Log results from each space for debugging
+    results.forEach((result, index) => {
+      const spaceId = spaceIdsToQuery[index];
+      const entityCount = result?.entities?.length || 0;
+      console.log(`[getAllTransactions] Space '${spaceId}': ${entityCount} tx_event entities found`);
+    });
+    
     // Combine all results into a single array
     // Defensive: validate result structure before accessing entities
-    const allEntities = results.flatMap(result => {
+    const allEntities = results.flatMap((result, index) => {
+      const spaceId = spaceIdsToQuery[index];
       if (!result || !result.entities || !Array.isArray(result.entities)) {
+        console.log(`[getAllTransactions] Space '${spaceId}': Invalid result structure`);
         return [];
       }
+      console.log(`[getAllTransactions] Space '${spaceId}': Combining ${result.entities.length} entities`);
       return result.entities;
     });
 
     if (!allEntities || allEntities.length === 0) {
-      console.log(`[getAllTransactions] No entities returned from ${spaceIdsToQuery.length} space query(ies)`);
+      console.log(`[getAllTransactions] No entities returned from ${spaceIdsToQuery.length} space query(ies) after combination`);
       return { transactions: [], nextCursor: null, total: 0 };
     }
 
-    console.log(`[getAllTransactions] Found ${allEntities.length} tx_event entities from ${spaceIdsToQuery.length} space(s) before filtering`);
+    console.log(`[getAllTransactions] Combined ${allEntities.length} tx_event entities from ${spaceIdsToQuery.length} space(s) before filtering`);
 
     // Handle cursor for pagination
     let startIndex = 0;
@@ -263,6 +273,7 @@ export async function getAllTransactions(params?: {
     const allTransactions: TransactionHistoryItem[] = [];
     let filteredBySigner = 0;
     let missingTxHash = 0;
+    const entitiesBySpace: Record<string, { total: number; afterSignerFilter: number }> = {};
 
     for (const txEvent of allEntities) {
       // Extract attributes
@@ -274,6 +285,12 @@ export async function getAllTransactions(params?: {
         }
         return String(attrs[key] || '');
       };
+
+      const entitySpaceId = getAttr('space_id');
+      if (!entitiesBySpace[entitySpaceId]) {
+        entitiesBySpace[entitySpaceId] = { total: 0, afterSignerFilter: 0 };
+      }
+      entitiesBySpace[entitySpaceId].total++;
 
       // Filter by signer_wallet (client-side for backward compatibility)
       // CRITICAL: Only show transactions from our app's signing wallet (CURRENT_WALLET)
@@ -291,6 +308,8 @@ export async function getAllTransactions(params?: {
         }
         // If signerWallet is empty/missing, include it (old entity, backward compatibility)
       }
+      
+      entitiesBySpace[entitySpaceId].afterSignerFilter++;
 
       const txHash = getAttr('txhash');
       if (!txHash) {
@@ -303,7 +322,7 @@ export async function getAllTransactions(params?: {
       const wallet = getAttr('wallet');
       const operation = getAttr('op') as 'create' | 'update' | 'write' | '';
       const createdAt = getAttr('created_at') || new Date().toISOString();
-      const spaceId = getAttr('space_id');
+      // entitySpaceId already extracted above for tracking
 
       // Extract entity_label from payload
       let entityLabel: string | undefined;
@@ -338,7 +357,7 @@ export async function getAllTransactions(params?: {
         entityKey: entityKey || undefined,
         entityLabel,
         wallet: wallet || undefined,
-        spaceId: spaceId || undefined,
+        spaceId: entitySpaceId || undefined,
       });
     }
 
