@@ -10,7 +10,7 @@ import { getPublicClient } from '@/lib/arkiv/client';
 import { getTransactionMetadata } from '@/lib/explorer/txMeta';
 import { getArkivExplorerTxUrl, getArkivExplorerEntityUrl } from '@/lib/arkiv/explorer';
 import { listUserProfilesForWallet } from '@/lib/arkiv/profile';
-import { SPACE_ID } from '@/lib/config';
+import { SPACE_ID, CURRENT_WALLET } from '@/lib/config';
 
 export interface TransactionHistoryItem {
   txHash: string;
@@ -213,8 +213,19 @@ export async function getAllTransactions(params?: {
     }
 
     // Filter by wallet (normalize)
+    // NOTE: This wallet parameter is for filtering by entity owner's wallet (user's wallet in profiles/asks/offers),
+    // NOT for using a logged-in user's auth wallet. The explorer always uses the signing wallet (CURRENT_WALLET)
+    // from environment variables, never a user's logged-in wallet.
     if (params?.wallet) {
       queryBuilder = queryBuilder.where(eq('wallet', params.wallet.toLowerCase()));
+    }
+
+    // Filter by signer_wallet (the wallet that signed the tx_event entity creation)
+    // CRITICAL: Always use CURRENT_WALLET (signing wallet from env PK), NEVER a user's logged-in wallet
+    // This ensures we only show transactions from our app's signing wallet, not from any user's auth wallet
+    // The explorer is a public data view, not a user-specific view
+    if (!params?.wallet && CURRENT_WALLET) {
+      queryBuilder = queryBuilder.where(eq('signer_wallet', CURRENT_WALLET.toLowerCase()));
     }
 
     // Filter by entityKey
