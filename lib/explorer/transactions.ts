@@ -191,7 +191,6 @@ export async function getAllTransactions(params?: {
 }> {
   try {
     const publicClient = getPublicClient();
-    const query = publicClient.buildQuery();
     const limit = Math.min(params?.limit || 50, 100); // Default 50, max 100
 
     // When spaceId is undefined (meaning "all spaces"), query all known spaces
@@ -202,7 +201,9 @@ export async function getAllTransactions(params?: {
       : params?.spaceIds || allSpaceIds;
 
     // Query each space separately and combine results
+    // IMPORTANT: Create a new query builder for each space (query builders are stateful)
     const queryPromises = spaceIdsToQuery.map(spaceId => {
+      const query = publicClient.buildQuery();
       let queryBuilder = query.where(eq('type', 'tx_event'));
       queryBuilder = queryBuilder.where(eq('space_id', spaceId));
       
@@ -230,10 +231,16 @@ export async function getAllTransactions(params?: {
     const results = await Promise.all(queryPromises);
     
     // Combine all results into a single array
-    const allEntities = results.flatMap(result => result?.entities || []);
+    // Defensive: validate result structure before accessing entities
+    const allEntities = results.flatMap(result => {
+      if (!result || !result.entities || !Array.isArray(result.entities)) {
+        return [];
+      }
+      return result.entities;
+    });
 
     if (!allEntities || allEntities.length === 0) {
-      console.log('[getAllTransactions] No entities returned from queries');
+      console.log(`[getAllTransactions] No entities returned from ${spaceIdsToQuery.length} space query(ies)`);
       return { transactions: [], nextCursor: null, total: 0 };
     }
 
