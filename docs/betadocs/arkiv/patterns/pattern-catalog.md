@@ -497,6 +497,37 @@ Arkiv indexer has specific indexing rules. Queries must use indexed attributes f
 
 ---
 
+### PAT-QUERY-002: Network-Wide Space ID Discovery
+
+**Status:** ✅ Documented
+**Location:** [`patterns/space-id-discovery.md`](./patterns/space-id-discovery.md)
+
+**What problem it solves:**
+Discover all unique `spaceId` values used across the Arkiv network by querying entities without `spaceId` filters. Enables network-wide space discovery, cross-app interoperability, and user-facing space selection interfaces.
+
+**Invariants:**
+- Queries omit `spaceId` filter to discover all spaces
+- Space IDs are extracted from entity attributes (not from a registry)
+- Only spaces with at least one entity are discoverable
+- Discovery is public (anyone can query all spaces)
+- Signer metadata (`signer_wallet`) identifies space creator
+- Metadata (entity counts, recency) is computed from query results
+
+**Threat model / failure modes:**
+- **Performance:** Querying all entities can be slow as network grows
+- **Spam:** Malicious actors can create many entities with random space IDs
+- **Namespace collision:** Multiple apps may use the same space ID unintentionally
+- **Empty spaces:** Spaces with no entities won't appear in discovery
+- **Query limits:** May miss spaces if entity count exceeds query limit
+
+**Related patterns:**
+- [PAT-SPACE-001: Space ID as Environment Boundary](./patterns/space-isolation.md) - Using spaceId for isolation
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](./patterns/query-optimization.md) - Query optimization patterns
+
+**Full details:** See [`patterns/space-id-discovery.md`](./patterns/space-id-discovery.md) for canonical algorithm, debug recipe, anti-patterns, tradeoffs, implementation hooks.
+
+---
+
 ### PAT-PAGINATION-001: Pagination and Cursor Conventions
 
 **Status:** ✅ Documented
@@ -754,6 +785,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 | PAT-INDEXER-001 | Read-Your-Writes Under Indexer Lag | ✅ verified: `app/api/skills/route.ts`, `app/notifications/page.tsx` | ✅ verified |
 | PAT-IDEMPOTENT-001 | Idempotent Writes | ✅ verified: `lib/arkiv/metaLearningQuest.ts`, `lib/arkiv/authIdentity.ts`, `lib/arkiv/profile.ts` | ✅ verified |
 | PAT-QUERY-001 | Indexer-Friendly Query Shapes | ✅ verified: `lib/arkiv/profile.ts::listUserProfiles()`, `lib/arkiv/sessions.ts::listSessions()`, all `buildQuery().where(eq(...)).limit().fetch()` patterns | ✅ verified |
+| PAT-QUERY-002 | Network-Wide Space ID Discovery | ✅ verified: `lib/arkiv/liteSpaceIds.ts::getAllLiteSpaceIds()`, `app/api/lite/space-ids/route.ts` | ✅ verified |
 | PAT-PAGINATION-001 | Pagination Conventions | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/asks.ts`, `lib/arkiv/offers.ts` | ✅ verified |
 | PAT-REF-001 | Relationship References | ✅ verified: `lib/arkiv/profile.ts`, `lib/arkiv/notificationPreferences.ts`, `lib/arkiv/learnerQuest.ts` | ✅ verified |
 | PAT-UPSERT-001 | Canonical Upsert Helper | ✅ verified: `lib/arkiv/entity-utils.ts::arkivUpsertEntity()` | ✅ verified |
@@ -793,6 +825,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 - `patterns/deletion-patterns.md` → PAT-DELETE-001
 - `patterns/error-handling.md` → PAT-ERROR-001
 - `patterns/query-optimization.md` → PAT-QUERY-001
+- `patterns/space-id-discovery.md` → PAT-QUERY-002
 - `patterns/transaction-timeouts.md` → PAT-TIMEOUT-001
 - `patterns/optimistic-ui-reconciliation.md` → PAT-OPTIMISTIC-001
 - `patterns/idempotent-writes.md` → PAT-IDEMPOTENT-001
