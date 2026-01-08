@@ -50,9 +50,15 @@ export async function getAllLiteSpaceIds(options?: {
     console.log('[getAllLiteSpaceIds] Starting query:', {
       filter,
       currentWallet: currentWallet ? `${currentWallet.substring(0, 6)}...${currentWallet.substring(currentWallet.length - 4)}` : 'undefined',
+      hasCurrentWallet: !!currentWallet,
       minEntities,
       recentDays,
     });
+
+    // Warn if CURRENT_WALLET is undefined (filtering won't work correctly)
+    if (!currentWallet && (filter === 'p2pmentor' || filter === 'network')) {
+      console.warn('[getAllLiteSpaceIds] CURRENT_WALLET is undefined - filtering by signer_wallet will not work correctly. All spaces will be treated as network spaces.');
+    }
 
     // Query all lite_ask and lite_offer entities without spaceId filter
     // We query both types to ensure we discover all space IDs
@@ -184,14 +190,31 @@ export async function getAllLiteSpaceIds(options?: {
 
     // Apply filters
     const beforeFilterCount = results.length;
+    const p2pmentorCountBefore = results.filter(r => r.isP2pmentorSpace).length;
+    const networkCountBefore = results.filter(r => !r.isP2pmentorSpace).length;
+
     if (filter === 'p2pmentor') {
       results = results.filter(r => r.isP2pmentorSpace);
-      console.log('[getAllLiteSpaceIds] Applied p2pmentor filter:', { before: beforeFilterCount, after: results.length });
+      console.log('[getAllLiteSpaceIds] Applied p2pmentor filter:', {
+        before: beforeFilterCount,
+        after: results.length,
+        p2pmentorSpacesBefore: p2pmentorCountBefore,
+        networkSpacesBefore: networkCountBefore,
+      });
     } else if (filter === 'network') {
       results = results.filter(r => !r.isP2pmentorSpace);
-      console.log('[getAllLiteSpaceIds] Applied network filter:', { before: beforeFilterCount, after: results.length });
+      console.log('[getAllLiteSpaceIds] Applied network filter:', {
+        before: beforeFilterCount,
+        after: results.length,
+        p2pmentorSpacesBefore: p2pmentorCountBefore,
+        networkSpacesBefore: networkCountBefore,
+      });
     } else {
-      console.log('[getAllLiteSpaceIds] No filter applied (all):', { count: results.length });
+      console.log('[getAllLiteSpaceIds] No filter applied (all):', {
+        count: results.length,
+        p2pmentorSpaces: p2pmentorCountBefore,
+        networkSpaces: networkCountBefore,
+      });
     }
 
     if (minEntities > 0) {
