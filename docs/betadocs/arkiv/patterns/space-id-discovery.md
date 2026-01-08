@@ -226,11 +226,16 @@ const ttlSeconds = parseInt(getAttr(entity.attributes, 'ttlSeconds') || '2592000
 ## Debug Recipe
 
 - Verify query omits `spaceId` filter (check query builder)
-- Check entity count: ensure query limit is high enough
+- Verify both entity types are queried (`lite_ask` and `lite_offer`)
+- Check entity count: ensure query limit is high enough (currently 1000 per type)
 - Verify attribute extraction: `spaceId` must be in entity attributes
-- Test signer filtering: verify `signer_wallet` comparison works
-- Check sorting: verify spaces are sorted by relevance
-- Monitor performance: query time increases with entity count
+- Test signer filtering: verify `signer_wallet` comparison with `CURRENT_WALLET` works
+- Check TTL calculation: verify active entity detection uses correct TTL
+- Verify metadata aggregation: askCount, offerCount, totalEntities should be correct
+- Check sorting: verify spaces are sorted by totalEntities (desc), then mostRecentActivity (desc)
+- Test filter changes: verify dropdown updates when filter changes
+- Monitor performance: query time increases with entity count (two parallel queries)
+- Test error handling: verify function returns empty array on error (never throws)
 
 ## Anti-Patterns
 
