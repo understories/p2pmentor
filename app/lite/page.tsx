@@ -187,11 +187,12 @@ export default function LitePage() {
   }, [spaceIdFilter, spaceId]); // Reload when filter or current spaceId changes
 
   // Save available space IDs to localStorage whenever they change (cache update)
+  // Only save when filter is "all" to avoid polluting cache with filtered results
   useEffect(() => {
-    if (typeof window !== 'undefined' && availableSpaceIds.length > 0) {
+    if (typeof window !== 'undefined' && availableSpaceIds.length > 0 && spaceIdFilter === 'all') {
       localStorage.setItem('lite_space_ids', JSON.stringify(availableSpaceIds));
     }
-  }, [availableSpaceIds]);
+  }, [availableSpaceIds, spaceIdFilter]);
 
   // Recompute matches whenever asks or offers change
   useEffect(() => {
