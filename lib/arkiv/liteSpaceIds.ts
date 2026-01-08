@@ -47,6 +47,13 @@ export async function getAllLiteSpaceIds(options?: {
     const recentDays = options?.recentDays;
     const recentCutoff = recentDays ? Date.now() - (recentDays * 24 * 60 * 60 * 1000) : null;
 
+    console.log('[getAllLiteSpaceIds] Starting query:', {
+      filter,
+      currentWallet: currentWallet ? `${currentWallet.substring(0, 6)}...${currentWallet.substring(currentWallet.length - 4)}` : 'undefined',
+      minEntities,
+      recentDays,
+    });
+
     // Query all lite_ask and lite_offer entities without spaceId filter
     // We query both types to ensure we discover all space IDs
     const [asksResult, offersResult] = await Promise.all([
@@ -176,10 +183,15 @@ export async function getAllLiteSpaceIds(options?: {
     }));
 
     // Apply filters
+    const beforeFilterCount = results.length;
     if (filter === 'p2pmentor') {
       results = results.filter(r => r.isP2pmentorSpace);
+      console.log('[getAllLiteSpaceIds] Applied p2pmentor filter:', { before: beforeFilterCount, after: results.length });
     } else if (filter === 'network') {
       results = results.filter(r => !r.isP2pmentorSpace);
+      console.log('[getAllLiteSpaceIds] Applied network filter:', { before: beforeFilterCount, after: results.length });
+    } else {
+      console.log('[getAllLiteSpaceIds] No filter applied (all):', { count: results.length });
     }
 
     if (minEntities > 0) {
@@ -196,6 +208,14 @@ export async function getAllLiteSpaceIds(options?: {
         return b.totalEntities - a.totalEntities;
       }
       return new Date(b.mostRecentActivity).getTime() - new Date(a.mostRecentActivity).getTime();
+    });
+
+    console.log('[getAllLiteSpaceIds] Returning results:', {
+      filter,
+      count: results.length,
+      spaceIds: results.map(r => r.spaceId),
+      p2pmentorCount: results.filter(r => r.isP2pmentorSpace).length,
+      networkCount: results.filter(r => !r.isP2pmentorSpace).length,
     });
 
     return results;

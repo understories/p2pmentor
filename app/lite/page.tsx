@@ -64,10 +64,12 @@ export default function LitePage() {
     loadData();
   }, [spaceId]); // Reload data when spaceId changes
 
-  // Load available space IDs from network and localStorage on mount
+  // Load available space IDs from network and localStorage on mount and when filter changes
   useEffect(() => {
     const loadSpaceIds = async () => {
       if (typeof window === 'undefined') return;
+
+      console.log('[loadSpaceIds] Loading space IDs with filter:', spaceIdFilter);
 
       // Load from localStorage first (for immediate UI update)
       let localStorageSpaceIds: string[] = [];
@@ -86,8 +88,11 @@ export default function LitePage() {
       // Fetch space IDs with metadata from network (source of truth)
       let networkMetadata: SpaceIdMetadata[] = [];
       try {
-        const res = await fetch(`/api/lite/space-ids?filter=${spaceIdFilter}`);
+        const url = `/api/lite/space-ids?filter=${spaceIdFilter}`;
+        console.log('[loadSpaceIds] Fetching from:', url);
+        const res = await fetch(url);
         const data = await res.json();
+        console.log('[loadSpaceIds] API response:', { ok: data.ok, count: data.spaceIds?.length || 0, filter: spaceIdFilter });
         if (data.ok && Array.isArray(data.spaceIds)) {
           // Check if it's the new format (with metadata) or old format (simple array)
           if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
@@ -160,6 +165,13 @@ export default function LitePage() {
       // Convert to sorted array (already sorted by relevance from API)
       const filteredArray = Array.from(filteredMap.values());
 
+      console.log('[loadSpaceIds] Final filtered array:', {
+        filter: spaceIdFilter,
+        count: filteredArray.length,
+        spaceIds: filteredArray.map(m => m.spaceId),
+        metadata: filteredArray.map(m => ({ id: m.spaceId, isP2pmentor: m.isP2pmentorSpace, total: m.totalEntities }))
+      });
+
       // Update state
       setSpaceIdMetadata(filteredArray);
       setAvailableSpaceIds(filteredArray.map(m => m.spaceId));
@@ -172,7 +184,7 @@ export default function LitePage() {
     };
 
     loadSpaceIds();
-  }, [spaceIdFilter]); // Reload when filter changes
+  }, [spaceIdFilter, spaceId]); // Reload when filter or current spaceId changes
 
   // Save available space IDs to localStorage whenever they change (cache update)
   useEffect(() => {
