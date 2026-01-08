@@ -61,33 +61,67 @@ export default function LitePage() {
     loadData();
   }, [spaceId]); // Reload data when spaceId changes
 
-  // Load available space IDs from localStorage on mount
+  // Load available space IDs from network and localStorage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('lite_space_ids');
-      if (saved) {
-        try {
+    const loadSpaceIds = async () => {
+      if (typeof window === 'undefined') return;
+
+      // Load from localStorage first (for immediate UI update)
+      let localStorageSpaceIds: string[] = [];
+      try {
+        const saved = localStorage.getItem('lite_space_ids');
+        if (saved) {
           const parsed = JSON.parse(saved);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setAvailableSpaceIds(parsed);
-            // If current spaceId is not in the list, add it
-            if (!parsed.includes(spaceId)) {
-              const updated = [...parsed, spaceId];
-              setAvailableSpaceIds(updated);
-              localStorage.setItem('lite_space_ids', JSON.stringify(updated));
-            }
+            localStorageSpaceIds = parsed;
           }
-        } catch (err) {
-          console.error('Error loading space IDs from localStorage:', err);
         }
-      } else {
-        // Initialize with default space IDs
-        localStorage.setItem('lite_space_ids', JSON.stringify(availableSpaceIds));
+      } catch (err) {
+        console.error('Error loading space IDs from localStorage:', err);
       }
-    }
+
+      // Fetch space IDs from network (source of truth)
+      let networkSpaceIds: string[] = [];
+      try {
+        const res = await fetch('/api/lite/space-ids');
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.spaceIds)) {
+          networkSpaceIds = data.spaceIds;
+        }
+      } catch (err) {
+        console.error('Error fetching space IDs from network:', err);
+        // Fallback to localStorage if network fails
+        networkSpaceIds = localStorageSpaceIds;
+      }
+
+      // Merge: network space IDs (source of truth) + localStorage space IDs (cache) + current spaceId
+      const merged = new Set<string>();
+      
+      // Add network space IDs first (source of truth)
+      networkSpaceIds.forEach(id => merged.add(id));
+      
+      // Add localStorage space IDs (may have user-created IDs not yet in network)
+      localStorageSpaceIds.forEach(id => merged.add(id));
+      
+      // Ensure current spaceId is included
+      if (spaceId) {
+        merged.add(spaceId);
+      }
+
+      // Convert to sorted array
+      const mergedArray = Array.from(merged).sort();
+      
+      // Update state
+      setAvailableSpaceIds(mergedArray);
+      
+      // Update localStorage with merged list (cache for next load)
+      localStorage.setItem('lite_space_ids', JSON.stringify(mergedArray));
+    };
+
+    loadSpaceIds();
   }, []); // Only run on mount
 
-  // Save available space IDs to localStorage whenever they change
+  // Save available space IDs to localStorage whenever they change (cache update)
   useEffect(() => {
     if (typeof window !== 'undefined' && availableSpaceIds.length > 0) {
       localStorage.setItem('lite_space_ids', JSON.stringify(availableSpaceIds));
@@ -126,6 +160,26 @@ export default function LitePage() {
       if (showLoading) {
         setLoading(false);
       }
+    }
+  };
+
+  // Refresh space IDs from network (called after creating asks/offers)
+  const refreshSpaceIds = async () => {
+    try {
+      const res = await fetch('/api/lite/space-ids');
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.spaceIds)) {
+        // Merge with current space IDs and localStorage
+        const currentSet = new Set([...availableSpaceIds, ...data.spaceIds, spaceId]);
+        const merged = Array.from(currentSet).sort();
+        setAvailableSpaceIds(merged);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('lite_space_ids', JSON.stringify(merged));
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing space IDs:', err);
+      // Silently fail - not critical
     }
   };
 
@@ -281,8 +335,12 @@ export default function LitePage() {
 
         if (found) {
           setSuccess('Ask created successfully!');
+          // Refresh space IDs to ensure new space IDs appear in the list
+          await refreshSpaceIds();
         } else {
           setSuccess('Ask created! It may take a moment to appear. Refresh if needed.');
+          // Still refresh space IDs even if not found yet (may appear later)
+          await refreshSpaceIds();
         }
       } else {
         setError(data.error || 'Failed to create ask');
@@ -347,8 +405,12 @@ export default function LitePage() {
 
         if (found) {
           setSuccess('Offer created successfully!');
+          // Refresh space IDs to ensure new space IDs appear in the list
+          await refreshSpaceIds();
         } else {
           setSuccess('Offer created! It may take a moment to appear. Refresh if needed.');
+          // Still refresh space IDs even if not found yet (may appear later)
+          await refreshSpaceIds();
         }
       } else {
         setError(data.error || 'Failed to create offer');
