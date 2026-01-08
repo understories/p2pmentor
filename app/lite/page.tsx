@@ -1,10 +1,10 @@
 /**
  * Lite Page
- * 
+ *
  * Simplified ask/offer board with no authentication.
  * Uses server wallet for all entity creation.
  * Fixed 1 month TTL for all asks and offers.
- * 
+ *
  * Reference: refs/lite-implementation-plan.md
  */
 
@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { EntityDataToggle } from '@/components/lite/EntityDataToggle';
 import type { LiteAsk } from '@/lib/arkiv/liteAsks';
 import type { LiteOffer } from '@/lib/arkiv/liteOffers';
+import type { SpaceIdMetadata } from '@/lib/arkiv/liteSpaceIds';
 
 interface Match {
   ask: LiteAsk;
@@ -26,7 +27,9 @@ interface Match {
 
 export default function LitePage() {
   const [spaceId, setSpaceId] = useState<string>('nsjan26'); // Default spaceId
-  const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>(['nsjan26', 'test']); // Available space IDs
+  const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>(['nsjan26', 'test']); // Available space IDs (for backward compatibility)
+  const [spaceIdMetadata, setSpaceIdMetadata] = useState<SpaceIdMetadata[]>([]); // Space IDs with metadata
+  const [spaceIdFilter, setSpaceIdFilter] = useState<'all' | 'p2pmentor' | 'network'>('all');
   const [showCreateNewSpaceId, setShowCreateNewSpaceId] = useState(false);
   const [newSpaceIdInput, setNewSpaceIdInput] = useState('');
   const [asks, setAsks] = useState<LiteAsk[]>([]);
@@ -39,7 +42,7 @@ export default function LitePage() {
   const [polling, setPolling] = useState(false);
   const [showCreateAskForm, setShowCreateAskForm] = useState(false);
   const [showCreateOfferForm, setShowCreateOfferForm] = useState(false);
-  
+
   // Ask form state
   const [newAsk, setNewAsk] = useState({
     name: '',
@@ -80,46 +83,89 @@ export default function LitePage() {
         console.error('Error loading space IDs from localStorage:', err);
       }
 
-      // Fetch space IDs from network (source of truth)
-      let networkSpaceIds: string[] = [];
+      // Fetch space IDs with metadata from network (source of truth)
+      let networkMetadata: SpaceIdMetadata[] = [];
       try {
-        const res = await fetch('/api/lite/space-ids');
+        const res = await fetch(`/api/lite/space-ids?filter=${spaceIdFilter}`);
         const data = await res.json();
         if (data.ok && Array.isArray(data.spaceIds)) {
-          networkSpaceIds = data.spaceIds;
+          // Check if it's the new format (with metadata) or old format (simple array)
+          if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
+            networkMetadata = data.spaceIds as SpaceIdMetadata[];
+          } else {
+            // Old format: convert to metadata format
+            networkMetadata = (data.spaceIds as string[]).map(id => ({
+              spaceId: id,
+              askCount: 0,
+              offerCount: 0,
+              totalEntities: 0,
+              mostRecentActivity: new Date().toISOString(),
+              isP2pmentorSpace: false,
+              hasActiveEntities: false,
+            }));
+          }
         }
       } catch (err) {
         console.error('Error fetching space IDs from network:', err);
         // Fallback to localStorage if network fails
-        networkSpaceIds = localStorageSpaceIds;
+        networkMetadata = localStorageSpaceIds.map(id => ({
+          spaceId: id,
+          askCount: 0,
+          offerCount: 0,
+          totalEntities: 0,
+          mostRecentActivity: new Date().toISOString(),
+          isP2pmentorSpace: false,
+          hasActiveEntities: false,
+        }));
       }
 
       // Merge: network space IDs (source of truth) + localStorage space IDs (cache) + current spaceId
-      const merged = new Set<string>();
-      
+      const mergedMap = new Map<string, SpaceIdMetadata>();
+
       // Add network space IDs first (source of truth)
-      networkSpaceIds.forEach(id => merged.add(id));
-      
+      networkMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
+
       // Add localStorage space IDs (may have user-created IDs not yet in network)
-      localStorageSpaceIds.forEach(id => merged.add(id));
-      
+      localStorageSpaceIds.forEach(id => {
+        if (!mergedMap.has(id)) {
+          mergedMap.set(id, {
+            spaceId: id,
+            askCount: 0,
+            offerCount: 0,
+            totalEntities: 0,
+            mostRecentActivity: new Date().toISOString(),
+            isP2pmentorSpace: false,
+            hasActiveEntities: false,
+          });
+        }
+      });
+
       // Ensure current spaceId is included
-      if (spaceId) {
-        merged.add(spaceId);
+      if (spaceId && !mergedMap.has(spaceId)) {
+        mergedMap.set(spaceId, {
+          spaceId,
+          askCount: 0,
+          offerCount: 0,
+          totalEntities: 0,
+          mostRecentActivity: new Date().toISOString(),
+          isP2pmentorSpace: false,
+          hasActiveEntities: false,
+        });
       }
 
-      // Convert to sorted array
-      const mergedArray = Array.from(merged).sort();
-      
+      // Convert to sorted array (already sorted by relevance from API)
+      const mergedArray = Array.from(mergedMap.values());
+
       // Update state
-      setAvailableSpaceIds(mergedArray);
-      
+      setSpaceIdMetadata(mergedArray);
+      setAvailableSpaceIds(mergedArray.map(m => m.spaceId));
+
       // Update localStorage with merged list (cache for next load)
-      localStorage.setItem('lite_space_ids', JSON.stringify(mergedArray));
+      localStorage.setItem('lite_space_ids', JSON.stringify(mergedArray.map(m => m.spaceId)));
     };
 
     loadSpaceIds();
-  }, []); // Only run on mount
+  }, [spaceIdFilter]); // Reload when filter changes
 
   // Save available space IDs to localStorage whenever they change (cache update)
   useEffect(() => {
@@ -166,15 +212,50 @@ export default function LitePage() {
   // Refresh space IDs from network (called after creating asks/offers)
   const refreshSpaceIds = async () => {
     try {
-      const res = await fetch('/api/lite/space-ids');
+      const res = await fetch(`/api/lite/space-ids?filter=${spaceIdFilter}`);
       const data = await res.json();
       if (data.ok && Array.isArray(data.spaceIds)) {
-        // Merge with current space IDs and localStorage
-        const currentSet = new Set([...availableSpaceIds, ...data.spaceIds, spaceId]);
-        const merged = Array.from(currentSet).sort();
-        setAvailableSpaceIds(merged);
+        // Check if it's the new format (with metadata) or old format (simple array)
+        let networkMetadata: SpaceIdMetadata[];
+        if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
+          networkMetadata = data.spaceIds as SpaceIdMetadata[];
+        } else {
+          // Old format: convert to metadata format
+          networkMetadata = (data.spaceIds as string[]).map(id => ({
+            spaceId: id,
+            askCount: 0,
+            offerCount: 0,
+            totalEntities: 0,
+            mostRecentActivity: new Date().toISOString(),
+            isP2pmentorSpace: false,
+            hasActiveEntities: false,
+          }));
+        }
+
+        // Merge with current space IDs
+        const mergedMap = new Map<string, SpaceIdMetadata>();
+        spaceIdMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
+        networkMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
+
+        // Ensure current spaceId is included
+        if (spaceId && !mergedMap.has(spaceId)) {
+          mergedMap.set(spaceId, {
+            spaceId,
+            askCount: 0,
+            offerCount: 0,
+            totalEntities: 0,
+            mostRecentActivity: new Date().toISOString(),
+            isP2pmentorSpace: false,
+            hasActiveEntities: false,
+          });
+        }
+
+        const merged = Array.from(mergedMap.values());
+        setSpaceIdMetadata(merged);
+        setAvailableSpaceIds(merged.map(m => m.spaceId));
+
         if (typeof window !== 'undefined') {
-          localStorage.setItem('lite_space_ids', JSON.stringify(merged));
+          localStorage.setItem('lite_space_ids', JSON.stringify(merged.map(m => m.spaceId)));
         }
       }
     } catch (err) {
@@ -231,7 +312,7 @@ export default function LitePage() {
 
   const computeMatches = (asksList: LiteAsk[], offersList: LiteOffer[]) => {
     const matchesList: Match[] = [];
-    
+
     asksList.forEach(ask => {
       offersList.forEach(offer => {
         // Match if same skill/topic (case-insensitive, trimmed) and different Discord handles
@@ -243,14 +324,14 @@ export default function LitePage() {
         }
       });
     });
-    
+
     // Sort by creation date (newest first)
     matchesList.sort((a, b) => {
       const aTime = new Date(a.ask.createdAt).getTime();
       const bTime = new Date(b.ask.createdAt).getTime();
       return bTime - aTime;
     });
-    
+
     setMatches(matchesList);
   };
 
@@ -261,7 +342,7 @@ export default function LitePage() {
     }
 
     const trimmedSpaceId = newSpaceIdInput.trim();
-    
+
     // Check if it already exists
     if (availableSpaceIds.includes(trimmedSpaceId)) {
       setError('This space ID already exists');
@@ -274,10 +355,10 @@ export default function LitePage() {
     // Add to available space IDs
     const updated = [...availableSpaceIds, trimmedSpaceId];
     setAvailableSpaceIds(updated);
-    
+
     // Set as current space ID (this will trigger useEffect to reload data)
     setSpaceId(trimmedSpaceId);
-    
+
     // Reset create new UI
     setShowCreateNewSpaceId(false);
     setNewSpaceIdInput('');
@@ -313,10 +394,10 @@ export default function LitePage() {
         const submittedName = newAsk.name.trim();
         const submittedSkill = newAsk.skill.trim();
         const submittedDiscordHandle = newAsk.discordHandle.trim();
-        
+
         setNewAsk({ name: '', discordHandle: '', skill: '', description: '' });
         setShowCreateAskForm(false);
-        
+
         if (data.pending) {
           setSuccess('Ask submitted! Waiting for transaction to be indexed...');
         } else {
@@ -383,10 +464,10 @@ export default function LitePage() {
         const submittedName = newOffer.name.trim();
         const submittedSkill = newOffer.skill.trim();
         const submittedDiscordHandle = newOffer.discordHandle.trim();
-        
+
         setNewOffer({ name: '', discordHandle: '', skill: '', description: '', cost: '' });
         setShowCreateOfferForm(false);
-        
+
         if (data.pending) {
           setSuccess('Offer submitted! Waiting for transaction to be indexed...');
         } else {
@@ -484,9 +565,51 @@ export default function LitePage() {
 
         {/* Space ID Selector */}
         <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <label htmlFor="spaceId" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-            Space ID
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label htmlFor="spaceId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Space ID
+            </label>
+            <select
+              value={spaceIdFilter}
+              onChange={(e) => {
+                const filter = e.target.value as 'all' | 'p2pmentor' | 'network';
+                setSpaceIdFilter(filter);
+                // Reload space IDs with filter
+                const loadFiltered = async () => {
+                  try {
+                    const res = await fetch(`/api/lite/space-ids?filter=${filter}`);
+                    const data = await res.json();
+                    if (data.ok && Array.isArray(data.spaceIds)) {
+                      let networkMetadata: SpaceIdMetadata[];
+                      if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
+                        networkMetadata = data.spaceIds as SpaceIdMetadata[];
+                      } else {
+                        networkMetadata = (data.spaceIds as string[]).map(id => ({
+                          spaceId: id,
+                          askCount: 0,
+                          offerCount: 0,
+                          totalEntities: 0,
+                          mostRecentActivity: new Date().toISOString(),
+                          isP2pmentorSpace: false,
+                          hasActiveEntities: false,
+                        }));
+                      }
+                      setSpaceIdMetadata(networkMetadata);
+                      setAvailableSpaceIds(networkMetadata.map(m => m.spaceId));
+                    }
+                  } catch (err) {
+                    console.error('Error loading filtered space IDs:', err);
+                  }
+                };
+                loadFiltered();
+              }}
+              className="px-3 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="all">All Spaces</option>
+              <option value="p2pmentor">p2pmentor Spaces</option>
+              <option value="network">Arkiv Network Spaces</option>
+            </select>
+          </div>
           <select
             id="spaceId"
             value={showCreateNewSpaceId ? 'create-new' : spaceId}
@@ -502,14 +625,20 @@ export default function LitePage() {
             }}
             className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {availableSpaceIds.map((id) => (
-              <option key={id} value={id}>
-                {id}
-              </option>
-            ))}
+            {availableSpaceIds.map((id) => {
+              const metadata = spaceIdMetadata.find(m => m.spaceId === id);
+              const displayText = metadata && metadata.totalEntities > 0
+                ? `${id} (${metadata.totalEntities} ${metadata.totalEntities === 1 ? 'entity' : 'entities'})`
+                : id;
+              return (
+                <option key={id} value={id}>
+                  {displayText}
+                </option>
+              );
+            })}
             <option value="create-new">Create new</option>
           </select>
-          
+
           {showCreateNewSpaceId && (
             <div className="mt-3 flex gap-2">
               <input
@@ -533,7 +662,7 @@ export default function LitePage() {
               </button>
             </div>
           )}
-          
+
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
             Select a space ID for data isolation. Changing this will reload all data.
           </p>
@@ -545,18 +674,18 @@ export default function LitePage() {
             All data you enter here is stored on the Arkiv network for 30 days.
             <br />
             This means it is visible and verifiable on their{' '}
-            <a 
-              href="http://explorer.mendoza.hoodi.arkiv.network/" 
-              target="_blank" 
+            <a
+              href="http://explorer.mendoza.hoodi.arkiv.network/"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             >
               Arkiv explorer
             </a>
             . View our own{' '}
-            <a 
-              href="/explorer" 
-              target="_blank" 
+            <a
+              href="/explorer"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             >
@@ -564,9 +693,9 @@ export default function LitePage() {
             </a>
             {' '}to demonstrate this. <strong>In other words, your data is not private.</strong>
             <br />
-            <a 
-              href="https://p2pmentor.com/docs/user-flows/lite-version" 
-              target="_blank" 
+            <a
+              href="https://p2pmentor.com/docs/user-flows/lite-version"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
             >
