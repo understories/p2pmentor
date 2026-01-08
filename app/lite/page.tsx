@@ -632,6 +632,7 @@ export default function LitePage() {
           </div>
           <select
             id="spaceId"
+            key={`spaceId-select-${spaceIdFilter}`}
             value={showCreateNewSpaceId ? 'create-new' : spaceId}
             onChange={(e) => {
               const value = e.target.value;
