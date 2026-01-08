@@ -119,30 +119,34 @@ export default function LitePage() {
         }));
       }
 
-      // Merge: network space IDs (source of truth) + localStorage space IDs (cache) + current spaceId
-      const mergedMap = new Map<string, SpaceIdMetadata>();
+      // Build filtered space ID list
+      const filteredMap = new Map<string, SpaceIdMetadata>();
 
-      // Add network space IDs first (source of truth)
-      networkMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
+      // Add network space IDs (filtered by API)
+      networkMetadata.forEach(meta => filteredMap.set(meta.spaceId, meta));
 
-      // Add localStorage space IDs (may have user-created IDs not yet in network)
-      localStorageSpaceIds.forEach(id => {
-        if (!mergedMap.has(id)) {
-          mergedMap.set(id, {
-            spaceId: id,
-            askCount: 0,
-            offerCount: 0,
-            totalEntities: 0,
-            mostRecentActivity: new Date().toISOString(),
-            isP2pmentorSpace: false,
-            hasActiveEntities: false,
-          });
-        }
-      });
+      // If filter is "all", also merge with localStorage (backward compatibility)
+      // Otherwise, only show filtered results
+      if (spaceIdFilter === 'all') {
+        localStorageSpaceIds.forEach(id => {
+          if (!filteredMap.has(id)) {
+            filteredMap.set(id, {
+              spaceId: id,
+              askCount: 0,
+              offerCount: 0,
+              totalEntities: 0,
+              mostRecentActivity: new Date().toISOString(),
+              isP2pmentorSpace: false,
+              hasActiveEntities: false,
+            });
+          }
+        });
+      }
 
-      // Ensure current spaceId is included
-      if (spaceId && !mergedMap.has(spaceId)) {
-        mergedMap.set(spaceId, {
+      // Always ensure current spaceId is included (for UX - user might be viewing it)
+      // This allows viewing a space even if it doesn't match current filter
+      if (spaceId && !filteredMap.has(spaceId)) {
+        filteredMap.set(spaceId, {
           spaceId,
           askCount: 0,
           offerCount: 0,
@@ -154,14 +158,17 @@ export default function LitePage() {
       }
 
       // Convert to sorted array (already sorted by relevance from API)
-      const mergedArray = Array.from(mergedMap.values());
+      const filteredArray = Array.from(filteredMap.values());
 
       // Update state
-      setSpaceIdMetadata(mergedArray);
-      setAvailableSpaceIds(mergedArray.map(m => m.spaceId));
+      setSpaceIdMetadata(filteredArray);
+      setAvailableSpaceIds(filteredArray.map(m => m.spaceId));
 
-      // Update localStorage with merged list (cache for next load)
-      localStorage.setItem('lite_space_ids', JSON.stringify(mergedArray.map(m => m.spaceId)));
+      // Update localStorage with all space IDs (not just filtered) for cache
+      // Only update if filter is "all" to avoid polluting cache with filtered results
+      if (spaceIdFilter === 'all') {
+        localStorage.setItem('lite_space_ids', JSON.stringify(filteredArray.map(m => m.spaceId)));
+      }
     };
 
     loadSpaceIds();
@@ -232,14 +239,40 @@ export default function LitePage() {
           }));
         }
 
-        // Merge with current space IDs
-        const mergedMap = new Map<string, SpaceIdMetadata>();
-        spaceIdMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
-        networkMetadata.forEach(meta => mergedMap.set(meta.spaceId, meta));
+        // Build filtered list (respect current filter)
+        const filteredMap = new Map<string, SpaceIdMetadata>();
+        networkMetadata.forEach(meta => filteredMap.set(meta.spaceId, meta));
 
-        // Ensure current spaceId is included
-        if (spaceId && !mergedMap.has(spaceId)) {
-          mergedMap.set(spaceId, {
+        // If filter is "all", merge with localStorage
+        if (spaceIdFilter === 'all' && typeof window !== 'undefined') {
+          try {
+            const saved = localStorage.getItem('lite_space_ids');
+            if (saved) {
+              const parsed = JSON.parse(saved);
+              if (Array.isArray(parsed)) {
+                parsed.forEach((id: string) => {
+                  if (!filteredMap.has(id)) {
+                    filteredMap.set(id, {
+                      spaceId: id,
+                      askCount: 0,
+                      offerCount: 0,
+                      totalEntities: 0,
+                      mostRecentActivity: new Date().toISOString(),
+                      isP2pmentorSpace: false,
+                      hasActiveEntities: false,
+                    });
+                  }
+                });
+              }
+            }
+          } catch (err) {
+            // Ignore localStorage errors
+          }
+        }
+
+        // Always ensure current spaceId is included
+        if (spaceId && !filteredMap.has(spaceId)) {
+          filteredMap.set(spaceId, {
             spaceId,
             askCount: 0,
             offerCount: 0,
@@ -250,12 +283,13 @@ export default function LitePage() {
           });
         }
 
-        const merged = Array.from(mergedMap.values());
-        setSpaceIdMetadata(merged);
-        setAvailableSpaceIds(merged.map(m => m.spaceId));
+        const filtered = Array.from(filteredMap.values());
+        setSpaceIdMetadata(filtered);
+        setAvailableSpaceIds(filtered.map(m => m.spaceId));
 
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('lite_space_ids', JSON.stringify(merged.map(m => m.spaceId)));
+        // Update localStorage only if filter is "all"
+        if (spaceIdFilter === 'all' && typeof window !== 'undefined') {
+          localStorage.setItem('lite_space_ids', JSON.stringify(filtered.map(m => m.spaceId)));
         }
       }
     } catch (err) {
@@ -574,34 +608,7 @@ export default function LitePage() {
               onChange={(e) => {
                 const filter = e.target.value as 'all' | 'p2pmentor' | 'network';
                 setSpaceIdFilter(filter);
-                // Reload space IDs with filter
-                const loadFiltered = async () => {
-                  try {
-                    const res = await fetch(`/api/lite/space-ids?filter=${filter}`);
-                    const data = await res.json();
-                    if (data.ok && Array.isArray(data.spaceIds)) {
-                      let networkMetadata: SpaceIdMetadata[];
-                      if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
-                        networkMetadata = data.spaceIds as SpaceIdMetadata[];
-                      } else {
-                        networkMetadata = (data.spaceIds as string[]).map(id => ({
-                          spaceId: id,
-                          askCount: 0,
-                          offerCount: 0,
-                          totalEntities: 0,
-                          mostRecentActivity: new Date().toISOString(),
-                          isP2pmentorSpace: false,
-                          hasActiveEntities: false,
-                        }));
-                      }
-                      setSpaceIdMetadata(networkMetadata);
-                      setAvailableSpaceIds(networkMetadata.map(m => m.spaceId));
-                    }
-                  } catch (err) {
-                    console.error('Error loading filtered space IDs:', err);
-                  }
-                };
-                loadFiltered();
+                // useEffect will handle reloading space IDs when spaceIdFilter changes
               }}
               className="px-3 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
