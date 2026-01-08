@@ -92,7 +92,13 @@ export default function LitePage() {
         console.log('[loadSpaceIds] Fetching from:', url);
         const res = await fetch(url);
         const data = await res.json();
-        console.log('[loadSpaceIds] API response:', { ok: data.ok, count: data.spaceIds?.length || 0, filter: spaceIdFilter });
+        console.log('[loadSpaceIds] API response:', {
+          ok: data.ok,
+          count: data.spaceIds?.length || 0,
+          filter: spaceIdFilter,
+          spaceIds: data.spaceIds?.map((s: any) => typeof s === 'string' ? s : s.spaceId) || [],
+          firstItem: data.spaceIds?.[0] || null,
+        });
         if (data.ok && Array.isArray(data.spaceIds)) {
           // Check if it's the new format (with metadata) or old format (simple array)
           if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
@@ -169,8 +175,10 @@ export default function LitePage() {
         filter: spaceIdFilter,
         count: filteredArray.length,
         spaceIds: filteredArray.map(m => m.spaceId),
-        metadata: filteredArray.map(m => ({ id: m.spaceId, isP2pmentor: m.isP2pmentorSpace, total: m.totalEntities }))
+        metadata: filteredArray.map(m => ({ id: m.spaceId, isP2pmentor: m.isP2pmentorSpace, total: m.totalEntities })),
+        willUpdateDropdown: true,
       });
+      console.log('[loadSpaceIds] Setting availableSpaceIds to:', filteredArray.map(m => m.spaceId));
 
       // Update state
       setSpaceIdMetadata(filteredArray);
@@ -185,6 +193,16 @@ export default function LitePage() {
 
     loadSpaceIds();
   }, [spaceIdFilter, spaceId]); // Reload when filter or current spaceId changes
+
+  // Debug: Log when availableSpaceIds changes
+  useEffect(() => {
+    console.log('[State Update] availableSpaceIds changed:', {
+      filter: spaceIdFilter,
+      count: availableSpaceIds.length,
+      spaceIds: availableSpaceIds,
+      metadataCount: spaceIdMetadata.length,
+    });
+  }, [availableSpaceIds, spaceIdFilter, spaceIdMetadata.length]);
 
   // Save available space IDs to localStorage whenever they change (cache update)
   // Only save when filter is "all" to avoid polluting cache with filtered results
@@ -620,6 +638,7 @@ export default function LitePage() {
               value={spaceIdFilter}
               onChange={(e) => {
                 const filter = e.target.value as 'all' | 'p2pmentor' | 'network';
+                console.log('[Filter Change] Changing filter from', spaceIdFilter, 'to', filter);
                 setSpaceIdFilter(filter);
                 // useEffect will handle reloading space IDs when spaceIdFilter changes
               }}
