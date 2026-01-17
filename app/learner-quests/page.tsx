@@ -74,6 +74,8 @@ export default function LearnerQuestsPage() {
   const [markingRead, setMarkingRead] = useState<string | null>(null);
   const [overallCompletion, setOverallCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
   const [questTypeFilter, setQuestTypeFilter] = useState<'all' | 'reading_list' | 'language_assessment' | 'meta_learning'>('all');
+  const [newQuests, setNewQuests] = useState<any[]>([]);
+  const [newQuestsLoading, setNewQuestsLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -89,7 +91,23 @@ export default function LearnerQuestsPage() {
 
   useEffect(() => {
     loadQuests();
+    loadNewQuests();
   }, []);
+
+  const loadNewQuests = async () => {
+    try {
+      setNewQuestsLoading(true);
+      const res = await fetch('/api/quests');
+      const data = await res.json();
+      if (data.ok && data.quests) {
+        setNewQuests(data.quests);
+      }
+    } catch (err: any) {
+      console.error('Error loading new quests:', err);
+    } finally {
+      setNewQuestsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (wallet && quests.length > 0) {
@@ -874,6 +892,47 @@ export default function LearnerQuestsPage() {
               </div>
             );
           })()}
+
+          {/* New Quest Engine Quests */}
+          {newQuests.length > 0 && (
+            <div className="mt-12 mb-8">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold mb-2">New Quest Engine</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Quest tracks with step-by-step learning and verifiable proof artifacts.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {newQuests.map((quest) => (
+                  <Link
+                    key={quest.questId}
+                    href={`/quests/${quest.trackId || quest.questId}`}
+                    className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="mb-3">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                        {quest.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                        {quest.description}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                        {quest.track}
+                      </span>
+                      <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                        {quest.difficulty}
+                      </span>
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {quest.stepCount} steps • {quest.estimatedDuration}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Garden Board - Learner Quests Board */}
           <GardenBoard

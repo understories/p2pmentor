@@ -124,6 +124,7 @@ export interface LoadedQuest extends QuestDefinition {
  */
 export interface QuestSummary {
   questId: string;
+  trackId?: string; // Directory name (for URL routing) - added by loader
   track: QuestTrack;
   title: string;
   description: string;

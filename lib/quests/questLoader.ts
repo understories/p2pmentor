@@ -133,13 +133,14 @@ export async function listQuests(): Promise<QuestSummary[]> {
     const questPromises = trackIds.map(async (trackId) => {
       const definition = await loadQuestDefinition(trackId);
       if (definition) {
-        return createQuestSummary(definition);
+        const summary = createQuestSummary(definition);
+        return { ...summary, trackId }; // Add trackId (directory name) for URL routing
       }
       return null;
     });
 
     const quests = await Promise.all(questPromises);
-    return quests.filter((q): q is QuestSummary => q !== null);
+    return quests.filter((q): q is QuestSummary & { trackId: string } => q !== null);
   } catch (error: any) {
     if (error.code === 'ENOENT') {
       // content/quests directory doesn't exist yet
