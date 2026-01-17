@@ -25,6 +25,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const wallet = searchParams.get('wallet');
     const questId = searchParams.get('questId');
+    const trackId = searchParams.get('trackId'); // Optional: for loading quest definition
 
     if (!wallet) {
       return NextResponse.json(
@@ -40,11 +41,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get progress
+    // Get progress (uses questId from stored entities)
     const progress = await getQuestStepProgress({ wallet, questId });
 
     // Get required steps for completion calculation
-    const requiredStepIds = await getRequiredStepIds(questId);
+    // Use trackId if provided, otherwise try questId as trackId
+    const requiredStepIds = trackId
+      ? await getRequiredStepIds(trackId)
+      : await getRequiredStepIds(questId);
     const totalSteps = requiredStepIds.length || progress.length;
 
     const completion = await calculateQuestCompletion({

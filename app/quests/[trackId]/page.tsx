@@ -85,7 +85,7 @@ export default function QuestDetailPage() {
     const loadProgress = async () => {
       try {
         const res = await fetch(
-          `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}`
+          `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
         );
         const data = await res.json();
 
@@ -151,7 +151,7 @@ export default function QuestDetailPage() {
           async () => {
             // Check function for polling
             const checkRes = await fetch(
-              `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}`
+              `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
             );
             const checkData = await checkRes.json();
             if (checkData.ok) {
@@ -167,7 +167,7 @@ export default function QuestDetailPage() {
         // Reload progress after a delay
         setTimeout(() => {
           const reloadRes = fetch(
-            `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}`
+            `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
           )
             .then((r) => r.json())
             .then((d) => {
