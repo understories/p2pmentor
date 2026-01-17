@@ -10,6 +10,9 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ConceptCard } from '@/components/learner-quests/ConceptCard';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { QuestStepDefinition } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
 
@@ -18,6 +21,9 @@ interface QuestStepRendererProps {
   content: string;
   completed: boolean;
   pendingStatus?: ReconciliationStatus;
+  txHash?: string;
+  entityKey?: string;
+  questId?: string;
   onComplete: () => void;
 }
 
@@ -26,8 +32,12 @@ export function QuestStepRenderer({
   content,
   completed,
   pendingStatus,
+  txHash,
+  entityKey,
+  questId,
   onComplete,
 }: QuestStepRendererProps) {
+  const arkivBuilderMode = useArkivBuilderMode();
   const isLoading = pendingStatus === 'pending' || pendingStatus === 'submitted';
   const isError = pendingStatus === 'error';
 
@@ -127,30 +137,133 @@ export function QuestStepRenderer({
         </div>
       )}
 
+      {/* Arkiv Builder Mode: Transaction & Entity Info */}
+      {arkivBuilderMode && (txHash || entityKey || completed || pendingStatus === 'submitted') && (
+        <div className="mt-4 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+          <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2 uppercase tracking-wide">
+            Arkiv Entity Created
+          </div>
+          {entityKey && (
+            <div className="mb-2">
+              <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                Entity Key:
+              </div>
+              <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                {entityKey}
+              </div>
+            </div>
+          )}
+          {txHash && (
+            <div className="mb-2">
+              <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                Transaction Hash:
+              </div>
+              <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                {txHash}
+              </div>
+            </div>
+          )}
+          {(entityKey || txHash) && (
+            <div className="mt-2">
+              <ViewOnArkivLink
+                entityKey={entityKey}
+                txHash={txHash}
+                label="View on Mendoza Explorer"
+                className="text-sm"
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Completion Button */}
       {!completed && (
         <div className="mt-4">
-          <button
-            onClick={onComplete}
-            disabled={isLoading}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              isLoading
-                ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
-          >
-            {isLoading
-              ? pendingStatus === 'submitted'
-                ? 'Submitting...'
-                : 'Processing...'
-              : step.type === 'READ'
-              ? 'Mark as Read'
-              : step.type === 'DO'
-              ? 'Mark as Complete'
-              : step.type === 'QUIZ'
-              ? 'Start Quiz'
-              : 'Complete Step'}
-          </button>
+          {arkivBuilderMode ? (
+            <ArkivQueryTooltip
+              query={[
+                `handleStepComplete("${step.stepId}", "${step.type}")`,
+                `Action:`,
+                `POST /api/quests/progress { wallet, questId, stepId, stepType }`,
+                ``,
+                `Creates: type='quest_step_progress' entity`,
+                `Attributes:`,
+                `- wallet (normalized to lowercase)`,
+                `- questId: "${questId || 'quest_id'}"`,
+                `- stepId: "${step.stepId}"`,
+                `- stepType: "${step.type}"`,
+                `- spaceId: SPACE_ID`,
+                `- createdAt: ISO timestamp`,
+                ``,
+                `Payload:`,
+                `- evidence: { stepId, completedAt, evidenceType: 'completion' }`,
+                `- questVersion: '1'`,
+                ``,
+                `TTL: 1 year (31536000 seconds)`,
+                ``,
+                `Returns: { key, txHash, status: 'submitted' }`,
+                `→ Entity key and transaction hash for verification`,
+                `→ View on Mendoza Explorer: ${entityKey ? `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}` : 'Available after submission'}`,
+              ]}
+              label={
+                isLoading
+                  ? pendingStatus === 'submitted'
+                    ? 'Submitting...'
+                    : 'Processing...'
+                  : step.type === 'READ'
+                  ? 'Mark as Read'
+                  : step.type === 'DO'
+                  ? 'Mark as Complete'
+                  : step.type === 'QUIZ'
+                  ? 'Start Quiz'
+                  : 'Complete Step'
+              }
+            >
+              <button
+                onClick={onComplete}
+                disabled={isLoading}
+                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                  isLoading
+                    ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
+              >
+                {isLoading
+                  ? pendingStatus === 'submitted'
+                    ? 'Submitting...'
+                    : 'Processing...'
+                  : step.type === 'READ'
+                  ? 'Mark as Read'
+                  : step.type === 'DO'
+                  ? 'Mark as Complete'
+                  : step.type === 'QUIZ'
+                  ? 'Start Quiz'
+                  : 'Complete Step'}
+              </button>
+            </ArkivQueryTooltip>
+          ) : (
+            <button
+              onClick={onComplete}
+              disabled={isLoading}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                isLoading
+                  ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              {isLoading
+                ? pendingStatus === 'submitted'
+                  ? 'Submitting...'
+                  : 'Processing...'
+                : step.type === 'READ'
+                ? 'Mark as Read'
+                : step.type === 'DO'
+                ? 'Mark as Complete'
+                : step.type === 'QUIZ'
+                ? 'Start Quiz'
+                : 'Complete Step'}
+            </button>
+          )}
         </div>
       )}
 

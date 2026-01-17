@@ -15,6 +15,8 @@ import { BackButton } from '@/components/BackButton';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
+import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useProgressReconciliation } from '@/lib/hooks/useProgressReconciliation';
 import type { LoadedQuest } from '@/lib/quests';
 import type { QuestProgress } from '@/lib/arkiv/questProgress';
@@ -38,6 +40,7 @@ export default function QuestDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   const reconciliation = useProgressReconciliation();
+  const arkivBuilderMode = useArkivBuilderMode();
 
   // Load wallet
   useEffect(() => {
@@ -105,14 +108,33 @@ export default function QuestDetailPage() {
     return () => clearInterval(interval);
   }, [wallet, quest]);
 
-  // Check if step is completed
-  const isStepCompleted = (stepId: string): boolean => {
+  // Check if step is completed and get progress data
+  const getStepProgressData = (stepId: string): {
+    completed: boolean;
+    txHash?: string;
+    entityKey?: string;
+  } => {
+    // First check indexed progress
     const stepProgress = progress.find((p) => p.stepId === stepId);
-    if (stepProgress) return true;
+    if (stepProgress) {
+      return {
+        completed: true,
+        txHash: stepProgress.txHash,
+        entityKey: stepProgress.key,
+      };
+    }
 
-    // Check reconciliation state
+    // Check reconciliation state (for pending/submitted steps)
     const pending = reconciliation.getStepStatus(stepId);
-    return pending?.status === 'indexed' || pending?.status === 'submitted';
+    if (pending && (pending.status === 'indexed' || pending.status === 'submitted')) {
+      return {
+        completed: true,
+        txHash: pending.txHash,
+        entityKey: pending.entityKey,
+      };
+    }
+
+    return { completed: false };
   };
 
   // Handle step completion
@@ -143,7 +165,7 @@ export default function QuestDetailPage() {
       const data = await res.json();
 
       if (data.ok && data.txHash) {
-        // Mark as submitted and start polling
+        // Update reconciliation with txHash and entityKey immediately
         reconciliation.markSubmitted(
           stepId,
           data.txHash,
@@ -158,7 +180,11 @@ export default function QuestDetailPage() {
               const stepProgress = checkData.progress.find(
                 (p: QuestProgress) => p.stepId === stepId
               );
-              return !!stepProgress;
+              if (stepProgress) {
+                // Mark as indexed when found
+                reconciliation.markIndexed(stepId);
+                return true;
+              }
             }
             return false;
           }
@@ -261,7 +287,7 @@ export default function QuestDetailPage() {
           {/* Steps List */}
           <div className="space-y-6">
             {sortedSteps.map((step) => {
-              const completed = isStepCompleted(step.stepId);
+              const progressData = getStepProgressData(step.stepId);
               const pending = reconciliation.getStepStatus(step.stepId);
               const stepContent = quest.stepContent[step.stepId] || '';
 
@@ -270,8 +296,11 @@ export default function QuestDetailPage() {
                   key={step.stepId}
                   step={step}
                   content={stepContent}
-                  completed={completed}
+                  completed={progressData.completed}
                   pendingStatus={pending?.status}
+                  txHash={progressData.txHash}
+                  entityKey={progressData.entityKey}
+                  questId={quest.questId}
                   onComplete={() => handleStepComplete(step.stepId, step.type)}
                 />
               );
