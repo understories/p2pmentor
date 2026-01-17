@@ -1,0 +1,150 @@
+/**
+ * Quest Progress API
+ *
+ * Records and retrieves quest step progress.
+ *
+ * GET /api/quests/progress?wallet=0x...&questId=arkiv_builder
+ * POST /api/quests/progress - Record step completion
+ */
+
+import { NextRequest, NextResponse } from 'next/server';
+import { getPrivateKey } from '@/lib/config';
+import {
+  createQuestStepProgress,
+  getQuestStepProgress,
+  calculateQuestCompletion,
+} from '@/lib/arkiv/questProgress';
+import { createStepEvidence, type QuestStepType } from '@/lib/arkiv/questStep';
+import { getRequiredStepIds } from '@/lib/quests';
+
+/**
+ * GET - Retrieve quest progress for a user
+ */
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const wallet = searchParams.get('wallet');
+    const questId = searchParams.get('questId');
+
+    if (!wallet) {
+      return NextResponse.json(
+        { ok: false, error: 'wallet is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!questId) {
+      return NextResponse.json(
+        { ok: false, error: 'questId is required' },
+        { status: 400 }
+      );
+    }
+
+    // Get progress
+    const progress = await getQuestStepProgress({ wallet, questId });
+
+    // Get required steps for completion calculation
+    const requiredStepIds = await getRequiredStepIds(questId);
+    const totalSteps = requiredStepIds.length || progress.length;
+
+    const completion = await calculateQuestCompletion({
+      wallet,
+      questId,
+      totalSteps,
+      requiredStepIds,
+    });
+
+    return NextResponse.json({
+      ok: true,
+      progress,
+      completion,
+    });
+  } catch (error: any) {
+    console.error('[/api/quests/progress GET] Error:', error);
+    return NextResponse.json(
+      { ok: false, error: error?.message || 'Failed to load progress' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * POST - Record step completion
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { wallet, questId, stepId, stepType, evidenceData } = body;
+
+    // Validate required fields
+    if (!wallet) {
+      return NextResponse.json(
+        { ok: false, error: 'wallet is required' },
+        { status: 400 }
+      );
+    }
+    if (!questId) {
+      return NextResponse.json(
+        { ok: false, error: 'questId is required' },
+        { status: 400 }
+      );
+    }
+    if (!stepId) {
+      return NextResponse.json(
+        { ok: false, error: 'stepId is required' },
+        { status: 400 }
+      );
+    }
+    if (!stepType) {
+      return NextResponse.json(
+        { ok: false, error: 'stepType is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate stepType
+    const validStepTypes: QuestStepType[] = ['READ', 'DO', 'QUIZ', 'SUBMIT', 'SESSION', 'VERIFY'];
+    if (!validStepTypes.includes(stepType)) {
+      return NextResponse.json(
+        { ok: false, error: `Invalid stepType: ${stepType}` },
+        { status: 400 }
+      );
+    }
+
+    // Get private key for server-side signing
+    const privateKey = getPrivateKey();
+
+    // Create evidence for this step type
+    const evidence = createStepEvidence(stepType, stepId, evidenceData || {});
+
+    // Record progress
+    const result = await createQuestStepProgress({
+      wallet,
+      questId,
+      stepId,
+      stepType,
+      evidence,
+      privateKey,
+    });
+
+    if (result.status === 'error') {
+      return NextResponse.json(
+        { ok: false, error: result.error },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      ok: true,
+      key: result.key,
+      txHash: result.txHash,
+      status: result.status,
+    });
+  } catch (error: any) {
+    console.error('[/api/quests/progress POST] Error:', error);
+    return NextResponse.json(
+      { ok: false, error: error?.message || 'Failed to record progress' },
+      { status: 500 }
+    );
+  }
+}
