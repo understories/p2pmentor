@@ -562,6 +562,22 @@ export default function LearnerQuestsPage() {
         <div className="max-w-6xl mx-auto">
           <BackButton href="/me" />
 
+          {/* Level Up In Progress Banner */}
+          <div className="mb-6 p-4 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-900/20">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🚧</span>
+              <div className="flex-1">
+                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wide">
+                  Level Up In Progress
+                </h3>
+                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                  Quest engine hardening underway. New quest tracks and proof primitives coming soon.
+                </p>
+              </div>
+              <span className="text-2xl">⚡</span>
+            </div>
+          </div>
+
           <div className="mb-6 flex items-center justify-between">
             <PageHeader
               title="Learning Quests"
