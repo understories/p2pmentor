@@ -1,0 +1,187 @@
+{
+  "questId": "arkiv_builder",
+  "version": "1",
+  "track": "arkiv",
+  "title": "Arkiv Builder Track",
+  "description": "Learn to build decentralized apps with Arkiv. Create entities, query data, and verify your work on-chain.",
+  "source": "https://arkiv.network/getting-started",
+  "estimatedDuration": "60 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "Welcome to Arkiv",
+      "description": "Understand what Arkiv is and why it matters for decentralized data.",
+      "contentFile": "steps/01-intro.md",
+      "duration": 5,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "Data ownership matters",
+        "body": "Traditional apps store your data in company databases. If the company shuts down, your data is gone. Arkiv stores data on-chain, meaning you own it independently of any company."
+      }
+    },
+    {
+      "stepId": "setup",
+      "type": "DO",
+      "title": "Set Up Your Environment",
+      "description": "Install dependencies and configure your development environment.",
+      "contentFile": "steps/02-setup.md",
+      "duration": 10,
+      "order": 2,
+      "required": true,
+      "actionType": "external_action"
+    },
+    {
+      "stepId": "first_entity",
+      "type": "DO",
+      "title": "Create Your First Entity",
+      "description": "Write your first piece of data to Arkiv and understand the entity structure.",
+      "contentFile": "steps/03-first-entity.md",
+      "duration": 10,
+      "order": 3,
+      "required": true,
+      "actionType": "create_entity",
+      "entityType": "hello_world"
+    },
+    {
+      "stepId": "verify_explorer",
+      "type": "VERIFY",
+      "title": "Verify on Explorer",
+      "description": "Learn to verify your data on the Arkiv Explorer.",
+      "contentFile": "steps/04-verify-explorer.md",
+      "duration": 5,
+      "order": 4,
+      "required": true,
+      "verificationMethod": "entity_exists",
+      "conceptCard": {
+        "title": "Trustless verification",
+        "body": "You don't need to trust our servers. Anyone can verify data on the blockchain explorer. This is what 'trustless' means - you can verify instead of trust."
+      }
+    },
+    {
+      "stepId": "walkaway_test",
+      "type": "VERIFY",
+      "title": "The Walkaway Test",
+      "description": "Experience data persistence: stop your server and verify your data still exists.",
+      "contentFile": "steps/05-walkaway-test.md",
+      "duration": 5,
+      "order": 5,
+      "required": true,
+      "verificationMethod": "entity_exists"
+    },
+    {
+      "stepId": "query_data",
+      "type": "DO",
+      "title": "Query Your Data",
+      "description": "Learn to query entities from Arkiv using the SDK.",
+      "contentFile": "steps/06-query-data.md",
+      "duration": 10,
+      "order": 6,
+      "required": true,
+      "actionType": "query_entity"
+    },
+    {
+      "stepId": "concepts",
+      "type": "READ",
+      "title": "Understanding Arkiv Concepts",
+      "description": "Deep dive into attributes, payloads, and indexer lag.",
+      "contentFile": "steps/07-concepts.md",
+      "duration": 10,
+      "order": 7,
+      "required": false,
+      "conceptCard": {
+        "title": "Indexer lag is normal",
+        "body": "When you write data to Arkiv, it takes a few seconds for indexers to process it. This is called 'indexer lag'. Good apps handle this gracefully by showing 'pending' states."
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Knowledge Check",
+      "description": "Test your understanding of Arkiv fundamentals.",
+      "duration": 10,
+      "order": 8,
+      "required": true,
+      "quizRubricId": "arkiv_basics_v1"
+    }
+  ],
+  "rubrics": {
+    "arkiv_basics_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What happens to your data when a traditional web app shuts down?",
+          "options": [
+            "The data persists forever",
+            "The data is usually lost or inaccessible",
+            "The data is automatically migrated",
+            "Nothing changes"
+          ],
+          "correctAnswer": "The data is usually lost or inaccessible",
+          "points": 1,
+          "explanation": "Traditional apps store data in company databases. When the company shuts down, that data is typically lost or becomes inaccessible."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "What is the purpose of the Arkiv Explorer?",
+          "options": [
+            "To edit your entities",
+            "To verify data on-chain without trusting servers",
+            "To delete old data",
+            "To create new wallets"
+          ],
+          "correctAnswer": "To verify data on-chain without trusting servers",
+          "points": 1,
+          "explanation": "The Explorer lets you independently verify that data exists on-chain, without trusting any server."
+        },
+        {
+          "id": "q3",
+          "type": "true_false",
+          "question": "Indexer lag means your transaction failed.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "Indexer lag is normal and expected. It just means the indexers haven't processed your transaction yet - not that it failed."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "Which fields should be stored in entity attributes vs payload?",
+          "options": [
+            "All data goes in attributes",
+            "All data goes in payload",
+            "Queryable fields in attributes, content in payload",
+            "It doesn't matter"
+          ],
+          "correctAnswer": "Queryable fields in attributes, content in payload",
+          "points": 1,
+          "explanation": "Attributes are indexed and queryable. Payload is for larger content that doesn't need to be searched."
+        },
+        {
+          "id": "q5",
+          "type": "multiple_choice",
+          "question": "What is the 'walkaway test'?",
+          "options": [
+            "Testing if the app works on mobile",
+            "Verifying data persists after shutting down your server",
+            "Checking network latency",
+            "Testing user authentication"
+          ],
+          "correctAnswer": "Verifying data persists after shutting down your server",
+          "points": 1,
+          "explanation": "The walkaway test proves that your data exists independently of your server - a key property of decentralized data."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "arkiv_builder",
+    "name": "Arkiv Builder",
+    "description": "Completed the Arkiv Builder track and demonstrated proficiency with decentralized data."
+  }
+}
