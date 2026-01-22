@@ -52,6 +52,15 @@ export interface QuizRubric {
 }
 
 /**
+ * Vocabulary item for language learning steps
+ */
+export interface VocabItem {
+  chinese: string;  // Chinese characters
+  pinyin: string;   // Pinyin pronunciation
+  english: string;  // English translation
+}
+
+/**
  * Step definition within a quest
  */
 export interface QuestStepDefinition {
@@ -70,6 +79,10 @@ export interface QuestStepDefinition {
   entityType?: string;
   externalUrl?: string;
   verificationMethod?: 'entity_exists' | 'field_match' | 'count_check';
+
+  // Flashcard practice configuration (for DO steps with vocabulary)
+  vocabulary?: VocabItem[]; // Vocabulary items for flashcard practice
+  minCards?: number; // Minimum cards to review (default: vocabulary.length)
 
   // Optional concept card for learning principle
   conceptCard?: {

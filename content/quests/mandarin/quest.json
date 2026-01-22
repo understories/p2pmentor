@@ -1,0 +1,395 @@
+{
+  "questId": "mandarin_starter",
+  "version": "1",
+  "track": "mandarin",
+  "title": "Mandarin Starter Track (HSK Level 1)",
+  "description": "Daily micro-practice for Mandarin learners. Learn essential HSK Level 1 vocabulary through interactive flashcards.",
+  "source": "HSK Level 1 Standard Course",
+  "estimatedDuration": "50 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "day1",
+      "type": "DO",
+      "title": "Day 1: Greetings (10 words)",
+      "description": "Learn essential greeting words and phrases.",
+      "contentFile": "steps/01-greetings.md",
+      "duration": 5,
+      "order": 1,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "你好", "pinyin": "nǐ hǎo", "english": "hello" },
+        { "chinese": "再见", "pinyin": "zài jiàn", "english": "goodbye" },
+        { "chinese": "谢谢", "pinyin": "xiè xie", "english": "thank you" },
+        { "chinese": "不客气", "pinyin": "bù kè qì", "english": "you're welcome" },
+        { "chinese": "对不起", "pinyin": "duì bu qǐ", "english": "sorry" },
+        { "chinese": "没关系", "pinyin": "méi guān xi", "english": "it's okay" },
+        { "chinese": "早上好", "pinyin": "zǎo shang hǎo", "english": "good morning" },
+        { "chinese": "晚上好", "pinyin": "wǎn shang hǎo", "english": "good evening" },
+        { "chinese": "请", "pinyin": "qǐng", "english": "please" },
+        { "chinese": "请问", "pinyin": "qǐng wèn", "english": "excuse me" }
+      ],
+      "minCards": 8,
+      "conceptCard": {
+        "title": "Daily practice builds fluency",
+        "body": "Learning 10 words a day is more effective than cramming 100 words once. Consistent micro-practice helps your brain form stronger connections."
+      }
+    },
+    {
+      "stepId": "day2",
+      "type": "DO",
+      "title": "Day 2: Numbers (10 words)",
+      "description": "Master numbers 1-10 and basic counting.",
+      "contentFile": "steps/02-numbers.md",
+      "duration": 5,
+      "order": 2,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "一", "pinyin": "yī", "english": "one" },
+        { "chinese": "二", "pinyin": "èr", "english": "two" },
+        { "chinese": "三", "pinyin": "sān", "english": "three" },
+        { "chinese": "四", "pinyin": "sì", "english": "four" },
+        { "chinese": "五", "pinyin": "wǔ", "english": "five" },
+        { "chinese": "六", "pinyin": "liù", "english": "six" },
+        { "chinese": "七", "pinyin": "qī", "english": "seven" },
+        { "chinese": "八", "pinyin": "bā", "english": "eight" },
+        { "chinese": "九", "pinyin": "jiǔ", "english": "nine" },
+        { "chinese": "十", "pinyin": "shí", "english": "ten" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day3",
+      "type": "DO",
+      "title": "Day 3: Family (10 words)",
+      "description": "Learn family member vocabulary.",
+      "contentFile": "steps/03-family.md",
+      "duration": 5,
+      "order": 3,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "家", "pinyin": "jiā", "english": "family/home" },
+        { "chinese": "爸爸", "pinyin": "bà ba", "english": "father" },
+        { "chinese": "妈妈", "pinyin": "mā ma", "english": "mother" },
+        { "chinese": "哥哥", "pinyin": "gē ge", "english": "older brother" },
+        { "chinese": "姐姐", "pinyin": "jiě jie", "english": "older sister" },
+        { "chinese": "弟弟", "pinyin": "dì di", "english": "younger brother" },
+        { "chinese": "妹妹", "pinyin": "mèi mei", "english": "younger sister" },
+        { "chinese": "儿子", "pinyin": "ér zi", "english": "son" },
+        { "chinese": "女儿", "pinyin": "nǚ ér", "english": "daughter" },
+        { "chinese": "朋友", "pinyin": "péng you", "english": "friend" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day4",
+      "type": "DO",
+      "title": "Day 4: Food (10 words)",
+      "description": "Essential food and drink vocabulary.",
+      "contentFile": "steps/04-food.md",
+      "duration": 5,
+      "order": 4,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "水", "pinyin": "shuǐ", "english": "water" },
+        { "chinese": "茶", "pinyin": "chá", "english": "tea" },
+        { "chinese": "米饭", "pinyin": "mǐ fàn", "english": "rice" },
+        { "chinese": "面条", "pinyin": "miàn tiáo", "english": "noodles" },
+        { "chinese": "菜", "pinyin": "cài", "english": "vegetable/dish" },
+        { "chinese": "肉", "pinyin": "ròu", "english": "meat" },
+        { "chinese": "水果", "pinyin": "shuǐ guǒ", "english": "fruit" },
+        { "chinese": "苹果", "pinyin": "píng guǒ", "english": "apple" },
+        { "chinese": "吃", "pinyin": "chī", "english": "to eat" },
+        { "chinese": "喝", "pinyin": "hē", "english": "to drink" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day5",
+      "type": "QUIZ",
+      "title": "Day 5: Week Review",
+      "description": "Test your knowledge of the first week's vocabulary.",
+      "duration": 10,
+      "order": 5,
+      "required": true,
+      "quizRubricId": "week1_review_v1"
+    },
+    {
+      "stepId": "day6",
+      "type": "DO",
+      "title": "Day 6: Time (10 words)",
+      "description": "Learn time-related vocabulary.",
+      "contentFile": "steps/06-time.md",
+      "duration": 5,
+      "order": 6,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "今天", "pinyin": "jīn tiān", "english": "today" },
+        { "chinese": "明天", "pinyin": "míng tiān", "english": "tomorrow" },
+        { "chinese": "昨天", "pinyin": "zuó tiān", "english": "yesterday" },
+        { "chinese": "现在", "pinyin": "xiàn zài", "english": "now" },
+        { "chinese": "小时", "pinyin": "xiǎo shí", "english": "hour" },
+        { "chinese": "分钟", "pinyin": "fēn zhōng", "english": "minute" },
+        { "chinese": "年", "pinyin": "nián", "english": "year" },
+        { "chinese": "月", "pinyin": "yuè", "english": "month" },
+        { "chinese": "日", "pinyin": "rì", "english": "day" },
+        { "chinese": "星期", "pinyin": "xīng qī", "english": "week" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day7",
+      "type": "DO",
+      "title": "Day 7: Places (10 words)",
+      "description": "Common places and locations.",
+      "contentFile": "steps/07-places.md",
+      "duration": 5,
+      "order": 7,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "学校", "pinyin": "xué xiào", "english": "school" },
+        { "chinese": "家", "pinyin": "jiā", "english": "home" },
+        { "chinese": "商店", "pinyin": "shāng diàn", "english": "store" },
+        { "chinese": "医院", "pinyin": "yī yuàn", "english": "hospital" },
+        { "chinese": "银行", "pinyin": "yín háng", "english": "bank" },
+        { "chinese": "公园", "pinyin": "gōng yuán", "english": "park" },
+        { "chinese": "图书馆", "pinyin": "tú shū guǎn", "english": "library" },
+        { "chinese": "饭店", "pinyin": "fàn diàn", "english": "restaurant" },
+        { "chinese": "车站", "pinyin": "chē zhàn", "english": "station" },
+        { "chinese": "这里", "pinyin": "zhè lǐ", "english": "here" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day8",
+      "type": "DO",
+      "title": "Day 8: Actions (10 words)",
+      "description": "Common action verbs.",
+      "contentFile": "steps/08-actions.md",
+      "duration": 5,
+      "order": 8,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "去", "pinyin": "qù", "english": "to go" },
+        { "chinese": "来", "pinyin": "lái", "english": "to come" },
+        { "chinese": "看", "pinyin": "kàn", "english": "to look/see" },
+        { "chinese": "听", "pinyin": "tīng", "english": "to listen" },
+        { "chinese": "说", "pinyin": "shuō", "english": "to speak" },
+        { "chinese": "读", "pinyin": "dú", "english": "to read" },
+        { "chinese": "写", "pinyin": "xiě", "english": "to write" },
+        { "chinese": "学习", "pinyin": "xué xí", "english": "to study" },
+        { "chinese": "工作", "pinyin": "gōng zuò", "english": "to work" },
+        { "chinese": "休息", "pinyin": "xiū xi", "english": "to rest" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day9",
+      "type": "DO",
+      "title": "Day 9: Common Concepts (10 words)",
+      "description": "Essential everyday concepts.",
+      "contentFile": "steps/09-concepts.md",
+      "duration": 5,
+      "order": 9,
+      "required": true,
+      "vocabulary": [
+        { "chinese": "好", "pinyin": "hǎo", "english": "good" },
+        { "chinese": "大", "pinyin": "dà", "english": "big" },
+        { "chinese": "小", "pinyin": "xiǎo", "english": "small" },
+        { "chinese": "多", "pinyin": "duō", "english": "many/much" },
+        { "chinese": "少", "pinyin": "shǎo", "english": "few/little" },
+        { "chinese": "新", "pinyin": "xīn", "english": "new" },
+        { "chinese": "旧", "pinyin": "jiù", "english": "old" },
+        { "chinese": "是", "pinyin": "shì", "english": "to be" },
+        { "chinese": "有", "pinyin": "yǒu", "english": "to have" },
+        { "chinese": "在", "pinyin": "zài", "english": "to be at/in" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day10",
+      "type": "QUIZ",
+      "title": "Day 10: Final Review",
+      "description": "Comprehensive review of all vocabulary learned.",
+      "duration": 15,
+      "order": 10,
+      "required": true,
+      "quizRubricId": "final_review_v1"
+    }
+  ],
+  "rubrics": {
+    "week1_review_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What does '你好' mean?",
+          "options": [
+            "Goodbye",
+            "Hello",
+            "Thank you",
+            "Sorry"
+          ],
+          "correctAnswer": "Hello",
+          "points": 1,
+          "explanation": "'你好' (nǐ hǎo) is the standard greeting meaning 'hello'."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "How do you say 'five' in Chinese?",
+          "options": [
+            "三",
+            "四",
+            "五",
+            "六"
+          ],
+          "correctAnswer": "五",
+          "points": 1,
+          "explanation": "'五' (wǔ) means five."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What is the pinyin for 'mother'?",
+          "options": [
+            "bà ba",
+            "mā ma",
+            "gē ge",
+            "jiě jie"
+          ],
+          "correctAnswer": "mā ma",
+          "points": 1,
+          "explanation": "'妈妈' (mā ma) means mother."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What does '水' mean?",
+          "options": [
+            "Tea",
+            "Water",
+            "Rice",
+            "Fruit"
+          ],
+          "correctAnswer": "Water",
+          "points": 1,
+          "explanation": "'水' (shuǐ) means water."
+        },
+        {
+          "id": "q5",
+          "type": "true_false",
+          "question": "'谢谢' means 'you're welcome'.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "'谢谢' (xiè xie) means 'thank you'. '不客气' means 'you're welcome'."
+        }
+      ]
+    },
+    "final_review_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What does '今天' mean?",
+          "options": [
+            "Tomorrow",
+            "Today",
+            "Yesterday",
+            "Now"
+          ],
+          "correctAnswer": "Today",
+          "points": 1,
+          "explanation": "'今天' (jīn tiān) means today."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "How do you say 'to go' in Chinese?",
+          "options": [
+            "来",
+            "去",
+            "看",
+            "听"
+          ],
+          "correctAnswer": "去",
+          "points": 1,
+          "explanation": "'去' (qù) means to go."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What is the Chinese character for 'school'?",
+          "options": [
+            "家",
+            "商店",
+            "学校",
+            "医院"
+          ],
+          "correctAnswer": "学校",
+          "points": 1,
+          "explanation": "'学校' (xué xiào) means school."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What does '好' mean?",
+          "options": [
+            "Bad",
+            "Good",
+            "Big",
+            "Small"
+          ],
+          "correctAnswer": "Good",
+          "points": 1,
+          "explanation": "'好' (hǎo) means good."
+        },
+        {
+          "id": "q5",
+          "type": "true_false",
+          "question": "'是' means 'to have'.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "'是' (shì) means 'to be'. '有' (yǒu) means 'to have'."
+        },
+        {
+          "id": "q6",
+          "type": "multiple_choice",
+          "question": "What is the pinyin for 'to study'?",
+          "options": [
+            "gōng zuò",
+            "xué xí",
+            "xiū xi",
+            "shuō"
+          ],
+          "correctAnswer": "xué xí",
+          "points": 1,
+          "explanation": "'学习' (xué xí) means to study."
+        },
+        {
+          "id": "q7",
+          "type": "multiple_choice",
+          "question": "How do you say 'new' in Chinese?",
+          "options": [
+            "旧",
+            "新",
+            "大",
+            "小"
+          ],
+          "correctAnswer": "新",
+          "points": 1,
+          "explanation": "'新' (xīn) means new."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "mandarin_starter",
+    "name": "Mandarin Starter",
+    "description": "Completed the Mandarin Starter track and learned 80+ HSK Level 1 vocabulary words."
+  }
+}

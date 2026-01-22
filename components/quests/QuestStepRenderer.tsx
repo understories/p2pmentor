@@ -12,6 +12,7 @@ import remarkGfm from 'remark-gfm';
 import { ConceptCard } from '@/components/learner-quests/ConceptCard';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { FlashcardPractice } from './FlashcardPractice';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { QuestStepDefinition } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
@@ -137,6 +138,21 @@ export function QuestStepRenderer({
         </div>
       )}
 
+      {/* Flashcard Practice (for vocabulary steps) */}
+      {step.vocabulary && step.vocabulary.length > 0 && (
+        <div className="mb-6 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+          <FlashcardPractice
+            vocabulary={step.vocabulary}
+            minCards={step.minCards || step.vocabulary.length}
+            stepId={step.stepId}
+            onComplete={(stats) => {
+              // Flashcard practice completion triggers step completion
+              // User can then mark step as complete
+            }}
+          />
+        </div>
+      )}
+
       {/* Arkiv Builder Mode: Transaction & Entity Info */}
       {arkivBuilderMode && (txHash || entityKey || completed || pendingStatus === 'submitted') && (
         <div className="mt-4 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
@@ -179,6 +195,11 @@ export function QuestStepRenderer({
       {/* Completion Button */}
       {!completed && (
         <div className="mt-4">
+          {step.vocabulary && step.vocabulary.length > 0 && (
+            <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
+              💡 Complete the flashcard practice above, then mark this step as done.
+            </div>
+          )}
           {arkivBuilderMode ? (
             <ArkivQueryTooltip
               query={[

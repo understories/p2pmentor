@@ -11,6 +11,7 @@ export {
   type QuestTrack,
   type QuizQuestion,
   type QuizRubric,
+  type VocabItem,
   type QuestStepDefinition,
   type QuestDefinition,
   type LoadedQuest,
