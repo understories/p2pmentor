@@ -41,6 +41,56 @@ export default function QuestDetailPage() {
 
   const reconciliation = useProgressReconciliation();
   const arkivBuilderMode = useArkivBuilderMode();
+  const [badgeIssued, setBadgeIssued] = useState(false);
+  const [badgeError, setBadgeError] = useState<string | null>(null);
+
+  // Check and issue badge if eligible
+  const checkAndIssueBadge = async () => {
+    if (!wallet || !quest || !quest.badge) return;
+
+    try {
+      // Check eligibility
+      const eligibilityRes = await fetch('/api/badges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'check-eligibility',
+          wallet,
+          questId: quest.questId,
+          trackId,
+        }),
+      });
+
+      const eligibilityData = await eligibilityRes.json();
+
+      if (eligibilityData.ok && eligibilityData.eligibility.eligible) {
+        // Issue badge
+        const issueRes = await fetch('/api/badges', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'issue',
+            wallet,
+            badgeType: quest.badge.id,
+            questId: quest.questId,
+            evidenceRefs: eligibilityData.eligibility.evidenceRefs,
+          }),
+        });
+
+        const issueData = await issueRes.json();
+
+        if (issueData.ok) {
+          setBadgeIssued(true);
+          setBadgeError(null);
+        } else {
+          setBadgeError(issueData.error || 'Failed to issue badge');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error checking/issuing badge:', err);
+      setBadgeError(err.message || 'Failed to process badge');
+    }
+  };
 
   // Load wallet
   useEffect(() => {
@@ -95,6 +145,20 @@ export default function QuestDetailPage() {
         if (data.ok) {
           setProgress(data.progress || []);
           setCompletion(data.completion || null);
+
+          // Check if badge already issued
+          if (quest.badge) {
+            const badgeRes = await fetch(
+              `/api/badges?wallet=${wallet}&badgeType=${quest.badge.id}`
+            );
+            const badgeData = await badgeRes.json();
+            if (badgeData.ok && badgeData.badge) {
+              setBadgeIssued(true);
+            } else if (data.completion && data.completion.requiredComplete) {
+              // Quest complete but badge not issued yet - check eligibility
+              checkAndIssueBadge();
+            }
+          }
         }
       } catch (err: any) {
         console.error('Error loading progress:', err);
@@ -106,7 +170,7 @@ export default function QuestDetailPage() {
     // Poll for progress updates (to catch indexer confirmations)
     const interval = setInterval(loadProgress, 5000);
     return () => clearInterval(interval);
-  }, [wallet, quest]);
+  }, [wallet, quest, trackId]);
 
   // Check if step is completed and get progress data
   const getStepProgressData = (stepId: string): {
@@ -192,7 +256,7 @@ export default function QuestDetailPage() {
 
         // Reload progress after a delay
         setTimeout(() => {
-          const reloadRes = fetch(
+          fetch(
             `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
           )
             .then((r) => r.json())
@@ -200,6 +264,11 @@ export default function QuestDetailPage() {
               if (d.ok) {
                 setProgress(d.progress || []);
                 setCompletion(d.completion || null);
+
+                // Check for badge eligibility if quest is complete
+                if (d.completion && d.completion.requiredComplete && quest.badge) {
+                  checkAndIssueBadge();
+                }
               }
             });
         }, 2000);
@@ -282,6 +351,38 @@ export default function QuestDetailPage() {
               <span>Difficulty: {quest.difficulty}</span>
               <span>Steps: {quest.steps.length}</span>
             </div>
+
+            {/* Badge Status */}
+            {quest.badge && (
+              <div className={`mt-4 p-3 rounded-lg border ${
+                badgeIssued
+                  ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
+                  : completion?.requiredComplete
+                  ? 'border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🏆</span>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm">
+                      {badgeIssued
+                        ? `Badge Earned: ${quest.badge.name}`
+                        : completion?.requiredComplete
+                        ? `Eligible for: ${quest.badge.name}`
+                        : `Complete all steps to earn: ${quest.badge.name}`}
+                    </div>
+                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      {quest.badge.description}
+                    </div>
+                  </div>
+                  {badgeError && (
+                    <div className="text-xs text-red-600 dark:text-red-400">
+                      {badgeError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Steps List */}
