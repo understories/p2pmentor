@@ -5,7 +5,7 @@
   "title": "Arkiv Builder Track",
   "description": "Learn to build decentralized apps with Arkiv. Create entities, query data, and verify your work on-chain.",
   "source": "https://arkiv.network/getting-started",
-  "estimatedDuration": "60 minutes",
+  "estimatedDuration": "90 minutes",
   "difficulty": "beginner",
   "steps": [
     {
@@ -23,13 +23,35 @@
       }
     },
     {
-      "stepId": "setup",
+      "stepId": "fork_setup",
       "type": "DO",
-      "title": "Set Up Your Environment",
-      "description": "Install dependencies and configure your development environment.",
-      "contentFile": "steps/02-setup.md",
+      "title": "Fork and Clone the Starter",
+      "description": "Fork the arkiv-nextjs-starter repository and set up your local development environment.",
+      "contentFile": "steps/02-fork-setup.md",
       "duration": 10,
       "order": 2,
+      "required": true,
+      "actionType": "external_action"
+    },
+    {
+      "stepId": "environment",
+      "type": "DO",
+      "title": "Configure Environment Variables",
+      "description": "Set up your environment variables and connect to Arkiv network.",
+      "contentFile": "steps/03-environment.md",
+      "duration": 10,
+      "order": 3,
+      "required": true,
+      "actionType": "external_action"
+    },
+    {
+      "stepId": "run_locally",
+      "type": "DO",
+      "title": "Run the App Locally",
+      "description": "Start the development server and verify everything works.",
+      "contentFile": "steps/04-run-locally.md",
+      "duration": 5,
+      "order": 4,
       "required": true,
       "actionType": "external_action"
     },
@@ -38,9 +60,9 @@
       "type": "DO",
       "title": "Create Your First Entity",
       "description": "Write your first piece of data to Arkiv and understand the entity structure.",
-      "contentFile": "steps/03-first-entity.md",
+      "contentFile": "steps/05-first-entity.md",
       "duration": 10,
-      "order": 3,
+      "order": 5,
       "required": true,
       "actionType": "create_entity",
       "entityType": "hello_world"
@@ -50,9 +72,9 @@
       "type": "VERIFY",
       "title": "Verify on Explorer",
       "description": "Learn to verify your data on the Arkiv Explorer.",
-      "contentFile": "steps/04-verify-explorer.md",
+      "contentFile": "steps/06-verify-explorer.md",
       "duration": 5,
-      "order": 4,
+      "order": 6,
       "required": true,
       "verificationMethod": "entity_exists",
       "conceptCard": {
@@ -65,31 +87,20 @@
       "type": "VERIFY",
       "title": "The Walkaway Test",
       "description": "Experience data persistence: stop your server and verify your data still exists.",
-      "contentFile": "steps/05-walkaway-test.md",
+      "contentFile": "steps/07-walkaway-test.md",
       "duration": 5,
-      "order": 5,
+      "order": 7,
       "required": true,
       "verificationMethod": "entity_exists"
-    },
-    {
-      "stepId": "query_data",
-      "type": "DO",
-      "title": "Query Your Data",
-      "description": "Learn to query entities from Arkiv using the SDK.",
-      "contentFile": "steps/06-query-data.md",
-      "duration": 10,
-      "order": 6,
-      "required": true,
-      "actionType": "query_entity"
     },
     {
       "stepId": "concepts",
       "type": "READ",
       "title": "Understanding Arkiv Concepts",
       "description": "Deep dive into attributes, payloads, and indexer lag.",
-      "contentFile": "steps/07-concepts.md",
+      "contentFile": "steps/08-concepts.md",
       "duration": 10,
-      "order": 7,
+      "order": 8,
       "required": false,
       "conceptCard": {
         "title": "Indexer lag is normal",
@@ -97,12 +108,44 @@
       }
     },
     {
+      "stepId": "customization",
+      "type": "DO",
+      "title": "Customize Your App",
+      "description": "Modify the starter app to create your own entity types and functionality.",
+      "contentFile": "steps/09-customization.md",
+      "duration": 15,
+      "order": 9,
+      "required": false,
+      "actionType": "create_entity"
+    },
+    {
+      "stepId": "deploy_vercel",
+      "type": "DO",
+      "title": "Deploy to Vercel",
+      "description": "Deploy your serverless Arkiv app to production on Vercel.",
+      "contentFile": "steps/10-deploy-vercel.md",
+      "duration": 10,
+      "order": 10,
+      "required": false,
+      "actionType": "external_action"
+    },
+    {
+      "stepId": "next_steps",
+      "type": "READ",
+      "title": "Next Steps",
+      "description": "Explore advanced patterns and continue your Arkiv journey.",
+      "contentFile": "steps/11-next-steps.md",
+      "duration": 5,
+      "order": 11,
+      "required": false
+    },
+    {
       "stepId": "quiz",
       "type": "QUIZ",
       "title": "Knowledge Check",
       "description": "Test your understanding of Arkiv fundamentals.",
       "duration": 10,
-      "order": 8,
+      "order": 12,
       "required": true,
       "quizRubricId": "arkiv_basics_v1"
     }
