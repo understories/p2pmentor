@@ -21,7 +21,7 @@ interface SkillSuggestionPromptProps {
   message?: string;
   stepId: string;
   questId: string;
-  onAddSkill: (skillName: string, proficiency?: number) => Promise<void>;
+  onAddSkill: (skillName: string, stepId: string, proficiency?: number) => Promise<void>;
   onDismiss: () => void;
 }
 
@@ -42,11 +42,11 @@ export function SkillSuggestionPrompt({
   const [skillTxHash, setSkillTxHash] = useState<string | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
 
-  const handleAddSkill = async () => {
+  const handleAddSkill = async (skill: string, step: string, prof?: number) => {
     try {
       setAdding(true);
       setError(null);
-      await onAddSkill(skillName, proficiency);
+      await onAddSkill(skill, step, prof);
       setAdded(true);
     } catch (err: any) {
       setError(err.message || 'Failed to add skill');
@@ -104,7 +104,7 @@ export function SkillSuggestionPrompt({
           )}
           <div className="flex items-center gap-2">
             <button
-              onClick={handleAddSkill}
+              onClick={() => handleAddSkill(skillName, stepId, proficiency)}
               disabled={adding}
               className="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >

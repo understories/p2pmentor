@@ -705,8 +705,8 @@ export default function QuestDetailPage() {
                       message={step.skillSuggestion.message}
                       stepId={step.stepId}
                       questId={quest.questId}
-                      onAddSkill={async (skillName, proficiency) => {
-                        await handleAddSkillFromQuest(skillName, step.stepId, proficiency);
+                      onAddSkill={async (skillName, stepId, proficiency) => {
+                        await handleAddSkillFromQuest(skillName, stepId, proficiency);
                       }}
                       onDismiss={() => {
                         setDismissedSkillSuggestions((prev) => new Set([...prev, step.stepId]));
