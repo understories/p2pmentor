@@ -1,0 +1,225 @@
+{
+  "questId": "crypto_basics",
+  "version": "1",
+  "track": "cryptography",
+  "title": "Intro to Cryptography",
+  "description": "Learn the fundamentals of cryptography: hashing, digital signatures, and keypairs.",
+  "source": "Cryptography Fundamentals",
+  "estimatedDuration": "60 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "What is Cryptography?",
+      "description": "Introduction to cryptographic concepts.",
+      "contentFile": "steps/01-intro.md",
+      "duration": 5,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "Cryptography is the foundation of digital security",
+        "body": "Every secure digital interaction relies on cryptography - from blockchain transactions to HTTPS connections."
+      }
+    },
+    {
+      "stepId": "hashing",
+      "type": "DO",
+      "title": "Understanding Hashing",
+      "description": "Generate hashes and understand hash properties.",
+      "contentFile": "steps/02-hashing.md",
+      "duration": 10,
+      "order": 2,
+      "required": true,
+      "actionConfig": {
+        "component": "HashGenerator",
+        "minHashes": 1
+      }
+    },
+    {
+      "stepId": "hash-properties",
+      "type": "VERIFY",
+      "title": "Hash Properties",
+      "description": "Demonstrate deterministic and one-way properties of hashes.",
+      "contentFile": "steps/03-hash-properties.md",
+      "duration": 10,
+      "order": 3,
+      "required": true,
+      "verifyConfig": {
+        "component": "HashPropertiesDemo",
+        "requiredChecks": ["deterministic", "avalanche"]
+      }
+    },
+    {
+      "stepId": "signatures",
+      "type": "READ",
+      "title": "Digital Signatures",
+      "description": "Learn how digital signatures work.",
+      "contentFile": "steps/04-signatures.md",
+      "duration": 10,
+      "order": 4,
+      "required": true,
+      "conceptCard": {
+        "title": "Signatures prove authenticity without revealing secrets",
+        "body": "You can prove you authorized something without sharing your private key."
+      }
+    },
+    {
+      "stepId": "keypair",
+      "type": "DO",
+      "title": "Create Keypair",
+      "description": "Generate your own public/private keypair.",
+      "contentFile": "steps/05-keypair.md",
+      "duration": 10,
+      "order": 5,
+      "required": true,
+      "actionConfig": {
+        "component": "KeypairGenerator",
+        "storePublicKey": true
+      }
+    },
+    {
+      "stepId": "sign-verify",
+      "type": "DO",
+      "title": "Sign and Verify",
+      "description": "Sign a message and verify the signature.",
+      "contentFile": "steps/06-sign-verify.md",
+      "duration": 15,
+      "order": 6,
+      "required": true,
+      "actionConfig": {
+        "component": "SignVerifyDemo",
+        "requireVerification": true
+      }
+    },
+    {
+      "stepId": "proof",
+      "type": "SUBMIT",
+      "title": "Cryptographic Proof",
+      "description": "Submit a cryptographic proof artifact (optional).",
+      "contentFile": "steps/07-proof.md",
+      "duration": 10,
+      "order": 7,
+      "required": false,
+      "submitConfig": {
+        "acceptTypes": ["hash", "signature", "keypair"],
+        "requireContext": true
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Knowledge Check",
+      "description": "Test your understanding of cryptography fundamentals.",
+      "duration": 10,
+      "order": 8,
+      "required": true,
+      "quizRubricId": "crypto_basics_v1"
+    }
+  ],
+  "rubrics": {
+    "crypto_basics_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What is the main property of a hash function?",
+          "options": [
+            "Reversible",
+            "One-way",
+            "Encrypted",
+            "Decrypted"
+          ],
+          "correctAnswer": "One-way",
+          "points": 1,
+          "explanation": "Hash functions are one-way - you can't reverse them to get the original input."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "What happens if you change one character in a message before hashing?",
+          "options": [
+            "Hash stays the same",
+            "Hash changes slightly",
+            "Hash changes completely",
+            "Nothing happens"
+          ],
+          "correctAnswer": "Hash changes completely",
+          "points": 1,
+          "explanation": "Good hash functions have the avalanche effect - small input changes cause large output changes."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What can you do with a private key?",
+          "options": [
+            "Verify signatures",
+            "Sign messages",
+            "Both",
+            "Neither"
+          ],
+          "correctAnswer": "Sign messages",
+          "points": 1,
+          "explanation": "Private keys are used to sign messages. Public keys are used to verify signatures."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What can you do with a public key?",
+          "options": [
+            "Sign messages",
+            "Verify signatures",
+            "Both",
+            "Neither"
+          ],
+          "correctAnswer": "Verify signatures",
+          "points": 1,
+          "explanation": "Public keys are used to verify signatures created with the corresponding private key."
+        },
+        {
+          "id": "q5",
+          "type": "true_false",
+          "question": "True or False: You can derive a private key from a public key.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "This is computationally infeasible with modern cryptography. The security of digital signatures depends on this property."
+        },
+        {
+          "id": "q6",
+          "type": "multiple_choice",
+          "question": "What does a valid digital signature prove?",
+          "options": [
+            "Message is encrypted",
+            "Message came from signer and wasn't modified",
+            "Message is public",
+            "Nothing"
+          ],
+          "correctAnswer": "Message came from signer and wasn't modified",
+          "points": 1,
+          "explanation": "Digital signatures prove authenticity (came from signer) and integrity (wasn't modified)."
+        },
+        {
+          "id": "q7",
+          "type": "multiple_choice",
+          "question": "In blockchain, what are cryptographic signatures used for?",
+          "options": [
+            "Encrypting transactions",
+            "Proving transaction authorization",
+            "Hiding transaction amounts",
+            "Nothing"
+          ],
+          "correctAnswer": "Proving transaction authorization",
+          "points": 1,
+          "explanation": "Signatures prove you authorized a transaction without revealing your private key."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "crypto_basics",
+    "name": "Crypto Basics",
+    "description": "Completed the Intro to Cryptography track and demonstrated understanding of hashing, digital signatures, and keypairs."
+  }
+}
