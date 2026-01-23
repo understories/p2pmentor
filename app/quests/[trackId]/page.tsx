@@ -571,7 +571,7 @@ export default function QuestDetailPage() {
                   if (s.order >= step.order) return false;
                   return s.required && !getStepProgressData(s.stepId).completed;
                 });
-                
+
                 return (
                   <div
                     key={step.stepId}
