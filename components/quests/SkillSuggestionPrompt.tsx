@@ -181,7 +181,8 @@ export function SkillSuggestionPrompt({
   }
 
   // Default state (idle, pending, or error) - show prompt
-  const isLoading = status === 'pending' || status === 'submitted';
+  // TypeScript narrowing: after early returns, status can only be 'idle', 'pending', or 'error'
+  const isLoading = status === 'pending';
   const isError = status === 'error';
 
   return (
