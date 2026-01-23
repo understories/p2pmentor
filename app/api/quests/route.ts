@@ -44,7 +44,7 @@ function entityQuestToLoadedQuest(questEntity: { quest: any }): any {
 async function getQuestById(
   questId: string,
   version?: string | null
-): Promise<{ quest: any; source: string } | null> {
+): Promise<{ quest: any; source: string; entityKey?: string; txHash?: string } | null> {
   // Entity mode: only try entities
   if (QUEST_ENTITY_MODE === 'entity') {
     const questEntity = version
@@ -55,6 +55,8 @@ async function getQuestById(
       return {
         quest: entityQuestToLoadedQuest(questEntity),
         source: 'entity',
+        entityKey: questEntity.key,
+        txHash: questEntity.txHash,
       };
     }
     return null; // No fallback in entity mode
@@ -71,6 +73,8 @@ async function getQuestById(
         return {
           quest: entityQuestToLoadedQuest(questEntity),
           source: 'entity',
+          entityKey: questEntity.key,
+          txHash: questEntity.txHash,
         };
       }
     } catch (entityError) {
@@ -93,7 +97,7 @@ async function getQuestById(
 /**
  * Get quest by trackId (entity-first)
  */
-async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source: string } | null> {
+async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source: string; entityKey?: string; txHash?: string } | null> {
   // Entity mode: only try entities
   if (QUEST_ENTITY_MODE === 'entity') {
     const questEntities = await listQuestDefinitions({ track: trackId });
@@ -105,6 +109,8 @@ async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source:
         return {
           quest: entityQuestToLoadedQuest(latest),
           source: 'entity',
+          entityKey: latest.key,
+          txHash: latest.txHash,
         };
       }
     }
@@ -123,6 +129,8 @@ async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source:
           return {
             quest: entityQuestToLoadedQuest(latest),
             source: 'entity',
+            entityKey: latest.key,
+            txHash: latest.txHash,
           };
         }
       }
@@ -223,6 +231,8 @@ export async function GET(request: NextRequest) {
         ok: true,
         quest: result.quest,
         source: result.source,
+        ...(result.entityKey && { entityKey: result.entityKey }),
+        ...(result.txHash && { txHash: result.txHash }),
       });
     }
 
@@ -239,6 +249,8 @@ export async function GET(request: NextRequest) {
         ok: true,
         quest: result.quest,
         source: result.source,
+        ...(result.entityKey && { entityKey: result.entityKey }),
+        ...(result.txHash && { txHash: result.txHash }),
       });
     }
 
