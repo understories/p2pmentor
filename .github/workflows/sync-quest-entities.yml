@@ -1,0 +1,56 @@
+name: Sync Quest Entities
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'content/quests/**'
+      - 'scripts/sync-quest-entities.ts'
+      - '.github/workflows/sync-quest-entities.yml'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  sync-quests:
+    runs-on: ubuntu-latest
+    # Only run on main branch pushes (not on forks or PRs)
+    # Remove this condition if you want to run on all repositories
+    # if: github.repository == 'your-org/p2pmentor'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Sync quest entities
+        env:
+          ARKIV_PRIVATE_KEY: ${{ secrets.ARKIV_PRIVATE_KEY }}
+          NODE_ENV: production
+          QUEST_ENTITY_MODE: entity # Use entity mode in CI/CD
+        run: |
+          echo "🔄 Syncing quest entities to Arkiv..."
+          echo "Mode: $QUEST_ENTITY_MODE"
+          pnpm exec tsx scripts/sync-quest-entities.ts
+          
+      - name: Report sync status
+        if: always()
+        run: |
+          if [ $? -eq 0 ]; then
+            echo "✅ Quest entity sync completed successfully"
+          else
+            echo "❌ Quest entity sync failed"
+            exit 1
+          fi
