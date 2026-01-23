@@ -22,6 +22,7 @@ import { useProgressReconciliation } from '@/lib/hooks/useProgressReconciliation
 import type { LoadedQuest } from '@/lib/quests';
 import type { QuestProgress } from '@/lib/arkiv/questProgress';
 import { QuestStepRenderer } from '@/components/quests/QuestStepRenderer';
+import { EvidencePanel } from '@/components/quests/EvidencePanel';
 import { QUEST_ENTITY_MODE, SPACE_ID } from '@/lib/config';
 
 export default function QuestDetailPage() {
@@ -435,6 +436,17 @@ export default function QuestDetailPage() {
               </div>
             )}
 
+            {/* Evidence Panel - Show My Proof */}
+            {wallet && progress.length > 0 && (
+              <div className="mt-6">
+                <EvidencePanel
+                  progress={progress}
+                  wallet={wallet}
+                  questId={quest.questId}
+                />
+              </div>
+            )}
+
             {/* Badge Status */}
             {quest.badge && (
               <div className={`mt-4 p-3 rounded-lg border ${
@@ -545,6 +557,85 @@ export default function QuestDetailPage() {
             )}
           </div>
 
+          {/* Track Overview - All Steps */}
+          <div className="mb-8 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Track Overview
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {sortedSteps.map((step) => {
+                const stepProgress = getStepProgressData(step.stepId);
+                const isCompleted = stepProgress.completed;
+                const isLocked = step.required && !isCompleted && sortedSteps.some((s, idx) => {
+                  if (s.stepId === step.stepId) return false;
+                  if (s.order >= step.order) return false;
+                  return s.required && !getStepProgressData(s.stepId).completed;
+                });
+                
+                return (
+                  <div
+                    key={step.stepId}
+                    className={`p-3 rounded border-2 transition-all cursor-pointer ${
+                      isCompleted
+                        ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
+                        : isLocked
+                        ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-60'
+                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+                    }`}
+                    onClick={() => {
+                      if (!isLocked) {
+                        document.getElementById(`step-${step.stepId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }
+                    }}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                        Step {step.order}
+                      </span>
+                      {isCompleted && (
+                        <span className="text-emerald-600 dark:text-emerald-400 text-xs">✓</span>
+                      )}
+                      {isLocked && (
+                        <span className="text-gray-400 dark:text-gray-500 text-xs">🔒</span>
+                      )}
+                    </div>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                      {step.title}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        step.type === 'READ'
+                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                          : step.type === 'DO'
+                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
+                          : step.type === 'QUIZ'
+                          ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                      }`}>
+                        {step.type}
+                      </span>
+                      {!step.required && (
+                        <span className="text-xs text-gray-500 dark:text-gray-400">(Optional)</span>
+                      )}
+                    </div>
+                    {/* Evidence link in overview */}
+                    {isCompleted && stepProgress.entityKey && arkivBuilderMode && (
+                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <ViewOnArkivLink
+                          entityKey={stepProgress.entityKey}
+                          txHash={stepProgress.txHash}
+                          label=""
+                          className="text-xs"
+                          icon="🔗"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Steps List */}
           <div className="space-y-6">
             {sortedSteps.map((step) => {
@@ -553,17 +644,18 @@ export default function QuestDetailPage() {
               const stepContent = quest.stepContent[step.stepId] || '';
 
               return (
-                <QuestStepRenderer
-                  key={step.stepId}
-                  step={step}
-                  content={stepContent}
-                  completed={progressData.completed}
-                  pendingStatus={pending?.status}
-                  txHash={progressData.txHash}
-                  entityKey={progressData.entityKey}
-                  questId={quest.questId}
-                  onComplete={() => handleStepComplete(step.stepId, step.type)}
-                />
+                <div key={step.stepId} id={`step-${step.stepId}`}>
+                  <QuestStepRenderer
+                    step={step}
+                    content={stepContent}
+                    completed={progressData.completed}
+                    pendingStatus={pending?.status}
+                    txHash={progressData.txHash}
+                    entityKey={progressData.entityKey}
+                    questId={quest.questId}
+                    onComplete={() => handleStepComplete(step.stepId, step.type)}
+                  />
+                </div>
               );
             })}
           </div>
