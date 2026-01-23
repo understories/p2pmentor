@@ -86,10 +86,13 @@ export interface QuestStepDefinition {
 
   // Interactive component configuration (for DO/VERIFY/SUBMIT steps)
   actionConfig?: {
-    component?: string; // Component name: 'HashGenerator', 'KeypairGenerator', 'SignVerifyDemo', etc.
+    component?: string; // Component name: 'HashGenerator', 'KeypairGenerator', 'SignVerifyDemo', 'SpacedRepetitionScheduler', 'DeliberativePracticePlanner', 'ActiveRecallCreator'
     minHashes?: number;
     storePublicKey?: boolean;
     requireVerification?: boolean;
+    requireSchedule?: boolean;
+    requirePlan?: boolean;
+    minQuestions?: number;
   };
   verifyConfig?: {
     component?: string;
