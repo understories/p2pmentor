@@ -22,7 +22,7 @@ import { useProgressReconciliation } from '@/lib/hooks/useProgressReconciliation
 import type { LoadedQuest } from '@/lib/quests';
 import type { QuestProgress } from '@/lib/arkiv/questProgress';
 import { QuestStepRenderer } from '@/components/quests/QuestStepRenderer';
-import { QUEST_ENTITY_MODE } from '@/lib/config';
+import { QUEST_ENTITY_MODE, SPACE_ID } from '@/lib/config';
 
 export default function QuestDetailPage() {
   const params = useParams();
@@ -81,6 +81,7 @@ export default function QuestDetailPage() {
             badgeType: quest.badge.id,
             questId: quest.questId,
             evidenceRefs: eligibilityData.eligibility.evidenceRefs,
+            questVersion: quest.version || '1',
           }),
         });
 
@@ -304,7 +305,27 @@ export default function QuestDetailPage() {
         <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
           <div className="max-w-4xl mx-auto">
             <BackButton href="/learner-quests" />
-            <LoadingSpinner text="Loading quest..." className="py-12" />
+            {arkivBuilderMode ? (
+              <ArkivQueryTooltip
+                query={[
+                  `GET /api/quests?trackId=${trackId}`,
+                  `Mode: ${QUEST_ENTITY_MODE}`,
+                  QUEST_ENTITY_MODE === 'entity'
+                    ? `Query: type='quest_definition', track='${trackId}'`
+                    : QUEST_ENTITY_MODE === 'dual'
+                    ? `Query: type='quest_definition', track='${trackId}' (fallback to file)`
+                    : `Load from: content/quests/${trackId}/quest.json`,
+                  ``,
+                  `Returns: LoadedQuest with stepContent`,
+                  `Source: ${QUEST_ENTITY_MODE === 'entity' ? 'entity' : QUEST_ENTITY_MODE === 'dual' ? 'entity or file' : 'file'}`,
+                ]}
+                label="Loading Quest"
+              >
+                <LoadingSpinner text="Loading quest..." className="py-12" />
+              </ArkivQueryTooltip>
+            ) : (
+              <LoadingSpinner text="Loading quest..." className="py-12" />
+            )}
           </div>
         </div>
       </BetaGate>
@@ -423,26 +444,69 @@ export default function QuestDetailPage() {
                   ? 'border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
                   : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
               }`}>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">🏆</span>
-                  <div className="flex-1">
-                    <div className="font-semibold text-sm">
-                      {badgeIssued
-                        ? `Badge Earned: ${quest.badge.name}`
-                        : completion?.requiredComplete
-                        ? `Eligible for: ${quest.badge.name}`
-                        : `Complete all steps to earn: ${quest.badge.name}`}
+                {arkivBuilderMode && completion?.requiredComplete && !badgeIssued ? (
+                  <ArkivQueryTooltip
+                    query={[
+                      `checkAndIssueBadge()`,
+                      ``,
+                      `1. Check Eligibility:`,
+                      `   POST /api/badges { action: 'check-eligibility', wallet, questId, trackId }`,
+                      `   Query: type='quest_step_progress', wallet='${wallet?.slice(0, 10)}...', questId='${quest.questId}'`,
+                      `   Returns: { eligible: boolean, evidenceRefs: [...] }`,
+                      ``,
+                      `2. If Eligible, Issue Badge:`,
+                      `   POST /api/badges { action: 'issue', wallet, badgeType, questId, evidenceRefs, questVersion }`,
+                      `   Creates: type='proof_of_skill_badge'`,
+                      `   Entity Key: badge:${SPACE_ID}:${wallet?.slice(0, 10)}...:${quest.badge.id}`,
+                      `   Attributes: wallet, badgeType, questId, spaceId, issuedAt`,
+                      `   Payload: evidenceRefs, questVersion, version, issuer`,
+                      `   TTL: 1 year`,
+                    ]}
+                    label="Badge Check"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🏆</span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm">
+                          {badgeIssued
+                            ? `Badge Earned: ${quest.badge.name}`
+                            : completion?.requiredComplete
+                            ? `Eligible for: ${quest.badge.name}`
+                            : `Complete all steps to earn: ${quest.badge.name}`}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          {quest.badge.description}
+                        </div>
+                      </div>
+                      {badgeError && (
+                        <div className="text-xs text-red-600 dark:text-red-400">
+                          {badgeError}
+                        </div>
+                      )}
                     </div>
-                    <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {quest.badge.description}
+                  </ArkivQueryTooltip>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🏆</span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">
+                        {badgeIssued
+                          ? `Badge Earned: ${quest.badge.name}`
+                          : completion?.requiredComplete
+                          ? `Eligible for: ${quest.badge.name}`
+                          : `Complete all steps to earn: ${quest.badge.name}`}
+                      </div>
+                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        {quest.badge.description}
+                      </div>
                     </div>
+                    {badgeError && (
+                      <div className="text-xs text-red-600 dark:text-red-400">
+                        {badgeError}
+                      </div>
+                    )}
                   </div>
-                  {badgeError && (
-                    <div className="text-xs text-red-600 dark:text-red-400">
-                      {badgeError}
-                    </div>
-                  )}
-                </div>
+                )}
                 {/* Arkiv Builder Mode: Badge Entity Info */}
                 {arkivBuilderMode && badgeIssued && badgeEntityKey && (
                   <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800">
