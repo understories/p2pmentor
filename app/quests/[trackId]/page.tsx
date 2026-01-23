@@ -334,13 +334,6 @@ export default function QuestDetailPage() {
     }
 
     return data;
-      } else {
-        reconciliation.markError(stepId, data.error || 'Failed to record progress');
-      }
-    } catch (err: any) {
-      console.error('Error completing step:', err);
-      reconciliation.markError(stepId, err.message || 'Failed to complete step');
-    }
   };
 
   if (loading) {
