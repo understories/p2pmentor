@@ -50,6 +50,23 @@ export const BETA_INVITE_CODE = process.env.NEXT_PUBLIC_BETA_INVITE_CODE;
 export const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 /**
+ * Quest entity mode
+ *
+ * Controls whether quest definitions are served from Arkiv entities (entity-first)
+ * or from file-based definitions (file-first).
+ *
+ * Modes:
+ * - 'file': File-based quests only (legacy, for development)
+ * - 'entity': Entity-based quests only (Phase 2 - production)
+ * - 'dual': Try entity first, fallback to file (Phase 1 - transition)
+ *
+ * Defaults to 'dual' for backward compatibility during migration.
+ */
+export type QuestEntityMode = 'file' | 'entity' | 'dual';
+export const QUEST_ENTITY_MODE: QuestEntityMode =
+  (process.env.QUEST_ENTITY_MODE as QuestEntityMode) || 'dual';
+
+/**
  * Entity update mode for migration
  *
  * Controls whether entities are updated in place (new pattern) or create new entities (old pattern).

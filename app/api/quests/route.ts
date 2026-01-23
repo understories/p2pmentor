@@ -1,10 +1,12 @@
 /**
  * Quests API
  *
- * Dual-mode quest serving: Entity-first with file fallback.
+ * Phase 2: Entity-first quest serving with configurable fallback.
  * 
- * Phase 1 (Current): Try entity query first, fallback to file-based quests.
- * Phase 2 (Future): Entity-first, files only for development.
+ * Modes (controlled by QUEST_ENTITY_MODE env var):
+ * - 'entity': Entity-based quests only (Phase 2 - production)
+ * - 'dual': Try entity first, fallback to file (Phase 1 - transition)
+ * - 'file': File-based quests only (legacy, for development)
  *
  * GET /api/quests - List all available quests
  * GET /api/quests?trackId=arkiv - Get specific quest by track ID
@@ -12,129 +14,163 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { listQuests, loadQuest, loadQuestDefinition } from '@/lib/quests';
+import { QUEST_ENTITY_MODE } from '@/lib/config';
+import { listQuests, loadQuest } from '@/lib/quests';
 import { 
   getLatestQuestDefinition, 
   getQuestDefinition, 
   listQuestDefinitions 
 } from '@/lib/arkiv/questDefinition';
 
-export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    const trackId = searchParams.get('trackId');
-    const questId = searchParams.get('questId');
-    const version = searchParams.get('version');
-
-    // Get specific quest by questId + version (entity-first)
-    if (questId) {
-      try {
-        // Try entity query first
-        const questEntity = version
-          ? await getQuestDefinition({ questId, version })
-          : await getLatestQuestDefinition({ questId });
-
-        if (questEntity && questEntity.quest) {
-          // Convert entity quest to LoadedQuest format (with stepContent)
-          // Note: Entity quests have markdown content inlined in step.content
-          // (added by sync script), while file-based quests use contentFile
-          const loadedQuest = {
-            ...questEntity.quest,
-            stepContent: questEntity.quest.steps.reduce((acc, step) => {
-              // Entity quests: content is inlined in step.content (added by sync script)
-              if ((step as any).content) {
-                acc[step.stepId] = (step as any).content;
-              }
-              return acc;
-            }, {} as Record<string, string>),
-          };
-
-          return NextResponse.json({ 
-            ok: true, 
-            quest: loadedQuest,
-            source: 'entity', // Indicate source for debugging
-          });
-        }
-      } catch (entityError) {
-        console.warn('[/api/quests] Entity query failed, falling back to file:', entityError);
+/**
+ * Convert entity quest to LoadedQuest format with stepContent
+ */
+function entityQuestToLoadedQuest(questEntity: { quest: any }): any {
+  return {
+    ...questEntity.quest,
+    stepContent: questEntity.quest.steps.reduce((acc: Record<string, string>, step: any) => {
+      // Entity quests: content is inlined in step.content (added by sync script)
+      if (step.content) {
+        acc[step.stepId] = step.content;
       }
+      return acc;
+    }, {}),
+  };
+}
 
-      // Fallback: Try to find quest by trackId (if questId maps to trackId)
-      // This is a temporary bridge during migration
-      const fileQuest = await loadQuest(questId);
-      if (fileQuest) {
-        return NextResponse.json({ 
-          ok: true, 
-          quest: fileQuest,
-          source: 'file', // Indicate source for debugging
-        });
-      }
+/**
+ * Get quest by questId (entity-first)
+ */
+async function getQuestById(
+  questId: string,
+  version?: string | null
+): Promise<{ quest: any; source: string } | null> {
+  // Entity mode: only try entities
+  if (QUEST_ENTITY_MODE === 'entity') {
+    const questEntity = version
+      ? await getQuestDefinition({ questId, version })
+      : await getLatestQuestDefinition({ questId });
 
-      return NextResponse.json(
-        { ok: false, error: `Quest not found: ${questId}` },
-        { status: 404 }
-      );
+    if (questEntity && questEntity.quest) {
+      return {
+        quest: entityQuestToLoadedQuest(questEntity),
+        source: 'entity',
+      };
     }
+    return null; // No fallback in entity mode
+  }
 
-    // Get specific quest by trackId (file-based, for backward compatibility)
-    if (trackId) {
-      // Try entity query first (by track)
-      try {
-        const questEntities = await listQuestDefinitions({ track: trackId });
-        if (questEntities.length > 0) {
-          // Get latest version
-          const latest = questEntities.sort((a, b) => 
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-          )[0];
-
-          if (latest && latest.quest) {
-            const loadedQuest = {
-              ...latest.quest,
-              stepContent: latest.quest.steps.reduce((acc, step) => {
-                // Entity quests: content is inlined in step.content
-                if ((step as any).content) {
-                  acc[step.stepId] = (step as any).content;
-                }
-                return acc;
-              }, {} as Record<string, string>),
-            };
-
-            return NextResponse.json({ 
-              ok: true, 
-              quest: loadedQuest,
-              source: 'entity',
-            });
-          }
-        }
-      } catch (entityError) {
-        console.warn('[/api/quests] Entity query failed, falling back to file:', entityError);
-      }
-
-      // Fallback to file-based
-      const quest = await loadQuest(trackId);
-      if (!quest) {
-        return NextResponse.json(
-          { ok: false, error: `Quest not found: ${trackId}` },
-          { status: 404 }
-        );
-      }
-      return NextResponse.json({ 
-        ok: true, 
-        quest,
-        source: 'file',
-      });
-    }
-
-    // List all quests (dual-mode: combine entities + files)
+  // Dual mode: try entity first, fallback to file
+  if (QUEST_ENTITY_MODE === 'dual') {
     try {
-      // Try entity query first
+      const questEntity = version
+        ? await getQuestDefinition({ questId, version })
+        : await getLatestQuestDefinition({ questId });
+
+      if (questEntity && questEntity.quest) {
+        return {
+          quest: entityQuestToLoadedQuest(questEntity),
+          source: 'entity',
+        };
+      }
+    } catch (entityError) {
+      console.warn('[/api/quests] Entity query failed, falling back to file:', entityError);
+    }
+
+    // Fallback to file
+    const fileQuest = await loadQuest(questId);
+    if (fileQuest) {
+      return { quest: fileQuest, source: 'file' };
+    }
+    return null;
+  }
+
+  // File mode: only files
+  const fileQuest = await loadQuest(questId);
+  return fileQuest ? { quest: fileQuest, source: 'file' } : null;
+}
+
+/**
+ * Get quest by trackId (entity-first)
+ */
+async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source: string } | null> {
+  // Entity mode: only try entities
+  if (QUEST_ENTITY_MODE === 'entity') {
+    const questEntities = await listQuestDefinitions({ track: trackId });
+    if (questEntities.length > 0) {
+      const latest = questEntities.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
+      if (latest && latest.quest) {
+        return {
+          quest: entityQuestToLoadedQuest(latest),
+          source: 'entity',
+        };
+      }
+    }
+    return null; // No fallback in entity mode
+  }
+
+  // Dual mode: try entity first, fallback to file
+  if (QUEST_ENTITY_MODE === 'dual') {
+    try {
+      const questEntities = await listQuestDefinitions({ track: trackId });
+      if (questEntities.length > 0) {
+        const latest = questEntities.sort((a, b) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )[0];
+        if (latest && latest.quest) {
+          return {
+            quest: entityQuestToLoadedQuest(latest),
+            source: 'entity',
+          };
+        }
+      }
+    } catch (entityError) {
+      console.warn('[/api/quests] Entity query failed, falling back to file:', entityError);
+    }
+
+    // Fallback to file
+    const fileQuest = await loadQuest(trackId);
+    return fileQuest ? { quest: fileQuest, source: 'file' } : null;
+  }
+
+  // File mode: only files
+  const fileQuest = await loadQuest(trackId);
+  return fileQuest ? { quest: fileQuest, source: 'file' } : null;
+}
+
+/**
+ * List all quests (entity-first)
+ */
+async function listAllQuests(): Promise<{ quests: any[]; source: string }> {
+  // Entity mode: only entities
+  if (QUEST_ENTITY_MODE === 'entity') {
+    const entityQuests = await listQuestDefinitions();
+    const quests = entityQuests.map((q) => ({
+      questId: q.quest.questId,
+      trackId: q.track,
+      track: q.track,
+      title: q.quest.title,
+      description: q.quest.description,
+      estimatedDuration: q.quest.estimatedDuration,
+      difficulty: q.quest.difficulty,
+      stepCount: q.quest.steps.length,
+      hasBadge: !!q.quest.badge,
+      version: q.version,
+      source: 'entity' as const,
+    }));
+    return { quests, source: 'entity' };
+  }
+
+  // Dual mode: try entity first, fallback to file
+  if (QUEST_ENTITY_MODE === 'dual') {
+    try {
       const entityQuests = await listQuestDefinitions();
-      
       if (entityQuests.length > 0) {
-        // Convert to quest summary format
         const quests = entityQuests.map((q) => ({
           questId: q.quest.questId,
-          trackId: q.track, // Use track as trackId for URL routing
+          trackId: q.track,
           track: q.track,
           title: q.quest.title,
           description: q.quest.description,
@@ -145,23 +181,73 @@ export async function GET(request: NextRequest) {
           version: q.version,
           source: 'entity' as const,
         }));
-
-        return NextResponse.json({ 
-          ok: true, 
-          quests,
-          source: 'entity',
-        });
+        return { quests, source: 'entity' };
       }
     } catch (entityError) {
       console.warn('[/api/quests] Entity query failed, falling back to file:', entityError);
     }
 
-    // Fallback to file-based
+    // Fallback to file
     const fileQuests = await listQuests();
-    return NextResponse.json({ 
-      ok: true, 
+    return {
       quests: fileQuests.map(q => ({ ...q, source: 'file' as const })),
       source: 'file',
+    };
+  }
+
+  // File mode: only files
+  const fileQuests = await listQuests();
+  return {
+    quests: fileQuests.map(q => ({ ...q, source: 'file' as const })),
+    source: 'file',
+  };
+}
+
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const trackId = searchParams.get('trackId');
+    const questId = searchParams.get('questId');
+    const version = searchParams.get('version');
+
+    // Get specific quest by questId + version
+    if (questId) {
+      const result = await getQuestById(questId, version);
+      if (!result) {
+        return NextResponse.json(
+          { ok: false, error: `Quest not found: ${questId}` },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        quest: result.quest,
+        source: result.source,
+      });
+    }
+
+    // Get specific quest by trackId
+    if (trackId) {
+      const result = await getQuestByTrackId(trackId);
+      if (!result) {
+        return NextResponse.json(
+          { ok: false, error: `Quest not found: ${trackId}` },
+          { status: 404 }
+        );
+      }
+      return NextResponse.json({
+        ok: true,
+        quest: result.quest,
+        source: result.source,
+      });
+    }
+
+    // List all quests
+    const { quests, source } = await listAllQuests();
+    return NextResponse.json({
+      ok: true,
+      quests,
+      source,
     });
   } catch (error: any) {
     console.error('[/api/quests] Error:', error);
