@@ -180,6 +180,74 @@ Community virtual gatherings (public meetings). Anyone can suggest, anyone can R
 
 ---
 
+## Quest Engine Entities
+
+### Quest Definition (`quest_definition`)
+
+Quest definitions stored on Arkiv for network-wide discovery. Quest content is stored inline in the entity payload.
+
+**Key Fields:**
+- `questId`: Unique quest identifier (e.g., "arkiv_builder")
+- `track`: Quest track (e.g., "arkiv", "mandarin")
+- `version`: Quest version (e.g., "1", "2")
+- `title`: Quest title
+- `steps`: Array of quest step definitions with inline markdown content
+- `badge`: Badge configuration for quest completion
+
+**Versioning:** Pattern A (immutable versions) - each version creates a new entity.
+
+**Query:** Filter by `type: 'quest_definition'`, `questId`, `track`, `version`, `spaceId`.
+
+**See Also:** [Quest Definition Entity Schema](/docs/arkiv/entities/quest-definition)
+
+---
+
+### Quest Step Progress (`quest_step_progress`)
+
+Tracks user progress through quest steps with verifiable evidence.
+
+**Key Fields:**
+- `wallet`: Wallet address (primary identifier)
+- `questId`: Quest identifier
+- `stepId`: Step identifier
+- `stepType`: Step type (READ, DO, QUIZ, SUBMIT, SESSION, VERIFY)
+- `evidence`: Evidence record (varies by step type)
+
+**Evidence Types:**
+- `completion`: Simple completion (READ steps)
+- `entity_created`: Entity creation proof (DO steps)
+- `quiz_result`: Quiz score and rubric (QUIZ steps)
+- `submission`: User-submitted artifact (SUBMIT steps)
+- `session_completed`: Mentorship session completion (SESSION steps)
+- `query_proof`: Query verification proof (VERIFY steps)
+
+**Update Handling:** Pattern B (stable entity keys) - same key reused for updates.
+
+**Query:** Filter by `type: 'quest_step_progress'`, `wallet`, `questId`, `stepId`, `spaceId`.
+
+**See Also:** [Quest Step Progress Entity Schema](/docs/arkiv/entities/quest-step-progress)
+
+---
+
+### Proof of Skill Badge (`proof_of_skill_badge`)
+
+Verifiable badges earned for completing quest tracks.
+
+**Key Fields:**
+- `wallet`: Wallet address (primary identifier)
+- `badgeType`: Badge type (e.g., "arkiv_builder", "mandarin_starter")
+- `questId`: Quest identifier this badge was earned for
+- `questVersion`: Quest version this badge was earned on
+- `evidenceRefs`: Array of evidence references to quest_step_progress entities
+
+**Update Handling:** Pattern B (stable entity keys) - same key reused for updates.
+
+**Query:** Filter by `type: 'proof_of_skill_badge'`, `wallet`, `badgeType`, `questId`, `spaceId`.
+
+**See Also:** [Proof of Skill Badge Entity Schema](/docs/arkiv/entities/proof-of-skill-badge)
+
+---
+
 ## Supporting Entities
 
 ### Transaction Hash Tracking
@@ -195,6 +263,9 @@ All entities have corresponding `*_txhash` entities for reliable querying:
 - `beta_code_usage_txhash`
 - `auth_identity_passkey_txhash`
 - `auth_identity_backup_wallet_txhash`
+- `quest_definition_txhash`
+- `quest_step_progress_txhash`
+- `proof_of_skill_badge_txhash`
 
 ### Session State Entities
 
