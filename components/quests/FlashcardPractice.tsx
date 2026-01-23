@@ -13,8 +13,12 @@
 import { useState, useEffect, useRef } from 'react';
 
 export interface VocabItem {
-  chinese: string;  // Chinese characters
-  pinyin: string;   // Pinyin pronunciation
+  // Chinese format
+  chinese?: string;  // Chinese characters
+  pinyin?: string;   // Pinyin pronunciation
+  // Spanish format
+  spanish?: string;  // Spanish word
+  // Common
   english: string;  // English translation
 }
 
@@ -189,7 +193,7 @@ export function FlashcardPractice({
             disabled={completed}
             className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isFlipped ? 'Show Chinese' : 'Show Answer'}
+            {isFlipped ? (current.chinese ? 'Show Chinese' : 'Show Spanish') : 'Show Answer'}
           </button>
           <button
             onClick={handleNext}
@@ -225,11 +229,13 @@ export function FlashcardPractice({
               <div className="flex items-center justify-between">
                 <div className="flex-1">
                   <div className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-                    {item.chinese}
+                    {item.chinese || item.spanish}
                   </div>
-                  <div className="text-sm text-blue-600 dark:text-blue-400">
-                    {item.pinyin}
-                  </div>
+                  {item.pinyin && (
+                    <div className="text-sm text-blue-600 dark:text-blue-400">
+                      {item.pinyin}
+                    </div>
+                  )}
                   <div className="text-sm text-gray-600 dark:text-gray-400">
                     {item.english}
                   </div>
