@@ -180,6 +180,10 @@ export function SkillSuggestionPrompt({
     );
   }
 
+  // Default state (idle, pending, or error) - show prompt
+  const isLoading = status === 'pending' || status === 'submitted';
+  const isError = status === 'error';
+
   return (
     <div className="mt-4 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
       <div className="flex items-start justify-between gap-3">
@@ -198,7 +202,7 @@ export function SkillSuggestionPrompt({
               Suggested proficiency level: {proficiency}/5
             </p>
           )}
-          {error && status === 'error' && (
+          {isError && error && (
             <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
               <p className="text-xs text-red-600 dark:text-red-400 mb-1">
                 {error}
@@ -218,7 +222,7 @@ export function SkillSuggestionPrompt({
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleAddSkill(skillName, stepId, proficiency)}
-              disabled={status === 'pending' || status === 'submitted'}
+              disabled={isLoading}
               className="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {status === 'pending' ? (
@@ -226,15 +230,13 @@ export function SkillSuggestionPrompt({
                   <LoadingSpinner text="" className="py-0 mr-1" />
                   Adding...
                 </>
-              ) : status === 'submitted' ? (
-                'Processing...'
               ) : (
                 'Add to Profile'
               )}
             </button>
             <button
               onClick={onDismiss}
-              disabled={status === 'pending' || status === 'submitted'}
+              disabled={isLoading}
               className="px-3 py-1.5 text-xs font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Maybe Later
