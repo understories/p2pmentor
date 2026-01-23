@@ -84,6 +84,22 @@ export interface QuestStepDefinition {
   vocabulary?: VocabItem[]; // Vocabulary items for flashcard practice
   minCards?: number; // Minimum cards to review (default: vocabulary.length)
 
+  // Interactive component configuration (for DO/VERIFY/SUBMIT steps)
+  actionConfig?: {
+    component?: string; // Component name: 'HashGenerator', 'KeypairGenerator', 'SignVerifyDemo', etc.
+    minHashes?: number;
+    storePublicKey?: boolean;
+    requireVerification?: boolean;
+  };
+  verifyConfig?: {
+    component?: string;
+    requiredChecks?: string[];
+  };
+  submitConfig?: {
+    acceptTypes?: string[];
+    requireContext?: boolean;
+  };
+
   // Optional concept card for learning principle
   conceptCard?: {
     title: string;

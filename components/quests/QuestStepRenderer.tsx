@@ -13,6 +13,9 @@ import { ConceptCard } from '@/components/learner-quests/ConceptCard';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { FlashcardPractice } from './FlashcardPractice';
+import { HashGenerator } from './HashGenerator';
+import { KeypairGenerator } from './KeypairGenerator';
+import { SignVerifyDemo } from './SignVerifyDemo';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { QuestStepDefinition } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
@@ -149,6 +152,40 @@ export function QuestStepRenderer({
               // Flashcard practice completion triggers step completion
               // User can then mark step as complete
             }}
+          />
+        </div>
+      )}
+
+      {/* Interactive Components (for cryptography and meta-learning steps) */}
+      {step.actionConfig?.component === 'HashGenerator' && (
+        <div className="mb-6">
+          <HashGenerator
+            onHashGenerated={(hash, input) => {
+              // Hash generated - user can mark step as complete
+            }}
+            minHashes={step.actionConfig.minHashes || 1}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'KeypairGenerator' && (
+        <div className="mb-6">
+          <KeypairGenerator
+            onKeypairGenerated={(publicKey) => {
+              // Keypair generated - public key can be stored in evidence
+            }}
+            storePublicKey={step.actionConfig.storePublicKey}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'SignVerifyDemo' && (
+        <div className="mb-6">
+          <SignVerifyDemo
+            onVerified={(message, signature, publicKey) => {
+              // Signature verified - user can mark step as complete
+            }}
+            requireVerification={step.actionConfig.requireVerification}
           />
         </div>
       )}
