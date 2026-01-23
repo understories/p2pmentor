@@ -694,7 +694,7 @@ export default function QuestDetailPage() {
                     onComplete={() => handleStepComplete(step.stepId, step.type)}
                   />
                   {/* Skill Suggestion Prompt */}
-                  {showSkillSuggestion && step.skillSuggestion && (
+                  {showSkillSuggestion && step.skillSuggestion && wallet && (
                     <SkillSuggestionPrompt
                       skillName={step.skillSuggestion.skillName}
                       skillId={step.skillSuggestion.skillId}
@@ -702,8 +702,9 @@ export default function QuestDetailPage() {
                       message={step.skillSuggestion.message}
                       stepId={step.stepId}
                       questId={quest.questId}
+                      wallet={wallet}
                       onAddSkill={async (skillName, stepId, proficiency) => {
-                        await handleAddSkillFromQuest(skillName, stepId, proficiency);
+                        return await handleAddSkillFromQuest(skillName, stepId, proficiency);
                       }}
                       onDismiss={() => {
                         setDismissedSkillSuggestions((prev) => new Set([...prev, step.stepId]));

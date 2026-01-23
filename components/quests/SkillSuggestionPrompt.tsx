@@ -9,10 +9,12 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { getQuestCompletionSkillLinks } from '@/lib/arkiv/questSkillLink';
 
 interface SkillSuggestionPromptProps {
   skillName: string;
@@ -21,9 +23,12 @@ interface SkillSuggestionPromptProps {
   message?: string;
   stepId: string;
   questId: string;
-  onAddSkill: (skillName: string, stepId: string, proficiency?: number) => Promise<void>;
+  wallet: string;
+  onAddSkill: (skillName: string, stepId: string, proficiency?: number) => Promise<any>;
   onDismiss: () => void;
 }
+
+type TransactionStatus = 'idle' | 'pending' | 'submitted' | 'indexed' | 'error';
 
 export function SkillSuggestionPrompt({
   skillName,
@@ -32,30 +37,100 @@ export function SkillSuggestionPrompt({
   message,
   stepId,
   questId,
+  wallet,
   onAddSkill,
   onDismiss,
 }: SkillSuggestionPromptProps) {
-  const [adding, setAdding] = useState(false);
-  const [added, setAdded] = useState(false);
+  const [status, setStatus] = useState<TransactionStatus>('idle');
   const [error, setError] = useState<string | null>(null);
   const [skillEntityKey, setSkillEntityKey] = useState<string | null>(null);
   const [skillTxHash, setSkillTxHash] = useState<string | null>(null);
+  const [linkEntityKey, setLinkEntityKey] = useState<string | null>(null);
+  const [linkTxHash, setLinkTxHash] = useState<string | null>(null);
   const arkivBuilderMode = useArkivBuilderMode();
+
+  // Poll for skill link entity after submission (following useProgressReconciliation pattern)
+  const pollForSkillLink = useCallback(async (maxAttempts = 10) => {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const delay = Math.min(1000 * Math.pow(1.5, attempt), 10000); // Exponential backoff, max 10s
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      try {
+        const links = await getQuestCompletionSkillLinks({
+          wallet,
+          questId,
+          stepId,
+        });
+
+        const foundLink = links.find(
+          (link) => link.questId === questId && link.stepId === stepId
+        );
+
+        if (foundLink) {
+          setStatus('indexed');
+          setLinkEntityKey(foundLink.key);
+          setLinkTxHash(foundLink.txHash || null);
+          return true;
+        }
+      } catch (err) {
+        console.warn('[SkillSuggestionPrompt] Polling error:', err);
+      }
+    }
+
+    // Max attempts reached - leave as submitted (user can refresh)
+    return false;
+  }, [wallet, questId, stepId]);
 
   const handleAddSkill = async (skill: string, step: string, prof?: number) => {
     try {
-      setAdding(true);
+      setStatus('pending');
       setError(null);
-      await onAddSkill(skill, step, prof);
-      setAdded(true);
+
+      const result = await onAddSkill(skill, step, prof);
+
+      // Check if transaction is pending (following asks/offers pattern)
+      if (result.pending) {
+        setStatus('submitted');
+        // Store entity info if available
+        if (result.link?.txHash) {
+          setLinkTxHash(result.link.txHash);
+        }
+        if (result.skill?.key) {
+          setSkillEntityKey(result.skill.key);
+        }
+        // Start polling for skill link entity
+        pollForSkillLink();
+      } else if (result.link?.key && result.link?.txHash) {
+        // Transaction completed immediately
+        setStatus('indexed');
+        setLinkEntityKey(result.link.key);
+        setLinkTxHash(result.link.txHash);
+        if (result.skill?.key) {
+          setSkillEntityKey(result.skill.key);
+        }
+      } else {
+        // Fallback: assume success if no pending flag
+        setStatus('indexed');
+        if (result.link?.key) setLinkEntityKey(result.link.key);
+        if (result.link?.txHash) setLinkTxHash(result.link.txHash);
+        if (result.skill?.key) setSkillEntityKey(result.skill.key);
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to add skill');
-    } finally {
-      setAdding(false);
+      setStatus('error');
+      const errorMessage = err.message || 'Failed to add skill';
+
+      // Check for transaction rate limiting (following transaction-utils pattern)
+      if (errorMessage.includes('still processing') ||
+          errorMessage.includes('wait a moment')) {
+        setError('Transaction is still processing. Please wait a moment and try again.');
+      } else {
+        setError(errorMessage);
+      }
     }
   };
 
-  if (added) {
+  // Success state (indexed)
+  if (status === 'indexed') {
     return (
       <div className="mt-4 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
         <div className="flex items-center justify-between">
@@ -65,15 +140,41 @@ export function SkillSuggestionPrompt({
               Skill "{skillName}" added to your profile
             </span>
           </div>
-          {arkivBuilderMode && skillEntityKey && (
+          {arkivBuilderMode && linkEntityKey && (
             <ViewOnArkivLink
-              entityKey={skillEntityKey}
-              txHash={skillTxHash || undefined}
+              entityKey={linkEntityKey}
+              txHash={linkTxHash || undefined}
               label=""
               className="text-xs"
               icon="🔗"
             />
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // Submitted state (waiting for indexing)
+  if (status === 'submitted') {
+    return (
+      <div className="mt-4 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
+        <div className="flex items-start gap-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <LoadingSpinner text="" className="py-0" />
+              <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                Skill link submitted
+              </span>
+            </div>
+            <p className="text-xs text-yellow-700 dark:text-yellow-300">
+              Transaction is being processed. Please wait a moment and refresh if needed.
+            </p>
+            {arkivBuilderMode && linkTxHash && (
+              <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400 font-mono">
+                TxHash: {linkTxHash.slice(0, 10)}...
+              </div>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -97,22 +198,43 @@ export function SkillSuggestionPrompt({
               Suggested proficiency level: {proficiency}/5
             </p>
           )}
-          {error && (
-            <p className="text-xs text-red-600 dark:text-red-400 mb-2">
-              {error}
-            </p>
+          {error && status === 'error' && (
+            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+              <p className="text-xs text-red-600 dark:text-red-400 mb-1">
+                {error}
+              </p>
+              <button
+                onClick={() => {
+                  setStatus('idle');
+                  setError(null);
+                  handleAddSkill(skillName, stepId, proficiency);
+                }}
+                className="text-xs text-red-700 dark:text-red-300 underline"
+              >
+                Try again
+              </button>
+            </div>
           )}
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleAddSkill(skillName, stepId, proficiency)}
-              disabled={adding}
+              disabled={status === 'pending' || status === 'submitted'}
               className="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {adding ? 'Adding...' : 'Add to Profile'}
+              {status === 'pending' ? (
+                <>
+                  <LoadingSpinner text="" className="py-0 mr-1" />
+                  Adding...
+                </>
+              ) : status === 'submitted' ? (
+                'Processing...'
+              ) : (
+                'Add to Profile'
+              )}
             </button>
             <button
               onClick={onDismiss}
-              disabled={adding}
+              disabled={status === 'pending' || status === 'submitted'}
               className="px-3 py-1.5 text-xs font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Maybe Later
