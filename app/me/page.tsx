@@ -28,6 +28,7 @@ import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { useSkillProfileCounts } from '@/lib/hooks/useSkillProfileCounts';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { SPACE_ID } from '@/lib/config';
 
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -62,6 +63,14 @@ export default function MePage() {
     totalSteps?: number;
   }>>([]);
   const [hasAvailability, setHasAvailability] = useState<boolean>(false);
+  const [badges, setBadges] = useState<Array<{
+    badgeType: string;
+    questId: string;
+    issuedAt: string;
+    key: string;
+    txHash?: string;
+  }>>([]);
+  const [badgesLoading, setBadgesLoading] = useState(false);
   const arkivBuilderMode = useArkivBuilderMode();
   const skillProfileCounts = useSkillProfileCounts();
   const [expandedSections, setExpandedSections] = useState<{
@@ -137,6 +146,7 @@ export default function MePage() {
         loadFeedbackStats(address);
         loadAsksAndOffers(address);
         loadLearnerQuestCompletion(address);
+        loadBadges(address);
       }
       
       // Poll for notifications and profile status every 30 seconds (only if profile exists)
@@ -343,6 +353,30 @@ export default function MePage() {
     }
   };
 
+  const loadBadges = async (wallet: string) => {
+    try {
+      setBadgesLoading(true);
+      const res = await fetch(`/api/badges?wallet=${wallet}`);
+      const data = await res.json();
+      
+      if (data.ok && data.badges) {
+        setBadges(data.badges.map((badge: any) => ({
+          badgeType: badge.badgeType,
+          questId: badge.questId,
+          issuedAt: badge.issuedAt,
+          key: badge.key,
+          txHash: badge.txHash,
+        })));
+      } else {
+        setBadges([]);
+      }
+    } catch (err) {
+      console.error('Error loading badges:', err);
+      setBadges([]);
+    } finally {
+      setBadgesLoading(false);
+    }
+  };
   const loadLearnerQuestCompletion = async (walletAddress: string) => {
     try {
       // Fetch all active quests
@@ -960,6 +994,85 @@ export default function MePage() {
                 </ArkivQueryTooltip>
               )}
             </Link>
+
+            {/* Badges Earned - Full Width Row */}
+            {badges.length > 0 && (
+              <Link
+                href="/learner-quests"
+                className="group relative p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center cursor-pointer hover:border-yellow-400 dark:hover:border-yellow-500 hover:shadow-md transition-all duration-200 col-span-2"
+              >
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  🏆 {badges.length}
+                </p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Badges Earned</p>
+                {/* Badge List */}
+                <div className="mt-2 flex flex-wrap gap-1 justify-center">
+                  {badges.slice(0, 5).map((badge, idx) => {
+                    // Map badge types to display names
+                    const badgeNames: Record<string, string> = {
+                      'arkiv_builder': 'Arkiv Builder',
+                      'mandarin_starter': 'Mandarin Starter',
+                      'spanish_starter': 'Spanish Starter',
+                      'crypto_basics': 'Crypto Basics',
+                      'cryptography_basics': 'Crypto Basics',
+                      'meta_learner': 'Meta-Learner',
+                      'privacy_fundamentals': 'Privacy Fundamentals',
+                      'ai_intro': 'AI Intro',
+                    };
+                    const badgeName = badgeNames[badge.badgeType] || badge.badgeType;
+                    return (
+                      <span
+                        key={idx}
+                        className="text-xs px-2 py-0.5 rounded bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-800"
+                        title={`Earned: ${new Date(badge.issuedAt).toLocaleDateString()}`}
+                      >
+                        {badgeName}
+                      </span>
+                    );
+                  })}
+                  {badges.length > 5 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      +{badges.length - 5} more
+                    </span>
+                  )}
+                </div>
+                {/* Tooltip */}
+                {arkivBuilderMode && (
+                  <ArkivQueryTooltip
+                    query={[
+                      `GET /api/badges?wallet=${walletAddress?.toLowerCase() || ''}`,
+                      `Query: type='proof_of_skill_badge', wallet='${walletAddress?.slice(0, 8) || ''}...', spaceId='${SPACE_ID}'`,
+                      `Returns: ${badges.length} badge entities`,
+                      `Each badge is a type='proof_of_skill_badge' entity on Arkiv`,
+                      `Badge entity key: badge:${SPACE_ID}:${walletAddress?.slice(0, 8) || ''}...:${badges[0]?.badgeType || 'badgeType'}`,
+                    ]}
+                    label="Badges"
+                  >
+                    <div className="absolute inset-0" />
+                  </ArkivQueryTooltip>
+                )}
+                {/* Arkiv Builder Mode: Show badge entities */}
+                {arkivBuilderMode && badges.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-yellow-200 dark:border-yellow-700">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-1">Badge Entities:</div>
+                    {badges.slice(0, 3).map((badge, idx) => (
+                      <div key={idx} className="text-xs flex items-center gap-2 mt-1">
+                        <ViewOnArkivLink
+                          entityKey={badge.key}
+                          txHash={badge.txHash}
+                          label=""
+                          className="text-xs"
+                          icon="🔗"
+                        />
+                        <span className="text-gray-400 dark:text-gray-500 font-mono">
+                          {badge.key.slice(0, 8)}...
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Link>
+            )}
 
             {/* Learner Quests - Full Width Row */}
             {individualQuestProgress.length > 0 && (

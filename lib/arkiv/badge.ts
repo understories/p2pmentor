@@ -21,7 +21,9 @@ export type BadgeType =
   | 'arkiv_builder'
   | 'mandarin_starter'
   | 'spanish_starter'
-  | 'cryptography_basics'
+  | 'crypto_basics' // Quest badge ID: crypto_basics
+  | 'cryptography_basics' // Legacy/alternative name
+  | 'meta_learner' // Quest badge ID: meta_learner
   | 'privacy_fundamentals'
   | 'ai_intro';
 
