@@ -124,6 +124,7 @@
 - **Data Integrity:** All data real, verifiable, traceable (on-chain when important)
 - **Arkiv-Native:** Use Arkiv's query system properly, build composable tools, follow established patterns
 - **Minimal Changes:** Make minimal code changes, reuse existing code, don't break functionality
+- **Avoid Reinventing the Wheel:** Check existing patterns before creating new infrastructure (CI/CD, deployment, syncing)
 
 ### 📋 Quick Reference
 
@@ -465,6 +466,121 @@ fix stuff
 ### Authentication
 
 - **Admin routes:** Password-protected (TODO: proper auth)
+
+## 9. Deployment and CI/CD Patterns
+
+### Vercel-First Approach
+
+**⚠️ CRITICAL: Use Vercel infrastructure, not external CI/CD**
+
+This project uses **Vercel for deployment and hosting**. Environment variables are managed in Vercel dashboard, not GitHub Actions.
+
+**Established Patterns:**
+
+1. **Environment Variables:**
+   - ✅ Set in Vercel dashboard (Settings → Environment Variables)
+   - ✅ Available at build time and runtime
+   - ✅ Separate values for production, preview, development
+   - ❌ **DO NOT** create GitHub Actions for environment variable management
+
+2. **Build Scripts:**
+   - ✅ Add to `package.json` scripts (e.g., `build:static`)
+   - ✅ Run during Vercel build process
+   - ✅ Use `pnpm exec tsx` for TypeScript scripts
+   - ❌ **DO NOT** create GitHub Actions that duplicate Vercel build process
+
+3. **Entity Syncing/Seeding:**
+   - ✅ Create admin API routes (e.g., `/api/admin/sync-quests`)
+   - ✅ Follow pattern of `/api/admin/rebuild-static`
+   - ✅ Use `execAsync` to run scripts with environment variables
+   - ✅ Manual trigger via admin dashboard or API call
+   - ❌ **DO NOT** create GitHub Actions for syncing entities (redundant with Vercel)
+
+4. **Scheduled Tasks:**
+   - ✅ Use Vercel cron jobs (defined in `vercel.json`)
+   - ✅ Create API routes (e.g., `/api/cron/daily-aggregates`)
+   - ✅ Vercel runs them automatically on schedule
+   - ❌ **DO NOT** create GitHub Actions for scheduled tasks
+
+**Example: Admin API Route for Syncing**
+```typescript
+// ✅ Good: Admin API route (app/api/admin/sync-quests/route.ts)
+export async function POST(request: NextRequest) {
+  // Check auth
+  const sessionAuth = request.cookies.get('admin_authenticated')?.value === 'true';
+  if (!sessionAuth) {
+    return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
+  }
+
+  // Run script with environment variables (from Vercel)
+  const { stdout, stderr } = await execAsync(
+    'pnpm exec tsx scripts/sync-quest-entities.ts',
+    { env: { ...process.env } } // Vercel env vars available
+  );
+
+  return NextResponse.json({ ok: true, output: stdout });
+}
+```
+
+**❌ Anti-Pattern: GitHub Actions for Syncing**
+```yaml
+# ❌ BAD: Redundant with Vercel
+name: Sync Quest Entities
+on:
+  push:
+    branches: [main]
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pnpm exec tsx scripts/sync-quest-entities.ts
+      # This duplicates what Vercel already does!
+```
+
+**Why Vercel-First?**
+- Environment variables already configured in Vercel
+- No need to duplicate secrets in GitHub Actions
+- Simpler: one deployment system, not two
+- Admin routes provide manual triggers when needed
+- Vercel cron jobs handle scheduled tasks
+
+**When to Use GitHub Actions:**
+- ✅ Code quality checks (linting, type checking)
+- ✅ Security scanning
+- ✅ Pre-commit hooks validation
+- ❌ **NOT** for deployment or entity syncing (use Vercel)
+
+### Checking for Existing Patterns
+
+**Before creating new infrastructure, check:**
+
+1. **Deployment/Syncing:**
+   - ✅ Check `app/api/admin/` for existing admin routes
+   - ✅ Check `vercel.json` for cron jobs
+   - ✅ Check `package.json` for build scripts
+   - ✅ Review existing seed/sync scripts in `scripts/`
+
+2. **Entity Patterns:**
+   - ✅ Check `lib/arkiv/` for similar entity CRUD functions
+   - ✅ Follow existing query patterns
+   - ✅ Use same error handling patterns
+   - ✅ Match entity key strategies (Pattern A vs Pattern B)
+
+3. **API Patterns:**
+   - ✅ Check `app/api/` for similar routes
+   - ✅ Follow authentication patterns
+   - ✅ Use same response formats
+   - ✅ Match error handling
+
+**Example Review Process:**
+```typescript
+// Before creating new quest entity functions:
+// 1. Check: lib/arkiv/learnerQuest.ts (similar pattern)
+// 2. Follow: Same query structure, error handling
+// 3. Reuse: handleTransactionWithTimeout, getPublicClient patterns
+// 4. Result: Consistent codebase, no reinvention
+```
 - **API routes:** Internal-only or properly authenticated
 - **User data:** Wallet-based authentication (no centralized auth)
 
