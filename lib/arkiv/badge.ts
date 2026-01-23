@@ -39,7 +39,8 @@ export interface ProofOfSkillBadge {
     entityKey: string;
     txHash?: string;
   }>;
-  version: string;
+  questVersion: string; // Quest version this badge was earned on
+  version: string; // Badge schema version
   issuer: string;
   spaceId: string;
   txHash?: string;
@@ -55,6 +56,7 @@ export async function issueBadge({
   wallet,
   badgeType,
   questId,
+  questVersion,
   evidenceRefs,
   privateKey,
   spaceId = SPACE_ID,
@@ -63,6 +65,7 @@ export async function issueBadge({
   wallet: string;
   badgeType: BadgeType;
   questId: string;
+  questVersion: string; // Quest version this badge is for
   evidenceRefs: Array<{ stepId: string; entityKey: string; txHash?: string }>;
   privateKey: `0x${string}`;
   spaceId?: string;
@@ -92,7 +95,8 @@ export async function issueBadge({
     // Build payload (non-queryable content)
     const payload = {
       evidenceRefs,
-      version: '1',
+      questVersion: questVersion || '1', // Default to '1' for backward compatibility
+      version: '1', // Badge schema version
       issuer: 'p2pmentor',
     };
 
@@ -157,6 +161,7 @@ export async function checkBadgeEligibility({
   completedSteps: string[];
   missingSteps: string[];
   evidenceRefs: Array<{ stepId: string; entityKey: string; txHash?: string }>;
+  questVersion?: string; // Quest version from progress (if available)
 }> {
   const normalizedWallet = wallet.toLowerCase();
 
@@ -173,6 +178,9 @@ export async function checkBadgeEligibility({
 
   // Get all progress for this quest
   const progress = await getQuestStepProgress({ wallet, questId, spaceId });
+
+  // Extract questVersion from progress (use most common version, or first found)
+  const questVersion = progress.find((p) => p.questVersion)?.questVersion || '1';
 
   // Build evidence refs and check completion
   const completedStepIds: string[] = [];
@@ -196,6 +204,7 @@ export async function checkBadgeEligibility({
     completedSteps: completedStepIds,
     missingSteps,
     evidenceRefs,
+    questVersion,
   };
 }
 
@@ -256,6 +265,7 @@ export async function getUserBadges({
         questId: getAttr('questId') || '',
         issuedAt: getAttr('issuedAt') || '',
         evidenceRefs: payload.evidenceRefs || [],
+        questVersion: payload.questVersion || '1', // Default to '1' for backward compatibility
         version: payload.version || '1',
         issuer: payload.issuer || 'p2pmentor',
         spaceId: getAttr('spaceId') || finalSpaceId,

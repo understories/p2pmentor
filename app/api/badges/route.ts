@@ -105,10 +105,14 @@ export async function POST(request: NextRequest) {
       // Get private key for server-side signing
       const privateKey = getPrivateKey();
 
+      // questVersion from request body, or default to '1' for backward compatibility
+      const questVersion = body.questVersion || '1';
+
       const result = await issueBadge({
         wallet,
         badgeType: badgeType as BadgeType,
         questId,
+        questVersion,
         evidenceRefs: body.evidenceRefs,
         privateKey,
       });
