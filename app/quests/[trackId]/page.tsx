@@ -23,6 +23,7 @@ import type { LoadedQuest } from '@/lib/quests';
 import type { QuestProgress } from '@/lib/arkiv/questProgress';
 import { QuestStepRenderer } from '@/components/quests/QuestStepRenderer';
 import { EvidencePanel } from '@/components/quests/EvidencePanel';
+import { SkillSuggestionPrompt } from '@/components/quests/SkillSuggestionPrompt';
 import { QUEST_ENTITY_MODE, SPACE_ID } from '@/lib/config';
 
 export default function QuestDetailPage() {
@@ -51,6 +52,7 @@ export default function QuestDetailPage() {
   const [badgeEntityKey, setBadgeEntityKey] = useState<string | null>(null);
   const [badgeTxHash, setBadgeTxHash] = useState<string | null>(null);
   const [badgeError, setBadgeError] = useState<string | null>(null);
+  const [dismissedSkillSuggestions, setDismissedSkillSuggestions] = useState<Set<string>>(new Set());
 
   // Check and issue badge if eligible
   const checkAndIssueBadge = async () => {
@@ -291,6 +293,47 @@ export default function QuestDetailPage() {
               }
             });
         }, 2000);
+      } else {
+        reconciliation.markError(stepId, data.error || 'Failed to record progress');
+      }
+    } catch (err: any) {
+      console.error('Error completing step:', err);
+      reconciliation.markError(stepId, err.message || 'Failed to complete step');
+    }
+  };
+
+  // Handle skill addition from quest completion
+  const handleAddSkillFromQuest = async (skillName: string, proficiency?: number) => {
+    if (!wallet || !quest) return;
+
+    // Find the current step that was just completed (most recent in progress)
+    const recentProgress = progress
+      .filter((p) => p.questId === quest.questId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+
+    if (!recentProgress) {
+      throw new Error('No recent step completion found');
+    }
+
+    const res = await fetch('/api/skills/from-quest', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wallet,
+        skillName,
+        stepId: recentProgress.stepId,
+        questId: quest.questId,
+        proficiency,
+        progressEntityKey: recentProgress.key,
+      }),
+    });
+
+    const data = await res.json();
+    if (!data.ok) {
+      throw new Error(data.error || 'Failed to add skill');
+    }
+
+    return data;
       } else {
         reconciliation.markError(stepId, data.error || 'Failed to record progress');
       }
@@ -643,6 +686,11 @@ export default function QuestDetailPage() {
               const pending = reconciliation.getStepStatus(step.stepId);
               const stepContent = quest.stepContent[step.stepId] || '';
 
+              const showSkillSuggestion = 
+                step.skillSuggestion &&
+                progressData.completed &&
+                !dismissedSkillSuggestions.has(step.stepId);
+
               return (
                 <div key={step.stepId} id={`step-${step.stepId}`}>
                   <QuestStepRenderer
@@ -655,6 +703,23 @@ export default function QuestDetailPage() {
                     questId={quest.questId}
                     onComplete={() => handleStepComplete(step.stepId, step.type)}
                   />
+                  {/* Skill Suggestion Prompt */}
+                  {showSkillSuggestion && (
+                    <SkillSuggestionPrompt
+                      skillName={step.skillSuggestion.skillName}
+                      skillId={step.skillSuggestion.skillId}
+                      proficiency={step.skillSuggestion.proficiency}
+                      message={step.skillSuggestion.message}
+                      stepId={step.stepId}
+                      questId={quest.questId}
+                      onAddSkill={async (skillName, proficiency) => {
+                        await handleAddSkillFromQuest(skillName, step.stepId, proficiency);
+                      }}
+                      onDismiss={() => {
+                        setDismissedSkillSuggestions((prev) => new Set([...prev, step.stepId]));
+                      }}
+                    />
+                  )}
                 </div>
               );
             })}
