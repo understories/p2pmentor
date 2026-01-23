@@ -16,6 +16,9 @@ import { FlashcardPractice } from './FlashcardPractice';
 import { HashGenerator } from './HashGenerator';
 import { KeypairGenerator } from './KeypairGenerator';
 import { SignVerifyDemo } from './SignVerifyDemo';
+import { SpacedRepetitionScheduler } from './SpacedRepetitionScheduler';
+import { DeliberativePracticePlanner } from './DeliberativePracticePlanner';
+import { ActiveRecallCreator } from './ActiveRecallCreator';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import type { QuestStepDefinition } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
@@ -186,6 +189,39 @@ export function QuestStepRenderer({
               // Signature verified - user can mark step as complete
             }}
             requireVerification={step.actionConfig.requireVerification}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'SpacedRepetitionScheduler' && (
+        <div className="mb-6">
+          <SpacedRepetitionScheduler
+            onScheduleCreated={(schedule) => {
+              // Schedule created - user can mark step as complete
+            }}
+            requireSchedule={step.actionConfig.requireSchedule}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'DeliberativePracticePlanner' && (
+        <div className="mb-6">
+          <DeliberativePracticePlanner
+            onPlanCreated={(plan) => {
+              // Practice plan created - user can mark step as complete
+            }}
+            requirePlan={step.actionConfig.requirePlan}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'ActiveRecallCreator' && (
+        <div className="mb-6">
+          <ActiveRecallCreator
+            onQuestionsCreated={(data) => {
+              // Questions created - user can mark step as complete
+            }}
+            minQuestions={step.actionConfig.minQuestions || 5}
           />
         </div>
       )}
