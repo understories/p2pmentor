@@ -220,7 +220,7 @@ export async function getQuizResults({
           score: payload.score || 0,
           maxScore: payload.maxScore || 0,
           percentage: payload.percentage || 0,
-          passed: passedAttr === 'true' || passedAttr === true,
+          passed: passedAttr === 'true' || passedAttr === '1' || passedAttr === 1,
           progressEntityKey: payload.progressEntityKey || '',
           completedAt: payload.completedAt || (typeof createdAtAttr === 'string' ? createdAtAttr : '') || '',
           spaceId: finalSpaceId,
