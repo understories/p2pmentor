@@ -13,6 +13,7 @@ import { createSkill, getSkillBySlug, normalizeSkillSlug } from '@/lib/arkiv/ski
 import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
 import { createQuestCompletionSkillLink } from '@/lib/arkiv/questSkillLink';
 import { getQuestStepProgress } from '@/lib/arkiv/questProgress';
+import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 
 /**
  * POST /api/skills/from-quest
@@ -76,26 +77,44 @@ export async function POST(request: NextRequest) {
     }
 
     // Create quest completion skill link
-    const linkResult = await createQuestCompletionSkillLink({
-      wallet,
-      questId,
-      stepId,
-      skillId: skillEntity.key,
-      skillName: skillEntity.name_canonical,
-      proficiency,
-      progressEntityKey: finalProgressEntityKey,
-      privateKey,
-      spaceId: SPACE_ID,
-    });
+    try {
+      const linkResult = await createQuestCompletionSkillLink({
+        wallet,
+        questId,
+        stepId,
+        skillId: skillEntity.key,
+        skillName: skillEntity.name_canonical,
+        proficiency,
+        progressEntityKey: finalProgressEntityKey,
+        privateKey,
+        spaceId: SPACE_ID,
+      });
 
-    return NextResponse.json({
-      ok: true,
-      skill: skillEntity,
-      link: {
-        key: linkResult.key,
-        txHash: linkResult.txHash,
-      },
-    });
+      return NextResponse.json({
+        ok: true,
+        skill: skillEntity,
+        link: {
+          key: linkResult.key,
+          txHash: linkResult.txHash,
+        },
+      });
+    } catch (linkError: any) {
+      // Handle transaction receipt timeout gracefully (following asks/offers pattern)
+      if (isTransactionTimeoutError(linkError)) {
+        return NextResponse.json({
+          ok: true,
+          skill: skillEntity,
+          link: {
+            key: null,
+            txHash: null,
+          },
+          pending: true,
+          message: linkError.message || 'Transaction submitted, confirmation pending',
+        });
+      }
+      // Re-throw to be caught by outer catch
+      throw linkError;
+    }
   } catch (error: any) {
     console.error('[/api/skills/from-quest] Error:', error);
     return NextResponse.json(
