@@ -4,6 +4,12 @@
 
 Supporting entity types for observability, metrics, and system operations.
 
+## Quest Engine Entities
+
+- [Quest Definition](/docs/arkiv/entities/quest-definition) - Quest definitions stored on Arkiv for network-wide discovery
+- [Quest Step Progress](/docs/arkiv/entities/quest-step-progress) - User progress through quest steps with verifiable evidence
+- [Proof of Skill Badge](/docs/arkiv/entities/proof-of-skill-badge) - Verifiable badges earned for completing quest tracks
+
 ## Entity Types
 
 - [Admin Response](/docs/arkiv/entities/admin-response) - Admin responses to user feedback

@@ -61,6 +61,11 @@ This enables multi-tenant or environment-specific data isolation. API routes use
 - `availability`: User availability time blocks
 - `session_feedback`: Post-session feedback and ratings
 
+### Quest Engine Entities
+- `quest_definition`: Quest definitions stored on Arkiv for network-wide discovery
+- `quest_step_progress`: User progress through quest steps with verifiable evidence
+- `proof_of_skill_badge`: Verifiable badges earned for completing quest tracks
+
 ### Supporting Entities
 - Transaction hash tracking: `*_txhash` entities for reliable querying
 - Session state: `session_confirmation`, `session_rejection`, `session_jitsi`, `session_payment_*`
@@ -167,5 +172,6 @@ Any additional storage is viewed as **cache or index**, not the source of truth:
 - [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
 - [Invite Code System](/docs/arkiv/operations/invite-code-system) - Arkiv-native invite code implementation with usage tracking
 - [Learner Quests](/docs/architecture/modules/learner-quests) - Curated reading lists and language assessment quests with progress tracking
+- [Quest Engine](/docs/architecture/modules/quest-engine) - Arkiv-native learning quest system with verifiable proof
 - [Implementation FAQ](/docs/arkiv/operations/implementation-faq) - Common patterns and Q&A
 - [Arkiv Integration](/docs/architecture/arkiv-integration) - Architecture details

@@ -277,6 +277,9 @@
 - `learner_quest`: Quest definitions (reading lists and language assessments)
 - `learner_quest_progress`: User progress through quests (reading materials and assessment answers)
 - `learner_quest_assessment_result`: Assessment completion results and certifications
+- `quest_definition`: Quest definitions stored on Arkiv (Quest Engine)
+- `quest_step_progress`: User progress through quest steps with verifiable evidence (Quest Engine)
+- `proof_of_skill_badge`: Verifiable badges earned for completing quest tracks (Quest Engine)
 - `perf_snapshot`: Performance snapshots
 - `retention_cohort`: User retention cohort metrics
 - `metric_aggregate`: Aggregated metrics

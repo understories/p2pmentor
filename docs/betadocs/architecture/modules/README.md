@@ -6,6 +6,7 @@ Core system modules that implement major features of p2pmentor.
 
 - [Feedback System](feedback-system.md) - User feedback and issue tracking
 - [Learner Quests](learner-quests.md) - Reading lists and language assessments
+- [Quest Engine](quest-engine.md) - Arkiv-native learning quest system with verifiable proof
 - [Notification System](notification-system.md) - Read/unread state management
 - [Profile System](profile-system.md) - User profile management
 
