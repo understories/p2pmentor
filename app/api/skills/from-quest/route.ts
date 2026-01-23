@@ -9,7 +9,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
-import { createSkill, getSkillBySlug, normalizeSkillSlug, ensureSkillEntity } from '@/lib/arkiv/skill';
+import { createSkill, getSkillBySlug, normalizeSkillSlug } from '@/lib/arkiv/skill';
+import { ensureSkillEntity } from '@/lib/arkiv/skill-helpers';
 import { createQuestCompletionSkillLink } from '@/lib/arkiv/questSkillLink';
 import { getQuestStepProgress } from '@/lib/arkiv/questProgress';
 
