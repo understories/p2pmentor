@@ -8,7 +8,7 @@
  */
 
 import { getPublicClient, getWalletClientFromPrivateKey } from '@/lib/arkiv/client';
-import { buildQuery, eq } from '@arkiv/sdk';
+import { eq } from '@arkiv-network/sdk/query';
 import { handleTransactionWithTimeout } from './transaction-utils';
 import { SPACE_ID } from '@/lib/config';
 
