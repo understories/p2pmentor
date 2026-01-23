@@ -17,10 +17,12 @@ import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
+import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { useProgressReconciliation } from '@/lib/hooks/useProgressReconciliation';
 import type { LoadedQuest } from '@/lib/quests';
 import type { QuestProgress } from '@/lib/arkiv/questProgress';
 import { QuestStepRenderer } from '@/components/quests/QuestStepRenderer';
+import { QUEST_ENTITY_MODE } from '@/lib/config';
 
 export default function QuestDetailPage() {
   const params = useParams();
@@ -29,6 +31,9 @@ export default function QuestDetailPage() {
 
   const [wallet, setWallet] = useState<string | null>(null);
   const [quest, setQuest] = useState<LoadedQuest | null>(null);
+  const [questEntityKey, setQuestEntityKey] = useState<string | null>(null);
+  const [questTxHash, setQuestTxHash] = useState<string | null>(null);
+  const [questSource, setQuestSource] = useState<string | null>(null);
   const [progress, setProgress] = useState<QuestProgress[]>([]);
   const [completion, setCompletion] = useState<{
     completedSteps: number;
@@ -42,6 +47,8 @@ export default function QuestDetailPage() {
   const reconciliation = useProgressReconciliation();
   const arkivBuilderMode = useArkivBuilderMode();
   const [badgeIssued, setBadgeIssued] = useState(false);
+  const [badgeEntityKey, setBadgeEntityKey] = useState<string | null>(null);
+  const [badgeTxHash, setBadgeTxHash] = useState<string | null>(null);
   const [badgeError, setBadgeError] = useState<string | null>(null);
 
   // Check and issue badge if eligible
@@ -82,6 +89,9 @@ export default function QuestDetailPage() {
         if (issueData.ok) {
           setBadgeIssued(true);
           setBadgeError(null);
+          // Store badge entity info for Arkiv builder mode
+          setBadgeEntityKey(issueData.key || null);
+          setBadgeTxHash(issueData.txHash || null);
         } else {
           setBadgeError(issueData.error || 'Failed to issue badge');
         }
@@ -120,6 +130,10 @@ export default function QuestDetailPage() {
         }
 
         setQuest(data.quest);
+        // Store entity info for Arkiv builder mode
+        setQuestEntityKey(data.entityKey || null);
+        setQuestTxHash(data.txHash || null);
+        setQuestSource(data.source || null);
       } catch (err: any) {
         console.error('Error loading quest:', err);
         setError('Failed to load quest');
@@ -154,6 +168,9 @@ export default function QuestDetailPage() {
             const badgeData = await badgeRes.json();
             if (badgeData.ok && badgeData.badge) {
               setBadgeIssued(true);
+              // Store badge entity info for Arkiv builder mode
+              setBadgeEntityKey(badgeData.entityKey || null);
+              setBadgeTxHash(badgeData.txHash || null);
             } else if (data.completion && data.completion.requiredComplete) {
               // Quest complete but badge not issued yet - check eligibility
               checkAndIssueBadge();
@@ -352,6 +369,51 @@ export default function QuestDetailPage() {
               <span>Steps: {quest.steps.length}</span>
             </div>
 
+            {/* Arkiv Builder Mode: Quest Entity Info */}
+            {arkivBuilderMode && questEntityKey && (
+              <div className="mt-4 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+                <div className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2 uppercase tracking-wide">
+                  Quest Definition Entity
+                </div>
+                <div className="mb-2">
+                  <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
+                    Entity Key:
+                  </div>
+                  <div className="font-mono text-xs text-blue-900 dark:text-blue-100 break-all">
+                    {questEntityKey}
+                  </div>
+                </div>
+                {questTxHash && (
+                  <div className="mb-2">
+                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
+                      Transaction Hash:
+                    </div>
+                    <div className="font-mono text-xs text-blue-900 dark:text-blue-100 break-all">
+                      {questTxHash}
+                    </div>
+                  </div>
+                )}
+                {questSource && (
+                  <div className="mb-2">
+                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
+                      Source:
+                    </div>
+                    <div className="text-xs text-blue-900 dark:text-blue-100 font-medium">
+                      {questSource === 'entity' ? 'Arkiv Entity' : 'File-based'}
+                    </div>
+                  </div>
+                )}
+                <div className="mt-2">
+                  <ViewOnArkivLink
+                    entityKey={questEntityKey}
+                    txHash={questTxHash || undefined}
+                    label="View Quest Definition on Arkiv"
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Badge Status */}
             {quest.badge && (
               <div className={`mt-4 p-3 rounded-lg border ${
@@ -381,6 +443,40 @@ export default function QuestDetailPage() {
                     </div>
                   )}
                 </div>
+                {/* Arkiv Builder Mode: Badge Entity Info */}
+                {arkivBuilderMode && badgeIssued && badgeEntityKey && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800">
+                    <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2 uppercase tracking-wide">
+                      Badge Entity
+                    </div>
+                    <div className="mb-2">
+                      <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                        Entity Key:
+                      </div>
+                      <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                        {badgeEntityKey}
+                      </div>
+                    </div>
+                    {badgeTxHash && (
+                      <div className="mb-2">
+                        <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                          Transaction Hash:
+                        </div>
+                        <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                          {badgeTxHash}
+                        </div>
+                      </div>
+                    )}
+                    <div className="mt-2">
+                      <ViewOnArkivLink
+                        entityKey={badgeEntityKey}
+                        txHash={badgeTxHash || undefined}
+                        label="View Badge on Arkiv"
+                        className="text-xs"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
