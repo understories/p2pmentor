@@ -1,0 +1,395 @@
+{
+  "questId": "spanish_starter",
+  "version": "1",
+  "track": "spanish",
+  "title": "Spanish Starter Track",
+  "description": "Daily micro-practice for Spanish learners. Learn essential vocabulary through interactive flashcards.",
+  "source": "Common Spanish Vocabulary",
+  "estimatedDuration": "50 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "day1",
+      "type": "DO",
+      "title": "Day 1: Greetings (10 words)",
+      "description": "Learn essential greeting words and phrases.",
+      "contentFile": "steps/01-greetings.md",
+      "duration": 5,
+      "order": 1,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "hola", "english": "hello" },
+        { "spanish": "adiós", "english": "goodbye" },
+        { "spanish": "gracias", "english": "thank you" },
+        { "spanish": "de nada", "english": "you're welcome" },
+        { "spanish": "perdón", "english": "sorry" },
+        { "spanish": "no pasa nada", "english": "it's okay" },
+        { "spanish": "buenos días", "english": "good morning" },
+        { "spanish": "buenas tardes", "english": "good afternoon" },
+        { "spanish": "buenas noches", "english": "good evening/night" },
+        { "spanish": "por favor", "english": "please" }
+      ],
+      "minCards": 8,
+      "conceptCard": {
+        "title": "Daily practice builds fluency",
+        "body": "Learning 10 words a day is more effective than cramming 100 words once. Consistent micro-practice helps your brain form stronger connections."
+      }
+    },
+    {
+      "stepId": "day2",
+      "type": "DO",
+      "title": "Day 2: Numbers (10 words)",
+      "description": "Master numbers 1-10 and basic counting.",
+      "contentFile": "steps/02-numbers.md",
+      "duration": 5,
+      "order": 2,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "uno", "english": "one" },
+        { "spanish": "dos", "english": "two" },
+        { "spanish": "tres", "english": "three" },
+        { "spanish": "cuatro", "english": "four" },
+        { "spanish": "cinco", "english": "five" },
+        { "spanish": "seis", "english": "six" },
+        { "spanish": "siete", "english": "seven" },
+        { "spanish": "ocho", "english": "eight" },
+        { "spanish": "nueve", "english": "nine" },
+        { "spanish": "diez", "english": "ten" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day3",
+      "type": "DO",
+      "title": "Day 3: Family (10 words)",
+      "description": "Learn family member vocabulary.",
+      "contentFile": "steps/03-family.md",
+      "duration": 5,
+      "order": 3,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "familia", "english": "family" },
+        { "spanish": "padre", "english": "father" },
+        { "spanish": "madre", "english": "mother" },
+        { "spanish": "hermano", "english": "brother" },
+        { "spanish": "hermana", "english": "sister" },
+        { "spanish": "hijo", "english": "son" },
+        { "spanish": "hija", "english": "daughter" },
+        { "spanish": "abuelo", "english": "grandfather" },
+        { "spanish": "abuela", "english": "grandmother" },
+        { "spanish": "amigo/amiga", "english": "friend" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day4",
+      "type": "DO",
+      "title": "Day 4: Food (10 words)",
+      "description": "Essential food and drink vocabulary.",
+      "contentFile": "steps/04-food.md",
+      "duration": 5,
+      "order": 4,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "agua", "english": "water" },
+        { "spanish": "pan", "english": "bread" },
+        { "spanish": "leche", "english": "milk" },
+        { "spanish": "huevo", "english": "egg" },
+        { "spanish": "queso", "english": "cheese" },
+        { "spanish": "fruta", "english": "fruit" },
+        { "spanish": "manzana", "english": "apple" },
+        { "spanish": "comer", "english": "to eat" },
+        { "spanish": "beber", "english": "to drink" },
+        { "spanish": "comida", "english": "food" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day5",
+      "type": "QUIZ",
+      "title": "Day 5: Week Review",
+      "description": "Test your knowledge of the first week's vocabulary.",
+      "duration": 10,
+      "order": 5,
+      "required": true,
+      "quizRubricId": "week1_review_v1"
+    },
+    {
+      "stepId": "day6",
+      "type": "DO",
+      "title": "Day 6: Time (10 words)",
+      "description": "Learn time-related vocabulary.",
+      "contentFile": "steps/06-time.md",
+      "duration": 5,
+      "order": 6,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "hoy", "english": "today" },
+        { "spanish": "mañana", "english": "tomorrow" },
+        { "spanish": "ayer", "english": "yesterday" },
+        { "spanish": "ahora", "english": "now" },
+        { "spanish": "hora", "english": "hour" },
+        { "spanish": "minuto", "english": "minute" },
+        { "spanish": "año", "english": "year" },
+        { "spanish": "mes", "english": "month" },
+        { "spanish": "día", "english": "day" },
+        { "spanish": "semana", "english": "week" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day7",
+      "type": "DO",
+      "title": "Day 7: Places (10 words)",
+      "description": "Common places and locations.",
+      "contentFile": "steps/07-places.md",
+      "duration": 5,
+      "order": 7,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "escuela", "english": "school" },
+        { "spanish": "casa", "english": "home" },
+        { "spanish": "tienda", "english": "store" },
+        { "spanish": "hospital", "english": "hospital" },
+        { "spanish": "banco", "english": "bank" },
+        { "spanish": "parque", "english": "park" },
+        { "spanish": "biblioteca", "english": "library" },
+        { "spanish": "restaurante", "english": "restaurant" },
+        { "spanish": "estación", "english": "station" },
+        { "spanish": "aquí", "english": "here" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day8",
+      "type": "DO",
+      "title": "Day 8: Actions (10 words)",
+      "description": "Common action verbs.",
+      "contentFile": "steps/08-actions.md",
+      "duration": 5,
+      "order": 8,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "ir", "english": "to go" },
+        { "spanish": "venir", "english": "to come" },
+        { "spanish": "ver", "english": "to see" },
+        { "spanish": "escuchar", "english": "to listen" },
+        { "spanish": "hablar", "english": "to speak" },
+        { "spanish": "leer", "english": "to read" },
+        { "spanish": "escribir", "english": "to write" },
+        { "spanish": "estudiar", "english": "to study" },
+        { "spanish": "trabajar", "english": "to work" },
+        { "spanish": "descansar", "english": "to rest" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day9",
+      "type": "DO",
+      "title": "Day 9: Common Concepts (10 words)",
+      "description": "Essential everyday concepts.",
+      "contentFile": "steps/09-concepts.md",
+      "duration": 5,
+      "order": 9,
+      "required": true,
+      "vocabulary": [
+        { "spanish": "bueno", "english": "good" },
+        { "spanish": "grande", "english": "big" },
+        { "spanish": "pequeño", "english": "small" },
+        { "spanish": "mucho", "english": "many/much" },
+        { "spanish": "poco", "english": "few/little" },
+        { "spanish": "nuevo", "english": "new" },
+        { "spanish": "viejo", "english": "old" },
+        { "spanish": "ser", "english": "to be" },
+        { "spanish": "tener", "english": "to have" },
+        { "spanish": "estar", "english": "to be (location)" }
+      ],
+      "minCards": 8
+    },
+    {
+      "stepId": "day10",
+      "type": "QUIZ",
+      "title": "Day 10: Final Review",
+      "description": "Comprehensive review of all vocabulary learned.",
+      "duration": 15,
+      "order": 10,
+      "required": true,
+      "quizRubricId": "final_review_v1"
+    }
+  ],
+  "rubrics": {
+    "week1_review_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What does 'hola' mean?",
+          "options": [
+            "Hello",
+            "Goodbye",
+            "Thank you",
+            "Sorry"
+          ],
+          "correctAnswer": "Hello",
+          "points": 1,
+          "explanation": "'Hola' is the standard greeting meaning 'hello'."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "How do you say 'five' in Spanish?",
+          "options": [
+            "tres",
+            "cuatro",
+            "cinco",
+            "seis"
+          ],
+          "correctAnswer": "cinco",
+          "points": 1,
+          "explanation": "'Cinco' means five."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What is the Spanish word for 'mother'?",
+          "options": [
+            "padre",
+            "madre",
+            "hermano",
+            "hermana"
+          ],
+          "correctAnswer": "madre",
+          "points": 1,
+          "explanation": "'Madre' means mother."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What does 'agua' mean?",
+          "options": [
+            "Tea",
+            "Water",
+            "Bread",
+            "Fruit"
+          ],
+          "correctAnswer": "Water",
+          "points": 1,
+          "explanation": "'Agua' means water."
+        },
+        {
+          "id": "q5",
+          "type": "true_false",
+          "question": "'Gracias' means 'you're welcome'.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "'Gracias' means 'thank you'. 'De nada' means 'you're welcome'."
+        }
+      ]
+    },
+    "final_review_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What does 'hoy' mean?",
+          "options": [
+            "Tomorrow",
+            "Today",
+            "Yesterday",
+            "Now"
+          ],
+          "correctAnswer": "Today",
+          "points": 1,
+          "explanation": "'Hoy' means today."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "How do you say 'to go' in Spanish?",
+          "options": [
+            "venir",
+            "ir",
+            "ver",
+            "escuchar"
+          ],
+          "correctAnswer": "ir",
+          "points": 1,
+          "explanation": "'Ir' means to go."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What is the Spanish word for 'school'?",
+          "options": [
+            "casa",
+            "tienda",
+            "escuela",
+            "hospital"
+          ],
+          "correctAnswer": "escuela",
+          "points": 1,
+          "explanation": "'Escuela' means school."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What does 'bueno' mean?",
+          "options": [
+            "Bad",
+            "Good",
+            "Big",
+            "Small"
+          ],
+          "correctAnswer": "Good",
+          "points": 1,
+          "explanation": "'Bueno' means good."
+        },
+        {
+          "id": "q5",
+          "type": "true_false",
+          "question": "'Ser' means 'to have'.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "'Ser' means 'to be'. 'Tener' means 'to have'."
+        },
+        {
+          "id": "q6",
+          "type": "multiple_choice",
+          "question": "What is the Spanish word for 'to study'?",
+          "options": [
+            "trabajar",
+            "estudiar",
+            "descansar",
+            "hablar"
+          ],
+          "correctAnswer": "estudiar",
+          "points": 1,
+          "explanation": "'Estudiar' means to study."
+        },
+        {
+          "id": "q7",
+          "type": "multiple_choice",
+          "question": "How do you say 'new' in Spanish?",
+          "options": [
+            "viejo",
+            "nuevo",
+            "grande",
+            "pequeño"
+          ],
+          "correctAnswer": "nuevo",
+          "points": 1,
+          "explanation": "'Nuevo' means new."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "spanish_starter",
+    "name": "Spanish Starter",
+    "description": "Completed the Spanish Starter track and learned 80+ essential vocabulary words."
+  }
+}
