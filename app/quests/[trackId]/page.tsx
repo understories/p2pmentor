@@ -679,8 +679,8 @@ export default function QuestDetailPage() {
               const pending = reconciliation.getStepStatus(step.stepId);
               const stepContent = quest.stepContent[step.stepId] || '';
 
-              const showSkillSuggestion = 
-                step.skillSuggestion &&
+              const showSkillSuggestion =
+                step.skillSuggestion !== undefined &&
                 progressData.completed &&
                 !dismissedSkillSuggestions.has(step.stepId);
 
@@ -697,7 +697,7 @@ export default function QuestDetailPage() {
                     onComplete={() => handleStepComplete(step.stepId, step.type)}
                   />
                   {/* Skill Suggestion Prompt */}
-                  {showSkillSuggestion && (
+                  {showSkillSuggestion && step.skillSuggestion && (
                     <SkillSuggestionPrompt
                       skillName={step.skillSuggestion.skillName}
                       skillId={step.skillSuggestion.skillId}
