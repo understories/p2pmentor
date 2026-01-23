@@ -95,7 +95,7 @@ export async function createQuizResult({
       { key: 'rubricVersion', value: rubricVersion },
       { key: 'spaceId', value: finalSpaceId },
       { key: 'createdAt', value: createdAt },
-      { key: 'passed', value: passed ? 'true' : 'false' },
+      { key: 'passed', value: String(passed) },
     ];
 
     // Build payload (non-queryable content)
