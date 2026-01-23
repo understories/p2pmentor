@@ -1,0 +1,267 @@
+{
+  "questId": "meta_learning",
+  "version": "1",
+  "track": "meta-learning",
+  "title": "Meta-Learning: Learn How to Learn",
+  "description": "Master evidence-based learning techniques: spaced repetition, deliberative practice, procedural learning, and active recall.",
+  "source": "Learning Sciences Research",
+  "estimatedDuration": "90 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "What is Meta-Learning?",
+      "description": "Introduction to learning how to learn.",
+      "contentFile": "steps/01-intro.md",
+      "duration": 10,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "Learning how to learn is the most valuable skill",
+        "body": "Once you master meta-learning, you can learn anything faster and more effectively."
+      }
+    },
+    {
+      "stepId": "memory",
+      "type": "READ",
+      "title": "Understanding Memory",
+      "description": "Learn how memory actually works.",
+      "contentFile": "steps/02-memory.md",
+      "duration": 10,
+      "order": 2,
+      "required": true,
+      "conceptCard": {
+        "title": "Memory is a process, not a storage",
+        "body": "Memory gets stronger through retrieval practice, spacing, and elaboration - not just exposure."
+      }
+    },
+    {
+      "stepId": "spaced-repetition",
+      "type": "DO",
+      "title": "Spaced Repetition",
+      "description": "Create a spaced repetition schedule for learning a concept.",
+      "contentFile": "steps/03-spaced-repetition.md",
+      "duration": 15,
+      "order": 3,
+      "required": true,
+      "actionConfig": {
+        "component": "SpacedRepetitionScheduler",
+        "requireSchedule": true
+      }
+    },
+    {
+      "stepId": "deliberative-practice",
+      "type": "READ",
+      "title": "Deliberative Practice",
+      "description": "Learn how experts get better through focused practice.",
+      "contentFile": "steps/04-deliberative-practice.md",
+      "duration": 10,
+      "order": 4,
+      "required": true,
+      "conceptCard": {
+        "title": "Deliberative practice beats passive learning",
+        "body": "Focused practice with feedback at the edge of your ability creates expertise faster than time alone."
+      }
+    },
+    {
+      "stepId": "practice-deliberative",
+      "type": "DO",
+      "title": "Practice Deliberative Practice",
+      "description": "Design a deliberative practice session for a skill.",
+      "contentFile": "steps/05-practice-deliberative.md",
+      "duration": 15,
+      "order": 5,
+      "required": true,
+      "actionConfig": {
+        "component": "DeliberativePracticePlanner",
+        "requirePlan": true
+      }
+    },
+    {
+      "stepId": "procedural-learning",
+      "type": "READ",
+      "title": "Procedural Learning",
+      "description": "Learn how skills become automatic through practice.",
+      "contentFile": "steps/06-procedural-learning.md",
+      "duration": 10,
+      "order": 6,
+      "required": true,
+      "conceptCard": {
+        "title": "Procedures become automatic through practice",
+        "body": "You can't learn to type by reading about typing - you have to type. Practice creates automaticity."
+      }
+    },
+    {
+      "stepId": "active-recall",
+      "type": "READ",
+      "title": "Active Recall",
+      "description": "Learn why testing yourself strengthens memory more than re-reading.",
+      "contentFile": "steps/07-active-recall.md",
+      "duration": 10,
+      "order": 7,
+      "required": true,
+      "conceptCard": {
+        "title": "Recall strengthens memory more than re-reading",
+        "body": "The struggle to retrieve information is what strengthens memory. Easy learning feels productive but doesn't stick."
+      }
+    },
+    {
+      "stepId": "practice-recall",
+      "type": "DO",
+      "title": "Practice Active Recall",
+      "description": "Create active recall questions for a topic.",
+      "contentFile": "steps/08-practice-recall.md",
+      "duration": 15,
+      "order": 8,
+      "required": true,
+      "actionConfig": {
+        "component": "ActiveRecallCreator",
+        "minQuestions": 5
+      }
+    },
+    {
+      "stepId": "learning-system",
+      "type": "SUBMIT",
+      "title": "Build Your Learning System",
+      "description": "Submit a learning system plan using techniques learned (optional).",
+      "contentFile": "steps/09-learning-system.md",
+      "duration": 15,
+      "order": 9,
+      "required": false,
+      "submitConfig": {
+        "acceptTypes": ["text", "json"],
+        "requireContext": true
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Knowledge Check",
+      "description": "Test your understanding of meta-learning principles.",
+      "duration": 10,
+      "order": 10,
+      "required": true,
+      "quizRubricId": "meta_learning_v1"
+    }
+  ],
+  "rubrics": {
+    "meta_learning_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What is the main principle of spaced repetition?",
+          "options": [
+            "Review immediately",
+            "Review at increasing intervals",
+            "Review everything daily",
+            "Review only when you forget"
+          ],
+          "correctAnswer": "Review at increasing intervals",
+          "points": 1,
+          "explanation": "Spaced repetition works by reviewing information at increasing intervals (1 day, 3 days, 1 week, etc.)"
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "What makes deliberative practice different from regular practice?",
+          "options": [
+            "It takes longer",
+            "It's focused on specific weaknesses with feedback",
+            "It's easier",
+            "It requires a teacher"
+          ],
+          "correctAnswer": "It's focused on specific weaknesses with feedback",
+          "points": 1,
+          "explanation": "Deliberative practice is goal-oriented, focused, and includes immediate feedback."
+        },
+        {
+          "id": "q3",
+          "type": "true_false",
+          "question": "True or False: Re-reading notes is more effective than testing yourself.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "Active recall (testing yourself) is more effective than passive re-reading, even though it feels harder."
+        },
+        {
+          "id": "q4",
+          "type": "multiple_choice",
+          "question": "What happens to information in the first hour after learning (according to the forgetting curve)?",
+          "options": [
+            "You remember 100%",
+            "You forget ~50%",
+            "You forget ~90%",
+            "Nothing happens"
+          ],
+          "correctAnswer": "You forget ~50%",
+          "points": 1,
+          "explanation": "The forgetting curve shows rapid initial forgetting - about 50% in the first hour."
+        },
+        {
+          "id": "q5",
+          "type": "multiple_choice",
+          "question": "What is procedural learning?",
+          "options": [
+            "Learning facts",
+            "Learning \"how to do\" something that becomes automatic",
+            "Learning concepts",
+            "Learning languages"
+          ],
+          "correctAnswer": "Learning \"how to do\" something that becomes automatic",
+          "points": 1,
+          "explanation": "Procedural learning is about skills that become automatic through practice (like typing or riding a bike)."
+        },
+        {
+          "id": "q6",
+          "type": "multiple_choice",
+          "question": "Why is active recall more effective than re-reading?",
+          "options": [
+            "It's easier",
+            "The struggle to retrieve strengthens memory",
+            "It takes less time",
+            "It's more fun"
+          ],
+          "correctAnswer": "The struggle to retrieve strengthens memory",
+          "points": 1,
+          "explanation": "The difficulty of retrieving information from memory is what strengthens the memory pathway."
+        },
+        {
+          "id": "q7",
+          "type": "multiple_choice",
+          "question": "What is the testing effect?",
+          "options": [
+            "Tests measure learning",
+            "Testing creates learning",
+            "Tests are stressful",
+            "Tests are inaccurate"
+          ],
+          "correctAnswer": "Testing creates learning",
+          "points": 1,
+          "explanation": "The testing effect shows that testing yourself doesn't just measure learning - it actually creates learning."
+        },
+        {
+          "id": "q8",
+          "type": "multiple_choice",
+          "question": "What should you focus on during deliberative practice?",
+          "options": [
+            "Easy tasks",
+            "Tasks at the edge of your ability",
+            "Tasks you've mastered",
+            "Random tasks"
+          ],
+          "correctAnswer": "Tasks at the edge of your ability",
+          "points": 1,
+          "explanation": "Deliberative practice requires pushing beyond your comfort zone to the edge of your ability."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "meta_learner",
+    "name": "Meta-Learner",
+    "description": "Completed the Meta-Learning track and demonstrated understanding of spaced repetition, deliberative practice, procedural learning, and active recall."
+  }
+}
