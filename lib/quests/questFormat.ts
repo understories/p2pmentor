@@ -108,6 +108,14 @@ export interface QuestStepDefinition {
     title: string;
     body: string;
   } | null;
+
+  // Skill linkage (Week 1 - Feb 1-7)
+  skillSuggestion?: {
+    skillName: string;
+    skillId?: string; // Optional: if skill already exists
+    proficiency?: number; // 1-5 proficiency level
+    message?: string; // Custom message to show user
+  };
 }
 
 /**
