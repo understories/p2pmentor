@@ -303,16 +303,13 @@ export default function QuestDetailPage() {
   };
 
   // Handle skill addition from quest completion
-  const handleAddSkillFromQuest = async (skillName: string, proficiency?: number) => {
+  const handleAddSkillFromQuest = async (skillName: string, stepId: string, proficiency?: number) => {
     if (!wallet || !quest) return;
 
-    // Find the current step that was just completed (most recent in progress)
-    const recentProgress = progress
-      .filter((p) => p.questId === quest.questId)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
-
-    if (!recentProgress) {
-      throw new Error('No recent step completion found');
+    // Find progress for this step
+    const stepProgress = progress.find((p) => p.stepId === stepId && p.questId === quest.questId);
+    if (!stepProgress) {
+      throw new Error('Step progress not found. Complete the step first.');
     }
 
     const res = await fetch('/api/skills/from-quest', {
@@ -321,10 +318,10 @@ export default function QuestDetailPage() {
       body: JSON.stringify({
         wallet,
         skillName,
-        stepId: recentProgress.stepId,
+        stepId,
         questId: quest.questId,
         proficiency,
-        progressEntityKey: recentProgress.key,
+        progressEntityKey: stepProgress.key,
       }),
     });
 
