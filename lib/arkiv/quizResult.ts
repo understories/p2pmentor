@@ -202,20 +202,27 @@ export async function getQuizResults({
           ? JSON.parse(new TextDecoder().decode(entity.payload))
           : {};
 
+        const walletAttr = entity.attributes.find((a) => a.key === 'wallet')?.value;
+        const questIdAttr = entity.attributes.find((a) => a.key === 'questId')?.value;
+        const stepIdAttr = entity.attributes.find((a) => a.key === 'stepId')?.value;
+        const rubricVersionAttr = entity.attributes.find((a) => a.key === 'rubricVersion')?.value;
+        const passedAttr = entity.attributes.find((a) => a.key === 'passed')?.value;
+        const createdAtAttr = entity.attributes.find((a) => a.key === 'createdAt')?.value;
+
         const quizResult: QuizResult = {
           key: entity.key,
-          wallet: entity.attributes.find((a) => a.key === 'wallet')?.value || '',
-          questId: entity.attributes.find((a) => a.key === 'questId')?.value || '',
-          stepId: entity.attributes.find((a) => a.key === 'stepId')?.value || '',
-          rubricVersion: entity.attributes.find((a) => a.key === 'rubricVersion')?.value || '',
+          wallet: typeof walletAttr === 'string' ? walletAttr : '',
+          questId: typeof questIdAttr === 'string' ? questIdAttr : '',
+          stepId: typeof stepIdAttr === 'string' ? stepIdAttr : '',
+          rubricVersion: typeof rubricVersionAttr === 'string' ? rubricVersionAttr : '',
           questionIds: payload.questionIds || [],
           answers: payload.answers || {},
           score: payload.score || 0,
           maxScore: payload.maxScore || 0,
           percentage: payload.percentage || 0,
-          passed: entity.attributes.find((a) => a.key === 'passed')?.value === 'true',
+          passed: passedAttr === 'true' || passedAttr === true,
           progressEntityKey: payload.progressEntityKey || '',
-          completedAt: payload.completedAt || entity.attributes.find((a) => a.key === 'createdAt')?.value || '',
+          completedAt: payload.completedAt || (typeof createdAtAttr === 'string' ? createdAtAttr : '') || '',
           spaceId: finalSpaceId,
           txHash: undefined, // Would need to query txhash entity to get this
         };
