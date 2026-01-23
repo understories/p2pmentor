@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         ok: true,
         badge: badge || null,
+        // Include entity info if badge exists (for Arkiv builder mode)
+        ...(badge && {
+          entityKey: badge.key,
+          txHash: badge.txHash,
+        }),
       });
     }
 
@@ -49,6 +54,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       badges,
+      // Include entity info for all badges (for Arkiv builder mode)
+      badgesWithEntityInfo: badges.map(badge => ({
+        badgeType: badge.badgeType,
+        entityKey: badge.key,
+        txHash: badge.txHash,
+      })),
     });
   } catch (error: any) {
     console.error('[/api/badges GET] Error:', error);
