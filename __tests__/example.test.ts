@@ -38,6 +38,7 @@ describe('Example Test Suite', () => {
   it('should verify boolean logic', () => {
     expect(true).toBe(true);
     expect(false).toBe(false);
-    expect(!!'truthy').toBe(true);
+    const truthyValue = 'truthy';
+    expect(!!truthyValue).toBe(true);
   });
 });
