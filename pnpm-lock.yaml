@@ -28,7 +28,7 @@ dependencies:
     version: 6.2.2
   next:
     specifier: ^15.5.9
-    version: 15.5.9(@babel/core@7.28.6)(@playwright/test@1.48.2)(react-dom@19.2.3)(react@19.2.3)
+    version: 15.5.9(@babel/core@7.28.6)(@playwright/test@1.51.1)(react-dom@19.2.3)(react@19.2.3)
   react:
     specifier: ^19.2.3
     version: 19.2.3
@@ -59,8 +59,8 @@ dependencies:
 
 devDependencies:
   '@playwright/test':
-    specifier: ^1.48.2
-    version: 1.48.2
+    specifier: ^1.51.1
+    version: 1.51.1
   '@simplewebauthn/typescript-types':
     specifier: ^8.3.4
     version: 8.3.4
@@ -1905,12 +1905,12 @@ packages:
     dev: true
     optional: true
 
-  /@playwright/test@1.48.2:
-    resolution: {integrity: sha512-54w1xCWfXuax7dz4W2M9uw0gDyh+ti/0K/MxcCUxChFh37kkdxPdfZDw5QBbuPUJHr1CiHJ1hXgSs+GgeQc5Zw==}
+  /@playwright/test@1.51.1:
+    resolution: {integrity: sha512-nM+kEaTSAoVlXmMPH10017vn3FSiFqr/bh4fKg9vmAdMfd9SDqRZNvPSiAHADc/itWak+qPvMPZQOPwCBW7k7Q==}
     engines: {node: '>=18'}
     hasBin: true
     dependencies:
-      playwright: 1.48.2
+      playwright: 1.51.1
 
   /@reown/appkit-common@1.8.11(typescript@5.7.2)(zod@3.22.4):
     resolution: {integrity: sha512-rRcxrah6uouqEo/VbniVH11Y3H27BsP+Psv2+Usic+3Rt4kiSImIyeDG1YBV0gZNmME9N3sXHK8Bt7iqkxdOWw==}
@@ -7080,7 +7080,7 @@ packages:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
 
-  /next@15.5.9(@babel/core@7.28.6)(@playwright/test@1.48.2)(react-dom@19.2.3)(react@19.2.3):
+  /next@15.5.9(@babel/core@7.28.6)(@playwright/test@1.51.1)(react-dom@19.2.3)(react@19.2.3):
     resolution: {integrity: sha512-agNLK89seZEtC5zUHwtut0+tNrc0Xw4FT/Dg+B/VLEo9pAcS9rtTKpek3V6kVcVwsB2YlqMaHdfZL4eLEVYuCg==}
     engines: {node: ^18.18.0 || ^19.8.0 || >= 20.0.0}
     hasBin: true
@@ -7102,7 +7102,7 @@ packages:
         optional: true
     dependencies:
       '@next/env': 15.5.9
-      '@playwright/test': 1.48.2
+      '@playwright/test': 1.51.1
       '@swc/helpers': 0.5.15
       caniuse-lite: 1.0.30001759
       postcss: 8.4.31
@@ -7511,17 +7511,17 @@ packages:
     engines: {node: '>= 6'}
     dev: true
 
-  /playwright-core@1.48.2:
-    resolution: {integrity: sha512-sjjw+qrLFlriJo64du+EK0kJgZzoQPsabGF4lBvsid+3CNIZIYLgnMj9V6JY5VhM2Peh20DJWIVpVljLLnlawA==}
+  /playwright-core@1.51.1:
+    resolution: {integrity: sha512-/crRMj8+j/Nq5s8QcvegseuyeZPxpQCZb6HNk3Sos3BlZyAknRjoyJPFWkpNn8v0+P3WiwqFF8P+zQo4eqiNuw==}
     engines: {node: '>=18'}
     hasBin: true
 
-  /playwright@1.48.2:
-    resolution: {integrity: sha512-NjYvYgp4BPmiwfe31j4gHLa3J7bD2WiBz8Lk2RoSsmX38SVIARZ18VYjxLjAcDsAhA+F4iSEXTSGgjua0rrlgQ==}
+  /playwright@1.51.1:
+    resolution: {integrity: sha512-kkx+MB2KQRkyxjYPc3a0wLZZoDczmppyGJIvQ43l+aZihkaVvmu/21kiyaHeHjiFxjxNNFnUncKmcGIyOojsaw==}
     engines: {node: '>=18'}
     hasBin: true
     dependencies:
-      playwright-core: 1.48.2
+      playwright-core: 1.51.1
     optionalDependencies:
       fsevents: 2.3.2
 
