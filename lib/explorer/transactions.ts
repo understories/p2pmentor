@@ -33,7 +33,10 @@ export interface TransactionHistoryItem {
  * Get transaction history for a profile (by wallet)
  * Profiles use Pattern B (update in place), so we query all profile entities for the wallet
  */
-export async function getProfileTransactionHistory(wallet: string, spaceId?: string): Promise<TransactionHistoryItem[]> {
+export async function getProfileTransactionHistory(
+  wallet: string,
+  spaceId?: string
+): Promise<TransactionHistoryItem[]> {
   try {
     const profiles = await listUserProfilesForWallet(wallet.toLowerCase(), spaceId || SPACE_ID);
 
@@ -85,10 +88,12 @@ export async function getEntityTransactionHistory(
     const txHashType = `${entityType}_txhash`;
 
     // Determine the attribute key based on entity type
-    const entityKeyAttr = entityType === 'ask' ? 'askKey' : entityType === 'offer' ? 'offerKey' : 'skillKey';
+    const entityKeyAttr =
+      entityType === 'ask' ? 'askKey' : entityType === 'offer' ? 'offerKey' : 'skillKey';
 
     // Query all txhash entities for this entity key
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', txHashType))
       .where(eq(entityKeyAttr, entityKey))
       .withAttributes(true)
@@ -107,11 +112,12 @@ export async function getEntityTransactionHistory(
       let txHash: string | null = null;
       try {
         if (txHashEntity.payload) {
-          const decoded = txHashEntity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(txHashEntity.payload)
-            : typeof txHashEntity.payload === 'string'
-            ? txHashEntity.payload
-            : JSON.stringify(txHashEntity.payload);
+          const decoded =
+            txHashEntity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(txHashEntity.payload)
+              : typeof txHashEntity.payload === 'string'
+                ? txHashEntity.payload
+                : JSON.stringify(txHashEntity.payload);
           const payload = JSON.parse(decoded);
           txHash = payload.txHash || null;
         }
@@ -129,6 +135,7 @@ export async function getEntityTransactionHistory(
       const attrs = txHashEntity.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const attr = attrs.find((a: any) => a.key === key);
           return String(attr?.value || '');
         }
@@ -195,18 +202,23 @@ export async function getAllTransactions(params?: {
 
     // When spaceId is undefined (meaning "all spaces"), query all known spaces
     // Arkiv doesn't support OR queries, so we query each space separately and combine
-    const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsjan26', 'test'];
-    const spaceIdsToQuery = params?.spaceId 
-      ? [params.spaceId] 
-      : params?.spaceIds || allSpaceIds;
+    const allSpaceIds = [
+      'beta-launch',
+      'local-dev',
+      'local-dev-seed',
+      'nsfeb26',
+      'nsjan26',
+      'test',
+    ];
+    const spaceIdsToQuery = params?.spaceId ? [params.spaceId] : params?.spaceIds || allSpaceIds;
 
     // Query each space separately and combine results
     // IMPORTANT: Create a new query builder for each space (query builders are stateful)
-    const queryPromises = spaceIdsToQuery.map(spaceId => {
+    const queryPromises = spaceIdsToQuery.map((spaceId) => {
       const query = publicClient.buildQuery();
       let queryBuilder = query.where(eq('type', 'tx_event'));
       queryBuilder = queryBuilder.where(eq('space_id', spaceId));
-      
+
       // Apply other filters to each query
       if (params?.entityType) {
         queryBuilder = queryBuilder.where(eq('entity_type', params.entityType));
@@ -229,14 +241,16 @@ export async function getAllTransactions(params?: {
     });
 
     const results = await Promise.all(queryPromises);
-    
+
     // Log results from each space for debugging
     results.forEach((result, index) => {
       const spaceId = spaceIdsToQuery[index];
       const entityCount = result?.entities?.length || 0;
-      console.log(`[getAllTransactions] Space '${spaceId}': ${entityCount} tx_event entities found`);
+      console.log(
+        `[getAllTransactions] Space '${spaceId}': ${entityCount} tx_event entities found`
+      );
     });
-    
+
     // Combine all results into a single array
     // Defensive: validate result structure before accessing entities
     const allEntities = results.flatMap((result, index) => {
@@ -245,16 +259,22 @@ export async function getAllTransactions(params?: {
         console.log(`[getAllTransactions] Space '${spaceId}': Invalid result structure`);
         return [];
       }
-      console.log(`[getAllTransactions] Space '${spaceId}': Combining ${result.entities.length} entities`);
+      console.log(
+        `[getAllTransactions] Space '${spaceId}': Combining ${result.entities.length} entities`
+      );
       return result.entities;
     });
 
     if (!allEntities || allEntities.length === 0) {
-      console.log(`[getAllTransactions] No entities returned from ${spaceIdsToQuery.length} space query(ies) after combination`);
+      console.log(
+        `[getAllTransactions] No entities returned from ${spaceIdsToQuery.length} space query(ies) after combination`
+      );
       return { transactions: [], nextCursor: null, total: 0 };
     }
 
-    console.log(`[getAllTransactions] Combined ${allEntities.length} tx_event entities from ${spaceIdsToQuery.length} space(s) before filtering`);
+    console.log(
+      `[getAllTransactions] Combined ${allEntities.length} tx_event entities from ${spaceIdsToQuery.length} space(s) before filtering`
+    );
 
     // Handle cursor for pagination
     let startIndex = 0;
@@ -280,6 +300,7 @@ export async function getAllTransactions(params?: {
       const attrs = txEvent.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const attr = attrs.find((a: any) => a.key === key);
           return String(attr?.value || '');
         }
@@ -308,7 +329,7 @@ export async function getAllTransactions(params?: {
         }
         // If signerWallet is empty/missing, include it (old entity, backward compatibility)
       }
-      
+
       entitiesBySpace[entitySpaceId].afterSignerFilter++;
 
       const txHash = getAttr('txhash');
@@ -328,15 +349,16 @@ export async function getAllTransactions(params?: {
       let entityLabel: string | undefined;
       try {
         if (txEvent.payload) {
-          const decoded = txEvent.payload instanceof Uint8Array
-            ? new TextDecoder().decode(txEvent.payload)
-            : typeof txEvent.payload === 'string'
-            ? txEvent.payload
-            : JSON.stringify(txEvent.payload);
+          const decoded =
+            txEvent.payload instanceof Uint8Array
+              ? new TextDecoder().decode(txEvent.payload)
+              : typeof txEvent.payload === 'string'
+                ? txEvent.payload
+                : JSON.stringify(txEvent.payload);
           const payload = JSON.parse(decoded);
           entityLabel = payload.entity_label;
         }
-      } catch (e) {
+      } catch {
         // Ignore payload decode errors
       }
 
@@ -351,7 +373,8 @@ export async function getAllTransactions(params?: {
         explorerTxUrl: getArkivExplorerTxUrl(txHash),
         explorerEntityUrl,
         createdAt,
-        operation: operation === 'create' ? 'create' : operation === 'update' ? 'update' : undefined,
+        operation:
+          operation === 'create' ? 'create' : operation === 'update' ? 'update' : undefined,
         // Additional context for human legibility
         entityType: entityType || undefined,
         entityKey: entityKey || undefined,
@@ -361,7 +384,9 @@ export async function getAllTransactions(params?: {
       });
     }
 
-    console.log(`[getAllTransactions] After filtering: ${allTransactions.length} transactions (filtered by signer: ${filteredBySigner}, missing txhash: ${missingTxHash})`);
+    console.log(
+      `[getAllTransactions] After filtering: ${allTransactions.length} transactions (filtered by signer: ${filteredBySigner}, missing txhash: ${missingTxHash})`
+    );
 
     // Sort by createdAt descending (most recent first)
     allTransactions.sort((a, b) => {
@@ -417,4 +442,3 @@ export async function getAllTransactions(params?: {
     return { transactions: [], nextCursor: null, total: 0 };
   }
 }
-

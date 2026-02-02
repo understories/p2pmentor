@@ -119,6 +119,7 @@ export function AllTransactionsList({
 
   useEffect(() => {
     fetchTransactions(null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId, entityType, status, search]);
 
   const loadMore = () => {
@@ -189,19 +190,19 @@ export function AllTransactionsList({
     switch (status) {
       case 'success':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+          <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
             Success
           </span>
         );
       case 'failed':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
+          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200">
             Failed
           </span>
         );
       case 'pending':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+          <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
             Pending
           </span>
         );
@@ -218,18 +219,16 @@ export function AllTransactionsList({
       offer: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200',
       skill: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200',
     };
-    const color = colors[entityType as keyof typeof colors] || 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
-    return (
-      <span className={`px-2 py-0.5 text-xs font-medium rounded ${color}`}>
-        {entityType}
-      </span>
-    );
+    const color =
+      colors[entityType as keyof typeof colors] ||
+      'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200';
+    return <span className={`rounded px-2 py-0.5 text-xs font-medium ${color}`}>{entityType}</span>;
   };
 
   const getOperationBadge = (operation?: string) => {
     if (!operation) return null;
     return (
-      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+      <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
         {operation === 'create' ? 'Created' : operation === 'update' ? 'Updated' : 'Write'}
       </span>
     );
@@ -254,11 +253,7 @@ export function AllTransactionsList({
   if (error) {
     return (
       <div className="py-8">
-        <EmptyState
-          icon="⚠️"
-          title="Failed to load transactions"
-          description={error}
-        />
+        <EmptyState icon="⚠️" title="Failed to load transactions" description={error} />
       </div>
     );
   }
@@ -271,12 +266,13 @@ export function AllTransactionsList({
           <select
             value={spaceId}
             onChange={(e) => handleSpaceIdChange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 transition-all focus:border-blue-500 focus:shadow-sm focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="all">All Spaces</option>
             <option value="beta-launch">Beta Launch</option>
             <option value="local-dev">Local Dev</option>
             <option value="local-dev-seed">Local Dev Seed</option>
+            <option value="nsfeb26">nsfeb26</option>
             <option value="nsjan26">nsjan26</option>
           </select>
         </div>
@@ -286,8 +282,8 @@ export function AllTransactionsList({
             title="Human-legible transactions currently being implemented"
             description={
               search || entityType !== 'all' || status !== 'all' || spaceId !== 'all'
-              ? 'No transactions match your filters. Try adjusting your search or filters. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
-              : 'Human-legible transactions currently being implemented. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
+                ? 'No transactions match your filters. Try adjusting your search or filters. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
+                : 'Human-legible transactions currently being implemented. See raw blockchain data by clicking "View on Arkiv Explorer" above.'
             }
           />
         </div>
@@ -303,13 +299,13 @@ export function AllTransactionsList({
   return (
     <div className="space-y-4">
       {/* Header with Arkiv Explorer Link and SpaceId Filter */}
-      <div className="mb-6 flex items-center justify-between gap-4 flex-wrap">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
         {arkivExplorerAddressUrl && (
           <a
             href={arkivExplorerAddressUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-700 rounded-lg bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-100 hover:text-blue-800 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:bg-blue-900/30 dark:hover:text-blue-300"
           >
             🔗 Verify on Arkiv Explorer
           </a>
@@ -317,18 +313,19 @@ export function AllTransactionsList({
         <select
           value={spaceId}
           onChange={(e) => handleSpaceIdChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 transition-all focus:border-blue-500 focus:shadow-sm focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="all">All Spaces</option>
           <option value="beta-launch">Beta Launch</option>
           <option value="local-dev">Local Dev</option>
           <option value="local-dev-seed">Local Dev Seed</option>
+          <option value="nsfeb26">nsfeb26</option>
           <option value="nsjan26">nsjan26</option>
         </select>
       </div>
       {/* Filter note if status filtering is applied */}
       {filtered && (
-        <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+        <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 text-sm text-yellow-800 dark:border-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200">
           Status filtering is best-effort within page window. Results may be fewer than requested.
         </div>
       )}
@@ -338,19 +335,19 @@ export function AllTransactionsList({
         const entityLink = getEntityLink(tx);
         // Arkiv contract address (standard for entity writes)
         const arkivContractAddress = '0x0000000000000000000000000000000000006976';
-        
+
         return (
           <div
             key={tx.txHash}
-            className="p-5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:shadow-md transition-shadow"
+            className="rounded-lg border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md dark:border-gray-700 dark:bg-gray-800"
           >
             {/* Header: Status, Transaction Hash, Timestamp */}
-            <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
-              <div className="flex items-center gap-2 flex-wrap">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center gap-2">
                 {/* Status Badge */}
                 {getStatusBadge(tx.status)}
                 {/* Transaction Label */}
-                <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200 rounded">
+                <span className="rounded bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-200">
                   Transaction
                 </span>
                 {/* Transaction Hash */}
@@ -358,7 +355,7 @@ export function AllTransactionsList({
                   <span className="text-gray-400 dark:text-gray-500">↔</span>
                   <button
                     onClick={() => copyToClipboard(tx.txHash, 'transaction hash')}
-                    className="text-sm font-mono text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                    className="font-mono text-sm text-gray-900 hover:text-blue-600 hover:underline dark:text-gray-100 dark:hover:text-blue-400"
                     title="Click to copy"
                   >
                     {formatTxHash(tx.txHash)}
@@ -373,49 +370,52 @@ export function AllTransactionsList({
 
             {/* Block Information */}
             {tx.blockNumber && (
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                 Block {tx.blockNumber}
-                {tx.spaceId && (
-                  <span className="ml-2">· Space: {tx.spaceId}</span>
-                )}
+                {tx.spaceId && <span className="ml-2">· Space: {tx.spaceId}</span>}
               </div>
             )}
 
             {/* From/To Addresses */}
-            <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-              <div className="flex items-center gap-3 flex-wrap">
+            <div className="mb-4 rounded-lg bg-gray-50 p-3 dark:bg-gray-900/50">
+              <div className="flex flex-wrap items-center gap-3">
                 {/* From Address */}
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-blue-400 flex-shrink-0" />
+                  <div className="h-6 w-6 flex-shrink-0 rounded-full bg-gradient-to-br from-red-400 to-blue-400" />
                   <button
                     onClick={() => copyToClipboard(CURRENT_WALLET || '', 'from address')}
-                    className="text-sm font-mono text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    className="font-mono text-sm text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                     title="Click to copy"
                   >
                     {CURRENT_WALLET ? formatAddress(CURRENT_WALLET) : 'N/A'}
                   </button>
                 </div>
                 {/* Arrow */}
-                <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-                  <span className="text-white text-xs">→</span>
+                <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-orange-500">
+                  <span className="text-xs text-white">→</span>
                 </div>
                 {/* To Address (Arkiv Contract) */}
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-red-400 to-blue-400 flex-shrink-0" />
+                  <div className="h-6 w-6 flex-shrink-0 rounded-full bg-gradient-to-br from-red-400 to-blue-400" />
                   <button
                     onClick={() => copyToClipboard(arkivContractAddress, 'to address')}
-                    className="text-sm font-mono text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
+                    className="font-mono text-sm text-gray-700 hover:text-blue-600 dark:text-gray-300 dark:hover:text-blue-400"
                     title="Click to copy"
                   >
                     {formatAddress(arkivContractAddress)}
                   </button>
                   <button
                     onClick={() => copyToClipboard(arkivContractAddress, 'to address')}
-                    className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
                     title="Copy address"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -423,27 +423,49 @@ export function AllTransactionsList({
             </div>
 
             {/* Transaction Details */}
-            <div className="mb-4 text-sm text-gray-600 dark:text-gray-400 space-y-1">
-              <div>Value: <span className="font-medium text-gray-900 dark:text-gray-100">0 GLM</span></div>
+            <div className="mb-4 space-y-1 text-sm text-gray-600 dark:text-gray-400">
+              <div>
+                Value: <span className="font-medium text-gray-900 dark:text-gray-100">0 GLM</span>
+              </div>
             </div>
 
             {/* Entity Context (p2pmentor-native) */}
             {(tx.entityLabel || tx.entityType) && (
-              <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
                   {getOperationBadge(tx.operation)}
                   {getEntityTypeBadge(tx.entityType)}
                 </div>
                 {entityLink ? (
                   <Link
                     href={entityLink}
-                    className="font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"
+                    className="font-semibold text-gray-900 hover:text-blue-600 hover:underline dark:text-gray-100 dark:hover:text-blue-400"
                   >
-                    {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
+                    {tx.operation === 'create'
+                      ? 'Created'
+                      : tx.operation === 'update'
+                        ? 'Updated'
+                        : 'Wrote'}{' '}
+                    {tx.entityType || 'entity'}
+                    {tx.entityLabel
+                      ? `: ${tx.entityLabel}`
+                      : tx.entityKey
+                        ? ` (${tx.entityKey.slice(0, 8)}...)`
+                        : ''}
                   </Link>
                 ) : (
                   <span className="font-semibold text-gray-900 dark:text-gray-100">
-                    {tx.operation === 'create' ? 'Created' : tx.operation === 'update' ? 'Updated' : 'Wrote'} {tx.entityType || 'entity'}{tx.entityLabel ? `: ${tx.entityLabel}` : tx.entityKey ? ` (${tx.entityKey.slice(0, 8)}...)` : ''}
+                    {tx.operation === 'create'
+                      ? 'Created'
+                      : tx.operation === 'update'
+                        ? 'Updated'
+                        : 'Wrote'}{' '}
+                    {tx.entityType || 'entity'}
+                    {tx.entityLabel
+                      ? `: ${tx.entityLabel}`
+                      : tx.entityKey
+                        ? ` (${tx.entityKey.slice(0, 8)}...)`
+                        : ''}
                   </span>
                 )}
                 {tx.wallet && (
@@ -455,11 +477,11 @@ export function AllTransactionsList({
             )}
 
             {/* View on Arkiv Link */}
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
               <ViewOnArkivLink
                 txHash={tx.txHash}
                 label="View transaction on Arkiv Explorer"
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-sm text-blue-600 hover:underline dark:text-blue-400"
               />
             </div>
           </div>
@@ -472,7 +494,7 @@ export function AllTransactionsList({
           <button
             onClick={loadMore}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             {loading ? 'Loading...' : 'Load More'}
           </button>
@@ -481,4 +503,3 @@ export function AllTransactionsList({
     </div>
   );
 }
-

@@ -26,8 +26,12 @@ interface Match {
 }
 
 export default function LitePage() {
-  const [spaceId, setSpaceId] = useState<string>('nsjan26'); // Default spaceId
-  const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>(['nsjan26', 'test']); // Available space IDs (for backward compatibility)
+  const [spaceId, setSpaceId] = useState<string>('nsfeb26'); // Default spaceId
+  const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>([
+    'nsfeb26',
+    'nsjan26',
+    'test',
+  ]); // Available space IDs (for backward compatibility)
   const [spaceIdMetadata, setSpaceIdMetadata] = useState<SpaceIdMetadata[]>([]); // Space IDs with metadata
   const [spaceIdFilter, setSpaceIdFilter] = useState<'all' | 'p2pmentor' | 'network'>('all');
   const [showCreateNewSpaceId, setShowCreateNewSpaceId] = useState(false);
@@ -62,6 +66,7 @@ export default function LitePage() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [spaceId]); // Reload data when spaceId changes
 
   // Load available space IDs from network and localStorage on mount and when filter changes
@@ -96,16 +101,23 @@ export default function LitePage() {
           ok: data.ok,
           count: data.spaceIds?.length || 0,
           filter: spaceIdFilter,
-          spaceIds: data.spaceIds?.map((s: any) => typeof s === 'string' ? s : s.spaceId) || [],
+          spaceIds:
+            data.spaceIds?.map((s: SpaceIdMetadata | string) =>
+              typeof s === 'string' ? s : s.spaceId
+            ) || [],
           firstItem: data.spaceIds?.[0] || null,
         });
         if (data.ok && Array.isArray(data.spaceIds)) {
           // Check if it's the new format (with metadata) or old format (simple array)
-          if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
+          if (
+            data.spaceIds.length > 0 &&
+            typeof data.spaceIds[0] === 'object' &&
+            'spaceId' in data.spaceIds[0]
+          ) {
             networkMetadata = data.spaceIds as SpaceIdMetadata[];
           } else {
             // Old format: convert to metadata format
-            networkMetadata = (data.spaceIds as string[]).map(id => ({
+            networkMetadata = (data.spaceIds as string[]).map((id) => ({
               spaceId: id,
               askCount: 0,
               offerCount: 0,
@@ -119,7 +131,7 @@ export default function LitePage() {
       } catch (err) {
         console.error('Error fetching space IDs from network:', err);
         // Fallback to localStorage if network fails
-        networkMetadata = localStorageSpaceIds.map(id => ({
+        networkMetadata = localStorageSpaceIds.map((id) => ({
           spaceId: id,
           askCount: 0,
           offerCount: 0,
@@ -134,12 +146,12 @@ export default function LitePage() {
       const filteredMap = new Map<string, SpaceIdMetadata>();
 
       // Add network space IDs (filtered by API)
-      networkMetadata.forEach(meta => filteredMap.set(meta.spaceId, meta));
+      networkMetadata.forEach((meta) => filteredMap.set(meta.spaceId, meta));
 
       // If filter is "all", also merge with localStorage (backward compatibility)
       // Otherwise, only show filtered results
       if (spaceIdFilter === 'all') {
-        localStorageSpaceIds.forEach(id => {
+        localStorageSpaceIds.forEach((id) => {
           if (!filteredMap.has(id)) {
             filteredMap.set(id, {
               spaceId: id,
@@ -174,20 +186,27 @@ export default function LitePage() {
       console.log('[loadSpaceIds] Final filtered array:', {
         filter: spaceIdFilter,
         count: filteredArray.length,
-        spaceIds: filteredArray.map(m => m.spaceId),
-        metadata: filteredArray.map(m => ({ id: m.spaceId, isP2pmentor: m.isP2pmentorSpace, total: m.totalEntities })),
+        spaceIds: filteredArray.map((m) => m.spaceId),
+        metadata: filteredArray.map((m) => ({
+          id: m.spaceId,
+          isP2pmentor: m.isP2pmentorSpace,
+          total: m.totalEntities,
+        })),
         willUpdateDropdown: true,
       });
-      console.log('[loadSpaceIds] Setting availableSpaceIds to:', filteredArray.map(m => m.spaceId));
+      console.log(
+        '[loadSpaceIds] Setting availableSpaceIds to:',
+        filteredArray.map((m) => m.spaceId)
+      );
 
       // Update state
       setSpaceIdMetadata(filteredArray);
-      setAvailableSpaceIds(filteredArray.map(m => m.spaceId));
+      setAvailableSpaceIds(filteredArray.map((m) => m.spaceId));
 
       // Update localStorage with all space IDs (not just filtered) for cache
       // Only update if filter is "all" to avoid polluting cache with filtered results
       if (spaceIdFilter === 'all') {
-        localStorage.setItem('lite_space_ids', JSON.stringify(filteredArray.map(m => m.spaceId)));
+        localStorage.setItem('lite_space_ids', JSON.stringify(filteredArray.map((m) => m.spaceId)));
       }
     };
 
@@ -227,8 +246,8 @@ export default function LitePage() {
         setLoading(true);
       }
       const [asksRes, offersRes] = await Promise.all([
-        fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
-        fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
+        fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then((r) => r.json()),
+        fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then((r) => r.json()),
       ]);
 
       if (asksRes.ok) {
@@ -255,11 +274,15 @@ export default function LitePage() {
       if (data.ok && Array.isArray(data.spaceIds)) {
         // Check if it's the new format (with metadata) or old format (simple array)
         let networkMetadata: SpaceIdMetadata[];
-        if (data.spaceIds.length > 0 && typeof data.spaceIds[0] === 'object' && 'spaceId' in data.spaceIds[0]) {
+        if (
+          data.spaceIds.length > 0 &&
+          typeof data.spaceIds[0] === 'object' &&
+          'spaceId' in data.spaceIds[0]
+        ) {
           networkMetadata = data.spaceIds as SpaceIdMetadata[];
         } else {
           // Old format: convert to metadata format
-          networkMetadata = (data.spaceIds as string[]).map(id => ({
+          networkMetadata = (data.spaceIds as string[]).map((id) => ({
             spaceId: id,
             askCount: 0,
             offerCount: 0,
@@ -272,7 +295,7 @@ export default function LitePage() {
 
         // Build filtered list (respect current filter)
         const filteredMap = new Map<string, SpaceIdMetadata>();
-        networkMetadata.forEach(meta => filteredMap.set(meta.spaceId, meta));
+        networkMetadata.forEach((meta) => filteredMap.set(meta.spaceId, meta));
 
         // If filter is "all", merge with localStorage
         if (spaceIdFilter === 'all' && typeof window !== 'undefined') {
@@ -296,7 +319,7 @@ export default function LitePage() {
                 });
               }
             }
-          } catch (err) {
+          } catch {
             // Ignore localStorage errors
           }
         }
@@ -316,11 +339,11 @@ export default function LitePage() {
 
         const filtered = Array.from(filteredMap.values());
         setSpaceIdMetadata(filtered);
-        setAvailableSpaceIds(filtered.map(m => m.spaceId));
+        setAvailableSpaceIds(filtered.map((m) => m.spaceId));
 
         // Update localStorage only if filter is "all"
         if (spaceIdFilter === 'all' && typeof window !== 'undefined') {
-          localStorage.setItem('lite_space_ids', JSON.stringify(filtered.map(m => m.spaceId)));
+          localStorage.setItem('lite_space_ids', JSON.stringify(filtered.map((m) => m.spaceId)));
         }
       }
     } catch (err) {
@@ -342,18 +365,18 @@ export default function LitePage() {
       // Wait before checking (exponential backoff)
       if (attempt > 0) {
         const delay = initialDelay * Math.pow(1.5, attempt - 1);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
       // Load data without showing full loading state
       try {
         const [asksRes, offersRes] = await Promise.all([
-          fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
-          fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then(r => r.json()),
+          fetch(`/api/lite/asks?spaceId=${encodeURIComponent(spaceId)}`).then((r) => r.json()),
+          fetch(`/api/lite/offers?spaceId=${encodeURIComponent(spaceId)}`).then((r) => r.json()),
         ]);
 
-        const currentAsks = asksRes.ok ? (asksRes.asks || []) : [];
-        const currentOffers = offersRes.ok ? (offersRes.offers || []) : [];
+        const currentAsks = asksRes.ok ? asksRes.asks || [] : [];
+        const currentOffers = offersRes.ok ? offersRes.offers || [] : [];
 
         // Update state
         setAsks(currentAsks);
@@ -378,8 +401,8 @@ export default function LitePage() {
   const computeMatches = (asksList: LiteAsk[], offersList: LiteOffer[]) => {
     const matchesList: Match[] = [];
 
-    asksList.forEach(ask => {
-      offersList.forEach(offer => {
+    asksList.forEach((ask) => {
+      offersList.forEach((offer) => {
         // Match if same skill/topic (case-insensitive, trimmed) and different Discord handles
         if (
           ask.skill.toLowerCase().trim() === offer.skill.toLowerCase().trim() &&
@@ -470,9 +493,9 @@ export default function LitePage() {
         }
 
         // Poll for the new ask to appear
-        const found = await pollForNewData((currentAsks, currentOffers) => {
+        const found = await pollForNewData((currentAsks, _currentOffers) => {
           return currentAsks.some(
-            ask =>
+            (ask) =>
               ask.name === submittedName &&
               ask.skill === submittedSkill &&
               ask.discordHandle === submittedDiscordHandle
@@ -491,9 +514,9 @@ export default function LitePage() {
       } else {
         setError(data.error || 'Failed to create ask');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating ask:', err);
-      setError(err.message || 'Failed to create ask');
+      setError(err instanceof Error ? err.message : 'Failed to create ask');
     } finally {
       setSubmitting(false);
     }
@@ -542,7 +565,7 @@ export default function LitePage() {
         // Poll for the new offer to appear
         const found = await pollForNewData((currentAsks, currentOffers) => {
           return currentOffers.some(
-            offer =>
+            (offer) =>
               offer.name === submittedName &&
               offer.skill === submittedSkill &&
               offer.discordHandle === submittedDiscordHandle
@@ -561,9 +584,9 @@ export default function LitePage() {
       } else {
         setError(data.error || 'Failed to create offer');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error creating offer:', err);
-      setError(err.message || 'Failed to create offer');
+      setError(err instanceof Error ? err.message : 'Failed to create offer');
     } finally {
       setSubmitting(false);
     }
@@ -585,7 +608,7 @@ export default function LitePage() {
 
   const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     const now = Date.now();
     const remaining = expires - now;
 
@@ -608,8 +631,8 @@ export default function LitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm pb-24 md:pb-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 pb-24 text-gray-900 backdrop-blur-sm dark:text-gray-100 md:pb-4">
+        <div className="mx-auto max-w-4xl">
           <PageHeader
             title="Mentorship Matching: Ask & Offer Board"
             description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
@@ -620,18 +643,21 @@ export default function LitePage() {
     );
   }
 
-    return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 backdrop-blur-sm pb-24 md:pb-4">
-        <div className="max-w-4xl mx-auto">
-          <PageHeader
-            title="Mentorship Matching: Ask & Offer Board"
-            description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
-          />
+  return (
+    <div className="min-h-screen p-4 pb-24 text-gray-900 backdrop-blur-sm dark:text-gray-100 md:pb-4">
+      <div className="mx-auto max-w-4xl">
+        <PageHeader
+          title="Mentorship Matching: Ask & Offer Board"
+          description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
+        />
 
         {/* Space ID Selector */}
-        <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between mb-2">
-            <label htmlFor="spaceId" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-2 flex items-center justify-between">
+            <label
+              htmlFor="spaceId"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Space ID
             </label>
             <select
@@ -642,7 +668,7 @@ export default function LitePage() {
                 setSpaceIdFilter(filter);
                 // useEffect will handle reloading space IDs when spaceIdFilter changes
               }}
-              className="px-3 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-xs text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="all">All Spaces</option>
               <option value="p2pmentor">p2pmentor Spaces</option>
@@ -663,13 +689,14 @@ export default function LitePage() {
                 setSpaceId(value);
               }
             }}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           >
             {availableSpaceIds.map((id) => {
-              const metadata = spaceIdMetadata.find(m => m.spaceId === id);
-              const displayText = metadata && metadata.totalEntities > 0
-                ? `${id} (${metadata.totalEntities} ${metadata.totalEntities === 1 ? 'entity' : 'entities'})`
-                : id;
+              const metadata = spaceIdMetadata.find((m) => m.spaceId === id);
+              const displayText =
+                metadata && metadata.totalEntities > 0
+                  ? `${id} (${metadata.totalEntities} ${metadata.totalEntities === 1 ? 'entity' : 'entities'})`
+                  : id;
               return (
                 <option key={id} value={id}>
                   {displayText}
@@ -686,7 +713,7 @@ export default function LitePage() {
                 value={newSpaceIdInput}
                 onChange={(e) => setNewSpaceIdInput(e.target.value.trim())}
                 placeholder="Enter new space ID"
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && newSpaceIdInput) {
                     handleCreateNewSpaceId();
@@ -696,7 +723,7 @@ export default function LitePage() {
               <button
                 onClick={handleCreateNewSpaceId}
                 disabled={!newSpaceIdInput}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               >
                 Create
               </button>
@@ -709,8 +736,8 @@ export default function LitePage() {
         </div>
 
         {/* Arkiv Explanation */}
-        <div className="mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <p className="text-gray-700 dark:text-gray-300 text-sm">
+        <div className="mb-8 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+          <p className="text-sm text-gray-700 dark:text-gray-300">
             All data you enter here is stored on the Arkiv network for 30 days.
             <br />
             This means it is visible and verifiable on their{' '}
@@ -718,7 +745,7 @@ export default function LitePage() {
               href="http://explorer.mendoza.hoodi.arkiv.network/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+              className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               Arkiv explorer
             </a>
@@ -727,17 +754,17 @@ export default function LitePage() {
               href="/explorer"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+              className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               p2pmentor explorer here
-            </a>
-            {' '}to demonstrate this. <strong>In other words, your data is not private.</strong>
+            </a>{' '}
+            to demonstrate this. <strong>In other words, your data is not private.</strong>
             <br />
             <a
               href="https://p2pmentor.com/docs/user-flows/lite-version"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 underline"
+              className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
             >
               Learn more about the Lite Version here
             </a>
@@ -753,8 +780,8 @@ export default function LitePage() {
           <Alert type="success" message={success} onClose={() => setSuccess('')} className="mb-4" />
         )}
         {polling && (
-          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400 text-sm">
+          <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/30">
+            <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-400">
               <LoadingSpinner text="" className="py-0" />
               <span>Waiting for transaction to be indexed on the blockchain...</span>
             </div>
@@ -766,16 +793,16 @@ export default function LitePage() {
           {!showCreateAskForm ? (
             <button
               onClick={() => setShowCreateAskForm(true)}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+              className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
             >
               📝 Create Ask
             </button>
           ) : (
-            <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold mb-4">Create Ask</h2>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 text-xl font-semibold">Create Ask</h2>
               <form onSubmit={handleCreateAsk} className="space-y-4">
                 <div>
-                  <label htmlFor="ask-name" className="block text-sm font-medium mb-2">
+                  <label htmlFor="ask-name" className="mb-2 block text-sm font-medium">
                     Name *
                   </label>
                   <input
@@ -785,11 +812,11 @@ export default function LitePage() {
                     onChange={(e) => setNewAsk({ ...newAsk, name: e.target.value })}
                     maxLength={100}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="ask-discord" className="block text-sm font-medium mb-2">
+                  <label htmlFor="ask-discord" className="mb-2 block text-sm font-medium">
                     Discord Handle *
                   </label>
                   <input
@@ -800,11 +827,11 @@ export default function LitePage() {
                     maxLength={50}
                     required
                     placeholder="username#1234"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="ask-skill" className="block text-sm font-medium mb-2">
+                  <label htmlFor="ask-skill" className="mb-2 block text-sm font-medium">
                     Skill/Topic *
                   </label>
                   <input
@@ -815,11 +842,11 @@ export default function LitePage() {
                     maxLength={200}
                     required
                     placeholder="e.g., TypeScript, React, Machine Learning"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="ask-description" className="block text-sm font-medium mb-2">
+                  <label htmlFor="ask-description" className="mb-2 block text-sm font-medium">
                     Description (optional)
                   </label>
                   <textarea
@@ -829,14 +856,14 @@ export default function LitePage() {
                     maxLength={1000}
                     rows={4}
                     placeholder="Describe what you want to learn..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitting ? 'Creating...' : 'Create Ask'}
                   </button>
@@ -846,7 +873,7 @@ export default function LitePage() {
                       setShowCreateAskForm(false);
                       setNewAsk({ name: '', discordHandle: '', skill: '', description: '' });
                     }}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                   >
                     Cancel
                   </button>
@@ -861,16 +888,16 @@ export default function LitePage() {
           {!showCreateOfferForm ? (
             <button
               onClick={() => setShowCreateOfferForm(true)}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+              className="rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
             >
               💼 Create Offer
             </button>
           ) : (
-            <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold mb-4">Create Offer</h2>
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 text-xl font-semibold">Create Offer</h2>
               <form onSubmit={handleCreateOffer} className="space-y-4">
                 <div>
-                  <label htmlFor="offer-name" className="block text-sm font-medium mb-2">
+                  <label htmlFor="offer-name" className="mb-2 block text-sm font-medium">
                     Name *
                   </label>
                   <input
@@ -880,11 +907,11 @@ export default function LitePage() {
                     onChange={(e) => setNewOffer({ ...newOffer, name: e.target.value })}
                     maxLength={100}
                     required
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="offer-discord" className="block text-sm font-medium mb-2">
+                  <label htmlFor="offer-discord" className="mb-2 block text-sm font-medium">
                     Discord Handle *
                   </label>
                   <input
@@ -895,11 +922,11 @@ export default function LitePage() {
                     maxLength={50}
                     required
                     placeholder="username#1234"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="offer-skill" className="block text-sm font-medium mb-2">
+                  <label htmlFor="offer-skill" className="mb-2 block text-sm font-medium">
                     Skill/Topic *
                   </label>
                   <input
@@ -910,11 +937,11 @@ export default function LitePage() {
                     maxLength={200}
                     required
                     placeholder="e.g., TypeScript, React, Machine Learning"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="offer-description" className="block text-sm font-medium mb-2">
+                  <label htmlFor="offer-description" className="mb-2 block text-sm font-medium">
                     Description (optional)
                   </label>
                   <textarea
@@ -924,11 +951,11 @@ export default function LitePage() {
                     maxLength={1000}
                     rows={4}
                     placeholder="Describe what you can teach..."
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div>
-                  <label htmlFor="offer-cost" className="block text-sm font-medium mb-2">
+                  <label htmlFor="offer-cost" className="mb-2 block text-sm font-medium">
                     Cost (optional)
                   </label>
                   <input
@@ -938,14 +965,14 @@ export default function LitePage() {
                     onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
                     maxLength={50}
                     placeholder="e.g., $50, 0.1 ETH, Free"
-                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-700"
                   />
                 </div>
                 <div className="flex gap-3">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {submitting ? 'Creating...' : 'Create Offer'}
                   </button>
@@ -953,9 +980,15 @@ export default function LitePage() {
                     type="button"
                     onClick={() => {
                       setShowCreateOfferForm(false);
-                      setNewOffer({ name: '', discordHandle: '', skill: '', description: '', cost: '' });
+                      setNewOffer({
+                        name: '',
+                        discordHandle: '',
+                        skill: '',
+                        description: '',
+                        cost: '',
+                      });
                     }}
-                    className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                    className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                   >
                     Cancel
                   </button>
@@ -968,51 +1001,51 @@ export default function LitePage() {
         {/* Matches Section */}
         {matches.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-2xl font-semibold mb-4">Matches ({matches.length})</h2>
+            <h2 className="mb-4 text-2xl font-semibold">Matches ({matches.length})</h2>
             <div className="space-y-4">
-              {matches.map((match, index) => (
+              {matches.map((match) => (
                 <div
                   key={`${match.ask.key}-${match.offer.key}`}
-                  className="p-6 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                  className="rounded-lg border border-blue-200 bg-gradient-to-r from-blue-50 to-green-50 p-6 dark:border-blue-800 dark:from-blue-900/20 dark:to-green-900/20"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {match.ask.skill}
                       </h3>
                     </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                    <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
                       Match
                     </span>
                   </div>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div className="p-4 bg-blue-100 dark:bg-blue-900/30 rounded">
-                      <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="rounded bg-blue-100 p-4 dark:bg-blue-900/30">
+                      <p className="mb-1 text-sm font-medium text-blue-900 dark:text-blue-200">
                         📝 Ask
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
                         <strong>{match.ask.name}</strong> ({match.ask.discordHandle})
                       </p>
                       {match.ask.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                           {match.ask.description}
                         </p>
                       )}
                     </div>
-                    <div className="p-4 bg-green-100 dark:bg-green-900/30 rounded">
-                      <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
+                    <div className="rounded bg-green-100 p-4 dark:bg-green-900/30">
+                      <p className="mb-1 text-sm font-medium text-green-900 dark:text-green-200">
                         💼 Offer
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
                         <strong>{match.offer.name}</strong> ({match.offer.discordHandle})
                       </p>
                       {match.offer.description && (
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
                           {match.offer.description}
                         </p>
                       )}
                       {match.offer.cost && (
-                        <p className="text-sm font-medium text-green-800 dark:text-green-200 mt-2">
+                        <p className="mt-2 text-sm font-medium text-green-800 dark:text-green-200">
                           💰 Cost: {match.offer.cost}
                         </p>
                       )}
@@ -1026,7 +1059,7 @@ export default function LitePage() {
 
         {/* Asks List */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Asks ({asks.length})</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Asks ({asks.length})</h2>
           {asks.length === 0 ? (
             <EmptyState
               title="No asks yet"
@@ -1038,9 +1071,9 @@ export default function LitePage() {
               {asks.map((ask) => (
                 <div
                   key={ask.key}
-                  className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                  className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
@@ -1048,16 +1081,16 @@ export default function LitePage() {
                         </h3>
                         <EntityDataToggle entityKey={ask.key} txHash={ask.txHash} />
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(ask.createdAt)}
                       </p>
                     </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                    <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
                       {formatTimeRemaining(ask.createdAt, ask.ttlSeconds)}
                     </span>
                   </div>
                   {ask.description && (
-                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                    <p className="mb-3 whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                       {ask.description}
                     </p>
                   )}
@@ -1072,7 +1105,7 @@ export default function LitePage() {
 
         {/* Offers List */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Offers ({offers.length})</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Offers ({offers.length})</h2>
           {offers.length === 0 ? (
             <EmptyState
               title="No offers yet"
@@ -1084,9 +1117,9 @@ export default function LitePage() {
               {offers.map((offer) => (
                 <div
                   key={offer.key}
-                  className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                  className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20"
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
@@ -1094,21 +1127,21 @@ export default function LitePage() {
                         </h3>
                         <EntityDataToggle entityKey={offer.key} txHash={offer.txHash} />
                       </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(offer.createdAt)}
                       </p>
                     </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                    <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
                       {formatTimeRemaining(offer.createdAt, offer.ttlSeconds)}
                     </span>
                   </div>
                   {offer.description && (
-                    <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+                    <p className="mb-3 whitespace-pre-wrap text-gray-700 dark:text-gray-300">
                       {offer.description}
                     </p>
                   )}
                   {offer.cost && (
-                    <p className="text-sm font-medium text-green-800 dark:text-green-200 mb-3">
+                    <p className="mb-3 text-sm font-medium text-green-800 dark:text-green-200">
                       💰 Cost: {offer.cost}
                     </p>
                   )}
@@ -1124,4 +1157,3 @@ export default function LitePage() {
     </div>
   );
 }
-

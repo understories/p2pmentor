@@ -19,26 +19,17 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!name || !name.trim()) {
-      return NextResponse.json(
-        { ok: false, error: 'Name is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Name is required' }, { status: 400 });
     }
     if (!discordHandle || !discordHandle.trim()) {
-      return NextResponse.json(
-        { ok: false, error: 'Discord handle is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Discord handle is required' }, { status: 400 });
     }
     if (!skill || !skill.trim()) {
-      return NextResponse.json(
-        { ok: false, error: 'Skill/topic is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Skill/topic is required' }, { status: 400 });
     }
 
     // Validate spaceId
-    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsjan26';
+    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsfeb26';
 
     try {
       const { key, txHash } = await createLiteAsk({
@@ -51,7 +42,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({ ok: true, key, txHash });
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle transaction receipt timeout gracefully
       if (isTransactionTimeoutError(error)) {
         return NextResponse.json({
@@ -59,17 +50,16 @@ export async function POST(request: NextRequest) {
           key: null,
           txHash: null,
           pending: true,
-          message: error.message || 'Transaction submitted, confirmation pending'
+          message:
+            error instanceof Error ? error.message : 'Transaction submitted, confirmation pending',
         });
       }
       throw error;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Lite Asks API error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
 
@@ -77,19 +67,16 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get('skill') || undefined;
-    const spaceId = searchParams.get('spaceId') || 'nsjan26';
+    const spaceId = searchParams.get('spaceId') || 'nsfeb26';
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
     const includeExpired = searchParams.get('includeExpired') === 'true';
 
     // List all lite asks (with optional filters)
     const asks = await listLiteAsks({ skill, spaceId, limit, includeExpired });
     return NextResponse.json({ ok: true, asks });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Lite Asks API error:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Internal server error' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-

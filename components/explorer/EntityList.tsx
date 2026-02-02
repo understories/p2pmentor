@@ -1,6 +1,6 @@
 /**
  * Entity List Component
- * 
+ *
  * Displays paginated list of entities with search and filtering.
  */
 
@@ -8,13 +8,12 @@
 
 import { useEffect, useState } from 'react';
 import { EntityCard } from './EntityCard';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
 import type { PublicEntity } from '@/lib/explorer/types';
 
 interface EntitiesResponse {
   ok: boolean;
-  entities: (PublicEntity & { provenance?: any; versionCount?: number })[];
+  entities: (PublicEntity & { provenance?: Record<string, unknown>; versionCount?: number })[];
   nextCursor: string | null;
   generatedAt: string;
 }
@@ -24,8 +23,12 @@ interface EntityListProps {
   onSpaceIdChange?: (spaceId: string) => void;
 }
 
-export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityListProps = {} as EntityListProps) {
-  const [entities, setEntities] = useState<(PublicEntity & { provenance?: any; versionCount?: number })[]>([]);
+export function EntityList(
+  { spaceId: propSpaceId, onSpaceIdChange }: EntityListProps = {} as EntityListProps
+) {
+  const [entities, setEntities] = useState<
+    (PublicEntity & { provenance?: Record<string, unknown>; versionCount?: number })[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [type, setType] = useState<string>('all');
   const [spaceId, setSpaceId] = useState<string>(propSpaceId || 'all');
@@ -86,6 +89,7 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
 
   useEffect(() => {
     fetchEntities(null, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, spaceId, search]);
 
   const loadMore = () => {
@@ -97,17 +101,17 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
   return (
     <div className="mb-8">
       {/* Search and Filters */}
-      <div className="mb-6 flex flex-col md:flex-row gap-4">
-        <div className="flex-1 relative">
+      <div className="mb-6 flex flex-col gap-4 md:flex-row">
+        <div className="relative flex-1">
           <input
             type="text"
             placeholder="Search by wallet, key, tx hash, or content..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full px-4 py-2 pl-10 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 transition-all focus:border-blue-500 focus:shadow-sm focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
           <svg
-            className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+            className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 transform text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -123,7 +127,7 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 transition-all focus:border-blue-500 focus:shadow-sm focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="all">All Types</option>
           <option value="profile">Profiles</option>
@@ -134,12 +138,13 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
         <select
           value={spaceId}
           onChange={(e) => handleSpaceIdChange(e.target.value)}
-          className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:shadow-sm transition-all"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 transition-all focus:border-blue-500 focus:shadow-sm focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         >
           <option value="all">All Spaces</option>
           <option value="beta-launch">Beta Launch</option>
           <option value="local-dev">Local Dev</option>
           <option value="local-dev-seed">Local Dev Seed</option>
+          <option value="nsfeb26">nsfeb26</option>
           <option value="nsjan26">nsjan26</option>
         </select>
       </div>
@@ -150,19 +155,19 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
           {[...Array(3)].map((_, i) => (
             <div
               key={i}
-              className="p-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg animate-pulse"
+              className="animate-pulse rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
-                    <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="h-6 w-16 rounded-full bg-gray-200 dark:bg-gray-700"></div>
+                    <div className="h-6 w-48 rounded bg-gray-200 dark:bg-gray-700"></div>
                   </div>
-                  <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
-                  <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded mb-3"></div>
-                  <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                  <div className="mb-2 h-4 w-full rounded bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="mb-3 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+                  <div className="h-4 w-32 rounded bg-gray-200 dark:bg-gray-700"></div>
                 </div>
-                <div className="h-10 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+                <div className="h-10 w-24 rounded-lg bg-gray-200 dark:bg-gray-700"></div>
               </div>
             </div>
           ))}
@@ -184,7 +189,7 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
           <button
             onClick={loadMore}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
           >
             {loading ? 'Loading...' : 'Load More'}
           </button>
@@ -200,12 +205,11 @@ export function EntityList({ spaceId: propSpaceId, onSpaceIdChange }: EntityList
             search
               ? `No entities match "${search}". Try a different search term or clear the filter.`
               : type !== 'all'
-              ? `No ${type} entities are available. Try selecting "All Types" or a different type.`
-              : 'No entities are available at this time. Check back later or create some content!'
+                ? `No ${type} entities are available. Try selecting "All Types" or a different type.`
+                : 'No entities are available at this time. Check back later or create some content!'
           }
         />
       )}
     </div>
   );
 }
-

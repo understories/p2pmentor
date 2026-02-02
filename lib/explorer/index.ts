@@ -1,14 +1,14 @@
 /**
  * Explorer index cache
- * 
+ *
  * Builds an ephemeral index of all public entities for the explorer.
  * Cache duration: ~60s (ephemeral, rebuilds on cold start).
- * 
+ *
  * This index is used for:
  * - Summary counts
  * - Entity listing with pagination
  * - Search functionality
- * 
+ *
  * All entities are serialized through public serializers to ensure
  * private data is never exposed.
  */
@@ -28,7 +28,6 @@ import {
   serializePublicLiteOffer,
 } from './serializers';
 import type { PublicEntity } from './types';
-import { SPACE_ID } from '@/lib/config';
 
 /**
  * Normalized explorer entity (for index)
@@ -148,16 +147,16 @@ function normalizeEntity(entity: PublicEntity, versionCount?: number): ExplorerE
 
 /**
  * Group profiles by wallet and deduplicate
- * 
+ *
  * Returns canonical profiles (most recent per wallet) with version count metadata.
  * This ensures explorer shows one profile per wallet (like /profiles page) while
  * preserving information about version history.
  */
 function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
   const byWallet = new Map<string, ExplorerEntity[]>();
-  
+
   // Group profiles by wallet
-  profiles.forEach(profile => {
+  profiles.forEach((profile) => {
     if (profile.type === 'profile' && profile.wallet) {
       const wallet = profile.wallet.toLowerCase();
       const existing = byWallet.get(wallet) || [];
@@ -165,36 +164,44 @@ function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
       byWallet.set(wallet, existing);
     }
   });
-  
+
   // For each wallet, keep canonical (most recent) and add version count
   const canonicalProfiles: ExplorerEntity[] = [];
-  
-  for (const [wallet, walletProfiles] of byWallet.entries()) {
+
+  for (const [_wallet, walletProfiles] of byWallet.entries()) {
     if (walletProfiles.length === 0) continue;
-    
+
     // Sort by createdAt descending (most recent first)
     // Also consider lastActiveTimestamp if available (for Pattern B updates)
     walletProfiles.sort((a, b) => {
-      const aTime = (a as any).lastActiveTimestamp 
-        ? new Date((a as any).lastActiveTimestamp).getTime()
-        : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-      const bTime = (b as any).lastActiveTimestamp
-        ? new Date((b as any).lastActiveTimestamp).getTime()
-        : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const aRecord = a as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bRecord = b as any;
+      const aTime = aRecord.lastActiveTimestamp
+        ? new Date(aRecord.lastActiveTimestamp).getTime()
+        : a.createdAt
+          ? new Date(a.createdAt).getTime()
+          : 0;
+      const bTime = bRecord.lastActiveTimestamp
+        ? new Date(bRecord.lastActiveTimestamp).getTime()
+        : b.createdAt
+          ? new Date(b.createdAt).getTime()
+          : 0;
       return bTime - aTime;
     });
-    
+
     // Canonical is the most recent
     const canonical = walletProfiles[0];
     const versionCount = walletProfiles.length;
-    
+
     // Add version count metadata if multiple versions exist
     canonicalProfiles.push({
       ...canonical,
       versionCount: versionCount > 1 ? versionCount : undefined,
     });
   }
-  
+
   return canonicalProfiles;
 }
 
@@ -206,8 +213,8 @@ function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
  */
 async function buildExplorerIndex(): Promise<ExplorerIndex> {
   // Known spaceIds - fetch from all spaces to support filtering
-  // Includes: production spaces (beta-launch), dev spaces (local-dev, local-dev-seed), and lite spaces (nsjan26, test)
-  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsjan26', 'test'];
+  // Includes: production spaces (beta-launch), dev spaces (local-dev, local-dev-seed), and lite spaces (nsfeb26, nsjan26, test)
+  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsfeb26', 'nsjan26', 'test'];
 
   // Fetch all entity types in parallel from all spaces
   // Note: lite entities are queried per spaceId since they don't support spaceIds array
@@ -218,11 +225,15 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     listSkills({ spaceIds: allSpaceIds, limit: 1000, status: 'active' }).catch(() => []),
     // Fetch lite entities from each spaceId (they don't support spaceIds array)
     Promise.all(
-      allSpaceIds.map(spaceId => listLiteAsks({ spaceId, limit: 1000, includeExpired: false }).catch(() => []))
-    ).then(results => results.flat()),
+      allSpaceIds.map((spaceId) =>
+        listLiteAsks({ spaceId, limit: 1000, includeExpired: false }).catch(() => [])
+      )
+    ).then((results) => results.flat()),
     Promise.all(
-      allSpaceIds.map(spaceId => listLiteOffers({ spaceId, limit: 1000, includeExpired: false }).catch(() => []))
-    ).then(results => results.flat()),
+      allSpaceIds.map((spaceId) =>
+        listLiteOffers({ spaceId, limit: 1000, includeExpired: false }).catch(() => [])
+      )
+    ).then((results) => results.flat()),
   ]);
 
   // Serialize all entities using public serializers
@@ -235,11 +246,11 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
 
   // Normalize profiles first (before deduplication)
   const normalizedProfiles = serializedProfiles.map(normalizeEntity);
-  
+
   // Deduplicate profiles by wallet (keep canonical, add version count)
   // This ensures explorer shows one profile per wallet (like /profiles page)
   const deduplicatedProfiles = deduplicateProfiles(normalizedProfiles);
-  
+
   // Normalize other entity types
   const normalizedAsks = serializedAsks.map(normalizeEntity);
   const normalizedOffers = serializedOffers.map(normalizeEntity);
@@ -285,7 +296,7 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
 
 /**
  * Get explorer index (cached)
- * 
+ *
  * Returns cached index if available and not expired, otherwise rebuilds.
  * If spaceId is provided, filters the cached index by spaceId.
  */
@@ -306,7 +317,8 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
   if (spaceId) {
     const filteredEntities = index.entities.filter((entity) => {
       // Check if entity has spaceId field (all entities should have it)
-      const entitySpaceId = (entity as any).spaceId;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entitySpaceId = (entity as Record<string, unknown>).spaceId;
       return entitySpaceId === spaceId;
     });
 
@@ -318,7 +330,8 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
       counts: {
         profiles: filteredEntities.filter((e) => e.type === 'profile').length,
         asks: filteredEntities.filter((e) => e.type === 'ask' || e.type === 'lite_ask').length,
-        offers: filteredEntities.filter((e) => e.type === 'offer' || e.type === 'lite_offer').length,
+        offers: filteredEntities.filter((e) => e.type === 'offer' || e.type === 'lite_offer')
+          .length,
         skills: filteredEntities.filter((e) => e.type === 'skill').length,
         total: filteredEntities.length,
       },
@@ -327,4 +340,3 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
 
   return index;
 }
-

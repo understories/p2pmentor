@@ -15,6 +15,7 @@ The Lite Version was developed for the January 2026 cohort of the Network School
 ## Purpose
 
 The Lite Version is designed for:
+
 - **Quick deployment**: Minimal setup, no authentication required
 - **Low friction**: Users can post asks and offers immediately
 - **Simple matching**: Basic skill-based matching without complex features
@@ -32,6 +33,7 @@ The Lite Version is designed for:
 ### Ask/Offer Board
 
 Users can:
+
 - **Create Asks**: Post what they want to learn
 - **Create Offers**: Post what they can teach
 - **View Matches**: See automatically matched asks and offers
@@ -41,6 +43,7 @@ All functionality is available on a single page.
 ### Matching
 
 Matches are automatically computed when:
+
 - An ask and offer have the same skill/topic (case-insensitive)
 - The Discord handles are different (prevents self-matching)
 
@@ -53,16 +56,18 @@ Matches are displayed on the same page as asks and offers. Since the Lite Versio
 **Type:** `lite_ask`
 
 **Attributes:**
+
 - `type`: `'lite_ask'`
 - `name`: User's name (required, max 100 characters)
 - `discordHandle`: Discord handle (required, max 50 characters, normalized to lowercase)
 - `skill`: Skill/topic name (required, simple string, max 200 characters)
-- `spaceId`: User-selectable (defaults: `'nsjan26'`, `'test'`; users can create additional spaceIds)
+- `spaceId`: User-selectable (defaults: `'nsfeb26'`, `'nsjan26'`, `'test'`; users can create additional spaceIds)
 - `createdAt`: ISO timestamp
 - `status`: `'open'`
 - `ttlSeconds`: `'2592000'` (1 month)
 
 **Payload:**
+
 - `description`: Optional description (max 1000 characters)
 
 ### Lite Offer Entity
@@ -70,17 +75,19 @@ Matches are displayed on the same page as asks and offers. Since the Lite Versio
 **Type:** `lite_offer`
 
 **Attributes:**
+
 - `type`: `'lite_offer'`
 - `name`: User's name (required, max 100 characters)
 - `discordHandle`: Discord handle (required, max 50 characters, normalized to lowercase)
 - `skill`: Skill/topic name (required, simple string, max 200 characters)
 - `cost`: Optional cost information (max 50 characters, offers only)
-- `spaceId`: User-selectable (defaults: `'nsjan26'`, `'test'`; users can create additional spaceIds)
+- `spaceId`: User-selectable (defaults: `'nsfeb26'`, `'nsjan26'`, `'test'`; users can create additional spaceIds)
 - `createdAt`: ISO timestamp
 - `status`: `'active'`
 - `ttlSeconds`: `'2592000'` (1 month)
 
 **Payload:**
+
 - `description`: Optional description (max 1000 characters)
 
 ## Time to Live (TTL)
@@ -90,23 +97,24 @@ All asks and offers have a fixed TTL of **1 month** (2,592,000 seconds). This ke
 ## Data Storage
 
 All data is stored on the Arkiv network:
+
 - Data is visible and verifiable on the Arkiv explorer
 - All transactions are signed by an app-wide wallet (stored as an environment variable)
 - Data is NOT private (until encrypted data is implemented)
-- Space ID is user-selectable (defaults: `'nsjan26'`, `'test'`; users can create additional spaceIds) for data isolation and testing
+- Space ID is user-selectable (defaults: `'nsfeb26'`, `'nsjan26'`, `'test'`; users can create additional spaceIds) for data isolation and testing
 
 ## Differences from Main App
 
-| Feature | Main App | Lite Version |
-|---------|----------|--------------|
-| Authentication | Required (wallet) | None |
-| User Profiles | Yes | No |
-| Skill Entities | Yes (structured) | No (simple strings) |
-| Meeting Requests | Yes | No |
-| Session Creation | Yes | No |
-| TTL Selection | Customizable | Fixed (1 month) |
-| Wallet Addresses | User wallets | App-wide wallet (env var) |
-| Discord Handles | Optional | Required |
+| Feature          | Main App          | Lite Version              |
+| ---------------- | ----------------- | ------------------------- |
+| Authentication   | Required (wallet) | None                      |
+| User Profiles    | Yes               | No                        |
+| Skill Entities   | Yes (structured)  | No (simple strings)       |
+| Meeting Requests | Yes               | No                        |
+| Session Creation | Yes               | No                        |
+| TTL Selection    | Customizable      | Fixed (1 month)           |
+| Wallet Addresses | User wallets      | App-wide wallet (env var) |
+| Discord Handles  | Optional          | Required                  |
 
 ## User Experience
 
@@ -133,6 +141,7 @@ All data is stored on the Arkiv network:
 ### Viewing Matches
 
 Matches are automatically computed and displayed when:
+
 - An ask and offer share the same skill/topic
 - The Discord handles are different
 
@@ -143,6 +152,7 @@ Users can see matched pairs and contact each other directly via Discord using th
 ### App-Wide Wallet
 
 All entity creation uses an app-wide wallet stored as an environment variable (`ARKIV_PRIVATE_KEY`):
+
 - No user wallet addresses required
 - All transactions signed by the app-wide operational signer
 - Simplifies the user experience
@@ -150,9 +160,11 @@ All entity creation uses an app-wide wallet stored as an environment variable (`
 
 ### Space Isolation
 
-The lite page includes a spaceId selector with default options (`'nsjan26'`, `'test'`) and the ability to create additional spaceIds:
+The lite page includes a spaceId selector with default options (`'nsfeb26'`, `'nsjan26'`, `'test'`) and the ability to create additional spaceIds:
+
 - Users can select from existing spaceIds or create new ones for data isolation
-- Default `'nsjan26'` is used for production data (January 2026 Network School cohort)
+- Default `'nsfeb26'` is used for production data (February 2026 Network School cohort)
+- `'nsjan26'` preserves January 2026 cohort data
 - `'test'` option enables testing without affecting production data
 - Users can create additional spaceIds dynamically for different communities/cohorts
 - All queries and entity creation use the selected spaceId
@@ -162,6 +174,7 @@ The lite page includes a spaceId selector with default options (`'nsjan26'`, `'t
 ### Matching Logic
 
 Matching is computed client-side:
+
 - Compares skill/topic (case-insensitive, trimmed)
 - Ensures Discord handles are different
 - Simple, transparent matching algorithm
@@ -169,6 +182,7 @@ Matching is computed client-side:
 ## Input Validation
 
 All form inputs have maximum length limits to prevent truncation:
+
 - Name: 100 characters
 - Discord handle: 50 characters
 - Skill/topic: 200 characters
@@ -188,4 +202,3 @@ All form inputs have maximum length limits to prevent truncation:
 - [Serverless & Verifiable by Design](../philosophy/serverless-and-trustless.md) - Architecture philosophy
 - [Arkiv Integration](../architecture/arkiv-integration.md) - Arkiv network details
 - [Space Isolation](../arkiv/patterns/space-isolation.md) - Space ID patterns
-
