@@ -1,6 +1,6 @@
 /**
  * M1 Exam Checklist Admin Dashboard
- * 
+ *
  * Interactive checklist for M1 acceptance criteria verification.
  * Allows step-by-step testing with real Arkiv queries and explorer links.
  */
@@ -63,10 +63,8 @@ export default function M1ExamChecklistPage() {
 
   const loadChecklist = () => {
     // Load from localStorage or initialize
-    const saved = typeof window !== 'undefined' 
-      ? localStorage.getItem('m1_exam_checklist')
-      : null;
-    
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('m1_exam_checklist') : null;
+
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -527,7 +525,7 @@ const query = publicClient.buildQuery()
   .fetch();`,
             manualTests: [
               'Alice has received 3 feedbacks with ratings 5, 4, 5',
-              'View Alice\'s profile',
+              "View Alice's profile",
               'Verify "3 reviews" displayed',
               'Verify average rating "4.7" displayed',
               'Verify each feedback has "View on Arkiv" link',
@@ -541,36 +539,40 @@ const query = publicClient.buildQuery()
   };
 
   const toggleItemChecked = (sectionId: string, itemId: string) => {
-    setSections(prev => prev.map(section => {
-      if (section.id === sectionId) {
-        return {
-          ...section,
-          items: section.items.map(item => {
-            if (item.id === itemId) {
-              const updated = { ...item, checked: !item.checked };
-              saveChecklist();
-              return updated;
-            }
-            return item;
-          }),
-        };
-      }
-      return section;
-    }));
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id === sectionId) {
+          return {
+            ...section,
+            items: section.items.map((item) => {
+              if (item.id === itemId) {
+                const updated = { ...item, checked: !item.checked };
+                saveChecklist();
+                return updated;
+              }
+              return item;
+            }),
+          };
+        }
+        return section;
+      })
+    );
   };
 
   const toggleSection = (sectionId: string) => {
-    setSections(prev => prev.map(section => {
-      if (section.id === sectionId) {
-        return { ...section, expanded: !section.expanded };
-      }
-      return section;
-    }));
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id === sectionId) {
+          return { ...section, expanded: !section.expanded };
+        }
+        return section;
+      })
+    );
     saveChecklist();
   };
 
   const toggleItemExpanded = (itemId: string) => {
-    setExpandedItems(prev => {
+    setExpandedItems((prev) => {
       const next = new Set(prev);
       if (next.has(itemId)) {
         next.delete(itemId);
@@ -588,19 +590,22 @@ const query = publicClient.buildQuery()
     }
 
     // Set running state
-    setSections(prev => prev.map(section => ({
-      ...section,
-      items: section.items.map(i => {
-        if (i.id === item.id) {
-          return { ...i, runningQuery: true, queryError: undefined };
-        }
-        return i;
-      }),
-    })));
+    setSections((prev) =>
+      prev.map((section) => ({
+        ...section,
+        items: section.items.map((i) => {
+          if (i.id === item.id) {
+            return { ...i, runningQuery: true, queryError: undefined };
+          }
+          return i;
+        }),
+      }))
+    );
 
     try {
       // Determine query type from item
       let queryType = 'profile';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, prefer-const
       let params: any = { wallet: testWallet };
 
       if (item.section === 'asks') {
@@ -624,36 +629,40 @@ const query = publicClient.buildQuery()
       const data = await response.json();
 
       // Update item with result
-      setSections(prev => prev.map(section => ({
-        ...section,
-        items: section.items.map(i => {
-          if (i.id === item.id) {
-            return {
-              ...i,
-              runningQuery: false,
-              queryResult: data.result,
-              queryError: data.error || undefined,
-            };
-          }
-          return i;
-        }),
-      })));
+      setSections((prev) =>
+        prev.map((section) => ({
+          ...section,
+          items: section.items.map((i) => {
+            if (i.id === item.id) {
+              return {
+                ...i,
+                runningQuery: false,
+                queryResult: data.result,
+                queryError: data.error || undefined,
+              };
+            }
+            return i;
+          }),
+        }))
+      );
 
       saveChecklist();
     } catch (error: any) {
-      setSections(prev => prev.map(section => ({
-        ...section,
-        items: section.items.map(i => {
-          if (i.id === item.id) {
-            return {
-              ...i,
-              runningQuery: false,
-              queryError: error.message || 'Query failed',
-            };
-          }
-          return i;
-        }),
-      })));
+      setSections((prev) =>
+        prev.map((section) => ({
+          ...section,
+          items: section.items.map((i) => {
+            if (i.id === item.id) {
+              return {
+                ...i,
+                runningQuery: false,
+                queryError: error.message || 'Query failed',
+              };
+            }
+            return i;
+          }),
+        }))
+      );
     }
   };
 
@@ -674,21 +683,31 @@ const query = publicClient.buildQuery()
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pass': return 'text-green-600 dark:text-green-400';
-      case 'needs_test': return 'text-yellow-600 dark:text-yellow-400';
-      case 'fail': return 'text-red-600 dark:text-red-400';
-      case 'partial': return 'text-blue-600 dark:text-blue-400';
-      default: return 'text-gray-600 dark:text-gray-400';
+      case 'pass':
+        return 'text-green-600 dark:text-green-400';
+      case 'needs_test':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'fail':
+        return 'text-red-600 dark:text-red-400';
+      case 'partial':
+        return 'text-blue-600 dark:text-blue-400';
+      default:
+        return 'text-gray-600 dark:text-gray-400';
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pass': return '✅ PASS';
-      case 'needs_test': return '⚠️ NEEDS TEST';
-      case 'fail': return '❌ FAIL';
-      case 'partial': return '🔄 PARTIAL';
-      default: return status.toUpperCase();
+      case 'pass':
+        return '✅ PASS';
+      case 'needs_test':
+        return '⚠️ NEEDS TEST';
+      case 'fail':
+        return '❌ FAIL';
+      case 'partial':
+        return '🔄 PARTIAL';
+      default:
+        return status.toUpperCase();
     }
   };
 
@@ -701,17 +720,20 @@ const query = publicClient.buildQuery()
   }
 
   const totalItems = sections.reduce((sum, s) => sum + s.items.length, 0);
-  const checkedItems = sections.reduce((sum, s) => sum + s.items.filter(i => i.checked).length, 0);
+  const checkedItems = sections.reduce(
+    (sum, s) => sum + s.items.filter((i) => i.checked).length,
+    0
+  );
   const progress = totalItems > 0 ? Math.round((checkedItems / totalItems) * 100) : 0;
 
   return (
-    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 p-8">
-      <div className="max-w-7xl mx-auto">
+    <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
                 M1 Exam Checklist
               </h1>
               <p className="text-gray-600 dark:text-gray-400">
@@ -721,13 +743,13 @@ const query = publicClient.buildQuery()
             <div className="flex gap-4">
               <Link
                 href="/admin"
-                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+                className="rounded-lg bg-gray-200 px-4 py-2 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
               >
                 Back to Admin
               </Link>
               <button
                 onClick={resetChecklist}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700"
               >
                 Reset Progress
               </button>
@@ -735,8 +757,8 @@ const query = publicClient.buildQuery()
           </div>
 
           {/* Progress Bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-            <div className="flex items-center justify-between mb-2">
+          <div className="rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+            <div className="mb-2 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                 Progress: {checkedItems} / {totalItems} items checked
               </span>
@@ -744,17 +766,17 @@ const query = publicClient.buildQuery()
                 {progress}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
               <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                className="h-2 rounded-full bg-blue-600 transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
           </div>
 
           {/* Test Wallet Input */}
-          <div className="mt-4 bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <div className="mt-4 rounded-lg bg-white p-4 shadow dark:bg-gray-800">
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Profile Wallet Address (for Arkiv queries):
             </label>
             <input
@@ -762,21 +784,22 @@ const query = publicClient.buildQuery()
               value={testWallet}
               onChange={(e) => setTestWallet(e.target.value)}
               placeholder="0x..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             />
             <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Enter the <strong>profile wallet</strong> address (the wallet used when creating profiles/entities, stored in localStorage as 'wallet_address'). 
-              This is used to query entities by their 'wallet' attribute. Not the signing wallet.
+              Enter the <strong>profile wallet</strong> address (the wallet used when creating
+              profiles/entities, stored in localStorage as &apos;wallet_address&apos;). This is used
+              to query entities by their &apos;wallet&apos; attribute. Not the signing wallet.
             </p>
           </div>
         </div>
 
         {/* Checklist Sections */}
         {sections.map((section) => (
-          <div key={section.id} className="mb-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div key={section.id} className="mb-6 rounded-lg bg-white shadow dark:bg-gray-800">
             <button
               onClick={() => toggleSection(section.id)}
-              className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 dark:hover:bg-gray-700 rounded-t-lg"
+              className="flex w-full items-center justify-between rounded-t-lg px-6 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {section.title}
@@ -791,17 +814,17 @@ const query = publicClient.buildQuery()
                 {section.items.map((item) => (
                   <div
                     key={item.id}
-                    className="border-b border-gray-200 dark:border-gray-700 last:border-b-0 py-4"
+                    className="border-b border-gray-200 py-4 last:border-b-0 dark:border-gray-700"
                   >
                     <div className="flex items-start gap-4">
                       <input
                         type="checkbox"
                         checked={item.checked}
                         onChange={() => toggleItemChecked(section.id, item.id)}
-                        className="mt-1 w-5 h-5 text-blue-600 rounded focus:ring-blue-500"
+                        className="mt-1 h-5 w-5 rounded text-blue-600 focus:ring-blue-500"
                       />
                       <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
+                        <div className="mb-2 flex items-center gap-3">
                           <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
                             {item.title}
                           </h3>
@@ -811,24 +834,25 @@ const query = publicClient.buildQuery()
                         </div>
 
                         {item.implementation && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                            <span className="font-medium">Implementation:</span> {item.implementation}
+                          <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+                            <span className="font-medium">Implementation:</span>{' '}
+                            {item.implementation}
                           </p>
                         )}
 
                         {item.notes && (
-                          <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                             {item.notes}
                           </p>
                         )}
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2 mt-3">
+                        <div className="mt-3 flex gap-2">
                           {item.hasArkivQuery && (
                             <button
                               onClick={() => runArkivQuery(item)}
                               disabled={item.runningQuery || !testWallet}
-                              className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded"
+                              className="rounded bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700 disabled:bg-gray-400"
                             >
                               {item.runningQuery ? 'Running...' : 'Run Arkiv Query'}
                             </button>
@@ -836,7 +860,7 @@ const query = publicClient.buildQuery()
                           {(item.hasArkivQuery || item.hasManualTest) && (
                             <button
                               onClick={() => toggleItemExpanded(item.id)}
-                              className="px-3 py-1 text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 rounded"
+                              className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600"
                             >
                               {expandedItems.has(item.id) ? 'Hide Details' : 'Show Details'}
                             </button>
@@ -848,43 +872,48 @@ const query = publicClient.buildQuery()
                           <div className="mt-4 space-y-4">
                             {/* Arkiv Query Code */}
                             {item.hasArkivQuery && item.arkivQueryCode && (
-                              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
-                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
+                                <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Arkiv Query:
                                 </h4>
-                                <pre className="text-xs text-gray-800 dark:text-gray-200 overflow-x-auto">
+                                <pre className="overflow-x-auto text-xs text-gray-800 dark:text-gray-200">
                                   {item.arkivQueryCode}
                                 </pre>
                                 {item.queryResult && (
                                   <div className="mt-3">
-                                    <h5 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                    <h5 className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
                                       Query Result:
                                     </h5>
-                                    <div className="bg-white dark:bg-gray-800 rounded p-2 text-xs">
-                                      <p className="text-green-600 dark:text-green-400 mb-1">
+                                    <div className="rounded bg-white p-2 text-xs dark:bg-gray-800">
+                                      <p className="mb-1 text-green-600 dark:text-green-400">
                                         ✓ Found {item.queryResult.count} entity(ies)
                                       </p>
-                                      {item.queryResult.entities && item.queryResult.entities.length > 0 && (
-                                        <div className="mt-2">
-                                          <p className="font-medium mb-1">First Entity:</p>
-                                          <pre className="text-xs overflow-x-auto">
-                                            {JSON.stringify(item.queryResult.entities[0], null, 2)}
-                                          </pre>
-                                          {item.queryResult.entities[0].key && (
-                                            <div className="mt-2">
-                                              <ViewOnArkivLink
-                                                entityKey={item.queryResult.entities[0].key}
-                                                label="View on Arkiv Explorer"
-                                              />
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
+                                      {item.queryResult.entities &&
+                                        item.queryResult.entities.length > 0 && (
+                                          <div className="mt-2">
+                                            <p className="mb-1 font-medium">First Entity:</p>
+                                            <pre className="overflow-x-auto text-xs">
+                                              {JSON.stringify(
+                                                item.queryResult.entities[0],
+                                                null,
+                                                2
+                                              )}
+                                            </pre>
+                                            {item.queryResult.entities[0].key && (
+                                              <div className="mt-2">
+                                                <ViewOnArkivLink
+                                                  entityKey={item.queryResult.entities[0].key}
+                                                  label="View on Arkiv Explorer"
+                                                />
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
                                     </div>
                                   </div>
                                 )}
                                 {item.queryError && (
-                                  <div className="mt-3 text-red-600 dark:text-red-400 text-sm">
+                                  <div className="mt-3 text-sm text-red-600 dark:text-red-400">
                                     Error: {item.queryError}
                                   </div>
                                 )}
@@ -893,13 +922,16 @@ const query = publicClient.buildQuery()
 
                             {/* Manual Tests */}
                             {item.hasManualTest && item.manualTests && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-                                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+                                <h4 className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                                   Manual Test Checklist:
                                 </h4>
                                 <ul className="space-y-1">
                                   {item.manualTests.map((test, idx) => (
-                                    <li key={idx} className="text-sm text-gray-700 dark:text-gray-300 flex items-start">
+                                    <li
+                                      key={idx}
+                                      className="flex items-start text-sm text-gray-700 dark:text-gray-300"
+                                    >
                                       <span className="mr-2">-</span>
                                       <span>{test}</span>
                                     </li>
@@ -921,4 +953,3 @@ const query = publicClient.buildQuery()
     </main>
   );
 }
-

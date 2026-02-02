@@ -35,6 +35,7 @@ export interface Notification {
   timestamp: string;
   read: boolean;
   link?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: Record<string, any>;
 }
 
@@ -97,19 +98,19 @@ export function detectProfileMatches(
   if (!userProfile || !userProfile.skills) return [];
 
   const notifications: Notification[] = [];
-  const userSkills = userProfile.skillsArray || userProfile.skills.split(',').map(s => s.trim().toLowerCase());
+  const userSkills =
+    userProfile.skillsArray || userProfile.skills.split(',').map((s) => s.trim().toLowerCase());
 
   allProfiles.forEach((profile) => {
     if (profile.wallet.toLowerCase() === userWallet.toLowerCase()) return;
     if (previousMatchedWallets.has(profile.wallet.toLowerCase())) return;
 
-    const profileSkills = profile.skillsArray || profile.skills?.split(',').map(s => s.trim().toLowerCase()) || [];
+    const profileSkills =
+      profile.skillsArray || profile.skills?.split(',').map((s) => s.trim().toLowerCase()) || [];
 
     // Check for skill overlap
-    const hasMatch = userSkills.some(skill =>
-      profileSkills.some(ps =>
-        ps === skill || ps.includes(skill) || skill.includes(ps)
-      )
+    const hasMatch = userSkills.some((skill) =>
+      profileSkills.some((ps) => ps === skill || ps.includes(skill) || skill.includes(ps))
     );
 
     if (hasMatch) {
@@ -151,7 +152,11 @@ export function detectAskOfferMatches(
       const askSkill = ask.skill.toLowerCase();
       const offerSkill = offer.skill.toLowerCase();
 
-      if (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill)) {
+      if (
+        askSkill === offerSkill ||
+        askSkill.includes(offerSkill) ||
+        offerSkill.includes(askSkill)
+      ) {
         notifications.push({
           id: `ask_offer_match_${matchKey}`,
           type: 'ask_offer_match',
@@ -226,9 +231,10 @@ export function detectAdminResponses(
         id: `admin_response_${response.key}`,
         type: 'admin_response',
         title: 'Response to Your Feedback',
-        message: response.message.length > 100
-          ? `${response.message.substring(0, 100)}...`
-          : response.message,
+        message:
+          response.message.length > 100
+            ? `${response.message.substring(0, 100)}...`
+            : response.message,
         timestamp: response.createdAt,
         read: false,
         link: `/notifications`,
@@ -284,6 +290,7 @@ export function detectIssueResolutions(
 export function detectCompletedSessionsNeedingFeedback(
   sessions: Session[],
   userWallet: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   sessionFeedbacks: Record<string, any[]>, // sessionKey -> Feedback[]
   previousSessionKeys: Set<string>
 ): Notification[] {
@@ -300,11 +307,7 @@ export function detectCompletedSessionsNeedingFeedback(
 
     // Check if user can give feedback (using reusable utility)
     const existingFeedbacks = sessionFeedbacks[session.key] || [];
-    const canGiveFeedback = canGiveFeedbackForSessionSync(
-      session,
-      userWallet,
-      existingFeedbacks
-    );
+    const canGiveFeedback = canGiveFeedbackForSessionSync(session, userWallet, existingFeedbacks);
 
     if (canGiveFeedback) {
       // Only notify if this is a new completion (not seen before)
@@ -342,6 +345,5 @@ export function detectCompletedSessionsNeedingFeedback(
  * Get unread notification count
  */
 export function getUnreadCount(notifications: Notification[]): number {
-  return notifications.filter(n => !n.read).length;
+  return notifications.filter((n) => !n.read).length;
 }
-

@@ -1,6 +1,6 @@
 /**
  * React Hook for Onboarding Level
- * 
+ *
  * Provides onboarding level and completion status with caching.
  */
 
@@ -34,7 +34,7 @@ export function useOnboardingLevel(wallet: string | null | undefined) {
 
         // Add small delay to allow Arkiv indexing after profile updates
         // This prevents race conditions where profile was just updated but not yet indexed
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
         const [calculatedLevel, complete, progressData] = await Promise.all([
           calculateOnboardingLevel(walletAddress),
@@ -56,7 +56,7 @@ export function useOnboardingLevel(wallet: string | null | undefined) {
             const { getProfileByWallet } = await import('@/lib/arkiv/profile');
             const profile = await getProfileByWallet(walletAddress);
             setLevel(profile ? 1 : 0);
-          } catch (profileError) {
+          } catch {
             // If we can't check profile, default to 0
             setLevel(0);
           }

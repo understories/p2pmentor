@@ -21,13 +21,10 @@ export type ActionType =
  * Submits aggregated metric for action completion.
  * Fire-and-forget, non-blocking.
  */
-export function trackActionCompletion(
-  actionType: ActionType,
-  clicksToComplete?: number
-): void {
+export function trackActionCompletion(actionType: ActionType, clicksToComplete?: number): void {
   // Only track in production or when explicitly enabled
-  const shouldTrack = process.env.NODE_ENV === 'production' ||
-                     process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
+  const shouldTrack =
+    process.env.NODE_ENV === 'production' || process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
 
   if (!shouldTrack) {
     return;
@@ -36,6 +33,7 @@ export function trackActionCompletion(
   // Get click count from NavigationTracker if not provided
   let finalClickCount = clicksToComplete;
   if (finalClickCount === undefined && typeof window !== 'undefined') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getClickCount = (window as any).__getPageClickCount;
     if (typeof getClickCount === 'function') {
       finalClickCount = getClickCount();
@@ -62,4 +60,3 @@ export function trackActionCompletion(
     console.debug('[trackActionCompletion] Failed to submit metric');
   });
 }
-

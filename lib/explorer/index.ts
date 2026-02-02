@@ -318,7 +318,7 @@ export async function getExplorerIndex(spaceId?: string): Promise<ExplorerIndex>
     const filteredEntities = index.entities.filter((entity) => {
       // Check if entity has spaceId field (all entities should have it)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const entitySpaceId = (entity as Record<string, unknown>).spaceId;
+      const entitySpaceId = (entity as any).spaceId;
       return entitySpaceId === spaceId;
     });
 

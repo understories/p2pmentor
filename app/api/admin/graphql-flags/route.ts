@@ -1,6 +1,6 @@
 /**
  * Admin API: GraphQL Feature Flags
- * 
+ *
  * Returns the current status of GraphQL feature flags for all pages.
  * This helps track migration progress empirically.
  */
@@ -14,11 +14,14 @@ import {
   useGraphqlForOffers,
 } from '@/lib/graph/featureFlags';
 
+// These are feature flag functions, not React hooks (despite the naming convention)
+// eslint-disable-next-line react-hooks/rules-of-hooks
 export async function GET() {
   // TODO: Add authentication/authorization check
   // For now, this is internal-only (not exposed in production without auth)
-  
+
   try {
+    // Note: These are feature flag getter functions, not React hooks
     const flags = {
       network: useGraphqlForNetwork(),
       me: useGraphqlForMe(),
@@ -40,12 +43,9 @@ export async function GET() {
         percentage: Math.round((enabledCount / totalCount) * 100),
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Admin] Error fetching GraphQL flags:', error);
-    return NextResponse.json(
-      { ok: false, error: error.message || 'Failed to fetch GraphQL flags' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'Failed to fetch GraphQL flags';
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
 }
-

@@ -1,11 +1,11 @@
 /**
  * Payment and transaction hash handling
- * 
+ *
  * For paid sessions:
  * - Requestor enters transaction hash
  * - Confirmer validates the transaction
  * - Session is confirmed once payment is validated
- * 
+ *
  * Based on viem transaction validation patterns.
  */
 
@@ -13,7 +13,7 @@ import { getPublicClient } from './arkiv/client';
 
 /**
  * Validate a transaction hash on the blockchain
- * 
+ *
  * @param txHash - Transaction hash to validate (0x... format)
  * @param expectedRecipient - Expected recipient address (optional)
  * @returns Validation result with transaction details
@@ -31,7 +31,7 @@ export async function validateTransaction(
 }> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Get transaction receipt to verify it exists and is confirmed
     const receipt = await publicClient.getTransactionReceipt({
       hash: txHash as `0x${string}`,
@@ -47,7 +47,7 @@ export async function validateTransaction(
 
     // Check if transaction is confirmed (status === 'success')
     const confirmed = receipt.status === 'success';
-    
+
     // If expected recipient provided, verify it matches
     if (expectedRecipient) {
       // For simple ETH transfers, check 'to' field
@@ -63,21 +63,21 @@ export async function validateTransaction(
       // Note: amount and recipient would require parsing transaction details
       // For beta, we just verify the transaction exists and is confirmed
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Transaction might not exist or not be confirmed yet
-    if (error.message?.includes('not found') || error.message?.includes('not be processed')) {
+    const message = error instanceof Error ? error.message : '';
+    if (message.includes('not found') || message.includes('not be processed')) {
       return {
         valid: false,
         confirmed: false,
         error: 'Transaction not found or not yet confirmed on blockchain',
       };
     }
-    
+
     return {
       valid: false,
       confirmed: false,
-      error: error.message || 'Failed to validate transaction',
+      error: message || 'Failed to validate transaction',
     };
   }
 }
-

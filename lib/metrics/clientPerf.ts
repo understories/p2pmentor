@@ -1,12 +1,12 @@
 /**
  * Client-side performance tracking
- * 
+ *
  * Privacy-preserving client-side performance metrics using Performance Observer API.
  * Tracks TTFB, TTI, render times, and other Web Vitals.
- * 
+ *
  * All metrics stored as Arkiv entities for transparency and verifiability.
  * No PII collected: no IP, no wallet, no fingerprinting.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 5
  */
 
@@ -27,7 +27,7 @@ export type ClientPerfMetric = {
 
 /**
  * Collect client-side performance metrics
- * 
+ *
  * Uses Performance Observer API to track Web Vitals and page load metrics.
  * Privacy-preserving: only collects performance data, no PII.
  */
@@ -38,9 +38,11 @@ export function collectClientPerfMetrics(): ClientPerfMetric | null {
 
   try {
     const perf = window.performance;
-    const navigation = perf.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    const navigation = perf.getEntriesByType('navigation')[0] as
+      | PerformanceNavigationTiming
+      | undefined;
     const paint = perf.getEntriesByType('paint');
-    
+
     const metric: ClientPerfMetric = {
       page: window.location.pathname,
       createdAt: new Date().toISOString(),
@@ -52,7 +54,7 @@ export function collectClientPerfMetrics(): ClientPerfMetric | null {
     }
 
     // First Contentful Paint (FCP)
-    const fcpEntry = paint.find(entry => entry.name === 'first-contentful-paint');
+    const fcpEntry = paint.find((entry) => entry.name === 'first-contentful-paint');
     if (fcpEntry) {
       metric.fcp = Math.round(fcpEntry.startTime);
     }
@@ -87,7 +89,7 @@ export function collectClientPerfMetrics(): ClientPerfMetric | null {
 
 /**
  * Observe Web Vitals (LCP, FID, CLS) using Performance Observer
- * 
+ *
  * These metrics require observation over time, not just at page load.
  */
 export function observeWebVitals(
@@ -105,6 +107,7 @@ export function observeWebVitals(
       try {
         const lcpObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const lastEntry = entries[entries.length - 1] as any;
           if (lastEntry?.renderTime || lastEntry?.loadTime) {
             onMetric({
@@ -114,7 +117,7 @@ export function observeWebVitals(
         });
         lcpObserver.observe({ entryTypes: ['largest-contentful-paint'] });
         observers.push(lcpObserver);
-      } catch (e) {
+      } catch {
         // LCP not supported
       }
     }
@@ -124,6 +127,7 @@ export function observeWebVitals(
       try {
         const fidObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           entries.forEach((entry: any) => {
             if (entry.processingStart && entry.startTime) {
               onMetric({
@@ -134,7 +138,7 @@ export function observeWebVitals(
         });
         fidObserver.observe({ entryTypes: ['first-input'] });
         observers.push(fidObserver);
-      } catch (e) {
+      } catch {
         // FID not supported
       }
     }
@@ -145,6 +149,7 @@ export function observeWebVitals(
         let clsValue = 0;
         const clsObserver = new PerformanceObserver((list) => {
           const entries = list.getEntries();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           entries.forEach((entry: any) => {
             if (!entry.hadRecentInput && entry.value) {
               clsValue += entry.value;
@@ -154,7 +159,7 @@ export function observeWebVitals(
         });
         clsObserver.observe({ entryTypes: ['layout-shift'] });
         observers.push(clsObserver);
-      } catch (e) {
+      } catch {
         // CLS not supported
       }
     }
@@ -164,6 +169,6 @@ export function observeWebVitals(
 
   // Return cleanup function
   return () => {
-    observers.forEach(observer => observer.disconnect());
+    observers.forEach((observer) => observer.disconnect());
   };
 }

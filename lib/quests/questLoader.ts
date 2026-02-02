@@ -12,12 +12,7 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import type {
-  QuestDefinition,
-  LoadedQuest,
-  QuestSummary,
-  QuestTrack,
-} from './questFormat';
+import type { QuestDefinition, LoadedQuest, QuestSummary, QuestTrack } from './questFormat';
 import { validateQuestDefinition, createQuestSummary } from './questFormat';
 
 /**
@@ -41,9 +36,7 @@ export async function questExists(trackId: string): Promise<boolean> {
 /**
  * Load quest definition from JSON file
  */
-export async function loadQuestDefinition(
-  trackId: string
-): Promise<QuestDefinition | null> {
+export async function loadQuestDefinition(trackId: string): Promise<QuestDefinition | null> {
   try {
     const questPath = path.join(QUESTS_BASE_PATH, trackId, 'quest.json');
     const content = await fs.readFile(questPath, 'utf-8');
@@ -57,8 +50,9 @@ export async function loadQuestDefinition(
     }
 
     return quest;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError.code === 'ENOENT') {
       // File doesn't exist - not an error, just no quest
       return null;
     }
@@ -78,8 +72,9 @@ export async function loadStepContent(
     const stepPath = path.join(QUESTS_BASE_PATH, trackId, contentFile);
     const content = await fs.readFile(stepPath, 'utf-8');
     return content;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError.code === 'ENOENT') {
       console.warn(`[loadStepContent] Step file not found: ${trackId}/${contentFile}`);
       return null;
     }
@@ -125,9 +120,7 @@ export async function listQuests(): Promise<QuestSummary[]> {
   try {
     // Read content/quests directory
     const entries = await fs.readdir(QUESTS_BASE_PATH, { withFileTypes: true });
-    const trackIds = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
+    const trackIds = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
     // Load all quest definitions in parallel
     const questPromises = trackIds.map(async (trackId) => {
@@ -141,8 +134,9 @@ export async function listQuests(): Promise<QuestSummary[]> {
 
     const quests = await Promise.all(questPromises);
     return quests.filter((q): q is QuestSummary & { trackId: string } => q !== null);
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError.code === 'ENOENT') {
       // content/quests directory doesn't exist yet
       return [];
     }
@@ -174,9 +168,7 @@ export async function getRequiredStepIds(trackId: string): Promise<string[]> {
   }
 
   // Otherwise, all required steps must be completed
-  return definition.steps
-    .filter((step) => step.required)
-    .map((step) => step.stepId);
+  return definition.steps.filter((step) => step.required).map((step) => step.stepId);
 }
 
 /**
@@ -185,8 +177,9 @@ export async function getRequiredStepIds(trackId: string): Promise<string[]> {
 export async function ensureQuestsDirectory(): Promise<void> {
   try {
     await fs.mkdir(QUESTS_BASE_PATH, { recursive: true });
-  } catch (error: any) {
-    if (error.code !== 'EEXIST') {
+  } catch (error: unknown) {
+    const nodeError = error as NodeJS.ErrnoException;
+    if (nodeError.code !== 'EEXIST') {
       console.error('[ensureQuestsDirectory] Error:', error);
     }
   }
