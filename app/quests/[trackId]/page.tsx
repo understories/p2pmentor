@@ -52,7 +52,9 @@ export default function QuestDetailPage() {
   const [badgeEntityKey, setBadgeEntityKey] = useState<string | null>(null);
   const [badgeTxHash, setBadgeTxHash] = useState<string | null>(null);
   const [badgeError, setBadgeError] = useState<string | null>(null);
-  const [dismissedSkillSuggestions, setDismissedSkillSuggestions] = useState<Set<string>>(new Set());
+  const [dismissedSkillSuggestions, setDismissedSkillSuggestions] = useState<Set<string>>(
+    new Set()
+  );
 
   // Check and issue badge if eligible
   const checkAndIssueBadge = async () => {
@@ -194,7 +196,9 @@ export default function QuestDetailPage() {
   }, [wallet, quest, trackId]);
 
   // Check if step is completed and get progress data
-  const getStepProgressData = (stepId: string): {
+  const getStepProgressData = (
+    stepId: string
+  ): {
     completed: boolean;
     txHash?: string;
     entityKey?: string;
@@ -251,35 +255,26 @@ export default function QuestDetailPage() {
 
       if (data.ok && data.txHash) {
         // Update reconciliation with txHash and entityKey immediately
-        reconciliation.markSubmitted(
-          stepId,
-          data.txHash,
-          data.key,
-          async () => {
-            // Check function for polling
-            const checkRes = await fetch(
-              `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
-            );
-            const checkData = await checkRes.json();
-            if (checkData.ok) {
-              const stepProgress = checkData.progress.find(
-                (p: QuestProgress) => p.stepId === stepId
-              );
-              if (stepProgress) {
-                // Mark as indexed when found
-                reconciliation.markIndexed(stepId);
-                return true;
-              }
+        reconciliation.markSubmitted(stepId, data.txHash, data.key, async () => {
+          // Check function for polling
+          const checkRes = await fetch(
+            `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
+          );
+          const checkData = await checkRes.json();
+          if (checkData.ok) {
+            const stepProgress = checkData.progress.find((p: QuestProgress) => p.stepId === stepId);
+            if (stepProgress) {
+              // Mark as indexed when found
+              reconciliation.markIndexed(stepId);
+              return true;
             }
-            return false;
           }
-        );
+          return false;
+        });
 
         // Reload progress after a delay
         setTimeout(() => {
-          fetch(
-            `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
-          )
+          fetch(`/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`)
             .then((r) => r.json())
             .then((d) => {
               if (d.ok) {
@@ -303,7 +298,11 @@ export default function QuestDetailPage() {
   };
 
   // Handle skill addition from quest completion
-  const handleAddSkillFromQuest = async (skillName: string, stepId: string, proficiency?: number) => {
+  const handleAddSkillFromQuest = async (
+    skillName: string,
+    stepId: string,
+    proficiency?: number
+  ) => {
     if (!wallet || !quest) return;
 
     // Find progress for this step
@@ -336,8 +335,8 @@ export default function QuestDetailPage() {
   if (loading) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
@@ -347,8 +346,8 @@ export default function QuestDetailPage() {
                   QUEST_ENTITY_MODE === 'entity'
                     ? `Query: type='quest_definition', track='${trackId}'`
                     : QUEST_ENTITY_MODE === 'dual'
-                    ? `Query: type='quest_definition', track='${trackId}' (fallback to file)`
-                    : `Load from: content/quests/${trackId}/quest.json`,
+                      ? `Query: type='quest_definition', track='${trackId}' (fallback to file)`
+                      : `Load from: content/quests/${trackId}/quest.json`,
                   ``,
                   `Returns: LoadedQuest with stepContent`,
                   `Source: ${QUEST_ENTITY_MODE === 'entity' ? 'entity' : QUEST_ENTITY_MODE === 'dual' ? 'entity or file' : 'file'}`,
@@ -369,8 +368,8 @@ export default function QuestDetailPage() {
   if (error || !quest) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
             <EmptyState
               title={error || 'Quest not found'}
@@ -386,21 +385,19 @@ export default function QuestDetailPage() {
 
   return (
     <BetaGate>
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton href="/learner-quests" />
 
           {/* Quest Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-semibold mb-2">{quest.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              {quest.description}
-            </p>
+            <h1 className="mb-2 text-3xl font-semibold">{quest.title}</h1>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">{quest.description}</p>
 
             {/* Progress Bar */}
             {completion && (
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-medium">
                     Progress: {completion.completedSteps} / {completion.totalSteps} steps
                   </span>
@@ -408,9 +405,9 @@ export default function QuestDetailPage() {
                     {completion.progressPercent}%
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
+                <div className="h-3 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
-                    className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
+                    className="h-3 rounded-full bg-emerald-600 transition-all duration-300"
                     style={{ width: `${completion.progressPercent}%` }}
                   />
                 </div>
@@ -426,34 +423,30 @@ export default function QuestDetailPage() {
 
             {/* Arkiv Builder Mode: Quest Entity Info */}
             {arkivBuilderMode && questEntityKey && (
-              <div className="mt-4 p-3 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-                <div className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2 uppercase tracking-wide">
+              <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-200">
                   Quest Definition Entity
                 </div>
                 <div className="mb-2">
-                  <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
-                    Entity Key:
-                  </div>
-                  <div className="font-mono text-xs text-blue-900 dark:text-blue-100 break-all">
+                  <div className="mb-1 text-xs text-blue-700 dark:text-blue-300">Entity Key:</div>
+                  <div className="break-all font-mono text-xs text-blue-900 dark:text-blue-100">
                     {questEntityKey}
                   </div>
                 </div>
                 {questTxHash && (
                   <div className="mb-2">
-                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
+                    <div className="mb-1 text-xs text-blue-700 dark:text-blue-300">
                       Transaction Hash:
                     </div>
-                    <div className="font-mono text-xs text-blue-900 dark:text-blue-100 break-all">
+                    <div className="break-all font-mono text-xs text-blue-900 dark:text-blue-100">
                       {questTxHash}
                     </div>
                   </div>
                 )}
                 {questSource && (
                   <div className="mb-2">
-                    <div className="text-xs text-blue-700 dark:text-blue-300 mb-1">
-                      Source:
-                    </div>
-                    <div className="text-xs text-blue-900 dark:text-blue-100 font-medium">
+                    <div className="mb-1 text-xs text-blue-700 dark:text-blue-300">Source:</div>
+                    <div className="text-xs font-medium text-blue-900 dark:text-blue-100">
                       {questSource === 'entity' ? 'Arkiv Entity' : 'File-based'}
                     </div>
                   </div>
@@ -472,23 +465,21 @@ export default function QuestDetailPage() {
             {/* Evidence Panel - Show My Proof */}
             {wallet && progress.length > 0 && (
               <div className="mt-6">
-                <EvidencePanel
-                  progress={progress}
-                  wallet={wallet}
-                  questId={quest.questId}
-                />
+                <EvidencePanel progress={progress} wallet={wallet} questId={quest.questId} />
               </div>
             )}
 
             {/* Badge Status */}
             {quest.badge && (
-              <div className={`mt-4 p-3 rounded-lg border ${
-                badgeIssued
-                  ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-                  : completion?.requiredComplete
-                  ? 'border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/20'
-                  : 'border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-800'
-              }`}>
+              <div
+                className={`mt-4 rounded-lg border p-3 ${
+                  badgeIssued
+                    ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
+                    : completion?.requiredComplete
+                      ? 'border-blue-500 bg-blue-50 dark:border-blue-600 dark:bg-blue-900/20'
+                      : 'border-gray-300 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+                }`}
+              >
                 {arkivBuilderMode && completion?.requiredComplete && !badgeIssued ? (
                   <ArkivQueryTooltip
                     query={[
@@ -512,21 +503,19 @@ export default function QuestDetailPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🏆</span>
                       <div className="flex-1">
-                        <div className="font-semibold text-sm">
+                        <div className="text-sm font-semibold">
                           {badgeIssued
                             ? `Badge Earned: ${quest.badge.name}`
                             : completion?.requiredComplete
-                            ? `Eligible for: ${quest.badge.name}`
-                            : `Complete all steps to earn: ${quest.badge.name}`}
+                              ? `Eligible for: ${quest.badge.name}`
+                              : `Complete all steps to earn: ${quest.badge.name}`}
                         </div>
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                        <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                           {quest.badge.description}
                         </div>
                       </div>
                       {badgeError && (
-                        <div className="text-xs text-red-600 dark:text-red-400">
-                          {badgeError}
-                        </div>
+                        <div className="text-xs text-red-600 dark:text-red-400">{badgeError}</div>
                       )}
                     </div>
                   </ArkivQueryTooltip>
@@ -534,44 +523,42 @@ export default function QuestDetailPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-lg">🏆</span>
                     <div className="flex-1">
-                      <div className="font-semibold text-sm">
+                      <div className="text-sm font-semibold">
                         {badgeIssued
                           ? `Badge Earned: ${quest.badge.name}`
                           : completion?.requiredComplete
-                          ? `Eligible for: ${quest.badge.name}`
-                          : `Complete all steps to earn: ${quest.badge.name}`}
+                            ? `Eligible for: ${quest.badge.name}`
+                            : `Complete all steps to earn: ${quest.badge.name}`}
                       </div>
-                      <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                      <div className="mt-1 text-xs text-gray-600 dark:text-gray-400">
                         {quest.badge.description}
                       </div>
                     </div>
                     {badgeError && (
-                      <div className="text-xs text-red-600 dark:text-red-400">
-                        {badgeError}
-                      </div>
+                      <div className="text-xs text-red-600 dark:text-red-400">{badgeError}</div>
                     )}
                   </div>
                 )}
                 {/* Arkiv Builder Mode: Badge Entity Info */}
                 {arkivBuilderMode && badgeIssued && badgeEntityKey && (
-                  <div className="mt-3 pt-3 border-t border-emerald-200 dark:border-emerald-800">
-                    <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2 uppercase tracking-wide">
+                  <div className="mt-3 border-t border-emerald-200 pt-3 dark:border-emerald-800">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
                       Badge Entity
                     </div>
                     <div className="mb-2">
-                      <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                      <div className="mb-1 text-xs text-emerald-700 dark:text-emerald-300">
                         Entity Key:
                       </div>
-                      <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                      <div className="break-all font-mono text-xs text-emerald-900 dark:text-emerald-100">
                         {badgeEntityKey}
                       </div>
                     </div>
                     {badgeTxHash && (
                       <div className="mb-2">
-                        <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+                        <div className="mb-1 text-xs text-emerald-700 dark:text-emerald-300">
                           Transaction Hash:
                         </div>
-                        <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+                        <div className="break-all font-mono text-xs text-emerald-900 dark:text-emerald-100">
                           {badgeTxHash}
                         </div>
                       </div>
@@ -591,60 +578,67 @@ export default function QuestDetailPage() {
           </div>
 
           {/* Track Overview - All Steps */}
-          <div className="mb-8 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
+            <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
               Track Overview
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
               {sortedSteps.map((step) => {
                 const stepProgress = getStepProgressData(step.stepId);
                 const isCompleted = stepProgress.completed;
-                const isLocked = step.required && !isCompleted && sortedSteps.some((s, idx) => {
-                  if (s.stepId === step.stepId) return false;
-                  if (s.order >= step.order) return false;
-                  return s.required && !getStepProgressData(s.stepId).completed;
-                });
+                const isLocked =
+                  step.required &&
+                  !isCompleted &&
+                  sortedSteps.some((s, idx) => {
+                    if (s.stepId === step.stepId) return false;
+                    if (s.order >= step.order) return false;
+                    return s.required && !getStepProgressData(s.stepId).completed;
+                  });
 
                 return (
                   <div
                     key={step.stepId}
-                    className={`p-3 rounded border-2 transition-all cursor-pointer ${
+                    className={`cursor-pointer rounded border-2 p-3 transition-all ${
                       isCompleted
-                        ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
+                        ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
                         : isLocked
-                        ? 'border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800 opacity-60'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+                          ? 'border-gray-300 bg-gray-100 opacity-60 dark:border-gray-600 dark:bg-gray-800'
+                          : 'border-gray-200 bg-white hover:border-emerald-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-700'
                     }`}
                     onClick={() => {
                       if (!isLocked) {
-                        document.getElementById(`step-${step.stepId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        document
+                          .getElementById(`step-${step.stepId}`)
+                          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
                       }
                     }}
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                    <div className="mb-2 flex items-center justify-between">
+                      <span className="font-mono text-xs text-gray-500 dark:text-gray-400">
                         Step {step.order}
                       </span>
                       {isCompleted && (
-                        <span className="text-emerald-600 dark:text-emerald-400 text-xs">✓</span>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400">✓</span>
                       )}
                       {isLocked && (
-                        <span className="text-gray-400 dark:text-gray-500 text-xs">🔒</span>
+                        <span className="text-xs text-gray-400 dark:text-gray-500">🔒</span>
                       )}
                     </div>
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    <div className="mb-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                       {step.title}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 text-xs rounded ${
-                        step.type === 'READ'
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                          : step.type === 'DO'
-                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
-                          : step.type === 'QUIZ'
-                          ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                          : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                      }`}>
+                      <span
+                        className={`rounded px-2 py-0.5 text-xs ${
+                          step.type === 'READ'
+                            ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                            : step.type === 'DO'
+                              ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                              : step.type === 'QUIZ'
+                                ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                        }`}
+                      >
                         {step.type}
                       </span>
                       {!step.required && (
@@ -653,7 +647,7 @@ export default function QuestDetailPage() {
                     </div>
                     {/* Evidence link in overview */}
                     {isCompleted && stepProgress.entityKey && arkivBuilderMode && (
-                      <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <div className="mt-2 border-t border-gray-200 pt-2 dark:border-gray-700">
                         <ViewOnArkivLink
                           entityKey={stepProgress.entityKey}
                           txHash={stepProgress.txHash}
@@ -681,6 +675,12 @@ export default function QuestDetailPage() {
                 progressData.completed &&
                 !dismissedSkillSuggestions.has(step.stepId);
 
+              // Resolve quiz rubric for QUIZ steps
+              const quizRubric =
+                step.type === 'QUIZ' && step.quizRubricId && quest.rubrics
+                  ? quest.rubrics[step.quizRubricId]
+                  : undefined;
+
               return (
                 <div key={step.stepId} id={`step-${step.stepId}`}>
                   <QuestStepRenderer
@@ -691,7 +691,29 @@ export default function QuestDetailPage() {
                     txHash={progressData.txHash}
                     entityKey={progressData.entityKey}
                     questId={quest.questId}
+                    wallet={wallet || undefined}
+                    rubric={quizRubric}
                     onComplete={() => handleStepComplete(step.stepId, step.type)}
+                    onQuizComplete={(result) => {
+                      // Quiz was submitted via the quiz API - reload progress
+                      if (result.passed) {
+                        setTimeout(() => {
+                          fetch(
+                            `/api/quests/progress?wallet=${wallet}&questId=${quest.questId}&trackId=${trackId}`
+                          )
+                            .then((r) => r.json())
+                            .then((d) => {
+                              if (d.ok) {
+                                setProgress(d.progress || []);
+                                setCompletion(d.completion || null);
+                                if (d.completion?.requiredComplete && quest.badge) {
+                                  checkAndIssueBadge();
+                                }
+                              }
+                            });
+                        }, 2000);
+                      }
+                    }}
                   />
                   {/* Skill Suggestion Prompt */}
                   {showSkillSuggestion && step.skillSuggestion && wallet && (

@@ -7,6 +7,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ConceptCard } from '@/components/learner-quests/ConceptCard';
@@ -20,7 +21,9 @@ import { SpacedRepetitionScheduler } from './SpacedRepetitionScheduler';
 import { DeliberativePracticePlanner } from './DeliberativePracticePlanner';
 import { ActiveRecallCreator } from './ActiveRecallCreator';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
-import type { QuestStepDefinition } from '@/lib/quests';
+import { QuizRenderer } from './QuizRenderer';
+import type { QuizResultData } from './QuizRenderer';
+import type { QuestStepDefinition, QuizRubric } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
 
 interface QuestStepRendererProps {
@@ -31,7 +34,10 @@ interface QuestStepRendererProps {
   txHash?: string;
   entityKey?: string;
   questId?: string;
+  wallet?: string;
+  rubric?: QuizRubric;
   onComplete: () => void;
+  onQuizComplete?: (result: QuizResultData) => void;
 }
 
 export function QuestStepRenderer({
@@ -42,60 +48,59 @@ export function QuestStepRenderer({
   txHash,
   entityKey,
   questId,
+  wallet,
+  rubric,
   onComplete,
+  onQuizComplete,
 }: QuestStepRendererProps) {
   const arkivBuilderMode = useArkivBuilderMode();
+  const [quizStarted, setQuizStarted] = useState(false);
   const isLoading = pendingStatus === 'pending' || pendingStatus === 'submitted';
   const isError = pendingStatus === 'error';
+  const isQuizStep = step.type === 'QUIZ' && rubric && wallet && questId;
 
   return (
     <div
-      className={`p-6 rounded-lg border-2 transition-all ${
+      className={`rounded-lg border-2 p-6 transition-all ${
         completed
-          ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+          ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
+          : 'border-gray-200 bg-white hover:border-emerald-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-700'
       }`}
     >
       {/* Step Header */}
-      <div className="flex items-start justify-between mb-4">
+      <div className="mb-4 flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-sm font-mono text-gray-500 dark:text-gray-400">
+          <div className="mb-2 flex items-center gap-3">
+            <span className="font-mono text-sm text-gray-500 dark:text-gray-400">
               Step {step.order}
             </span>
             <span
-              className={`px-2 py-1 text-xs font-medium rounded ${
+              className={`rounded px-2 py-1 text-xs font-medium ${
                 step.type === 'READ'
-                  ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                   : step.type === 'DO'
-                  ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
-                  : step.type === 'QUIZ'
-                  ? 'bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200'
-                  : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                    : step.type === 'QUIZ'
+                      ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
+                      : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
               }`}
             >
               {step.type}
             </span>
             {completed && (
-              <span className="text-emerald-600 dark:text-emerald-400 text-sm font-medium">
+              <span className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
                 ✓ Completed
               </span>
             )}
             {isLoading && (
-              <span className="text-blue-600 dark:text-blue-400 text-sm">
+              <span className="text-sm text-blue-600 dark:text-blue-400">
                 ⏳ {pendingStatus === 'submitted' ? 'Submitting...' : 'Processing...'}
               </span>
             )}
-            {isError && (
-              <span className="text-red-600 dark:text-red-400 text-sm">
-                ✗ Error
-              </span>
-            )}
+            {isError && <span className="text-sm text-red-600 dark:text-red-400">✗ Error</span>}
           </div>
-          <h3 className="text-xl font-semibold mb-2">{step.title}</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {step.description}
-          </p>
+          <h3 className="mb-2 text-xl font-semibold">{step.title}</h3>
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">{step.description}</p>
           {step.duration && (
             <p className="text-xs text-gray-500 dark:text-gray-500">
               Estimated time: {step.duration} minutes
@@ -117,7 +122,7 @@ export function QuestStepRenderer({
 
       {/* Step Content (Markdown) */}
       {content && (
-        <div className="mb-4 prose prose-sm dark:prose-invert max-w-none">
+        <div className="prose prose-sm mb-4 max-w-none dark:prose-invert">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
@@ -128,14 +133,22 @@ export function QuestStepRenderer({
                       href={href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-blue-600 hover:underline dark:text-blue-400"
                       {...props}
                     >
                       {children}
                     </a>
                   );
                 }
-                return <a href={href} className="text-blue-600 dark:text-blue-400 hover:underline" {...props}>{children}</a>;
+                return (
+                  <a
+                    href={href}
+                    className="text-blue-600 hover:underline dark:text-blue-400"
+                    {...props}
+                  >
+                    {children}
+                  </a>
+                );
               },
             }}
           >
@@ -146,7 +159,7 @@ export function QuestStepRenderer({
 
       {/* Flashcard Practice (for vocabulary steps) */}
       {step.vocabulary && step.vocabulary.length > 0 && (
-        <div className="mb-6 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+        <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
           <FlashcardPractice
             vocabulary={step.vocabulary}
             minCards={step.minCards || step.vocabulary.length}
@@ -226,28 +239,69 @@ export function QuestStepRenderer({
         </div>
       )}
 
+      {/* Quiz Renderer (for QUIZ steps with rubric data) */}
+      {isQuizStep && !completed && (
+        <div className="mb-6">
+          {quizStarted ? (
+            <QuizRenderer
+              rubric={rubric}
+              questId={questId}
+              stepId={step.stepId}
+              wallet={wallet}
+              onQuizComplete={(result) => {
+                if (onQuizComplete) {
+                  onQuizComplete(result);
+                }
+              }}
+            />
+          ) : (
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-800 dark:bg-orange-900/20">
+              <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
+                This step includes a {rubric.questions.length}-question quiz. You need{' '}
+                {Math.round(rubric.passingScore * 100)}% to pass.
+              </p>
+              <button
+                onClick={() => setQuizStarted(true)}
+                className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-700"
+              >
+                Start Quiz
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Show quiz results for completed quiz steps */}
+      {isQuizStep && completed && (
+        <div className="mb-6">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+            <p className="text-sm text-emerald-700 dark:text-emerald-300">
+              Quiz completed. Your results have been recorded on Arkiv.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Arkiv Builder Mode: Transaction & Entity Info */}
       {arkivBuilderMode && (txHash || entityKey || completed || pendingStatus === 'submitted') && (
-        <div className="mt-4 p-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
-          <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-200 mb-2 uppercase tracking-wide">
+        <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-emerald-800 dark:text-emerald-200">
             Arkiv Entity Created
           </div>
           {entityKey && (
             <div className="mb-2">
-              <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
-                Entity Key:
-              </div>
-              <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+              <div className="mb-1 text-xs text-emerald-700 dark:text-emerald-300">Entity Key:</div>
+              <div className="break-all font-mono text-xs text-emerald-900 dark:text-emerald-100">
                 {entityKey}
               </div>
             </div>
           )}
           {txHash && (
             <div className="mb-2">
-              <div className="text-xs text-emerald-700 dark:text-emerald-300 mb-1">
+              <div className="mb-1 text-xs text-emerald-700 dark:text-emerald-300">
                 Transaction Hash:
               </div>
-              <div className="font-mono text-xs text-emerald-900 dark:text-emerald-100 break-all">
+              <div className="break-all font-mono text-xs text-emerald-900 dark:text-emerald-100">
                 {txHash}
               </div>
             </div>
@@ -265,8 +319,8 @@ export function QuestStepRenderer({
         </div>
       )}
 
-      {/* Completion Button */}
-      {!completed && (
+      {/* Completion Button (not shown for quiz steps with rubric - quiz handles its own completion) */}
+      {!completed && !isQuizStep && (
         <div className="mt-4">
           {step.vocabulary && step.vocabulary.length > 0 && (
             <div className="mb-3 text-sm text-gray-600 dark:text-gray-400">
@@ -305,21 +359,21 @@ export function QuestStepRenderer({
                     ? 'Submitting...'
                     : 'Processing...'
                   : step.type === 'READ'
-                  ? 'Mark as Read'
-                  : step.type === 'DO'
-                  ? 'Mark as Complete'
-                  : step.type === 'QUIZ'
-                  ? 'Start Quiz'
-                  : 'Complete Step'
+                    ? 'Mark as Read'
+                    : step.type === 'DO'
+                      ? 'Mark as Complete'
+                      : step.type === 'QUIZ'
+                        ? 'Start Quiz'
+                        : 'Complete Step'
               }
             >
               <button
                 onClick={onComplete}
                 disabled={isLoading}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                   isLoading
-                    ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'cursor-not-allowed bg-gray-400 text-white dark:bg-gray-600'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
               >
                 {isLoading
@@ -327,22 +381,22 @@ export function QuestStepRenderer({
                     ? 'Submitting...'
                     : 'Processing...'
                   : step.type === 'READ'
-                  ? 'Mark as Read'
-                  : step.type === 'DO'
-                  ? 'Mark as Complete'
-                  : step.type === 'QUIZ'
-                  ? 'Start Quiz'
-                  : 'Complete Step'}
+                    ? 'Mark as Read'
+                    : step.type === 'DO'
+                      ? 'Mark as Complete'
+                      : step.type === 'QUIZ'
+                        ? 'Start Quiz'
+                        : 'Complete Step'}
               </button>
             </ArkivQueryTooltip>
           ) : (
             <button
               onClick={onComplete}
               disabled={isLoading}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                 isLoading
-                  ? 'bg-gray-400 dark:bg-gray-600 text-white cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+                  ? 'cursor-not-allowed bg-gray-400 text-white dark:bg-gray-600'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
               {isLoading
@@ -350,12 +404,12 @@ export function QuestStepRenderer({
                   ? 'Submitting...'
                   : 'Processing...'
                 : step.type === 'READ'
-                ? 'Mark as Read'
-                : step.type === 'DO'
-                ? 'Mark as Complete'
-                : step.type === 'QUIZ'
-                ? 'Start Quiz'
-                : 'Complete Step'}
+                  ? 'Mark as Read'
+                  : step.type === 'DO'
+                    ? 'Mark as Complete'
+                    : step.type === 'QUIZ'
+                      ? 'Start Quiz'
+                      : 'Complete Step'}
             </button>
           )}
         </div>
@@ -366,7 +420,7 @@ export function QuestStepRenderer({
         <div className="mt-4">
           <button
             onClick={onComplete}
-            className="px-4 py-2 rounded-lg font-medium transition-colors bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white transition-colors hover:bg-emerald-700"
           >
             Mark as Complete Again
           </button>
