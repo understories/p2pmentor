@@ -37,4 +37,8 @@ External service integrations.
 - [Jitsi Integration](integrations/jitsi-integration.md) - Video meeting rooms for sessions
 - [GitHub Integration](integrations/github-integration.md) - Issue linking from feedback
 - [GraphQL Integration](integrations/graphql-integration.md) - GraphQL interface over Arkiv
+- [Vercel Integration](integrations/vercel-integration.md) - Deployment infrastructure and environment variables
 
+## Practices
+
+- [CI/CD and Quality Pipeline](/docs/practices/ci-cd) - GitHub Actions pipeline, Vercel deployment, and contributor workflow

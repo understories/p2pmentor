@@ -3,6 +3,7 @@
 ## DX runbook
 
 Maintain a running DX runbook for Arkiv integration ([`docs/dx_arkiv_runbook.md`](../../../dx_arkiv_runbook.md)). Capture:
+
 - Feature name and entities used
 - Query patterns
 - Pain points and errors
@@ -25,3 +26,5 @@ Use this as a living document to improve both p2pmentor and Arkiv SDK.
 - Reference external documentation when appropriate
 
 See [`docs/ENGINEERING_GUIDELINES.md`](../../../ENGINEERING_GUIDELINES.md) for complete development standards.
+
+See [CI/CD and Quality Pipeline](/docs/practices/ci-cd) for the GitHub Actions pipeline, local verification workflow, and contributor guide.

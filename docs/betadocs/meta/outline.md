@@ -434,6 +434,13 @@ Own your data.
   - Proposed improvements and UX notes
 - Use this as a living document to improve both p2pmentor and Arkiv SDK
 
+### 8.5 CI/CD and quality pipeline
+
+- GitHub Actions for code quality, security scanning, and build verification
+- Vercel for deployment, environment variables, and scheduled tasks
+- Clear separation: GitHub Actions validates, Vercel deploys
+- See [CI/CD and Quality Pipeline](/docs/practices/ci-cd) for full documentation
+
 ---
 
 ## 9. Roadmap and extension points
@@ -464,6 +471,7 @@ Own your data.
 ## Reference
 
 Parts of this outline are aligned with and abstracted from:
+
 - [`docs/architecture_overview.md`](../../../architecture_overview.md) - Architecture decisions
 - [`docs/dx_arkiv_runbook.md`](../../../dx_arkiv_runbook.md) - Developer experience tracking
 - [`docs/ARKIV_GRAPHQL_TOOL.md`](../../../ARKIV_GRAPHQL_TOOL.md) - GraphQL API documentation
