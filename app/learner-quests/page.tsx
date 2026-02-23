@@ -70,12 +70,21 @@ export default function LearnerQuestsPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedQuestId, setSelectedQuestId] = useState<string | null>(null);
   const [selectedQuest, setSelectedQuest] = useState<LearnerQuest | null>(null);
-  const [materialProgress, setMaterialProgress] = useState<Record<string, { status: string; readAt?: string; key?: string; txHash?: string }>>({});
+  const [materialProgress, setMaterialProgress] = useState<
+    Record<string, { status: string; readAt?: string; key?: string; txHash?: string }>
+  >({});
   const [markingRead, setMarkingRead] = useState<string | null>(null);
-  const [overallCompletion, setOverallCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
-  const [questTypeFilter, setQuestTypeFilter] = useState<'all' | 'reading_list' | 'language_assessment' | 'meta_learning'>('all');
+  const [overallCompletion, setOverallCompletion] = useState<{
+    percent: number;
+    readCount: number;
+    totalMaterials: number;
+  } | null>(null);
+  const [questTypeFilter, setQuestTypeFilter] = useState<
+    'all' | 'reading_list' | 'language_assessment' | 'meta_learning'
+  >('all');
   const [newQuests, setNewQuests] = useState<any[]>([]);
   const [newQuestsLoading, setNewQuestsLoading] = useState(false);
+  const [featuredQuests, setFeaturedQuests] = useState<any[]>([]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -92,6 +101,7 @@ export default function LearnerQuestsPage() {
   useEffect(() => {
     loadQuests();
     loadNewQuests();
+    loadFeaturedQuests();
   }, []);
 
   const loadNewQuests = async () => {
@@ -109,6 +119,18 @@ export default function LearnerQuestsPage() {
     }
   };
 
+  const loadFeaturedQuests = async () => {
+    try {
+      const res = await fetch('/api/quests/featured');
+      const data = await res.json();
+      if (data.ok && data.featured) {
+        setFeaturedQuests(data.featured);
+      }
+    } catch (err: any) {
+      console.error('Error loading featured quests:', err);
+    }
+  };
+
   useEffect(() => {
     if (wallet && quests.length > 0) {
       loadAllProgress();
@@ -118,7 +140,7 @@ export default function LearnerQuestsPage() {
 
   useEffect(() => {
     if (selectedQuestId) {
-      const quest = quests.find(q => q.questId === selectedQuestId);
+      const quest = quests.find((q) => q.questId === selectedQuestId);
       setSelectedQuest(quest || null);
       if (wallet && quest) {
         loadQuestProgress(quest.questId);
@@ -163,13 +185,18 @@ export default function LearnerQuestsPage() {
       const progressPromises = quests.map(async (quest) => {
         try {
           if (quest.questType === 'reading_list') {
-            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`);
+            const res = await fetch(
+              `/api/learner-quests/progress?questId=${quest.questId}&wallet=${wallet}`
+            );
             const data = await res.json();
 
             if (data.ok && data.progress) {
-              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const readCount = Object.values(data.progress).filter(
+                (p: any) => p.status === 'read'
+              ).length;
               const totalMaterials = quest.materials?.length || 0;
-              const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
+              const progressPercent =
+                totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
 
               return {
                 questId: quest.questId,
@@ -183,14 +210,17 @@ export default function LearnerQuestsPage() {
           } else if (quest.questType === 'meta_learning') {
             // Load meta-learning quest progress
             try {
-              const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+              const res = await fetch(
+                `/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`
+              );
               const data = await res.json();
 
               if (data.ok && data.progress) {
                 const progress = data.progress;
                 const completedSteps = progress.completedSteps || 0;
                 const totalSteps = progress.totalSteps || 6;
-                const progressPercent = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+                const progressPercent =
+                  totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
 
                 return {
                   questId: quest.questId,
@@ -202,7 +232,10 @@ export default function LearnerQuestsPage() {
                 };
               }
             } catch (err) {
-              console.error(`Error loading meta-learning progress for quest ${quest.questId}:`, err);
+              console.error(
+                `Error loading meta-learning progress for quest ${quest.questId}:`,
+                err
+              );
             }
             // Return 0 progress if API fails or returns error
             return {
@@ -216,9 +249,11 @@ export default function LearnerQuestsPage() {
           } else if (quest.questType === 'language_assessment') {
             // Load assessment results for language assessments
             try {
-              const resultRes = await fetch(`/api/learner-quests/assessment/result?questId=${quest.questId}&wallet=${wallet}`);
+              const resultRes = await fetch(
+                `/api/learner-quests/assessment/result?questId=${quest.questId}&wallet=${wallet}`
+              );
               const resultData = await resultRes.json();
-              
+
               if (resultData.ok && resultData.result) {
                 const result = resultData.result;
                 return {
@@ -265,7 +300,7 @@ export default function LearnerQuestsPage() {
 
     try {
       // Show ONLY meta-learning quest progress to nudge users to learn how to learn first
-      const metaLearningQuest = quests.find(q => q.questType === 'meta_learning');
+      const metaLearningQuest = quests.find((q) => q.questType === 'meta_learning');
       if (!metaLearningQuest) {
         setOverallCompletion(null);
         return;
@@ -273,7 +308,9 @@ export default function LearnerQuestsPage() {
 
       // Load meta-learning quest progress
       try {
-        const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+        const res = await fetch(
+          `/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`
+        );
         const data = await res.json();
 
         if (data.ok && data.progress) {
@@ -285,7 +322,7 @@ export default function LearnerQuestsPage() {
           setOverallCompletion({
             percent,
             readCount: completedSteps,
-            totalMaterials: totalSteps
+            totalMaterials: totalSteps,
           });
         } else {
           // If API returns error, show 0% progress (quest exists but no progress yet)
@@ -310,7 +347,10 @@ export default function LearnerQuestsPage() {
       const data = await res.json();
 
       if (data.ok && data.progress) {
-        const progressMap: Record<string, { status: string; readAt?: string; key?: string; txHash?: string }> = {};
+        const progressMap: Record<
+          string,
+          { status: string; readAt?: string; key?: string; txHash?: string }
+        > = {};
         Object.values(data.progress).forEach((p: any) => {
           progressMap[p.materialId] = {
             status: p.status,
@@ -348,7 +388,7 @@ export default function LearnerQuestsPage() {
       });
 
       // Update local state optimistically
-      setMaterialProgress(prev => ({
+      setMaterialProgress((prev) => ({
         ...prev,
         [material.id]: {
           status: 'read',
@@ -392,8 +432,8 @@ export default function LearnerQuestsPage() {
   if (loading) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-6xl">
             <BackButton href="/me" />
             {arkivBuilderMode ? (
               <ArkivQueryTooltip
@@ -406,7 +446,7 @@ export default function LearnerQuestsPage() {
                   `Filtering:`,
                   `- Client-side filter by questType (reading_list | language_assessment)`,
                   `- Arkiv-native: questType attribute on learner_quest entities`,
-                  `- API supports ?questType=... for server-side filtering`
+                  `- API supports ?questType=... for server-side filtering`,
                 ]}
                 label="Loading Learner Quests"
               >
@@ -424,13 +464,10 @@ export default function LearnerQuestsPage() {
   if (error) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-6xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-6xl">
             <BackButton href="/me" />
-            <EmptyState
-              title="Error loading quests"
-              description={error}
-            />
+            <EmptyState title="Error loading quests" description={error} />
           </div>
         </div>
       </BetaGate>
@@ -439,33 +476,33 @@ export default function LearnerQuestsPage() {
 
   // Show quest detail view if a quest is selected (only for reading_list quests)
   if (selectedQuest && selectedQuest.questType === 'reading_list') {
-    const readCount = Object.values(materialProgress).filter(p => p.status === 'read').length;
+    const readCount = Object.values(materialProgress).filter((p) => p.status === 'read').length;
     const totalMaterials = selectedQuest.materials?.length || 0;
-    const progressPercent = totalMaterials > 0
-      ? Math.round((readCount / totalMaterials) * 100)
-      : 0;
+    const progressPercent = totalMaterials > 0 ? Math.round((readCount / totalMaterials) * 100) : 0;
 
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton />
 
             <div className="mb-8">
-              <h1 className="text-3xl font-semibold mb-2">{selectedQuest.title}</h1>
-              <p className="text-gray-600 dark:text-gray-400 mb-4">{selectedQuest.description}</p>
+              <h1 className="mb-2 text-3xl font-semibold">{selectedQuest.title}</h1>
+              <p className="mb-4 text-gray-600 dark:text-gray-400">{selectedQuest.description}</p>
 
               {/* Progress Bar */}
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="mb-2 flex items-center justify-between">
                   <span className="text-sm font-medium">
                     Progress: {readCount} / {selectedQuest.materials?.length || 0} materials read
                   </span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{progressPercent}%</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {progressPercent}%
+                  </span>
                 </div>
-                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                   <div
-                    className="bg-emerald-600 h-2 rounded-full transition-all duration-300"
+                    className="h-2 rounded-full bg-emerald-600 transition-all duration-300"
                     style={{ width: `${progressPercent}%` }}
                   />
                 </div>
@@ -495,24 +532,27 @@ export default function LearnerQuestsPage() {
                 return (
                   <div
                     key={material.id}
-                    className={`p-6 rounded-lg border-2 transition-all ${
+                    className={`rounded-lg border-2 p-6 transition-all ${
                       isRead
-                        ? 'border-emerald-500 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20'
-                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-300 dark:hover:border-emerald-700'
+                        ? 'border-emerald-500 bg-emerald-50 dark:border-emerald-600 dark:bg-emerald-900/20'
+                        : 'border-gray-200 bg-white hover:border-emerald-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-700'
                     }`}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="mb-2 flex items-center gap-2">
                           <h3 className="text-lg font-semibold">{material.title}</h3>
                           {isRead && (
-                            <span className="text-emerald-600 dark:text-emerald-400 text-sm">✓ Read</span>
+                            <span className="text-sm text-emerald-600 dark:text-emerald-400">
+                              ✓ Read
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                          {material.author}{material.year && ` (${material.year})`}
+                        <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+                          {material.author}
+                          {material.year && ` (${material.year})`}
                         </p>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                        <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
                           {material.description}
                         </p>
                         {arkivBuilderMode ? (
@@ -525,33 +565,41 @@ export default function LearnerQuestsPage() {
                               `   → Creates: type='learner_quest_progress' entity`,
                               `   → Attributes: wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', questId='${selectedQuestId}', materialId='${material.id}', status='read'`,
                               `   → Payload: Full progress data with readAt timestamp`,
-                              `   → TTL: 1 year (31536000 seconds)`
+                              `   → TTL: 1 year (31536000 seconds)`,
                             ]}
                             label="Read Material"
                           >
                             <button
                               onClick={() => handleMaterialClick(material)}
                               disabled={isMarking}
-                              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                              className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                                 isRead
-                                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              } ${isMarking ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                  ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                              } ${isMarking ? 'cursor-not-allowed opacity-50' : ''}`}
                             >
-                              {isMarking ? 'Marking...' : isRead ? 'Re-read Material' : 'Read Material'}
+                              {isMarking
+                                ? 'Marking...'
+                                : isRead
+                                  ? 'Re-read Material'
+                                  : 'Read Material'}
                             </button>
                           </ArkivQueryTooltip>
                         ) : (
                           <button
                             onClick={() => handleMaterialClick(material)}
                             disabled={isMarking}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                               isRead
-                                ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                                : 'bg-blue-600 hover:bg-blue-700 text-white'
-                            } ${isMarking ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                ? 'bg-emerald-600 text-white hover:bg-emerald-700'
+                                : 'bg-blue-600 text-white hover:bg-blue-700'
+                            } ${isMarking ? 'cursor-not-allowed opacity-50' : ''}`}
                           >
-                            {isMarking ? 'Marking...' : isRead ? 'Re-read Material' : 'Read Material'}
+                            {isMarking
+                              ? 'Marking...'
+                              : isRead
+                                ? 'Re-read Material'
+                                : 'Read Material'}
                           </button>
                         )}
                       </div>
@@ -576,20 +624,21 @@ export default function LearnerQuestsPage() {
   // Show quest list view
   return (
     <BetaGate>
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <BackButton href="/me" />
 
           {/* Level Up In Progress Banner */}
-          <div className="mb-6 p-4 rounded-lg border-2 border-dashed border-amber-400 dark:border-amber-500 bg-amber-50 dark:bg-amber-900/20">
+          <div className="mb-6 rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 dark:border-amber-500 dark:bg-amber-900/20">
             <div className="flex items-center gap-3">
               <span className="text-2xl">🚧</span>
               <div className="flex-1">
-                <h3 className="text-sm font-bold text-amber-800 dark:text-amber-200 uppercase tracking-wide">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-amber-800 dark:text-amber-200">
                   Level Up In Progress
                 </h3>
-                <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
-                  Quest engine hardening underway. New quest tracks and proof primitives coming soon.
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">
+                  Quest engine hardening underway. New quest tracks and proof primitives coming
+                  soon.
                 </p>
               </div>
               <span className="text-2xl">⚡</span>
@@ -609,13 +658,13 @@ export default function LearnerQuestsPage() {
                   `Creates: type='learner_quest' entity`,
                   `Attributes: questId, title, description, questType, status='active'`,
                   `Payload: Full quest data (materials array, metadata, etc.)`,
-                  `TTL: 1 year (31536000 seconds)`
+                  `TTL: 1 year (31536000 seconds)`,
                 ]}
                 label="Create Quest"
               >
                 <Link
                   href="/learner-quests/create"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
                 >
                   Create Quest
                 </Link>
@@ -623,7 +672,7 @@ export default function LearnerQuestsPage() {
             ) : (
               <Link
                 href="/learner-quests/create"
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
               >
                 Create Quest
               </Link>
@@ -640,16 +689,16 @@ export default function LearnerQuestsPage() {
                   `Query: GET /api/learner-quests`,
                   `→ listLearnerQuests() (no questType filter)`,
                   `→ type='learner_quest', status='active'`,
-                  `Returns: All active quests (reading_list + language_assessment)`
+                  `Returns: All active quests (reading_list + language_assessment)`,
                 ]}
                 label="Filter: All"
               >
                 <button
                   onClick={() => setQuestTypeFilter('all')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     questTypeFilter === 'all'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   All
@@ -658,10 +707,10 @@ export default function LearnerQuestsPage() {
             ) : (
               <button
                 onClick={() => setQuestTypeFilter('all')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   questTypeFilter === 'all'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 All
@@ -674,16 +723,16 @@ export default function LearnerQuestsPage() {
                   `Query: GET /api/learner-quests?questType=reading_list`,
                   `→ listLearnerQuests({ questType: 'reading_list' })`,
                   `→ type='learner_quest', status='active', questType='reading_list'`,
-                  `Returns: Reading list quests only (with materials array)`
+                  `Returns: Reading list quests only (with materials array)`,
                 ]}
                 label="Filter: Reading Lists"
               >
                 <button
                   onClick={() => setQuestTypeFilter('reading_list')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     questTypeFilter === 'reading_list'
                       ? 'bg-emerald-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   Reading Lists
@@ -692,10 +741,10 @@ export default function LearnerQuestsPage() {
             ) : (
               <button
                 onClick={() => setQuestTypeFilter('reading_list')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   questTypeFilter === 'reading_list'
                     ? 'bg-emerald-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 Reading Lists
@@ -708,16 +757,16 @@ export default function LearnerQuestsPage() {
                   `Query: GET /api/learner-quests?questType=language_assessment`,
                   `→ listLearnerQuests({ questType: 'language_assessment' })`,
                   `→ type='learner_quest', status='active', questType='language_assessment'`,
-                  `Returns: Language assessment quests only (with sections/questions in payload)`
+                  `Returns: Language assessment quests only (with sections/questions in payload)`,
                 ]}
                 label="Filter: Language Assessments"
               >
                 <button
                   onClick={() => setQuestTypeFilter('language_assessment')}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                     questTypeFilter === 'language_assessment'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   Language Assessments
@@ -726,10 +775,10 @@ export default function LearnerQuestsPage() {
             ) : (
               <button
                 onClick={() => setQuestTypeFilter('language_assessment')}
-                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                   questTypeFilter === 'language_assessment'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 Language Assessments
@@ -739,8 +788,8 @@ export default function LearnerQuestsPage() {
 
           {/* Overall Completion Rate (Meta-Learning Quest) */}
           {overallCompletion && questTypeFilter !== 'language_assessment' && (
-            <div className="mb-6 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 backdrop-blur-sm dark:border-emerald-700 dark:bg-emerald-900/30">
+              <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Meta-Learning Quest Progress
                 </span>
@@ -748,9 +797,9 @@ export default function LearnerQuestsPage() {
                   {overallCompletion.percent}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+              <div className="mb-2 h-3 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
-                  className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
+                  className="h-3 rounded-full bg-emerald-600 transition-all duration-300"
                   style={{ width: `${overallCompletion.percent}%` }}
                 />
               </div>
@@ -763,9 +812,10 @@ export default function LearnerQuestsPage() {
           {/* Quests List */}
           {(() => {
             // Filter quests by questType
-            const filteredQuests = questTypeFilter === 'all'
-              ? quests
-              : quests.filter(q => q.questType === questTypeFilter);
+            const filteredQuests =
+              questTypeFilter === 'all'
+                ? quests
+                : quests.filter((q) => q.questType === questTypeFilter);
 
             if (filteredQuests.length === 0) {
               return (
@@ -777,151 +827,209 @@ export default function LearnerQuestsPage() {
             }
 
             return (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredQuests.map((quest) => {
-                const progress = questProgress[quest.questId] || {
-                  readCount: 0,
-                  totalMaterials: quest.materials?.length || 0,
-                  progressPercent: 0,
-                };
+                  const progress = questProgress[quest.questId] || {
+                    readCount: 0,
+                    totalMaterials: quest.materials?.length || 0,
+                    progressPercent: 0,
+                  };
 
-                return (
-                  <div
-                    key={quest.questId}
-                    onClick={() => handleQuestClick(quest)}
-                    className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200 cursor-pointer"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                          {quest.title}
-                        </h3>
-                        {arkivBuilderMode && quest.key && (
-                          <div className="mt-1 flex items-center gap-2">
-                            <ViewOnArkivLink
-                              entityKey={quest.key}
-                              txHash={quest.txHash}
-                              label="View Quest Entity"
-                              className="text-xs"
-                            />
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                              Key: {quest.key.slice(0, 12)}...
+                  return (
+                    <div
+                      key={quest.questId}
+                      onClick={() => handleQuestClick(quest)}
+                      className="cursor-pointer rounded-lg border border-gray-200 bg-white p-6 transition-all duration-200 hover:border-emerald-500 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-400"
+                    >
+                      <div className="mb-3 flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                            {quest.title}
+                          </h3>
+                          {arkivBuilderMode && quest.key && (
+                            <div className="mt-1 flex items-center gap-2">
+                              <ViewOnArkivLink
+                                entityKey={quest.key}
+                                txHash={quest.txHash}
+                                label="View Quest Entity"
+                                className="text-xs"
+                              />
+                              <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                                Key: {quest.key.slice(0, 12)}...
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="mb-4 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
+                        {quest.description}
+                      </p>
+
+                      {/* Quest Type Badge */}
+                      <div className="mb-2">
+                        <span
+                          className={`inline-block rounded px-2 py-1 text-xs font-medium ${
+                            quest.questType === 'language_assessment'
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                              : quest.questType === 'meta_learning'
+                                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
+                          }`}
+                        >
+                          {quest.questType === 'language_assessment'
+                            ? 'Language Assessment'
+                            : quest.questType === 'meta_learning'
+                              ? 'Activity Quest'
+                              : 'Reading List'}
+                        </span>
+                      </div>
+
+                      {/* Progress (for reading_list and meta_learning quests) */}
+                      {(quest.questType === 'reading_list' ||
+                        quest.questType === 'meta_learning') && (
+                        <div className="mb-4">
+                          <div className="mb-2 flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                              {quest.questType === 'meta_learning'
+                                ? `${progress.readCount || 0} / ${progress.totalMaterials || 6} steps`
+                                : `${progress.readCount} / ${progress.totalMaterials} materials`}
+                            </span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">
+                              {progress.progressPercent}%
                             </span>
                           </div>
-                        )}
-                      </div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                      {quest.description}
-                    </p>
-
-                    {/* Quest Type Badge */}
-                    <div className="mb-2">
-                      <span className={`inline-block px-2 py-1 text-xs font-medium rounded ${
-                        quest.questType === 'language_assessment'
-                          ? 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200'
-                          : quest.questType === 'meta_learning'
-                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200'
-                          : 'bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200'
-                      }`}>
-                        {quest.questType === 'language_assessment' 
-                          ? 'Language Assessment' 
-                          : quest.questType === 'meta_learning'
-                          ? 'Activity Quest'
-                          : 'Reading List'}
-                      </span>
-                    </div>
-
-                    {/* Progress (for reading_list and meta_learning quests) */}
-                    {(quest.questType === 'reading_list' || quest.questType === 'meta_learning') && (
-                      <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                            {quest.questType === 'meta_learning' 
-                              ? `${progress.readCount || 0} / ${progress.totalMaterials || 6} steps`
-                              : `${progress.readCount} / ${progress.totalMaterials} materials`}
-                          </span>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {progress.progressPercent}%
-                          </span>
+                          <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                quest.questType === 'meta_learning'
+                                  ? 'bg-purple-600 dark:bg-purple-500'
+                                  : 'bg-emerald-600'
+                              }`}
+                              style={{ width: `${progress.progressPercent}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full transition-all duration-300 ${
-                              quest.questType === 'meta_learning'
-                                ? 'bg-purple-600 dark:bg-purple-500'
-                                : 'bg-emerald-600'
-                            }`}
-                            style={{ width: `${progress.progressPercent}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
+                      )}
 
-                    {/* Language Assessment Action */}
-                    {quest.questType === 'language_assessment' && (
-                      <div className="mb-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            router.push(`/learner-quests/${quest.questId}`);
-                          }}
-                          className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                      {/* Language Assessment Action */}
+                      {quest.questType === 'language_assessment' && (
+                        <div className="mb-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/learner-quests/${quest.questId}`);
+                            }}
+                            className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                          >
+                            Start Assessment
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Source */}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Source:{' '}
+                        <a
+                          href={quest.source}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-emerald-600 dark:hover:text-emerald-400"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          Start Assessment
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Source */}
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Source:{' '}
-                      <a
-                        href={quest.source}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline hover:text-emerald-600 dark:hover:text-emerald-400"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {quest.source.replace(/^https?:\/\//, '').replace(/\/$/, '')}
-                      </a>
-                    </p>
-                  </div>
-                );
-              })}
+                          {quest.source.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                        </a>
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
             );
           })()}
 
+          {/* Featured Quests */}
+          {featuredQuests.length > 0 && (
+            <div className="mb-8 mt-12">
+              <div className="mb-6">
+                <h2 className="mb-2 text-2xl font-semibold">Featured Quests</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Recommended quest tracks highlighted by the network.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                {featuredQuests.map((quest: any) => (
+                  <Link
+                    key={quest.questId}
+                    href={`/quests/${quest.track || quest.questId}`}
+                    className="relative rounded-lg border-2 border-amber-300 bg-amber-50 p-6 transition-all duration-200 hover:border-amber-400 hover:shadow-md dark:border-amber-600 dark:bg-amber-900/20 dark:hover:border-amber-500"
+                  >
+                    <span className="absolute -top-2.5 left-4 rounded-full bg-amber-500 px-3 py-0.5 text-xs font-semibold text-white">
+                      Featured
+                    </span>
+                    <h3 className="mb-2 mt-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+                      {quest.title}
+                    </h3>
+                    <p className="mb-4 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
+                      {quest.description}
+                    </p>
+                    <div className="mb-3 flex flex-wrap gap-2">
+                      <span className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
+                        {quest.track}
+                      </span>
+                      {quest.difficulty && (
+                        <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200">
+                          {quest.difficulty}
+                        </span>
+                      )}
+                      {quest.hasBadge && (
+                        <span className="rounded bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
+                          Badge
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {quest.stepCount} steps
+                      {quest.featuredUntil && (
+                        <span>
+                          {' '}
+                          · Featured until {new Date(quest.featuredUntil).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* New Quest Engine Quests */}
           {newQuests.length > 0 && (
-            <div className="mt-12 mb-8">
+            <div className="mb-8 mt-12">
               <div className="mb-6">
-                <h2 className="text-2xl font-semibold mb-2">New Quest Engine</h2>
+                <h2 className="mb-2 text-2xl font-semibold">New Quest Engine</h2>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   Quest tracks with step-by-step learning and verifiable proof artifacts.
                 </p>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {newQuests.map((quest) => (
                   <Link
                     key={quest.questId}
                     href={`/quests/${quest.trackId || quest.questId}`}
-                    className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200"
+                    className="rounded-lg border border-gray-200 bg-white p-6 transition-all duration-200 hover:border-emerald-500 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-400"
                   >
                     <div className="mb-3">
-                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                      <h3 className="mb-2 text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {quest.title}
                       </h3>
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
+                      <p className="mb-4 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
                         {quest.description}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      <span className="px-2 py-1 text-xs font-medium rounded bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200">
+                    <div className="mb-4 flex flex-wrap gap-2">
+                      <span className="rounded bg-purple-100 px-2 py-1 text-xs font-medium text-purple-800 dark:bg-purple-900 dark:text-purple-200">
                         {quest.track}
                       </span>
-                      <span className="px-2 py-1 text-xs font-medium rounded bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                      <span className="rounded bg-gray-100 px-2 py-1 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-200">
                         {quest.difficulty}
                       </span>
                     </div>
