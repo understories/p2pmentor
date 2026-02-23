@@ -15,6 +15,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { logClientTelemetry } from '@/lib/telemetry';
 import type { QuestStepEvidence } from '@/lib/arkiv/questStep';
 
 /**
@@ -56,7 +57,8 @@ const DEFAULT_POLLING_CONFIG: PollingConfig = {
  * Hook for managing optimistic progress updates with reconciliation
  */
 export function useProgressReconciliation(
-  pollingConfig: Partial<PollingConfig> = {}
+  pollingConfig: Partial<PollingConfig> = {},
+  questId?: string
 ) {
   const config = { ...DEFAULT_POLLING_CONFIG, ...pollingConfig };
   const [pendingSteps, setPendingSteps] = useState<Map<string, PendingStep>>(new Map());
@@ -73,10 +75,7 @@ export function useProgressReconciliation(
   /**
    * Update a pending step's status
    */
-  const updateStepStatus = useCallback((
-    stepId: string,
-    updates: Partial<PendingStep>
-  ) => {
+  const updateStepStatus = useCallback((stepId: string, updates: Partial<PendingStep>) => {
     setPendingSteps((prev) => {
       const newMap = new Map(prev);
       const existing = newMap.get(stepId);
@@ -90,42 +89,52 @@ export function useProgressReconciliation(
   /**
    * Start polling for indexer confirmation
    */
-  const startPolling = useCallback((
-    stepId: string,
-    txHash: string,
-    checkFn: () => Promise<boolean>,
-    attempt: number = 0
-  ) => {
-    if (attempt >= config.maxAttempts) {
-      // Max attempts reached - leave as submitted (user can refresh)
-      console.warn(`[useProgressReconciliation] Max polling attempts for ${stepId}`);
-      return;
-    }
+  const startPolling = useCallback(
+    (stepId: string, txHash: string, checkFn: () => Promise<boolean>, attempt: number = 0) => {
+      if (attempt >= config.maxAttempts) {
+        console.warn(`[useProgressReconciliation] Max polling attempts for ${stepId}`);
+        if (questId) {
+          const totalLagMs =
+            config.initialDelayMs *
+            ((Math.pow(config.backoffMultiplier, config.maxAttempts) - 1) /
+              (config.backoffMultiplier - 1));
+          logClientTelemetry({
+            eventType: 'indexer_lag',
+            questId,
+            stepId,
+            retryCount: config.maxAttempts,
+            lagMs: Math.round(totalLagMs),
+          });
+        }
+        return;
+      }
 
-    const delay = Math.min(
-      config.initialDelayMs * Math.pow(config.backoffMultiplier, attempt),
-      config.maxDelayMs
-    );
+      const delay = Math.min(
+        config.initialDelayMs * Math.pow(config.backoffMultiplier, attempt),
+        config.maxDelayMs
+      );
 
-    const timer = setTimeout(async () => {
-      try {
-        const isIndexed = await checkFn();
-        if (isIndexed) {
-          updateStepStatus(stepId, { status: 'indexed' });
-          pollingTimers.current.delete(stepId);
-        } else {
-          // Continue polling
+      const timer = setTimeout(async () => {
+        try {
+          const isIndexed = await checkFn();
+          if (isIndexed) {
+            updateStepStatus(stepId, { status: 'indexed' });
+            pollingTimers.current.delete(stepId);
+          } else {
+            // Continue polling
+            startPolling(stepId, txHash, checkFn, attempt + 1);
+          }
+        } catch (error) {
+          console.error(`[useProgressReconciliation] Polling error for ${stepId}:`, error);
+          // Continue polling on error
           startPolling(stepId, txHash, checkFn, attempt + 1);
         }
-      } catch (error) {
-        console.error(`[useProgressReconciliation] Polling error for ${stepId}:`, error);
-        // Continue polling on error
-        startPolling(stepId, txHash, checkFn, attempt + 1);
-      }
-    }, delay);
+      }, delay);
 
-    pollingTimers.current.set(stepId, timer);
-  }, [config, updateStepStatus]);
+      pollingTimers.current.set(stepId, timer);
+    },
+    [config, updateStepStatus]
+  );
 
   /**
    * Record a step as pending (optimistic update)
@@ -146,52 +155,56 @@ export function useProgressReconciliation(
   /**
    * Mark step as submitted and start polling
    */
-  const markSubmitted = useCallback((
-    stepId: string,
-    txHash: string,
-    entityKey: string,
-    checkFn: () => Promise<boolean>
-  ) => {
-    updateStepStatus(stepId, {
-      status: 'submitted',
-      txHash,
-      entityKey,
-    });
+  const markSubmitted = useCallback(
+    (stepId: string, txHash: string, entityKey: string, checkFn: () => Promise<boolean>) => {
+      updateStepStatus(stepId, {
+        status: 'submitted',
+        txHash,
+        entityKey,
+      });
 
-    // Start polling for indexer confirmation
-    startPolling(stepId, txHash, checkFn);
-  }, [updateStepStatus, startPolling]);
+      // Start polling for indexer confirmation
+      startPolling(stepId, txHash, checkFn);
+    },
+    [updateStepStatus, startPolling]
+  );
 
   /**
    * Mark step as indexed (manually, e.g., from query result)
    */
-  const markIndexed = useCallback((stepId: string) => {
-    updateStepStatus(stepId, { status: 'indexed' });
+  const markIndexed = useCallback(
+    (stepId: string) => {
+      updateStepStatus(stepId, { status: 'indexed' });
 
-    // Cancel any pending polling
-    const timer = pollingTimers.current.get(stepId);
-    if (timer) {
-      clearTimeout(timer);
-      pollingTimers.current.delete(stepId);
-    }
-  }, [updateStepStatus]);
+      // Cancel any pending polling
+      const timer = pollingTimers.current.get(stepId);
+      if (timer) {
+        clearTimeout(timer);
+        pollingTimers.current.delete(stepId);
+      }
+    },
+    [updateStepStatus]
+  );
 
   /**
    * Mark step as error
    */
-  const markError = useCallback((stepId: string, error: string) => {
-    updateStepStatus(stepId, {
-      status: 'error',
-      error,
-    });
+  const markError = useCallback(
+    (stepId: string, error: string) => {
+      updateStepStatus(stepId, {
+        status: 'error',
+        error,
+      });
 
-    // Cancel any pending polling
-    const timer = pollingTimers.current.get(stepId);
-    if (timer) {
-      clearTimeout(timer);
-      pollingTimers.current.delete(stepId);
-    }
-  }, [updateStepStatus]);
+      // Cancel any pending polling
+      const timer = pollingTimers.current.get(stepId);
+      if (timer) {
+        clearTimeout(timer);
+        pollingTimers.current.delete(stepId);
+      }
+    },
+    [updateStepStatus]
+  );
 
   /**
    * Clear a step from pending (e.g., after refresh)
@@ -223,9 +236,12 @@ export function useProgressReconciliation(
   /**
    * Get status for a specific step
    */
-  const getStepStatus = useCallback((stepId: string): PendingStep | undefined => {
-    return pendingSteps.get(stepId);
-  }, [pendingSteps]);
+  const getStepStatus = useCallback(
+    (stepId: string): PendingStep | undefined => {
+      return pendingSteps.get(stepId);
+    },
+    [pendingSteps]
+  );
 
   /**
    * Check if any steps are pending submission
