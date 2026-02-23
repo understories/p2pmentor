@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { ConceptCard } from '@/components/learner-quests/ConceptCard';
@@ -22,6 +22,10 @@ import { DeliberativePracticePlanner } from './DeliberativePracticePlanner';
 import { ActiveRecallCreator } from './ActiveRecallCreator';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
 import { QuizRenderer } from './QuizRenderer';
+import { ReflectionPrompt } from './ReflectionPrompt';
+import { ThreatModelWorksheet } from './ThreatModelWorksheet';
+import { PrivacyChecklist } from './PrivacyChecklist';
+import { logClientTelemetry } from '@/lib/telemetry';
 import type { QuizResultData } from './QuizRenderer';
 import type { QuestStepDefinition, QuizRubric } from '@/lib/quests';
 import type { ReconciliationStatus } from '@/lib/hooks/useProgressReconciliation';
@@ -36,7 +40,7 @@ interface QuestStepRendererProps {
   questId?: string;
   wallet?: string;
   rubric?: QuizRubric;
-  onComplete: () => void;
+  onComplete: (evidenceData?: Record<string, unknown>) => void;
   onQuizComplete?: (result: QuizResultData) => void;
 }
 
@@ -55,9 +59,32 @@ export function QuestStepRenderer({
 }: QuestStepRendererProps) {
   const arkivBuilderMode = useArkivBuilderMode();
   const [quizStarted, setQuizStarted] = useState(false);
+  const [stepStartTime] = useState(() => Date.now());
+  const [timeGateAcknowledged, setTimeGateAcknowledged] = useState(false);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const isLoading = pendingStatus === 'pending' || pendingStatus === 'submitted';
   const isError = pendingStatus === 'error';
   const isQuizStep = step.type === 'QUIZ' && rubric && wallet && questId;
+
+  const minTimeRequired = step.duration ? Math.max(step.duration * 60 * 0.3, 30) : 0;
+  const timeGateActive =
+    minTimeRequired > 0 && elapsedSeconds < minTimeRequired && !timeGateAcknowledged && !completed;
+
+  const stepViewLogged = useRef(false);
+  useEffect(() => {
+    if (questId && !stepViewLogged.current) {
+      stepViewLogged.current = true;
+      logClientTelemetry({ eventType: 'step_view', questId, stepId: step.stepId });
+    }
+  }, [questId, step.stepId]);
+
+  useEffect(() => {
+    if (minTimeRequired <= 0 || timeGateAcknowledged || completed) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds((Date.now() - stepStartTime) / 1000);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [minTimeRequired, timeGateAcknowledged, completed, stepStartTime]);
 
   return (
     <div
@@ -198,8 +225,14 @@ export function QuestStepRenderer({
       {step.actionConfig?.component === 'SignVerifyDemo' && (
         <div className="mb-6">
           <SignVerifyDemo
-            onVerified={(message, signature, publicKey) => {
-              // Signature verified - user can mark step as complete
+            onVerified={(message, signature, publicKey, explanation) => {
+              onComplete({
+                message,
+                signature,
+                publicKey,
+                explanation,
+                timeSpent: Math.floor((Date.now() - stepStartTime) / 1000),
+              });
             }}
             requireVerification={step.actionConfig.requireVerification}
           />
@@ -235,6 +268,45 @@ export function QuestStepRenderer({
               // Questions created - user can mark step as complete
             }}
             minQuestions={step.actionConfig.minQuestions || 5}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'ThreatModelWorksheet' && (
+        <div className="mb-6">
+          <ThreatModelWorksheet
+            onComplete={(model) => {
+              onComplete({
+                threatModel: model,
+                timeSpent: Math.floor((Date.now() - stepStartTime) / 1000),
+              });
+            }}
+          />
+        </div>
+      )}
+
+      {step.actionConfig?.component === 'PrivacyChecklist' && (
+        <div className="mb-6">
+          <PrivacyChecklist
+            onComplete={(completed) => {
+              onComplete({
+                checklistItems: completed,
+                timeSpent: Math.floor((Date.now() - stepStartTime) / 1000),
+              });
+            }}
+          />
+        </div>
+      )}
+
+      {/* Reflection Prompt (shown for READ steps after content) */}
+      {step.type === 'READ' && completed && wallet && questId && (
+        <div className="mb-6">
+          <ReflectionPrompt
+            stepId={step.stepId}
+            questId={questId}
+            wallet={wallet}
+            progressEntityKey={entityKey}
+            prompt={step.reflectionPrompt}
           />
         </div>
       )}
@@ -319,6 +391,23 @@ export function QuestStepRenderer({
         </div>
       )}
 
+      {/* Time Gate (soft friction) */}
+      {timeGateActive && !isQuizStep && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-900/20">
+          <p className="mb-2 text-sm text-amber-800 dark:text-amber-200">
+            We recommend spending at least {Math.ceil(minTimeRequired / 60)} minute
+            {Math.ceil(minTimeRequired / 60) !== 1 ? 's' : ''} on this step to get the most out of
+            it.
+          </p>
+          <button
+            onClick={() => setTimeGateAcknowledged(true)}
+            className="text-xs text-amber-700 underline dark:text-amber-300"
+          >
+            I&apos;ve reviewed the content, continue anyway
+          </button>
+        </div>
+      )}
+
       {/* Completion Button (not shown for quiz steps with rubric - quiz handles its own completion) */}
       {!completed && !isQuizStep && (
         <div className="mt-4">
@@ -368,7 +457,9 @@ export function QuestStepRenderer({
               }
             >
               <button
-                onClick={onComplete}
+                onClick={() =>
+                  onComplete({ timeSpent: Math.floor((Date.now() - stepStartTime) / 1000) })
+                }
                 disabled={isLoading}
                 className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                   isLoading
@@ -391,7 +482,9 @@ export function QuestStepRenderer({
             </ArkivQueryTooltip>
           ) : (
             <button
-              onClick={onComplete}
+              onClick={() =>
+                onComplete({ timeSpent: Math.floor((Date.now() - stepStartTime) / 1000) })
+              }
               disabled={isLoading}
               className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                 isLoading
@@ -419,7 +512,9 @@ export function QuestStepRenderer({
       {completed && (
         <div className="mt-4">
           <button
-            onClick={onComplete}
+            onClick={() =>
+              onComplete({ timeSpent: Math.floor((Date.now() - stepStartTime) / 1000) })
+            }
             className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white transition-colors hover:bg-emerald-700"
           >
             Mark as Complete Again
