@@ -34,6 +34,11 @@
       "actionConfig": {
         "component": "HashGenerator",
         "minHashes": 1
+      },
+      "skillSuggestion": {
+        "skillName": "Cryptographic Hashing",
+        "proficiency": 1,
+        "message": "You've generated hashes hands-on. Add this to your skills?"
       }
     },
     {
@@ -82,7 +87,7 @@
       "stepId": "sign-verify",
       "type": "DO",
       "title": "Sign and Verify",
-      "description": "Sign a message and verify the signature.",
+      "description": "Sign a message, verify the signature, and explain what the verification proves.",
       "contentFile": "steps/06-sign-verify.md",
       "duration": 15,
       "order": 6,
@@ -90,6 +95,11 @@
       "actionConfig": {
         "component": "SignVerifyDemo",
         "requireVerification": true
+      },
+      "skillSuggestion": {
+        "skillName": "Digital Signatures",
+        "proficiency": 2,
+        "message": "You've verified a digital signature. Add this to your skills?"
       }
     },
     {
@@ -126,12 +136,7 @@
           "id": "q1",
           "type": "multiple_choice",
           "question": "What is the main property of a hash function?",
-          "options": [
-            "Reversible",
-            "One-way",
-            "Encrypted",
-            "Decrypted"
-          ],
+          "options": ["Reversible", "One-way", "Encrypted", "Decrypted"],
           "correctAnswer": "One-way",
           "points": 1,
           "explanation": "Hash functions are one-way - you can't reverse them to get the original input."
@@ -154,12 +159,7 @@
           "id": "q3",
           "type": "multiple_choice",
           "question": "What can you do with a private key?",
-          "options": [
-            "Verify signatures",
-            "Sign messages",
-            "Both",
-            "Neither"
-          ],
+          "options": ["Verify signatures", "Sign messages", "Both", "Neither"],
           "correctAnswer": "Sign messages",
           "points": 1,
           "explanation": "Private keys are used to sign messages. Public keys are used to verify signatures."
@@ -168,12 +168,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What can you do with a public key?",
-          "options": [
-            "Sign messages",
-            "Verify signatures",
-            "Both",
-            "Neither"
-          ],
+          "options": ["Sign messages", "Verify signatures", "Both", "Neither"],
           "correctAnswer": "Verify signatures",
           "points": 1,
           "explanation": "Public keys are used to verify signatures created with the corresponding private key."
