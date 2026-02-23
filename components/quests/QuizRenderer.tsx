@@ -11,11 +11,12 @@
 
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ViewOnArkivLink } from '@/components/ViewOnArkivLink';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
+import { logClientTelemetry } from '@/lib/telemetry';
 import type { QuizRubric, QuizQuestion } from '@/lib/quests/questFormat';
 
 interface QuizRendererProps {
@@ -51,8 +52,19 @@ export function QuizRenderer({
   const [result, setResult] = useState<QuizResultData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showExplanations, setShowExplanations] = useState(false);
+  const [shuffled, setShuffled] = useState(true);
 
-  const questions = rubric.questions;
+  const questions = useMemo(() => {
+    if (!shuffled) return rubric.questions;
+    const arr = [...rubric.questions];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+    // Only shuffle once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shuffled]);
   const questionIds = questions.map((q) => q.id);
 
   const answeredCount = Object.keys(answers).length;
@@ -105,6 +117,16 @@ export function QuizRenderer({
       setResult(resultData);
       setPhase('results');
       onQuizComplete(resultData);
+
+      if (!resultData.passed) {
+        logClientTelemetry({
+          eventType: 'quiz_failure',
+          questId,
+          stepId,
+          errorType: 'quiz_not_passed',
+          errorMessage: `Score ${Math.round(resultData.percentage * 100)}% below ${Math.round(rubric.passingScore * 100)}% threshold`,
+        });
+      }
     } catch (err: any) {
       console.error('[QuizRenderer] Submit error:', err);
       setError(err.message || 'Failed to submit quiz');
@@ -117,6 +139,7 @@ export function QuizRenderer({
     setResult(null);
     setError(null);
     setShowExplanations(false);
+    setShuffled((prev) => !prev); // toggle to re-shuffle
     setPhase('taking');
   };
 
@@ -292,7 +315,18 @@ export function QuizRenderer({
         <span>
           {answeredCount} of {questions.length} answered
         </span>
-        <span>Passing: {Math.round(rubric.passingScore * 100)}%</span>
+        <div className="flex items-center gap-3">
+          <label className="flex cursor-pointer items-center gap-1.5">
+            <input
+              type="checkbox"
+              checked={shuffled}
+              onChange={(e) => setShuffled(e.target.checked)}
+              className="rounded"
+            />
+            <span className="text-xs">Shuffle</span>
+          </label>
+          <span>Passing: {Math.round(rubric.passingScore * 100)}%</span>
+        </div>
       </div>
 
       {/* Questions */}
@@ -353,6 +387,68 @@ export function QuizRenderer({
           Submit Quiz
         </button>
       )}
+    </div>
+  );
+}
+
+/**
+ * Matching question: left items (options) paired with right items (correctAnswer)
+ * via dropdowns. Scoring uses sorted array comparison.
+ */
+function MatchingQuestion({
+  options,
+  correctAnswer,
+  questionId,
+  answer,
+  onAnswer,
+}: {
+  options: string[];
+  correctAnswer: string[];
+  questionId: string;
+  answer: string[];
+  onAnswer: (value: string[]) => void;
+}) {
+  const [choices] = useState(() => {
+    const arr = [...correctAnswer];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  });
+
+  const selections =
+    answer.length === options.length ? answer : new Array<string>(options.length).fill('');
+
+  const handleSelect = (idx: number, value: string) => {
+    const next = [...selections];
+    next[idx] = value;
+    onAnswer(next);
+  };
+
+  return (
+    <div className="space-y-3">
+      {options.map((leftItem, idx) => (
+        <div
+          key={idx}
+          className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-600"
+        >
+          <span className="min-w-0 flex-1 text-sm font-medium">{leftItem}</span>
+          <span className="text-gray-400">→</span>
+          <select
+            value={selections[idx] || ''}
+            onChange={(e) => handleSelect(idx, e.target.value)}
+            className="min-w-[140px] rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+          >
+            <option value="">Select match...</option>
+            {choices.map((choice, cIdx) => (
+              <option key={cIdx} value={choice}>
+                {choice}
+              </option>
+            ))}
+          </select>
+        </div>
+      ))}
     </div>
   );
 }
@@ -437,6 +533,18 @@ function QuestionRenderer({
           className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
         />
       )}
+
+      {question.type === 'matching' &&
+        question.options &&
+        Array.isArray(question.correctAnswer) && (
+          <MatchingQuestion
+            options={question.options}
+            correctAnswer={question.correctAnswer as string[]}
+            questionId={question.id}
+            answer={Array.isArray(answer) ? answer : []}
+            onAnswer={onAnswer}
+          />
+        )}
 
       {/* Points indicator */}
       <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
