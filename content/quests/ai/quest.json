@@ -1,0 +1,222 @@
+{
+  "questId": "ai_intro",
+  "version": "1",
+  "track": "ai",
+  "title": "Intro to AI & Machine Learning",
+  "description": "Explore fundamental AI/ML concepts: neural networks, training algorithms, large language models, and generative AI.",
+  "source": "AI/ML Fundamentals",
+  "estimatedDuration": "75 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "What is Artificial Intelligence?",
+      "description": "Introduction to AI and its relationship to machine learning.",
+      "contentFile": "steps/01-intro.md",
+      "duration": 10,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "AI is pattern recognition at scale",
+        "body": "At its core, AI learns patterns from data. Machine learning is the method; the data is the teacher."
+      }
+    },
+    {
+      "stepId": "neural-networks",
+      "type": "READ",
+      "title": "Neural Networks",
+      "description": "Understand how neural networks learn from data.",
+      "contentFile": "steps/02-neural-networks.md",
+      "duration": 10,
+      "order": 2,
+      "required": true,
+      "conceptCard": {
+        "title": "Neural networks learn by adjusting weights",
+        "body": "Like tuning thousands of knobs until the output matches what you expect — that's training."
+      }
+    },
+    {
+      "stepId": "training",
+      "type": "READ",
+      "title": "Training & Algorithms",
+      "description": "Learn how models are trained with gradient descent and backpropagation.",
+      "contentFile": "steps/03-training.md",
+      "duration": 10,
+      "order": 3,
+      "required": true,
+      "conceptCard": {
+        "title": "Training is iterative error correction",
+        "body": "A model makes a prediction, measures how wrong it is, and adjusts — millions of times."
+      }
+    },
+    {
+      "stepId": "llms",
+      "type": "READ",
+      "title": "Large Language Models",
+      "description": "Understand how LLMs like GPT and Claude work.",
+      "contentFile": "steps/04-llms.md",
+      "duration": 10,
+      "order": 4,
+      "required": true,
+      "conceptCard": {
+        "title": "LLMs predict the next token",
+        "body": "Large language models are trained to predict what comes next in a sequence — and that simple objective produces remarkably capable systems."
+      }
+    },
+    {
+      "stepId": "generative-ai",
+      "type": "READ",
+      "title": "Generative AI",
+      "description": "Explore how AI generates text, images, and code.",
+      "contentFile": "steps/05-generative-ai.md",
+      "duration": 10,
+      "order": 5,
+      "required": true,
+      "conceptCard": {
+        "title": "Generative models learn the distribution of data",
+        "body": "Instead of classifying inputs, generative models learn to produce new outputs that resemble the training data."
+      }
+    },
+    {
+      "stepId": "ai-ethics",
+      "type": "READ",
+      "title": "AI Ethics & Limitations",
+      "description": "Understand the limitations, biases, and ethical considerations of AI systems.",
+      "contentFile": "steps/06-ethics.md",
+      "duration": 10,
+      "order": 6,
+      "required": true,
+      "reflectionPrompt": "What is one potential risk of AI systems that concerns you, and how might it be mitigated?"
+    },
+    {
+      "stepId": "ai-web3",
+      "type": "READ",
+      "title": "AI Meets Web3",
+      "description": "Explore the intersection of AI and decentralized systems.",
+      "contentFile": "steps/07-ai-web3.md",
+      "duration": 5,
+      "order": 7,
+      "required": true,
+      "conceptCard": {
+        "title": "Decentralization can make AI more transparent",
+        "body": "Storing model outputs and training data provenance on-chain creates verifiable AI — you can check what the model saw and said."
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Knowledge Check",
+      "description": "Test your understanding of AI and machine learning fundamentals.",
+      "duration": 10,
+      "order": 8,
+      "required": true,
+      "quizRubricId": "ai_basics_v1"
+    }
+  ],
+  "rubrics": {
+    "ai_basics_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What is the relationship between AI and machine learning?",
+          "options": [
+            "They are the same thing",
+            "Machine learning is a subset of AI",
+            "AI is a subset of machine learning",
+            "They are unrelated"
+          ],
+          "correctAnswer": "Machine learning is a subset of AI",
+          "points": 1,
+          "explanation": "Machine learning is one approach to achieving AI. AI is the broader field; ML is a specific technique within it."
+        },
+        {
+          "id": "q2",
+          "type": "multiple_choice",
+          "question": "What does a neural network adjust during training?",
+          "options": [
+            "The training data",
+            "The weights and biases",
+            "The number of layers",
+            "The input format"
+          ],
+          "correctAnswer": "The weights and biases",
+          "points": 1,
+          "explanation": "During training, a neural network adjusts its weights and biases to minimize the error between its predictions and the correct answers."
+        },
+        {
+          "id": "q3",
+          "type": "multiple_choice",
+          "question": "What is the core training objective of a large language model?",
+          "options": [
+            "Understand meaning",
+            "Predict the next token in a sequence",
+            "Memorize the training data",
+            "Follow instructions"
+          ],
+          "correctAnswer": "Predict the next token in a sequence",
+          "points": 1,
+          "explanation": "LLMs are fundamentally trained on next-token prediction. Instruction-following and reasoning emerge from this objective at scale."
+        },
+        {
+          "id": "q4",
+          "type": "true_false",
+          "question": "True or False: Generative AI creates entirely new data that has no relationship to its training data.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "Generative AI produces outputs that follow the patterns and distributions learned from training data. It doesn't create from nothing — it interpolates and recombines learned patterns."
+        },
+        {
+          "id": "q5",
+          "type": "multiple_choice",
+          "question": "What is gradient descent?",
+          "options": [
+            "A way to generate text",
+            "An optimization algorithm that minimizes error by adjusting parameters",
+            "A type of neural network",
+            "A data preprocessing technique"
+          ],
+          "correctAnswer": "An optimization algorithm that minimizes error by adjusting parameters",
+          "points": 1,
+          "explanation": "Gradient descent iteratively adjusts model parameters in the direction that reduces the error (loss function)."
+        },
+        {
+          "id": "q6",
+          "type": "multiple_choice",
+          "question": "What is a key limitation of current AI systems?",
+          "options": [
+            "They are too slow",
+            "They can reproduce and amplify biases present in training data",
+            "They require too much electricity",
+            "They only work in English"
+          ],
+          "correctAnswer": "They can reproduce and amplify biases present in training data",
+          "points": 1,
+          "explanation": "AI systems learn from data, and if the data contains biases, the model will learn and potentially amplify those biases."
+        },
+        {
+          "id": "q7",
+          "type": "multiple_choice",
+          "question": "How can decentralized systems (Web3) complement AI?",
+          "options": [
+            "By making AI faster",
+            "By providing verifiable provenance for training data and model outputs",
+            "By replacing neural networks",
+            "By removing the need for training data"
+          ],
+          "correctAnswer": "By providing verifiable provenance for training data and model outputs",
+          "points": 1,
+          "explanation": "On-chain records can track what data a model was trained on and what it produced, creating transparency and auditability."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "ai_intro",
+    "name": "AI Fundamentals",
+    "description": "Completed the Intro to AI & Machine Learning track and demonstrated understanding of neural networks, LLMs, and generative AI."
+  }
+}
