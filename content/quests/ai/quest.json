@@ -3,111 +3,111 @@
   "version": "1",
   "track": "ai",
   "title": "Intro to AI & Machine Learning",
-  "description": "Explore fundamental AI/ML concepts: neural networks, training algorithms, large language models, and generative AI.",
+  "description": "Build real intuition for how neural networks learn: perceptrons, activation functions, backpropagation, CNNs, transformers, and generative models.",
   "source": "AI/ML Fundamentals",
-  "estimatedDuration": "75 minutes",
+  "estimatedDuration": "90 minutes",
   "difficulty": "beginner",
   "steps": [
     {
       "stepId": "intro",
       "type": "READ",
-      "title": "What is Artificial Intelligence?",
-      "description": "Introduction to AI and its relationship to machine learning.",
+      "title": "From Rules to Learning",
+      "description": "Why hand-coded rules fail and how machines learn from data instead.",
       "contentFile": "steps/01-intro.md",
       "duration": 10,
       "order": 1,
       "required": true,
       "conceptCard": {
-        "title": "AI is pattern recognition at scale",
-        "body": "At its core, AI learns patterns from data. Machine learning is the method; the data is the teacher."
+        "title": "ML replaces hand-written rules with learned functions",
+        "body": "Traditional programs follow explicit instructions. ML systems discover the instructions by example — given inputs and correct outputs, they find the function that maps one to the other."
       }
     },
     {
       "stepId": "neural-networks",
       "type": "READ",
-      "title": "Neural Networks",
-      "description": "Understand how neural networks learn from data.",
+      "title": "Neurons, Layers, and Activation Functions",
+      "description": "How a perceptron works, what activation functions do, and how layers compose into deep networks.",
       "contentFile": "steps/02-neural-networks.md",
-      "duration": 10,
+      "duration": 15,
       "order": 2,
       "required": true,
       "conceptCard": {
-        "title": "Neural networks learn by adjusting weights",
-        "body": "Like tuning thousands of knobs until the output matches what you expect — that's training."
+        "title": "A neuron is a weighted sum passed through a nonlinearity",
+        "body": "output = activation(w₁x₁ + w₂x₂ + ... + wₙxₙ + b). Without the activation function, stacking layers would just be one big linear equation."
       }
     },
     {
       "stepId": "training",
       "type": "READ",
-      "title": "Training & Algorithms",
-      "description": "Learn how models are trained with gradient descent and backpropagation.",
+      "title": "Gradient Descent and Backpropagation",
+      "description": "How loss functions, gradients, and the chain rule drive learning.",
       "contentFile": "steps/03-training.md",
-      "duration": 10,
+      "duration": 15,
       "order": 3,
       "required": true,
       "conceptCard": {
-        "title": "Training is iterative error correction",
-        "body": "A model makes a prediction, measures how wrong it is, and adjusts — millions of times."
+        "title": "Backprop applies the chain rule layer by layer",
+        "body": "The gradient of the loss with respect to any weight is computed by multiplying local gradients backward through the network — the chain rule of calculus, applied at scale."
       }
     },
     {
-      "stepId": "llms",
+      "stepId": "architectures",
       "type": "READ",
-      "title": "Large Language Models",
-      "description": "Understand how LLMs like GPT and Claude work.",
-      "contentFile": "steps/04-llms.md",
+      "title": "Network Architectures: CNNs, RNNs, and Beyond",
+      "description": "How convolutions detect spatial patterns, how recurrence handles sequences, and why attention replaced both.",
+      "contentFile": "steps/04-architectures.md",
       "duration": 10,
       "order": 4,
       "required": true,
       "conceptCard": {
-        "title": "LLMs predict the next token",
-        "body": "Large language models are trained to predict what comes next in a sequence — and that simple objective produces remarkably capable systems."
+        "title": "Architecture encodes inductive bias",
+        "body": "CNNs assume local spatial structure. RNNs assume sequential dependence. Transformers assume everything might relate to everything — and let the data decide."
       }
     },
     {
-      "stepId": "generative-ai",
+      "stepId": "transformers",
       "type": "READ",
-      "title": "Generative AI",
-      "description": "Explore how AI generates text, images, and code.",
-      "contentFile": "steps/05-generative-ai.md",
-      "duration": 10,
+      "title": "The Transformer and Self-Attention",
+      "description": "How queries, keys, and values compute attention, and why this architecture dominates modern AI.",
+      "contentFile": "steps/05-transformers.md",
+      "duration": 15,
       "order": 5,
       "required": true,
       "conceptCard": {
-        "title": "Generative models learn the distribution of data",
-        "body": "Instead of classifying inputs, generative models learn to produce new outputs that resemble the training data."
+        "title": "Attention is a soft lookup table",
+        "body": "Each token produces a query that is compared against all keys. The result is a weighted sum of values — letting the model focus on the relevant parts of the input."
       }
     },
     {
-      "stepId": "ai-ethics",
+      "stepId": "generative-models",
       "type": "READ",
-      "title": "AI Ethics & Limitations",
-      "description": "Understand the limitations, biases, and ethical considerations of AI systems.",
-      "contentFile": "steps/06-ethics.md",
+      "title": "Generative Models: Autoregressive, Diffusion, and GANs",
+      "description": "The mechanics behind text generation, image synthesis, and adversarial training.",
+      "contentFile": "steps/06-generative.md",
       "duration": 10,
       "order": 6,
       "required": true,
-      "reflectionPrompt": "What is one potential risk of AI systems that concerns you, and how might it be mitigated?"
+      "reflectionPrompt": "Pick one generative model type (autoregressive, diffusion, or GAN). In your own words, describe the core mechanism that makes it work."
     },
     {
-      "stepId": "ai-web3",
+      "stepId": "practical",
       "type": "READ",
-      "title": "AI Meets Web3",
-      "description": "Explore the intersection of AI and decentralized systems.",
-      "contentFile": "steps/07-ai-web3.md",
-      "duration": 5,
+      "title": "Training in Practice: Data, Compute, and Failure Modes",
+      "description": "Overfitting, regularization, data quality, scaling laws, and what actually goes wrong.",
+      "contentFile": "steps/07-practical.md",
+      "duration": 10,
       "order": 7,
       "required": true,
       "conceptCard": {
-        "title": "Decentralization can make AI more transparent",
-        "body": "Storing model outputs and training data provenance on-chain creates verifiable AI — you can check what the model saw and said."
+        "title": "More parameters need more data, or they memorize",
+        "body": "A model with 1 billion parameters and 1,000 training examples will memorize them perfectly and fail on everything else. Scaling laws describe how performance improves with data, compute, and model size together."
       }
     },
     {
       "stepId": "quiz",
       "type": "QUIZ",
       "title": "Knowledge Check",
-      "description": "Test your understanding of AI and machine learning fundamentals.",
+      "description": "Test your understanding of neural networks, training, and modern architectures.",
       "duration": 10,
       "order": 8,
       "required": true,
@@ -122,94 +122,100 @@
         {
           "id": "q1",
           "type": "multiple_choice",
-          "question": "What is the relationship between AI and machine learning?",
+          "question": "A single perceptron computes: output = activation(Σ wᵢxᵢ + b). What would happen if you removed the activation function?",
           "options": [
-            "They are the same thing",
-            "Machine learning is a subset of AI",
-            "AI is a subset of machine learning",
-            "They are unrelated"
+            "The network could not be trained",
+            "Stacking layers would still just compute a linear function",
+            "The network would become more powerful",
+            "The outputs would always be zero"
           ],
-          "correctAnswer": "Machine learning is a subset of AI",
+          "correctAnswer": "Stacking layers would still just compute a linear function",
           "points": 1,
-          "explanation": "Machine learning is one approach to achieving AI. AI is the broader field; ML is a specific technique within it."
+          "explanation": "Without nonlinear activation functions, composing linear layers produces another linear function. The network collapses to a single-layer linear model regardless of depth."
         },
         {
           "id": "q2",
           "type": "multiple_choice",
-          "question": "What does a neural network adjust during training?",
+          "question": "During backpropagation, how is the gradient of the loss with respect to a weight in an early layer computed?",
           "options": [
-            "The training data",
-            "The weights and biases",
-            "The number of layers",
-            "The input format"
+            "By random sampling",
+            "By multiplying local gradients backward through the chain rule",
+            "By comparing the weight to the output directly",
+            "By computing the loss for that layer independently"
           ],
-          "correctAnswer": "The weights and biases",
+          "correctAnswer": "By multiplying local gradients backward through the chain rule",
           "points": 1,
-          "explanation": "During training, a neural network adjusts its weights and biases to minimize the error between its predictions and the correct answers."
+          "explanation": "Backpropagation applies the chain rule: ∂L/∂w = ∂L/∂a · ∂a/∂z · ∂z/∂w, where each factor is a local gradient computed at each layer."
         },
         {
           "id": "q3",
           "type": "multiple_choice",
-          "question": "What is the core training objective of a large language model?",
+          "question": "Why do CNNs use shared (tied) weights across spatial positions?",
           "options": [
-            "Understand meaning",
-            "Predict the next token in a sequence",
-            "Memorize the training data",
-            "Follow instructions"
+            "To save memory",
+            "Because the same feature (e.g., an edge) can appear anywhere in an image",
+            "Because it makes training faster",
+            "To prevent overfitting"
           ],
-          "correctAnswer": "Predict the next token in a sequence",
+          "correctAnswer": "Because the same feature (e.g., an edge) can appear anywhere in an image",
           "points": 1,
-          "explanation": "LLMs are fundamentally trained on next-token prediction. Instruction-following and reasoning emerge from this objective at scale."
+          "explanation": "Weight sharing encodes translational equivariance — a vertical edge detector should fire whether the edge is at pixel (10,10) or (200,200). This is the key inductive bias of CNNs."
         },
         {
           "id": "q4",
-          "type": "true_false",
-          "question": "True or False: Generative AI creates entirely new data that has no relationship to its training data.",
-          "correctAnswer": "false",
+          "type": "multiple_choice",
+          "question": "In the transformer self-attention mechanism, what do the Query, Key, and Value vectors represent?",
+          "options": [
+            "Query = the question, Key = the database index, Value = the stored content",
+            "Query = input, Key = output, Value = error",
+            "Query = weight, Key = bias, Value = activation",
+            "Query = gradient, Key = learning rate, Value = loss"
+          ],
+          "correctAnswer": "Query = the question, Key = the database index, Value = the stored content",
           "points": 1,
-          "explanation": "Generative AI produces outputs that follow the patterns and distributions learned from training data. It doesn't create from nothing — it interpolates and recombines learned patterns."
+          "explanation": "Attention computes compatibility between Q and K (via dot product), then uses the resulting weights to aggregate V. It acts like a differentiable lookup: the query asks, keys determine relevance, values provide content."
         },
         {
           "id": "q5",
           "type": "multiple_choice",
-          "question": "What is gradient descent?",
+          "question": "An autoregressive language model generates text by:",
           "options": [
-            "A way to generate text",
-            "An optimization algorithm that minimizes error by adjusting parameters",
-            "A type of neural network",
-            "A data preprocessing technique"
+            "Producing all tokens simultaneously",
+            "Predicting each token conditioned on all previous tokens, one at a time",
+            "Looking up text from a database",
+            "Randomly selecting tokens from the vocabulary"
           ],
-          "correctAnswer": "An optimization algorithm that minimizes error by adjusting parameters",
+          "correctAnswer": "Predicting each token conditioned on all previous tokens, one at a time",
           "points": 1,
-          "explanation": "Gradient descent iteratively adjusts model parameters in the direction that reduces the error (loss function)."
+          "explanation": "Autoregressive models factor the joint probability as P(x₁)·P(x₂|x₁)·P(x₃|x₁,x₂)·... Each token is sampled from a distribution conditioned on the entire preceding context."
         },
         {
           "id": "q6",
           "type": "multiple_choice",
-          "question": "What is a key limitation of current AI systems?",
+          "question": "What is the vanishing gradient problem?",
           "options": [
-            "They are too slow",
-            "They can reproduce and amplify biases present in training data",
-            "They require too much electricity",
-            "They only work in English"
+            "Gradients become too large during training",
+            "Gradients shrink exponentially as they propagate through many layers, making early layers learn very slowly",
+            "The model runs out of memory",
+            "The loss function has no gradient"
           ],
-          "correctAnswer": "They can reproduce and amplify biases present in training data",
+          "correctAnswer": "Gradients shrink exponentially as they propagate through many layers, making early layers learn very slowly",
           "points": 1,
-          "explanation": "AI systems learn from data, and if the data contains biases, the model will learn and potentially amplify those biases."
+          "explanation": "When activation function derivatives are < 1 (e.g., sigmoid), multiplying them across many layers drives the gradient toward zero. ReLU, residual connections, and layer normalization were developed to address this."
         },
         {
           "id": "q7",
           "type": "multiple_choice",
-          "question": "How can decentralized systems (Web3) complement AI?",
+          "question": "In a GAN, what does the discriminator do?",
           "options": [
-            "By making AI faster",
-            "By providing verifiable provenance for training data and model outputs",
-            "By replacing neural networks",
-            "By removing the need for training data"
+            "Generates new data",
+            "Classifies whether its input is real training data or generated by the generator",
+            "Computes the gradient",
+            "Selects training examples"
           ],
-          "correctAnswer": "By providing verifiable provenance for training data and model outputs",
+          "correctAnswer": "Classifies whether its input is real training data or generated by the generator",
           "points": 1,
-          "explanation": "On-chain records can track what data a model was trained on and what it produced, creating transparency and auditability."
+          "explanation": "The discriminator is trained to distinguish real from fake, while the generator is trained to fool the discriminator. This adversarial dynamic drives the generator toward producing realistic outputs."
         }
       ]
     }
@@ -217,6 +223,6 @@
   "badge": {
     "id": "ai_intro",
     "name": "AI Fundamentals",
-    "description": "Completed the Intro to AI & Machine Learning track and demonstrated understanding of neural networks, LLMs, and generative AI."
+    "description": "Completed the Intro to AI & Machine Learning track and demonstrated understanding of neural networks, training algorithms, and modern architectures."
   }
 }

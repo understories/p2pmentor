@@ -1,37 +1,84 @@
-# Neural Networks
+# Neurons, Layers, and Activation Functions
 
-## How Machines Learn
+## The Perceptron
 
-A neural network is a computational model inspired by biological neurons. It consists of layers of interconnected nodes (neurons) that process information.
+The fundamental unit of a neural network is the **perceptron** (artificial neuron). It computes:
 
-## Architecture
+```
+z = w₁x₁ + w₂x₂ + ... + wₙxₙ + b
+output = activation(z)
+```
 
-A basic neural network has three types of layers:
+Where:
 
-1. **Input Layer** — receives raw data (pixels, text tokens, numbers)
-2. **Hidden Layers** — process and transform the data through learned patterns
-3. **Output Layer** — produces the final prediction or classification
+- **x₁...xₙ** are inputs (e.g., pixel intensities, features)
+- **w₁...wₙ** are weights (learnable parameters that determine importance)
+- **b** is the bias (a learnable offset)
+- **z** is the weighted sum (also called the pre-activation)
+- **activation()** is a nonlinear function applied to z
 
-Each connection between neurons has a **weight** — a number that determines how much influence one neuron has on another.
+A single perceptron can learn linear decision boundaries — it can solve AND and OR, but famously cannot solve XOR (Minsky & Papert, 1969). Stacking layers solves this.
 
-## How Learning Works
+## Why Activation Functions Matter
 
-1. **Forward Pass** — data flows through the network, producing an output
-2. **Loss Calculation** — the output is compared to the correct answer, producing an error score
-3. **Backward Pass** — the error is propagated backward through the network
-4. **Weight Update** — weights are adjusted to reduce the error
+Without activation functions, a neural network is just matrix multiplication:
 
-This cycle repeats thousands or millions of times.
+```
+Layer 1: z₁ = W₁x + b₁
+Layer 2: z₂ = W₂z₁ + b₂ = W₂(W₁x + b₁) + b₂ = (W₂W₁)x + (W₂b₁ + b₂)
+```
 
-## Types of Neural Networks
+This collapses to a single linear transformation. No matter how many layers you stack, the result is equivalent to one layer. Nonlinear activations break this — they let the network learn curved, complex decision boundaries.
 
-- **Feedforward Networks** — data flows in one direction (input → output)
-- **Convolutional Neural Networks (CNNs)** — specialized for images and spatial data
-- **Recurrent Neural Networks (RNNs)** — process sequential data (text, time series)
-- **Transformers** — the architecture behind modern LLMs (attention-based, parallel processing)
+## Common Activation Functions
 
-## Key Intuition
+**Sigmoid**: σ(z) = 1 / (1 + e⁻ᶻ)
 
-Think of a neural network as a function with millions of adjustable knobs (weights). Training is the process of turning those knobs until the function produces the right outputs for a given set of inputs.
+- Maps any input to (0, 1)
+- Historically popular, but causes vanishing gradients in deep networks because σ'(z) ≤ 0.25
 
-The remarkable thing is that with enough data and computation, these networks discover patterns that humans never explicitly programmed.
+**tanh**: tanh(z) = (eᶻ - e⁻ᶻ) / (eᶻ + e⁻ᶻ)
+
+- Maps to (-1, 1), zero-centered
+- Also suffers from vanishing gradients, but less than sigmoid
+
+**ReLU** (Rectified Linear Unit): ReLU(z) = max(0, z)
+
+- Dead simple: pass positive values through, zero out negatives
+- Gradient is 1 for z > 0, 0 for z < 0
+- Solved the vanishing gradient problem for positive inputs, enabling training of deep networks
+- Problem: "dying ReLU" — neurons with z < 0 for all inputs get stuck with zero gradient
+
+**GELU** (Gaussian Error Linear Unit): used in modern transformers (BERT, GPT)
+
+- Smooth approximation of ReLU weighted by the probability of the input being positive
+- Slightly better empirical performance than ReLU for large models
+
+## Layers and Depth
+
+A **feedforward neural network** stacks layers:
+
+```
+Input (784 pixels) → Hidden Layer 1 (256 neurons) → Hidden Layer 2 (128 neurons) → Output (10 classes)
+```
+
+Each layer applies: `output = activation(W · input + b)`
+
+**Why depth helps**: Each layer learns increasingly abstract features. In image recognition:
+
+- Layer 1: edges and gradients
+- Layer 2: corners and textures
+- Layer 3: parts of objects (eyes, wheels)
+- Layer 4+: whole objects and scenes
+
+This **hierarchical feature extraction** is why deep networks outperform shallow ones on complex tasks.
+
+## Parameters and Capacity
+
+The total number of learnable parameters determines a network's capacity:
+
+- A layer with 256 inputs and 128 outputs has 256 × 128 weights + 128 biases = 32,896 parameters
+- GPT-3: 175 billion parameters
+- GPT-4: estimated >1 trillion parameters
+
+More parameters = more capacity to fit complex functions, but also more data needed to avoid memorization (overfitting).

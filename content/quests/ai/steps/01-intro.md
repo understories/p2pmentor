@@ -1,37 +1,62 @@
-# What is Artificial Intelligence?
+# From Rules to Learning
 
-## Introduction
+## The Problem with Hand-Written Rules
 
-Artificial intelligence (AI) is the field of computer science focused on building systems that can perform tasks typically requiring human intelligence — recognizing patterns, making decisions, understanding language, and generating content.
+Consider building a system to classify handwritten digits (0–9). A traditional approach would be: write rules.
 
-## AI vs Machine Learning vs Deep Learning
+```
+if top_half_has_loop AND bottom_half_has_loop → 8
+if single_loop AND vertical_stroke → 9
+...
+```
 
-These terms are often used interchangeably, but they are nested concepts:
+This fails immediately. Handwriting varies enormously. You would need thousands of fragile rules that still miss edge cases. Every new font or handwriting style breaks something.
 
-- **Artificial Intelligence** — the broadest category. Any system that exhibits intelligent behavior.
-- **Machine Learning (ML)** — a subset of AI. Systems that learn from data rather than being explicitly programmed.
-- **Deep Learning** — a subset of ML. Uses neural networks with many layers to learn complex patterns.
+## The Machine Learning Alternative
 
-**Key insight:** Most modern AI breakthroughs are deep learning systems trained on massive datasets.
+Instead of writing rules, you show the system **examples**:
 
-## What You'll Learn
+- 60,000 images of handwritten digits, each labeled with the correct answer
+- The system finds a function `f(image) → digit` that maps pixel values to labels
+- It does this by adjusting internal parameters until predictions match the labels
 
-In this track, you'll explore:
+This is the MNIST dataset, the "hello world" of machine learning. A well-trained neural network achieves 99.7% accuracy — better than most humans on messy handwriting.
 
-- **Neural Networks** — how machines learn from data
-- **Training Algorithms** — gradient descent, backpropagation, and loss functions
-- **Large Language Models** — how GPT, Claude, and similar systems work
-- **Generative AI** — how AI creates text, images, and code
-- **Ethics & Limitations** — what AI can't do and where it goes wrong
-- **AI + Web3** — how decentralized systems can make AI more transparent
+## Supervised Learning
 
-## Why It Matters for Web3
+The most common ML paradigm. You provide:
 
-AI and blockchain are converging:
+- **Inputs** (features): pixel values, text tokens, sensor readings
+- **Labels** (targets): the correct output for each input
+- **A model** with adjustable parameters (weights)
+- **A loss function** that measures how wrong the predictions are
 
-- On-chain provenance for training data and model outputs
-- Decentralized compute for model training and inference
-- Verifiable AI — proving what a model did and why
-- Smart contracts that interact with AI oracles
+Training = adjusting parameters to minimize the loss across all training examples.
 
-Understanding AI fundamentals helps you evaluate these intersections critically.
+## Unsupervised and Self-Supervised Learning
+
+Not all learning requires labels:
+
+- **Unsupervised**: Find structure in unlabeled data. K-means clustering groups similar data points. PCA finds the axes of greatest variance.
+- **Self-supervised**: Generate labels from the data itself. Mask a word in a sentence and predict it (BERT). Predict the next word (GPT). These tasks require no human annotation but produce powerful representations.
+
+Self-supervised learning is how modern LLMs are trained — the internet provides billions of text sequences, and next-token prediction provides the training signal for free.
+
+## Reinforcement Learning
+
+A third paradigm: an agent takes actions in an environment and receives rewards or penalties.
+
+- No labeled examples — the agent learns from trial and error
+- Used in game playing (AlphaGo, Atari), robotics, and RLHF (aligning LLMs with human preferences)
+- Fundamentally different from supervised learning: the training signal is sparse and delayed
+
+## What Makes a Problem Suitable for ML?
+
+ML works well when:
+
+1. A pattern exists in the data
+2. You cannot write the pattern down mathematically (or it would be prohibitively complex)
+3. You have enough examples of the pattern
+4. The pattern in your training data reflects the real-world distribution you care about
+
+ML fails when these conditions don't hold — which is more often than people assume.
