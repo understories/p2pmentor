@@ -46,7 +46,7 @@ export default function QuestDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reconciliation = useProgressReconciliation();
+  const reconciliation = useProgressReconciliation({}, quest?.questId);
   const arkivBuilderMode = useArkivBuilderMode();
   const [badgeIssued, setBadgeIssued] = useState(false);
   const [badgeEntityKey, setBadgeEntityKey] = useState<string | null>(null);
@@ -227,7 +227,11 @@ export default function QuestDetailPage() {
   };
 
   // Handle step completion
-  const handleStepComplete = async (stepId: string, stepType: string) => {
+  const handleStepComplete = async (
+    stepId: string,
+    stepType: string,
+    evidenceData?: Record<string, unknown>
+  ) => {
     if (!wallet || !quest) return;
 
     // Mark as pending (optimistic)
@@ -247,7 +251,7 @@ export default function QuestDetailPage() {
           questId: quest.questId,
           stepId,
           stepType,
-          evidenceData: {},
+          evidenceData: evidenceData || {},
         }),
       });
 
@@ -693,7 +697,9 @@ export default function QuestDetailPage() {
                     questId={quest.questId}
                     wallet={wallet || undefined}
                     rubric={quizRubric}
-                    onComplete={() => handleStepComplete(step.stepId, step.type)}
+                    onComplete={(evidenceData) =>
+                      handleStepComplete(step.stepId, step.type, evidenceData)
+                    }
                     onQuizComplete={(result) => {
                       // Quiz was submitted via the quiz API - reload progress
                       if (result.passed) {
