@@ -6,64 +6,38 @@ This document describes the complete flow from user action to evidence stored on
 
 ## Flow Diagram
 
-```
-User Action (Complete Step)
-    │
-    ├─► [1] Collect Evidence (based on step type)
-    │       │
-    │       ├─► READ: completion timestamp
-    │       ├─► DO: entityKey + txHash
-    │       ├─► QUIZ: score + rubricVersion + questionIds
-    │       ├─► SUBMIT: submittedValue + submittedType
-    │       ├─► SESSION: sessionEntityKey + duration
-    │       └─► VERIFY: queryFingerprint + resultKeys
-    │
-    ├─► [2] Create Progress Entity
-    │       │
-    │       ├─► Generate stable entity key
-    │       │   quest_step_progress:${spaceId}:${wallet}:${questId}:${stepId}
-    │       │
-    │       ├─► Build attributes (queryable)
-    │       │   - type: quest_step_progress
-    │       │   - wallet (normalized lowercase)
-    │       │   - questId
-    │       │   - stepId
-    │       │   - stepType
-    │       │   - spaceId
-    │       │   - createdAt
-    │       │
-    │       ├─► Build payload (evidence)
-    │       │   - evidence (QuestStepEvidence)
-    │       │   - questVersion
-    │       │   - status: 'submitted'
-    │       │
-    │       └─► Submit to Arkiv (with timeout wrapper)
-    │
-    ├─► [3] Optimistic UI Update
-    │       │
-    │       ├─► UI shows "submitted" state immediately
-    │       ├─► Display txHash and entityKey (if available)
-    │       └─► Show "View on Arkiv Explorer" link
-    │
-    ├─► [4] Reconciliation (Background)
-    │       │
-    │       ├─► Poll indexer for entity (exponential backoff)
-    │       │   - Start: 1 second
-    │       │   - Max: 30 seconds
-    │       │   - Max attempts: 10
-    │       │
-    │       ├─► Entity Queryable?
-    │       │   ├─► Yes → [5] Update to "indexed" state
-    │       │   └─► No → Continue polling or timeout
-    │       │
-    │       └─► Timeout?
-    │           └─► Show "pending confirmation" state
-    │
-    └─► [5] Final State
-            │
-            ├─► Status: "indexed"
-            ├─► UI shows "completed" checkmark
-            └─► Progress entity queryable on Arkiv
+```mermaid
+flowchart TD
+    A["User Action: Complete Step"] --> B["1. Collect Evidence"]
+    B --> B1["READ: completion timestamp"]
+    B --> B2["DO: entityKey + txHash"]
+    B --> B3["QUIZ: score + rubricVersion + questionIds"]
+    B --> B4["SUBMIT: submittedValue + submittedType"]
+    B --> B5["SESSION: sessionEntityKey + duration"]
+    B --> B6["VERIFY: queryFingerprint + resultKeys"]
+
+    B1 & B2 & B3 & B4 & B5 & B6 --> C["2. Create Progress Entity"]
+    C --> C1["Generate stable entity key\nquest_step_progress:spaceId:wallet:questId:stepId"]
+    C1 --> C2["Build attributes (type, wallet, questId, stepId, stepType, spaceId, createdAt)"]
+    C2 --> C3["Build payload (evidence, questVersion, status: submitted)"]
+    C3 --> C4["Submit to Arkiv (with timeout wrapper)"]
+
+    C4 --> D["3. Optimistic UI Update"]
+    D --> D1["Show 'submitted' state immediately"]
+    D --> D2["Display txHash and entityKey"]
+    D --> D3["Show 'View on Arkiv Explorer' link"]
+
+    C4 --> E["4. Reconciliation (Background)"]
+    E --> E1["Poll indexer (exponential backoff: 1s → 10s, max 10 attempts)"]
+    E1 --> E2{"Entity queryable?"}
+    E2 -->|Yes| F["5. Final State: indexed"]
+    E2 -->|No| E3{"Timeout?"}
+    E3 -->|No| E1
+    E3 -->|Yes| E4["Show 'pending confirmation' state"]
+
+    F --> F1["UI shows completed checkmark"]
+    F --> F2["Progress entity queryable on Arkiv"]
+    F --> F3["Badge eligibility checked"]
 ```
 
 ## Step-by-Step Flow
@@ -73,6 +47,7 @@ User Action (Complete Step)
 Evidence collection varies by step type:
 
 **READ Steps:**
+
 ```typescript
 const evidence = {
   stepId: 'intro',
@@ -83,6 +58,7 @@ const evidence = {
 ```
 
 **DO Steps:**
+
 ```typescript
 const evidence = {
   stepId: 'first_entity',
@@ -95,6 +71,7 @@ const evidence = {
 ```
 
 **QUIZ Steps:**
+
 ```typescript
 const evidence = {
   stepId: 'quiz',
@@ -116,7 +93,9 @@ const result = await createQuestStepProgress({
   questId: 'arkiv_builder',
   stepId: 'intro',
   stepType: 'READ',
-  evidence: { /* ... */ },
+  evidence: {
+    /* ... */
+  },
   questVersion: '1',
   privateKey: ARKIV_PRIVATE_KEY,
   spaceId: SPACE_ID,
@@ -131,6 +110,7 @@ const result = await createQuestStepProgress({
 ```
 
 **Entity Key Generation:**
+
 - Pattern B (stable key): `quest_step_progress:${spaceId}:${wallet}:${questId}:${stepId}`
 - Deterministic: Same inputs always produce same key
 - Enables reliable querying without query-first patterns
@@ -151,6 +131,7 @@ await recordProgress(stepId, evidence);
 ```
 
 **UI States:**
+
 - `pending` - User action, before API call
 - `submitted` - Transaction confirmed, not yet queryable
 - `indexed` - Entity queryable on Arkiv
@@ -164,25 +145,26 @@ const pollForIndexer = async (txHash: string) => {
   let attempts = 0;
   const maxAttempts = 10;
   const backoffMs = 1000;
-  
+
   while (attempts < maxAttempts) {
-    await new Promise(resolve => setTimeout(resolve, backoffMs * Math.pow(2, attempts)));
-    
+    await new Promise((resolve) => setTimeout(resolve, backoffMs * Math.pow(2, attempts)));
+
     const progress = await getQuestStepProgress({ wallet, questId, spaceId });
-    const found = progress.find(p => p.txHash === txHash);
-    
+    const found = progress.find((p) => p.txHash === txHash);
+
     if (found) {
       return { status: 'indexed', progress: found };
     }
-    
+
     attempts++;
   }
-  
+
   return { status: 'timeout' };
 };
 ```
 
 **Reconciliation Behavior:**
+
 - Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
 - Max attempts: 10
 - Timeout after ~5 minutes
@@ -191,6 +173,7 @@ const pollForIndexer = async (txHash: string) => {
 ### Step 5: Final State
 
 Once entity is queryable:
+
 - Status updates to "indexed"
 - UI shows "completed" checkmark
 - Progress counted toward quest completion
@@ -199,18 +182,21 @@ Once entity is queryable:
 ## Indexer Lag Handling
 
 **States:**
+
 1. **Pending:** User action, before API call
 2. **Submitted:** Transaction confirmed, entity not yet queryable
 3. **Indexed:** Entity queryable via indexer
 4. **Timeout:** Max polling attempts reached, entity may still be pending
 
 **Reconciliation Pattern:**
+
 - Optimistic UI updates immediately
 - Background polling checks indexer
 - UI updates when entity becomes queryable
 - Graceful timeout handling
 
 **Implementation:**
+
 - `lib/hooks/useProgressReconciliation.ts` - React hook for reconciliation
 - `lib/arkiv/questProgress.ts` - Returns "submitted" status, caller handles reconciliation
 - Exponential backoff polling until entity is indexed
@@ -218,16 +204,19 @@ Once entity is queryable:
 ## Error Handling
 
 **Transaction Failures:**
+
 - Network errors: Retry with backoff
 - Validation errors: Show user-friendly error message
 - Timeout errors: Show "pending confirmation" state
 
 **Indexer Lag:**
+
 - Entity may be confirmed but not yet queryable
 - Polling continues until entity is found or timeout
 - Graceful degradation: Show "pending" state
 
 **Evidence Validation:**
+
 - Validate evidence structure before creating entity
 - Check required fields per step type
 - Return validation errors before transaction submission
