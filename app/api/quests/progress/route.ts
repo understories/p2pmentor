@@ -8,7 +8,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrivateKey } from '@/lib/config';
+import { getPrivateKey, ARKIV_PRIVATE_KEY } from '@/lib/config';
 import {
   createQuestStepProgress,
   getQuestStepProgress,
@@ -16,6 +16,7 @@ import {
 } from '@/lib/arkiv/questProgress';
 import { createStepEvidence, type QuestStepType } from '@/lib/arkiv/questStep';
 import { getRequiredStepIds } from '@/lib/quests';
+import { logTelemetryEvent } from '@/lib/arkiv/questTelemetry';
 
 /**
  * GET - Retrieve quest progress for a user
@@ -28,17 +29,11 @@ export async function GET(request: NextRequest) {
     const trackId = searchParams.get('trackId'); // Optional: for loading quest definition
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'wallet is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'wallet is required' }, { status: 400 });
     }
 
     if (!questId) {
-      return NextResponse.json(
-        { ok: false, error: 'questId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'questId is required' }, { status: 400 });
     }
 
     // Get progress (uses questId from stored entities)
@@ -76,34 +71,26 @@ export async function GET(request: NextRequest) {
  * POST - Record step completion
  */
 export async function POST(request: NextRequest) {
+  let parsedQuestId = 'unknown';
+  let parsedStepId = 'unknown';
   try {
     const body = await request.json();
     const { wallet, questId, stepId, stepType, evidenceData } = body;
+    parsedQuestId = questId || 'unknown';
+    parsedStepId = stepId || 'unknown';
 
     // Validate required fields
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'wallet is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'wallet is required' }, { status: 400 });
     }
     if (!questId) {
-      return NextResponse.json(
-        { ok: false, error: 'questId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'questId is required' }, { status: 400 });
     }
     if (!stepId) {
-      return NextResponse.json(
-        { ok: false, error: 'stepId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'stepId is required' }, { status: 400 });
     }
     if (!stepType) {
-      return NextResponse.json(
-        { ok: false, error: 'stepType is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'stepType is required' }, { status: 400 });
     }
 
     // Validate stepType
@@ -132,10 +119,17 @@ export async function POST(request: NextRequest) {
     });
 
     if (result.status === 'error') {
-      return NextResponse.json(
-        { ok: false, error: result.error },
-        { status: 500 }
-      );
+      if (ARKIV_PRIVATE_KEY) {
+        logTelemetryEvent({
+          eventType: 'step_completion_error',
+          questId,
+          stepId,
+          errorType: 'entity_creation_failed',
+          errorMessage: result.error,
+          privateKey,
+        }).catch(() => {});
+      }
+      return NextResponse.json({ ok: false, error: result.error }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -146,6 +140,20 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('[/api/quests/progress POST] Error:', error);
+    if (ARKIV_PRIVATE_KEY) {
+      try {
+        logTelemetryEvent({
+          eventType: 'step_completion_error',
+          questId: parsedQuestId,
+          stepId: parsedStepId,
+          errorType: 'unexpected_error',
+          errorMessage: error?.message,
+          privateKey: getPrivateKey(),
+        }).catch(() => {});
+      } catch {
+        // getPrivateKey() itself failed — skip telemetry
+      }
+    }
     return NextResponse.json(
       { ok: false, error: error?.message || 'Failed to record progress' },
       { status: 500 }
