@@ -1,0 +1,187 @@
+{
+  "questId": "web3_privacy",
+  "version": "1",
+  "track": "privacy",
+  "title": "Web3 Privacy Fundamentals",
+  "description": "Understand what privacy means on public blockchains, build a personal threat model, and practice operational security habits.",
+  "source": "Web3 Privacy Best Practices",
+  "estimatedDuration": "45 minutes",
+  "difficulty": "beginner",
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "Privacy on Public Chains",
+      "description": "Understand the privacy model of public blockchains.",
+      "contentFile": "steps/01-intro.md",
+      "duration": 5,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "Public chains are transparent by design",
+        "body": "Every transaction on Ethereum is visible to everyone. Privacy is not the default — it's something you must actively manage."
+      }
+    },
+    {
+      "stepId": "transparency-model",
+      "type": "READ",
+      "title": "What's Public and What's Not",
+      "description": "Learn exactly what data is visible on-chain and what remains off-chain.",
+      "contentFile": "steps/02-transparency-model.md",
+      "duration": 7,
+      "order": 2,
+      "required": true,
+      "conceptCard": {
+        "title": "On-chain vs off-chain data",
+        "body": "Wallet addresses, transaction amounts, contract interactions, and token balances are all public. Your identity behind an address is not — unless you link it."
+      },
+      "skillSuggestion": {
+        "skillName": "Blockchain Privacy",
+        "proficiency": 1,
+        "message": "You've learned about on-chain transparency. Add this to your skills?"
+      }
+    },
+    {
+      "stepId": "privacy-limits",
+      "type": "READ",
+      "title": "What Privacy Can't Do on Public Chains",
+      "description": "Understand the fundamental limitations of privacy on transparent ledgers.",
+      "contentFile": "steps/03-privacy-limits.md",
+      "duration": 7,
+      "order": 3,
+      "required": true,
+      "conceptCard": {
+        "title": "Privacy has hard limits on public chains",
+        "body": "You can make linking harder, but you cannot make transactions invisible on a public chain. Understanding these limits prevents false confidence."
+      }
+    },
+    {
+      "stepId": "threat-model",
+      "type": "DO",
+      "title": "Build Your Threat Model",
+      "description": "Create a personal threat model for your on-chain activity.",
+      "contentFile": "steps/04-threat-model.md",
+      "duration": 10,
+      "order": 4,
+      "required": true,
+      "actionConfig": {
+        "component": "ThreatModelWorksheet"
+      }
+    },
+    {
+      "stepId": "checklist",
+      "type": "DO",
+      "title": "Privacy & Security Checklist",
+      "description": "Review and implement privacy best practices.",
+      "contentFile": "steps/05-checklist.md",
+      "duration": 8,
+      "order": 5,
+      "required": true,
+      "actionConfig": {
+        "component": "PrivacyChecklist"
+      }
+    },
+    {
+      "stepId": "reflection",
+      "type": "READ",
+      "title": "Your Privacy Strategy",
+      "description": "Reflect on what you've learned and write your personal privacy strategy.",
+      "contentFile": "steps/06-reflection.md",
+      "duration": 5,
+      "order": 6,
+      "required": true,
+      "skillSuggestion": {
+        "skillName": "Operational Security",
+        "proficiency": 2,
+        "message": "You've completed the privacy track. Add OpSec to your skills?"
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Privacy Knowledge Check",
+      "description": "Test your understanding of Web3 privacy fundamentals.",
+      "duration": 8,
+      "order": 7,
+      "required": true,
+      "quizRubricId": "privacy_basics_v1"
+    }
+  ],
+  "rubrics": {
+    "privacy_basics_v1": {
+      "version": "1",
+      "passingScore": 0.7,
+      "questions": [
+        {
+          "id": "pq1",
+          "type": "multiple_choice",
+          "question": "What information is publicly visible on Ethereum?",
+          "options": [
+            "Only wallet addresses",
+            "Wallet addresses, transaction amounts, and contract interactions",
+            "Nothing — Ethereum is private by default",
+            "Only smart contract code"
+          ],
+          "correctAnswer": "Wallet addresses, transaction amounts, and contract interactions",
+          "points": 1,
+          "explanation": "Ethereum is a public chain — all transaction data including addresses, amounts, and contract calls are visible to anyone."
+        },
+        {
+          "id": "pq2",
+          "type": "true_false",
+          "question": "True or False: Using a new wallet address for each transaction guarantees complete privacy.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "Using different addresses helps but doesn't guarantee privacy. Chain analysis can still link addresses through funding patterns, timing, and amounts."
+        },
+        {
+          "id": "pq3",
+          "type": "multiple_choice",
+          "question": "What is the biggest risk of using an ENS name on your main wallet?",
+          "options": [
+            "ENS names are expensive",
+            "It publicly links your human-readable identity to on-chain activity",
+            "ENS names expire",
+            "ENS names slow down transactions"
+          ],
+          "correctAnswer": "It publicly links your human-readable identity to on-chain activity",
+          "points": 1,
+          "explanation": "ENS names create a permanent public link between a recognizable name and all activity on that address."
+        },
+        {
+          "id": "pq4",
+          "type": "multiple_choice",
+          "question": "Why should you use separate wallets for different purposes?",
+          "options": [
+            "To earn more rewards",
+            "To prevent on-chain activity from being linked across contexts",
+            "Because each wallet can only hold one token type",
+            "For better transaction speed"
+          ],
+          "correctAnswer": "To prevent on-chain activity from being linked across contexts",
+          "points": 1,
+          "explanation": "Separate wallets compartmentalize your on-chain identity, making it harder to build a complete profile of your activity."
+        },
+        {
+          "id": "pq5",
+          "type": "multiple_choice",
+          "question": "What does a personal threat model help you do?",
+          "options": [
+            "Eliminate all privacy risks",
+            "Prioritize which privacy risks to address based on likelihood and impact",
+            "Hide all transactions from everyone",
+            "Avoid paying gas fees"
+          ],
+          "correctAnswer": "Prioritize which privacy risks to address based on likelihood and impact",
+          "points": 1,
+          "explanation": "A threat model helps you identify and prioritize risks so you can focus your efforts on the threats that matter most to you."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "web3_privacy",
+    "name": "Web3 Privacy",
+    "description": "Completed the Web3 Privacy Fundamentals track and demonstrated understanding of on-chain privacy, threat modeling, and operational security."
+  }
+}
