@@ -55,9 +55,9 @@ export interface QuizRubric {
  * Vocabulary item for language learning steps
  */
 export interface VocabItem {
-  chinese: string;  // Chinese characters
-  pinyin: string;   // Pinyin pronunciation
-  english: string;  // English translation
+  chinese: string; // Chinese characters
+  pinyin: string; // Pinyin pronunciation
+  english: string; // English translation
 }
 
 /**
@@ -112,10 +112,16 @@ export interface QuestStepDefinition {
   // Skill linkage (Week 1 - Feb 1-7)
   skillSuggestion?: {
     skillName: string;
-    skillId?: string; // Optional: if skill already exists
+    skillId?: string;
     proficiency?: number; // 1-5 proficiency level
-    message?: string; // Custom message to show user
+    message?: string;
   };
+
+  // Reflection prompt (Week 2 - Feb 8-14)
+  reflectionPrompt?: string;
+
+  // Time gate: minimum time in seconds before completing (soft friction)
+  minTimeRequired?: number;
 }
 
 /**
@@ -147,8 +153,12 @@ export interface QuestDefinition {
     id: string;
     name: string;
     description: string;
-    requiredSteps?: string[]; // If not specified, all required steps must be completed
+    requiredSteps?: string[];
   };
+
+  // Featured quest metadata (Week 4 - Feb 22-29)
+  featured?: boolean;
+  featuredUntil?: string; // ISO date string
 }
 
 /**
