@@ -359,7 +359,11 @@ export async function listAllQuestStepProgress({
         questId: getAttr(entity, 'questId'),
         stepId: getAttr(entity, 'stepId'),
         stepType: (getAttr(entity, 'stepType') || 'READ') as QuestStepType,
-        evidence: {},
+        evidence: {
+          stepId: getAttr(entity, 'stepId'),
+          completedAt: getAttr(entity, 'createdAt'),
+          evidenceType: 'completion' as const,
+        },
         createdAt: getAttr(entity, 'createdAt'),
         spaceId: getAttr(entity, 'spaceId'),
         txHash: entity.txHash || undefined,
