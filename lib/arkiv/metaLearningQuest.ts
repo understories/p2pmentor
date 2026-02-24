@@ -7,10 +7,10 @@
  * Reference: refs/meta-learning-quest-implementation-plan.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "../config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '../config';
 
 export type MetaLearningArtifact = {
   key: string;
@@ -95,7 +95,8 @@ export async function createMetaLearningArtifact({
 
     // Check for existing artifact with same idempotency key
     const publicClient = getPublicClient();
-    const existingResult = await publicClient.buildQuery()
+    const existingResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'meta_learning_artifact'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId))
@@ -110,11 +111,12 @@ export async function createMetaLearningArtifact({
       // Check payload for idempotency key
       for (const entity of existingResult.entities) {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           if (payload.idempotencyKey === idempotencyKey) {
@@ -214,7 +216,8 @@ export async function getMetaLearningProgress({
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
 
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'meta_learning_artifact'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId));
@@ -223,11 +226,7 @@ export async function getMetaLearningProgress({
       queryBuilder = queryBuilder.where(eq('targetKey', targetKey.toLowerCase()));
     }
 
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1000)
-      .fetch();
+    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(1000).fetch();
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
       return {
@@ -265,15 +264,16 @@ export async function getMetaLearningProgress({
         // Note: Arkiv SDK may filter expired entities automatically, but we check payload ttlSeconds as fallback
         if (!includeExpired) {
           try {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.ttlSeconds) {
               const createdAtTime = new Date(createdAt).getTime();
-              const expiresAt = createdAtTime + (payload.ttlSeconds * 1000);
+              const expiresAt = createdAtTime + payload.ttlSeconds * 1000;
               if (now > expiresAt) {
                 continue; // Skip expired artifacts
               }
@@ -300,10 +300,13 @@ export async function getMetaLearningProgress({
     }
 
     // Group by targetKey
-    const targetsMap = new Map<string, {
-      targetKey: string;
-      artifacts: Record<string, MetaLearningArtifact[]>;
-    }>();
+    const targetsMap = new Map<
+      string,
+      {
+        targetKey: string;
+        artifacts: Record<string, MetaLearningArtifact[]>;
+      }
+    >();
 
     for (const artifact of artifacts) {
       if (!targetsMap.has(artifact.targetKey)) {
@@ -332,9 +335,7 @@ export async function getMetaLearningProgress({
       const completedSteps = stepIds.size;
       const progressPercent = Math.round((completedSteps / 6) * 100);
       const status: 'not_started' | 'in_progress' | 'completed' =
-        completedSteps === 0 ? 'not_started' :
-        completedSteps === 6 ? 'completed' :
-        'in_progress';
+        completedSteps === 0 ? 'not_started' : completedSteps === 6 ? 'completed' : 'in_progress';
 
       return {
         ...target,
@@ -352,9 +353,7 @@ export async function getMetaLearningProgress({
     const completedSteps = allStepIds.size;
     const progressPercent = Math.round((completedSteps / 6) * 100);
     const status: 'not_started' | 'in_progress' | 'completed' =
-      completedSteps === 0 ? 'not_started' :
-      completedSteps === 6 ? 'completed' :
-      'in_progress';
+      completedSteps === 0 ? 'not_started' : completedSteps === 6 ? 'completed' : 'in_progress';
 
     return {
       questId,
@@ -405,7 +404,7 @@ export async function checkMetaLearningCompletion({
 
     // Check completion for first target (or specified target)
     const target = targetKey
-      ? progress.targets.find(t => t.targetKey.toLowerCase() === targetKey.toLowerCase())
+      ? progress.targets.find((t) => t.targetKey.toLowerCase() === targetKey.toLowerCase())
       : progress.targets[0];
 
     if (!target) {
@@ -419,8 +418,15 @@ export async function checkMetaLearningCompletion({
     }
 
     // Check if all artifact types exist
-    const requiredSteps: Array<keyof typeof target.artifacts> = ['choose_target', 'focused_session', 'diffuse_break', 'retrieval_attempt', 'reflection', 'spacing_check'];
-    const allArtifactsExist = requiredSteps.every(stepId => {
+    const requiredSteps: Array<keyof typeof target.artifacts> = [
+      'choose_target',
+      'focused_session',
+      'diffuse_break',
+      'retrieval_attempt',
+      'reflection',
+      'spacing_check',
+    ];
+    const allArtifactsExist = requiredSteps.every((stepId) => {
       const stepArtifacts = target.artifacts[stepId];
       return stepArtifacts && stepArtifacts.length > 0;
     });
@@ -433,23 +439,25 @@ export async function checkMetaLearningCompletion({
 
       if (sessionArtifacts.length > 0 && spacingArtifacts.length > 0) {
         // Get the most recent artifacts
-        const sessionArtifact = sessionArtifacts.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const sessionArtifact = sessionArtifacts.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
-        const spacingArtifact = spacingArtifacts.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const spacingArtifact = spacingArtifacts.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
 
         // Parse payload to get completedAt timestamps
         const publicClient = getPublicClient();
         const [sessionEntity, spacingEntity] = await Promise.all([
-          publicClient.buildQuery()
+          publicClient
+            .buildQuery()
             .where(eq('type', 'meta_learning_artifact'))
             .where(eq('key', sessionArtifact.key))
             .withPayload(true)
             .limit(1)
             .fetch(),
-          publicClient.buildQuery()
+          publicClient
+            .buildQuery()
             .where(eq('type', 'meta_learning_artifact'))
             .where(eq('key', spacingArtifact.key))
             .withPayload(true)
@@ -462,18 +470,20 @@ export async function checkMetaLearningCompletion({
           const spacingPayload = spacingEntity?.entities?.[0]?.payload;
 
           if (sessionPayload && spacingPayload) {
-            const sessionDecoded = sessionPayload instanceof Uint8Array
-              ? new TextDecoder().decode(sessionPayload)
-              : typeof sessionPayload === 'string'
-              ? sessionPayload
-              : JSON.stringify(sessionPayload);
+            const sessionDecoded =
+              sessionPayload instanceof Uint8Array
+                ? new TextDecoder().decode(sessionPayload)
+                : typeof sessionPayload === 'string'
+                  ? sessionPayload
+                  : JSON.stringify(sessionPayload);
             const sessionData = JSON.parse(sessionDecoded);
 
-            const spacingDecoded = spacingPayload instanceof Uint8Array
-              ? new TextDecoder().decode(spacingPayload)
-              : typeof spacingPayload === 'string'
-              ? spacingPayload
-              : JSON.stringify(spacingPayload);
+            const spacingDecoded =
+              spacingPayload instanceof Uint8Array
+                ? new TextDecoder().decode(spacingPayload)
+                : typeof spacingPayload === 'string'
+                  ? spacingPayload
+                  : JSON.stringify(spacingPayload);
             const spacingData = JSON.parse(spacingDecoded);
 
             const sessionCompletedAt = sessionData.data?.completedAt || sessionArtifact.createdAt;
@@ -497,18 +507,21 @@ export async function checkMetaLearningCompletion({
     for (const stepId of requiredSteps) {
       const stepArtifacts = target.artifacts[stepId];
       if (stepArtifacts && stepArtifacts.length > 0) {
-        const mostRecent = stepArtifacts.sort((a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const mostRecent = stepArtifacts.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
 
         // Map stepId to artifactType for response
-        const artifactTypeMap: Record<keyof typeof target.artifacts, keyof MetaLearningCompletion['artifacts']> = {
-          'choose_target': 'learning_target',
-          'focused_session': 'learning_session',
-          'diffuse_break': 'diffuse_interval',
-          'retrieval_attempt': 'retrieval_attempt',
-          'reflection': 'reflection',
-          'spacing_check': 'spacing_check',
+        const artifactTypeMap: Record<
+          keyof typeof target.artifacts,
+          keyof MetaLearningCompletion['artifacts']
+        > = {
+          choose_target: 'learning_target',
+          focused_session: 'learning_session',
+          diffuse_break: 'diffuse_interval',
+          retrieval_attempt: 'retrieval_attempt',
+          reflection: 'reflection',
+          spacing_check: 'spacing_check',
         };
 
         const artifactType = artifactTypeMap[stepId];
@@ -519,9 +532,8 @@ export async function checkMetaLearningCompletion({
     }
 
     const isComplete = allArtifactsExist && timeSeparationMet;
-    const completedAt = isComplete && artifacts.spacing_check
-      ? artifacts.spacing_check.createdAt
-      : undefined;
+    const completedAt =
+      isComplete && artifacts.spacing_check ? artifacts.spacing_check.createdAt : undefined;
 
     return {
       isComplete,
@@ -537,3 +549,63 @@ export async function checkMetaLearningCompletion({
   }
 }
 
+/**
+ * List all meta-learning artifacts across all users (for explorer).
+ */
+export async function listMetaLearningArtifacts({
+  spaceIds,
+  limit = 1000,
+  includeExpired = false,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+  includeExpired?: boolean;
+} = {}): Promise<MetaLearningArtifact[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<MetaLearningArtifact[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'meta_learning_artifact'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        wallet: getAttr(entity, 'wallet'),
+        questId: getAttr(entity, 'questId'),
+        stepId: getAttr(entity, 'stepId'),
+        artifactType: getAttr(entity, 'artifactType'),
+        targetKey: getAttr(entity, 'targetKey'),
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: (entity as any).txHash || undefined,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: any) {
+    console.error('[listMetaLearningArtifacts] Error:', error);
+    return [];
+  }
+}
