@@ -1,9 +1,9 @@
 /**
  * Topic Detail Page
- * 
+ *
  * Displays a dedicated page for a specific skill/topic.
  * Shows all asks, offers, and matches for that skill.
- * 
+ *
  * Route: /topic/[slug]
  */
 
@@ -34,9 +34,15 @@ import { buildBuilderModeParams, appendBuilderModeParams } from '@/lib/utils/bui
 import { SkillSelector } from '@/components/SkillSelector';
 import { askColors, askEmojis, offerColors, offerEmojis } from '@/lib/colors';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
-import { createDefaultWeeklyAvailability, formatAvailabilityForDisplay, listAvailabilityForWallet, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import {
+  createDefaultWeeklyAvailability,
+  formatAvailabilityForDisplay,
+  listAvailabilityForWallet,
+  type WeeklyAvailability,
+} from '@/lib/arkiv/availability';
 import { ArkivQueryTester } from '@/components/arkiv/ArkivQueryTester';
 import { RequestMeetingModal } from '@/components/RequestMeetingModal';
+import { QuestSelector } from '@/components/QuestSelector';
 
 type Match = {
   ask: Ask;
@@ -50,7 +56,7 @@ export default function TopicDetailPage() {
   const params = useParams();
   const router = useRouter();
   const slug = params?.slug as string;
-  
+
   const [skill, setSkill] = useState<Skill | null>(null);
   const [asks, setAsks] = useState<Ask[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -79,6 +85,8 @@ export default function TopicDetailPage() {
     date: '',
     time: '',
     duration: '60',
+    questId: '',
+    questTitle: '',
   });
   const [showCreateAskForm, setShowCreateAskForm] = useState(false);
   const [showCreateOfferForm, setShowCreateOfferForm] = useState(false);
@@ -90,17 +98,17 @@ export default function TopicDetailPage() {
   const [offerSuccess, setOfferSuccess] = useState('');
   const [showAdvancedOptionsAsk, setShowAdvancedOptionsAsk] = useState(false);
   const [showAdvancedOptionsOffer, setShowAdvancedOptionsOffer] = useState(false);
-  const [newAsk, setNewAsk] = useState({ 
+  const [newAsk, setNewAsk] = useState({
     skill: '',
     skill_id: '',
     message: '',
     ttlHours: '24',
     customTtlHours: '',
   });
-  const [newOffer, setNewOffer] = useState({ 
+  const [newOffer, setNewOffer] = useState({
     skill: '',
     skill_id: '',
-    message: '', 
+    message: '',
     availabilityWindow: '',
     availabilityKey: '',
     availabilityType: 'structured' as 'saved' | 'structured',
@@ -112,7 +120,9 @@ export default function TopicDetailPage() {
     customTtlHours: '',
   });
   const [userAvailability, setUserAvailability] = useState<WeeklyAvailability | null>(null);
-  const [savedAvailabilityBlocks, setSavedAvailabilityBlocks] = useState<Array<{ key: string; name: string }>>([]);
+  const [savedAvailabilityBlocks, setSavedAvailabilityBlocks] = useState<
+    Array<{ key: string; name: string }>
+  >([]);
   const arkivBuilderMode = useArkivBuilderMode();
   // Request Meeting Modal state
   const [showMeetingModal, setShowMeetingModal] = useState(false);
@@ -163,7 +173,7 @@ export default function TopicDetailPage() {
       const follows = await listLearningFollows({
         profile_wallet: userWallet.toLowerCase(),
         skill_id: skill.key,
-        active: true
+        active: true,
       });
       setIsJoined(follows.length > 0);
     } catch (error) {
@@ -187,7 +197,7 @@ export default function TopicDetailPage() {
       const url = `/api/profiles?${params.toString()}${builderParams ? `&${builderParams.slice(1)}` : ''}`;
       const res = await fetch(url);
       const data = await res.json();
-      
+
       if (data.ok && data.profiles) {
         // Filter by skill_id if available (more accurate than name matching)
         let filtered = data.profiles;
@@ -200,13 +210,17 @@ export default function TopicDetailPage() {
             }
             // Check skillsArray (legacy) - match by name
             if (profile.skillsArray && Array.isArray(profile.skillsArray)) {
-              return profile.skillsArray.some(skillName => 
-                skillName.toLowerCase().trim() === skill.name_canonical.toLowerCase().trim()
+              return profile.skillsArray.some(
+                (skillName) =>
+                  skillName.toLowerCase().trim() === skill.name_canonical.toLowerCase().trim()
               );
             }
             // Check skills string (legacy)
             if (profile.skills) {
-              const skillsList = profile.skills.toLowerCase().split(',').map((s: string) => s.trim());
+              const skillsList = profile.skills
+                .toLowerCase()
+                .split(',')
+                .map((s: string) => s.trim());
               return skillsList.includes(skill.name_canonical.toLowerCase().trim());
             }
             return false;
@@ -231,7 +245,7 @@ export default function TopicDetailPage() {
       const { listSkills, normalizeSkillSlug } = await import('@/lib/arkiv/skill');
       const skills = await listSkills({ status: 'active', limit: 200 });
       const skillsMap: Record<string, Skill> = {};
-      skills.forEach(skill => {
+      skills.forEach((skill) => {
         skillsMap[skill.key] = skill;
       });
       setSkillsMap(skillsMap);
@@ -240,23 +254,28 @@ export default function TopicDetailPage() {
       let skillEntity: Skill | null = null;
       const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(slug)}&limit=1`);
       const skillData = await skillRes.json();
-      
+
       if (skillData.ok && skillData.skills && skillData.skills.length > 0) {
         skillEntity = skillData.skills[0];
       } else {
         // Skill not found by exact slug - try to find by normalized slug matching
         // This handles cases where slug normalization might differ or slug is missing
         const normalizedSlug = normalizeSkillSlug(slug);
-        
+
         // Find skill where slug matches (normalized) or name_canonical normalizes to this slug
-        skillEntity = skills.find(s => {
-          if (!s.slug && !s.name_canonical) return false;
-          const skillNormalizedSlug = s.slug ? normalizeSkillSlug(s.slug) : normalizeSkillSlug(s.name_canonical);
-          return skillNormalizedSlug === normalizedSlug || 
-                 s.slug === slug || 
-                 normalizeSkillSlug(s.name_canonical) === normalizedSlug;
-        }) || null;
-        
+        skillEntity =
+          skills.find((s) => {
+            if (!s.slug && !s.name_canonical) return false;
+            const skillNormalizedSlug = s.slug
+              ? normalizeSkillSlug(s.slug)
+              : normalizeSkillSlug(s.name_canonical);
+            return (
+              skillNormalizedSlug === normalizedSlug ||
+              s.slug === slug ||
+              normalizeSkillSlug(s.name_canonical) === normalizedSlug
+            );
+          }) || null;
+
         // If still not found, but skill exists on explore page (meaning it's in Arkiv),
         // ensure skill entity exists using the slug to derive name_canonical
         // This is Arkiv-native: create the skill entity if it doesn't exist
@@ -266,29 +285,31 @@ export default function TopicDetailPage() {
             // Convert "solidity" -> "Solidity", "spanish-conversation" -> "Spanish Conversation"
             const derivedName = slug
               .split('-')
-              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
               .join(' ');
-            
+
             // Ensure skill entity exists (will create if needed, returns existing if found)
             // Uses server-side signing wallet (Arkiv-native)
             const { ensureSkillEntity } = await import('@/lib/arkiv/skill-helpers');
             const ensuredSkill = await ensureSkillEntity(derivedName);
-            
+
             if (ensuredSkill) {
               // Re-query by slug after creation/ensuring
-              const retryRes = await fetch(`/api/skills?slug=${encodeURIComponent(ensuredSkill.slug)}&limit=1`);
+              const retryRes = await fetch(
+                `/api/skills?slug=${encodeURIComponent(ensuredSkill.slug)}&limit=1`
+              );
               const retryData = await retryRes.json();
               if (retryData.ok && retryData.skills && retryData.skills.length > 0) {
                 skillEntity = retryData.skills[0];
               } else {
                 // If slug still doesn't match, try to find by key in our loaded skills
-                const foundByKey = skills.find(s => s.key === ensuredSkill.key);
+                const foundByKey = skills.find((s) => s.key === ensuredSkill.key);
                 if (foundByKey) {
                   skillEntity = foundByKey;
                 } else {
                   // Last resort: query all skills again to find the newly created one
                   const allSkillsRetry = await listSkills({ status: 'active', limit: 200 });
-                  const foundByKeyRetry = allSkillsRetry.find(s => s.key === ensuredSkill.key);
+                  const foundByKeyRetry = allSkillsRetry.find((s) => s.key === ensuredSkill.key);
                   if (foundByKeyRetry) {
                     skillEntity = foundByKeyRetry;
                   }
@@ -300,7 +321,7 @@ export default function TopicDetailPage() {
           }
         }
       }
-      
+
       if (!skillEntity) {
         setError('Topic not found');
         setLoading(false);
@@ -314,10 +335,14 @@ export default function TopicDetailPage() {
       const gatheringsParams = `?community=${encodeURIComponent(skillEntity.slug)}${userWallet ? `&wallet=${encodeURIComponent(userWallet)}` : ''}`;
       const sessionsParams = `?skill=${encodeURIComponent(skillEntity.name_canonical)}&status=scheduled`;
       const [asksRes, offersRes, gatheringsRes, sessionsRes] = await Promise.all([
-        fetch(`/api/asks${builderParams}`).then(r => r.json()),
-        fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        fetch(`/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`).then(r => r.json()),
-        fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] })),
+        fetch(`/api/asks${builderParams}`).then((r) => r.json()),
+        fetch(`/api/offers${builderParams}`).then((r) => r.json()),
+        fetch(
+          `/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`
+        ).then((r) => r.json()),
+        fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`)
+          .then((r) => r.json())
+          .catch(() => ({ ok: false, sessions: [] })),
       ]);
 
       // Filter by skill_id
@@ -337,12 +362,14 @@ export default function TopicDetailPage() {
         if (gatheringsRes.rsvpStatus) {
           setRsvpStatus(gatheringsRes.rsvpStatus);
         }
-        
+
         // Fetch RSVP wallets for each gathering
         const rsvpWalletsMap: Record<string, string[]> = {};
         const rsvpPromises = gatheringsRes.gatherings.map(async (gathering: VirtualGathering) => {
           try {
-            const rsvpRes = await fetch(`/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gathering.key)}`);
+            const rsvpRes = await fetch(
+              `/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gathering.key)}`
+            );
             const rsvpData = await rsvpRes.json();
             if (rsvpData.ok && rsvpData.rsvpWallets) {
               rsvpWalletsMap[gathering.key] = rsvpData.rsvpWallets;
@@ -353,13 +380,13 @@ export default function TopicDetailPage() {
         });
         await Promise.all(rsvpPromises);
         setRsvpWallets(rsvpWalletsMap);
-        
+
         // Load profiles for all RSVP wallets
         const allRsvpWallets = new Set<string>();
-        Object.values(rsvpWalletsMap).forEach(wallets => {
-          wallets.forEach(wallet => allRsvpWallets.add(wallet));
+        Object.values(rsvpWalletsMap).forEach((wallets) => {
+          wallets.forEach((wallet) => allRsvpWallets.add(wallet));
         });
-        
+
         const rsvpProfilePromises = Array.from(allRsvpWallets).map(async (wallet) => {
           try {
             const profile = await getProfileByWallet(wallet);
@@ -368,7 +395,7 @@ export default function TopicDetailPage() {
             return { wallet, profile: null };
           }
         });
-        
+
         const rsvpProfileResults = await Promise.all(rsvpProfilePromises);
         const updatedProfiles = { ...profiles };
         rsvpProfileResults.forEach(({ wallet, profile }) => {
@@ -389,7 +416,12 @@ export default function TopicDetailPage() {
           const duration = (s.duration || 60) * 60 * 1000; // Convert minutes to milliseconds
           const buffer = 60 * 60 * 1000; // 1 hour buffer
           const sessionEnd = sessionTime + duration + buffer;
-          return now < sessionEnd && s.status !== 'completed' && s.status !== 'declined' && s.status !== 'cancelled';
+          return (
+            now < sessionEnd &&
+            s.status !== 'completed' &&
+            s.status !== 'declined' &&
+            s.status !== 'cancelled'
+          );
         });
       }
 
@@ -400,38 +432,46 @@ export default function TopicDetailPage() {
       if (gatheringsRes.ok && gatheringsRes.gatherings && gatheringsRes.gatherings.length > 0) {
         const gatheringKeys = gatheringsRes.gatherings.map((g: VirtualGathering) => g.key);
         // Query all virtual_gathering_rsvp sessions and filter by gatheringKey
-          try {
+        try {
           const gatheringSessionsParams = `?skill=virtual_gathering_rsvp&status=scheduled`;
-          const gatheringSessionsRes = await fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, gatheringSessionsParams)}`).then(r => r.json()).catch(() => ({ ok: false, sessions: [] }));
-          
+          const gatheringSessionsRes = await fetch(
+            `/api/sessions${appendBuilderModeParams(arkivBuilderMode, gatheringSessionsParams)}`
+          )
+            .then((r) => r.json())
+            .catch(() => ({ ok: false, sessions: [] }));
+
           if (gatheringSessionsRes.ok && gatheringSessionsRes.sessions) {
             // Filter sessions that match gathering keys for this community
             const allGatheringSessions = gatheringSessionsRes.sessions.filter((s: Session) => {
               const notes = s.notes || '';
               const gatheringKey = (s as any).gatheringKey;
               // Check if session notes contains gatheringKey for any of our gatherings
-              return gatheringKeys.some((key: string) => 
-                gatheringKey === key ||
-                notes.includes(`virtual_gathering_rsvp:${key}`) || 
-                notes.includes(key)
+              return gatheringKeys.some(
+                (key: string) =>
+                  gatheringKey === key ||
+                  notes.includes(`virtual_gathering_rsvp:${key}`) ||
+                  notes.includes(key)
               );
             });
-            
+
             // Arkiv-native deduplication: Group by gatheringKey and keep only one session per gathering
             // This ensures each gathering is displayed only once, even though there are multiple RSVP sessions
             const sessionsByGathering = new Map<string, Session>();
             allGatheringSessions.forEach((s: Session) => {
               const notes = s.notes || '';
-              const gatheringKey = (s as any).gatheringKey || 
+              const gatheringKey =
+                (s as any).gatheringKey ||
                 notes.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
-                (notes.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => notes.includes(k)) : null);
-              
+                (notes.includes('virtual_gathering_rsvp:')
+                  ? gatheringKeys.find((k: string) => notes.includes(k))
+                  : null);
+
               if (gatheringKey && !sessionsByGathering.has(gatheringKey)) {
                 // Keep the first session for each gathering (they all have the same gathering info)
                 sessionsByGathering.set(gatheringKey, s);
               }
             });
-            
+
             gatheringSessions = Array.from(sessionsByGathering.values());
           }
         } catch (err) {
@@ -442,40 +482,45 @@ export default function TopicDetailPage() {
       // Combine and deduplicate all sessions by key (single state update)
       const allSessions = [...skillBasedSessions, ...gatheringSessions];
       const uniqueSessions = new Map<string, Session>();
-      allSessions.forEach(s => uniqueSessions.set(s.key, s));
-      const sortedSessions = Array.from(uniqueSessions.values()).sort((a, b) => 
-        new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+      allSessions.forEach((s) => uniqueSessions.set(s.key, s));
+      const sortedSessions = Array.from(uniqueSessions.values()).sort(
+        (a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
       );
       setCommunitySessions(sortedSessions);
 
       // Check RSVP status for community sessions (if user wallet is available)
       if (userWallet && gatheringSessions.length > 0) {
         const { hasRsvpdToGathering } = await import('@/lib/arkiv/virtualGathering');
-        const gatheringKeys = gatheringsRes.ok && gatheringsRes.gatherings 
-          ? gatheringsRes.gatherings.map((g: VirtualGathering) => g.key)
-          : [];
-        
+        const gatheringKeys =
+          gatheringsRes.ok && gatheringsRes.gatherings
+            ? gatheringsRes.gatherings.map((g: VirtualGathering) => g.key)
+            : [];
+
         const sessionRsvpChecks = gatheringSessions.map(async (s: Session) => {
           // Extract gatheringKey from session attributes or notes
-          const gatheringKey = (s as any).gatheringKey || 
-            (s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
-            (s.notes?.includes('virtual_gathering_rsvp:') ? gatheringKeys.find((k: string) => s.notes?.includes(k)) : null);
-          
+          const gatheringKey =
+            (s as any).gatheringKey ||
+            s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+            (s.notes?.includes('virtual_gathering_rsvp:')
+              ? gatheringKeys.find((k: string) => s.notes?.includes(k))
+              : null);
+
           if (gatheringKey) {
             // Get the gathering to get its spaceId for accurate filtering
-            const gathering = gatheringsRes.ok && gatheringsRes.gatherings 
-              ? gatheringsRes.gatherings.find((g: VirtualGathering) => g.key === gatheringKey)
-              : null;
+            const gathering =
+              gatheringsRes.ok && gatheringsRes.gatherings
+                ? gatheringsRes.gatherings.find((g: VirtualGathering) => g.key === gatheringKey)
+                : null;
             const spaceId = gathering?.spaceId;
             const hasRsvpd = await hasRsvpdToGathering(gatheringKey, userWallet, spaceId);
             return { sessionKey: s.key, gatheringKey, hasRsvpd };
           }
           return null;
         });
-        
+
         const rsvpResults = await Promise.all(sessionRsvpChecks);
         const sessionRsvpMap: Record<string, boolean> = {};
-        rsvpResults.forEach(result => {
+        rsvpResults.forEach((result) => {
           if (result) {
             sessionRsvpMap[result.sessionKey] = result.hasRsvpd;
           }
@@ -492,7 +537,9 @@ export default function TopicDetailPage() {
         allWallets.add(session.learnerWallet);
       });
       if (gatheringsRes.ok && gatheringsRes.gatherings) {
-        gatheringsRes.gatherings.forEach((g: VirtualGathering) => allWallets.add(g.organizerWallet));
+        gatheringsRes.gatherings.forEach((g: VirtualGathering) =>
+          allWallets.add(g.organizerWallet)
+        );
       }
 
       const profilePromises = Array.from(allWallets).map(async (wallet) => {
@@ -570,23 +617,26 @@ export default function TopicDetailPage() {
       }
 
       // Update RSVP status for both gatherings and sessions
-      setRsvpStatus(prev => ({ ...prev, [gatheringKey]: true }));
-      
+      setRsvpStatus((prev) => ({ ...prev, [gatheringKey]: true }));
+
       // Update session RSVP status for any sessions linked to this gathering
       const updatedSessionRsvp: Record<string, boolean> = {};
-      communitySessions.forEach(s => {
-        const sessionGatheringKey = (s as any).gatheringKey || 
-          (s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
-          (s.notes?.includes('virtual_gathering_rsvp:') ? gatherings.find(g => s.notes?.includes(g.key))?.key : null);
+      communitySessions.forEach((s) => {
+        const sessionGatheringKey =
+          (s as any).gatheringKey ||
+          s.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1] ||
+          (s.notes?.includes('virtual_gathering_rsvp:')
+            ? gatherings.find((g) => s.notes?.includes(g.key))?.key
+            : null);
         if (sessionGatheringKey === gatheringKey) {
           updatedSessionRsvp[s.key] = true;
         }
       });
-      setSessionRsvpStatus(prev => ({ ...prev, ...updatedSessionRsvp }));
-      
+      setSessionRsvpStatus((prev) => ({ ...prev, ...updatedSessionRsvp }));
+
       // Wait for Arkiv to index the new RSVP entity before reloading
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Reload gatherings to get updated RSVP count and wallets list
       loadTopicData();
     } catch (err: any) {
@@ -597,12 +647,14 @@ export default function TopicDetailPage() {
     }
   };
 
-  const formatSessionDate = (sessionDate: string): { date: string; time: string; isPast: boolean; isToday: boolean } => {
+  const formatSessionDate = (
+    sessionDate: string
+  ): { date: string; time: string; isPast: boolean; isToday: boolean } => {
     const date = new Date(sessionDate);
     const now = new Date();
     const isPast = date < now;
     const isToday = date.toDateString() === now.toDateString();
-    
+
     return {
       date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       time: date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
@@ -627,7 +679,7 @@ export default function TopicDetailPage() {
         const timezone = profile?.timezone || 'UTC';
         setUserAvailability(createDefaultWeeklyAvailability(timezone));
       }
-      
+
       // Load saved availability blocks for dropdown
       if (data.ok && data.availabilities) {
         const formatted = data.availabilities.map((avail: any) => ({
@@ -676,11 +728,17 @@ export default function TopicDetailPage() {
       const data = await res.json();
       if (data.ok) {
         setAskSuccess('Ask created successfully!');
-        setNewAsk({ skill: skill?.name_canonical || '', skill_id: skill?.key || '', message: '', ttlHours: '24', customTtlHours: '' });
+        setNewAsk({
+          skill: skill?.name_canonical || '',
+          skill_id: skill?.key || '',
+          message: '',
+          ttlHours: '24',
+          customTtlHours: '',
+        });
         setShowAdvancedOptionsAsk(false);
         setShowCreateAskForm(false);
         // Wait for Arkiv indexing then reload
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         await loadTopicData();
       } else {
         setAskError(data.error || 'Failed to create ask');
@@ -746,7 +804,8 @@ export default function TopicDetailPage() {
           skill_label: newOffer.skill.trim(),
           message: newOffer.message.trim(),
           availabilityWindow: availabilityWindowValue,
-          availabilityKey: newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
+          availabilityKey:
+            newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
           isPaid: newOffer.isPaid,
           cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
           paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
@@ -757,24 +816,24 @@ export default function TopicDetailPage() {
       const data = await res.json();
       if (data.ok) {
         setOfferSuccess('Offer created successfully!');
-        setNewOffer({ 
-          skill: skill?.name_canonical || '', 
-          skill_id: skill?.key || '', 
-          message: '', 
-          availabilityWindow: '', 
-          availabilityKey: '', 
-          availabilityType: 'structured', 
-          structuredAvailability: null, 
-          isPaid: false, 
-          cost: '', 
-          paymentAddress: '', 
-          ttlHours: '168', 
-          customTtlHours: '' 
+        setNewOffer({
+          skill: skill?.name_canonical || '',
+          skill_id: skill?.key || '',
+          message: '',
+          availabilityWindow: '',
+          availabilityKey: '',
+          availabilityType: 'structured',
+          structuredAvailability: null,
+          isPaid: false,
+          cost: '',
+          paymentAddress: '',
+          ttlHours: '168',
+          customTtlHours: '',
         });
         setShowAdvancedOptionsOffer(false);
         setShowCreateOfferForm(false);
         // Wait for Arkiv indexing then reload
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         await loadTopicData();
       } else {
         setOfferError(data.error || 'Failed to create offer');
@@ -789,8 +848,8 @@ export default function TopicDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
@@ -802,8 +861,8 @@ export default function TopicDetailPage() {
 
   if (error || !skill) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
@@ -816,35 +875,40 @@ export default function TopicDetailPage() {
     );
   }
 
-  const totalCount = asks.length + offers.length + matches.length + gatherings.length + communitySessions.length;
-  
+  const totalCount =
+    asks.length + offers.length + matches.length + gatherings.length + communitySessions.length;
+
   // Filter upcoming gatherings (not past)
-  const upcomingGatherings = gatherings.filter(g => {
-    const sessionTime = new Date(g.sessionDate).getTime();
-    return sessionTime > Date.now();
-  }).sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
+  const upcomingGatherings = gatherings
+    .filter((g) => {
+      const sessionTime = new Date(g.sessionDate).getTime();
+      return sessionTime > Date.now();
+    })
+    .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-white p-4 text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-6">
           <BackButton href="/network" />
         </div>
 
         <PageHeader
           title={skill.name_canonical}
-          description={skill.description || `Explore learning and teaching opportunities for ${skill.name_canonical}`}
+          description={
+            skill.description ||
+            `Explore learning and teaching opportunities for ${skill.name_canonical}`
+          }
         />
 
         {/* Skill Metadata */}
-        <div className="mb-6 p-4 rounded-lg border border-emerald-300 dark:border-emerald-600 bg-emerald-50 dark:bg-emerald-900/20">
+        <div className="mb-6 rounded-lg border border-emerald-300 bg-emerald-50 p-4 dark:border-emerald-600 dark:bg-emerald-900/20">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                {totalCount === 0 
-                  ? 'No activity yet' 
-                  : `${totalCount} ${totalCount === 1 ? 'item' : 'items'} (${asks.length} asks, ${offers.length} offers, ${matches.length} matches)`
-                }
+                {totalCount === 0
+                  ? 'No activity yet'
+                  : `${totalCount} ${totalCount === 1 ? 'item' : 'items'} (${asks.length} asks, ${offers.length} offers, ${matches.length} matches)`}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -858,7 +922,7 @@ export default function TopicDetailPage() {
                         : `Creates: type='learning_follow' entity (active=true)`,
                       `Attributes: profile_wallet='${userWallet.toLowerCase().slice(0, 8)}...', skill_id='${skill.key.slice(0, 12)}...', active=${!isJoined}`,
                       `Payload: Full learning follow data`,
-                      `TTL: 1 year (31536000 seconds)`
+                      `TTL: 1 year (31536000 seconds)`,
                     ]}
                     label={isJoined ? 'Leave Community' : 'Join Community'}
                   >
@@ -882,34 +946,42 @@ export default function TopicDetailPage() {
                           const data = await res.json();
                           if (data.ok) {
                             // Wait for Arkiv to index the new entity (especially important for joins)
-                            await new Promise(resolve => setTimeout(resolve, 1500));
+                            await new Promise((resolve) => setTimeout(resolve, 1500));
                             await loadMembershipStatus();
                           } else {
-                            alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                            alert(
+                              data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`
+                            );
                           }
                         } catch (error: any) {
-                          console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                          console.error(
+                            `Error ${isJoined ? 'leaving' : 'joining'} community:`,
+                            error
+                          );
                           alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
                         } finally {
                           setSubmittingFollow(false);
                         }
                       }}
                       disabled={submittingFollow}
-                      className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                      className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                         isJoined
-                          ? 'border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 bg-white dark:bg-gray-800'
-                          : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                          ? 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
+                          : 'bg-emerald-600 text-white hover:bg-emerald-700'
                       }`}
                     >
                       {submittingFollow
-                        ? (isJoined ? 'Leaving...' : 'Joining...')
-                        : (isJoined ? 'Leave Community' : 'Join Community')
-                      }
+                        ? isJoined
+                          ? 'Leaving...'
+                          : 'Joining...'
+                        : isJoined
+                          ? 'Leave Community'
+                          : 'Join Community'}
                     </button>
                   </ArkivQueryTooltip>
                   <button
                     onClick={() => setShowScheduleModal(true)}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                    className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                   >
                     📅 Schedule Meeting
                   </button>
@@ -920,7 +992,7 @@ export default function TopicDetailPage() {
                           setShowCreateAskForm(true);
                           setShowCreateOfferForm(false);
                         }}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${askColors.button}`}
+                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${askColors.button}`}
                       >
                         {askEmojis.default} Create Ask
                       </button>
@@ -929,7 +1001,7 @@ export default function TopicDetailPage() {
                           setShowCreateOfferForm(true);
                           setShowCreateAskForm(false);
                         }}
-                        className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors flex items-center gap-2 ${offerColors.button}`}
+                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${offerColors.button}`}
                       >
                         {offerEmojis.default} Create Offer
                       </button>
@@ -940,14 +1012,14 @@ export default function TopicDetailPage() {
               {!userWallet && (
                 <button
                   onClick={() => setShowScheduleModal(true)}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                 >
                   📅 Schedule Meeting
                 </button>
               )}
               <Link
                 href="/network"
-                className="text-sm text-emerald-600 dark:text-emerald-400 hover:underline"
+                className="text-sm text-emerald-600 hover:underline dark:text-emerald-400"
               >
                 View all topics →
               </Link>
@@ -957,13 +1029,19 @@ export default function TopicDetailPage() {
 
         {/* Create Ask Form */}
         {showCreateAskForm && userWallet && (
-          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create New Ask for {skill.name_canonical}</h2>
               <button
                 onClick={() => {
                   setShowCreateAskForm(false);
-                  setNewAsk({ skill: skill.name_canonical, skill_id: skill.key, message: '', ttlHours: '24', customTtlHours: '' });
+                  setNewAsk({
+                    skill: skill.name_canonical,
+                    skill_id: skill.key,
+                    message: '',
+                    ttlHours: '24',
+                    customTtlHours: '',
+                  });
                   setShowAdvancedOptionsAsk(false);
                   setAskError('');
                   setAskSuccess('');
@@ -974,23 +1052,25 @@ export default function TopicDetailPage() {
               </button>
             </div>
             {askError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-800 dark:text-red-200 text-sm">
+              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                 {askError}
               </div>
             )}
             {askSuccess && (
-              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-800 dark:text-green-200 text-sm">
+              <div className="mb-4 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
                 {askSuccess}
               </div>
             )}
             <form onSubmit={handleCreateAsk} className="space-y-4">
               <div>
-                <label htmlFor="skill" className="block text-sm font-medium mb-2">
+                <label htmlFor="skill" className="mb-2 block text-sm font-medium">
                   Skill you want to learn *
                 </label>
                 <SkillSelector
                   value={newAsk.skill_id}
-                  onChange={(skillId, skillName) => setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })}
+                  onChange={(skillId, skillName) =>
+                    setNewAsk({ ...newAsk, skill_id: skillId, skill: skillName })
+                  }
                   placeholder="Search for a skill..."
                   allowCreate={true}
                   required
@@ -1000,7 +1080,7 @@ export default function TopicDetailPage() {
                 </p>
               </div>
               <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-2">
+                <label htmlFor="message" className="mb-2 block text-sm font-medium">
                   Message *
                 </label>
                 <textarea
@@ -1009,31 +1089,36 @@ export default function TopicDetailPage() {
                   onChange={(e) => setNewAsk({ ...newAsk, message: e.target.value })}
                   placeholder="Describe what you want to learn..."
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   required
                 />
               </div>
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="border-t border-gray-200 pt-2 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedOptionsAsk(!showAdvancedOptionsAsk)}
-                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform ${showAdvancedOptionsAsk ? 'rotate-90' : ''}`}
+                    className={`h-4 w-4 transition-transform ${showAdvancedOptionsAsk ? 'rotate-90' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   Advanced Options
                 </button>
               </div>
               {showAdvancedOptionsAsk && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
                   <div>
-                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                    <label htmlFor="ttlHours" className="mb-2 block text-sm font-medium">
                       Expiration Duration (optional)
                     </label>
                     <div className="flex gap-2">
@@ -1041,7 +1126,7 @@ export default function TopicDetailPage() {
                         id="ttlHours"
                         value={newAsk.ttlHours === 'custom' ? 'custom' : newAsk.ttlHours}
                         onChange={(e) => setNewAsk({ ...newAsk, ttlHours: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       >
                         <option value="0.5">30 minutes</option>
                         <option value="1">1 hour</option>
@@ -1062,7 +1147,7 @@ export default function TopicDetailPage() {
                           placeholder="Hours"
                           value={newAsk.customTtlHours}
                           onChange={(e) => setNewAsk({ ...newAsk, customTtlHours: e.target.value })}
-                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                         />
                       )}
                     </div>
@@ -1076,7 +1161,7 @@ export default function TopicDetailPage() {
                 <button
                   type="submit"
                   disabled={submittingAsk}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submittingAsk ? 'Creating...' : 'Create Ask'}
                 </button>
@@ -1084,12 +1169,18 @@ export default function TopicDetailPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateAskForm(false);
-                    setNewAsk({ skill: skill.name_canonical, skill_id: skill.key, message: '', ttlHours: '24', customTtlHours: '' });
+                    setNewAsk({
+                      skill: skill.name_canonical,
+                      skill_id: skill.key,
+                      message: '',
+                      ttlHours: '24',
+                      customTtlHours: '',
+                    });
                     setShowAdvancedOptionsAsk(false);
                     setAskError('');
                     setAskSuccess('');
                   }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -1100,25 +1191,25 @@ export default function TopicDetailPage() {
 
         {/* Create Offer Form */}
         {showCreateOfferForm && userWallet && (
-          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between mb-4">
+          <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold">Create New Offer for {skill.name_canonical}</h2>
               <button
                 onClick={() => {
                   setShowCreateOfferForm(false);
-                  setNewOffer({ 
-                    skill: skill.name_canonical, 
-                    skill_id: skill.key, 
-                    message: '', 
-                    availabilityWindow: '', 
-                    availabilityKey: '', 
-                    availabilityType: 'structured', 
-                    structuredAvailability: null, 
-                    isPaid: false, 
-                    cost: '', 
-                    paymentAddress: '', 
-                    ttlHours: '168', 
-                    customTtlHours: '' 
+                  setNewOffer({
+                    skill: skill.name_canonical,
+                    skill_id: skill.key,
+                    message: '',
+                    availabilityWindow: '',
+                    availabilityKey: '',
+                    availabilityType: 'structured',
+                    structuredAvailability: null,
+                    isPaid: false,
+                    cost: '',
+                    paymentAddress: '',
+                    ttlHours: '168',
+                    customTtlHours: '',
                   });
                   setShowAdvancedOptionsOffer(false);
                   setOfferError('');
@@ -1130,23 +1221,25 @@ export default function TopicDetailPage() {
               </button>
             </div>
             {offerError && (
-              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-800 dark:text-red-200 text-sm">
+              <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                 {offerError}
               </div>
             )}
             {offerSuccess && (
-              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-800 dark:text-green-200 text-sm">
+              <div className="mb-4 rounded border border-green-200 bg-green-50 p-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200">
                 {offerSuccess}
               </div>
             )}
             <form onSubmit={handleCreateOffer} className="space-y-4">
               <div>
-                <label htmlFor="skill" className="block text-sm font-medium mb-2">
+                <label htmlFor="skill" className="mb-2 block text-sm font-medium">
                   Skill you can teach *
                 </label>
                 <SkillSelector
                   value={newOffer.skill_id}
-                  onChange={(skillId, skillName) => setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })}
+                  onChange={(skillId, skillName) =>
+                    setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })
+                  }
                   placeholder="Search for a skill..."
                   allowCreate={true}
                   required
@@ -1156,7 +1249,7 @@ export default function TopicDetailPage() {
                 </p>
               </div>
               <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-2">
+                <label htmlFor="message" className="mb-2 block text-sm font-medium">
                   Message *
                 </label>
                 <textarea
@@ -1165,14 +1258,12 @@ export default function TopicDetailPage() {
                   onChange={(e) => setNewOffer({ ...newOffer, message: e.target.value })}
                   placeholder="Describe what you can teach..."
                   rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Availability *
-                </label>
+                <label className="mb-2 block text-sm font-medium">Availability *</label>
                 <div className="mb-3">
                   <div className="flex flex-wrap gap-4">
                     <label className="flex items-center">
@@ -1180,7 +1271,13 @@ export default function TopicDetailPage() {
                         type="radio"
                         name="availabilityType"
                         checked={newOffer.availabilityType === 'saved'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', structuredAvailability: null })}
+                        onChange={() =>
+                          setNewOffer({
+                            ...newOffer,
+                            availabilityType: 'saved',
+                            structuredAvailability: null,
+                          })
+                        }
                         className="mr-2"
                       />
                       <span>Use saved availability</span>
@@ -1190,7 +1287,13 @@ export default function TopicDetailPage() {
                         type="radio"
                         name="availabilityType"
                         checked={newOffer.availabilityType === 'structured'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityKey: '' })}
+                        onChange={() =>
+                          setNewOffer({
+                            ...newOffer,
+                            availabilityType: 'structured',
+                            availabilityKey: '',
+                          })
+                        }
                         className="mr-2"
                       />
                       <span>Create structured availability</span>
@@ -1200,17 +1303,23 @@ export default function TopicDetailPage() {
                 {newOffer.availabilityType === 'saved' ? (
                   <div>
                     {savedAvailabilityBlocks.length === 0 ? (
-                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
+                      <div className="rounded border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
                         <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or create structured availability below.
+                          No saved availability blocks found.{' '}
+                          <Link href="/me/availability" className="underline">
+                            Create one here
+                          </Link>{' '}
+                          or create structured availability below.
                         </p>
                       </div>
                     ) : (
                       <select
                         id="availabilityKey"
                         value={newOffer.availabilityKey}
-                        onChange={(e) => setNewOffer({ ...newOffer, availabilityKey: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        onChange={(e) =>
+                          setNewOffer({ ...newOffer, availabilityKey: e.target.value })
+                        }
+                        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                         required={newOffer.availabilityType === 'saved'}
                       >
                         <option value="">Select saved availability...</option>
@@ -1226,23 +1335,25 @@ export default function TopicDetailPage() {
                   <div>
                     <WeeklyAvailabilityEditor
                       value={newOffer.structuredAvailability || userAvailability}
-                      onChange={(availability) => setNewOffer({ ...newOffer, structuredAvailability: availability })}
-                      className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-300 dark:border-gray-600"
+                      onChange={(availability) =>
+                        setNewOffer({ ...newOffer, structuredAvailability: availability })
+                      }
+                      className="rounded-lg border border-gray-300 bg-white p-4 dark:border-gray-600 dark:bg-gray-700"
                     />
                   </div>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2">
-                  Payment Type *
-                </label>
+                <label className="mb-2 block text-sm font-medium">Payment Type *</label>
                 <div className="flex gap-4">
                   <label className="flex items-center">
                     <input
                       type="radio"
                       name="paymentType"
                       checked={!newOffer.isPaid}
-                      onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
+                      onChange={() =>
+                        setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })
+                      }
                       className="mr-2"
                     />
                     <span>Free</span>
@@ -1262,7 +1373,7 @@ export default function TopicDetailPage() {
               {newOffer.isPaid && (
                 <>
                   <div>
-                    <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                    <label htmlFor="cost" className="mb-2 block text-sm font-medium">
                       Cost *
                     </label>
                     <input
@@ -1271,12 +1382,12 @@ export default function TopicDetailPage() {
                       value={newOffer.cost}
                       onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
                       placeholder="e.g., 0.1 ETH, $50, 100 USDC"
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       required={newOffer.isPaid}
                     />
                   </div>
                   <div>
-                    <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                    <label htmlFor="paymentAddress" className="mb-2 block text-sm font-medium">
                       Payment Address *
                     </label>
                     <input
@@ -1285,33 +1396,38 @@ export default function TopicDetailPage() {
                       value={newOffer.paymentAddress}
                       onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
                       placeholder="0x..."
-                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 font-mono text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       required={newOffer.isPaid}
                     />
                   </div>
                 </>
               )}
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+              <div className="border-t border-gray-200 pt-2 dark:border-gray-700">
                 <button
                   type="button"
                   onClick={() => setShowAdvancedOptionsOffer(!showAdvancedOptionsOffer)}
-                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                  className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                 >
                   <svg
-                    className={`w-4 h-4 transition-transform ${showAdvancedOptionsOffer ? 'rotate-90' : ''}`}
+                    className={`h-4 w-4 transition-transform ${showAdvancedOptionsOffer ? 'rotate-90' : ''}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                   Advanced Options
                 </button>
               </div>
               {showAdvancedOptionsOffer && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
                   <div>
-                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
+                    <label htmlFor="ttlHours" className="mb-2 block text-sm font-medium">
                       Expiration Duration (optional)
                     </label>
                     <div className="flex gap-2">
@@ -1319,7 +1435,7 @@ export default function TopicDetailPage() {
                         id="ttlHours"
                         value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
                         onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       >
                         <option value="1">1 hour</option>
                         <option value="2">2 hours</option>
@@ -1339,8 +1455,10 @@ export default function TopicDetailPage() {
                           step="1"
                           placeholder="Hours"
                           value={newOffer.customTtlHours}
-                          onChange={(e) => setNewOffer({ ...newOffer, customTtlHours: e.target.value })}
-                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          onChange={(e) =>
+                            setNewOffer({ ...newOffer, customTtlHours: e.target.value })
+                          }
+                          className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                         />
                       )}
                     </div>
@@ -1354,7 +1472,7 @@ export default function TopicDetailPage() {
                 <button
                   type="submit"
                   disabled={submittingOffer}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submittingOffer ? 'Creating...' : 'Create Offer'}
                 </button>
@@ -1362,25 +1480,25 @@ export default function TopicDetailPage() {
                   type="button"
                   onClick={() => {
                     setShowCreateOfferForm(false);
-                    setNewOffer({ 
-                      skill: skill.name_canonical, 
-                      skill_id: skill.key, 
-                      message: '', 
-                      availabilityWindow: '', 
-                      availabilityKey: '', 
-                      availabilityType: 'structured', 
-                      structuredAvailability: null, 
-                      isPaid: false, 
-                      cost: '', 
-                      paymentAddress: '', 
-                      ttlHours: '168', 
-                      customTtlHours: '' 
+                    setNewOffer({
+                      skill: skill.name_canonical,
+                      skill_id: skill.key,
+                      message: '',
+                      availabilityWindow: '',
+                      availabilityKey: '',
+                      availabilityType: 'structured',
+                      structuredAvailability: null,
+                      isPaid: false,
+                      cost: '',
+                      paymentAddress: '',
+                      ttlHours: '168',
+                      customTtlHours: '',
                     });
                     setShowAdvancedOptionsOffer(false);
                     setOfferError('');
                     setOfferSuccess('');
                   }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -1392,7 +1510,7 @@ export default function TopicDetailPage() {
         {/* Upcoming Community Sessions - Display actual session entities */}
         {communitySessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
               🌐 Upcoming Community Sessions
             </h2>
             <div className="space-y-4">
@@ -1406,42 +1524,55 @@ export default function TopicDetailPage() {
                 const now = Date.now();
                 const remaining = sessionDateTime - now;
                 const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
-                const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const hoursUntil = Math.floor(
+                  (remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+                );
                 const minutesUntil = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
                 // Extract gatheringKey from session (for community sessions)
-                const gatheringKey = (session as any).gatheringKey || 
-                  (session.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1]) ||
-                  (session.notes?.includes('virtual_gathering_rsvp:') ? gatherings.find(g => session.notes?.includes(g.key))?.key : null);
-                
+                const gatheringKey =
+                  (session as any).gatheringKey ||
+                  session.notes?.match(/virtual_gathering_rsvp:([^\s]+)/)?.[1] ||
+                  (session.notes?.includes('virtual_gathering_rsvp:')
+                    ? gatherings.find((g) => session.notes?.includes(g.key))?.key
+                    : null);
+
                 // Check if this is a community gathering session and if user has RSVP'd
-                const isCommunityGathering = gatheringKey && (session.skill === 'virtual_gathering_rsvp' || session.notes?.includes('virtual_gathering_rsvp:'));
-                const hasUserRsvpd = gatheringKey ? (sessionRsvpStatus[session.key] || (isMentor && isLearner)) : false;
-                const gathering = gatheringKey ? gatherings.find(g => g.key === gatheringKey) : null;
+                const isCommunityGathering =
+                  gatheringKey &&
+                  (session.skill === 'virtual_gathering_rsvp' ||
+                    session.notes?.includes('virtual_gathering_rsvp:'));
+                const hasUserRsvpd = gatheringKey
+                  ? sessionRsvpStatus[session.key] || (isMentor && isLearner)
+                  : false;
+                const gathering = gatheringKey
+                  ? gatherings.find((g) => g.key === gatheringKey)
+                  : null;
 
                 // Get RSVP wallets for this gathering
-                const gatheringRsvpWallets = gatheringKey ? (rsvpWallets[gatheringKey] || []) : [];
+                const gatheringRsvpWallets = gatheringKey ? rsvpWallets[gatheringKey] || [] : [];
                 const rsvpProfiles = gatheringRsvpWallets
-                  .map(wallet => profiles[wallet.toLowerCase()])
+                  .map((wallet) => profiles[wallet.toLowerCase()])
                   .filter(Boolean) as UserProfile[];
 
                 return (
                   <div
                     key={session.key}
-                    className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                    className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
                   >
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="mb-3 flex items-start justify-between">
                       <div>
                         <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
                           {formatSessionTitle(session, skillsMap)}
                         </h3>
                         {(isMentor || isLearner) && otherWallet !== userWallet?.toLowerCase() && (
-                          <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                            {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {otherProfile?.displayName || otherWallet.slice(0, 8) + '...'}
+                          <p className="mt-1 text-sm text-blue-700 dark:text-blue-400">
+                            {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with{' '}
+                            {otherProfile?.displayName || otherWallet.slice(0, 8) + '...'}
                           </p>
                         )}
                         {isCommunityGathering && (
-                          <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
+                          <p className="mt-1 text-sm text-blue-600 dark:text-blue-300">
                             Community gathering
                           </p>
                         )}
@@ -1450,23 +1581,25 @@ export default function TopicDetailPage() {
                         {daysUntil > 0
                           ? `${daysUntil}d ${hoursUntil}h ${minutesUntil}m left`
                           : hoursUntil > 0
-                          ? `${hoursUntil}h ${minutesUntil}m left`
-                          : `${minutesUntil}m left`}
+                            ? `${hoursUntil}h ${minutesUntil}m left`
+                            : `${minutesUntil}m left`}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <p className="text-sm text-blue-800 dark:text-blue-300">
                         <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
                         {session.duration && ` • ${session.duration} min`}
-                        {gathering && gathering.rsvpCount !== undefined && ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
+                        {gathering &&
+                          gathering.rsvpCount !== undefined &&
+                          ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
                       </p>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex items-center gap-2">
                         {session.videoJoinUrl && (
                           <a
                             href={session.videoJoinUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                            className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                           >
                             🎥 Join
                           </a>
@@ -1475,13 +1608,13 @@ export default function TopicDetailPage() {
                           <button
                             onClick={() => handleRSVP(gatheringKey)}
                             disabled={rsvping === gatheringKey}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm"
+                            className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
                           >
                             {rsvping === gatheringKey ? 'RSVPing...' : 'RSVP'}
                           </button>
                         )}
                         {isCommunityGathering && hasUserRsvpd && (
-                          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium">
+                          <span className="rounded-lg bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
                             ✓ RSVP'd
                           </span>
                         )}
@@ -1490,27 +1623,31 @@ export default function TopicDetailPage() {
                     </div>
                     {/* RSVP'd Profiles List */}
                     {isCommunityGathering && gatheringRsvpWallets.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
-                          {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
+                      <div className="mt-4 border-t border-blue-200 pt-4 dark:border-blue-700">
+                        <p className="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">
+                          {gatheringRsvpWallets.length}{' '}
+                          {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'}{' '}
+                          RSVP'd:
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {rsvpProfiles.map((profile) => (
                             <Link
                               key={profile.wallet}
                               href={`/profiles/${profile.wallet}`}
-                              className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                              className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-800/50 dark:text-blue-200 dark:hover:bg-blue-700"
                             >
-                              {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
+                              {profile.displayName ||
+                                profile.username ||
+                                profile.wallet.slice(0, 8) + '...'}
                             </Link>
                           ))}
                           {/* Show wallets without profiles */}
                           {gatheringRsvpWallets
-                            .filter(wallet => !profiles[wallet.toLowerCase()])
+                            .filter((wallet) => !profiles[wallet.toLowerCase()])
                             .map((wallet) => (
                               <span
                                 key={wallet}
-                                className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200"
+                                className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-800/50 dark:text-blue-200"
                               >
                                 {wallet.slice(0, 8)}...{wallet.slice(-4)}
                               </span>
@@ -1526,126 +1663,138 @@ export default function TopicDetailPage() {
         )}
 
         {/* Upcoming Virtual Gatherings (meetings that can be RSVP'd) - exclude ones user already RSVP'd to */}
-        {upcomingGatherings.filter(g => {
+        {upcomingGatherings.filter((g) => {
           // Exclude gatherings that user has already RSVP'd to (they'll show as sessions above)
           if (!userWallet) return true;
-          return !communitySessions.some(s => s.gatheringKey === g.key);
+          return !communitySessions.some((s) => s.gatheringKey === g.key);
         }).length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-gray-100">
               🌐 Schedule a Community Meeting
             </h2>
             <div className="space-y-4">
-              {upcomingGatherings.filter(g => {
-                // Exclude gatherings that user has already RSVP'd to
-                if (!userWallet) return true;
-                return !communitySessions.some(s => s.gatheringKey === g.key);
-              }).map((gathering) => {
-                const organizerProfile = profiles[gathering.organizerWallet.toLowerCase()];
-                const organizerName = organizerProfile?.displayName || gathering.organizerWallet.slice(0, 8) + '...';
-                const hasRsvpd = rsvpStatus[gathering.key] || false;
-                const sessionTime = formatSessionDate(gathering.sessionDate);
-                const sessionDateTime = new Date(gathering.sessionDate).getTime();
-                const now = Date.now();
-                const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
-                const minutesUntil = Math.floor(((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60));
+              {upcomingGatherings
+                .filter((g) => {
+                  // Exclude gatherings that user has already RSVP'd to
+                  if (!userWallet) return true;
+                  return !communitySessions.some((s) => s.gatheringKey === g.key);
+                })
+                .map((gathering) => {
+                  const organizerProfile = profiles[gathering.organizerWallet.toLowerCase()];
+                  const organizerName =
+                    organizerProfile?.displayName || gathering.organizerWallet.slice(0, 8) + '...';
+                  const hasRsvpd = rsvpStatus[gathering.key] || false;
+                  const sessionTime = formatSessionDate(gathering.sessionDate);
+                  const sessionDateTime = new Date(gathering.sessionDate).getTime();
+                  const now = Date.now();
+                  const hoursUntil = Math.floor((sessionDateTime - now) / (1000 * 60 * 60));
+                  const minutesUntil = Math.floor(
+                    ((sessionDateTime - now) % (1000 * 60 * 60)) / (1000 * 60)
+                  );
 
-                // Get RSVP wallets for this gathering
-                const gatheringRsvpWallets = rsvpWallets[gathering.key] || [];
-                const rsvpProfiles = gatheringRsvpWallets
-                  .map(wallet => profiles[wallet.toLowerCase()])
-                  .filter(Boolean) as UserProfile[];
+                  // Get RSVP wallets for this gathering
+                  const gatheringRsvpWallets = rsvpWallets[gathering.key] || [];
+                  const rsvpProfiles = gatheringRsvpWallets
+                    .map((wallet) => profiles[wallet.toLowerCase()])
+                    .filter(Boolean) as UserProfile[];
 
-                return (
-                  <div
-                    key={gathering.key}
-                    className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                  >
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-                          {gathering.title}
-                        </h3>
-                        <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                          Organized by {organizerName}
-                        </p>
-                        {gathering.description && (
-                          <p className="text-sm text-blue-600 dark:text-blue-300 mt-2">
-                            {gathering.description}
+                  return (
+                    <div
+                      key={gathering.key}
+                      className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
+                    >
+                      <div className="mb-3 flex items-start justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                            {gathering.title}
+                          </h3>
+                          <p className="mt-1 text-sm text-blue-700 dark:text-blue-400">
+                            Organized by {organizerName}
                           </p>
-                        )}
+                          {gathering.description && (
+                            <p className="mt-2 text-sm text-blue-600 dark:text-blue-300">
+                              {gathering.description}
+                            </p>
+                          )}
+                        </div>
+                        <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                          {hoursUntil > 0
+                            ? `In ${hoursUntil}h ${minutesUntil}m`
+                            : `In ${minutesUntil}m`}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                        {hoursUntil > 0 ? `In ${hoursUntil}h ${minutesUntil}m` : `In ${minutesUntil}m`}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm text-blue-800 dark:text-blue-300">
-                        <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
-                        {gathering.duration && ` • ${gathering.duration} min`}
-                        {gathering.rsvpCount !== undefined && ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
-                      </p>
-                      <div className="flex gap-2">
-                        {gathering.videoJoinUrl && (
-                          <a
-                            href={gathering.videoJoinUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
-                          >
-                            🎥 Join
-                          </a>
-                        )}
-                        {!hasRsvpd && userWallet && (
-                          <button
-                            onClick={() => handleRSVP(gathering.key)}
-                            disabled={rsvping === gathering.key}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors text-sm"
-                          >
-                            {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
-                          </button>
-                        )}
-                        {hasRsvpd && (
-                          <span className="px-3 py-1.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded-lg text-sm font-medium">
-                            ✓ RSVP'd
-                          </span>
-                        )}
-                        <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
-                      </div>
-                    </div>
-                    {/* RSVP'd Profiles List */}
-                    {gatheringRsvpWallets.length > 0 && (
-                      <div className="mt-4 pt-4 border-t border-blue-200 dark:border-blue-700">
-                        <p className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-2">
-                          {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-blue-800 dark:text-blue-300">
+                          <strong>Date:</strong> {sessionTime.date} at {sessionTime.time}
+                          {gathering.duration && ` • ${gathering.duration} min`}
+                          {gathering.rsvpCount !== undefined &&
+                            ` • ${gathering.rsvpCount} ${gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}`}
                         </p>
-                        <div className="flex flex-wrap gap-2">
-                          {rsvpProfiles.map((profile) => (
-                            <Link
-                              key={profile.wallet}
-                              href={`/profiles/${profile.wallet}`}
-                              className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                        <div className="flex gap-2">
+                          {gathering.videoJoinUrl && (
+                            <a
+                              href={gathering.videoJoinUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                             >
-                              {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
-                            </Link>
-                          ))}
-                          {/* Show wallets without profiles */}
-                          {gatheringRsvpWallets
-                            .filter(wallet => !profiles[wallet.toLowerCase()])
-                            .map((wallet) => (
-                              <span
-                                key={wallet}
-                                className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-800/50 text-blue-800 dark:text-blue-200"
-                              >
-                                {wallet.slice(0, 8)}...{wallet.slice(-4)}
-                              </span>
-                            ))}
+                              🎥 Join
+                            </a>
+                          )}
+                          {!hasRsvpd && userWallet && (
+                            <button
+                              onClick={() => handleRSVP(gathering.key)}
+                              disabled={rsvping === gathering.key}
+                              className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+                            >
+                              {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
+                            </button>
+                          )}
+                          {hasRsvpd && (
+                            <span className="rounded-lg bg-green-100 px-3 py-1.5 text-sm font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
+                              ✓ RSVP'd
+                            </span>
+                          )}
+                          <ViewOnArkivLink entityKey={gathering.key} className="text-xs" />
                         </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      {/* RSVP'd Profiles List */}
+                      {gatheringRsvpWallets.length > 0 && (
+                        <div className="mt-4 border-t border-blue-200 pt-4 dark:border-blue-700">
+                          <p className="mb-2 text-xs font-medium text-blue-700 dark:text-blue-300">
+                            {gatheringRsvpWallets.length}{' '}
+                            {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'}{' '}
+                            RSVP'd:
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {rsvpProfiles.map((profile) => (
+                              <Link
+                                key={profile.wallet}
+                                href={`/profiles/${profile.wallet}`}
+                                className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 transition-colors hover:bg-blue-200 dark:bg-blue-800/50 dark:text-blue-200 dark:hover:bg-blue-700"
+                              >
+                                {profile.displayName ||
+                                  profile.username ||
+                                  profile.wallet.slice(0, 8) + '...'}
+                              </Link>
+                            ))}
+                            {/* Show wallets without profiles */}
+                            {gatheringRsvpWallets
+                              .filter((wallet) => !profiles[wallet.toLowerCase()])
+                              .map((wallet) => (
+                                <span
+                                  key={wallet}
+                                  className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-800/50 dark:text-blue-200"
+                                >
+                                  {wallet.slice(0, 8)}...{wallet.slice(-4)}
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
             </div>
           </div>
         )}
@@ -1684,7 +1833,7 @@ export default function TopicDetailPage() {
 
         {/* Community Profiles */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
+          <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
               👥 Community Members
             </h2>
@@ -1698,7 +1847,7 @@ export default function TopicDetailPage() {
                   `   → skill_ids.includes('${skill.key}') OR`,
                   `   → skillsArray.includes('${skill.name_canonical}') OR`,
                   `   → skills string contains '${skill.name_canonical}'`,
-                  `Returns: ${communityProfiles.length} profiles in this community`
+                  `Returns: ${communityProfiles.length} profiles in this community`,
                 ]}
                 label="Community Profiles"
               >
@@ -1713,39 +1862,46 @@ export default function TopicDetailPage() {
               title="No community members yet"
               description={`Be the first to join the ${skill.name_canonical} community!`}
               icon={
-                <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                  />
                 </svg>
               }
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
               {communityProfiles.map((profile) => (
                 <div
                   key={profile.key}
-                  className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 transition-colors cursor-pointer"
+                  className="cursor-pointer rounded-lg border border-gray-200 bg-gray-50 p-6 transition-colors hover:border-blue-300 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-600"
                   onClick={() => router.push(`/profiles/${profile.wallet}`)}
                 >
-                  <div className="flex items-start justify-between mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                      <h3 className="mb-1 text-lg font-semibold text-blue-600 dark:text-blue-400">
                         {profile.displayName || 'Anonymous'}
                       </h3>
                       {profile.username && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400">@{profile.username}</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          @{profile.username}
+                        </p>
                       )}
                     </div>
                     {profile.profileImage && (
                       <img
                         src={profile.profileImage}
                         alt={profile.displayName}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="h-12 w-12 rounded-full object-cover"
                       />
                     )}
                   </div>
 
                   {profile.bioShort && (
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 line-clamp-2">
+                    <p className="mb-3 line-clamp-2 text-sm text-gray-700 dark:text-gray-300">
                       {profile.bioShort}
                     </p>
                   )}
@@ -1756,7 +1912,7 @@ export default function TopicDetailPage() {
                         {profile.skillsArray.slice(0, 3).map((skillName, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded"
+                            className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
                           >
                             {skillName}
                           </span>
@@ -1770,7 +1926,7 @@ export default function TopicDetailPage() {
                     </div>
                   )}
 
-                  <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                  <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                     {profile.seniority && (
                       <div>
                         <strong>Level:</strong> {profile.seniority}
@@ -1783,21 +1939,23 @@ export default function TopicDetailPage() {
                     )}
                     {profile.availabilityWindow && (
                       <div>
-                        <strong>Available:</strong> {formatAvailabilityForDisplay(profile.availabilityWindow)}
+                        <strong>Available:</strong>{' '}
+                        {formatAvailabilityForDisplay(profile.availabilityWindow)}
                       </div>
                     )}
                     <div>
-                      <strong>Wallet:</strong> {profile.wallet.slice(0, 6)}...{profile.wallet.slice(-4)}
+                      <strong>Wallet:</strong> {profile.wallet.slice(0, 6)}...
+                      {profile.wallet.slice(-4)}
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <div className="mt-4 flex items-center justify-between border-t border-gray-200 pt-3 dark:border-gray-700">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         router.push(`/profiles/${profile.wallet}`);
                       }}
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                      className="text-sm text-blue-600 hover:underline dark:text-blue-400"
                     >
                       View Profile →
                     </button>
@@ -1809,7 +1967,7 @@ export default function TopicDetailPage() {
                           label="View Profile on Arkiv"
                           className="text-xs"
                         />
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                           {profile.key.slice(0, 12)}...
                         </span>
                       </div>
@@ -1823,17 +1981,25 @@ export default function TopicDetailPage() {
 
         {/* Schedule Meeting Modal */}
         {showScheduleModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-md rounded-lg bg-white shadow-xl dark:bg-gray-800">
               <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex items-center justify-between">
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                     Schedule Meeting - {skill.name_canonical}
                   </h3>
                   <button
                     onClick={() => {
                       setShowScheduleModal(false);
-                      setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                      setFormData({
+                        title: '',
+                        description: '',
+                        date: '',
+                        time: '',
+                        duration: '60',
+                        questId: '',
+                        questTitle: '',
+                      });
                     }}
                     className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                   >
@@ -1857,7 +2023,9 @@ export default function TopicDetailPage() {
                     setSubmitting(true);
                     try {
                       // Combine date and time into ISO timestamp
-                      const sessionDate = new Date(`${formData.date}T${formData.time}:00`).toISOString();
+                      const sessionDate = new Date(
+                        `${formData.date}T${formData.time}:00`
+                      ).toISOString();
 
                       // Create virtual gathering (immediately generates Jitsi link)
                       const res = await fetch('/api/virtual-gatherings', {
@@ -1866,11 +2034,13 @@ export default function TopicDetailPage() {
                         body: JSON.stringify({
                           action: 'create',
                           organizerWallet: userWallet,
-                          community: skill.slug, // Use skill slug as community identifier
+                          community: skill.slug,
                           title: formData.title,
                           description: formData.description,
                           sessionDate,
                           duration: parseInt(formData.duration, 10),
+                          questId: formData.questId || undefined,
+                          questTitle: formData.questTitle || undefined,
                         }),
                       });
 
@@ -1881,7 +2051,15 @@ export default function TopicDetailPage() {
 
                       alert('Meeting scheduled! Jitsi room is ready.');
                       setShowScheduleModal(false);
-                      setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                      setFormData({
+                        title: '',
+                        description: '',
+                        date: '',
+                        time: '',
+                        duration: '60',
+                        questId: '',
+                        questTitle: '',
+                      });
                       // Reload topic data to show new meeting
                       loadTopicData();
                     } catch (err: any) {
@@ -1894,27 +2072,27 @@ export default function TopicDetailPage() {
                   className="space-y-4"
                 >
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Title *
                     </label>
                     <input
                       type="text"
                       value={formData.title}
                       onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       placeholder="e.g., Spanish Conversation Practice"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Description
                     </label>
                     <textarea
                       value={formData.description}
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       rows={3}
                       placeholder="Optional description..."
                     />
@@ -1922,20 +2100,23 @@ export default function TopicDetailPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Date *
                       </label>
                       <input
                         type="date"
                         value={formData.date}
                         onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         required
                       />
                     </div>
 
                     <div>
-                      <label htmlFor="time" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      <label
+                        htmlFor="time"
+                        className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                      >
                         Time * (15-min intervals)
                       </label>
                       <input
@@ -1945,34 +2126,49 @@ export default function TopicDetailPage() {
                         onChange={(e) => setFormData({ ...formData, time: e.target.value })}
                         step="900"
                         required
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                         Times are rounded to 15-minute intervals
                       </p>
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Duration (minutes)
                     </label>
                     <input
                       type="number"
                       value={formData.duration}
                       onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       min="15"
                       max="240"
                       step="15"
                     />
                   </div>
 
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Link to Learning Quest (optional)
+                    </label>
+                    <QuestSelector
+                      value={formData.questId}
+                      onChange={(questId, questTitle) => {
+                        setFormData({ ...formData, questId, questTitle });
+                      }}
+                    />
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Optionally link this gathering to a learning quest
+                    </p>
+                  </div>
+
                   <div className="flex gap-3 pt-4">
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {submitting ? 'Scheduling...' : 'Schedule Meeting'}
                     </button>
@@ -1980,9 +2176,17 @@ export default function TopicDetailPage() {
                       type="button"
                       onClick={() => {
                         setShowScheduleModal(false);
-                        setFormData({ title: '', description: '', date: '', time: '', duration: '60' });
+                        setFormData({
+                          title: '',
+                          description: '',
+                          date: '',
+                          time: '',
+                          duration: '60',
+                          questId: '',
+                          questTitle: '',
+                        });
                       }}
-                      className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 transition-colors hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
                     >
                       Cancel
                     </button>
@@ -1996,11 +2200,12 @@ export default function TopicDetailPage() {
         {/* Arkiv Query Tester - Show only for Arkiv topic */}
         {skill && skill.name_canonical.toLowerCase() === 'arkiv' && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <h2 className="mb-4 text-xl font-semibold text-gray-900 dark:text-white">
               🔍 Arkiv Query Tester
             </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              Test Arkiv queries for all entity types. Useful for learning how to query Arkiv entities and finding them on Arkiv Explorer.
+            <p className="mb-4 text-gray-600 dark:text-gray-400">
+              Test Arkiv queries for all entity types. Useful for learning how to query Arkiv
+              entities and finding them on Arkiv Explorer.
             </p>
             <ArkivQueryTester compact={true} />
           </div>
