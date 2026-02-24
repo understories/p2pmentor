@@ -27,7 +27,8 @@ export type QuestTrack =
   | 'cryptography'
   | 'privacy'
   | 'ai'
-  | 'meta_learning';
+  | 'meta_learning'
+  | 'demo';
 
 /**
  * Quiz question format for QUIZ steps
