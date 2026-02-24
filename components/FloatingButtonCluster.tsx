@@ -2,7 +2,7 @@
 
 /**
  * Floating Button Cluster
- * 
+ *
  * Organic cluster of logo buttons that grow on hover.
  * Matches the garden aesthetic with proximity-based scaling.
  * On mobile, buttons are fixed below content (for lite page).
@@ -33,6 +33,7 @@ export function FloatingButtonCluster() {
   const [wallet, setWallet] = useState<string | null>(null);
   const [hasProfile, setHasProfile] = useState<boolean | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile screen size
@@ -40,7 +41,7 @@ export function FloatingButtonCluster() {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768); // md breakpoint
     };
-    
+
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
@@ -95,7 +96,7 @@ export function FloatingButtonCluster() {
   // Track mouse position for proximity-based scaling (desktop only)
   useEffect(() => {
     if (isMobile) return; // Skip on mobile
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       if (clusterRef.current) {
         const rect = clusterRef.current.getBoundingClientRect();
@@ -129,12 +130,13 @@ export function FloatingButtonCluster() {
       id: 'understories',
       href: 'https://understories.github.io',
       icon: (
-        <div className="relative w-5 h-5">
+        <div className="relative h-5 w-5">
           {/* Glowing background */}
           <div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, rgba(150, 255, 150, 0.6) 0%, rgba(50, 200, 50, 0.3) 40%, transparent 70%)',
+              background:
+                'radial-gradient(circle, rgba(150, 255, 150, 0.6) 0%, rgba(50, 200, 50, 0.3) 40%, transparent 70%)',
               boxShadow: `
                 0 0 20px rgba(150, 255, 150, 0.6),
                 0 0 40px rgba(100, 255, 100, 0.4),
@@ -150,41 +152,45 @@ export function FloatingButtonCluster() {
             style={{
               width: '2px',
               height: '40%',
-              background: 'linear-gradient(180deg, rgba(100, 200, 100, 0.8) 0%, rgba(50, 150, 50, 0.6) 100%)',
+              background:
+                'linear-gradient(180deg, rgba(100, 200, 100, 0.8) 0%, rgba(50, 150, 50, 0.6) 100%)',
               boxShadow: '0 0 10px rgba(100, 255, 100, 0.4)',
             }}
           />
           {/* Leaves container */}
-          <div className="absolute top-[20%] left-1/2 -translate-x-1/2 w-[60%] h-[60%]">
+          <div className="absolute left-1/2 top-[20%] h-[60%] w-[60%] -translate-x-1/2">
             {/* Leaf 1 - Top */}
             <div
-              className="absolute top-0 left-1/2 -translate-x-1/2 -rotate-45"
+              className="absolute left-1/2 top-0 -translate-x-1/2 -rotate-45"
               style={{
                 width: '40%',
                 height: '40%',
-                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                background:
+                  'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
                 borderRadius: '50% 0',
                 boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
               }}
             />
             {/* Leaf 2 - Left */}
             <div
-              className="absolute top-[33%] left-0 rotate-45"
+              className="absolute left-0 top-[33%] rotate-45"
               style={{
                 width: '40%',
                 height: '40%',
-                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                background:
+                  'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
                 borderRadius: '50% 0',
                 boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
               }}
             />
             {/* Leaf 3 - Right */}
             <div
-              className="absolute top-[33%] right-0 -rotate-45"
+              className="absolute right-0 top-[33%] -rotate-45"
               style={{
                 width: '40%',
                 height: '40%',
-                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                background:
+                  'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
                 borderRadius: '50% 0',
                 boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
               }}
@@ -195,7 +201,8 @@ export function FloatingButtonCluster() {
               style={{
                 width: '40%',
                 height: '40%',
-                background: 'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
+                background:
+                  'radial-gradient(circle, rgba(150, 255, 150, 0.9) 0%, rgba(50, 200, 50, 0.7) 100%)',
                 borderRadius: '50% 0',
                 boxShadow: '0 0 15px rgba(150, 255, 150, 0.6)',
               }}
@@ -210,22 +217,17 @@ export function FloatingButtonCluster() {
     {
       id: 'arkiv',
       href: 'http://arkiv.network',
-      icon: (
-        <span className="font-bold text-sm leading-none">[A]</span>
-      ),
+      icon: <span className="text-sm font-bold leading-none">[A]</span>,
       tooltip: 'Powered by Arkiv',
       ariaLabel: 'Powered by Arkiv',
-      className: 'bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-500 dark:to-indigo-600',
+      className:
+        'bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-500 dark:to-indigo-600',
     },
     {
       id: 'github',
       href: 'https://github.com/understories/p2pmentor',
       icon: (
-        <svg
-          className="w-5 h-5"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
           <path
             fillRule="evenodd"
             d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
@@ -241,11 +243,7 @@ export function FloatingButtonCluster() {
       id: 'x',
       href: 'http://x.com/p2pmentor',
       icon: (
-        <svg
-          className="w-5 h-5"
-          fill="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
       ),
@@ -257,12 +255,7 @@ export function FloatingButtonCluster() {
       id: 'docs',
       href: isLitePage ? '/docs/user-flows/lite-version' : '/docs',
       icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -276,54 +269,119 @@ export function FloatingButtonCluster() {
       className: 'bg-amber-600 hover:bg-amber-700',
     },
     // Theme toggle button - only on lite page
-    ...(isLitePage ? [{
-      id: 'theme',
-      onClick: handleThemeToggle,
-      icon: (
-        <span className="text-lg">
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </span>
-      ),
-      tooltip: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
-      ariaLabel: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
-      className: 'bg-gray-700 dark:bg-gray-300 hover:bg-gray-600 dark:hover:bg-gray-400',
-    }] : []),
+    ...(isLitePage
+      ? [
+          {
+            id: 'theme',
+            onClick: handleThemeToggle,
+            icon: <span className="text-lg">{theme === 'dark' ? '☀️' : '🌙'}</span>,
+            tooltip: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+            ariaLabel: theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode',
+            className: 'bg-gray-700 dark:bg-gray-300 hover:bg-gray-600 dark:hover:bg-gray-400',
+          },
+        ]
+      : []),
     // Hide feedback button on lite page
-    ...(isLitePage ? [] : [{
-      id: 'feedback',
-      onClick: () => setIsFeedbackOpen(true),
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
-          />
-        </svg>
-      ),
-      tooltip: 'Share feedback',
-      ariaLabel: 'Share feedback',
-      className: 'bg-blue-600 hover:bg-blue-700',
-    }]),
+    ...(isLitePage
+      ? []
+      : [
+          {
+            id: 'feedback',
+            onClick: () => setIsFeedbackOpen(true),
+            icon: (
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
+                />
+              </svg>
+            ),
+            tooltip: 'Share feedback',
+            ariaLabel: 'Share feedback',
+            className: 'bg-blue-600 hover:bg-blue-700',
+          },
+        ]),
   ];
 
   // On mobile for lite page, position below content instead of floating
   const isMobileLite = isMobile && isLitePage;
-  
+
+  const renderButton = (button: FloatingButton) => {
+    const isHovered = hoveredId === button.id;
+    const scale = isHovered ? 1.4 : 1;
+    const zIndex = isHovered ? 60 : 50;
+
+    const buttonContent = (
+      <div
+        className={`relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full shadow-lg transition-all duration-300 ease-out hover:shadow-xl ${button.className || ''} `}
+        style={{
+          transform: `scale(${scale})`,
+          zIndex,
+          transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out',
+        }}
+        onMouseEnter={() => setHoveredId(button.id)}
+        onMouseLeave={() => setHoveredId(null)}
+        onClick={button.onClick}
+        aria-label={button.ariaLabel}
+        title={button.tooltip}
+      >
+        <div
+          className={
+            button.id === 'github'
+              ? 'text-white dark:text-gray-800'
+              : button.id === 'x'
+                ? 'text-white'
+                : button.id === 'theme'
+                  ? 'text-white dark:text-gray-900'
+                  : 'text-white'
+          }
+        >
+          {button.icon}
+        </div>
+
+        {/* Tooltip */}
+        {isHovered && (
+          <div
+            className="pointer-events-none absolute bottom-full right-0 mb-2 whitespace-nowrap rounded-lg bg-gray-900 px-3 py-1.5 text-xs text-white shadow-lg dark:bg-gray-800 dark:text-white"
+            style={{
+              animation: 'fadeIn 0.2s ease-out',
+              color: 'white',
+            }}
+          >
+            {button.tooltip}
+            <div className="absolute right-4 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+          </div>
+        )}
+      </div>
+    );
+
+    if (button.href) {
+      return (
+        <a
+          key={button.id}
+          href={button.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block"
+        >
+          {buttonContent}
+        </a>
+      );
+    }
+
+    return <div key={button.id}>{buttonContent}</div>;
+  };
+
   return (
     <>
       <div
         ref={clusterRef}
         className={
           isMobileLite
-            ? "sticky bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-2 p-4 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-t border-gray-200 dark:border-gray-700"
-            : "fixed bottom-6 right-6 z-50 flex items-center gap-1.5"
+            ? 'sticky bottom-0 left-0 right-0 z-50 flex items-center justify-center gap-2 border-t border-gray-200 bg-white/90 p-4 backdrop-blur-md dark:border-gray-700 dark:bg-gray-900/90'
+            : 'fixed bottom-6 right-6 z-50 flex items-center gap-1.5'
         }
         style={
           isMobileLite
@@ -334,77 +392,42 @@ export function FloatingButtonCluster() {
               }
         }
       >
-        {buttons.map((button) => {
-          const isHovered = hoveredId === button.id;
-          const scale = isHovered ? 1.4 : 1;
-          const zIndex = isHovered ? 60 : 50;
-
-          const buttonContent = (
-            <div
-              className={`
-                relative flex items-center justify-center
-                w-11 h-11 rounded-full
-                shadow-lg hover:shadow-xl
-                transition-all duration-300 ease-out
-                cursor-pointer
-                ${button.className || ''}
-              `}
-              style={{
-                transform: `scale(${scale})`,
-                zIndex,
-                transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out',
-              }}
-              onMouseEnter={() => setHoveredId(button.id)}
-              onMouseLeave={() => setHoveredId(null)}
-              onClick={button.onClick}
-              aria-label={button.ariaLabel}
-              title={button.tooltip}
-            >
-              <div className={
-                button.id === 'github' ? 'text-white dark:text-gray-800' :
-                button.id === 'x' ? 'text-white' :
-                button.id === 'theme' ? 'text-white dark:text-gray-900' :
-                'text-white'
-              }>
-                {button.icon}
-              </div>
-              
-              {/* Tooltip */}
-              {isHovered && (
-                <div
-                  className="absolute bottom-full right-0 mb-2 px-3 py-1.5 bg-gray-900 dark:bg-gray-800 text-white dark:text-white text-xs rounded-lg whitespace-nowrap shadow-lg pointer-events-none"
-                  style={{
-                    animation: 'fadeIn 0.2s ease-out',
-                    color: 'white',
-                  }}
-                >
-                  {button.tooltip}
-                  <div className="absolute top-full right-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
-                </div>
-              )}
-            </div>
-          );
-
-          if (button.href) {
-            return (
-              <a
-                key={button.id}
-                href={button.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
+        {/* Collapsible: show buttons only when expanded (desktop non-lite) */}
+        {isMobileLite ? (
+          buttons.map(renderButton)
+        ) : (
+          <>
+            {isExpanded && (
+              <div
+                className="flex items-center gap-1.5"
+                style={{ animation: 'fadeIn 0.2s ease-out' }}
               >
-                {buttonContent}
-              </a>
-            );
-          }
-
-          return (
-            <div key={button.id}>
-              {buttonContent}
+                {buttons.map(renderButton)}
+              </div>
+            )}
+            <div
+              className="relative flex h-11 w-11 cursor-pointer items-center justify-center rounded-full bg-gray-700 shadow-lg transition-all duration-300 hover:shadow-xl dark:bg-gray-600"
+              onClick={() => setIsExpanded(!isExpanded)}
+              aria-label={isExpanded ? 'Collapse menu' : 'Expand menu'}
+              title={isExpanded ? 'Collapse menu' : 'Expand menu'}
+            >
+              <svg
+                className="h-5 w-5 text-white transition-transform duration-300"
+                style={{ transform: isExpanded ? 'rotate(45deg)' : 'rotate(0deg)' }}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
+              </svg>
             </div>
-          );
-        })}
+          </>
+        )}
       </div>
 
       <AppFeedbackModal
@@ -415,4 +438,3 @@ export function FloatingButtonCluster() {
     </>
   );
 }
-
