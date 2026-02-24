@@ -1,18 +1,18 @@
 /**
  * Virtual Gathering CRUD helpers
- * 
+ *
  * Handles community virtual gatherings (public meetings).
  * Anyone can suggest a gathering, anyone can RSVP.
  * Jitsi is generated immediately (no confirmation needed).
- * 
+ *
  * Reference: Learner community feature
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { generateJitsiMeeting } from "../jitsi";
-import { JITSI_BASE_URL, SPACE_ID } from "../config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { generateJitsiMeeting } from '../jitsi';
+import { JITSI_BASE_URL, SPACE_ID } from '../config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type VirtualGathering = {
   key: string;
@@ -30,15 +30,18 @@ export type VirtualGathering = {
   videoRoomName?: string;
   videoJoinUrl?: string;
   videoJwtToken?: string;
+  // Quest tagging (optional link to a learning quest)
+  questId?: string; // Quest entity key or questId (links gathering to a learning quest)
+  questTitle?: string; // Quest title (display purposes)
   // RSVP tracking
   rsvpCount?: number; // Number of RSVPs (computed from session entities)
 };
 
 /**
  * Create a virtual gathering
- * 
+ *
  * Jitsi meeting is generated immediately (no confirmation needed).
- * 
+ *
  * @param data - Gathering data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -50,6 +53,8 @@ export async function createVirtualGathering({
   description,
   sessionDate,
   duration = 60,
+  questId,
+  questTitle,
   privateKey,
 }: {
   organizerWallet: string;
@@ -58,6 +63,8 @@ export async function createVirtualGathering({
   description?: string;
   sessionDate: string; // ISO timestamp
   duration?: number;
+  questId?: string; // Optional: link gathering to a learning quest
+  questTitle?: string; // Optional: quest title for display
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -78,13 +85,17 @@ export async function createVirtualGathering({
     videoProvider: jitsiInfo.videoProvider,
     videoRoomName: jitsiInfo.videoRoomName,
     videoJoinUrl: jitsiInfo.videoJoinUrl,
+    questId: questId || undefined,
+    questTitle: questTitle || undefined,
     createdAt,
   };
 
   // Calculate expiration: sessionDate + duration + 1 hour buffer
   const sessionStartTime = new Date(sessionDate).getTime();
   // Ensure duration is always an integer to prevent float propagation
-  const durationMinutes = Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10));
+  const durationMinutes = Math.floor(
+    typeof duration === 'number' ? duration : parseInt(String(duration || 60), 10)
+  );
   const sessionDurationMs = durationMinutes * 60 * 1000;
   const bufferMs = 60 * 60 * 1000; // 1 hour buffer
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
@@ -93,7 +104,9 @@ export async function createVirtualGathering({
   const expiresInSecondsRaw = (expirationTime - now) / 1000;
   const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
   // Final safety check: ensure it's definitely an integer
-  const expiresInSecondsInt = Number.isInteger(expiresInSeconds) ? expiresInSeconds : Math.floor(expiresInSeconds);
+  const expiresInSecondsInt = Number.isInteger(expiresInSeconds)
+    ? expiresInSeconds
+    : Math.floor(expiresInSeconds);
 
   // Create gathering entity
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
@@ -110,6 +123,7 @@ export async function createVirtualGathering({
         { key: 'videoProvider', value: jitsiInfo.videoProvider },
         { key: 'videoRoomName', value: jitsiInfo.videoRoomName },
         { key: 'videoJoinUrl', value: jitsiInfo.videoJoinUrl },
+        ...(questId ? [{ key: 'questId', value: String(questId).trim() }] : []),
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
       ],
@@ -143,7 +157,7 @@ export async function createVirtualGathering({
     const { createNotification } = await import('./notifications');
     const { listLearningFollows } = await import('./learningFollow');
     const { getSkillBySlug } = await import('./skill');
-    
+
     // Get the skill entity to find its key
     const skillEntity = await getSkillBySlug(community);
     if (!skillEntity) {
@@ -161,8 +175,8 @@ export async function createVirtualGathering({
     // Create notification for each community member (excluding the organizer)
     const organizerWalletLower = organizerWallet.toLowerCase();
     const notificationPromises = learningFollows
-      .filter(follow => follow.profile_wallet.toLowerCase() !== organizerWalletLower)
-      .map(follow => 
+      .filter((follow) => follow.profile_wallet.toLowerCase() !== organizerWalletLower)
+      .map((follow) =>
         createNotification({
           wallet: follow.profile_wallet.toLowerCase(),
           notificationType: 'community_meeting_scheduled',
@@ -187,7 +201,10 @@ export async function createVirtualGathering({
           privateKey,
           spaceId,
         }).catch((err: any) => {
-          console.warn(`[createVirtualGathering] Failed to create notification for ${follow.profile_wallet}:`, err);
+          console.warn(
+            `[createVirtualGathering] Failed to create notification for ${follow.profile_wallet}:`,
+            err
+          );
         })
       );
 
@@ -205,7 +222,7 @@ export async function createVirtualGathering({
 
 /**
  * List virtual gatherings
- * 
+ *
  * @param params - Optional filters (community, organizerWallet)
  * @returns Array of virtual gatherings
  */
@@ -222,7 +239,8 @@ export async function listVirtualGatherings({
   const gatherings: VirtualGathering[] = [];
 
   try {
-    const queryBuilder = publicClient.buildQuery()
+    const queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'virtual_gathering'))
       .withAttributes(true)
       .withPayload(true)
@@ -232,7 +250,8 @@ export async function listVirtualGatherings({
     const entities = result?.entities || [];
 
     // Get txHashes
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'virtual_gathering_txhash'))
       .withAttributes(true)
       .withPayload(true)
@@ -252,11 +271,12 @@ export async function listVirtualGatherings({
         const gatheringKey = getAttr('gatheringKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && gatheringKey) {
               txHashMap[gatheringKey] = payload.txHash;
@@ -271,7 +291,8 @@ export async function listVirtualGatherings({
     // Get RSVP counts (from session entities linked to gatherings)
     const rsvpCounts: Record<string, number> = {};
     try {
-      const rsvpResult = await publicClient.buildQuery()
+      const rsvpResult = await publicClient
+        .buildQuery()
         .where(eq('type', 'session'))
         .where(eq('skill', 'virtual_gathering_rsvp')) // Use skill field to mark RSVP sessions
         .withAttributes(true)
@@ -289,8 +310,9 @@ export async function listVirtualGatherings({
             return String(attrs[key] || '');
           };
           // Store gathering key in gatheringKey attribute or notes field
-          const gatheringKey = getAttr('gatheringKey') || 
-            (getAttr('notes')?.includes('virtual_gathering_rsvp:') 
+          const gatheringKey =
+            getAttr('gatheringKey') ||
+            (getAttr('notes')?.includes('virtual_gathering_rsvp:')
               ? getAttr('notes').split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim()
               : null);
           if (gatheringKey) {
@@ -307,11 +329,12 @@ export async function listVirtualGatherings({
         let payload: any = {};
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             payload = JSON.parse(decoded);
           }
         } catch (e) {
@@ -330,9 +353,7 @@ export async function listVirtualGatherings({
         // Ensure duration is always an integer (prevent BigInt conversion errors)
         const durationRaw = payload.duration || getAttr('duration') || 60;
         const durationInt = Math.floor(
-          typeof durationRaw === 'number' 
-            ? durationRaw 
-            : parseInt(String(durationRaw), 10) || 60
+          typeof durationRaw === 'number' ? durationRaw : parseInt(String(durationRaw), 10) || 60
         );
 
         const gathering: VirtualGathering = {
@@ -346,16 +367,25 @@ export async function listVirtualGatherings({
           spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID,
           createdAt: getAttr('createdAt') || payload.createdAt,
           txHash: txHashMap[entity.key] || payload.txHash,
-          videoProvider: (getAttr('videoProvider') || payload.videoProvider || 'jitsi') as 'jitsi' | 'none' | 'custom',
+          videoProvider: (getAttr('videoProvider') || payload.videoProvider || 'jitsi') as
+            | 'jitsi'
+            | 'none'
+            | 'custom',
           videoRoomName: getAttr('videoRoomName') || payload.videoRoomName,
           videoJoinUrl: getAttr('videoJoinUrl') || payload.videoJoinUrl,
           videoJwtToken: payload.videoJwtToken,
+          questId: getAttr('questId') || payload.questId || undefined,
+          questTitle: payload.questTitle || undefined,
           rsvpCount: rsvpCounts[entity.key] || 0,
         };
 
         // Apply filters
         if (community && gathering.community !== community) continue;
-        if (organizerWallet && gathering.organizerWallet.toLowerCase() !== organizerWallet.toLowerCase()) continue;
+        if (
+          organizerWallet &&
+          gathering.organizerWallet.toLowerCase() !== organizerWallet.toLowerCase()
+        )
+          continue;
 
         gatherings.push(gathering);
       } catch (e) {
@@ -364,8 +394,8 @@ export async function listVirtualGatherings({
     }
 
     // Sort by sessionDate (upcoming first)
-    return gatherings.sort((a, b) => 
-      new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+    return gatherings.sort(
+      (a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
     );
   } catch (error: any) {
     console.error('[listVirtualGatherings] Error:', error);
@@ -378,15 +408,15 @@ export async function listVirtualGatherings({
  */
 export async function getVirtualGatheringByKey(key: string): Promise<VirtualGathering | null> {
   const gatherings = await listVirtualGatherings({ limit: 1000 });
-  return gatherings.find(g => g.key === key) || null;
+  return gatherings.find((g) => g.key === key) || null;
 }
 
 /**
  * RSVP to a virtual gathering
- * 
+ *
  * Creates a session entity linked to the gathering (for user's profile).
  * This is a "self-confirmed" session - no mentor/learner confirmation needed.
- * 
+ *
  * @param data - RSVP data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -435,8 +465,8 @@ export async function rsvpToGathering({
 
   // Ensure duration in payload is also an integer (defensive - prevents float in payload)
   const payloadDuration = Math.floor(
-    typeof gathering.duration === 'number' 
-      ? gathering.duration 
+    typeof gathering.duration === 'number'
+      ? gathering.duration
       : parseInt(String(gathering.duration || 60), 10)
   );
 
@@ -455,43 +485,47 @@ export async function rsvpToGathering({
   // Calculate expiration same as gathering
   // CRITICAL: Ensure all numeric values are integers before any calculations
   // This prevents float propagation that causes BigInt conversion errors
-  
+
   // Step 1: Ensure duration is an integer (defensive - even though it should be from listVirtualGatherings)
   const durationRaw = gathering.duration;
   const durationMinutes = Math.floor(
-    typeof durationRaw === 'number' 
-      ? durationRaw 
-      : parseInt(String(durationRaw || 60), 10)
+    typeof durationRaw === 'number' ? durationRaw : parseInt(String(durationRaw || 60), 10)
   );
   // Final check: duration must be integer
   if (!Number.isInteger(durationMinutes) || durationMinutes < 1) {
-    throw new Error(`Duration must be a positive integer, got: ${durationRaw} (resolved to: ${durationMinutes})`);
+    throw new Error(
+      `Duration must be a positive integer, got: ${durationRaw} (resolved to: ${durationMinutes})`
+    );
   }
-  
+
   // Step 2: Calculate time values (all should be integers)
   const sessionStartTime = Math.floor(new Date(gathering.sessionDate).getTime());
   const sessionDurationMs = durationMinutes * 60 * 1000; // Integer * integer = integer
   const bufferMs = 60 * 60 * 1000; // Integer constant
   const expirationTime = sessionStartTime + sessionDurationMs + bufferMs; // All integers
   const now = Math.floor(Date.now()); // Ensure integer
-  
+
   // Step 3: Calculate expiresIn (division produces float, must floor immediately)
   const timeDiffMs = expirationTime - now; // Integer - integer = integer
   const expiresInSecondsRaw = timeDiffMs / 1000; // Division produces float
   // Floor immediately and ensure minimum of 1 second
   const expiresInSeconds = Math.max(1, Math.floor(expiresInSecondsRaw));
-  
+
   // Step 4: Final safety checks - must be integer for BigInt
   if (!Number.isInteger(expiresInSeconds)) {
-    throw new Error(`expiresIn calculation produced non-integer: ${expiresInSeconds} (raw: ${expiresInSecondsRaw}, timeDiffMs: ${timeDiffMs})`);
+    throw new Error(
+      `expiresIn calculation produced non-integer: ${expiresInSeconds} (raw: ${expiresInSecondsRaw}, timeDiffMs: ${timeDiffMs})`
+    );
   }
-  
+
   // Step 5: One more defensive floor (should be no-op but ensures integer type)
   const expiresInSecondsInt = Math.floor(expiresInSeconds);
-  
+
   // Step 6: Final validation before use
   if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt < 1) {
-    throw new Error(`expiresIn must be a positive integer, got: ${expiresInSecondsInt} (type: ${typeof expiresInSecondsInt})`);
+    throw new Error(
+      `expiresIn must be a positive integer, got: ${expiresInSecondsInt} (type: ${typeof expiresInSecondsInt})`
+    );
   }
 
   // Create session entity for RSVP
@@ -518,10 +552,12 @@ export async function rsvpToGathering({
   // Also create a confirmation entity to mark it as confirmed
   try {
     await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        confirmedAt: createdAt,
-        selfConfirmed: true,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          confirmedAt: createdAt,
+          selfConfirmed: true,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'session_confirmation' },
@@ -541,7 +577,7 @@ export async function rsvpToGathering({
 
 /**
  * Check if wallet has RSVP'd to a gathering
- * 
+ *
  * @param gatheringKey - The gathering entity key
  * @param wallet - Wallet address to check
  * @param spaceId - Space ID to filter by (required for accurate results)
@@ -559,7 +595,8 @@ export async function hasRsvpdToGathering(
     // Query for RSVP sessions - check both learnerWallet and mentorWallet (since it's self-confirmed)
     // CRITICAL: Filter by spaceId to ensure we're checking the correct environment
     const [learnerResult, mentorResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'session'))
         .where(eq('skill', 'virtual_gathering_rsvp'))
         .where(eq('gatheringKey', gatheringKey))
@@ -568,7 +605,8 @@ export async function hasRsvpdToGathering(
         .withAttributes(true)
         .limit(1)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'session'))
         .where(eq('skill', 'virtual_gathering_rsvp'))
         .where(eq('gatheringKey', gatheringKey))
@@ -588,7 +626,7 @@ export async function hasRsvpdToGathering(
 
 /**
  * List all wallets that have RSVP'd to a gathering
- * 
+ *
  * @param gatheringKey - The gathering entity key
  * @param spaceId - Space ID to filter by (required for accurate results)
  * @returns Array of wallet addresses (normalized to lowercase)
@@ -603,7 +641,8 @@ export async function listRsvpWalletsForGathering(
   try {
     // Query all RSVP sessions for this gathering
     // CRITICAL: Filter by spaceId to ensure we're checking the correct environment
-    const rsvpResult = await publicClient.buildQuery()
+    const rsvpResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'session'))
       .where(eq('skill', 'virtual_gathering_rsvp'))
       .where(eq('gatheringKey', gatheringKey))
@@ -627,7 +666,7 @@ export async function listRsvpWalletsForGathering(
         }
         return String(attrs[key] || '');
       };
-      
+
       // For RSVP sessions, learnerWallet and mentorWallet are the same (self-confirmed)
       // Use learnerWallet as the source of truth
       const wallet = getAttr('learnerWallet') || getAttr('mentorWallet');
