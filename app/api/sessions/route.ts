@@ -9,7 +9,15 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createSession, listSessions, listSessionsForWallet, confirmSession, rejectSession, submitPayment, validatePayment } from '@/lib/arkiv/sessions';
+import {
+  createSession,
+  listSessions,
+  listSessionsForWallet,
+  confirmSession,
+  rejectSession,
+  submitPayment,
+  validatePayment,
+} from '@/lib/arkiv/sessions';
 import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 import { validateTransaction } from '@/lib/payments';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
@@ -22,22 +30,48 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
 
   try {
     const body = await request.json();
-    const { action, wallet, mentorWallet, learnerWallet, skill, skill_id, sessionDate, duration, notes, sessionKey, confirmedByWallet, rejectedByWallet, requiresPayment, paymentAddress, cost, paymentTxHash, submittedByWallet, validatedByWallet, spaceId, offerKey, askKey, mode, ttlSeconds } = body;
+    const {
+      action,
+      wallet,
+      mentorWallet,
+      learnerWallet,
+      skill,
+      skill_id,
+      sessionDate,
+      duration,
+      notes,
+      sessionKey,
+      confirmedByWallet,
+      rejectedByWallet,
+      requiresPayment,
+      paymentAddress,
+      cost,
+      paymentTxHash,
+      submittedByWallet,
+      validatedByWallet,
+      spaceId,
+      offerKey,
+      askKey,
+      mode,
+      ttlSeconds,
+      questId,
+      questTitle,
+    } = body;
 
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
     if (!targetWallet) {
-      return NextResponse.json(
-        { ok: false, error: 'No wallet address provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'No wallet address provided' }, { status: 400 });
     }
 
     if (action === 'createSession') {
@@ -50,9 +84,12 @@ export async function POST(request: NextRequest) {
 
       try {
         // Ensure duration is always an integer to prevent BigInt conversion errors
-        const durationInt = duration !== undefined && duration !== null
-          ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
-          : undefined;
+        const durationInt =
+          duration !== undefined && duration !== null
+            ? Math.floor(
+                typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60
+              )
+            : undefined;
 
         // Determine requester from context
         // - Request mode (from offer): learner is requester
@@ -75,9 +112,17 @@ export async function POST(request: NextRequest) {
         }
 
         // Ensure ttlSeconds is a positive integer if provided
-        const ttlSecondsInt = ttlSeconds !== undefined && ttlSeconds !== null
-          ? Math.floor(Math.max(1, typeof ttlSeconds === 'number' ? ttlSeconds : parseInt(String(ttlSeconds), 10) || 15768000))
-          : undefined; // Use default (6 months) if not provided
+        const ttlSecondsInt =
+          ttlSeconds !== undefined && ttlSeconds !== null
+            ? Math.floor(
+                Math.max(
+                  1,
+                  typeof ttlSeconds === 'number'
+                    ? ttlSeconds
+                    : parseInt(String(ttlSeconds), 10) || 15768000
+                )
+              )
+            : undefined; // Use default (6 months) if not provided
 
         const { key, txHash } = await createSession({
           mentorWallet,
@@ -90,6 +135,8 @@ export async function POST(request: NextRequest) {
           requiresPayment: requiresPayment || undefined,
           paymentAddress: paymentAddress || undefined,
           cost: cost || undefined,
+          questId: questId || undefined,
+          questTitle: questTitle || undefined,
           requesterWallet, // Auto-confirm requester
           privateKey: getPrivateKey(),
           ttlSeconds: ttlSecondsInt, // Pass TTL in seconds (default: 6 months if undefined)
@@ -103,7 +150,9 @@ export async function POST(request: NextRequest) {
 
             // Get learner profile for notification message
             const learnerProfile = await getProfileByWallet(learnerWallet).catch(() => null);
-            const learnerName = learnerProfile?.displayName || learnerWallet.slice(0, 6) + '...' + learnerWallet.slice(-4);
+            const learnerName =
+              learnerProfile?.displayName ||
+              learnerWallet.slice(0, 6) + '...' + learnerWallet.slice(-4);
 
             await createNotification({
               wallet: mentorWallet.toLowerCase(), // Notify the offer owner (mentor)
@@ -137,7 +186,9 @@ export async function POST(request: NextRequest) {
 
             // Get mentor (offerer) profile for notification message
             const mentorProfile = await getProfileByWallet(mentorWallet).catch(() => null);
-            const mentorName = mentorProfile?.displayName || mentorWallet.slice(0, 6) + '...' + mentorWallet.slice(-4);
+            const mentorName =
+              mentorProfile?.displayName ||
+              mentorWallet.slice(0, 6) + '...' + mentorWallet.slice(-4);
 
             await createNotification({
               wallet: learnerWallet.toLowerCase(), // Notify the ask owner (learner)
@@ -167,7 +218,8 @@ export async function POST(request: NextRequest) {
         if (key) {
           try {
             const { createNotification } = await import('@/lib/arkiv/notifications');
-            const requesterWalletNormalized = requesterWallet?.toLowerCase() || learnerWallet.toLowerCase();
+            const requesterWalletNormalized =
+              requesterWallet?.toLowerCase() || learnerWallet.toLowerCase();
             await createNotification({
               wallet: requesterWalletNormalized,
               notificationType: 'entity_created',
@@ -194,7 +246,10 @@ export async function POST(request: NextRequest) {
       } catch (error: any) {
         // Handle transaction receipt timeout gracefully
         // If error mentions pending confirmation, return partial success
-        if (error.message?.includes('confirmation pending') || error.message?.includes('Transaction submitted')) {
+        if (
+          error.message?.includes('confirmation pending') ||
+          error.message?.includes('Transaction submitted')
+        ) {
           // Transaction was submitted but receipt not available - this is OK for testnets
           // Return success with a note that confirmation is pending
           return NextResponse.json({
@@ -202,7 +257,7 @@ export async function POST(request: NextRequest) {
             key: null, // Entity key not available yet
             txHash: null, // TxHash not available yet
             pending: true,
-            message: error.message || 'Transaction submitted, confirmation pending'
+            message: error.message || 'Transaction submitted, confirmation pending',
           });
         }
         throw error; // Re-throw other errors
@@ -230,8 +285,10 @@ export async function POST(request: NextRequest) {
         const errorMessage = error.message || '';
 
         // Check if it's a duplicate confirmation error
-        if (errorMessage.includes('already confirmed') ||
-            errorMessage.includes('Session already confirmed')) {
+        if (
+          errorMessage.includes('already confirmed') ||
+          errorMessage.includes('Session already confirmed')
+        ) {
           // Confirmation already exists - this is actually success
           // The user might have clicked at the same time as the other party
           return NextResponse.json({
@@ -239,22 +296,26 @@ export async function POST(request: NextRequest) {
             key: null,
             txHash: null,
             alreadyConfirmed: true,
-            message: 'Session was already confirmed. Both parties may have clicked at the same time!',
+            message:
+              'Session was already confirmed. Both parties may have clicked at the same time!',
           });
         }
 
         // Check for Mendoza/transaction errors that might indicate concurrent confirmation
-        if (errorMessage.includes('replacement transaction') ||
-            errorMessage.includes('underpriced') ||
-            errorMessage.includes('nonce') ||
-            errorMessage.toLowerCase().includes('mendoza') ||
-            errorMessage.includes('Transaction is still processing')) {
+        if (
+          errorMessage.includes('replacement transaction') ||
+          errorMessage.includes('underpriced') ||
+          errorMessage.includes('nonce') ||
+          errorMessage.toLowerCase().includes('mendoza') ||
+          errorMessage.includes('Transaction is still processing')
+        ) {
           // This could be a concurrent confirmation - check if confirmation actually exists
           try {
             const { getPublicClient } = await import('@/lib/arkiv/client');
             const { eq } = await import('@arkiv-network/sdk/query');
             const publicClient = getPublicClient();
-            const existingConfirmations = await publicClient.buildQuery()
+            const existingConfirmations = await publicClient
+              .buildQuery()
               .where(eq('type', 'session_confirmation'))
               .where(eq('sessionKey', sessionKey))
               .where(eq('confirmedBy', confirmedByWallet.toLowerCase()))
@@ -269,7 +330,8 @@ export async function POST(request: NextRequest) {
                 key: null,
                 txHash: null,
                 alreadyConfirmed: true,
-                message: 'You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.',
+                message:
+                  'You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.',
               });
             }
           } catch (checkError) {
@@ -278,11 +340,14 @@ export async function POST(request: NextRequest) {
           }
 
           // Transaction conflict - likely concurrent confirmation
-          return NextResponse.json({
-            ok: false,
-            error: 'You both might have clicked at the same time! Wait a moment then try again.',
-            concurrentError: true,
-          }, { status: 409 }); // Conflict status code
+          return NextResponse.json(
+            {
+              ok: false,
+              error: 'You both might have clicked at the same time! Wait a moment then try again.',
+              concurrentError: true,
+            },
+            { status: 409 }
+          ); // Conflict status code
         }
 
         // Re-throw other errors
@@ -355,10 +420,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ ok: true, key, txHash, validationResult });
     } else {
-      return NextResponse.json(
-        { ok: false, error: 'Invalid action' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
     }
   } catch (error: any) {
     console.error('Sessions API error:', error);
@@ -390,7 +452,7 @@ export async function GET(request: Request) {
 
     if (builderMode && spaceIdsParam) {
       // Builder mode: query multiple spaceIds
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+      spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
     } else if (spaceIdParam) {
       // Override default spaceId
       spaceId = spaceIdParam;
@@ -423,4 +485,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
