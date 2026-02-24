@@ -16,6 +16,13 @@ import type { LiteAsk } from '@/lib/arkiv/liteAsks';
 import type { LiteOffer } from '@/lib/arkiv/liteOffers';
 import type { MetaLearningArtifact } from '@/lib/arkiv/metaLearningQuest';
 import type { LearnerQuestProgressEntity } from '@/lib/arkiv/languageQuest';
+import type { QuestDefinitionEntity } from '@/lib/arkiv/questDefinition';
+import type { QuestProgress } from '@/lib/arkiv/questProgress';
+import type { ProofOfSkillBadge } from '@/lib/arkiv/badge';
+import type { AssessmentResult } from '@/lib/arkiv/assessmentResult';
+import type { QuestTelemetryEvent } from '@/lib/arkiv/questTelemetry';
+import type { QuestReflection } from '@/lib/arkiv/reflection';
+import type { QuestCompletionSkillLink } from '@/lib/arkiv/questSkillLink';
 import type {
   PublicProfile,
   PublicAsk,
@@ -25,6 +32,13 @@ import type {
   PublicLiteOffer,
   PublicMetaLearningArtifact,
   PublicLearnerQuestProgress,
+  PublicQuestDefinition,
+  PublicQuestStepProgress,
+  PublicBadge,
+  PublicAssessmentResult,
+  PublicTelemetryEvent,
+  PublicReflection,
+  PublicQuestSkillLink,
 } from './types';
 
 /**
@@ -219,5 +233,107 @@ export function serializePublicLearnerQuestProgress(
     spaceId: progress.spaceId,
     createdAt: progress.createdAt,
     txHash: progress.txHash,
+  };
+}
+
+export function serializePublicQuestDefinition(def: QuestDefinitionEntity): PublicQuestDefinition {
+  return {
+    key: def.key,
+    type: 'quest_definition',
+    questId: def.questId,
+    track: def.track,
+    version: def.version,
+    language: def.language,
+    status: def.status,
+    spaceId: def.spaceId,
+    createdAt: def.createdAt,
+    txHash: def.txHash,
+  };
+}
+
+export function serializePublicQuestStepProgress(progress: QuestProgress): PublicQuestStepProgress {
+  return {
+    key: progress.key,
+    type: 'quest_step_progress',
+    wallet: progress.wallet,
+    questId: progress.questId,
+    stepId: progress.stepId,
+    stepType: progress.stepType,
+    spaceId: progress.spaceId,
+    createdAt: progress.createdAt,
+    txHash: progress.txHash,
+  };
+}
+
+export function serializePublicBadge(badge: ProofOfSkillBadge): PublicBadge {
+  return {
+    key: badge.key,
+    type: 'proof_of_skill_badge',
+    wallet: badge.wallet,
+    badgeType: badge.badgeType,
+    questId: badge.questId,
+    issuedAt: badge.issuedAt,
+    spaceId: badge.spaceId,
+    createdAt: badge.issuedAt,
+    txHash: badge.txHash,
+  };
+}
+
+export function serializePublicAssessmentResult(result: AssessmentResult): PublicAssessmentResult {
+  return {
+    key: result.key,
+    type: 'learner_quest_assessment_result',
+    wallet: result.wallet,
+    questId: result.questId,
+    language: result.language,
+    proficiencyLevel: result.proficiencyLevel,
+    status: result.status,
+    percentage: result.percentage,
+    passed: result.passed,
+    createdAt: result.createdAt,
+    txHash: result.txHash,
+  };
+}
+
+export function serializePublicTelemetryEvent(event: QuestTelemetryEvent): PublicTelemetryEvent {
+  return {
+    key: event.key,
+    type: 'quest_telemetry',
+    eventType: event.eventType,
+    questId: event.questId,
+    stepId: event.stepId,
+    spaceId: event.spaceId,
+    createdAt: event.createdAt,
+    txHash: event.txHash,
+  };
+}
+
+export function serializePublicReflection(reflection: QuestReflection): PublicReflection {
+  return {
+    key: reflection.key,
+    type: 'quest_reflection',
+    wallet: reflection.wallet,
+    questId: reflection.questId,
+    stepId: reflection.stepId,
+    visibility: reflection.visibility,
+    spaceId: reflection.spaceId,
+    createdAt: reflection.createdAt,
+    txHash: reflection.txHash,
+  };
+}
+
+export function serializePublicQuestSkillLink(
+  link: QuestCompletionSkillLink
+): PublicQuestSkillLink {
+  return {
+    key: link.key,
+    type: 'quest_completion_skill_link',
+    wallet: link.wallet,
+    questId: link.questId,
+    stepId: link.stepId,
+    skillId: link.skillId,
+    spaceId: link.spaceId,
+    createdAt: link.createdAt,
+    txHash: link.txHash,
   };
 }
