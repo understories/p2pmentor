@@ -7,13 +7,18 @@
  * Reference: refs/language-quest-implementation-plan.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { getLearnerQuest } from "./learnerQuest";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { getLearnerQuest } from './learnerQuest';
+import { SPACE_ID } from '@/lib/config';
 
-export type QuestionType = 'multiple_choice' | 'fill_blank' | 'matching' | 'true_false' | 'sentence_order';
+export type QuestionType =
+  | 'multiple_choice'
+  | 'fill_blank'
+  | 'matching'
+  | 'true_false'
+  | 'sentence_order';
 
 export type LanguageAssessmentQuestion = {
   id: string;
@@ -59,7 +64,10 @@ export type LanguageAssessmentQuest = {
 /**
  * Validate language assessment quest structure
  */
-export function validateLanguageAssessmentQuest(quest: LanguageAssessmentQuest): { valid: boolean; errors: string[] } {
+export function validateLanguageAssessmentQuest(quest: LanguageAssessmentQuest): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (quest.questType !== 'language_assessment') {
@@ -106,50 +114,78 @@ export function validateLanguageAssessmentQuest(quest: LanguageAssessmentQuest):
       }
 
       if (!question.question || question.question.length === 0) {
-        errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: question text is required`);
+        errors.push(
+          `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: question text is required`
+        );
       }
 
       if (question.points <= 0) {
-        errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: points must be positive`);
+        errors.push(
+          `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: points must be positive`
+        );
       }
 
       // Validate question type-specific fields
       if (question.type === 'multiple_choice') {
         if (!question.options || question.options.length < 2) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: multiple_choice requires at least 2 options`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: multiple_choice requires at least 2 options`
+          );
         } else {
-          const correctCount = question.options.filter(o => o.correct).length;
+          const correctCount = question.options.filter((o) => o.correct).length;
           if (correctCount !== 1) {
-            errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: multiple_choice must have exactly one correct option`);
+            errors.push(
+              `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: multiple_choice must have exactly one correct option`
+            );
           }
         }
       } else if (question.type === 'fill_blank') {
         if (!question.wordBank || question.wordBank.length === 0) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: fill_blank requires wordBank`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: fill_blank requires wordBank`
+          );
         }
         if (!question.correctAnswer || typeof question.correctAnswer !== 'string') {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: fill_blank requires correctAnswer (string)`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: fill_blank requires correctAnswer (string)`
+          );
         }
-        if (question.wordBank && question.correctAnswer && !question.wordBank.includes(question.correctAnswer as string)) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: correctAnswer must be in wordBank`);
+        if (
+          question.wordBank &&
+          question.correctAnswer &&
+          !question.wordBank.includes(question.correctAnswer as string)
+        ) {
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: correctAnswer must be in wordBank`
+          );
         }
       } else if (question.type === 'matching') {
         if (!question.matchingPairs || question.matchingPairs.length < 2) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: matching requires at least 2 matching pairs`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: matching requires at least 2 matching pairs`
+          );
         }
         if (!question.correctAnswer || !Array.isArray(question.correctAnswer)) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: matching requires correctAnswer (array)`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: matching requires correctAnswer (array)`
+          );
         }
       } else if (question.type === 'true_false') {
         if (question.correctAnswer !== 'true' && question.correctAnswer !== 'false') {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: true_false requires correctAnswer to be "true" or "false"`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: true_false requires correctAnswer to be "true" or "false"`
+          );
         }
       } else if (question.type === 'sentence_order') {
         if (!question.sentences || question.sentences.length < 3) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: sentence_order requires at least 3 sentences`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: sentence_order requires at least 3 sentences`
+          );
         }
         if (!question.correctAnswer || !Array.isArray(question.correctAnswer)) {
-          errors.push(`Section ${sectionIndex + 1}, Question ${questionIndex + 1}: sentence_order requires correctAnswer (array)`);
+          errors.push(
+            `Section ${sectionIndex + 1}, Question ${questionIndex + 1}: sentence_order requires correctAnswer (array)`
+          );
         }
       }
 
@@ -158,18 +194,24 @@ export function validateLanguageAssessmentQuest(quest: LanguageAssessmentQuest):
     });
 
     if (section.points !== sectionPoints) {
-      errors.push(`Section ${sectionIndex + 1}: points (${section.points}) does not match sum of question points (${sectionPoints})`);
+      errors.push(
+        `Section ${sectionIndex + 1}: points (${section.points}) does not match sum of question points (${sectionPoints})`
+      );
     }
 
     totalPoints += sectionPoints;
   });
 
   if (quest.metadata.totalQuestions !== totalQuestions) {
-    errors.push(`metadata.totalQuestions (${quest.metadata.totalQuestions}) does not match actual question count (${totalQuestions})`);
+    errors.push(
+      `metadata.totalQuestions (${quest.metadata.totalQuestions}) does not match actual question count (${totalQuestions})`
+    );
   }
 
   if (quest.metadata.totalPoints !== totalPoints) {
-    errors.push(`metadata.totalPoints (${quest.metadata.totalPoints}) does not match actual point total (${totalPoints})`);
+    errors.push(
+      `metadata.totalPoints (${quest.metadata.totalPoints}) does not match actual point total (${totalPoints})`
+    );
   }
 
   return {
@@ -302,9 +344,7 @@ export function parseLanguageAssessmentQuest(quest: any): LanguageAssessmentQues
     // For reading list quests, payload contains materials
     // For language assessment quests, payload contains the LanguageAssessmentQuest structure
     if (quest.payload) {
-      const payload = typeof quest.payload === 'string'
-        ? JSON.parse(quest.payload)
-        : quest.payload;
+      const payload = typeof quest.payload === 'string' ? JSON.parse(quest.payload) : quest.payload;
 
       if (payload.questType === 'language_assessment') {
         return payload as LanguageAssessmentQuest;
@@ -352,7 +392,8 @@ export async function submitAssessmentAnswer({
     // Parse the language assessment data from the quest
     // We need to fetch the full entity to get the payload
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('questId', questId))
       .where(eq('status', 'active'))
@@ -366,11 +407,12 @@ export async function submitAssessmentAnswer({
     }
 
     const entity = result.entities[0];
-    const decoded = entity.payload instanceof Uint8Array
-      ? new TextDecoder().decode(entity.payload)
-      : typeof entity.payload === 'string'
-      ? entity.payload
-      : JSON.stringify(entity.payload);
+    const decoded =
+      entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
     const payload = JSON.parse(decoded);
 
     if (payload.questType !== 'language_assessment') {
@@ -380,12 +422,12 @@ export async function submitAssessmentAnswer({
     const languageQuest = payload as LanguageAssessmentQuest;
 
     // Find the question
-    const section = languageQuest.sections.find(s => s.id === sectionId);
+    const section = languageQuest.sections.find((s) => s.id === sectionId);
     if (!section) {
       throw new Error(`Section ${sectionId} not found`);
     }
 
-    const question = section.questions.find(q => q.id === questionId);
+    const question = section.questions.find((q) => q.id === questionId);
     if (!question) {
       throw new Error(`Question ${questionId} not found in section ${sectionId}`);
     }
@@ -394,20 +436,24 @@ export async function submitAssessmentAnswer({
     let correct = false;
     if (question.type === 'multiple_choice') {
       // Answer is the option ID
-      const selectedOption = question.options?.find(o => o.id === answer);
+      const selectedOption = question.options?.find((o) => o.id === answer);
       correct = selectedOption?.correct || false;
     } else if (question.type === 'fill_blank') {
       correct = question.correctAnswer === answer;
     } else if (question.type === 'matching') {
       // Answer is array of "left-right" strings
-      const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
+      const correctAnswers = Array.isArray(question.correctAnswer)
+        ? question.correctAnswer
+        : [question.correctAnswer];
       const userAnswers = Array.isArray(answer) ? answer : [answer];
       correct = JSON.stringify(correctAnswers.sort()) === JSON.stringify(userAnswers.sort());
     } else if (question.type === 'true_false') {
       correct = question.correctAnswer === answer;
     } else if (question.type === 'sentence_order') {
       // Answer is array of ordered sentences
-      const correctAnswers = Array.isArray(question.correctAnswer) ? question.correctAnswer : [question.correctAnswer];
+      const correctAnswers = Array.isArray(question.correctAnswer)
+        ? question.correctAnswer
+        : [question.correctAnswer];
       const userAnswers = Array.isArray(answer) ? answer : [answer];
       correct = JSON.stringify(correctAnswers) === JSON.stringify(userAnswers);
     }
@@ -426,17 +472,19 @@ export async function submitAssessmentAnswer({
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
       return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({
-          wallet: normalizedWallet,
-          questId,
-          sectionId,
-          questionId,
-          answer: Array.isArray(answer) ? answer : [answer],
-          correct,
-          score,
-          timeSpent,
-          answeredAt: now,
-        })),
+        payload: enc.encode(
+          JSON.stringify({
+            wallet: normalizedWallet,
+            questId,
+            sectionId,
+            questionId,
+            answer: Array.isArray(answer) ? answer : [answer],
+            correct,
+            score,
+            timeSpent,
+            answeredAt: now,
+          })
+        ),
         contentType: 'application/json',
         attributes: [
           { key: 'type', value: 'learner_quest_progress' },
@@ -489,21 +537,27 @@ export async function getAssessmentProgress({
 }: {
   wallet: string;
   questId: string;
-}): Promise<Record<string, {
-  sectionId: string;
-  questionId: string;
-  answer: string | string[];
-  correct: boolean;
-  score: number;
-  timeSpent: number;
-  answeredAt: string;
-  key: string;
-  txHash?: string;
-}>> {
+}): Promise<
+  Record<
+    string,
+    {
+      sectionId: string;
+      questionId: string;
+      answer: string | string[];
+      correct: boolean;
+      score: number;
+      timeSpent: number;
+      answeredAt: string;
+      key: string;
+      txHash?: string;
+    }
+  >
+> {
   try {
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest_progress'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId))
@@ -530,11 +584,12 @@ export async function getAssessmentProgress({
     const allProgress = result.entities
       .map((entity: any) => {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           const sectionId = getAttr(entity, 'sectionId');
@@ -561,24 +616,6 @@ export async function getAssessmentProgress({
         }
       })
       .filter(Boolean) as Array<{
-        sectionId: string;
-        questionId: string;
-        answer: string | string[];
-        correct: boolean;
-        score: number;
-        timeSpent: number;
-        answeredAt: string;
-        key: string;
-        txHash?: string;
-      }>;
-
-    // Sort by most recent first
-    allProgress.sort((a, b) =>
-      new Date(b.answeredAt).getTime() - new Date(a.answeredAt).getTime()
-    );
-
-    // Deduplicate by questionId (most recent answer wins)
-    const progressMap: Record<string, {
       sectionId: string;
       questionId: string;
       answer: string | string[];
@@ -588,7 +625,26 @@ export async function getAssessmentProgress({
       answeredAt: string;
       key: string;
       txHash?: string;
-    }> = {};
+    }>;
+
+    // Sort by most recent first
+    allProgress.sort((a, b) => new Date(b.answeredAt).getTime() - new Date(a.answeredAt).getTime());
+
+    // Deduplicate by questionId (most recent answer wins)
+    const progressMap: Record<
+      string,
+      {
+        sectionId: string;
+        questionId: string;
+        answer: string | string[];
+        correct: boolean;
+        score: number;
+        timeSpent: number;
+        answeredAt: string;
+        key: string;
+        txHash?: string;
+      }
+    > = {};
 
     for (const progress of allProgress) {
       const key = `${progress.sectionId}:${progress.questionId}`;
@@ -604,3 +660,71 @@ export async function getAssessmentProgress({
   }
 }
 
+export type LearnerQuestProgressEntity = {
+  key: string;
+  wallet: string;
+  questId: string;
+  sectionId?: string;
+  questionId?: string;
+  createdAt: string;
+  spaceId?: string;
+  txHash?: string;
+};
+
+/**
+ * List all learner quest progress entities across all users (for explorer).
+ */
+export async function listLearnerQuestProgress({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<LearnerQuestProgressEntity[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<LearnerQuestProgressEntity[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'learner_quest_progress'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        wallet: getAttr(entity, 'wallet'),
+        questId: getAttr(entity, 'questId'),
+        sectionId: getAttr(entity, 'sectionId') || undefined,
+        questionId: getAttr(entity, 'questionId') || undefined,
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: (entity as any).txHash || undefined,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: any) {
+    console.error('[listLearnerQuestProgress] Error:', error);
+    return [];
+  }
+}
