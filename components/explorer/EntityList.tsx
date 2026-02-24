@@ -134,6 +134,7 @@ export function EntityList(
           <option value="ask">Asks</option>
           <option value="offer">Offers</option>
           <option value="skill">Skills</option>
+          <option value="quest_progress">Quest Progress</option>
         </select>
         <select
           value={spaceId}

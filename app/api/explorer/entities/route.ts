@@ -66,6 +66,8 @@ export async function GET(request: NextRequest) {
       filtered = filtered.filter((e) => {
         if (type === 'ask') return e.type === 'ask' || e.type === 'lite_ask';
         if (type === 'offer') return e.type === 'offer' || e.type === 'lite_offer';
+        if (type === 'quest_progress')
+          return e.type === 'meta_learning_artifact' || e.type === 'learner_quest_progress';
         return e.type === type;
       });
     }

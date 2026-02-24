@@ -64,6 +64,9 @@ export function EntityCard({ entity }: EntityCardProps) {
         return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 border-green-200 dark:border-green-800';
       case 'skill':
         return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800';
+      case 'meta_learning_artifact':
+      case 'learner_quest_progress':
+        return 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 border-teal-200 dark:border-teal-800';
       default:
         return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
@@ -75,6 +78,10 @@ export function EntityCard({ entity }: EntityCardProps) {
         return 'Ask';
       case 'lite_offer':
         return 'Offer';
+      case 'meta_learning_artifact':
+        return 'Quest Artifact';
+      case 'learner_quest_progress':
+        return 'Quest Progress';
       default:
         return type;
     }
@@ -141,6 +148,29 @@ export function EntityCard({ entity }: EntityCardProps) {
         secondary: entity.summary || liteOffer.description || null,
         meta: liteOffer.name
           ? `From: ${liteOffer.name}${liteOffer.discordHandle ? ` (${liteOffer.discordHandle})` : ''}`
+          : null,
+      };
+    }
+    if (entity.type === 'meta_learning_artifact') {
+      const artifact = entity as any;
+      const stepLabel = artifact.stepId ? artifact.stepId.replace(/_/g, ' ') : 'unknown step';
+      return {
+        primary: entity.title || `Quest Artifact: ${stepLabel}`,
+        secondary:
+          entity.summary || (artifact.artifactType ? `Type: ${artifact.artifactType}` : null),
+        meta: entity.wallet
+          ? `From: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
+          : null,
+      };
+    }
+    if (entity.type === 'learner_quest_progress') {
+      const progress = entity as any;
+      return {
+        primary: entity.title || `Quest Progress: ${progress.questId || 'unknown'}`,
+        secondary:
+          entity.summary || (progress.questionId ? `Question: ${progress.questionId}` : null),
+        meta: entity.wallet
+          ? `From: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
           : null,
       };
     }
