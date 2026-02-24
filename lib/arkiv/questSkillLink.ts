@@ -97,20 +97,22 @@ export async function createQuestCompletionSkillLink({
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash, linkKey: entityKey })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'quest_completion_skill_link_txhash' },
-        { key: 'linkKey', value: entityKey },
-        { key: 'txHash', value: txHash },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: ttlSeconds,
-    }).catch((err) => {
-      console.warn('[createQuestCompletionSkillLink] Failed to create txhash entity:', err);
-    });
+    walletClient
+      .createEntity({
+        payload: enc.encode(JSON.stringify({ txHash, linkKey: entityKey })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'quest_completion_skill_link_txhash' },
+          { key: 'linkKey', value: entityKey },
+          { key: 'txHash', value: txHash },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: createdAt },
+        ],
+        expiresIn: ttlSeconds,
+      })
+      .catch((err) => {
+        console.warn('[createQuestCompletionSkillLink] Failed to create txhash entity:', err);
+      });
 
     return { key: entityKey, txHash };
   } catch (error: any) {
@@ -158,28 +160,26 @@ export async function getQuestCompletionSkillLinks({
       queryBuilder = queryBuilder.where(eq('skillId', skillId));
     }
 
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
-      .fetch();
+    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
 
     // Defensive check
     if (!result || !result.entities || !Array.isArray(result.entities)) {
-      console.warn('[getQuestCompletionSkillLinks] Invalid result structure, returning empty array');
+      console.warn(
+        '[getQuestCompletionSkillLinks] Invalid result structure, returning empty array'
+      );
       return [];
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) =>
-        entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
 
       let payload: any = {};
       try {
         if (entity.payload) {
-          const payloadStr = typeof entity.payload === 'string'
-            ? entity.payload
-            : new TextDecoder().decode(entity.payload);
+          const payloadStr =
+            typeof entity.payload === 'string'
+              ? entity.payload
+              : new TextDecoder().decode(entity.payload);
           payload = JSON.parse(payloadStr);
         }
       } catch (e) {
@@ -202,6 +202,69 @@ export async function getQuestCompletionSkillLinks({
     });
   } catch (error: any) {
     console.error('[getQuestCompletionSkillLinks] Query failed:', error);
+    return [];
+  }
+}
+
+/**
+ * List all quest skill links across all users (for explorer).
+ */
+export async function listAllQuestSkillLinks({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<QuestCompletionSkillLink[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<QuestCompletionSkillLink[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'quest_completion_skill_link'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        wallet: getAttr(entity, 'wallet'),
+        questId: getAttr(entity, 'questId'),
+        stepId: getAttr(entity, 'stepId'),
+        skillId: getAttr(entity, 'skillId'),
+        skillName: '',
+        progressEntityKey: '',
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: entity.txHash || undefined,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllQuestSkillLinks] Error:', error);
     return [];
   }
 }
