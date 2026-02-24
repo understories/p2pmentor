@@ -1,6 +1,6 @@
 /**
  * Public data contracts for the explorer
- * 
+ *
  * Defines the shape of public entities exposed via the explorer API.
  * All entities include ALL data stored on Arkiv to demonstrate transparency.
  * All data shown here is verifiable via transaction hashes.
@@ -22,7 +22,15 @@ export interface Provenance {
  */
 export interface PublicEntity {
   key: string;
-  type: 'profile' | 'ask' | 'offer' | 'skill' | 'lite_ask' | 'lite_offer';
+  type:
+    | 'profile'
+    | 'ask'
+    | 'offer'
+    | 'skill'
+    | 'lite_ask'
+    | 'lite_offer'
+    | 'meta_learning_artifact'
+    | 'learner_quest_progress';
   wallet?: string;
   title?: string;
   summary?: string;
@@ -147,3 +155,27 @@ export interface PublicLiteOffer extends PublicEntity {
   ttlSeconds: number;
 }
 
+/**
+ * Public meta-learning artifact (quest step submissions)
+ */
+export interface PublicMetaLearningArtifact extends PublicEntity {
+  type: 'meta_learning_artifact';
+  wallet: string;
+  questId: string;
+  stepId: string;
+  artifactType: string;
+  targetKey: string;
+  spaceId?: string;
+}
+
+/**
+ * Public learner quest progress (assessment answers)
+ */
+export interface PublicLearnerQuestProgress extends PublicEntity {
+  type: 'learner_quest_progress';
+  wallet: string;
+  questId: string;
+  sectionId?: string;
+  questionId?: string;
+  spaceId?: string;
+}
