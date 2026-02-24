@@ -1,8 +1,8 @@
 /**
  * Virtual Gatherings API route
- * 
+ *
  * Handles creation and listing of community virtual gatherings.
- * 
+ *
  * Features:
  * - Public gatherings (anyone can suggest, anyone can RSVP)
  * - Jitsi generated immediately (no confirmation needed)
@@ -10,8 +10,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  createVirtualGathering, 
+import {
+  createVirtualGathering,
   listVirtualGatherings,
   rsvpToGathering,
   hasRsvpdToGathering,
@@ -21,7 +21,7 @@ import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/virtual-gatherings
- * 
+ *
  * List virtual gatherings
  * Query params: community, organizerWallet
  */
@@ -37,9 +37,9 @@ export async function GET(request: Request) {
     if (gatheringKey) {
       // Get the gathering to get its spaceId for accurate filtering
       const gatherings = await listVirtualGatherings({ limit: 1000 });
-      const gathering = gatherings.find(g => g.key === gatheringKey);
+      const gathering = gatherings.find((g) => g.key === gatheringKey);
       const spaceId = gathering?.spaceId || SPACE_ID;
-      
+
       const rsvpWallets = await listRsvpWalletsForGathering(gatheringKey, spaceId);
       return NextResponse.json({
         ok: true,
@@ -63,10 +63,13 @@ export async function GET(request: Request) {
         return { key: gathering.key, hasRsvpd };
       });
       const rsvpResults = await Promise.all(rsvpPromises);
-      rsvpStatus = rsvpResults.reduce((acc, { key, hasRsvpd }) => {
-        acc[key] = hasRsvpd;
-        return acc;
-      }, {} as Record<string, boolean>);
+      rsvpStatus = rsvpResults.reduce(
+        (acc, { key, hasRsvpd }) => {
+          acc[key] = hasRsvpd;
+          return acc;
+        },
+        {} as Record<string, boolean>
+      );
     }
 
     return NextResponse.json({
@@ -86,7 +89,7 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/virtual-gatherings
- * 
+ *
  * Create a virtual gathering or RSVP to one
  * Body: { action: 'create' | 'rsvp', ... }
  */
@@ -99,7 +102,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -108,7 +114,16 @@ export async function POST(request: NextRequest) {
     const { action } = body;
 
     if (action === 'create') {
-      const { organizerWallet, community, title, description, sessionDate, duration } = body;
+      const {
+        organizerWallet,
+        community,
+        title,
+        description,
+        sessionDate,
+        duration,
+        questId,
+        questTitle,
+      } = body;
 
       if (!organizerWallet || !community || !title || !sessionDate) {
         return NextResponse.json(
@@ -118,9 +133,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Ensure duration is always an integer to prevent BigInt conversion errors
-      const durationInt = duration !== undefined && duration !== null 
-        ? Math.floor(typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60)
-        : 60;
+      const durationInt =
+        duration !== undefined && duration !== null
+          ? Math.floor(
+              typeof duration === 'number' ? duration : parseInt(String(duration), 10) || 60
+            )
+          : 60;
 
       const privateKey = getPrivateKey();
       const { key, txHash } = await createVirtualGathering({
@@ -130,6 +148,8 @@ export async function POST(request: NextRequest) {
         description,
         sessionDate,
         duration: durationInt,
+        questId: questId || undefined,
+        questTitle: questTitle || undefined,
         privateKey,
       });
 
@@ -177,12 +197,9 @@ export async function POST(request: NextRequest) {
 
       // Get the gathering to get its spaceId for accurate filtering
       const gatherings = await listVirtualGatherings({ limit: 1000 });
-      const gathering = gatherings.find(g => g.key === gatheringKey);
+      const gathering = gatherings.find((g) => g.key === gatheringKey);
       if (!gathering) {
-        return NextResponse.json(
-          { ok: false, error: 'Gathering not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ ok: false, error: 'Gathering not found' }, { status: 404 });
       }
 
       // Check if user has already RSVP'd (prevent duplicates)
@@ -190,7 +207,7 @@ export async function POST(request: NextRequest) {
       const hasRsvpd = await hasRsvpdToGathering(gatheringKey, wallet, gathering.spaceId);
       if (hasRsvpd) {
         return NextResponse.json(
-          { ok: false, error: 'You have already RSVP\'d to this gathering' },
+          { ok: false, error: "You have already RSVP'd to this gathering" },
           { status: 400 }
         );
       }
