@@ -1,0 +1,72 @@
+{
+  "questId": "demo_meta_learning",
+  "version": "1",
+  "track": "demo",
+  "title": "Quick Demo: Learn How to Learn",
+  "description": "A quick 2-question demo of the meta-learning quest. Perfect for demos and walkthroughs.",
+  "source": "Learning Sciences Research",
+  "estimatedDuration": "5 minutes",
+  "difficulty": "beginner",
+  "featured": true,
+  "steps": [
+    {
+      "stepId": "intro",
+      "type": "READ",
+      "title": "What is Meta-Learning?",
+      "description": "A quick intro to learning how to learn.",
+      "contentFile": "../meta-learning/steps/01-intro.md",
+      "duration": 2,
+      "order": 1,
+      "required": true,
+      "conceptCard": {
+        "title": "Learning how to learn is the most valuable skill",
+        "body": "Once you master meta-learning, you can learn anything faster and more effectively."
+      }
+    },
+    {
+      "stepId": "quiz",
+      "type": "QUIZ",
+      "title": "Quick Knowledge Check",
+      "description": "Answer 2 questions to complete the demo quest.",
+      "duration": 2,
+      "order": 2,
+      "required": true,
+      "quizRubricId": "demo_v1"
+    }
+  ],
+  "rubrics": {
+    "demo_v1": {
+      "version": "1",
+      "passingScore": 0.5,
+      "questions": [
+        {
+          "id": "q1",
+          "type": "multiple_choice",
+          "question": "What is the main principle of spaced repetition?",
+          "options": [
+            "Review immediately",
+            "Review at increasing intervals",
+            "Review everything daily",
+            "Review only when you forget"
+          ],
+          "correctAnswer": "Review at increasing intervals",
+          "points": 1,
+          "explanation": "Spaced repetition works by reviewing information at increasing intervals (1 day, 3 days, 1 week, etc.)"
+        },
+        {
+          "id": "q2",
+          "type": "true_false",
+          "question": "True or False: Re-reading notes is more effective than testing yourself.",
+          "correctAnswer": "false",
+          "points": 1,
+          "explanation": "Active recall (testing yourself) is more effective than passive re-reading, even though it feels harder."
+        }
+      ]
+    }
+  },
+  "badge": {
+    "id": "demo_learner",
+    "name": "Demo Learner",
+    "description": "Completed the quick demo quest and answered 2 meta-learning questions."
+  }
+}
