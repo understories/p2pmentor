@@ -15,13 +15,20 @@ import { BackButton } from '@/components/BackButton';
 import { BetaGate } from '@/components/auth/BetaGate';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { EmptyState } from '@/components/EmptyState';
-import type { LanguageAssessmentQuest, LanguageAssessmentQuestion, LanguageAssessmentSection } from '@/lib/arkiv/languageQuest';
+import type {
+  LanguageAssessmentQuest,
+  LanguageAssessmentQuestion,
+  LanguageAssessmentSection,
+} from '@/lib/arkiv/languageQuest';
 
-type AssessmentProgress = Record<string, {
-  answer: string | string[];
-  timeSpent: number;
-  submitted: boolean;
-}>;
+type AssessmentProgress = Record<
+  string,
+  {
+    answer: string | string[];
+    timeSpent: number;
+    submitted: boolean;
+  }
+>;
 
 type AssessmentResult = {
   totalScore: number;
@@ -41,7 +48,7 @@ export default function LanguageAssessmentPage() {
   const params = useParams();
   const router = useRouter();
   const questId = params.questId as string;
-  
+
   const [wallet, setWallet] = useState<string | null>(null);
   const [quest, setQuest] = useState<LanguageAssessmentQuest | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +78,7 @@ export default function LanguageAssessmentPage() {
   // Load quest
   useEffect(() => {
     if (!questId) return;
-    
+
     const loadQuest = async () => {
       try {
         setLoading(true);
@@ -220,18 +227,18 @@ export default function LanguageAssessmentPage() {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (!quest) return;
     const section = getCurrentSection();
     if (!section) return;
 
-    // Submit current answer if not submitted
+    // Submit current answer if not submitted, and wait for it to complete
     const question = getCurrentQuestion();
     if (question) {
       const key = getQuestionKey(section.id, question.id);
       const answerData = answers[key];
       if (answerData && !answerData.submitted) {
-        handleSubmitAnswer();
+        await handleSubmitAnswer();
       }
     }
 
@@ -291,8 +298,12 @@ export default function LanguageAssessmentPage() {
       const cacheKey = question.id;
       if (!cache.has(cacheKey)) {
         // Create shuffled copies (stable per question ID)
-        const leftItems = [...question.matchingPairs.map(p => p.left)].sort(() => Math.random() - 0.5);
-        const rightItems = [...question.matchingPairs.map(p => p.right)].sort(() => Math.random() - 0.5);
+        const leftItems = [...question.matchingPairs.map((p) => p.left)].sort(
+          () => Math.random() - 0.5
+        );
+        const rightItems = [...question.matchingPairs.map((p) => p.right)].sort(
+          () => Math.random() - 0.5
+        );
         cache.set(cacheKey, { left: leftItems, right: rightItems });
       }
       return cache.get(cacheKey)!;
@@ -314,7 +325,7 @@ export default function LanguageAssessmentPage() {
             {question.options?.map((option) => (
               <label
                 key={option.id}
-                className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-gray-700 dark:hover:border-blue-400"
               >
                 <input
                   type="radio"
@@ -322,7 +333,7 @@ export default function LanguageAssessmentPage() {
                   value={option.id}
                   checked={currentAnswer === option.id}
                   onChange={(e) => handleAnswerChange(e.target.value)}
-                  className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="flex-1 text-gray-900 dark:text-gray-100">{option.text}</span>
               </label>
@@ -336,7 +347,7 @@ export default function LanguageAssessmentPage() {
             {['true', 'false'].map((value) => (
               <label
                 key={value}
-                className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
+                className="flex cursor-pointer items-center gap-3 rounded-lg border-2 border-gray-200 p-4 transition-colors hover:border-blue-500 dark:border-gray-700 dark:hover:border-blue-400"
               >
                 <input
                   type="radio"
@@ -344,9 +355,9 @@ export default function LanguageAssessmentPage() {
                   value={value}
                   checked={currentAnswer === value}
                   onChange={(e) => handleAnswerChange(e.target.value)}
-                  className="w-5 h-5 text-blue-600 focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 focus:ring-blue-500"
                 />
-                <span className="flex-1 text-gray-900 dark:text-gray-100 capitalize">{value}</span>
+                <span className="flex-1 capitalize text-gray-900 dark:text-gray-100">{value}</span>
               </label>
             ))}
           </div>
@@ -354,23 +365,28 @@ export default function LanguageAssessmentPage() {
 
       case 'fill_blank':
         // Display full sentence with user's answer inserted
-        const displaySentence = question.question.replace('____', typeof currentAnswer === 'string' && currentAnswer ? currentAnswer : '____');
+        const displaySentence = question.question.replace(
+          '____',
+          typeof currentAnswer === 'string' && currentAnswer ? currentAnswer : '____'
+        );
         return (
           <div className="space-y-4">
-            <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg border-2 border-gray-200 dark:border-gray-700">
-              <p className="text-lg text-gray-900 dark:text-gray-100 font-medium mb-2">Complete:</p>
+            <div className="rounded-lg border-2 border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
+              <p className="mb-2 text-lg font-medium text-gray-900 dark:text-gray-100">Complete:</p>
               <p className="text-base text-gray-800 dark:text-gray-200">{displaySentence}</p>
             </div>
             {question.wordBank && question.wordBank.length > 0 && (
-              <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Word Bank:</p>
+              <div className="rounded-lg bg-gray-100 p-3 dark:bg-gray-800">
+                <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Word Bank:
+                </p>
                 <div className="flex flex-wrap gap-2">
                   {question.wordBank.map((word, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleAnswerChange(word)}
-                      className="px-3 py-1 bg-white dark:bg-gray-700 rounded text-sm text-gray-900 dark:text-gray-100 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+                      className="cursor-pointer rounded bg-white px-3 py-1 text-sm text-gray-900 transition-colors hover:bg-blue-50 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-blue-900/20"
                     >
                       {word}
                     </button>
@@ -383,7 +399,7 @@ export default function LanguageAssessmentPage() {
               value={typeof currentAnswer === 'string' ? currentAnswer : ''}
               onChange={(e) => handleAnswerChange(e.target.value)}
               placeholder="Enter your answer"
-              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border-2 border-gray-200 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
         );
@@ -392,42 +408,44 @@ export default function LanguageAssessmentPage() {
         const matchingAnswer = Array.isArray(currentAnswer) ? currentAnswer : [];
         // Get stable shuffled pairs (cached per question ID)
         const { left: shuffledLeft, right: shuffledRight } = getShuffledMatchingPairs(question);
-        
+
         return (
           <div className="space-y-4">
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
               Match the items on the left with the items on the right by clicking:
             </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Left:</p>
+                <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Left:</p>
                 {shuffledLeft.map((left, idx) => {
                   // Find the correct right match for this left item
-                  const correctPair = question.matchingPairs?.find(p => p.left === left);
+                  const correctPair = question.matchingPairs?.find((p) => p.left === left);
                   const pairKey = correctPair ? `${correctPair.left}-${correctPair.right}` : '';
                   const isMatched = pairKey && matchingAnswer.includes(pairKey);
                   return (
                     <div
                       key={idx}
-                      className={`p-3 border-2 rounded-lg ${
+                      className={`rounded-lg border-2 p-3 ${
                         isMatched
                           ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900'
+                          : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900'
                       }`}
                     >
                       <span className="text-gray-900 dark:text-gray-100">{left}</span>
                       {isMatched && correctPair && (
-                        <span className="ml-2 text-blue-600 dark:text-blue-400">→ {correctPair.right}</span>
+                        <span className="ml-2 text-blue-600 dark:text-blue-400">
+                          → {correctPair.right}
+                        </span>
                       )}
                     </div>
                   );
                 })}
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Right:</p>
+                <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Right:</p>
                 {shuffledRight.map((right, idx) => {
                   // Check if this right item is already matched
-                  const matchedPair = question.matchingPairs?.find(p => p.right === right);
+                  const matchedPair = question.matchingPairs?.find((p) => p.right === right);
                   const pairKey = matchedPair ? `${matchedPair.left}-${matchedPair.right}` : '';
                   const isMatched = pairKey && matchingAnswer.includes(pairKey);
                   return (
@@ -439,17 +457,17 @@ export default function LanguageAssessmentPage() {
                           const newPairKey = `${matchedPair.left}-${matchedPair.right}`;
                           if (isMatched) {
                             // Remove if already matched
-                            handleAnswerChange(matchingAnswer.filter(a => a !== newPairKey));
+                            handleAnswerChange(matchingAnswer.filter((a) => a !== newPairKey));
                           } else {
                             // Add to matches
                             handleAnswerChange([...matchingAnswer, newPairKey]);
                           }
                         }
                       }}
-                      className={`w-full p-3 text-left border-2 rounded-lg transition-colors ${
+                      className={`w-full rounded-lg border-2 p-3 text-left transition-colors ${
                         isMatched
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-900 dark:text-blue-100'
-                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 hover:border-blue-400 dark:hover:border-blue-500'
+                          ? 'border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-900/20 dark:text-blue-100'
+                          : 'border-gray-200 bg-white text-gray-900 hover:border-blue-400 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 dark:hover:border-blue-500'
                       }`}
                     >
                       {right}
@@ -459,8 +477,10 @@ export default function LanguageAssessmentPage() {
               </div>
             </div>
             {matchingAnswer.length > 0 && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <p className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">Your matches ({matchingAnswer.length}):</p>
+              <div className="mt-4 rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
+                <p className="mb-2 text-sm font-medium text-blue-900 dark:text-blue-100">
+                  Your matches ({matchingAnswer.length}):
+                </p>
                 <div className="space-y-1">
                   {matchingAnswer.map((match, idx) => {
                     const [left, right] = match.split('-');
@@ -488,7 +508,7 @@ export default function LanguageAssessmentPage() {
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 p-4 border-2 border-gray-200 dark:border-gray-700 rounded-lg"
+                  className="flex items-center gap-3 rounded-lg border-2 border-gray-200 p-4 dark:border-gray-700"
                 >
                   <select
                     value={currentIndex >= 0 ? currentIndex + 1 : ''}
@@ -502,7 +522,7 @@ export default function LanguageAssessmentPage() {
                       newAnswer.splice(position, 0, sentence);
                       handleAnswerChange(newAnswer);
                     }}
-                    className="w-20 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    className="w-20 rounded border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                   >
                     <option value="">-</option>
                     {question.sentences?.map((_, i) => (
@@ -526,8 +546,8 @@ export default function LanguageAssessmentPage() {
   if (loading) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
             <LoadingSpinner text="Loading assessment..." className="py-12" />
           </div>
@@ -539,8 +559,8 @@ export default function LanguageAssessmentPage() {
   if (error) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
             <EmptyState title="Error" description={error} />
           </div>
@@ -552,10 +572,13 @@ export default function LanguageAssessmentPage() {
   if (!quest) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
-            <EmptyState title="Assessment not found" description="The assessment you're looking for doesn't exist." />
+            <EmptyState
+              title="Assessment not found"
+              description="The assessment you're looking for doesn't exist."
+            />
           </div>
         </div>
       </BetaGate>
@@ -571,50 +594,57 @@ export default function LanguageAssessmentPage() {
 
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
 
             <div className="mb-8">
-              <h1 className="text-3xl font-semibold mb-2">{quest.metadata.certificationName}</h1>
+              <h1 className="mb-2 text-3xl font-semibold">{quest.metadata.certificationName}</h1>
               <p className="text-gray-600 dark:text-gray-400">
                 {quest.language.toUpperCase()} {quest.proficiencyLevel} Assessment
               </p>
             </div>
 
-            <div className={`p-6 rounded-lg border-2 mb-6 ${
-              result.passed
-                ? 'border-green-500 dark:border-green-600 bg-green-50 dark:bg-green-900/20'
-                : 'border-orange-500 dark:border-orange-600 bg-orange-50 dark:bg-orange-900/20'
-            }`}>
+            <div
+              className={`mb-6 rounded-lg border-2 p-6 ${
+                result.passed
+                  ? 'border-green-500 bg-green-50 dark:border-green-600 dark:bg-green-900/20'
+                  : 'border-orange-500 bg-orange-50 dark:border-orange-600 dark:bg-orange-900/20'
+              }`}
+            >
               <div className="text-center">
-                <div className="text-4xl mb-4">{result.passed ? '✓' : '✗'}</div>
-                <h2 className="text-2xl font-semibold mb-2">
+                <div className="mb-4 text-4xl">{result.passed ? '✓' : '✗'}</div>
+                <h2 className="mb-2 text-2xl font-semibold">
                   {result.passed ? 'Assessment Passed!' : 'Assessment Not Passed'}
                 </h2>
-                <p className="text-lg mb-4">
+                <p className="mb-4 text-lg">
                   Score: {result.totalScore} / {result.totalPoints} ({result.percentage}%)
                 </p>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Passing Score: {quest.metadata.passingScore} / {result.totalPoints} ({Math.round((quest.metadata.passingScore / result.totalPoints) * 100)}%)
+                  Passing Score: {quest.metadata.passingScore} / {result.totalPoints} (
+                  {Math.round((quest.metadata.passingScore / result.totalPoints) * 100)}%)
                 </p>
               </div>
             </div>
 
-            <div className="space-y-4 mb-6">
+            <div className="mb-6 space-y-4">
               <h3 className="text-xl font-semibold">Section Results</h3>
               {result.sections.map((sectionResult) => {
                 const section = quest.sections.find((s) => s.id === sectionResult.sectionId);
                 return (
-                  <div key={sectionResult.sectionId} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
+                  <div
+                    key={sectionResult.sectionId}
+                    className="rounded-lg border border-gray-200 p-4 dark:border-gray-700"
+                  >
+                    <div className="mb-2 flex items-center justify-between">
                       <h4 className="font-medium">{section?.title || sectionResult.sectionId}</h4>
                       <span className="text-sm text-gray-600 dark:text-gray-400">
                         {sectionResult.pointsEarned} / {sectionResult.pointsPossible} points
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {sectionResult.questionsCorrect} / {sectionResult.questionsAnswered} questions correct
+                      {sectionResult.questionsCorrect} / {sectionResult.questionsAnswered} questions
+                      correct
                     </p>
                   </div>
                 );
@@ -624,7 +654,7 @@ export default function LanguageAssessmentPage() {
             <div className="flex gap-4">
               <button
                 onClick={() => router.push('/learner-quests')}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
               >
                 Back to Quests
               </button>
@@ -641,28 +671,33 @@ export default function LanguageAssessmentPage() {
   if (!section || !question) return null;
 
   const totalQuestions = quest.sections.reduce((sum, s) => sum + s.questions.length, 0);
-  const currentQuestionNumber = quest.sections
-    .slice(0, currentSectionIndex)
-    .reduce((sum, s) => sum + s.questions.length, 0) + currentQuestionIndex + 1;
+  const currentQuestionNumber =
+    quest.sections.slice(0, currentSectionIndex).reduce((sum, s) => sum + s.questions.length, 0) +
+    currentQuestionIndex +
+    1;
   const questionKey = getQuestionKey(section.id, question.id);
   const answerData = answers[questionKey];
-  const hasAnswer = answerData && (Array.isArray(answerData.answer) ? answerData.answer.length > 0 : answerData.answer !== '');
+  const hasAnswer =
+    answerData &&
+    (Array.isArray(answerData.answer) ? answerData.answer.length > 0 : answerData.answer !== '');
 
   return (
     <BetaGate>
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton href="/learner-quests" />
 
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-semibold mb-2">{quest.metadata.certificationName}</h1>
+            <h1 className="mb-2 text-2xl font-semibold">{quest.metadata.certificationName}</h1>
             <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
               <span>
                 Question {currentQuestionNumber} of {totalQuestions}
               </span>
               {timeRemaining !== null && (
-                <span className={`font-medium ${timeRemaining < 300 ? 'text-red-600 dark:text-red-400' : ''}`}>
+                <span
+                  className={`font-medium ${timeRemaining < 300 ? 'text-red-600 dark:text-red-400' : ''}`}
+                >
                   ⏰ {formatTime(timeRemaining)}
                 </span>
               )}
@@ -670,14 +705,14 @@ export default function LanguageAssessmentPage() {
           </div>
 
           {/* Section Info */}
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <h2 className="font-semibold mb-1">{section.title}</h2>
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+            <h2 className="mb-1 font-semibold">{section.title}</h2>
             <p className="text-sm text-gray-600 dark:text-gray-400">{section.description}</p>
           </div>
 
           {/* Question */}
-          <div className="mb-6 p-6 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg font-medium mb-4">{question.question}</h3>
+          <div className="mb-6 rounded-lg border border-gray-200 bg-white p-6 dark:border-gray-700 dark:bg-gray-800">
+            <h3 className="mb-4 text-lg font-medium">{question.question}</h3>
             {renderQuestion(question)}
           </div>
 
@@ -694,7 +729,7 @@ export default function LanguageAssessmentPage() {
                 }
               }}
               disabled={currentSectionIndex === 0 && currentQuestionIndex === 0}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-300 dark:hover:bg-gray-600"
+              className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
             >
               Previous
             </button>
@@ -704,11 +739,11 @@ export default function LanguageAssessmentPage() {
                 <button
                   onClick={handleSubmitAnswer}
                   disabled={submitting === questionKey || !hasAnswer}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex items-center justify-center gap-2 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting === questionKey ? (
                     <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                       <span>Submitting...</span>
                     </>
                   ) : (
@@ -719,7 +754,7 @@ export default function LanguageAssessmentPage() {
               <button
                 onClick={handleNext}
                 disabled={!hasAnswer && !answerData?.submitted}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-lg bg-blue-600 px-6 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {currentQuestionNumber === totalQuestions ? 'Complete Assessment' : 'Next'}
               </button>
@@ -730,4 +765,3 @@ export default function LanguageAssessmentPage() {
     </BetaGate>
   );
 }
-
