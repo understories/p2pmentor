@@ -21,6 +21,13 @@ import { listLiteAsks } from '@/lib/arkiv/liteAsks';
 import { listLiteOffers } from '@/lib/arkiv/liteOffers';
 import { listMetaLearningArtifacts } from '@/lib/arkiv/metaLearningQuest';
 import { listLearnerQuestProgress } from '@/lib/arkiv/languageQuest';
+import { listQuestDefinitions } from '@/lib/arkiv/questDefinition';
+import { listAllQuestStepProgress } from '@/lib/arkiv/questProgress';
+import { listAllBadges } from '@/lib/arkiv/badge';
+import { listAllAssessmentResults } from '@/lib/arkiv/assessmentResult';
+import { listAllTelemetryEvents } from '@/lib/arkiv/questTelemetry';
+import { listAllReflections } from '@/lib/arkiv/reflection';
+import { listAllQuestSkillLinks } from '@/lib/arkiv/questSkillLink';
 import {
   serializePublicProfile,
   serializePublicAsk,
@@ -30,6 +37,13 @@ import {
   serializePublicLiteOffer,
   serializePublicMetaLearningArtifact,
   serializePublicLearnerQuestProgress,
+  serializePublicQuestDefinition,
+  serializePublicQuestStepProgress,
+  serializePublicBadge,
+  serializePublicAssessmentResult,
+  serializePublicTelemetryEvent,
+  serializePublicReflection,
+  serializePublicQuestSkillLink,
 } from './serializers';
 import type { PublicEntity } from './types';
 
@@ -107,6 +121,34 @@ function generateEntityTitle(entity: PublicEntity): string {
       const progress = entity as import('./types').PublicLearnerQuestProgress;
       return `Quest Answer: ${progress.questId}${progress.sectionId ? ` / ${progress.sectionId}` : ''}`;
     }
+    case 'quest_definition': {
+      const def = entity as import('./types').PublicQuestDefinition;
+      return `Quest: ${def.track} v${def.version}`;
+    }
+    case 'quest_step_progress': {
+      const step = entity as import('./types').PublicQuestStepProgress;
+      return `Step Complete: ${step.questId} / ${step.stepId}`;
+    }
+    case 'proof_of_skill_badge': {
+      const badge = entity as import('./types').PublicBadge;
+      return `Badge: ${badge.badgeType.replace(/_/g, ' ')}`;
+    }
+    case 'learner_quest_assessment_result': {
+      const result = entity as import('./types').PublicAssessmentResult;
+      return `Assessment: ${result.questId} (${result.passed ? 'Passed' : 'Not passed'})`;
+    }
+    case 'quest_telemetry': {
+      const tel = entity as import('./types').PublicTelemetryEvent;
+      return `Telemetry: ${tel.eventType} on ${tel.questId}`;
+    }
+    case 'quest_reflection': {
+      const ref = entity as import('./types').PublicReflection;
+      return `Reflection: ${ref.questId} / ${ref.stepId}`;
+    }
+    case 'quest_completion_skill_link': {
+      const link = entity as import('./types').PublicQuestSkillLink;
+      return `Skill Link: ${link.skillId} from ${link.questId}`;
+    }
     default:
       return entity.key;
   }
@@ -148,6 +190,34 @@ function generateEntitySummary(entity: PublicEntity): string | undefined {
     case 'learner_quest_progress': {
       const progress = entity as import('./types').PublicLearnerQuestProgress;
       return progress.questionId ? `Question: ${progress.questionId}` : undefined;
+    }
+    case 'quest_definition': {
+      const def = entity as import('./types').PublicQuestDefinition;
+      return `Track: ${def.track}${def.language ? ` (${def.language})` : ''}`;
+    }
+    case 'quest_step_progress': {
+      const step = entity as import('./types').PublicQuestStepProgress;
+      return `${step.stepType} step by ${step.wallet?.slice(0, 10)}...`;
+    }
+    case 'proof_of_skill_badge': {
+      const badge = entity as import('./types').PublicBadge;
+      return `Issued for ${badge.questId} to ${badge.wallet?.slice(0, 10)}...`;
+    }
+    case 'learner_quest_assessment_result': {
+      const result = entity as import('./types').PublicAssessmentResult;
+      return `${result.language} ${result.proficiencyLevel} — ${result.percentage}%`;
+    }
+    case 'quest_telemetry': {
+      const tel = entity as import('./types').PublicTelemetryEvent;
+      return `Step: ${tel.stepId}`;
+    }
+    case 'quest_reflection': {
+      const ref = entity as import('./types').PublicReflection;
+      return `Visibility: ${ref.visibility}`;
+    }
+    case 'quest_completion_skill_link': {
+      const link = entity as import('./types').PublicQuestSkillLink;
+      return `Step: ${link.stepId}`;
     }
     default:
       return undefined;
@@ -238,7 +308,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsfeb26', 'nsjan26', 'test'];
 
   // Fetch all entity types in parallel from all spaces
-  // Note: lite entities and quest entities are queried per spaceId since they don't support spaceIds array
+  // Note: lite entities are queried per spaceId since they don't support spaceIds array
+  // Quest definitions use 'global' spaceId
   const [
     profiles,
     asks,
@@ -248,6 +319,13 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     liteOffersAll,
     metaArtifactsAll,
     questProgressAll,
+    questDefs,
+    stepProgressAll,
+    badgesAll,
+    assessmentResultsAll,
+    telemetryAll,
+    reflectionsAll,
+    skillLinksAll,
   ] = await Promise.all([
     listUserProfiles({ spaceIds: allSpaceIds }).catch(() => []),
     listAsks({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
@@ -265,6 +343,13 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     ).then((results) => results.flat()),
     listMetaLearningArtifacts({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
     listLearnerQuestProgress({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listQuestDefinitions({}).catch(() => []),
+    listAllQuestStepProgress({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listAllBadges({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listAllAssessmentResults({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listAllTelemetryEvents({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listAllReflections({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listAllQuestSkillLinks({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
   ]);
 
   // Serialize all entities using public serializers
@@ -276,6 +361,13 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const serializedLiteOffers = liteOffersAll.map(serializePublicLiteOffer);
   const serializedMetaArtifacts = metaArtifactsAll.map(serializePublicMetaLearningArtifact);
   const serializedQuestProgress = questProgressAll.map(serializePublicLearnerQuestProgress);
+  const serializedQuestDefs = questDefs.map(serializePublicQuestDefinition);
+  const serializedStepProgress = stepProgressAll.map(serializePublicQuestStepProgress);
+  const serializedBadges = badgesAll.map(serializePublicBadge);
+  const serializedAssessments = assessmentResultsAll.map(serializePublicAssessmentResult);
+  const serializedTelemetry = telemetryAll.map(serializePublicTelemetryEvent);
+  const serializedReflections = reflectionsAll.map(serializePublicReflection);
+  const serializedSkillLinks = skillLinksAll.map(serializePublicQuestSkillLink);
 
   // Normalize profiles first (before deduplication)
   const normalizedProfiles = serializedProfiles.map(normalizeEntity);
@@ -292,6 +384,13 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const normalizedLiteOffers = serializedLiteOffers.map(normalizeEntity);
   const normalizedMetaArtifacts = serializedMetaArtifacts.map(normalizeEntity);
   const normalizedQuestProgress = serializedQuestProgress.map(normalizeEntity);
+  const normalizedQuestDefs = serializedQuestDefs.map(normalizeEntity);
+  const normalizedStepProgress = serializedStepProgress.map(normalizeEntity);
+  const normalizedBadges = serializedBadges.map(normalizeEntity);
+  const normalizedAssessments = serializedAssessments.map(normalizeEntity);
+  const normalizedTelemetry = serializedTelemetry.map(normalizeEntity);
+  const normalizedReflections = serializedReflections.map(normalizeEntity);
+  const normalizedSkillLinks = serializedSkillLinks.map(normalizeEntity);
 
   // Combine all entities (profiles are now deduplicated)
   const allEntities: ExplorerEntity[] = [
@@ -303,6 +402,13 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     ...normalizedLiteOffers,
     ...normalizedMetaArtifacts,
     ...normalizedQuestProgress,
+    ...normalizedQuestDefs,
+    ...normalizedStepProgress,
+    ...normalizedBadges,
+    ...normalizedAssessments,
+    ...normalizedTelemetry,
+    ...normalizedReflections,
+    ...normalizedSkillLinks,
   ];
 
   // Sort by createdAt (newest first)
