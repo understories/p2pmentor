@@ -50,9 +50,7 @@ export async function GET(request: NextRequest) {
     let startIndex = 0;
     if (cursorParam) {
       try {
-        const cursor: Cursor = JSON.parse(
-          Buffer.from(cursorParam, 'base64').toString()
-        );
+        const cursor: Cursor = JSON.parse(Buffer.from(cursorParam, 'base64').toString());
         // Validate cursor version matches current index
         if (cursor.v === index.version) {
           startIndex = cursor.i;
@@ -65,7 +63,11 @@ export async function GET(request: NextRequest) {
     // Filter by type, spaceId, and search
     let filtered = index.entities;
     if (type !== 'all') {
-      filtered = filtered.filter((e) => e.type === type);
+      filtered = filtered.filter((e) => {
+        if (type === 'ask') return e.type === 'ask' || e.type === 'lite_ask';
+        if (type === 'offer') return e.type === 'offer' || e.type === 'lite_offer';
+        return e.type === type;
+      });
     }
     // Note: spaceId filtering is already done in getExplorerIndex
     if (q) {
@@ -116,9 +118,7 @@ export async function GET(request: NextRequest) {
     const nextIndex = startIndex + pageEntities.length;
     const nextCursor =
       nextIndex < filtered.length
-        ? Buffer.from(
-            JSON.stringify({ i: nextIndex, v: index.version })
-          ).toString('base64')
+        ? Buffer.from(JSON.stringify({ i: nextIndex, v: index.version })).toString('base64')
         : null;
 
     return NextResponse.json(
@@ -149,4 +149,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
