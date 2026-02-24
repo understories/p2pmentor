@@ -268,3 +268,63 @@ export async function getDropOffAnalysis({
     return [];
   }
 }
+
+/**
+ * List all telemetry events across all quests (for explorer).
+ */
+export async function listAllTelemetryEvents({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<QuestTelemetryEvent[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<QuestTelemetryEvent[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'quest_telemetry'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        eventType: getAttr(entity, 'eventType') as TelemetryEventType,
+        questId: getAttr(entity, 'questId'),
+        stepId: getAttr(entity, 'stepId'),
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: entity.txHash || undefined,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllTelemetryEvents] Error:', error);
+    return [];
+  }
+}
