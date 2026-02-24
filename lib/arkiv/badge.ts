@@ -25,7 +25,8 @@ export type BadgeType =
   | 'cryptography_basics' // Legacy/alternative name
   | 'meta_learner' // Quest badge ID: meta_learner
   | 'privacy_fundamentals'
-  | 'ai_intro';
+  | 'ai_intro'
+  | 'demo_learner';
 
 /**
  * Badge entity stored on Arkiv
