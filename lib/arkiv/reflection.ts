@@ -202,3 +202,66 @@ export async function getQuestReflections({
     return [];
   }
 }
+
+/**
+ * List all reflections across all users (for explorer).
+ */
+export async function listAllReflections({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<QuestReflection[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<QuestReflection[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'quest_reflection'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        wallet: getAttr(entity, 'wallet'),
+        questId: getAttr(entity, 'questId'),
+        stepId: getAttr(entity, 'stepId'),
+        prompt: '',
+        reflectionText: '',
+        visibility: (getAttr(entity, 'visibility') || 'private') as ReflectionVisibility,
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: entity.txHash || undefined,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllReflections] Error:', error);
+    return [];
+  }
+}
