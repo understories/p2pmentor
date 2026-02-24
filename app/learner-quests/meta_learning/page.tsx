@@ -69,7 +69,7 @@ export default function MetaLearningQuestPage() {
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<string | null>(null);
-  
+
   // TTL state (shared across steps if "apply to remaining" is checked)
   const [ttlSeconds, setTtlSeconds] = useState(31536000); // Default 1 year
   const [applyTtlToRemaining, setApplyTtlToRemaining] = useState(false);
@@ -97,7 +97,7 @@ export default function MetaLearningQuestPage() {
     try {
       const res = await fetch('/api/learner-quests?questId=meta_learning');
       const data = await res.json();
-      
+
       if (data.ok && data.quest) {
         setQuest(data.quest);
         // Initialize TTL from quest definition
@@ -117,11 +117,13 @@ export default function MetaLearningQuestPage() {
 
   const loadProgress = async () => {
     if (!wallet) return;
-    
+
     try {
-      const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`);
+      const res = await fetch(
+        `/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${wallet}`
+      );
       const data = await res.json();
-      
+
       if (data.ok && data.progress) {
         setProgress(data.progress);
       }
@@ -132,24 +134,28 @@ export default function MetaLearningQuestPage() {
 
   const getStepStatus = (stepId: string): 'not_started' | 'in_progress' | 'completed' => {
     if (!progress || !progress.targets || progress.targets.length === 0) return 'not_started';
-    
+
     // Check if any target has artifacts for this step
-    const hasArtifacts = progress.targets.some(target => {
+    const hasArtifacts = progress.targets.some((target) => {
       const stepArtifacts = target.artifacts[stepId];
       return stepArtifacts && stepArtifacts.length > 0;
     });
-    
+
     return hasArtifacts ? 'completed' : 'not_started';
   };
 
-  const handleSubmitArtifact = async (stepId: string, artifactType: string, data: Record<string, any>) => {
+  const handleSubmitArtifact = async (
+    stepId: string,
+    artifactType: string,
+    data: Record<string, any>
+  ) => {
     if (!wallet || !quest) return;
 
     setSubmitting(stepId);
     try {
       // Generate idempotency key (wallet + stepId + timestamp of first submission attempt)
       const idempotencyKey = `${wallet.toLowerCase()}_${stepId}_${Date.now()}`;
-      
+
       // For step 1 (choose_target), use the target title as targetKey
       // For other steps, we need to reference the target from step 1
       let targetKey = 'default';
@@ -187,12 +193,12 @@ export default function MetaLearningQuestPage() {
       if (result.ok) {
         // Reload progress
         await loadProgress();
-        
+
         // Apply TTL to remaining steps if checkbox is checked
         if (applyTtlToRemaining && !ttlAppliedToSteps.has(stepId)) {
           setTtlAppliedToSteps(new Set([...ttlAppliedToSteps, stepId]));
         }
-        
+
         // Close active step
         setActiveStep(null);
       } else {
@@ -209,7 +215,7 @@ export default function MetaLearningQuestPage() {
   if (loading) {
     return (
       <BetaGate>
-        <div className="min-h-screen flex items-center justify-center">
+        <div className="flex min-h-screen items-center justify-center">
           <LoadingSpinner />
         </div>
       </BetaGate>
@@ -219,10 +225,10 @@ export default function MetaLearningQuestPage() {
   if (error && !quest) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <BackButton href="/learner-quests" />
-            <div className="mt-4 p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
               <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           </div>
@@ -239,18 +245,18 @@ export default function MetaLearningQuestPage() {
 
   return (
     <BetaGate>
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton href="/learner-quests" />
-          
+
           {/* Quest Header */}
-          <div className="mt-6 mb-8">
-            <h1 className="text-3xl font-bold mb-2">{quest.title}</h1>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">{quest.description}</p>
-            
+          <div className="mb-8 mt-6">
+            <h1 className="mb-2 text-3xl font-bold">{quest.title}</h1>
+            <p className="mb-4 text-gray-600 dark:text-gray-400">{quest.description}</p>
+
             {/* Progress Bar */}
-            <div className="mb-4 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30">
-              <div className="flex items-center justify-between mb-2">
+            <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50/80 p-4 dark:border-emerald-700 dark:bg-emerald-900/30">
+              <div className="mb-2 flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   Progress
                 </span>
@@ -258,9 +264,9 @@ export default function MetaLearningQuestPage() {
                   {progressPercent}%
                 </span>
               </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
+              <div className="mb-2 h-3 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
-                  className="bg-emerald-600 h-3 rounded-full transition-all duration-300"
+                  className="h-3 rounded-full bg-emerald-600 transition-all duration-300"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
@@ -272,7 +278,7 @@ export default function MetaLearningQuestPage() {
 
           {/* Error Message */}
           {error && (
-            <div className="mb-4 p-4 rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20">
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
               <p className="text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
@@ -283,32 +289,32 @@ export default function MetaLearningQuestPage() {
               const stepStatus = getStepStatus(step.stepId);
               const isActive = activeStep === step.stepId;
               const isSubmitting = submitting === step.stepId;
-              
+
               return (
                 <div
                   key={step.stepId}
-                  className={`p-6 rounded-lg border-2 ${
+                  className={`rounded-lg border-2 p-6 ${
                     stepStatus === 'completed'
-                      ? 'border-emerald-300 dark:border-emerald-700 bg-emerald-50/50 dark:bg-emerald-900/20'
-                      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                      ? 'border-emerald-300 bg-emerald-50/50 dark:border-emerald-700 dark:bg-emerald-900/20'
+                      : 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
                   }`}
                 >
                   {/* Step Header */}
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="mb-4 flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-600 text-white font-bold text-sm">
+                      <div className="mb-2 flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
                           {index + 1}
                         </span>
                         <h2 className="text-xl font-semibold">{step.title}</h2>
                         {stepStatus === 'completed' && (
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                          <span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
                             Completed
                           </span>
                         )}
                       </div>
-                      <p className="text-gray-600 dark:text-gray-400 ml-11">{step.description}</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-500 ml-11 mt-1">
+                      <p className="ml-11 text-gray-600 dark:text-gray-400">{step.description}</p>
+                      <p className="ml-11 mt-1 text-sm text-gray-500 dark:text-gray-500">
                         Estimated: {step.estimatedDuration}
                       </p>
                     </div>
@@ -316,7 +322,7 @@ export default function MetaLearningQuestPage() {
 
                   {/* Concept Card */}
                   {step.conceptCard && (
-                    <div className="ml-11 mb-4">
+                    <div className="mb-4 ml-11">
                       <ConceptCard
                         stepId={step.stepId}
                         title={step.conceptCard.title}
@@ -328,10 +334,12 @@ export default function MetaLearningQuestPage() {
 
                   {/* Step Form (when active) */}
                   {isActive && (
-                    <div className="ml-11 mt-4 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                    <div className="ml-11 mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50">
                       {step.stepId === 'choose_target' && (
                         <ChooseTargetForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'learning_target', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'learning_target', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -342,7 +350,9 @@ export default function MetaLearningQuestPage() {
                       )}
                       {step.stepId === 'focused_session' && (
                         <FocusedSessionForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'learning_session', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'learning_session', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -353,7 +363,9 @@ export default function MetaLearningQuestPage() {
                       )}
                       {step.stepId === 'diffuse_break' && (
                         <DiffuseBreakForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'diffuse_interval', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'diffuse_interval', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -364,7 +376,9 @@ export default function MetaLearningQuestPage() {
                       )}
                       {step.stepId === 'retrieval_attempt' && (
                         <RetrievalAttemptForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'retrieval_attempt', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'retrieval_attempt', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -375,7 +389,9 @@ export default function MetaLearningQuestPage() {
                       )}
                       {step.stepId === 'reflection' && (
                         <ReflectionForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'reflection', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'reflection', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -386,7 +402,9 @@ export default function MetaLearningQuestPage() {
                       )}
                       {step.stepId === 'spacing_check' && (
                         <SpacingCheckForm
-                          onSubmit={(data: Record<string, any>) => handleSubmitArtifact(step.stepId, 'spacing_check', data)}
+                          onSubmit={(data: Record<string, any>) =>
+                            handleSubmitArtifact(step.stepId, 'spacing_check', data)
+                          }
                           isSubmitting={isSubmitting}
                           ttlSeconds={ttlSeconds}
                           onTtlChange={setTtlSeconds}
@@ -394,6 +412,7 @@ export default function MetaLearningQuestPage() {
                           onApplyToRemainingChange={setApplyTtlToRemaining}
                           questUi={quest.ui}
                           minimumTimeGapSeconds={step.minimumTimeGapSeconds}
+                          progress={progress}
                         />
                       )}
                     </div>
@@ -405,14 +424,14 @@ export default function MetaLearningQuestPage() {
                       {stepStatus === 'completed' ? (
                         <button
                           onClick={() => setActiveStep(step.stepId)}
-                          className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline"
+                          className="px-4 py-2 text-sm font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >
                           Update or Review
                         </button>
                       ) : (
                         <button
                           onClick={() => setActiveStep(step.stepId)}
-                          className="px-6 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors"
+                          className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
                         >
                           Start Step
                         </button>
@@ -430,7 +449,15 @@ export default function MetaLearningQuestPage() {
 }
 
 // Form Components for each step
-function ChooseTargetForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi }: any) {
+function ChooseTargetForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+}: any) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
 
@@ -446,22 +473,22 @@ function ChooseTargetForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">Learning Target Title</label>
+        <label className="mb-2 block text-sm font-medium">Learning Target Title</label>
         <input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Description (optional)</label>
+        <label className="mb-2 block text-sm font-medium">Description (optional)</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <TTLControl
@@ -474,7 +501,7 @@ function ChooseTargetForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
       <button
         type="submit"
         disabled={isSubmitting || !title}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
@@ -482,7 +509,15 @@ function ChooseTargetForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
   );
 }
 
-function FocusedSessionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi }: any) {
+function FocusedSessionForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+}: any) {
   const [objective, setObjective] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(25);
   const [distractionLevel, setDistractionLevel] = useState<'low' | 'medium' | 'high'>('low');
@@ -502,17 +537,17 @@ function FocusedSessionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, a
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">What did you focus on?</label>
+        <label className="mb-2 block text-sm font-medium">What did you focus on?</label>
         <textarea
           value={objective}
           onChange={(e) => setObjective(e.target.value)}
           required
           rows={3}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Duration (minutes)</label>
+        <label className="mb-2 block text-sm font-medium">Duration (minutes)</label>
         <input
           type="number"
           value={durationMinutes}
@@ -520,15 +555,15 @@ function FocusedSessionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, a
           min="1"
           max="120"
           required
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Distraction Level</label>
+        <label className="mb-2 block text-sm font-medium">Distraction Level</label>
         <select
           value={distractionLevel}
           onChange={(e) => setDistractionLevel(e.target.value as any)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         >
           <option value="low">Low</option>
           <option value="medium">Medium</option>
@@ -545,7 +580,7 @@ function FocusedSessionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, a
       <button
         type="submit"
         disabled={isSubmitting || !objective}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
@@ -553,7 +588,15 @@ function FocusedSessionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, a
   );
 }
 
-function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi }: any) {
+function DiffuseBreakForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+}: any) {
   const [activityType, setActivityType] = useState<'walk' | 'rest' | 'shower' | 'other'>('walk');
   const [durationMinutes, setDurationMinutes] = useState(15);
   const [startedAt, setStartedAt] = useState(new Date().toISOString());
@@ -571,11 +614,11 @@ function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">Activity Type</label>
+        <label className="mb-2 block text-sm font-medium">Activity Type</label>
         <select
           value={activityType}
           onChange={(e) => setActivityType(e.target.value as any)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         >
           <option value="walk">Walk</option>
           <option value="rest">Rest</option>
@@ -584,7 +627,7 @@ function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
         </select>
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Duration (minutes)</label>
+        <label className="mb-2 block text-sm font-medium">Duration (minutes)</label>
         <input
           type="number"
           value={durationMinutes}
@@ -592,7 +635,7 @@ function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
           min="1"
           max="120"
           required
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <TTLControl
@@ -605,7 +648,7 @@ function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
@@ -613,7 +656,15 @@ function DiffuseBreakForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
   );
 }
 
-function RetrievalAttemptForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi }: any) {
+function RetrievalAttemptForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+}: any) {
   const [content, setContent] = useState('');
   const [confidence, setConfidence] = useState<'low' | 'medium' | 'high'>('medium');
 
@@ -628,22 +679,24 @@ function RetrievalAttemptForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange,
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">What do you remember? (Write without notes)</label>
+        <label className="mb-2 block text-sm font-medium">
+          What do you remember? (Write without notes)
+        </label>
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
           required
           rows={6}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
           placeholder="Try to recall what you learned..."
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Confidence Level (optional)</label>
+        <label className="mb-2 block text-sm font-medium">Confidence Level (optional)</label>
         <select
           value={confidence}
           onChange={(e) => setConfidence(e.target.value as any)}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         >
           <option value="low">Low</option>
           <option value="medium">Medium</option>
@@ -660,7 +713,7 @@ function RetrievalAttemptForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange,
       <button
         type="submit"
         disabled={isSubmitting || !content}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
@@ -668,7 +721,15 @@ function RetrievalAttemptForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange,
   );
 }
 
-function ReflectionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi }: any) {
+function ReflectionForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+}: any) {
   const [whatSurprised, setWhatSurprised] = useState('');
   const [whatFeltEasyButWasnt, setWhatFeltEasyButWasnt] = useState('');
   const [whatFeltHardButImproved, setWhatFeltHardButImproved] = useState('');
@@ -689,39 +750,39 @@ function ReflectionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, apply
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-medium mb-2">What surprised you?</label>
+        <label className="mb-2 block text-sm font-medium">What surprised you?</label>
         <textarea
           value={whatSurprised}
           onChange={(e) => setWhatSurprised(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">What felt easy but wasn't?</label>
+        <label className="mb-2 block text-sm font-medium">What felt easy but wasn't?</label>
         <textarea
           value={whatFeltEasyButWasnt}
           onChange={(e) => setWhatFeltEasyButWasnt(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">What felt hard but improved?</label>
+        <label className="mb-2 block text-sm font-medium">What felt hard but improved?</label>
         <textarea
           value={whatFeltHardButImproved}
           onChange={(e) => setWhatFeltHardButImproved(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">Did insight occur after the break?</label>
+        <label className="mb-2 block text-sm font-medium">Did insight occur after the break?</label>
         <textarea
           value={insightAfterBreak}
           onChange={(e) => setInsightAfterBreak(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <TTLControl
@@ -734,7 +795,7 @@ function ReflectionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, apply
       <button
         type="submit"
         disabled={isSubmitting}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
@@ -742,7 +803,17 @@ function ReflectionForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, apply
   );
 }
 
-function SpacingCheckForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, applyToRemaining, onApplyToRemainingChange, questUi, minimumTimeGapSeconds }: any) {
+function SpacingCheckForm({
+  onSubmit,
+  isSubmitting,
+  ttlSeconds,
+  onTtlChange,
+  applyToRemaining,
+  onApplyToRemainingChange,
+  questUi,
+  minimumTimeGapSeconds,
+  progress,
+}: any) {
   const [whatPersisted, setWhatPersisted] = useState('');
   const [whatDecayed, setWhatDecayed] = useState('');
   const [whatReclicked, setWhatReclicked] = useState('');
@@ -759,43 +830,75 @@ function SpacingCheckForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
     });
   };
 
-  // Check if minimum time gap is met (24 hours)
-  const canSubmit = minimumTimeGapSeconds ? true : true; // TODO: Check against focused_session timestamp
+  // Check if minimum time gap since focused_session is met
+  const getFocusedSessionTime = (): number | null => {
+    if (!progress?.targets || progress.targets.length === 0) return null;
+    for (const target of progress.targets) {
+      const sessionArtifacts = target.artifacts?.focused_session;
+      if (sessionArtifacts && sessionArtifacts.length > 0) {
+        const most_recent = sessionArtifacts[sessionArtifacts.length - 1];
+        const timestamp = most_recent.createdAt || most_recent.data?.completedAt;
+        if (timestamp) return new Date(timestamp).getTime();
+      }
+    }
+    return null;
+  };
+
+  const focusedSessionTime = getFocusedSessionTime();
+  const elapsedSeconds = focusedSessionTime
+    ? Math.floor((Date.now() - focusedSessionTime) / 1000)
+    : null;
+  const canSubmit =
+    !minimumTimeGapSeconds ||
+    !focusedSessionTime ||
+    (elapsedSeconds !== null && elapsedSeconds >= minimumTimeGapSeconds);
+  const hoursRemaining =
+    minimumTimeGapSeconds && elapsedSeconds !== null && elapsedSeconds < minimumTimeGapSeconds
+      ? Math.ceil((minimumTimeGapSeconds - elapsedSeconds) / 3600)
+      : 0;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {minimumTimeGapSeconds && (
-        <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            This step requires at least {Math.floor(minimumTimeGapSeconds / 3600)} hours after your focused session.
+        <div
+          className={`rounded-lg border p-3 ${canSubmit ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-yellow-200 bg-yellow-50 dark:border-yellow-800 dark:bg-yellow-900/20'}`}
+        >
+          <p
+            className={`text-sm ${canSubmit ? 'text-green-800 dark:text-green-200' : 'text-yellow-800 dark:text-yellow-200'}`}
+          >
+            {!focusedSessionTime
+              ? `This step requires completing a focused session first, then waiting at least ${Math.floor(minimumTimeGapSeconds / 3600)} hours.`
+              : canSubmit
+                ? 'Time requirement met. You can submit this step.'
+                : `Please wait ~${hoursRemaining} more hour${hoursRemaining !== 1 ? 's' : ''} before submitting (${Math.floor(minimumTimeGapSeconds / 3600)}-hour gap required after focused session).`}
           </p>
         </div>
       )}
       <div>
-        <label className="block text-sm font-medium mb-2">What persisted?</label>
+        <label className="mb-2 block text-sm font-medium">What persisted?</label>
         <textarea
           value={whatPersisted}
           onChange={(e) => setWhatPersisted(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">What decayed?</label>
+        <label className="mb-2 block text-sm font-medium">What decayed?</label>
         <textarea
           value={whatDecayed}
           onChange={(e) => setWhatDecayed(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <div>
-        <label className="block text-sm font-medium mb-2">What re-clicked quickly?</label>
+        <label className="mb-2 block text-sm font-medium">What re-clicked quickly?</label>
         <textarea
           value={whatReclicked}
           onChange={(e) => setWhatReclicked(e.target.value)}
           rows={2}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+          className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-600 dark:bg-gray-800"
         />
       </div>
       <TTLControl
@@ -808,7 +911,7 @@ function SpacingCheckForm({ onSubmit, isSubmitting, ttlSeconds, onTtlChange, app
       <button
         type="submit"
         disabled={isSubmitting || !canSubmit}
-        className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        className="w-full rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {isSubmitting ? 'Submitting...' : 'Submit'}
       </button>
