@@ -1,0 +1,5 @@
+- ~~Explorer doesn't displays Asks/Offers. Under All Types, it displays the lite_offer and lite_ask entities~~ FIXED: EntityCard now handles lite_ask/lite_offer with proper content display, readable badge labels, and API filtering groups them with asks/offers
+- On https://p2pmentor.com/learner-quests/ is difficult to click the Submit Answer / Next buttons given the overlay of icons. Maybe these icons could come up only when the cursor clicks one circle in the corner instead of six.
+- Are entities being created when I click Submit? If these are entities, they are not showing on the explorer.
+- I noticed that if I click Next instead of submitting first, when I click Previous the button says Submitting... Commenting in case that's not intended.
+2m
