@@ -19,6 +19,8 @@ import { listOffers } from '@/lib/arkiv/offers';
 import { listSkills } from '@/lib/arkiv/skill';
 import { listLiteAsks } from '@/lib/arkiv/liteAsks';
 import { listLiteOffers } from '@/lib/arkiv/liteOffers';
+import { listMetaLearningArtifacts } from '@/lib/arkiv/metaLearningQuest';
+import { listLearnerQuestProgress } from '@/lib/arkiv/languageQuest';
 import {
   serializePublicProfile,
   serializePublicAsk,
@@ -26,6 +28,8 @@ import {
   serializePublicSkill,
   serializePublicLiteAsk,
   serializePublicLiteOffer,
+  serializePublicMetaLearningArtifact,
+  serializePublicLearnerQuestProgress,
 } from './serializers';
 import type { PublicEntity } from './types';
 
@@ -94,6 +98,15 @@ function generateEntityTitle(entity: PublicEntity): string {
       const liteOffer = entity as import('./types').PublicLiteOffer;
       return `${liteOffer.skill || 'Lite Offer'}: ${liteOffer.name} (${liteOffer.discordHandle})`;
     }
+    case 'meta_learning_artifact': {
+      const artifact = entity as import('./types').PublicMetaLearningArtifact;
+      const stepLabel = artifact.stepId.replace(/_/g, ' ');
+      return `Quest Artifact: ${stepLabel}`;
+    }
+    case 'learner_quest_progress': {
+      const progress = entity as import('./types').PublicLearnerQuestProgress;
+      return `Quest Answer: ${progress.questId}${progress.sectionId ? ` / ${progress.sectionId}` : ''}`;
+    }
     default:
       return entity.key;
   }
@@ -127,6 +140,14 @@ function generateEntitySummary(entity: PublicEntity): string | undefined {
     case 'lite_offer': {
       const liteOffer = entity as import('./types').PublicLiteOffer;
       return liteOffer.description;
+    }
+    case 'meta_learning_artifact': {
+      const artifact = entity as import('./types').PublicMetaLearningArtifact;
+      return `Target: ${artifact.targetKey} | Type: ${artifact.artifactType}`;
+    }
+    case 'learner_quest_progress': {
+      const progress = entity as import('./types').PublicLearnerQuestProgress;
+      return progress.questionId ? `Question: ${progress.questionId}` : undefined;
     }
     default:
       return undefined;
@@ -217,13 +238,21 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsfeb26', 'nsjan26', 'test'];
 
   // Fetch all entity types in parallel from all spaces
-  // Note: lite entities are queried per spaceId since they don't support spaceIds array
-  const [profiles, asks, offers, skills, liteAsksAll, liteOffersAll] = await Promise.all([
+  // Note: lite entities and quest entities are queried per spaceId since they don't support spaceIds array
+  const [
+    profiles,
+    asks,
+    offers,
+    skills,
+    liteAsksAll,
+    liteOffersAll,
+    metaArtifactsAll,
+    questProgressAll,
+  ] = await Promise.all([
     listUserProfiles({ spaceIds: allSpaceIds }).catch(() => []),
     listAsks({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
     listOffers({ spaceIds: allSpaceIds, limit: 1000, includeExpired: false }).catch(() => []),
     listSkills({ spaceIds: allSpaceIds, limit: 1000, status: 'active' }).catch(() => []),
-    // Fetch lite entities from each spaceId (they don't support spaceIds array)
     Promise.all(
       allSpaceIds.map((spaceId) =>
         listLiteAsks({ spaceId, limit: 1000, includeExpired: false }).catch(() => [])
@@ -234,6 +263,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
         listLiteOffers({ spaceId, limit: 1000, includeExpired: false }).catch(() => [])
       )
     ).then((results) => results.flat()),
+    listMetaLearningArtifacts({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
+    listLearnerQuestProgress({ spaceIds: allSpaceIds, limit: 1000 }).catch(() => []),
   ]);
 
   // Serialize all entities using public serializers
@@ -243,6 +274,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const serializedSkills = skills.map(serializePublicSkill);
   const serializedLiteAsks = liteAsksAll.map(serializePublicLiteAsk);
   const serializedLiteOffers = liteOffersAll.map(serializePublicLiteOffer);
+  const serializedMetaArtifacts = metaArtifactsAll.map(serializePublicMetaLearningArtifact);
+  const serializedQuestProgress = questProgressAll.map(serializePublicLearnerQuestProgress);
 
   // Normalize profiles first (before deduplication)
   const normalizedProfiles = serializedProfiles.map(normalizeEntity);
@@ -257,6 +290,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
   const normalizedSkills = serializedSkills.map(normalizeEntity);
   const normalizedLiteAsks = serializedLiteAsks.map(normalizeEntity);
   const normalizedLiteOffers = serializedLiteOffers.map(normalizeEntity);
+  const normalizedMetaArtifacts = serializedMetaArtifacts.map(normalizeEntity);
+  const normalizedQuestProgress = serializedQuestProgress.map(normalizeEntity);
 
   // Combine all entities (profiles are now deduplicated)
   const allEntities: ExplorerEntity[] = [
@@ -266,6 +301,8 @@ async function buildExplorerIndex(): Promise<ExplorerIndex> {
     ...normalizedSkills,
     ...normalizedLiteAsks,
     ...normalizedLiteOffers,
+    ...normalizedMetaArtifacts,
+    ...normalizedQuestProgress,
   ];
 
   // Sort by createdAt (newest first)
