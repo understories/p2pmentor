@@ -66,7 +66,19 @@ export function EntityCard({ entity }: EntityCardProps) {
         return 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 border-orange-200 dark:border-orange-800';
       case 'meta_learning_artifact':
       case 'learner_quest_progress':
+      case 'quest_step_progress':
+      case 'quest_reflection':
         return 'bg-teal-100 dark:bg-teal-900/30 text-teal-800 dark:text-teal-200 border-teal-200 dark:border-teal-800';
+      case 'quest_definition':
+        return 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-200 border-indigo-200 dark:border-indigo-800';
+      case 'proof_of_skill_badge':
+        return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 border-yellow-200 dark:border-yellow-800';
+      case 'learner_quest_assessment_result':
+        return 'bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-200 border-rose-200 dark:border-rose-800';
+      case 'quest_telemetry':
+        return 'bg-slate-100 dark:bg-slate-900/30 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-800';
+      case 'quest_completion_skill_link':
+        return 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-200 border-cyan-200 dark:border-cyan-800';
       default:
         return 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 border-gray-200 dark:border-gray-700';
     }
@@ -82,6 +94,20 @@ export function EntityCard({ entity }: EntityCardProps) {
         return 'Quest Artifact';
       case 'learner_quest_progress':
         return 'Quest Progress';
+      case 'quest_definition':
+        return 'Quest Definition';
+      case 'quest_step_progress':
+        return 'Step Progress';
+      case 'proof_of_skill_badge':
+        return 'Badge';
+      case 'learner_quest_assessment_result':
+        return 'Assessment';
+      case 'quest_telemetry':
+        return 'Telemetry';
+      case 'quest_reflection':
+        return 'Reflection';
+      case 'quest_completion_skill_link':
+        return 'Skill Link';
       default:
         return type;
     }
@@ -172,6 +198,56 @@ export function EntityCard({ entity }: EntityCardProps) {
         meta: entity.wallet
           ? `From: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
           : null,
+      };
+    }
+    if (entity.type === 'quest_definition') {
+      const def = entity as any;
+      return {
+        primary: entity.title || `Quest: ${def.track || 'unknown'}`,
+        secondary: entity.summary || null,
+        meta: def.version ? `Version: ${def.version}` : null,
+      };
+    }
+    if (
+      entity.type === 'quest_step_progress' ||
+      entity.type === 'quest_reflection' ||
+      entity.type === 'quest_completion_skill_link'
+    ) {
+      const e = entity as any;
+      return {
+        primary: entity.title || `${entity.type}: ${e.questId || 'unknown'}`,
+        secondary: entity.summary || null,
+        meta: entity.wallet
+          ? `From: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
+          : null,
+      };
+    }
+    if (entity.type === 'proof_of_skill_badge') {
+      const badge = entity as any;
+      return {
+        primary: entity.title || `Badge: ${badge.badgeType || 'unknown'}`,
+        secondary: entity.summary || null,
+        meta: entity.wallet
+          ? `Earned by: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
+          : null,
+      };
+    }
+    if (entity.type === 'learner_quest_assessment_result') {
+      const result = entity as any;
+      return {
+        primary: entity.title || `Assessment: ${result.questId || 'unknown'}`,
+        secondary: entity.summary || null,
+        meta: entity.wallet
+          ? `By: ${entity.wallet.slice(0, 6)}...${entity.wallet.slice(-4)}`
+          : null,
+      };
+    }
+    if (entity.type === 'quest_telemetry') {
+      const tel = entity as any;
+      return {
+        primary: entity.title || `Telemetry: ${tel.eventType || 'unknown'}`,
+        secondary: entity.summary || null,
+        meta: null,
       };
     }
     return {
