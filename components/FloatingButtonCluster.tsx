@@ -36,6 +36,23 @@ export function FloatingButtonCluster() {
   const [isExpanded, setIsExpanded] = useState(false);
   const clusterRef = useRef<HTMLDivElement>(null);
 
+  // Collapse menu on route change
+  useEffect(() => {
+    setIsExpanded(false);
+  }, [pathname]);
+
+  // Click outside to collapse
+  useEffect(() => {
+    if (!isExpanded) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (clusterRef.current && !clusterRef.current.contains(e.target as Node)) {
+        setIsExpanded(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isExpanded]);
+
   // Detect mobile screen size
   useEffect(() => {
     const checkMobile = () => {

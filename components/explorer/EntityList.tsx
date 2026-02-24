@@ -135,6 +135,13 @@ export function EntityList(
           <option value="offer">Offers</option>
           <option value="skill">Skills</option>
           <option value="quest_progress">Quest Progress</option>
+          <option value="quest_definition">Quest Definitions</option>
+          <option value="quest_step_progress">Step Progress</option>
+          <option value="proof_of_skill_badge">Badges</option>
+          <option value="learner_quest_assessment_result">Assessments</option>
+          <option value="quest_telemetry">Telemetry</option>
+          <option value="quest_reflection">Reflections</option>
+          <option value="quest_completion_skill_link">Skill Links</option>
         </select>
         <select
           value={spaceId}
