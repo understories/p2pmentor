@@ -180,14 +180,14 @@ export default function LanguageAssessmentPage() {
     }));
   };
 
-  const handleSubmitAnswer = async () => {
+  const handleSubmitAnswer = async (): Promise<boolean> => {
     const section = getCurrentSection();
     const question = getCurrentQuestion();
-    if (!section || !question || !wallet) return;
+    if (!section || !question || !wallet) return false;
 
     const key = getQuestionKey(section.id, question.id);
     const answerData = answers[key];
-    if (!answerData || answerData.submitted) return;
+    if (!answerData || answerData.submitted) return true;
 
     const startTime = questionStartTimeRef.current[key] || Date.now();
     const timeSpent = Math.floor((Date.now() - startTime) / 1000);
@@ -217,11 +217,14 @@ export default function LanguageAssessmentPage() {
             submitted: true,
           },
         }));
+        return true;
       } else {
         console.error('Failed to submit answer:', data.error);
+        return false;
       }
     } catch (err: any) {
       console.error('Error submitting answer:', err);
+      return false;
     } finally {
       setSubmitting(null);
     }
@@ -238,7 +241,8 @@ export default function LanguageAssessmentPage() {
       const key = getQuestionKey(section.id, question.id);
       const answerData = answers[key];
       if (answerData && !answerData.submitted) {
-        await handleSubmitAnswer();
+        const success = await handleSubmitAnswer();
+        if (!success) return;
       }
     }
 
