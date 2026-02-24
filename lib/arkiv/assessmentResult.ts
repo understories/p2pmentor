@@ -6,14 +6,14 @@
  * Reference: refs/language-quest-implementation-plan.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { getAssessmentProgress } from "./languageQuest";
-import { getLearnerQuest } from "./learnerQuest";
-import { parseLanguageAssessmentQuest } from "./languageQuest";
-import type { LanguageAssessmentQuest } from "./languageQuest";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { getAssessmentProgress } from './languageQuest';
+import { getLearnerQuest } from './learnerQuest';
+import { parseLanguageAssessmentQuest } from './languageQuest';
+import type { LanguageAssessmentQuest } from './languageQuest';
+import { SPACE_ID } from '@/lib/config';
 
 export type AssessmentResult = {
   key: string;
@@ -85,7 +85,8 @@ export async function calculateAssessmentScore({
 
     // Get full quest entity to parse language assessment data
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('questId', questId))
       .where(eq('status', 'active'))
@@ -99,11 +100,12 @@ export async function calculateAssessmentScore({
     }
 
     const entity = result.entities[0];
-    const decoded = entity.payload instanceof Uint8Array
-      ? new TextDecoder().decode(entity.payload)
-      : typeof entity.payload === 'string'
-      ? entity.payload
-      : JSON.stringify(entity.payload);
+    const decoded =
+      entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
     const payload = JSON.parse(decoded);
 
     if (payload.questType !== 'language_assessment') {
@@ -127,7 +129,7 @@ export async function calculateAssessmentScore({
 
       section.questions.forEach((question) => {
         pointsPossible += question.points; // Sum of all question points in section
-        
+
         const progressKey = `${section.id}:${question.id}`;
         const answerProgress = progress[progressKey];
 
@@ -207,7 +209,8 @@ export async function completeAssessment({
 
     // Get full quest entity
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('questId', questId))
       .where(eq('status', 'active'))
@@ -221,11 +224,12 @@ export async function completeAssessment({
     }
 
     const entity = result.entities[0];
-    const decoded = entity.payload instanceof Uint8Array
-      ? new TextDecoder().decode(entity.payload)
-      : typeof entity.payload === 'string'
-      ? entity.payload
-      : JSON.stringify(entity.payload);
+    const decoded =
+      entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
     const payload = JSON.parse(decoded);
 
     if (payload.questType !== 'language_assessment') {
@@ -236,7 +240,8 @@ export async function completeAssessment({
 
     // Get existing results to determine attempt number
     const normalizedWallet = wallet.toLowerCase();
-    const existingResults = await publicClient.buildQuery()
+    const existingResults = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest_assessment_result'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId))
@@ -258,27 +263,29 @@ export async function completeAssessment({
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
       return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({
-          wallet: normalizedWallet,
-          questId,
-          questType: 'language_assessment',
-          language: languageQuest.language,
-          proficiencyLevel: languageQuest.proficiencyLevel,
-          status,
-          sections: scoreData.sections,
-          totalScore: scoreData.totalScore,
-          totalPoints: scoreData.totalPoints,
-          percentage: scoreData.percentage,
-          passed: scoreData.passed,
-          // Certification will be added in second entity if passed
-          certification: undefined,
-          metadata: {
-            attemptNumber,
-            totalTimeSpent: scoreData.totalTimeSpent,
-            startedAt,
-            completedAt: now,
-          },
-        })),
+        payload: enc.encode(
+          JSON.stringify({
+            wallet: normalizedWallet,
+            questId,
+            questType: 'language_assessment',
+            language: languageQuest.language,
+            proficiencyLevel: languageQuest.proficiencyLevel,
+            status,
+            sections: scoreData.sections,
+            totalScore: scoreData.totalScore,
+            totalPoints: scoreData.totalPoints,
+            percentage: scoreData.percentage,
+            passed: scoreData.passed,
+            // Certification will be added in second entity if passed
+            certification: undefined,
+            metadata: {
+              attemptNumber,
+              totalTimeSpent: scoreData.totalTimeSpent,
+              startedAt,
+              completedAt: now,
+            },
+          })
+        ),
         contentType: 'application/json',
         attributes: [
           { key: 'type', value: 'learner_quest_assessment_result' },
@@ -329,31 +336,33 @@ export async function completeAssessment({
     if (scoreData.passed && certificateIdBase) {
       const certResult = await handleTransactionWithTimeout(async () => {
         return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify({
-            wallet: normalizedWallet,
-            questId,
-            questType: 'language_assessment',
-            language: languageQuest.language,
-            proficiencyLevel: languageQuest.proficiencyLevel,
-            status,
-            sections: scoreData.sections,
-            totalScore: scoreData.totalScore,
-            totalPoints: scoreData.totalPoints,
-            percentage: scoreData.percentage,
-            passed: scoreData.passed,
-            certification: {
-              issued: true,
-              certificateId: certificateIdBase,
-              issuedAt: now,
-              verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
-            },
-            metadata: {
-              attemptNumber,
-              totalTimeSpent: scoreData.totalTimeSpent,
-              startedAt,
-              completedAt: now,
-            },
-          })),
+          payload: enc.encode(
+            JSON.stringify({
+              wallet: normalizedWallet,
+              questId,
+              questType: 'language_assessment',
+              language: languageQuest.language,
+              proficiencyLevel: languageQuest.proficiencyLevel,
+              status,
+              sections: scoreData.sections,
+              totalScore: scoreData.totalScore,
+              totalPoints: scoreData.totalPoints,
+              percentage: scoreData.percentage,
+              passed: scoreData.passed,
+              certification: {
+                issued: true,
+                certificateId: certificateIdBase,
+                issuedAt: now,
+                verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
+              },
+              metadata: {
+                attemptNumber,
+                totalTimeSpent: scoreData.totalTimeSpent,
+                startedAt,
+                completedAt: now,
+              },
+            })
+          ),
           contentType: 'application/json',
           attributes: [
             { key: 'type', value: 'learner_quest_assessment_result' },
@@ -408,14 +417,15 @@ export async function completeAssessment({
       totalPoints: scoreData.totalPoints,
       percentage: scoreData.percentage,
       passed: scoreData.passed,
-      certification: scoreData.passed && certificateIdBase
-        ? {
-            issued: true,
-            certificateId: certificateIdBase,
-            issuedAt: now,
-            verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${finalEntityKey}`,
-          }
-        : undefined,
+      certification:
+        scoreData.passed && certificateIdBase
+          ? {
+              issued: true,
+              certificateId: certificateIdBase,
+              issuedAt: now,
+              verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${finalEntityKey}`,
+            }
+          : undefined,
       metadata: {
         attemptNumber,
         totalTimeSpent: scoreData.totalTimeSpent,
@@ -447,7 +457,8 @@ export async function getAssessmentResult({
   try {
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest_assessment_result'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId))
@@ -474,11 +485,12 @@ export async function getAssessmentResult({
     const results = result.entities
       .map((entity: any) => {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           return {
@@ -515,3 +527,97 @@ export async function getAssessmentResult({
   }
 }
 
+/**
+ * List all assessment results across all users (for explorer).
+ */
+export async function listAllAssessmentResults({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<AssessmentResult[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<AssessmentResult[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'learner_quest_assessment_result'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      return (
+        result.entities
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((entity: any) => {
+            try {
+              const attrs = entity.attributes || {};
+              const getAttr = (key: string): string => {
+                if (Array.isArray(attrs)) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const attr = attrs.find((a: any) => a.key === key);
+                  return String(attr?.value || '');
+                }
+                return String(attrs[key] || '');
+              };
+
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              let payload: any = {};
+              try {
+                if (entity.payload) {
+                  const decoded =
+                    entity.payload instanceof Uint8Array
+                      ? new TextDecoder().decode(entity.payload)
+                      : typeof entity.payload === 'string'
+                        ? entity.payload
+                        : JSON.stringify(entity.payload);
+                  payload = JSON.parse(decoded);
+                }
+              } catch {
+                // Silently ignore
+              }
+
+              return {
+                key: entity.key,
+                wallet: getAttr('wallet'),
+                questId: getAttr('questId'),
+                questType: 'language_assessment' as const,
+                language: getAttr('language'),
+                proficiencyLevel: getAttr('proficiencyLevel'),
+                status: (getAttr('status') || 'completed') as AssessmentResult['status'],
+                sections: payload.sections || [],
+                totalScore: payload.totalScore || 0,
+                totalPoints: payload.totalPoints || 0,
+                percentage: payload.percentage || 0,
+                passed: payload.passed || false,
+                certification: payload.certification,
+                metadata: payload.metadata || {},
+                createdAt: getAttr('createdAt'),
+                completedAt: getAttr('completedAt') || undefined,
+                txHash: entity.txHash || undefined,
+              } as AssessmentResult;
+            } catch {
+              return null;
+            }
+          })
+          .filter((r): r is AssessmentResult => r !== null)
+      );
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllAssessmentResults] Error:', error);
+    return [];
+  }
+}
