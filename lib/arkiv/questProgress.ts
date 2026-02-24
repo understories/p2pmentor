@@ -10,12 +10,12 @@
  * Reference: refs/docs/jan26plan.md - Week 1 Day 3-4
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "../config";
-import type { QuestStepEvidence, QuestStepType } from "./questStep";
-import { validateStepEvidence } from "./questStep";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '../config';
+import type { QuestStepEvidence, QuestStepType } from './questStep';
+import { validateStepEvidence } from './questStep';
 
 /**
  * Progress status representing indexer state
@@ -146,22 +146,24 @@ export async function createQuestStepProgress({
     const txHash = result.txHash;
 
     // Create parallel txhash entity for observability (fire and forget)
-    walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash, progressKey: returnedEntityKey })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'quest_step_progress_txhash' },
-        { key: 'progressKey', value: returnedEntityKey },
-        { key: 'txHash', value: txHash },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: ttlSeconds,
-    }).catch((err) => {
-      // Non-blocking - log but don't fail
-      console.warn('[createQuestStepProgress] Failed to create txhash entity:', err);
-    });
+    walletClient
+      .createEntity({
+        payload: enc.encode(JSON.stringify({ txHash, progressKey: returnedEntityKey })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'quest_step_progress_txhash' },
+          { key: 'progressKey', value: returnedEntityKey },
+          { key: 'txHash', value: txHash },
+          { key: 'wallet', value: normalizedWallet },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: createdAt },
+        ],
+        expiresIn: ttlSeconds,
+      })
+      .catch((err) => {
+        // Non-blocking - log but don't fail
+        console.warn('[createQuestStepProgress] Failed to create txhash entity:', err);
+      });
 
     // Return "submitted" status - caller handles indexer lag
     return {
@@ -219,15 +221,15 @@ export async function getQuestStepProgress({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) =>
-        entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
 
       let payload: any = {};
       try {
         if (entity.payload) {
-          const payloadStr = typeof entity.payload === 'string'
-            ? entity.payload
-            : new TextDecoder().decode(entity.payload);
+          const payloadStr =
+            typeof entity.payload === 'string'
+              ? entity.payload
+              : new TextDecoder().decode(entity.payload);
           payload = JSON.parse(payloadStr);
         }
       } catch (e) {
@@ -302,18 +304,77 @@ export async function calculateQuestCompletion({
   const progress = await getQuestStepProgress({ wallet, questId, spaceId });
   const completedStepIds = progress.map((p) => p.stepId);
 
-  const missingRequiredStepIds = requiredStepIds.filter(
-    (id) => !completedStepIds.includes(id)
-  );
+  const missingRequiredStepIds = requiredStepIds.filter((id) => !completedStepIds.includes(id));
 
   return {
     completedSteps: completedStepIds.length,
     totalSteps,
-    progressPercent: totalSteps > 0
-      ? Math.round((completedStepIds.length / totalSteps) * 100)
-      : 0,
+    progressPercent: totalSteps > 0 ? Math.round((completedStepIds.length / totalSteps) * 100) : 0,
     requiredComplete: missingRequiredStepIds.length === 0,
     completedStepIds,
     missingRequiredStepIds,
   };
+}
+
+/**
+ * List all quest step progress entities across all users (for explorer).
+ */
+export async function listAllQuestStepProgress({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<QuestProgress[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<QuestProgress[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'quest_step_progress'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(false)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const getAttr = (entity: any, key: string): string => {
+        const attrs = entity.attributes || {};
+        if (Array.isArray(attrs)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.entities.map((entity: any) => ({
+        key: entity.key,
+        wallet: getAttr(entity, 'wallet'),
+        questId: getAttr(entity, 'questId'),
+        stepId: getAttr(entity, 'stepId'),
+        stepType: (getAttr(entity, 'stepType') || 'READ') as QuestStepType,
+        evidence: {},
+        createdAt: getAttr(entity, 'createdAt'),
+        spaceId: getAttr(entity, 'spaceId'),
+        txHash: entity.txHash || undefined,
+        status: 'indexed' as ProgressStatus,
+      }));
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllQuestStepProgress] Error:', error);
+    return [];
+  }
 }
