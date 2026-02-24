@@ -115,22 +115,24 @@ export async function issueBadge({
     const txHash = result.txHash;
 
     // Create parallel txhash entity for observability (fire and forget)
-    walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash, badgeKey: entityKey })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'proof_of_skill_badge_txhash' },
-        { key: 'badgeKey', value: entityKey },
-        { key: 'txHash', value: txHash },
-        { key: 'wallet', value: normalizedWallet },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: ttlSeconds,
-    }).catch((err) => {
-      // Non-blocking - log but don't fail
-      console.warn('[issueBadge] Failed to create txhash entity:', err);
-    });
+    walletClient
+      .createEntity({
+        payload: enc.encode(JSON.stringify({ txHash, badgeKey: entityKey })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'proof_of_skill_badge_txhash' },
+          { key: 'badgeKey', value: entityKey },
+          { key: 'txHash', value: txHash },
+          { key: 'wallet', value: normalizedWallet },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: createdAt },
+        ],
+        expiresIn: ttlSeconds,
+      })
+      .catch((err) => {
+        // Non-blocking - log but don't fail
+        console.warn('[issueBadge] Failed to create txhash entity:', err);
+      });
 
     return {
       key: entityKey,
@@ -245,15 +247,15 @@ export async function getUserBadges({
     }
 
     return result.entities.map((entity: any) => {
-      const getAttr = (key: string) =>
-        entity.attributes?.find((a: any) => a.key === key)?.value;
+      const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
 
       let payload: any = {};
       try {
         if (entity.payload) {
-          const payloadStr = typeof entity.payload === 'string'
-            ? entity.payload
-            : new TextDecoder().decode(entity.payload);
+          const payloadStr =
+            typeof entity.payload === 'string'
+              ? entity.payload
+              : new TextDecoder().decode(entity.payload);
           payload = JSON.parse(payloadStr);
         }
       } catch (e) {
@@ -296,4 +298,85 @@ export async function getUserBadge({
 }): Promise<ProofOfSkillBadge | null> {
   const badges = await getUserBadges({ wallet, spaceId });
   return badges.find((b) => b.badgeType === badgeType) || null;
+}
+
+/**
+ * List all badges across all users (for explorer).
+ */
+export async function listAllBadges({
+  spaceIds,
+  limit = 1000,
+}: {
+  spaceIds?: string[];
+  limit?: number;
+} = {}): Promise<ProofOfSkillBadge[]> {
+  try {
+    const publicClient = getPublicClient();
+
+    const fetchForSpace = async (spaceId: string): Promise<ProofOfSkillBadge[]> => {
+      const result = await publicClient
+        .buildQuery()
+        .where(eq('type', 'proof_of_skill_badge'))
+        .where(eq('spaceId', spaceId))
+        .withAttributes(true)
+        .withPayload(true)
+        .limit(limit)
+        .fetch();
+
+      if (!result?.entities || !Array.isArray(result.entities)) return [];
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return result.entities.map((entity: any) => {
+        const attrs = entity.attributes || {};
+        const getAttr = (key: string): string => {
+          if (Array.isArray(attrs)) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const attr = attrs.find((a: any) => a.key === key);
+            return String(attr?.value || '');
+          }
+          return String(attrs[key] || '');
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let payload: any = {};
+        try {
+          if (entity.payload) {
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
+            payload = JSON.parse(decoded);
+          }
+        } catch {
+          // Silently ignore payload decoding errors
+        }
+
+        return {
+          key: entity.key,
+          wallet: getAttr('wallet'),
+          badgeType: getAttr('badgeType') as BadgeType,
+          questId: getAttr('questId'),
+          issuedAt: getAttr('issuedAt'),
+          evidenceRefs: payload.evidenceRefs || [],
+          questVersion: payload.questVersion || '1',
+          version: payload.version || '1',
+          issuer: payload.issuer || 'p2pmentor',
+          spaceId: getAttr('spaceId') || spaceId,
+          txHash: entity.txHash,
+        };
+      });
+    };
+
+    if (spaceIds && spaceIds.length > 0) {
+      const results = await Promise.all(spaceIds.map(fetchForSpace));
+      return results.flat();
+    }
+
+    return await fetchForSpace(SPACE_ID);
+  } catch (error: unknown) {
+    console.error('[listAllBadges] Error:', error);
+    return [];
+  }
 }
