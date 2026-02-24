@@ -30,7 +30,14 @@ export interface PublicEntity {
     | 'lite_ask'
     | 'lite_offer'
     | 'meta_learning_artifact'
-    | 'learner_quest_progress';
+    | 'learner_quest_progress'
+    | 'quest_definition'
+    | 'quest_step_progress'
+    | 'proof_of_skill_badge'
+    | 'learner_quest_assessment_result'
+    | 'quest_telemetry'
+    | 'quest_reflection'
+    | 'quest_completion_skill_link';
   wallet?: string;
   title?: string;
   summary?: string;
@@ -177,5 +184,92 @@ export interface PublicLearnerQuestProgress extends PublicEntity {
   questId: string;
   sectionId?: string;
   questionId?: string;
+  spaceId?: string;
+}
+
+/**
+ * Public quest definition
+ */
+export interface PublicQuestDefinition extends PublicEntity {
+  type: 'quest_definition';
+  questId: string;
+  track: string;
+  version: string;
+  language?: string;
+  status: string;
+  spaceId?: string;
+}
+
+/**
+ * Public quest step progress (step completions)
+ */
+export interface PublicQuestStepProgress extends PublicEntity {
+  type: 'quest_step_progress';
+  wallet: string;
+  questId: string;
+  stepId: string;
+  stepType: string;
+  spaceId?: string;
+}
+
+/**
+ * Public proof of skill badge
+ */
+export interface PublicBadge extends PublicEntity {
+  type: 'proof_of_skill_badge';
+  wallet: string;
+  badgeType: string;
+  questId: string;
+  issuedAt: string;
+  spaceId?: string;
+}
+
+/**
+ * Public assessment result (quiz/exam results)
+ */
+export interface PublicAssessmentResult extends PublicEntity {
+  type: 'learner_quest_assessment_result';
+  wallet: string;
+  questId: string;
+  language: string;
+  proficiencyLevel: string;
+  status: string;
+  percentage: number;
+  passed: boolean;
+  spaceId?: string;
+}
+
+/**
+ * Public quest telemetry event
+ */
+export interface PublicTelemetryEvent extends PublicEntity {
+  type: 'quest_telemetry';
+  eventType: string;
+  questId: string;
+  stepId: string;
+  spaceId?: string;
+}
+
+/**
+ * Public quest reflection
+ */
+export interface PublicReflection extends PublicEntity {
+  type: 'quest_reflection';
+  wallet: string;
+  questId: string;
+  stepId: string;
+  visibility: string;
+  spaceId?: string;
+}
+
+/**
+ * Public quest completion skill link
+ */
+export interface PublicQuestSkillLink extends PublicEntity {
+  type: 'quest_completion_skill_link';
+  wallet: string;
+  questId: string;
+  stepId: string;
+  skillId: string;
   spaceId?: string;
 }
