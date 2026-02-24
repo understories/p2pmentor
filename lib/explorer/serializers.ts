@@ -1,9 +1,9 @@
 /**
  * Public entity serializers
- * 
+ *
  * Serializers that expose ALL data stored on Arkiv.
  * The explorer demonstrates transparency by showing everything stored on-chain.
- * 
+ *
  * Note: Email addresses are NOT stored on Arkiv, so they are not included.
  * All other fields stored on Arkiv are included here.
  */
@@ -14,14 +14,25 @@ import type { Offer } from '@/lib/arkiv/offers';
 import type { Skill } from '@/lib/arkiv/skill';
 import type { LiteAsk } from '@/lib/arkiv/liteAsks';
 import type { LiteOffer } from '@/lib/arkiv/liteOffers';
-import type { PublicProfile, PublicAsk, PublicOffer, PublicSkill, PublicLiteAsk, PublicLiteOffer } from './types';
+import type { MetaLearningArtifact } from '@/lib/arkiv/metaLearningQuest';
+import type { LearnerQuestProgressEntity } from '@/lib/arkiv/languageQuest';
+import type {
+  PublicProfile,
+  PublicAsk,
+  PublicOffer,
+  PublicSkill,
+  PublicLiteAsk,
+  PublicLiteOffer,
+  PublicMetaLearningArtifact,
+  PublicLearnerQuestProgress,
+} from './types';
 
 /**
  * Serialize a user profile to public format
- * 
+ *
  * Includes ALL fields stored on Arkiv to demonstrate transparency.
  * All data shown here is verifiable via transaction hashes.
- * 
+ *
  * Note: Email addresses are NOT stored on Arkiv, so they are not included.
  */
 export function serializePublicProfile(profile: UserProfile): PublicProfile {
@@ -66,7 +77,7 @@ export function serializePublicProfile(profile: UserProfile): PublicProfile {
 
 /**
  * Serialize an ask to public format
- * 
+ *
  * All fields are public by design (asks are meant to be discoverable).
  */
 export function serializePublicAsk(ask: Ask): PublicAsk {
@@ -87,7 +98,7 @@ export function serializePublicAsk(ask: Ask): PublicAsk {
 
 /**
  * Serialize an offer to public format
- * 
+ *
  * All fields are public by design (offers are meant to be discoverable).
  */
 export function serializePublicOffer(offer: Offer): PublicOffer {
@@ -112,7 +123,7 @@ export function serializePublicOffer(offer: Offer): PublicOffer {
 
 /**
  * Serialize a skill to public format
- * 
+ *
  * All fields are public by design (skills are meant to be discoverable).
  */
 export function serializePublicSkill(skill: Skill): PublicSkill {
@@ -131,7 +142,7 @@ export function serializePublicSkill(skill: Skill): PublicSkill {
 
 /**
  * Serialize a lite ask to public format
- * 
+ *
  * All fields are public by design (lite asks are meant to be discoverable).
  */
 export function serializePublicLiteAsk(liteAsk: LiteAsk): PublicLiteAsk {
@@ -152,7 +163,7 @@ export function serializePublicLiteAsk(liteAsk: LiteAsk): PublicLiteAsk {
 
 /**
  * Serialize a lite offer to public format
- * 
+ *
  * All fields are public by design (lite offers are meant to be discoverable).
  */
 export function serializePublicLiteOffer(liteOffer: LiteOffer): PublicLiteOffer {
@@ -172,3 +183,41 @@ export function serializePublicLiteOffer(liteOffer: LiteOffer): PublicLiteOffer 
   };
 }
 
+/**
+ * Serialize a meta-learning artifact to public format
+ */
+export function serializePublicMetaLearningArtifact(
+  artifact: MetaLearningArtifact & { spaceId?: string }
+): PublicMetaLearningArtifact {
+  return {
+    key: artifact.key,
+    type: 'meta_learning_artifact',
+    wallet: artifact.wallet,
+    questId: artifact.questId,
+    stepId: artifact.stepId,
+    artifactType: artifact.artifactType,
+    targetKey: artifact.targetKey,
+    spaceId: artifact.spaceId,
+    createdAt: artifact.createdAt,
+    txHash: artifact.txHash,
+  };
+}
+
+/**
+ * Serialize a learner quest progress entity to public format
+ */
+export function serializePublicLearnerQuestProgress(
+  progress: LearnerQuestProgressEntity
+): PublicLearnerQuestProgress {
+  return {
+    key: progress.key,
+    type: 'learner_quest_progress',
+    wallet: progress.wallet,
+    questId: progress.questId,
+    sectionId: progress.sectionId,
+    questionId: progress.questionId,
+    spaceId: progress.spaceId,
+    createdAt: progress.createdAt,
+    txHash: progress.txHash,
+  };
+}
