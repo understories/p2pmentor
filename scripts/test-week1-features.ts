@@ -54,7 +54,7 @@ async function testWeek1Features() {
     console.log(`   Key: ${progress1.key}`);
     console.log(`   TxHash: ${progress1.txHash}`);
     console.log(
-      `   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${progress1.key}\n`
+      `   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${progress1.key}\n`
     );
 
     await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -81,7 +81,7 @@ async function testWeek1Features() {
     console.log(`   Key: ${progress2.key}`);
     console.log(`   TxHash: ${progress2.txHash}`);
     console.log(
-      `   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${progress2.key}\n`
+      `   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${progress2.key}\n`
     );
 
     // Wait for entities to be queryable
@@ -168,7 +168,7 @@ async function testWeek1Features() {
     console.log(`   Key: ${skillLink.key}`);
     console.log(`   TxHash: ${skillLink.txHash}`);
     console.log(
-      `   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${skillLink.key}\n`
+      `   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${skillLink.key}\n`
     );
 
     // Wait for link to be queryable

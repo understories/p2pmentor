@@ -1,6 +1,6 @@
 /**
  * Generate static HTML pages from Arkiv data
- * 
+ *
  * Simple HTML generator for MVP - no external dependencies required
  * Generates pure HTML/CSS pages that work without JavaScript
  */
@@ -78,7 +78,7 @@ function generateFooter(): string {
   return `  </main>
   <footer>
     <p>p2pmentor - Decentralized mentorship platform</p>
-    <p>Data from <a href="https://mendoza.arkiv.org">Arkiv Network</a></p>
+    <p>Data from <a href="https://arkiv.network">Arkiv Network</a></p>
     <p>Licensed under <a href="https://github.com/understories/p2pmentor/blob/main/LICENSE">MIT License</a></p>
   </footer>
 </body>
@@ -86,7 +86,9 @@ function generateFooter(): string {
 }
 
 async function generateIndexPage(): Promise<void> {
-  const html = generateHeader() + `
+  const html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>p2pmentor - Decentralized Mentorship Platform</h1>
       <p>Welcome to the no-JavaScript, fully decentralized version of p2pmentor.</p>
@@ -102,44 +104,54 @@ async function generateIndexPage(): Promise<void> {
       <h2>About</h2>
       <p>This is a static, no-JavaScript version of p2pmentor that works entirely without centralized servers. All data is fetched from Arkiv Network at build time and embedded in HTML.</p>
     </div>
-  ` + generateFooter();
-  
+  ` +
+    generateFooter();
+
   await fs.writeFile(path.join(OUTPUT_DIR, 'index.html'), html, 'utf-8');
 }
 
 async function generateProfilesList(profiles: Entity[]): Promise<void> {
   const profilesDir = path.join(OUTPUT_DIR, 'profiles');
   await fs.mkdir(profilesDir, { recursive: true });
-  
-  let html = generateHeader() + `
+
+  let html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>All Profiles</h1>
       <p>${profiles.length} profiles</p>
       <ul class="entity-list">
   `;
-  
+
   for (const profile of profiles) {
     const wallet = profile.wallet?.toLowerCase() || '';
     const displayName = profile.displayName || wallet.slice(0, 10) + '...';
     html += `        <li><a href="/profiles/${wallet}/">${escapeHtml(displayName)}</a> <span class="meta">(${wallet.slice(0, 10)}...)</span></li>\n`;
   }
-  
-  html += `      </ul>
+
+  html +=
+    `      </ul>
     </div>
   ` + generateFooter();
-  
+
   await fs.writeFile(path.join(profilesDir, 'index.html'), html, 'utf-8');
 }
 
-async function generateProfilePage(profile: Entity, asksByWallet: Record<string, Entity[]>, offersByWallet: Record<string, Entity[]>): Promise<void> {
+async function generateProfilePage(
+  profile: Entity,
+  asksByWallet: Record<string, Entity[]>,
+  offersByWallet: Record<string, Entity[]>
+): Promise<void> {
   const wallet = profile.wallet?.toLowerCase() || '';
   const profileDir = path.join(OUTPUT_DIR, 'profiles', wallet);
   await fs.mkdir(profileDir, { recursive: true });
-  
+
   const asks = asksByWallet[wallet] || [];
   const offers = offersByWallet[wallet] || [];
-  
-  let html = generateHeader() + `
+
+  let html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>${escapeHtml(profile.displayName || wallet)}</h1>
       
@@ -150,66 +162,88 @@ async function generateProfilePage(profile: Entity, asksByWallet: Record<string,
         ${profile.skillsArray && profile.skillsArray.length > 0 ? `<p><strong>Skills:</strong> ${escapeHtml(profile.skillsArray.join(', '))}</p>` : ''}
       </div>
       
-      ${asks.length > 0 ? `
+      ${
+        asks.length > 0
+          ? `
       <h2>Active Asks (${asks.length})</h2>
-      ${asks.map(ask => `
+      ${asks
+        .map(
+          (ask) => `
         <div class="entity-card">
           <p>${escapeHtml(ask.message || '')}</p>
           <p class="meta">Skill: ${escapeHtml(ask.skill || '')} | Created: ${formatDate(ask.createdAt)}</p>
         </div>
-      `).join('')}
-      ` : ''}
+      `
+        )
+        .join('')}
+      `
+          : ''
+      }
       
-      ${offers.length > 0 ? `
+      ${
+        offers.length > 0
+          ? `
       <h2>Active Offers (${offers.length})</h2>
-      ${offers.map(offer => `
+      ${offers
+        .map(
+          (offer) => `
         <div class="entity-card">
           <p>${escapeHtml(offer.message || '')}</p>
           <p class="meta">Skill: ${escapeHtml(offer.skill || '')} | Created: ${formatDate(offer.createdAt)}</p>
         </div>
-      `).join('')}
-      ` : ''}
+      `
+        )
+        .join('')}
+      `
+          : ''
+      }
       
       <p><a href="/profiles/">← Back to all profiles</a></p>
     </div>
-  ` + generateFooter();
-  
+  ` +
+    generateFooter();
+
   await fs.writeFile(path.join(profileDir, 'index.html'), html, 'utf-8');
 }
 
 async function generateSkillsList(skills: Entity[]): Promise<void> {
   const skillsDir = path.join(OUTPUT_DIR, 'skills');
   await fs.mkdir(skillsDir, { recursive: true });
-  
-  let html = generateHeader() + `
+
+  let html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>All Skills</h1>
       <p>${skills.length} skills</p>
       <ul class="entity-list">
   `;
-  
+
   for (const skill of skills) {
     const slug = skill.slug || '';
     html += `        <li><a href="/skills/${slug}/">${escapeHtml(skill.name_canonical || slug)}</a></li>\n`;
   }
-  
-  html += `      </ul>
+
+  html +=
+    `      </ul>
     </div>
   ` + generateFooter();
-  
+
   await fs.writeFile(path.join(skillsDir, 'index.html'), html, 'utf-8');
 }
 
 async function generateAsksList(asks: Entity[]): Promise<void> {
   const asksDir = path.join(OUTPUT_DIR, 'asks');
   await fs.mkdir(asksDir, { recursive: true });
-  
-  let html = generateHeader() + `
+
+  let html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>All Active Asks</h1>
       <p>${asks.length} active asks</p>
   `;
-  
+
   for (const ask of asks) {
     const wallet = ask.wallet?.toLowerCase() || '';
     html += `
@@ -223,23 +257,26 @@ async function generateAsksList(asks: Entity[]): Promise<void> {
       </div>
     `;
   }
-  
-  html += `    </div>
+
+  html +=
+    `    </div>
   ` + generateFooter();
-  
+
   await fs.writeFile(path.join(asksDir, 'index.html'), html, 'utf-8');
 }
 
 async function generateOffersList(offers: Entity[]): Promise<void> {
   const offersDir = path.join(OUTPUT_DIR, 'offers');
   await fs.mkdir(offersDir, { recursive: true });
-  
-  let html = generateHeader() + `
+
+  let html =
+    generateHeader() +
+    `
     <div class="container">
       <h1>All Active Offers</h1>
       <p>${offers.length} active offers</p>
   `;
-  
+
   for (const offer of offers) {
     const wallet = offer.wallet?.toLowerCase() || '';
     html += `
@@ -253,21 +290,22 @@ async function generateOffersList(offers: Entity[]): Promise<void> {
       </div>
     `;
   }
-  
-  html += `    </div>
+
+  html +=
+    `    </div>
   ` + generateFooter();
-  
+
   await fs.writeFile(path.join(offersDir, 'index.html'), html, 'utf-8');
 }
 
 async function copyCss(): Promise<void> {
   const cssDir = path.join(OUTPUT_DIR, 'css');
   await fs.mkdir(cssDir, { recursive: true });
-  
+
   // Copy CSS from static-app/static/css/style.css if it exists, otherwise create basic one
   const sourceCss = path.join(process.cwd(), 'static-app', 'static', 'css', 'style.css');
   const targetCss = path.join(cssDir, 'style.css');
-  
+
   try {
     await fs.copyFile(sourceCss, targetCss);
   } catch {
@@ -299,23 +337,26 @@ footer a { color: #0066cc; text-decoration: none; }`;
 
 async function main(): Promise<void> {
   console.log('🏗️  Generating static HTML pages...');
-  
+
   const staticDataDir = path.join(process.cwd(), 'static-data');
-  
+
   // Load data
-  const profiles = await loadJsonFile(path.join(staticDataDir, 'entities', 'profiles.json')) || [];
-  const skills = await loadJsonFile(path.join(staticDataDir, 'entities', 'skills.json')) || [];
-  const asks = await loadJsonFile(path.join(staticDataDir, 'entities', 'asks.json')) || [];
-  const offers = await loadJsonFile(path.join(staticDataDir, 'entities', 'offers.json')) || [];
-  const asksByWallet = await loadJsonFile(path.join(staticDataDir, 'indexes', 'asks-by-wallet.json')) || {};
-  const offersByWallet = await loadJsonFile(path.join(staticDataDir, 'indexes', 'offers-by-wallet.json')) || {};
-  
+  const profiles =
+    (await loadJsonFile(path.join(staticDataDir, 'entities', 'profiles.json'))) || [];
+  const skills = (await loadJsonFile(path.join(staticDataDir, 'entities', 'skills.json'))) || [];
+  const asks = (await loadJsonFile(path.join(staticDataDir, 'entities', 'asks.json'))) || [];
+  const offers = (await loadJsonFile(path.join(staticDataDir, 'entities', 'offers.json'))) || [];
+  const asksByWallet =
+    (await loadJsonFile(path.join(staticDataDir, 'indexes', 'asks-by-wallet.json'))) || {};
+  const offersByWallet =
+    (await loadJsonFile(path.join(staticDataDir, 'indexes', 'offers-by-wallet.json'))) || {};
+
   // Ensure output directory exists
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
-  
+
   // Copy CSS
   await copyCss();
-  
+
   // Generate pages
   await generateIndexPage();
   await generateProfilesList(profiles);
@@ -325,7 +366,7 @@ async function main(): Promise<void> {
   await generateSkillsList(skills);
   await generateAsksList(asks);
   await generateOffersList(offers);
-  
+
   console.log(`✅ Generated static HTML pages in ${OUTPUT_DIR}`);
   console.log(`   - ${profiles.length} profile pages`);
   console.log(`   - ${skills.length} skills listed`);
@@ -337,4 +378,3 @@ main().catch((error) => {
   console.error('Error generating static HTML:', error);
   process.exit(1);
 });
-

@@ -1,8 +1,8 @@
 /**
  * Seed script: Create initial virtual gathering
- * 
+ *
  * Creates the beta users community feedback session for Dec 19 2025 12pm UTC
- * 
+ *
  * Usage: tsx scripts/seed-virtual-gathering.ts
  */
 
@@ -12,7 +12,7 @@ import { getPrivateKey, CURRENT_WALLET } from '../lib/config';
 async function seedGathering() {
   try {
     const privateKey = getPrivateKey();
-    
+
     // Get wallet address from private key
     const { getWalletClientFromPrivateKey } = await import('../lib/arkiv/client');
     const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -31,7 +31,8 @@ async function seedGathering() {
       organizerWallet,
       community: 'beta_users',
       title: 'Beta Feedback Session',
-      description: 'Monthly feedback session for beta users. Share your experience, report issues, and help shape p2pmentor.',
+      description:
+        'Monthly feedback session for beta users. Share your experience, report issues, and help shape p2pmentor.',
       sessionDate,
       duration: 60,
       privateKey,
@@ -41,7 +42,7 @@ async function seedGathering() {
     console.log('Key:', key);
     console.log('Transaction Hash:', txHash);
     console.log('\nView on Arkiv:');
-    console.log(`https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`);
+    console.log(`https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`);
     console.log('\nView gathering:');
     console.log(`http://localhost:3000/communities/gatherings?community=beta_users`);
   } catch (error: any) {

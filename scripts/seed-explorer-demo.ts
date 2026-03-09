@@ -51,7 +51,7 @@ const TARGET_SPACE_ID = 'local-dev-seed';
 const DELAY_MS = 400;
 
 // Simple delay helper
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Verify spaceId safety before proceeding
@@ -109,18 +109,22 @@ async function seedSkills(privateKey: `0x${string}`) {
         spaceId: TARGET_SPACE_ID, // Explicit parameter
       });
 
-      console.log(`✅ Created skill "${skill.name}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
+      console.log(
+        `✅ Created skill "${skill.name}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`
+      );
       results.push({ skill: skill.name, status: 'created', key, txHash });
     } catch (error: any) {
       const errorMsg = error?.message || String(error || 'Unknown error');
       // Provide user-friendly error messages for common blockchain errors
       let friendlyError = errorMsg;
       if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
-        friendlyError = 'Transaction conflict (nonce issue). This usually means a previous transaction is still pending. Wait a moment and try again.';
+        friendlyError =
+          'Transaction conflict (nonce issue). This usually means a previous transaction is still pending. Wait a moment and try again.';
       } else if (errorMsg.includes('rate limit') || errorMsg.includes('too many requests')) {
         friendlyError = 'Rate limit exceeded. Please wait a moment and try again.';
       } else if (errorMsg.includes('insufficient funds') || errorMsg.includes('balance')) {
-        friendlyError = 'Insufficient funds. Make sure the signing wallet has enough funds for transaction fees.';
+        friendlyError =
+          'Insufficient funds. Make sure the signing wallet has enough funds for transaction fees.';
       }
       console.error(`❌ Failed to create skill "${skill.name}": ${friendlyError}`);
       results.push({ skill: skill.name, status: 'error', error: friendlyError });
@@ -141,7 +145,9 @@ async function seedProfile(privateKey: `0x${string}`, wallet: string) {
   try {
     // Check if profile already exists
     const existing = await listUserProfiles({ spaceId: TARGET_SPACE_ID });
-    const existingProfile = existing.find((p) => p.wallet.toLowerCase() === wallet.toLowerCase() && p.spaceId === TARGET_SPACE_ID);
+    const existingProfile = existing.find(
+      (p) => p.wallet.toLowerCase() === wallet.toLowerCase() && p.spaceId === TARGET_SPACE_ID
+    );
 
     if (existingProfile) {
       console.log(`⏭️  Profile already exists in ${TARGET_SPACE_ID} (will update)`);
@@ -164,21 +170,28 @@ async function seedProfile(privateKey: `0x${string}`, wallet: string) {
       privateKey,
     });
 
-      console.log(`✅ Created/updated profile "Explorer Demo User" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
-      return { profile: 'Explorer Demo User', status: existingProfile ? 'updated' : 'created', key, txHash };
-    } catch (error: any) {
-      const errorMsg = error?.message || String(error || 'Unknown error');
-      let friendlyError = errorMsg;
-      if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
-        friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
-      } else if (errorMsg.includes('rate limit')) {
-        friendlyError = 'Rate limit exceeded. Please wait and try again.';
-      } else if (errorMsg.includes('insufficient funds')) {
-        friendlyError = 'Insufficient funds. Check signing wallet balance.';
-      }
-      console.error(`❌ Failed to create profile: ${friendlyError}`);
-      return { profile: 'Explorer Demo User', status: 'error', error: friendlyError };
+    console.log(
+      `✅ Created/updated profile "Explorer Demo User" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`
+    );
+    return {
+      profile: 'Explorer Demo User',
+      status: existingProfile ? 'updated' : 'created',
+      key,
+      txHash,
+    };
+  } catch (error: any) {
+    const errorMsg = error?.message || String(error || 'Unknown error');
+    let friendlyError = errorMsg;
+    if (errorMsg.includes('replacement transaction underpriced') || errorMsg.includes('nonce')) {
+      friendlyError = 'Transaction conflict (nonce issue). Wait a moment and try again.';
+    } else if (errorMsg.includes('rate limit')) {
+      friendlyError = 'Rate limit exceeded. Please wait and try again.';
+    } else if (errorMsg.includes('insufficient funds')) {
+      friendlyError = 'Insufficient funds. Check signing wallet balance.';
     }
+    console.error(`❌ Failed to create profile: ${friendlyError}`);
+    return { profile: 'Explorer Demo User', status: 'error', error: friendlyError };
+  }
 }
 
 /**
@@ -189,7 +202,10 @@ async function seedAsks(privateKey: `0x${string}`, wallet: string) {
 
   const asksToSeed = [
     { skill: 'React', message: 'I want to learn React hooks and state management patterns' },
-    { skill: 'TypeScript', message: 'Looking for help with TypeScript generics and advanced types' },
+    {
+      skill: 'TypeScript',
+      message: 'Looking for help with TypeScript generics and advanced types',
+    },
     { skill: 'Solidity', message: 'Need guidance on smart contract security best practices' },
   ];
 
@@ -218,7 +234,9 @@ async function seedAsks(privateKey: `0x${string}`, wallet: string) {
         expiresIn: 7 * 24 * 60 * 60, // 7 days
       });
 
-      console.log(`✅ Created ask "${ask.skill}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`);
+      console.log(
+        `✅ Created ask "${ask.skill}" (key: ${key.slice(0, 16)}..., tx: ${txHash.slice(0, 10)}...)`
+      );
       results.push({ ask: ask.skill, status: 'created', key, txHash });
     } catch (error: any) {
       const errorMsg = error?.message || String(error || 'Unknown error');
@@ -273,7 +291,8 @@ async function seedOffers(privateKey: `0x${string}`, wallet: string) {
       // Check if offer already exists
       const existing = await listOffers({ spaceId: TARGET_SPACE_ID, limit: 100 });
       const existingOffer = existing.find(
-        (o) => o.skill === offer.skill && o.message === offer.message && o.spaceId === TARGET_SPACE_ID
+        (o) =>
+          o.skill === offer.skill && o.message === offer.message && o.spaceId === TARGET_SPACE_ID
       );
 
       if (existingOffer) {
@@ -321,7 +340,7 @@ async function seedOffers(privateKey: `0x${string}`, wallet: string) {
  */
 async function seedExplorerDemo() {
   console.log('\n🌱 Seeding Explorer Demo Data for Local-Dev-Seed SpaceId\n');
-  console.log('=' .repeat(60));
+  console.log('='.repeat(60));
 
   // CRITICAL: Verify spaceId before proceeding
   verifySpaceIdSafety();
@@ -398,7 +417,9 @@ async function seedExplorerDemo() {
     }
 
     console.log('\n✨ Seeding complete!');
-    console.log(`\n🌐 Visit https://p2pmentor.com/explorer and filter by "Local Dev Seed" to see the seeded entities.`);
+    console.log(
+      `\n🌐 Visit https://p2pmentor.com/explorer and filter by "Local Dev Seed" to see the seeded entities.`
+    );
     console.log(`\n⏰ Note: Explorer index cache refreshes every 60 seconds.`);
     console.log(`   If entities don't appear immediately, wait up to 60 seconds and refresh.\n`);
 
@@ -406,8 +427,10 @@ async function seedExplorerDemo() {
       console.log('💡 Tips for resolving errors:');
       console.log('   - "Transaction conflict": Wait 30-60 seconds and run the script again');
       console.log('   - "Rate limit": Wait a few minutes between runs');
-      console.log('   - "Insufficient funds": Fund the signing wallet on Mendoza testnet');
-      console.log('   - Check Arkiv explorer for pending transactions: https://explorer.mendoza.hoodi.arkiv.network\n');
+      console.log('   - "Insufficient funds": Fund the signing wallet on Kaolin testnet');
+      console.log(
+        '   - Check Arkiv explorer for pending transactions: https://explorer.kaolin.hoodi.arkiv.network\n'
+      );
     }
 
     process.exit(0);
@@ -419,4 +442,3 @@ async function seedExplorerDemo() {
 
 // Run seed script
 seedExplorerDemo();
-

@@ -22,7 +22,10 @@ async function seedHSK1Quest() {
   }
 
   // Load question bank from JSON
-  const questionBankPath = path.join(process.cwd(), 'static-data/language-quests/hsk1-questions.json');
+  const questionBankPath = path.join(
+    process.cwd(),
+    'static-data/language-quests/hsk1-questions.json'
+  );
   if (!fs.existsSync(questionBankPath)) {
     console.error(`Error: Question bank not found at ${questionBankPath}`);
     process.exit(1);
@@ -31,8 +34,14 @@ async function seedHSK1Quest() {
   const questionBank = JSON.parse(fs.readFileSync(questionBankPath, 'utf-8'));
 
   // Calculate totals from sections
-  const totalQuestions = questionBank.sections.reduce((sum: number, section: any) => sum + section.questions.length, 0);
-  const totalPoints = questionBank.sections.reduce((sum: number, section: any) => sum + section.points, 0);
+  const totalQuestions = questionBank.sections.reduce(
+    (sum: number, section: any) => sum + section.questions.length,
+    0
+  );
+  const totalPoints = questionBank.sections.reduce(
+    (sum: number, section: any) => sum + section.points,
+    0
+  );
 
   console.log(`\n📚 Seeding HSK 1 Language Assessment Quest`);
   console.log(`   Language: ${questionBank.language}`);
@@ -40,18 +49,22 @@ async function seedHSK1Quest() {
   console.log(`   Sections: ${questionBank.sections.length}`);
   console.log(`   Total Questions: ${totalQuestions}`);
   console.log(`   Total Points: ${totalPoints}`);
-  console.log(`   Passing Score: ${questionBank.passingScore} (${Math.round((questionBank.passingScore / totalPoints) * 100)}%)`);
-  console.log(`   Time Limit: ${questionBank.timeLimit}s (${Math.round(questionBank.timeLimit / 60)} minutes)\n`);
+  console.log(
+    `   Passing Score: ${questionBank.passingScore} (${Math.round((questionBank.passingScore / totalPoints) * 100)}%)`
+  );
+  console.log(
+    `   Time Limit: ${questionBank.timeLimit}s (${Math.round(questionBank.timeLimit / 60)} minutes)\n`
+  );
 
   const targetSpaceId = SPACE_ID;
   console.log(`📦 Target Space ID: ${targetSpaceId}\n`);
 
   // Check if quest already exists in the target spaceId
-  const existingQuests = await listLearnerQuests({ 
+  const existingQuests = await listLearnerQuests({
     questType: 'language_assessment',
-    spaceId: targetSpaceId 
+    spaceId: targetSpaceId,
   });
-  const existingQuest = existingQuests.find(q => q.questId === 'hsk1');
+  const existingQuest = existingQuests.find((q) => q.questId === 'hsk1');
 
   if (existingQuest) {
     console.log(`⏭️  Skipping HSK 1 quest (already exists in ${targetSpaceId})`);
@@ -85,7 +98,9 @@ async function seedHSK1Quest() {
     console.log(`   Entity Key: ${result.key}`);
     console.log(`   Transaction Hash: ${result.txHash}`);
     console.log(`   Space ID: ${targetSpaceId}`);
-    console.log(`\n   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${result.key}`);
+    console.log(
+      `\n   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${result.key}`
+    );
   } else {
     console.error('❌ Failed to create quest');
     process.exit(1);
@@ -96,4 +111,3 @@ seedHSK1Quest().catch((error) => {
   console.error('Error seeding quest:', error);
   process.exit(1);
 });
-

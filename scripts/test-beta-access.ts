@@ -1,13 +1,17 @@
 /**
  * Test Beta Access Implementation
- * 
+ *
  * Tests beta access entity creation and querying on Arkiv.
  * Verifies the implementation works with real Arkiv queries.
- * 
+ *
  * Run: npx tsx scripts/test-beta-access.ts
  */
 
-import { createBetaAccess, getBetaAccessByWallet, listBetaAccessByCode } from '../lib/arkiv/betaAccess';
+import {
+  createBetaAccess,
+  getBetaAccessByWallet,
+  listBetaAccessByCode,
+} from '../lib/arkiv/betaAccess';
 import { getPrivateKey } from '../lib/config';
 
 async function testBetaAccess() {
@@ -33,11 +37,11 @@ async function testBetaAccess() {
     console.log('✅ Created beta access entity:');
     console.log(`   Key: ${key}`);
     console.log(`   TxHash: ${txHash}`);
-    console.log(`   View on Arkiv: https://explorer.mendoza.hoodi.arkiv.network/entity/${key}\n`);
+    console.log(`   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${key}\n`);
 
     // Wait a moment for entity to be queryable
     console.log('⏳ Waiting 3 seconds for entity to be queryable...\n');
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    await new Promise((resolve) => setTimeout(resolve, 3000));
 
     // Test 2: Query by wallet
     console.log('Test 2: Querying beta access by wallet...');
@@ -70,7 +74,6 @@ async function testBetaAccess() {
     console.log('   2. Test middleware protection');
     console.log('   3. Test API route protection');
     console.log('   4. Test client-side BetaGate component');
-
   } catch (error: any) {
     console.error('❌ Test failed:', error);
     console.error('Stack:', error.stack);
