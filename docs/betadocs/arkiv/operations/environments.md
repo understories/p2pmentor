@@ -45,7 +45,8 @@ Queries filter by user wallet addresses, not signing wallet:
 
 ```typescript
 // Query by user's profile wallet
-const query = publicClient.buildQuery()
+const query = publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', userWallet.toLowerCase()))
   .fetch();
@@ -63,22 +64,26 @@ To create separate data environments, use different `spaceId` values:
 
 **Default Space ID:**
 The default `spaceId` is determined by `SPACE_ID` in `lib/config.ts`:
+
 - If `BETA_SPACE_ID` environment variable is set, use that value
 - Otherwise: `'beta-launch'` in production (`NODE_ENV === 'production'`), `'local-dev'` in development
 
 **Development Environment:**
+
 ```bash
 # Uses 'local-dev' by default (or set explicitly)
 BETA_SPACE_ID=local-dev npm run dev
 ```
 
 **Production Environment:**
+
 ```bash
 # Uses 'beta-launch' by default (or set explicitly)
 BETA_SPACE_ID=beta-launch npm run build
 ```
 
 **Seed/Example Data:**
+
 ```bash
 # Use custom spaceId for seed data
 BETA_SPACE_ID=local-dev-seed npm run seed
@@ -89,12 +94,14 @@ Each environment uses a different `spaceId`, and queries filter by `spaceId` to 
 ### Why SpaceId, Not Signing Wallet?
 
 **Signing Wallet:**
+
 - Only used to sign transactions (technical detail)
 - Not stored in entity attributes
 - Not used in queries
 - Changing it doesn't hide old data
 
 **SpaceId:**
+
 - Stored as an attribute on every entity
 - Can be filtered in queries
 - Provides real data isolation
@@ -105,6 +112,7 @@ Each environment uses a different `spaceId`, and queries filter by `spaceId` to 
 **Scenario:** You want to separate development data from production data.
 
 **❌ Wrong Approach (Changing Signing Wallet):**
+
 ```bash
 # Development
 ARKIV_PRIVATE_KEY=0xdev123... npm run dev
@@ -116,12 +124,14 @@ ARKIV_PRIVATE_KEY=0xprod789... npm run build
 ```
 
 **Problem:** Queries still return ALL entities because they don't filter by signing wallet:
+
 ```typescript
 const profiles = await listUserProfiles();
 // Returns ALL profiles (dev + prod), regardless of signing wallet
 ```
 
 **✅ Correct Approach (Using SpaceId):**
+
 ```bash
 # Development
 BETA_SPACE_ID=local-dev npm run dev
@@ -133,6 +143,7 @@ BETA_SPACE_ID=beta-launch npm run build
 ```
 
 **Solution:** Queries filter by `spaceId`:
+
 ```typescript
 const profiles = await listUserProfiles({ spaceId: 'beta-launch' });
 // Returns ONLY profiles with spaceId: 'beta-launch'
@@ -148,11 +159,13 @@ Changing `ARKIV_PRIVATE_KEY` creates a different signing wallet, but this does N
 4. Use `spaceId` instead for data isolation
 
 **When to change signing wallet:**
+
 - Security rotation (mainnet)
 - Separate transaction cost tracking
 - Auditing which wallet signed specific transactions
 
 **Not for:**
+
 - Data isolation (use `spaceId`)
 - Environment separation (use `spaceId`)
 - Hiding development data (use `spaceId`)
@@ -207,7 +220,7 @@ Arkiv has rate limits on transaction submission. To avoid errors:
 
 ```typescript
 const DELAY_MS = 400;
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 for (const entity of entitiesToCreate) {
   await delay(DELAY_MS);
@@ -223,7 +236,7 @@ Prevent duplicate entities by checking if they already exist:
 const existing = await listEntities({
   spaceId: TARGET_SPACE_ID,
   // ... other filters
-  limit: 1
+  limit: 1,
 });
 
 if (existing.length > 0) {
@@ -283,7 +296,7 @@ import { listSkills } from '../lib/arkiv/skill';
 const TARGET_SPACE_ID = 'local-dev-seed';
 const DELAY_MS = 400;
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 // Verify spaceId safety
 function verifySpaceIdSafety() {
@@ -367,18 +380,22 @@ Before running a seed script, verify:
 #### Common Errors and Solutions
 
 **"replacement transaction underpriced":**
+
 - A previous transaction with the same nonce is still pending
 - Solution: Wait 30-60 seconds for pending transaction to confirm, then try again
 
 **"rate limit exceeded":**
+
 - Too many requests in a short time
 - Solution: Wait a few minutes between runs, or increase delays between entity creation
 
 **"insufficient funds":**
+
 - Signing wallet doesn't have enough funds for transaction fees
 - Solution: Fund the signing wallet on Mendoza testnet (use faucet)
 
 **"SPACE_ID mismatch":**
+
 - Script is trying to seed to wrong space
 - Solution: Set `BETA_SPACE_ID` environment variable correctly before running
 
@@ -428,7 +445,7 @@ Each signing wallet must have funds on the Arkiv network:
 
 View entities by signing wallet on Arkiv Explorer:
 
-1. Navigate to [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network)
+1. Navigate to [Arkiv Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 2. Search by transaction hash or entity key
 3. View which wallet signed each transaction
 4. Verify entities are signed by the expected wallet
@@ -465,11 +482,13 @@ Queries filter by entity attributes (user wallet, type, etc.), not by signing wa
 ### Best Practice
 
 **For environment separation:**
+
 - ✅ Use `BETA_SPACE_ID` environment variable
 - ✅ Set different `spaceId` values per environment
 - ✅ Queries filter by `spaceId` automatically
 
 **For signing transactions:**
+
 - Use `ARKIV_PRIVATE_KEY` (one wallet is sufficient)
 - Only change if needed for security rotation or cost tracking
 - Does not affect data visibility or isolation
@@ -479,4 +498,3 @@ Queries filter by entity attributes (user wallet, type, etc.), not by signing wa
 - [Wallet Architecture](wallet-architecture.md) - Profile wallet vs signing wallet
 - [Arkiv Overview](overview.md) - Core Arkiv concepts
 - [Entity Versioning](patterns/entity-versioning.md) - Immutability patterns
-

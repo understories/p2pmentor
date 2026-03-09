@@ -12,12 +12,14 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 ## Features
 
 ### Reading List Quests
+
 - Display curated reading materials with descriptions
 - Track read status when users click external links
 - Show progress (X/Y materials read)
 - Display completion percentage on user profiles (public and edit views)
 
 ### Language Assessment Quests
+
 - Interactive question-based assessments
 - Multiple question types: multiple choice, fill-in-the-blank, matching, true/false, sentence ordering
 - Real-time answer validation and scoring
@@ -26,6 +28,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - Time tracking per question and section
 
 ### Common Features
+
 - Store progress as Arkiv entities (verifiable, transparent)
 - Privacy-preserving (wallet-based, no additional PII)
 - Immutable entity pattern for versioning
@@ -37,6 +40,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **Entity Type:** `learner_quest`
 
 **Attributes:**
+
 - `type`: `'learner_quest'`
 - `questId`: Unique quest identifier (e.g., `'web3privacy_foundations'`, `'spanish_a1'`, `'hsk1'`)
 - `title`: Quest title
@@ -50,6 +54,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `createdAt`: ISO timestamp
 
 **Payload (Reading List Quest):**
+
 ```json
 {
   "materials": [
@@ -72,6 +77,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 ```
 
 **Payload (Language Assessment Quest):**
+
 ```json
 {
   "questType": "language_assessment",
@@ -113,6 +119,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **TTL:** 10 years (quest definitions are curated content)
 
 **Notes:**
+
 - Immutable: Updates create new entities (versioning)
 - Latest version selected by querying most recent `createdAt`
 - Quest definitions are curated/admin-created, not user-created
@@ -125,6 +132,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **Entity Type:** `learner_quest_progress`
 
 **Attributes:**
+
 - `type`: `'learner_quest_progress'`
 - `wallet`: Wallet address (lowercase, required)
 - `questId`: Quest identifier
@@ -136,6 +144,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `createdAt`: ISO timestamp
 
 **Payload (Reading List Quest Progress):**
+
 ```json
 {
   "wallet": "0x...",
@@ -151,6 +160,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 ```
 
 **Payload (Language Assessment Quest Progress):**
+
 ```json
 {
   "wallet": "0x...",
@@ -168,6 +178,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **TTL:** 1 year (31536000 seconds)
 
 **Notes:**
+
 - Immutable: Each action creates new entity
 - For reading list quests: Soft-delete pattern - to "unread", create new entity with `status: 'not_started'`
 - For reading list quests: Query pattern - Get most recent entity per `wallet + questId + materialId` combination
@@ -182,6 +193,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **Purpose:** Store complete assessment results and certification
 
 **Attributes:**
+
 - `type`: `'learner_quest_assessment_result'`
 - `wallet`: Wallet address (lowercase, required)
 - `questId`: Quest identifier
@@ -194,6 +206,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 - `completedAt`: ISO timestamp (when assessment finished)
 
 **Payload:**
+
 ```json
 {
   "wallet": "0x...",
@@ -219,7 +232,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
     "issued": true,
     "certificateId": "cert_spanish_a1_0x1234_20250116",
     "issuedAt": "2025-01-16T10:45:00.000Z",
-    "verificationUrl": "https://explorer.mendoza.hoodi.arkiv.network/entity/..."
+    "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
   },
   "metadata": {
     "attemptNumber": 1,
@@ -233,6 +246,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **TTL:** 1 year (31536000 seconds)
 
 **Notes:**
+
 - Created when user completes an assessment
 - Certification automatically issued for passing scores (score >= passingScore)
 - Immutable: Each completion creates new entity (allows retakes)
@@ -245,6 +259,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **Purpose:** Transaction hash tracking for reliable querying
 
 **Attributes:**
+
 - `type`: `'learner_quest_progress_txhash'`
 - `progressKey`: Reference to `learner_quest_progress` entity key
 - `txHash`: Transaction hash
@@ -258,6 +273,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 **Purpose:** Transaction hash tracking for assessment results
 
 **Attributes:**
+
 - `type`: `'learner_quest_assessment_result_txhash'`
 - `resultKey`: Reference to `learner_quest_assessment_result` entity key
 - `txHash`: Transaction hash
@@ -271,11 +287,13 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 ### Reading List Quest Journey
 
 1. User visits `/learner-quests`
+
    - Page loads quest definitions from Arkiv (filtered by `questType: 'reading_list'`)
    - Page loads user progress from Arkiv
    - Displays materials with read status
 
 2. User clicks "Read Material"
+
    - Link opens in new tab (`target="_blank"`)
    - API call creates `learner_quest_progress` entity with `materialId`
    - Local state updates optimistically
@@ -289,21 +307,25 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 ### Language Assessment Quest Journey
 
 1. User visits `/learner-quests`
+
    - Page loads quest definitions from Arkiv (includes both quest types)
    - Language assessment quests show badge indicating quest type
 
 2. User starts assessment
+
    - Assessment interface loads questions from quest payload
    - Timer starts for each section
    - User answers questions one by one
 
 3. User submits answer
+
    - API call creates `learner_quest_progress` entity with `sectionId`, `questionId`, `answer`
    - Answer is validated against correct answer
    - Score and correctness stored in progress entity
    - Time spent tracked per question
 
 4. User completes assessment
+
    - API calculates total score from all progress entities
    - Creates `learner_quest_assessment_result` entity
    - If passing score achieved, certification is issued
@@ -321,10 +343,12 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
 Fetch quest definition(s).
 
 **Query Parameters:**
+
 - `questId` (optional): Fetch specific quest by ID. If omitted, returns all active quests.
 - `questType` (optional): Filter by quest type (`'reading_list'` or `'language_assessment'`)
 
 **Response (Single Quest):**
+
 ```json
 {
   "ok": true,
@@ -339,6 +363,7 @@ Fetch quest definition(s).
 ```
 
 **Response (All Quests):**
+
 ```json
 {
   "ok": true,
@@ -364,6 +389,7 @@ Fetch quest definition(s).
 Mark material as read (creates progress entity for reading list quests).
 
 **Body:**
+
 ```json
 {
   "action": "markRead",
@@ -375,6 +401,7 @@ Mark material as read (creates progress entity for reading list quests).
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -390,6 +417,7 @@ Mark material as read (creates progress entity for reading list quests).
 Submit answer to assessment question (creates progress entity for language assessment quests).
 
 **Body:**
+
 ```json
 {
   "wallet": "0x...",
@@ -402,6 +430,7 @@ Submit answer to assessment question (creates progress entity for language asses
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -419,6 +448,7 @@ Submit answer to assessment question (creates progress entity for language asses
 Complete assessment and create result entity.
 
 **Body:**
+
 ```json
 {
   "wallet": "0x...",
@@ -428,6 +458,7 @@ Complete assessment and create result entity.
 ```
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -442,7 +473,7 @@ Complete assessment and create result entity.
       "certification": {
         "issued": true,
         "certificateId": "cert_spanish_a1_0x1234_20250116",
-        "verificationUrl": "https://explorer.mendoza.hoodi.arkiv.network/entity/..."
+        "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
       }
     }
   }
@@ -454,10 +485,12 @@ Complete assessment and create result entity.
 Fetch user progress for a quest.
 
 **Query Parameters:**
+
 - `questId` (required)
 - `wallet` (required)
 
 **Response (Reading List Quest):**
+
 ```json
 {
   "ok": true,
@@ -475,6 +508,7 @@ Fetch user progress for a quest.
 ```
 
 **Response (Language Assessment Quest):**
+
 ```json
 {
   "ok": true,
@@ -497,10 +531,12 @@ Fetch user progress for a quest.
 Fetch assessment result for a user.
 
 **Query Parameters:**
+
 - `questId` (required)
 - `wallet` (required)
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -516,7 +552,7 @@ Fetch assessment result for a user.
     "certification": {
       "issued": true,
       "certificateId": "cert_spanish_a1_0x1234_20250116",
-      "verificationUrl": "https://explorer.mendoza.hoodi.arkiv.network/entity/..."
+      "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
     },
     "sections": [...]
   }
@@ -528,16 +564,19 @@ Fetch assessment result for a user.
 ### Privacy-Preserving Design
 
 1. Wallet-Based Identity
+
    - Progress linked to wallet address (public on Arkiv)
    - No additional PII collected
    - Consistent with existing patterns
 
 2. Transparent Storage
+
    - All progress stored as Arkiv entities
    - Verifiable on-chain
    - Users can query their own progress
 
 3. No External Tracking
+
    - External links open in new tab
    - No tracking of external site visits
    - Only tracks click action (user intent)
@@ -550,6 +589,7 @@ Fetch assessment result for a user.
 ### Privacy Trade-offs
 
 1. Wallet Address Visibility
+
    - Progress entities include wallet address (public on Arkiv)
    - Anyone can query progress for any wallet
    - This is by design (transparent, verifiable)
@@ -564,6 +604,7 @@ Fetch assessment result for a user.
 The initial quest includes 9 materials from the Web3Privacy Academy Library:
 
 **Foundational Documents:**
+
 - The Crypto Anarchist Manifesto (Timothy May, 1988)
 - The Cypherpunk Manifesto (Eric Hughes, 1993)
 - Crypto Anarchy and Virtual Communities (Timothy C. May, 1994)
@@ -571,6 +612,7 @@ The initial quest includes 9 materials from the Web3Privacy Academy Library:
 - Declaration of independence of cyberspace (John Perry Barlow, 1996)
 
 **Recent Articles:**
+
 - A Political History of DAOs (Kelsie Nabben, 2022)
 - The Core of Crypto is Punks and Principles (Piergiorgio Catti De Gasperi, 2023)
 - Make Ethereum Cypherpunk Again (Vitalik Buterin, 2023)
@@ -583,6 +625,7 @@ The initial quest includes 9 materials from the Web3Privacy Academy Library:
 Language assessment quests use JSON question banks stored in `static-data/language-quests/`. The format supports multiple question types:
 
 **Question Types:**
+
 - `multiple_choice`: Select one correct option from multiple choices
 - `fill_blank`: Fill in the blank from a word bank
 - `matching`: Match pairs of items
@@ -590,6 +633,7 @@ Language assessment quests use JSON question banks stored in `static-data/langua
 - `sentence_order`: Order sentences to form a correct sentence
 
 **File Structure:**
+
 - `spanish-a1-questions.json`: CEFR A1 Spanish assessment
 - `hsk1-questions.json`: HSK 1 Chinese assessment
 
@@ -620,4 +664,3 @@ ARKIV_PRIVATE_KEY=0x... npx tsx scripts/seed-hsk1-quest.ts
 ```
 
 These scripts load question banks from `static-data/language-quests/`, validate the structure, and create `learner_quest` entities with `questType: 'language_assessment'`.
-

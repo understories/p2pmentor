@@ -11,6 +11,7 @@
 This document presents the empirical performance comparison between **Arkiv JSON-RPC** and **GraphQL API wrapper** for the p2pmentor network graph visualization. All data is verifiable on-chain via Arkiv entities (`dx_metric` and `perf_snapshot`).
 
 **Key Finding:** GraphQL wrapper provides **comparable performance** with **significant developer experience improvements**, including:
+
 - Single HTTP request vs multiple
 - Type-safe queries
 - Flexible data fetching
@@ -23,7 +24,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Test Configuration
 
 - **Operation:** `buildNetworkGraphData`
-- **Test Method:** 
+- **Test Method:**
   - 13 Arkiv JSON-RPC tests
   - 13 GraphQL wrapper tests
   - 1 "Both" comparison test
@@ -43,12 +44,13 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### Duration (Response Time)
 
-| Method | Avg (ms) | Min (ms) | Max (ms) | Samples |
-|--------|----------|----------|----------|---------|
-| **Arkiv JSON-RPC** | 370.3 | 92 | 544 | 13 |
-| **GraphQL Wrapper** | 467.9 | 0 | 5,356 | 13 |
+| Method              | Avg (ms) | Min (ms) | Max (ms) | Samples |
+| ------------------- | -------- | -------- | -------- | ------- |
+| **Arkiv JSON-RPC**  | 370.3    | 92       | 544      | 13      |
+| **GraphQL Wrapper** | 467.9    | 0        | 5,356    | 13      |
 
 **Analysis:**
+
 - GraphQL wrapper adds ~26% overhead on average (97ms slower)
 - Both methods complete in < 600ms for typical network sizes (excluding outliers)
 - GraphQL benefits from single HTTP request vs multiple JSON-RPC calls
@@ -56,12 +58,13 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### Payload Size
 
-| Method | Avg (KB) | Min (KB) | Max (KB) |
-|--------|----------|----------|----------|
-| **Arkiv JSON-RPC** | 4.9 | ~4.9 | ~4.9 |
-| **GraphQL Wrapper** | 0.014 | ~0.014 | ~0.014 |
+| Method              | Avg (KB) | Min (KB) | Max (KB) |
+| ------------------- | -------- | -------- | -------- |
+| **Arkiv JSON-RPC**  | 4.9      | ~4.9     | ~4.9     |
+| **GraphQL Wrapper** | 0.014    | ~0.014   | ~0.014   |
 
 **Analysis:**
+
 - GraphQL payloads are **99.7% smaller** (14 bytes vs 4.9 KB)
 - This is because GraphQL returns structured data that's processed server-side
 - JSON-RPC returns full entity payloads (larger but more complete)
@@ -69,12 +72,13 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### HTTP Requests
 
-| Method | Avg Requests | Total Requests |
-|--------|--------------|----------------|
-| **Arkiv JSON-RPC** | 4 | 52 (13 tests × 4) |
-| **GraphQL Wrapper** | 1 | 13 (13 tests × 1) |
+| Method              | Avg Requests | Total Requests    |
+| ------------------- | ------------ | ----------------- |
+| **Arkiv JSON-RPC**  | 4            | 52 (13 tests × 4) |
+| **GraphQL Wrapper** | 1            | 13 (13 tests × 1) |
 
 **Analysis:**
+
 - **75% reduction** in HTTP requests with GraphQL (1 vs 4 per query)
 - Fewer round trips = lower latency variance
 - Better for mobile/limited bandwidth scenarios
@@ -108,9 +112,9 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### Queries by Page
 
-| Page | Arkiv Queries | GraphQL Queries |
-|------|---------------|-----------------|
-| `/network` | 13 | 13 |
+| Page       | Arkiv Queries | GraphQL Queries |
+| ---------- | ------------- | --------------- |
+| `/network` | 13            | 13              |
 
 **Note:** Page-level tracking shows which pages are using which method, enabling targeted optimization. All current queries are from the `/network` page during testing.
 
@@ -119,22 +123,25 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ## Historical Snapshots
 
 ### Snapshot 1: Arkiv Baseline
+
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.mendoza.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 - **Method:** Arkiv JSON-RPC
 - **Samples:** 13
 - **Status:** ✅ Created
 
 ### Snapshot 2: GraphQL Test
+
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.mendoza.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 - **Method:** GraphQL Wrapper
 - **Samples:** 13
 - **Status:** ✅ Created
 
 ### Snapshot 3: Comparison
+
 - **Date:** December 9, 2025 (12:15 UTC)
-- **Transaction Hash:** [`0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23`](https://explorer.mendoza.hoodi.arkiv.network/tx/0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23)
+- **Transaction Hash:** [`0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23`](https://explorer.kaolin.hoodi.arkiv.network/tx/0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23)
 - **Method:** Both
 - **Samples:** 26 (13 Arkiv + 13 GraphQL)
 - **Status:** ✅ Created and verified on-chain
@@ -148,26 +155,39 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Code Comparison
 
 **Before (JSON-RPC):**
+
 ```typescript
 // Multiple sequential calls
 const asks = await listAsks({ limit: 25 });
 const offers = await listOffers({ limit: 25 });
 const profiles = await Promise.all([
-  ...asks.map(a => getProfileByWallet(a.wallet)),
-  ...offers.map(o => getProfileByWallet(o.wallet)),
+  ...asks.map((a) => getProfileByWallet(a.wallet)),
+  ...offers.map((o) => getProfileByWallet(o.wallet)),
 ]);
 // Manual aggregation and filtering
 ```
 
 **After (GraphQL):**
+
 ```graphql
 query {
   networkOverview(limitAsks: 25, limitOffers: 25) {
     skillRefs {
       id
       name
-      asks { id wallet skill status }
-      offers { id wallet skill isPaid status }
+      asks {
+        id
+        wallet
+        skill
+        status
+      }
+      offers {
+        id
+        wallet
+        skill
+        isPaid
+        status
+      }
     }
   }
 }
@@ -204,6 +224,7 @@ query {
 ## Verification
 
 All performance data in this report is:
+
 - ✅ **Verifiable on-chain** via Arkiv entities
 - ✅ **Transparent** (transaction hashes provided)
 - ✅ **Reproducible** (test scripts available)
@@ -211,7 +232,7 @@ All performance data in this report is:
 
 ### How to Verify
 
-1. Navigate to [Mendoza Explorer](https://explorer.mendoza.hoodi.arkiv.network)
+1. Navigate to [Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 2. Search for transaction hashes listed in snapshots
 3. Inspect `dx_metric` and `perf_snapshot` entities
 4. Compare with admin dashboard at `/admin`
@@ -223,6 +244,7 @@ All performance data in this report is:
 The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON-RPC calls while offering **significant developer experience improvements**. The 75% reduction in HTTP requests, combined with type safety and flexibility, makes GraphQL the recommended approach for new features.
 
 **Next Steps:**
+
 - Enable GraphQL for `/network` page in production
 - Monitor performance metrics for 1 week
 - Expand to additional pages based on Week 1 results
@@ -269,25 +291,29 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 **Status:** ✅ Complete
 
 **Before (JSON-RPC):**
+
 - 5 parallel API calls (profile, asks, offers, sessions, feedback)
 - Average duration: TBD ms
 - HTTP requests: 5 per page load
 - Samples: TBD
 
 **After (GraphQL):**
+
 - 1 GraphQL query + 1 API call (sessions not yet in GraphQL)
 - Average duration: TBD ms
 - HTTP requests: 2 per page load (60% reduction)
 - Samples: TBD
 
 **Improvements:**
+
 - ✅ 60% reduction in HTTP requests (5 → 2)
 - ✅ Single GraphQL query consolidates profile, asks, offers, feedback
 - ✅ Better type safety and developer experience
 - ✅ Performance metrics tracked automatically
 
 **Snapshot:**
-- Transaction Hash: [`0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b`](https://explorer.mendoza.hoodi.arkiv.network/tx/0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b)
+
+- Transaction Hash: [`0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b`](https://explorer.kaolin.hoodi.arkiv.network/tx/0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b)
 - Date: December 9, 2025 (13:01 UTC)
 - Method: Both (Arkiv baseline + GraphQL comparison)
 - Status: ✅ Created and verified on-chain
@@ -303,18 +329,21 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 **Status:** ✅ Complete
 
 **Before (JSON-RPC):**
+
 - 1 API call to `/api/asks`
 - Average duration: TBD ms (testing in progress)
 - HTTP requests: 1 per page load
 - Samples: TBD
 
 **After (GraphQL):**
+
 - 1 GraphQL query
 - Average duration: TBD ms (testing in progress)
 - HTTP requests: 1 per page load (same, but with GraphQL benefits)
 - Samples: TBD
 
 **Improvements:**
+
 - ✅ Type-safe queries
 - ✅ Better developer experience
 - ✅ Performance metrics tracked automatically
@@ -331,18 +360,21 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 **Status:** ✅ Complete
 
 **Before (JSON-RPC):**
+
 - 1 API call to `/api/offers`
 - Average duration: TBD ms (testing in progress)
 - HTTP requests: 1 per page load
 - Samples: TBD
 
 **After (GraphQL):**
+
 - 1 GraphQL query
 - Average duration: TBD ms (testing in progress)
 - HTTP requests: 1 per page load (same, but with GraphQL benefits)
 - Samples: TBD
 
 **Improvements:**
+
 - ✅ Type-safe queries
 - ✅ Better developer experience
 - ✅ Performance metrics tracked automatically
@@ -355,25 +387,28 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 ### Test Run: December 9, 2025
 
 **Environment:**
+
 - Server: `http://localhost:3000`
 - Network: Mendoza Testnet
 - Arkiv RPC: Production indexer
 
 **Tests Executed:**
+
 1. ✅ 13 Arkiv JSON-RPC performance tests
 2. ✅ 13 GraphQL wrapper performance tests
 3. ✅ Data correctness validation
 4. ✅ Performance snapshots created
 
 **Results:**
+
 - All tests completed successfully
 - Performance metrics captured and stored on-chain
 - Data correctness validated (GraphQL adapter matches JSON-RPC output)
 - Snapshots created for historical tracking
 
 **Next Steps:**
+
 - Enable `USE_GRAPHQL_FOR_NETWORK=true` in production
 - Monitor performance for 1 week
 - Compare with baseline snapshots
 - Expand to additional pages (Week 2-3)
-

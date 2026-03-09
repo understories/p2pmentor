@@ -19,6 +19,7 @@ The **profile wallet** is your **wallet identity** on p2pmentor:
 - **Security**: This wallet is your **wallet identity**, not used for signing transactions
 
 **Example:**
+
 ```typescript
 // Profile wallet is used in entity attributes
 {
@@ -45,10 +46,12 @@ The **signing wallet** is used to sign transactions on Arkiv:
 ### How It Works
 
 1. **User connects profile wallet** (MetaMask, WalletConnect, or passkey)
+
    - Profile wallet address stored in `localStorage`
    - No funds required in profile wallet
 
 2. **User creates profile/asks/offers**
+
    - Entity attributes use profile wallet address
    - Transactions signed by server's signing wallet
 
@@ -83,9 +86,10 @@ If you're building on Arkiv and need testnet funds for your own signing wallet:
 
 Arkiv provides a faucet for Mendoza testnet funds:
 
-**Faucet URL**: [https://mendoza.hoodi.arkiv.network/faucet](https://mendoza.hoodi.arkiv.network/faucet)
+**Faucet URL**: [https://kaolin.hoodi.arkiv.network/faucet](https://kaolin.hoodi.arkiv.network/faucet)
 
 Use the faucet to:
+
 - Get testnet funds for your own signing wallet
 - Test your own Arkiv integrations
 - Develop and experiment on Mendoza testnet
@@ -99,11 +103,13 @@ When Arkiv moves to mainnet, p2pmentor will implement **full data sovereignty**:
 ### Planned Changes
 
 1. **User-Signed Transactions**
+
    - Users will sign their own transactions directly on Arkiv
    - No server-side signing wallet
    - Complete user control over their data
 
 2. **Profile Wallet Becomes Signing Wallet**
+
    - Your profile wallet will also sign transactions
    - You'll need funds in your wallet for transaction fees
    - Full ownership and control
@@ -126,7 +132,7 @@ Even during beta with server-signed transactions, all data is **fully verifiable
 
 ### Arkiv Explorer
 
-All entities and transactions are viewable on the [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network):
+All entities and transactions are viewable on the [Arkiv Explorer](https://explorer.kaolin.hoodi.arkiv.network):
 
 - **Entity Keys**: View raw entity data
 - **Transaction Hashes**: Verify transaction details
@@ -183,7 +189,8 @@ const txHash = await signingWallet.createEntity(entity);
 
 ```typescript
 // Query by profile wallet
-const query = publicClient.buildQuery()
+const query = publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', profileWallet.toLowerCase()))
   .withAttributes(true)
@@ -198,7 +205,7 @@ const query = publicClient.buildQuery()
 - **Current State**: Server signs all transactions (beta architecture)
 - **Future State**: Users sign their own transactions (mainnet)
 - **Verifiability**: All data viewable and verifiable on Arkiv Explorer
-- **For Builders**: Use [Mendoza faucet](https://mendoza.hoodi.arkiv.network/faucet) for testnet funds
+- **For Builders**: Use [Mendoza faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet funds
 
 ## See Also
 
@@ -206,5 +213,4 @@ const query = publicClient.buildQuery()
 - [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
 - [Data Model](/docs/arkiv/entities/data-model) - Entity schemas
 - [Client Wrapper](/docs/arkiv/overview/overview#client-wrapper) - Wallet client implementation
-- [Arkiv Explorer](https://explorer.mendoza.hoodi.arkiv.network) - View your data on-chain
-
+- [Arkiv Explorer](https://explorer.kaolin.hoodi.arkiv.network) - View your data on-chain

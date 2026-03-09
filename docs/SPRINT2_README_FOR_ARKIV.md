@@ -11,11 +11,13 @@ We've created a **GraphQL API wrapper** over Arkiv's JSON-RPC indexer, along wit
 ### Key Components
 
 1. **GraphQL API Wrapper** (`/api/graphql`)
+
    - GraphQL schema and resolvers
    - All resolvers call real Arkiv functions (no mock data)
    - Performance instrumentation built-in
 
 2. **Performance Tracking System**
+
    - All performance data stored as Arkiv entities (`dx_metric`)
    - Historical snapshots stored as Arkiv entities (`perf_snapshot`)
    - Verifiable on-chain via Mendoza explorer
@@ -39,10 +41,11 @@ We've created a **GraphQL API wrapper** over Arkiv's JSON-RPC indexer, along wit
 Each performance sample is stored as an Arkiv entity with transaction hash:
 
 ```
-https://explorer.mendoza.hoodi.arkiv.network/tx/{txHash}
+https://explorer.kaolin.hoodi.arkiv.network/tx/{txHash}
 ```
 
 **Entity Structure:**
+
 - Type: `dx_metric`
 - Attributes:
   - `source`: 'arkiv' or 'graphql'
@@ -61,6 +64,7 @@ Snapshots aggregate performance data over time:
 3. Verify on Mendoza explorer
 
 **Snapshot Entity Structure:**
+
 - Type: `perf_snapshot`
 - Attributes:
   - `operation`: Operation name
@@ -83,11 +87,13 @@ Snapshots aggregate performance data over time:
 ### Current Findings (Preliminary)
 
 **Arkiv JSON-RPC:**
+
 - Duration: 100-500ms (warm measurements)
 - Payload: ~4.78 KB
 - HTTP Requests: 4 (listAsks × 2 + listOffers × 2)
 
 **GraphQL Wrapper:**
+
 - Duration: 50-500ms (warm measurements)
 - Payload: ~10-11 KB (includes GraphQL metadata)
 - HTTP Requests: 1 (single GraphQL query)
@@ -119,6 +125,7 @@ Snapshots aggregate performance data over time:
 ### Step 4: Analyze Results
 
 Compare:
+
 - Average duration (lower is better)
 - Payload size (consider network efficiency)
 - HTTP request count (GraphQL: 1 vs Arkiv: 4)
@@ -204,11 +211,13 @@ The admin dashboard provides:
 ## Questions or Feedback?
 
 This system is designed to be:
+
 - **Transparent:** All code is open source
 - **Verifiable:** All data is on-chain
 - **Empirical:** Real measurements, not assumptions
 
 We welcome feedback from the Arkiv team on:
+
 - Performance measurement methodology
 - Data storage patterns
 - Integration approaches
@@ -219,4 +228,3 @@ We welcome feedback from the Arkiv team on:
 **Built with:** Arkiv Protocol, Next.js, GraphQL  
 **Verifiable on:** Mendoza Testnet Explorer  
 **Repository:** https://github.com/understories/p2pmentor
-

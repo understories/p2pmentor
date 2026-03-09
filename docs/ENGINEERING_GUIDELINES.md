@@ -5,11 +5,13 @@
 ### 🚨 MANDATORY BEFORE EVERY COMMIT/PUSH
 
 1. **BUILD MUST PASS** - ⚠️ NEVER push code that fails to build
+
    - Run `npm run build` (or `pnpm run build`) before committing
    - Fix all TypeScript errors, linting errors, and build failures
    - Build verification is NON-NEGOTIABLE
 
 2. **NEVER COMMIT SECRETS** - ⚠️ CRITICAL SECURITY RULE
+
    - No passwords, API keys, private keys, tokens in code
    - No hardcoded credentials as fallbacks (e.g., `|| 'password'`)
    - No secrets in commit messages, comments, or documentation
@@ -17,6 +19,7 @@
    - If secret committed: remove immediately, use `git filter-repo` to remove from history, rotate secret
 
 3. **NEVER COMMIT refs/ FILES** - ⚠️ ABSOLUTE PROHIBITION - CRITICAL
+
    - `refs/` = Internal documentation (gitignored, team-only)
    - `docs/` = Public documentation (committed, visible to all)
    - **NEVER use `git add -f` to force-add files from `refs/`** - This is a violation that requires rewriting git history
@@ -52,11 +55,13 @@
 ### 📝 Documentation Rules
 
 **Public (`docs/` - committed):**
+
 - User-facing guides, API docs, architecture docs
 - Clear, comprehensive, no internal-only info
 - No secrets or sensitive data
 
 **Internal (`refs/docs/` - NEVER committed):**
+
 - Sprint planning, internal research, security incidents
 - Performance testing procedures, test scripts
 - Any docs mentioning passwords, secrets, or internal processes
@@ -65,11 +70,13 @@
 ### 💻 Code Quality Standards
 
 1. **Clean Code:**
+
    - Remove commented-out code, unused imports, debug logs
    - No hardcoded test data or fabricated metrics
    - All data must be real, verifiable, traceable
 
 2. **Commit Messages:**
+
    - Short summary (50 chars or less)
    - Detailed explanation if needed (what, why, breaking changes)
    - Logical grouping (one feature per commit)
@@ -83,17 +90,20 @@
 ### 🔗 Arkiv-Native Patterns (CRITICAL)
 
 1. **Wallet Normalization:**
+
    - ALWAYS normalize wallet addresses to lowercase: `wallet.toLowerCase()`
    - Apply in both storage (entity creation) and queries
    - Prevents case-sensitivity bugs
 
 2. **Query Patterns:**
+
    - Use standard `buildQuery().where(eq(...))` structure
    - Always validate result structure before processing
    - Fetch main entities and `*_txhash` entities in parallel
    - Gracefully handle query failures and transaction timeouts
 
 3. **Entity Creation:**
+
    - Normalize wallet addresses in attributes
    - Use attributes for queryable fields (type, wallet, spaceId, createdAt, status)
    - Use payload for user-facing content (messages, descriptions, complex objects)
@@ -129,12 +139,14 @@
 ### 📋 Quick Reference
 
 **Documentation Decision:**
+
 - External users/contributors? → `docs/` (commit)
 - Mentions passwords/secrets? → `refs/docs/` (NEVER commit)
 - Test script/procedure? → `refs/docs/` or `refs/scripts/` (NEVER commit)
 - Internal engineering notes? → `refs/docs/` (don't commit)
 
 **If Secret Committed:**
+
 1. Remove from code immediately
 2. Use `git filter-repo` to remove from ALL history
 3. Coordinate with team before force push
@@ -142,6 +154,7 @@
 5. Document in `refs/docs/SECURITY_INCIDENT_*.md` (never commit)
 
 **If refs/ File Needs to be Public:**
+
 1. Move to `docs/` directory
 2. Review to ensure no internal-only information
 3. Commit normally (no `-f` flag needed)
@@ -168,30 +181,35 @@ This document establishes engineering principles for p2pmentor development, ensu
     └── scripts/     # Internal test scripts (not committed)
 ```
 
-**Rule:** 
+**Rule:**
+
 - `docs/` = Public documentation (committed to repo)
 - `refs/` = Internal documentation (gitignored, not committed)
 
 **⚠️ CRITICAL: NEVER BYPASS .gitignore FOR refs/ ⚠️**
 
 **ABSOLUTE PROHIBITION:**
+
 - ❌ **NEVER use `git add -f` to force-add files from `refs/`**
 - ❌ **NEVER use `git add --force` to bypass `.gitignore` for internal files**
 - ❌ **NEVER commit files from `refs/` directory to the repository**
 - ❌ **NEVER modify `.gitignore` to allow `refs/` files to be committed**
 
 **Why:**
+
 - `refs/` contains internal documentation, research, and planning that should remain private
 - Files in `refs/` are intentionally gitignored to keep them internal
 - Bypassing `.gitignore` exposes internal information to the public repository
 - This violates the separation between public (`docs/`) and internal (`refs/`) documentation
 
 **If a file in `refs/` needs to be public:**
+
 1. Move it to `docs/` directory (public location)
 2. Review it to ensure no internal-only information
 3. Then commit it normally (no `-f` flag needed)
 
 **If you accidentally force-added a file from `refs/`:**
+
 1. Immediately remove it: `git rm --cached refs/path/to/file`
 2. Commit the removal
 3. Verify it's not in the repo: `git ls-files | grep refs/`
@@ -210,6 +228,7 @@ This document establishes engineering principles for p2pmentor development, ensu
 **Purpose:** Documentation for external contributors, users, and the broader community.
 
 **Requirements:**
+
 - Clear, comprehensive, and accessible
 - No internal-only information
 - No sensitive data or credentials
@@ -217,12 +236,14 @@ This document establishes engineering principles for p2pmentor development, ensu
 - API documentation for public interfaces
 
 **Examples:**
+
 - `ARKIV_GRAPHQL_TOOL.md` - Public API documentation
 - `README.md` - Project overview
 - Architecture documentation
 - User-facing guides
 
 **⚠️ NOT Public (must be in `refs/docs/`):**
+
 - Performance testing procedures (internal)
 - Test scripts documentation (internal)
 - Sprint planning (internal)
@@ -233,6 +254,7 @@ This document establishes engineering principles for p2pmentor development, ensu
 **Purpose:** Internal engineering notes, research, planning, and team coordination.
 
 **Requirements:**
+
 - Detailed technical notes
 - Sprint planning and reviews
 - Research findings
@@ -240,6 +262,7 @@ This document establishes engineering principles for p2pmentor development, ensu
 - Not committed to repository (gitignored)
 
 **Examples:**
+
 - `sprint2.md` - Sprint planning
 - `SPRINT2_READINESS_REVIEW.md` - Internal readiness review
 - `PERFORMANCE_TESTING.md` - Internal testing procedures
@@ -250,12 +273,14 @@ This document establishes engineering principles for p2pmentor development, ensu
 ### Code Documentation
 
 **In-Code Comments:**
+
 - Explain **why**, not **what** (code should be self-documenting)
 - Clarify non-obvious business logic
 - Document assumptions and constraints
 - Reference external documentation when appropriate
 
 **Example:**
+
 ```typescript
 // ✅ Good: Explains why
 // Warm up requests to avoid cold start skewing performance measurements
@@ -271,12 +296,14 @@ await listAsks({ limit: 1 });
 ### Clean Code Principles
 
 1. **No Noise:**
+
    - Remove commented-out code
    - Remove unused imports
    - Remove debug console.logs (use proper logging)
    - Remove temporary files
 
 2. **Auditable:**
+
    - Clear commit messages
    - Logical file organization
    - Consistent patterns
@@ -291,6 +318,7 @@ await listAsks({ limit: 1 });
 ### Commit Standards
 
 **Commit Message Format:**
+
 ```
 Short summary (50 chars or less)
 
@@ -301,6 +329,7 @@ Detailed explanation if needed:
 ```
 
 **Examples:**
+
 ```
 ✅ Good:
 Fix performance summary to query Arkiv entities first
@@ -314,6 +343,7 @@ fix stuff
 ```
 
 **Commit Grouping:**
+
 - Group related changes together
 - Separate logical features
 - One commit per logical change
@@ -324,12 +354,14 @@ fix stuff
 ### Open Source Best Practices
 
 1. **Transparency:**
+
    - All code is open and auditable
    - Public documentation for public APIs
    - Clear licensing (check LICENSE file)
    - No hidden functionality
 
 2. **Community:**
+
    - Welcome contributions
    - Clear contribution guidelines
    - Responsive to issues and PRs
@@ -344,19 +376,21 @@ fix stuff
 ### Attribution and Credit
 
 **Code Attribution:**
+
 - Credit original authors in file headers when appropriate
 - Document external dependencies
 - Acknowledge inspiration from other projects
 - Maintain changelog for significant contributions
 
 **Example Header:**
+
 ```typescript
 /**
  * Network Graph Builder
- * 
+ *
  * Builds graph data from Arkiv asks and offers.
  * Supports both JSON-RPC and GraphQL paths.
- * 
+ *
  * Inspired by: [project/repo] (if applicable)
  * Dependencies: @arkiv-network/sdk, react-force-graph-2d
  */
@@ -395,6 +429,7 @@ fix stuff
 **Rule:** All data must be real, verifiable, and traceable.
 
 **Implementation:**
+
 - ✅ Query real Arkiv entities
 - ✅ Measure actual API calls
 - ✅ Store on-chain for verification
@@ -403,6 +438,7 @@ fix stuff
 - ❌ No approximations without clear labeling
 
 **Verification:**
+
 - Every performance sample has `txHash`
 - All data queryable from Arkiv entities
 - Mendoza explorer links for verification
@@ -411,6 +447,7 @@ fix stuff
 ### Performance Data
 
 **Requirements:**
+
 1. All measurements from real API calls
 2. All data stored as Arkiv entities (`dx_metric`)
 3. All summaries query Arkiv entities first
@@ -424,6 +461,7 @@ fix stuff
 **⚠️ CRITICAL: NEVER COMMIT SECRETS IN ANY FORM ⚠️**
 
 - **Never commit secrets:**
+
   - API keys
   - Private keys
   - Passwords
@@ -434,17 +472,19 @@ fix stuff
   - **NEVER mention passwords in documentation**
 
 - **Use environment variables:**
+
   - `.env` for local development (gitignored)
   - `.env.example` for documentation (NO real values)
   - Vercel environment variables for production
   - **Scripts MUST fail if required env vars are missing** - no fallbacks
 
 - **If a secret is accidentally committed:**
+
   1. **IMMEDIATELY** remove it from code
   2. **DO NOT** mention the secret in commit messages
   3. **DO NOT** create revert commits that mention the secret
   4. **DO NOT** put the secret value in any commit message, even in revert commits
-  5. If not yet pushed: 
+  5. If not yet pushed:
      - `git reset --hard HEAD~N` (where N = commits to undo)
      - Or use `git rebase -i` to remove the commit
   6. If already pushed:
@@ -454,6 +494,7 @@ fix stuff
   7. **Document incident in `refs/docs/`** (internal only, never commit)
 
 - **Commit message security:**
+
   - Use generic descriptions: "Remove hardcoded credentials"
   - Use: "Security fix: require environment variable"
   - **NEVER**: "Remove password 'xyz'" or "Fix 'xyz' password issue"
@@ -478,18 +519,21 @@ This project uses **Vercel for deployment and hosting**. Environment variables a
 **Established Patterns:**
 
 1. **Environment Variables:**
+
    - ✅ Set in Vercel dashboard (Settings → Environment Variables)
    - ✅ Available at build time and runtime
    - ✅ Separate values for production, preview, development
    - ❌ **DO NOT** create GitHub Actions for environment variable management
 
 2. **Build Scripts:**
+
    - ✅ Add to `package.json` scripts (e.g., `build:static`)
    - ✅ Run during Vercel build process
    - ✅ Use `pnpm exec tsx` for TypeScript scripts
    - ❌ **DO NOT** create GitHub Actions that duplicate Vercel build process
 
 3. **Entity Syncing/Seeding:**
+
    - ✅ Create admin API routes (e.g., `/api/admin/sync-quests`)
    - ✅ Follow pattern of `/api/admin/rebuild-static`
    - ✅ Use `execAsync` to run scripts with environment variables
@@ -503,6 +547,7 @@ This project uses **Vercel for deployment and hosting**. Environment variables a
    - ❌ **DO NOT** create GitHub Actions for scheduled tasks
 
 **Example: Admin API Route for Syncing**
+
 ```typescript
 // ✅ Good: Admin API route (app/api/admin/sync-quests/route.ts)
 export async function POST(request: NextRequest) {
@@ -523,6 +568,7 @@ export async function POST(request: NextRequest) {
 ```
 
 **❌ Anti-Pattern: GitHub Actions for Syncing**
+
 ```yaml
 # ❌ BAD: Redundant with Vercel
 name: Sync Quest Entities
@@ -539,6 +585,7 @@ jobs:
 ```
 
 **Why Vercel-First?**
+
 - Environment variables already configured in Vercel
 - No need to duplicate secrets in GitHub Actions
 - Simpler: one deployment system, not two
@@ -546,6 +593,7 @@ jobs:
 - Vercel cron jobs handle scheduled tasks
 
 **When to Use GitHub Actions:**
+
 - ✅ Code quality checks (linting, type checking)
 - ✅ Security scanning
 - ✅ Pre-commit hooks validation
@@ -556,12 +604,14 @@ jobs:
 **Before creating new infrastructure, check:**
 
 1. **Deployment/Syncing:**
+
    - ✅ Check `app/api/admin/` for existing admin routes
    - ✅ Check `vercel.json` for cron jobs
    - ✅ Check `package.json` for build scripts
    - ✅ Review existing seed/sync scripts in `scripts/`
 
 2. **Entity Patterns:**
+
    - ✅ Check `lib/arkiv/` for similar entity CRUD functions
    - ✅ Follow existing query patterns
    - ✅ Use same error handling patterns
@@ -574,6 +624,7 @@ jobs:
    - ✅ Match error handling
 
 **Example Review Process:**
+
 ```typescript
 // Before creating new quest entity functions:
 // 1. Check: lib/arkiv/learnerQuest.ts (similar pattern)
@@ -581,6 +632,7 @@ jobs:
 // 3. Reuse: handleTransactionWithTimeout, getPublicClient patterns
 // 4. Result: Consistent codebase, no reinvention
 ```
+
 - **API routes:** Internal-only or properly authenticated
 - **User data:** Wallet-based authentication (no centralized auth)
 
@@ -593,42 +645,50 @@ jobs:
 **Procedure:**
 
 1. **Identify affected commits:**
+
    ```bash
    git log --all -S "secret_value" --oneline
    git log --all --grep="secret_value" --oneline
    ```
 
 2. **Install git-filter-repo:**
+
    ```bash
    pip3 install git-filter-repo
    ```
 
 3. **Remove files containing secrets:**
+
    ```bash
    git filter-repo --path path/to/file --invert-paths --force
    ```
 
 4. **Verify removal:**
+
    ```bash
    git log --all -S "secret_value" --oneline  # Should return nothing
    ```
 
 5. **Force push (coordinate with team first):**
+
    ```bash
    git push --force origin main
    ```
 
 6. **Notify collaborators:**
+
    - They must re-clone or: `git fetch origin && git reset --hard origin/main`
    - Any open PRs referencing old commits will break
 
 7. **Rotate compromised secrets immediately**
 
 **Alternative (if git-filter-repo unavailable):**
+
 - Use `git filter-branch` (deprecated but works)
 - Or contact security team for assistance
 
 **Documentation:**
+
 - Document incident in `refs/docs/SECURITY_INCIDENT_*.md` (never commit)
 - Update engineering guidelines if new patterns discovered
 
@@ -641,12 +701,14 @@ jobs:
 **MANDATORY PROCESS BEFORE EVERY COMMIT AND PUSH:**
 
 1. **Always run `npm run build` (or `pnpm run build`) before committing**
+
    - The build MUST succeed with no errors
    - Fix all TypeScript errors, linting errors, and build failures locally
    - Never commit code that fails to build
    - Never push code that fails to build
 
 2. **Build verification checklist (MANDATORY):**
+
    - ✅ Build completes successfully (`✓ Compiled successfully`)
    - ✅ No TypeScript errors
    - ✅ No linting errors
@@ -655,6 +717,7 @@ jobs:
    - ✅ No runtime errors in build output
 
 3. **If build fails:**
+
    - ❌ DO NOT commit
    - ❌ DO NOT push
    - ✅ Fix the error locally
@@ -664,6 +727,7 @@ jobs:
 4. **This is non-negotiable** - broken builds break production for all users
 
 **Example workflow:**
+
 ```bash
 # 1. Make changes
 # 2. Test build
@@ -681,24 +745,28 @@ git push
 When encountering complex bugs or issues that require careful investigation:
 
 1. **Create Audit Plan:**
+
    - Create a detailed audit plan in `refs/docs/` (internal, never commit)
    - Document all relevant information from screenshots, console logs, user reports
    - Include problem summary, root cause analysis, and implementation plan
    - Write clear success criteria that can be verified
 
 2. **Test and Capture Context:**
+
    - Test the issue yourself in the browser
    - Capture all relevant context notes (console errors, network requests, state)
    - Document edge cases and error scenarios
    - Add findings to the audit plan
 
 3. **Implement Step-by-Step:**
+
    - Use the audit plan notes to implement fixes step by step
    - Take detailed notes in the audit plan as you go
    - Commit each file change separately so changes can be reviewed carefully
    - Check against success criteria after each step
 
 4. **Test Before Committing:**
+
    - Test carefully before each commit
    - Verify the fix works and doesn't break other functionality
    - Run build to ensure no errors introduced
@@ -710,41 +778,49 @@ When encountering complex bugs or issues that require careful investigation:
    - Document any new patterns discovered
 
 **Example Audit Plan Structure:**
+
 ```markdown
 # Issue Name Audit
 
 ## Problem Summary
+
 - Clear description of the issue
 - Screenshot analysis
 - Console error analysis
 
 ## Root Cause Analysis
+
 - Code locations involved
 - Flow analysis
 - State management issues
 
 ## Success Criteria
+
 - Must have (critical)
 - Should have (important)
 - Nice to have
 
 ## Implementation Plan
+
 - Step 1: [Description]
 - Step 2: [Description]
 - ...
 
 ## Implementation Notes
+
 - Step 1: [Status and findings]
 - Step 2: [Status and findings]
 - ...
 
 ## Testing Checklist
+
 - [ ] Test scenario 1
 - [ ] Test scenario 2
 - ...
 ```
 
 **Key Principles:**
+
 - Go slowly and carefully
 - One fix per commit
 - Test after each change
@@ -756,6 +832,7 @@ When encountering complex bugs or issues that require careful investigation:
 **CRITICAL:** Before debugging transaction failures, always check if the signing wallet has sufficient testnet tokens.
 
 **When to Check:**
+
 - Transaction errors like "gas required exceeds allowance"
 - "Missing or invalid parameters" errors during entity creation
 - Any `eth_estimateGas` failures
@@ -764,28 +841,31 @@ When encountering complex bugs or issues that require careful investigation:
 **How to Check:**
 
 1. **Derive signing wallet address from private key:**
+
    ```typescript
    import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
    import { getPrivateKey } from '@/lib/config';
-   
+
    const privateKey = getPrivateKey();
    const account = privateKeyToAccount(privateKey);
    const signingWalletAddress = account.address;
    ```
 
 2. **Check balance on Mendoza testnet:**
-   - Use Arkiv Explorer: [https://explorer.mendoza.hoodi.arkiv.network](https://explorer.mendoza.hoodi.arkiv.network)
+
+   - Use Arkiv Explorer: [https://explorer.kaolin.hoodi.arkiv.network](https://explorer.kaolin.hoodi.arkiv.network)
    - Search for the signing wallet address
    - Verify balance is sufficient for transactions
 
 3. **If balance is low or zero, use the faucet:**
-   - **Faucet URL pattern:** `https://mendoza.hoodi.arkiv.network/faucet/?address={SIGNING_WALLET_ADDRESS}`
-   - **Example:** `https://mendoza.hoodi.arkiv.network/faucet/?address=0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F`
+   - **Faucet URL pattern:** `https://kaolin.hoodi.arkiv.network/faucet/?address={SIGNING_WALLET_ADDRESS}`
+   - **Example:** `https://kaolin.hoodi.arkiv.network/faucet/?address=0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F`
    - **Manual process only:** Do NOT automate faucet requests to avoid overloading the faucet
    - **Rate limits:** Follow Arkiv's faucet guidelines and rate limits
    - **Amount:** Typically 0.001 ETH test tokens per request
 
 **Important Notes:**
+
 - The signing wallet is the server-side wallet (`ARKIV_PRIVATE_KEY` environment variable)
 - This is separate from user profile wallets (which don't need funds)
 - All server-side entity creation requires the signing wallet to have testnet tokens
@@ -793,23 +873,27 @@ When encountering complex bugs or issues that require careful investigation:
 - Always check balance before assuming code issues
 
 **Quick Check Script:**
+
 ```bash
 # Derive address from private key (for manual faucet use)
-node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts'); const pk = process.env.ARKIV_PRIVATE_KEY; if (!pk) { console.error('ARKIV_PRIVATE_KEY not set'); process.exit(1); } const account = privateKeyToAccount(pk); console.log('Signing wallet address:', account.address); console.log('Faucet URL:', \`https://mendoza.hoodi.arkiv.network/faucet/?address=\${account.address}\`);"
+node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts'); const pk = process.env.ARKIV_PRIVATE_KEY; if (!pk) { console.error('ARKIV_PRIVATE_KEY not set'); process.exit(1); } const account = privateKeyToAccount(pk); console.log('Signing wallet address:', account.address); console.log('Faucet URL:', \`https://kaolin.hoodi.arkiv.network/faucet/?address=\${account.address}\`);"
 ```
 
 **Documentation Reference:**
+
 - See [Wallet Architecture](/docs/betadocs/arkiv/wallet-architecture) for details on profile wallet vs signing wallet
-- See [Mendoza Faucet](https://mendoza.hoodi.arkiv.network/faucet) for testnet token requests
+- See [Mendoza Faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet token requests
 
 ### Testing Standards
 
 1. **Real Data:**
+
    - Test with real Arkiv entities
    - No mock data in production code
    - Verify on-chain when possible
 
 2. **Documentation:**
+
    - Document test procedures
    - Document expected results
    - Document verification steps
@@ -822,6 +906,7 @@ node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts');
 ### Verification Checklist
 
 Before committing:
+
 - [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
 - [ ] **No secrets in code** - grep for passwords, keys, tokens
 - [ ] **No hardcoded credentials as fallbacks** (e.g., `|| 'password'`)
@@ -835,6 +920,7 @@ Before committing:
 - [ ] Changes are auditable
 
 **Pre-commit secret check:**
+
 ```bash
 # Quick check before committing
 grep -r "password.*=.*['\"]" . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=refs
@@ -842,6 +928,7 @@ grep -r "ADMIN_PASSWORD.*||" . --exclude-dir=node_modules --exclude-dir=.git --e
 ```
 
 Before pushing to production:
+
 - [ ] **Build passes (`npm run build` succeeds)** ⚠️ MANDATORY
 - [ ] **Double-check all data for accuracy** (dates, numbers, metrics, references)
 - [ ] Verify all transaction hashes and explorer links
@@ -856,18 +943,21 @@ Before pushing to production:
 ### For AI Agents
 
 **Code Structure:**
+
 - Clear function names and types
 - Explicit error handling
 - Comprehensive type definitions
 - Clear separation of concerns
 
 **Documentation:**
+
 - Inline comments for complex logic
 - Type definitions for all interfaces
 - Clear function signatures
 - Document assumptions and constraints
 
 **Patterns:**
+
 - Follow existing patterns
 - Reuse existing utilities
 - Extend, don't duplicate
@@ -876,12 +966,14 @@ Before pushing to production:
 ### For Human Engineers
 
 **Code Review:**
+
 - Review for clarity and maintainability
 - Check for proper error handling
 - Verify data integrity
 - Ensure documentation is appropriate
 
 **Communication:**
+
 - Clear commit messages
 - Document decisions in code or docs
 - Explain non-obvious choices
@@ -892,6 +984,7 @@ Before pushing to production:
 ### External (Public)
 
 **What to Share:**
+
 - Public APIs and interfaces
 - User-facing documentation
 - Contribution guidelines
@@ -899,6 +992,7 @@ Before pushing to production:
 - Technical architecture (high-level)
 
 **Where:**
+
 - `docs/` directory (committed)
 - README.md
 - Public GitHub repository
@@ -906,6 +1000,7 @@ Before pushing to production:
 ### Internal (Team Only)
 
 **What to Keep Internal (MUST be in `refs/docs/` or `refs/scripts/`):**
+
 - Sprint planning and reviews
 - Internal research and findings
 - Decision-making processes
@@ -918,6 +1013,7 @@ Before pushing to production:
 - **Internal testing procedures and results**
 
 **Where:**
+
 - `refs/docs/` directory (gitignored) - for documentation
 - `refs/scripts/` directory (gitignored) - for test/utility scripts that shouldn't be committed
 - Not committed to repository
@@ -928,6 +1024,7 @@ Before pushing to production:
 **ABSOLUTE RULE:** Never use `git add -f` or `git add --force` to bypass `.gitignore` for any file in `refs/`. If a file needs to be public, move it to `docs/` first, then commit normally.
 
 **Enforcement:**
+
 - All performance testing docs → `refs/docs/`
 - All test scripts that use credentials → `refs/scripts/` or ensure they only use env vars
 - All sprint planning → `refs/docs/`
@@ -979,15 +1076,18 @@ Before pushing to production:
 ### Before Committing
 
 1. **Check documentation location:**
+
    - Public? → `docs/`
    - Internal? → `refs/docs/` (not committed)
 
 2. **Verify data integrity:**
+
    - Real data? ✅
    - Verifiable? ✅
    - No secrets? ✅
 
 3. **Clean code:**
+
    - No commented code
    - No unused imports
    - No debug logs
@@ -1021,17 +1121,20 @@ Is this documentation?
 ### Test Scripts and Utilities
 
 **Location:**
+
 - Public utility scripts: `scripts/` (committed)
 - Internal test scripts: `refs/scripts/` (gitignored, not committed)
 - Or ensure scripts in `scripts/` only use environment variables (no hardcoded values)
 
 **Rules:**
+
 - ✅ Scripts that use credentials MUST only use environment variables
 - ✅ Scripts MUST fail if required env vars are missing (no fallbacks)
 - ❌ NEVER hardcode passwords, keys, or secrets in scripts
 - ❌ NEVER commit test scripts that contain internal procedures or credentials
 
 **Example:**
+
 ```typescript
 // ✅ Correct: Fail if env var missing
 if (!process.env.ADMIN_PASSWORD) {
@@ -1067,7 +1170,6 @@ const password = process.env.ADMIN_PASSWORD || 'hardcoded_password';
 - Share best practices
 - Document patterns
 
-
 ## 14. Arkiv-Native Patterns
 
 ### Core Principle
@@ -1081,22 +1183,24 @@ const password = process.env.ADMIN_PASSWORD || 'hardcoded_password';
 **Why:** Ethereum addresses are case-insensitive, but string comparisons are case-sensitive. Normalizing ensures consistent querying and prevents case-sensitivity bugs.
 
 **Implementation:**
+
 ```typescript
 // ✅ Correct: Normalize when storing
 attributes: [
   { key: 'wallet', value: wallet.toLowerCase() },
   // ...
-]
+];
 
 // ✅ Correct: Normalize when querying
 queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
 
 // ❌ Wrong: Mixed case storage/querying
-attributes: [{ key: 'wallet', value: wallet }]  // May be mixed case
-queryBuilder.where(eq('wallet', wallet))  // May not match!
+attributes: [{ key: 'wallet', value: wallet }]; // May be mixed case
+queryBuilder.where(eq('wallet', wallet)); // May not match!
 ```
 
 **Checklist:**
+
 - [ ] All `create*` functions normalize wallet addresses with `.toLowerCase()`
 - [ ] All `list*ForWallet` functions normalize wallet addresses with `.toLowerCase()`
 - [ ] All queries using wallet addresses normalize them
@@ -1105,30 +1209,27 @@ queryBuilder.where(eq('wallet', wallet))  // May not match!
 ### Query Patterns
 
 **Standard Query Structure:**
+
 ```typescript
 const publicClient = getPublicClient();
 const query = publicClient.buildQuery();
-let queryBuilder = query
-  .where(eq('type', 'entity_type'))
-  .where(eq('wallet', wallet.toLowerCase())); // Normalize!
+let queryBuilder = query.where(eq('type', 'entity_type')).where(eq('wallet', wallet.toLowerCase())); // Normalize!
 
 if (spaceId) {
   queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
 }
 
-const result = await queryBuilder
-  .withAttributes(true)
-  .withPayload(true)
-  .limit(100)
-  .fetch();
+const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
 ```
 
 **Parallel txHash Queries:**
+
 ```typescript
 // Fetch main entities and txHash entities in parallel
 const [result, txHashResult] = await Promise.all([
   queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'entity_type_txhash'))
     .where(eq('wallet', wallet.toLowerCase())) // Normalize!
     .withAttributes(true)
@@ -1139,6 +1240,7 @@ const [result, txHashResult] = await Promise.all([
 ```
 
 **Defensive Checks:**
+
 ```typescript
 // Always check result structure before processing
 if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -1150,6 +1252,7 @@ if (!result || !result.entities || !Array.isArray(result.entities)) {
 ### Entity Creation Patterns
 
 **Standard Create Structure:**
+
 ```typescript
 import { SPACE_ID } from '@/lib/config';
 
@@ -1168,13 +1271,15 @@ export async function createEntity({
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
   const finalSpaceId = spaceId || SPACE_ID; // Always fallback to SPACE_ID
-  
+
   // Wrap in handleTransactionWithTimeout for graceful timeout handling
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        // Payload data (user-facing content)
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          // Payload data (user-facing content)
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'entity_type' },
@@ -1209,14 +1314,17 @@ export async function createEntity({
 ### Attribute vs Payload
 
 **Attributes:** Queryable fields, indexed by Arkiv
+
 - Use for: `type`, `wallet`, `spaceId`, `createdAt`, `status`, filterable fields
 - Keep minimal and normalized (lowercase wallet addresses, consistent formats)
 
 **Payload:** User-facing content, JSON-encoded
+
 - Use for: messages, descriptions, complex objects, large data
 - Not directly queryable, but accessible via `.withPayload(true)`
 
 **Example:**
+
 ```typescript
 attributes: [
   { key: 'type', value: 'offer' },
@@ -1233,6 +1341,7 @@ payload: enc.encode(JSON.stringify({
 ### Error Handling
 
 **Query Errors:**
+
 ```typescript
 try {
   const result = await queryBuilder.fetch();
@@ -1240,27 +1349,30 @@ try {
   console.error('[functionName] Arkiv query failed:', {
     message: fetchError?.message,
     stack: fetchError?.stack,
-    error: fetchError
+    error: fetchError,
   });
   return []; // Return empty array on query failure
 }
 ```
 
 **Transaction Timeouts:**
+
 ```typescript
 // Use handleTransactionWithTimeout for all entity creation
 const result = await handleTransactionWithTimeout(async () => {
-  return await walletClient.createEntity({ /* ... */ });
+  return await walletClient.createEntity({
+    /* ... */
+  });
 });
 
 // Handle timeout gracefully in API routes
 if (isTransactionTimeoutError(error)) {
-  return NextResponse.json({ 
-    ok: true, 
+  return NextResponse.json({
+    ok: true,
     key: null,
     txHash: null,
     pending: true,
-    message: error.message || 'Transaction submitted, confirmation pending'
+    message: error.message || 'Transaction submitted, confirmation pending',
   });
 }
 ```
@@ -1272,18 +1384,22 @@ if (isTransactionTimeoutError(error)) {
 **Why:** Space ID provides data isolation between environments. Hardcoded values cause data leakage and break environment separation.
 
 **Configuration:**
+
 ```typescript
 // lib/config.ts
-export const SPACE_ID = process.env.BETA_SPACE_ID ||
+export const SPACE_ID =
+  process.env.BETA_SPACE_ID ||
   (process.env.NODE_ENV === 'production' ? 'beta-launch' : 'local-dev');
 ```
 
 **Default Behavior:**
+
 - Production (`NODE_ENV === 'production'`): `'beta-launch'`
 - Development: `'local-dev'`
 - Can be overridden via `BETA_SPACE_ID` environment variable
 
 **Entity Creation:**
+
 ```typescript
 // ✅ Correct: Use SPACE_ID from config
 import { SPACE_ID } from '@/lib/config';
@@ -1307,19 +1423,20 @@ export async function createEntity({
 ```
 
 **Entity Mapping (Fallbacks):**
+
 ```typescript
 // ✅ Correct: Fallback to SPACE_ID, never hardcode
-spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID
+spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID;
 
 // ❌ Wrong: Hardcoded fallback
-spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev'
+spaceId: getAttr('spaceId') || payload.spaceId || 'local-dev';
 ```
 
 **Query Filtering:**
+
 ```typescript
 // ✅ Correct: Filter by spaceId for data isolation
-let queryBuilder = publicClient.buildQuery()
-  .where(eq('type', 'entity_type'));
+let queryBuilder = publicClient.buildQuery().where(eq('type', 'entity_type'));
 
 if (spaceId) {
   queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
@@ -1339,6 +1456,7 @@ if (spaceIds && spaceIds.length > 0) {
 ```
 
 **API Routes:**
+
 ```typescript
 // ✅ Correct: Extract spaceId from query params or use SPACE_ID
 const spaceIdParam = searchParams.get('spaceId');
@@ -1348,7 +1466,7 @@ let spaceId: string | undefined;
 let spaceIds: string[] | undefined;
 
 if (builderMode && spaceIdsParam) {
-  spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+  spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
 } else if (spaceIdParam) {
   spaceId = spaceIdParam;
 } else {
@@ -1360,6 +1478,7 @@ const entities = await listEntities({ spaceId, spaceIds });
 ```
 
 **Common Mistakes to Avoid:**
+
 - ❌ `spaceId = 'local-dev'` (hardcoded)
 - ❌ `spaceId: getAttr('spaceId') || 'local-dev'` (hardcoded fallback)
 - ❌ `spaceId: (entity as any).spaceId || 'beta-launch'` (hardcoded fallback)
@@ -1368,6 +1487,7 @@ const entities = await listEntities({ spaceId, spaceIds });
 - ✅ `spaceId: (entity as any).spaceId || SPACE_ID` (config fallback)
 
 **Verification Checklist:**
+
 - [ ] All `create*` functions use `SPACE_ID` as default parameter
 - [ ] All entity mapping fallbacks use `SPACE_ID`, not hardcoded values
 - [ ] All API routes default to `SPACE_ID` when no spaceId provided
@@ -1393,6 +1513,7 @@ Before creating or modifying Arkiv entity functions:
 ### Building Blocks, Not Reinventing
 
 **Principles:**
+
 1. **Use Arkiv's query system:** Don't build custom indexing or filtering
 2. **Compose, don't duplicate:** Reuse patterns across entity types
 3. **Queryable attributes:** Put filterable fields in attributes, not just payload
@@ -1400,6 +1521,7 @@ Before creating or modifying Arkiv entity functions:
 5. **Web3-native:** Build on decentralized infrastructure, not centralized workarounds
 
 **Example of Good Composition:**
+
 ```typescript
 // Reuse wallet normalization helper
 function normalizeWallet(wallet: string): string {
@@ -1409,9 +1531,7 @@ function normalizeWallet(wallet: string): string {
 // Reuse query builder pattern
 function buildWalletQuery(type: string, wallet: string, spaceId?: string) {
   const query = getPublicClient().buildQuery();
-  let builder = query
-    .where(eq('type', type))
-    .where(eq('wallet', normalizeWallet(wallet)));
+  let builder = query.where(eq('type', type)).where(eq('wallet', normalizeWallet(wallet)));
   if (spaceId) {
     builder = builder.where(eq('spaceId', spaceId));
   }
@@ -1422,19 +1542,19 @@ function buildWalletQuery(type: string, wallet: string, spaceId?: string) {
 ### Verify the build before pushing
 
 **What I'll do going forward:**
+
 1. Run `npm run build` and confirm it completes successfully
 2. Run `npx tsc --noEmit` to verify types
 3. Check linter errors
 4. Verify Arkiv-native patterns (wallet normalization, query structure)
 5. Only then push to production
 
-Follow this process for all future changes.
----
+## Follow this process for all future changes.
 
-**Remember:** 
+**Remember:**
+
 - **Public = `docs/` (committed)**
 - **Internal = `refs/docs/` (not committed)**
 - **Code = Clean, verifiable, transparent**
 - **Values = FLOSS + Ethereum principles**
 - **Arkiv-native = Use Arkiv properly, build composable tools**
-

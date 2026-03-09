@@ -10,6 +10,7 @@
 A **GraphQL API** that wraps Arkiv's JSON-RPC indexer, providing a GraphQL interface for querying Arkiv entities.
 
 **Reusable tool** that can be:
+
 - Used by p2pmentor immediately
 - Extracted as standalone service
 - Shared with Arkiv ecosystem
@@ -107,7 +108,7 @@ const data = await graphRequest(`
 ✅ **Type-Safe** - TypeScript throughout  
 ✅ **Reuses Existing Code** - Calls `listAsks()`, `listOffers()`, etc.  
 ✅ **Efficient** - Leverages Arkiv's optimized indexer  
-✅ **Extensible** - Easy to add new queries/types  
+✅ **Extensible** - Easy to add new queries/types
 
 ---
 
@@ -117,19 +118,19 @@ const data = await graphRequest(`
 type Query {
   # Network graph data
   networkOverview(...): NetworkOverview
-  
+
   # Profiles
   profile(wallet: String!): Profile
   profiles(...): [Profile!]!
-  
+
   # Asks
   asks(...): [Ask!]!
   ask(key: String!): Ask
-  
+
   # Offers
   offers(...): [Offer!]!
   offer(key: String!): Offer
-  
+
   # Skills
   skills(...): [SkillRef!]!
   skill(name: String!): SkillRef
@@ -146,12 +147,7 @@ See `lib/graphql/schema.ts` for full schema.
 
 ```graphql
 query {
-  networkOverview(
-    skill: "react"
-    limitAsks: 25
-    limitOffers: 25
-    includeExpired: false
-  ) {
+  networkOverview(skill: "react", limitAsks: 25, limitOffers: 25, includeExpired: false) {
     skillRefs {
       id
       name
@@ -223,11 +219,12 @@ query {
 ✅ GraphQL API implemented  
 ✅ GraphQL client ready (`lib/graph/client.ts`)  
 ✅ Adapter ready (`lib/graph/networkAdapter.ts`)  
-⏸️ Not yet wired into `/network` views  
+⏸️ Not yet wired into `/network` views
 
 ### To Enable
 
 1. Set environment variable:
+
    ```bash
    GRAPH_SUBGRAPH_URL=http://localhost:3000/api/graphql
    USE_SUBGRAPH_FOR_NETWORK=true
@@ -258,11 +255,12 @@ arkiv-graphql/
 ```
 
 **Usage:**
+
 ```typescript
 import { createArkivGraphQLServer } from 'arkiv-graphql';
 
 const server = createArkivGraphQLServer({
-  arkivRpcUrl: 'https://mendoza.hoodi.arkiv.network/rpc',
+  arkivRpcUrl: 'https://kaolin.hoodi.arkiv.network/rpc',
 });
 
 server.listen(4000);
@@ -285,12 +283,14 @@ Deploy to `graphql.arkiv.network` or similar.
 ## For Arkiv Team (DevRel)
 
 **What This Provides:**
+
 - ✅ GraphQL interface for Arkiv (missing piece)
 - ✅ Reference implementation
 - ✅ Can be featured in Arkiv docs
 - ✅ Community contribution opportunity
 
 **Next Steps:**
+
 - Review schema design
 - Consider hosting at `graphql.arkiv.network`
 - Add to official Arkiv examples
@@ -301,12 +301,14 @@ Deploy to `graphql.arkiv.network` or similar.
 ## For The Graph Team
 
 **What This Demonstrates:**
+
 - ✅ Arkiv as data source for GraphQL ecosystem
 - ✅ Integration pattern for The Graph
 - ✅ Reference implementation for Arkiv-based subgraphs
 - ✅ Potential grant opportunity (public good)
 
 **Discussion Points:**
+
 - Is this a valid integration approach?
 - Should we also build full subgraph?
 - Grant application potential?
@@ -352,5 +354,3 @@ const data = await graphRequest('{ networkOverview { skillRefs { name } } }');
 ## Status
 
 **Ready to use!** The GraphQL API is implemented and can be used immediately. It's a practical tool that solves the GraphQL interface need while being reusable and shareable.
-
-

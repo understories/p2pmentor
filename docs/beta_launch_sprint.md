@@ -4,11 +4,11 @@
 **Objective:** Ship a fully functional beta with end-to-end mentorship flow, clean Arkiv integration, mobile-ready UI, safe authentication, and stable UX patterns.
 **Principles:**
 
-* Build slowly and intentionally on Arkiv; **DX feedback must be logged at each step**.
-* Guarantee safety: no real funds, no sensitive data.
-* Architecture first → features second.
-* Mobile-first UI.
-* All code changes must be reproducible, testable, and well-documented.
+- Build slowly and intentionally on Arkiv; **DX feedback must be logged at each step**.
+- Guarantee safety: no real funds, no sensitive data.
+- Architecture first → features second.
+- Mobile-first UI.
+- All code changes must be reproducible, testable, and well-documented.
 
 ---
 
@@ -97,9 +97,9 @@
 
 # 0. **References**
 
-* Original hack: [https://mentor-graph.vercel.app](https://mentor-graph.vercel.app)
-* Repo: [https://github.com/understories/mentor-graph](https://github.com/understories/mentor-graph)
-* UI/UX design reference: [https://github.com/understories/hidden-garden/tree/ui-ux-upgrades](https://github.com/understories/hidden-garden/tree/ui-ux-upgrades)
+- Original hack: [https://mentor-graph.vercel.app](https://mentor-graph.vercel.app)
+- Repo: [https://github.com/understories/mentor-graph](https://github.com/understories/mentor-graph)
+- UI/UX design reference: [https://github.com/understories/hidden-garden/tree/ui-ux-upgrades](https://github.com/understories/hidden-garden/tree/ui-ux-upgrades)
 
 ---
 
@@ -111,8 +111,9 @@
 2. Set up Arkiv SDK both client and server side with testnet.
 3. Authentication system:
 
-   * MetaMask
-   * Ethereum Passkey login
+   - MetaMask
+   - Ethereum Passkey login
+
 4. Mobile-first layout (global responsive scaffolding).
 5. DX tracking document creation: `/docs/dx_arkiv_runbook.md`.
 
@@ -122,18 +123,20 @@
 7. Skills: Add + view + edit (Arkiv entity).
 8. Availability integration:
 
-   * Calendar availability editor
-   * Calendar connection (Google Cal or iCal export)
+   - Calendar availability editor
+   - Calendar connection (Google Cal or iCal export)
+
 9. Asks & Offers:
 
-   * “I am learning”
-   * “I am teaching”
-   * Pricing logic (free/paid + payment receiving address)
+   - “I am learning”
+   - “I am teaching”
+   - Pricing logic (free/paid + payment receiving address)
+
 10. Network graph:
 
-* View network
-* Match asks ↔ offers ↔ skills
-* Filtering
+- View network
+- Match asks ↔ offers ↔ skills
+- Filtering
 
 ### **P2 — Mentorship Session Flow**
 
@@ -143,22 +146,22 @@
 14. Paid flow: requestor enters tx hash → confirmer validates → session confirmed
 15. Jitsi link generation on confirmation
 
-    * optional add-on after other functionalities finished: Livepeer + LiveKit (x402 hook placeholder)
+    - optional add-on after other functionalities finished: Livepeer + LiveKit (x402 hook placeholder)
 
 ### **P3 — Notifications + Feedback**
 
 16. UI-only notifications:
 
-* meeting requests
-* profile matches
-* ask & offer matches
-* new offers
+- meeting requests
+- profile matches
+- ask & offer matches
+- new offers
 
 17. Post-session:
 
-* Technical DX feedback form
-* Mentor/student rating + qualitative notes
-* Session added to mentor & student profile history
+- Technical DX feedback form
+- Mentor/student rating + qualitative notes
+- Session added to mentor & student profile history
 
 ### **P4 — Polish**
 
@@ -210,9 +213,10 @@ This sprint must follow **architecture-first**, **layered implementation**, and 
 ```
 
 /docs
-  dx_arkiv_runbook.md
-  beta_readme_internal.md
-  architecture_overview.md
+dx_arkiv_runbook.md
+beta_readme_internal.md
+architecture_overview.md
+
 ```
 
 ---
@@ -247,10 +251,12 @@ Mirror the patterns from `mentor-graph` repo:
 Example:
 
 ```
+
 arkiv.profile.create(data)
 arkiv.profile.get(id)
 arkiv.profile.query(filters)
-```
+
+````
 
 Add similar for skills, asks, offers, sessions.
 
@@ -285,7 +291,7 @@ In every Arkiv operation:
 * Upon log in, show banner:
   *“Do not use a wallet containing real funds. This is a beta environment.”*
 * For text input fields, show banner:
-  *"Blockchain data is immutable. All data inputted is viewable forever on the [Arkiv explorer](https://explorer.mendoza.hoodi.arkiv.network)."*
+  *"Blockchain data is immutable. All data inputted is viewable forever on the [Arkiv explorer](https://explorer.kaolin.hoodi.arkiv.network)."*
 
 ---
 
@@ -445,20 +451,23 @@ A beta user can:
 1. Install dependencies:
    ```bash
    pnpm install
-   ```
+````
 
 2. Copy environment variables:
+
    ```bash
    cp .env.example .env
    ```
 
 3. Set required environment variables in `.env`:
+
    - `ARKIV_PRIVATE_KEY` (required for example wallet login, optional for server-side operations)
    - `JITSI_BASE_URL` (optional, defaults to https://meet.jit.si)
-   
+
    **Note:** To use the "Log in with Example Wallet" feature, you must set `ARKIV_PRIVATE_KEY` to a valid private key (format: `0x...`). This derives the example wallet address automatically.
 
 4. Run the development server:
+
    ```bash
    pnpm dev
    ```
@@ -468,6 +477,7 @@ A beta user can:
 ## Required Environment Variables
 
 See `.env.example` for the complete list. At minimum for local development:
+
 - No required variables for basic client-side operations
 - `ARKIV_PRIVATE_KEY` required for server-side API routes that create entities
 
@@ -475,4 +485,4 @@ See `.env.example` for the complete list. At minimum for local development:
 
 - This app uses Arkiv testnet (Mendoza chain)
 - Never use wallets with real funds in this beta environment
-- All data written to Arkiv is immutable and viewable on the [Mendoza testnet explorer](https://explorer.mendoza.hoodi.arkiv.network)
+- All data written to Arkiv is immutable and viewable on the [Mendoza testnet explorer](https://explorer.kaolin.hoodi.arkiv.network)

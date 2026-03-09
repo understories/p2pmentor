@@ -15,7 +15,7 @@ flowchart TD
     B1 --> C{"Verification method"}
     B2 --> C
 
-    C -->|"Arkiv Explorer"| D["Open explorer.mendoza.hoodi.arkiv.network"]
+    C -->|"Arkiv Explorer"| D["Open explorer.kaolin.hoodi.arkiv.network"]
     C -->|"p2pmentor Explorer"| E["Open p2pmentor.com/explorer"]
     C -->|"Direct RPC"| F["Query Arkiv RPC with entityKey"]
 
@@ -42,7 +42,7 @@ flowchart TD
 Evidence verification does not depend on p2pmentor API routes. The verification path is:
 
 1. **Get entityKey or txHash** from the `quest_step_progress` entity stored on Arkiv
-2. **Open Arkiv Explorer** at `https://explorer.mendoza.hoodi.arkiv.network`
+2. **Open Arkiv Explorer** at `https://explorer.kaolin.hoodi.arkiv.network`
 3. **Search by entityKey** to view the entity's attributes and payload
 4. **Confirm** that the entity contains the expected evidence structure
 
