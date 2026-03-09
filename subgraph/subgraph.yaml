@@ -1,13 +1,13 @@
 # Mentorship Subgraph Manifest
 # 
-# Subgraph for indexing Arkiv mentorship entities on Mendoza testnet.
+# Subgraph for indexing Arkiv mentorship entities on Kaolin testnet.
 # 
 # Reference: docs/graph_indexing_plan.md
 # 
 # Contract Details (Discovered via transaction inspection):
 # - Main Contract: 0x00000000000000000000000000000061726b6976 (spells "arkiv" in hex)
-# - Network: Mendoza testnet (OP Stack, Chain ID: 60138453056)
-# - RPC: https://mendoza.hoodi.arkiv.network/rpc
+# - Network: Kaolin testnet (OP Stack, Chain ID: 60138453025)
+# - RPC: https://kaolin.hoodi.arkiv.network/rpc
 #
 # Note: Event signatures discovered via transaction analysis.
 # ABI is minimal - may need refinement based on actual contract interface.
@@ -19,7 +19,7 @@ schema:
 dataSources:
   - kind: ethereum
     name: ArkivContract
-    network: mendoza
+    network: kaolin
     source:
       address: "0x00000000000000000000000000000061726b6976"
       abi: ArkivContract
