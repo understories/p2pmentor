@@ -6,54 +6,44 @@
  * Reference: refs/mentor-graph/src/wallet.ts
  */
 
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  http,
-} from "@arkiv-network/sdk";
-import { mendoza } from "@arkiv-network/sdk/chains";
-import "viem/window";
+import { createPublicClient, createWalletClient, custom, http } from '@arkiv-network/sdk';
+import { kaolin } from '@arkiv-network/sdk/chains';
+import 'viem/window';
 import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
- * Switch to Mendoza chain in MetaMask
+ * Switch to Kaolin chain in MetaMask
  *
  * If the chain doesn't exist in MetaMask, it will be added automatically.
  *
  * @throws Error if MetaMask is not installed
  */
-async function switchToMendozaChain() {
+async function switchToKaolinChain() {
   if (!window.ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error('MetaMask not installed');
   }
 
-  const chainIdHex = `0x${mendoza.id.toString(16)}`;
+  const chainIdHex = `0x${kaolin.id.toString(16)}`;
 
   try {
     // Try to switch to the chain
     await window.ethereum.request({
-      method: "wallet_switchEthereumChain",
+      method: 'wallet_switchEthereumChain',
       params: [{ chainId: chainIdHex }],
     });
   } catch (error: unknown) {
     // Chain doesn't exist, add it
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      error.code === 4902
-    ) {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 4902) {
       await window.ethereum.request({
-        method: "wallet_addEthereumChain",
+        method: 'wallet_addEthereumChain',
         params: [
           {
             chainId: chainIdHex,
-            chainName: mendoza.name,
-            nativeCurrency: mendoza.nativeCurrency,
-            rpcUrls: mendoza.rpcUrls.default.http,
-            blockExplorerUrls: [mendoza.blockExplorers.default.url],
+            chainName: kaolin.name,
+            nativeCurrency: kaolin.nativeCurrency,
+            rpcUrls: kaolin.rpcUrls.default.http,
+            blockExplorerUrls: [kaolin.blockExplorers.default.url],
           },
         ],
       });
@@ -72,14 +62,14 @@ async function switchToMendozaChain() {
  */
 export async function disconnectWallet(): Promise<void> {
   if (!window.ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error('MetaMask not installed');
   }
 
   try {
     // Revoke permissions to force account selection on next connect
     // This uses EIP-2255 wallet_revokePermissions
     await window.ethereum.request({
-      method: "wallet_revokePermissions",
+      method: 'wallet_revokePermissions',
       params: [
         {
           eth_accounts: {},
@@ -90,14 +80,14 @@ export async function disconnectWallet(): Promise<void> {
     // If wallet_revokePermissions is not supported, try to clear accounts
     // Some wallets may not support this method, so we silently fail
     // The important part is that we clear localStorage, which we do in logout handlers
-    console.warn("Could not revoke MetaMask permissions:", error);
+    console.warn('Could not revoke MetaMask permissions:', error);
   }
 }
 
 /**
  * Connect to MetaMask and return the connected wallet address
  *
- * Automatically switches to Mendoza testnet chain.
+ * Automatically switches to Kaolin testnet chain.
  * Uses MetaMask SDK for mobile support, falls back to direct window.ethereum for desktop.
  * Forces account selection by revoking existing permissions first (if any),
  * then requesting permissions, which ensures the account selection dialog appears.
@@ -123,7 +113,8 @@ export async function connectWallet(): Promise<`0x${string}`> {
 
   // On desktop with extension, prefer direct window.ethereum to avoid SDK issues
   // SDK is primarily for mobile browsers without window.ethereum
-  const isDesktopWithExtension = typeof window !== 'undefined' && window.ethereum && !isMobileBrowser();
+  const isDesktopWithExtension =
+    typeof window !== 'undefined' && window.ethereum && !isMobileBrowser();
 
   // Try SDK first only on mobile or when window.ethereum is not available
   // SDK automatically handles deep linking on mobile
@@ -135,17 +126,17 @@ export async function connectWallet(): Promise<`0x${string}`> {
         address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
       });
 
-      // Switch to Mendoza chain after connection
+      // Switch to Kaolin chain after connection
       // Note: On mobile, chain switching happens in the MetaMask app
       if (window.ethereum) {
         try {
-          console.log('[MetaMask] Attempting to switch to Mendoza chain');
-          await switchToMendozaChain();
-          console.log('[MetaMask] Successfully switched to Mendoza chain');
+          console.log('[MetaMask] Attempting to switch to Kaolin chain');
+          await switchToKaolinChain();
+          console.log('[MetaMask] Successfully switched to Kaolin chain');
         } catch (error) {
           // Chain switching is not critical - user can switch manually
           // On mobile, user may need to switch in MetaMask app
-          console.warn('[MetaMask] Failed to switch to Mendoza chain:', error);
+          console.warn('[MetaMask] Failed to switch to Kaolin chain:', error);
         }
       }
       return address;
@@ -165,7 +156,9 @@ export async function connectWallet(): Promise<`0x${string}`> {
     }
   } else {
     if (isDesktopWithExtension) {
-      console.log('[MetaMask] Desktop with extension detected, using direct window.ethereum (skipping SDK)');
+      console.log(
+        '[MetaMask] Desktop with extension detected, using direct window.ethereum (skipping SDK)'
+      );
     } else {
       console.log('[MetaMask] SDK not available, using direct window.ethereum');
     }
@@ -175,15 +168,17 @@ export async function connectWallet(): Promise<`0x${string}`> {
   console.log('[MetaMask] Using direct window.ethereum connection');
   if (!window.ethereum) {
     console.error('[MetaMask] window.ethereum not available');
-    throw new Error("No injected wallet provider found in this browser. Install MetaMask (desktop extension) or open this page in the MetaMask mobile browser.");
+    throw new Error(
+      'No injected wallet provider found in this browser. Install MetaMask (desktop extension) or open this page in the MetaMask mobile browser.'
+    );
   }
 
   // First switch to the correct chain
   try {
-    await switchToMendozaChain();
+    await switchToKaolinChain();
   } catch (error) {
     // Chain switching failure is not critical - continue with connection
-    console.warn('Failed to switch to Mendoza chain, continuing with connection:', error);
+    console.warn('Failed to switch to Kaolin chain, continuing with connection:', error);
   }
 
   // CRITICAL: Always force account selection on /auth page
@@ -200,7 +195,7 @@ export async function connectWallet(): Promise<`0x${string}`> {
       // Request permissions explicitly - this will show account selection dialog
       // MetaMask should show the dialog even if permissions already exist when on /auth page
       await window.ethereum.request({
-        method: "wallet_requestPermissions",
+        method: 'wallet_requestPermissions',
         params: [
           {
             eth_accounts: {},
@@ -224,9 +219,8 @@ export async function connectWallet(): Promise<`0x${string}`> {
   } else {
     // Not on /auth page - check if we have a stored wallet address
     // If not, this is a fresh login, so we should revoke permissions first
-    const storedWallet = typeof window !== 'undefined'
-      ? localStorage.getItem('wallet_address')
-      : null;
+    const storedWallet =
+      typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
 
     if (!storedWallet) {
       // Fresh login - request permissions explicitly to show account selection dialog
@@ -235,7 +229,7 @@ export async function connectWallet(): Promise<`0x${string}`> {
       console.log('[MetaMask] Fresh login (no stored wallet), requesting permissions');
       try {
         await window.ethereum.request({
-          method: "wallet_requestPermissions",
+          method: 'wallet_requestPermissions',
           params: [
             {
               eth_accounts: {},
@@ -264,18 +258,20 @@ export async function connectWallet(): Promise<`0x${string}`> {
   // Then request accounts (this will use the selected account from wallet_requestPermissions)
   try {
     console.log('[MetaMask] Requesting accounts via eth_requestAccounts');
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    }) as string[];
+    const accounts = (await window.ethereum.request({
+      method: 'eth_requestAccounts',
+    })) as string[];
 
     console.log('[MetaMask] Accounts received from window.ethereum', {
       count: accounts?.length || 0,
-      firstAccount: accounts?.[0] ? `${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}` : 'None',
+      firstAccount: accounts?.[0]
+        ? `${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}`
+        : 'None',
     });
 
     if (!accounts || accounts.length === 0) {
       console.error('[MetaMask] No accounts returned from window.ethereum');
-      throw new Error("No accounts returned from MetaMask");
+      throw new Error('No accounts returned from MetaMask');
     }
 
     console.log('[MetaMask] Direct connection successful');
@@ -307,20 +303,19 @@ export async function connectWallet(): Promise<`0x${string}`> {
  */
 export function createArkivClients(account?: `0x${string}`) {
   if (!window.ethereum) {
-    throw new Error("MetaMask not installed");
+    throw new Error('MetaMask not installed');
   }
 
   const publicClient = createPublicClient({
-    chain: mendoza,
+    chain: kaolin,
     transport: http(),
   });
 
   const walletClient = createWalletClient({
-    chain: mendoza,
+    chain: kaolin,
     transport: custom(window.ethereum),
     account,
   });
 
   return { publicClient, walletClient };
 }
-
