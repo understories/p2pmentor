@@ -1,15 +1,15 @@
 /**
  * Arkiv Explorer Link Helpers
- * 
+ *
  * Utilities for generating links to view entities on Arkiv Explorer.
  * All entities should have "View on Arkiv" links to teach users about blockchain.
  */
 
-export const ARKIV_EXPLORER_BASE_URL = 'https://explorer.mendoza.hoodi.arkiv.network';
+export const ARKIV_EXPLORER_BASE_URL = 'https://explorer.kaolin.hoodi.arkiv.network';
 
 /**
  * Generate link to view transaction on Arkiv Explorer
- * 
+ *
  * @param txHash - Transaction hash
  * @returns Full URL to transaction on Arkiv Explorer
  */
@@ -19,7 +19,7 @@ export function getArkivExplorerTxUrl(txHash: string): string {
 
 /**
  * Generate link to view entity on Arkiv Explorer
- * 
+ *
  * @param entityKey - Entity key
  * @returns Full URL to entity on Arkiv Explorer
  */
@@ -40,7 +40,7 @@ export interface ViewOnArkivLinkProps {
 /**
  * Generate the appropriate Arkiv Explorer URL
  * Prefers entityKey (for entities), falls back to txHash (for transactions)
- * 
+ *
  * For entities, always use entityKey.
  * For transactions, explicitly pass only txHash.
  */
