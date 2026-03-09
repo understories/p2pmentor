@@ -116,13 +116,13 @@ A full version of a mentorship platform.
 
       **⚠️ Security Warning:** Never share your private key or commit it to version control. The account you create is for **Arkiv Testnet/sandbox use only**. Never use it on any Mainnet.
 
-   2. **Add Mendoza testnet to MetaMask (optional, for testing):**
+   2. **Add Kaolin testnet to MetaMask (optional, for testing):**
 
-      - Network Name: `Mendoza DB-Chain`
-      - RPC URL: `https://mendoza.hoodi.arkiv.network/rpc`
-      - Chain ID: `60138453056`
+      - Network Name: `Kaolin DB-Chain`
+      - RPC URL: `https://kaolin.hoodi.arkiv.network/rpc`
+      - Chain ID: `60138453025`
       - Currency Symbol: `ETH`
-      - Block Explorer: [Mendoza Explorer](https://mendoza-explorer.hoodi.arkiv.network)
+      - Block Explorer: [Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 
       Or use the [Add Network to Wallet](https://arkiv.network/dev) link from the Arkiv dev portal.
 
