@@ -293,7 +293,7 @@ export function AllTransactionsList({
 
   // Build Arkiv explorer address URL
   const arkivExplorerAddressUrl = CURRENT_WALLET
-    ? `https://explorer.mendoza.hoodi.arkiv.network/address/${CURRENT_WALLET}?tab=txs`
+    ? `https://explorer.kaolin.hoodi.arkiv.network/address/${CURRENT_WALLET}?tab=txs`
     : null;
 
   return (

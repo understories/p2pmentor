@@ -1,6 +1,6 @@
 /**
  * Identity Step Component
- * 
+ *
  * Step 1: Create identity (display name + username + optional exploring statement)
  * Username can only be set during onboarding and must be unique.
  */
@@ -52,10 +52,10 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
       try {
         const existingProfiles = await checkUsernameExists(username.trim());
         // Filter out profiles from the same wallet (user can reuse their own username)
-        const otherWalletProfiles = existingProfiles.filter(p => 
-          p.wallet.toLowerCase() !== wallet.toLowerCase()
+        const otherWalletProfiles = existingProfiles.filter(
+          (p) => p.wallet.toLowerCase() !== wallet.toLowerCase()
         );
-        
+
         if (otherWalletProfiles.length > 0) {
           setUsernameError('Username already taken');
         } else {
@@ -79,7 +79,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!displayName.trim()) {
       onError(new Error('Display name is required'));
       return;
@@ -145,65 +145,68 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8">
       <div className="text-center">
-        <div 
-          className={`text-6xl mb-4 transition-all duration-300 ${
+        <div
+          className={`mb-4 text-6xl transition-all duration-300 ${
             displayName.trim() ? 'hg-anim-plant-sparkle' : 'animate-pulse'
           }`}
           style={{
-            filter: displayName.trim() ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))' : 'none',
+            filter: displayName.trim()
+              ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+              : 'none',
           }}
         >
           🌱
         </div>
-        <h2 
-          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        <h2
+          className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
           style={{
             textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
           }}
         >
           Create Your Identity
         </h2>
-        <p 
-          className="text-gray-200 dark:text-gray-300 text-lg drop-shadow-md"
+        <p
+          className="text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
         >
           Your identity is the seed from which everything grows.
         </p>
-        <p 
-          className="text-gray-300 dark:text-gray-400 text-sm mt-3 drop-shadow-md max-w-2xl mx-auto"
+        <p
+          className="mx-auto mt-3 max-w-2xl text-sm text-gray-300 drop-shadow-md dark:text-gray-400"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
         >
-          All data you enter here is stored on the Arkiv network. This means it is visible and verifiable on their{' '}
-          <a 
-            href="http://explorer.mendoza.hoodi.arkiv.network/" 
-            target="_blank" 
+          All data you enter here is stored on the Arkiv network. This means it is visible and
+          verifiable on their{' '}
+          <a
+            href="http://explorer.kaolin.hoodi.arkiv.network/"
+            target="_blank"
             rel="noopener noreferrer"
-            className="text-green-400 hover:text-green-300 underline"
+            className="text-green-400 underline hover:text-green-300"
           >
             Arkiv explorer
           </a>
           . View our own{' '}
-          <a 
-            href="/explorer" 
-            target="_blank" 
+          <a
+            href="/explorer"
+            target="_blank"
             rel="noopener noreferrer"
-            className="text-green-400 hover:text-green-300 underline"
+            className="text-green-400 underline hover:text-green-300"
           >
             p2pmentor explorer here
-          </a>
-          {' '}to demonstrate this. Until we implement encrypted data, your data is NOT private.
+          </a>{' '}
+          to demonstrate this. Until we implement encrypted data, your data is NOT private.
           <br />
-          <a 
-            href="/docs/arkiv/overview" 
-            target="_blank" 
+          <a
+            href="/docs/arkiv/overview"
+            target="_blank"
             rel="noopener noreferrer"
-            className="text-green-400 hover:text-green-300 underline"
+            className="text-green-400 underline hover:text-green-300"
           >
             Learn more about Arkiv here
           </a>
@@ -218,7 +221,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
               query={[
                 `Display Name Input`,
                 `Stored as: attribute='displayName' on user_profile entity`,
-                `Required field for profile creation`
+                `Required field for profile creation`,
               ]}
               label="Display Name"
             >
@@ -230,7 +233,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
                 placeholder="How should we call you?"
                 required
                 autoFocus
-                className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
+                className="w-full rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
                 disabled={isSubmitting}
               />
             </ArkivQueryTooltip>
@@ -243,7 +246,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
               placeholder="How should we call you?"
               required
               autoFocus
-              className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
+              className="w-full rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
               disabled={isSubmitting}
             />
           )}
@@ -259,7 +262,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
                 `Returns: All profiles with this username`,
                 `Uniqueness: Filters out profiles from same wallet`,
                 `Stored as: attribute='username' on user_profile entity`,
-                `Note: Username can only be set during onboarding`
+                `Note: Username can only be set during onboarding`,
               ]}
               label="Username"
             >
@@ -276,12 +279,12 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
                   required
                   maxLength={20}
                   minLength={3}
-                  className={`w-full px-6 py-4 text-lg border-2 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 transition-all shadow-lg ${
+                  className={`w-full rounded-xl border-2 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:ring-2 dark:bg-gray-900/90 dark:text-gray-100 ${
                     usernameError
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                       : username.trim() && !usernameError && !isCheckingUsername
-                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-                      : 'border-white/30 dark:border-white/20 focus:border-green-500 focus:ring-green-500'
+                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                        : 'border-white/30 focus:border-green-500 focus:ring-green-500 dark:border-white/20'
                   }`}
                   disabled={isSubmitting}
                 />
@@ -311,12 +314,12 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
                 required
                 maxLength={20}
                 minLength={3}
-                className={`w-full px-6 py-4 text-lg border-2 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 transition-all shadow-lg ${
+                className={`w-full rounded-xl border-2 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:ring-2 dark:bg-gray-900/90 dark:text-gray-100 ${
                   usernameError
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : username.trim() && !usernameError && !isCheckingUsername
-                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-                    : 'border-white/30 dark:border-white/20 focus:border-green-500 focus:ring-green-500'
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                      : 'border-white/30 focus:border-green-500 focus:ring-green-500 dark:border-white/20'
                 }`}
                 disabled={isSubmitting}
               />
@@ -333,8 +336,8 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
             </div>
           )}
           {usernameError && (
-            <p 
-              className="text-xs text-red-300 dark:text-red-400 mt-2 drop-shadow-md"
+            <p
+              className="mt-2 text-xs text-red-300 drop-shadow-md dark:text-red-400"
               style={{
                 textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
               }}
@@ -343,8 +346,8 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
             </p>
           )}
           {!usernameError && username.trim() && (
-            <p 
-              className="text-xs text-gray-200 dark:text-gray-300 mt-2 drop-shadow-md"
+            <p
+              className="mt-2 text-xs text-gray-200 drop-shadow-md dark:text-gray-300"
               style={{
                 textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
               }}
@@ -362,11 +365,11 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
             placeholder="What are you exploring? (optional)"
             rows={2}
             maxLength={200}
-            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all resize-none shadow-lg"
+            className="w-full resize-none rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
             disabled={isSubmitting}
           />
-          <p 
-            className="text-xs text-gray-200 dark:text-gray-300 mt-2 text-right drop-shadow-md"
+          <p
+            className="mt-2 text-right text-xs text-gray-200 drop-shadow-md dark:text-gray-300"
             style={{
               textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
             }}
@@ -388,14 +391,14 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
               `3. Creates: type='user_profile' entity`,
               `   → Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', displayName, username, timezone`,
               `   → Payload: Full profile data (bio, bioShort, etc.)`,
-              `   → TTL: 1 year (31536000 seconds)`
+              `   → TTL: 1 year (31536000 seconds)`,
             ]}
             label="Continue"
           >
             <button
               type="submit"
               disabled={!displayName.trim() || !username.trim() || !!usernameError || isSubmitting}
-              className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+              className="w-full rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -411,7 +414,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           <button
             type="submit"
             disabled={!displayName.trim() || !username.trim() || !!usernameError || isSubmitting}
-            className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            className="w-full rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">

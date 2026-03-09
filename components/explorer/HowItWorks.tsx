@@ -1,6 +1,6 @@
 /**
  * How It Works Component
- * 
+ *
  * Accordion FAQ explaining how the explorer works.
  */
 
@@ -16,78 +16,83 @@ export function HowItWorks() {
   };
 
   return (
-    <div className="mt-12 border-t border-gray-200 dark:border-gray-700 pt-8">
-      <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">How This Works</h2>
+    <div className="mt-12 border-t border-gray-200 pt-8 dark:border-gray-700">
+      <h2 className="mb-6 text-2xl font-bold text-gray-900 dark:text-gray-100">How This Works</h2>
       <div className="space-y-3">
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
           <button
             onClick={() => toggleSection('data')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:hover:bg-gray-700/50"
           >
-            <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
               <span className="text-lg">📊</span>
               What data is shown?
             </span>
-            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'data' ? 'rotate-180' : ''}`}>
+            <span
+              className={`text-xl font-light text-gray-500 transition-transform dark:text-gray-400 ${openSection === 'data' ? 'rotate-180' : ''}`}
+            >
               {openSection === 'data' ? '−' : '+'}
             </span>
           </button>
           {openSection === 'data' && (
-            <div className="px-5 pb-4 text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-200 px-5 pb-4 pt-4 text-gray-600 dark:border-gray-700 dark:text-gray-400">
               <p>
-                The explorer shows all p2pmentor records stored on Arkiv. This includes
-                profiles (display name, bio, skills, contact links), asks, offers, and skills.
-                All data stored on Arkiv is visible here and verifiable via transaction hashes.
-                Email addresses are not stored on Arkiv, so they are not shown.
+                The explorer shows all p2pmentor records stored on Arkiv. This includes profiles
+                (display name, bio, skills, contact links), asks, offers, and skills. All data
+                stored on Arkiv is visible here and verifiable via transaction hashes. Email
+                addresses are not stored on Arkiv, so they are not shown.
               </p>
             </div>
           )}
         </div>
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
           <button
             onClick={() => toggleSection('source')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:hover:bg-gray-700/50"
           >
-            <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
               <span className="text-lg">🔗</span>
               Where does the data come from?
             </span>
-            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'source' ? 'rotate-180' : ''}`}>
+            <span
+              className={`text-xl font-light text-gray-500 transition-transform dark:text-gray-400 ${openSection === 'source' ? 'rotate-180' : ''}`}
+            >
               {openSection === 'source' ? '−' : '+'}
             </span>
           </button>
           {openSection === 'source' && (
-            <div className="px-5 pb-4 text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-200 px-5 pb-4 pt-4 text-gray-600 dark:border-gray-700 dark:text-gray-400">
               <p>
-                All data comes from Arkiv, a blockchain-native storage system. Each entity
-                has a transaction hash that can be verified on the Mendoza blockchain
-                explorer. The data doesn't depend on a private p2pmentor database as the
-                source of truth.
+                All data comes from Arkiv, a blockchain-native storage system. Each entity has a
+                transaction hash that can be verified on the Kaolin blockchain explorer. The data
+                doesn't depend on a private p2pmentor database as the source of truth.
               </p>
             </div>
           )}
         </div>
 
-        <div className="border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 overflow-hidden shadow-sm hover:shadow-md transition-all">
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-all hover:shadow-md dark:border-gray-700 dark:bg-gray-800">
           <button
             onClick={() => toggleSection('verification')}
-            className="w-full px-5 py-4 text-left flex justify-between items-center hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-inset"
+            className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 dark:hover:bg-gray-700/50"
           >
-            <span className="font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+            <span className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
               <span className="text-lg">✓</span>
               How can I verify the data?
             </span>
-            <span className={`text-gray-500 dark:text-gray-400 text-xl font-light transition-transform ${openSection === 'verification' ? 'rotate-180' : ''}`}>
+            <span
+              className={`text-xl font-light text-gray-500 transition-transform dark:text-gray-400 ${openSection === 'verification' ? 'rotate-180' : ''}`}
+            >
               {openSection === 'verification' ? '−' : '+'}
             </span>
           </button>
           {openSection === 'verification' && (
-            <div className="px-5 pb-4 text-gray-600 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 pt-4">
+            <div className="border-t border-gray-200 px-5 pb-4 pt-4 text-gray-600 dark:border-gray-700 dark:text-gray-400">
               <p>
-                Each entity includes a transaction hash and block number. Click the
-                "View on Arkiv" link to view the transaction on the Mendoza blockchain
-                explorer. You can verify that the data matches what's stored on-chain.
+                Each entity includes a transaction hash and block number. Click the "View on Arkiv"
+                link to view the transaction on the Kaolin blockchain explorer. You can verify that
+                the data matches what's stored on-chain.
               </p>
             </div>
           )}
@@ -96,4 +101,3 @@ export function HowItWorks() {
     </div>
   );
 }
-

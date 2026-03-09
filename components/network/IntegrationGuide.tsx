@@ -1,6 +1,6 @@
 /**
  * Integration Guide Component
- * 
+ *
  * Step-by-step technical guide for connecting Arkiv to GraphQL
  * Written for both Arkiv and The Graph engineering teams
  */
@@ -13,19 +13,17 @@ export function IntegrationGuide() {
       {/* Step 1: Setup */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             1
           </div>
           <h4 className="font-semibold text-gray-900 dark:text-gray-100">Install Dependencies</h4>
         </div>
         <div className="ml-8 space-y-1">
-          <p className="text-gray-700 dark:text-gray-300">
-            Add GraphQL libraries to your project:
-          </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <p className="text-gray-700 dark:text-gray-300">Add GraphQL libraries to your project:</p>
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => navigator.clipboard.writeText('pnpm add graphql graphql-http')}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -38,16 +36,18 @@ export function IntegrationGuide() {
       {/* Step 2: Create GraphQL Schema */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             2
           </div>
           <h4 className="font-semibold text-gray-900 dark:text-gray-100">Define GraphQL Schema</h4>
         </div>
         <div className="ml-8 space-y-1">
           <p className="text-gray-700 dark:text-gray-300">
-            Create <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">lib/graphql/schema.ts</code> matching your Arkiv entity structure:
+            Create{' '}
+            <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">lib/graphql/schema.ts</code>{' '}
+            matching your Arkiv entity structure:
           </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => {
                 const schema = `type Query {
@@ -66,7 +66,7 @@ type SkillRef {
 }`;
                 navigator.clipboard.writeText(schema);
               }}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -92,16 +92,20 @@ type SkillRef {
       {/* Step 3: Implement Resolvers */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             3
           </div>
           <h4 className="font-semibold text-gray-900 dark:text-gray-100">Implement Resolvers</h4>
         </div>
         <div className="ml-8 space-y-1">
           <p className="text-gray-700 dark:text-gray-300">
-            Create <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">lib/graphql/resolvers.ts</code> that calls your existing Arkiv helpers:
+            Create{' '}
+            <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
+              lib/graphql/resolvers.ts
+            </code>{' '}
+            that calls your existing Arkiv helpers:
           </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => {
                 const resolver = `import { listAsks, listOffers } from '@/lib/arkiv/asks';
@@ -122,7 +126,7 @@ export const resolvers = {
 };`;
                 navigator.clipboard.writeText(resolver);
               }}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -144,8 +148,9 @@ export const resolvers = {
   },
 };`}</code>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-[10px] mt-1">
-            <strong>Key point:</strong> Resolvers reuse your existing Arkiv query functions. No new data fetching logic needed.
+          <p className="mt-1 text-[10px] text-gray-600 dark:text-gray-400">
+            <strong>Key point:</strong> Resolvers reuse your existing Arkiv query functions. No new
+            data fetching logic needed.
           </p>
         </div>
       </div>
@@ -153,16 +158,22 @@ export const resolvers = {
       {/* Step 4: Create API Route */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             4
           </div>
-          <h4 className="font-semibold text-gray-900 dark:text-gray-100">Create GraphQL Endpoint</h4>
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+            Create GraphQL Endpoint
+          </h4>
         </div>
         <div className="ml-8 space-y-1">
           <p className="text-gray-700 dark:text-gray-300">
-            Create <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">app/api/graphql/route.ts</code>:
+            Create{' '}
+            <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
+              app/api/graphql/route.ts
+            </code>
+            :
           </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => {
                 const route = `import { buildSchema } from 'graphql';
@@ -178,7 +189,7 @@ export async function POST(request: Request) {
 }`;
                 navigator.clipboard.writeText(route);
               }}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -201,16 +212,20 @@ export async function POST(request: Request) {
       {/* Step 5: GraphQL Client (Optional) */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             5
           </div>
-          <h4 className="font-semibold text-gray-900 dark:text-gray-100">Create GraphQL Client (Optional)</h4>
+          <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+            Create GraphQL Client (Optional)
+          </h4>
         </div>
         <div className="ml-8 space-y-1">
           <p className="text-gray-700 dark:text-gray-300">
-            Create <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">lib/graph/client.ts</code> for typed GraphQL requests:
+            Create{' '}
+            <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">lib/graph/client.ts</code>{' '}
+            for typed GraphQL requests:
           </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => {
                 const client = `export async function graphRequest<T>(
@@ -229,7 +244,7 @@ export async function POST(request: Request) {
 }`;
                 navigator.clipboard.writeText(client);
               }}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -255,7 +270,7 @@ export async function POST(request: Request) {
       {/* Step 6: Query from Client */}
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-semibold">
+          <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-blue-500 text-xs font-semibold text-white">
             6
           </div>
           <h4 className="font-semibold text-gray-900 dark:text-gray-100">Query from Your App</h4>
@@ -264,7 +279,7 @@ export async function POST(request: Request) {
           <p className="text-gray-700 dark:text-gray-300">
             Use the client to query your GraphQL endpoint:
           </p>
-          <div className="bg-gray-900 p-3 rounded font-mono text-xs text-gray-300 overflow-x-auto relative group">
+          <div className="group relative overflow-x-auto rounded bg-gray-900 p-3 font-mono text-xs text-gray-300">
             <button
               onClick={() => {
                 const query = `import { graphRequest } from '@/lib/graph/client';
@@ -285,7 +300,7 @@ const data = await graphRequest(\`
 \`);`;
                 navigator.clipboard.writeText(query);
               }}
-              className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
               title="Copy"
             >
               Copy
@@ -311,9 +326,9 @@ const data = await graphRequest(\`
       </div>
 
       {/* Architecture Diagram */}
-      <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2 text-xs">Data Flow</h4>
-        <div className="space-y-1 text-[10px] font-mono text-gray-700 dark:text-gray-300">
+      <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
+        <h4 className="mb-2 text-xs font-semibold text-gray-900 dark:text-gray-100">Data Flow</h4>
+        <div className="space-y-1 font-mono text-[10px] text-gray-700 dark:text-gray-300">
           <div>GraphQL Client</div>
           <div className="text-center">↓ POST /api/graphql</div>
           <div>GraphQL Resolvers</div>
@@ -326,27 +341,61 @@ const data = await graphRequest(\`
 
       {/* Architecture Notes */}
       <div className="mt-4 space-y-3">
-        <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-          <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-2 text-xs">For Arkiv Engineers</h4>
+        <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+          <h4 className="mb-2 text-xs font-semibold text-blue-800 dark:text-blue-200">
+            For Arkiv Engineers
+          </h4>
           <ul className="space-y-1 text-[10px] text-gray-700 dark:text-gray-300">
-            <li>• <strong>Zero changes to Arkiv:</strong> GraphQL layer sits on top of existing JSON-RPC</li>
-            <li>• <strong>Reuses your SDK:</strong> Resolvers call <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">listAsks()</code>, <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">listOffers()</code> from <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">@arkiv-network/sdk</code></li>
-            <li>• <strong>Same data source:</strong> Queries still hit <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">https://mendoza.hoodi.arkiv.network/rpc</code></li>
-            <li>• <strong>Performance:</strong> No additional indexing - leverages your optimized indexer</li>
+            <li>
+              • <strong>Zero changes to Arkiv:</strong> GraphQL layer sits on top of existing
+              JSON-RPC
+            </li>
+            <li>
+              • <strong>Reuses your SDK:</strong> Resolvers call{' '}
+              <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">listAsks()</code>,{' '}
+              <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">listOffers()</code> from{' '}
+              <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">@arkiv-network/sdk</code>
+            </li>
+            <li>
+              • <strong>Same data source:</strong> Queries still hit{' '}
+              <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
+                https://kaolin.hoodi.arkiv.network/rpc
+              </code>
+            </li>
+            <li>
+              • <strong>Performance:</strong> No additional indexing - leverages your optimized
+              indexer
+            </li>
           </ul>
         </div>
 
-        <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg border border-emerald-200 dark:border-emerald-800">
-          <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2 text-xs">For The Graph Engineers</h4>
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+          <h4 className="mb-2 text-xs font-semibold text-emerald-800 dark:text-emerald-200">
+            For The Graph Engineers
+          </h4>
           <ul className="space-y-1 text-[10px] text-gray-700 dark:text-gray-300">
-            <li>• <strong>Integration pattern:</strong> Shows how to wrap non-GraphQL APIs with GraphQL</li>
-            <li>• <strong>Subgraph reference:</strong> Schema design matches subgraph patterns (see <code className="bg-gray-200 dark:bg-gray-700 px-1 rounded">subgraph/schema.graphql</code>)</li>
-            <li>• <strong>Future path:</strong> Can evolve to full subgraph once Arkiv contract events are indexed</li>
-            <li>• <strong>Ecosystem growth:</strong> Enables GraphQL tooling (Apollo, Relay) for Arkiv apps</li>
+            <li>
+              • <strong>Integration pattern:</strong> Shows how to wrap non-GraphQL APIs with
+              GraphQL
+            </li>
+            <li>
+              • <strong>Subgraph reference:</strong> Schema design matches subgraph patterns (see{' '}
+              <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
+                subgraph/schema.graphql
+              </code>
+              )
+            </li>
+            <li>
+              • <strong>Future path:</strong> Can evolve to full subgraph once Arkiv contract events
+              are indexed
+            </li>
+            <li>
+              • <strong>Ecosystem growth:</strong> Enables GraphQL tooling (Apollo, Relay) for Arkiv
+              apps
+            </li>
           </ul>
         </div>
       </div>
     </div>
   );
 }
-
