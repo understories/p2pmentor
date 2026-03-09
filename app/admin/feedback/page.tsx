@@ -1,9 +1,9 @@
 /**
  * Admin Feedback View
- * 
+ *
  * Displays app feedback from users (for builders/admin).
  * Separate from session feedback (peer-to-peer).
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 4.1
  */
 
@@ -38,17 +38,25 @@ export default function AdminFeedbackPage() {
   const [allFeedbacks, setAllFeedbacks] = useState<AppFeedback[]>([]);
   const [filterPage, setFilterPage] = useState('');
   const [filterSince, setFilterSince] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'resolved' | 'responded' | 'waiting'>('all');
+  const [filterStatus, setFilterStatus] = useState<
+    'all' | 'pending' | 'resolved' | 'responded' | 'waiting'
+  >('all');
   const [filterType, setFilterType] = useState<'all' | 'feedback' | 'issue'>('all');
   const [filterRating, setFilterRating] = useState<'all' | '1' | '2' | '3' | '4' | '5'>('all');
   const [respondingTo, setRespondingTo] = useState<AppFeedback | null>(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [submittingResponse, setSubmittingResponse] = useState(false);
   const [resolvingFeedback, setResolvingFeedback] = useState<string | null>(null);
-  const [viewingResponse, setViewingResponse] = useState<{ message: string; createdAt: string; adminWallet: string } | null>(null);
+  const [viewingResponse, setViewingResponse] = useState<{
+    message: string;
+    createdAt: string;
+    adminWallet: string;
+  } | null>(null);
   const [loadingResponse, setLoadingResponse] = useState(false);
   const [creatingGitHubIssue, setCreatingGitHubIssue] = useState<string | null>(null);
-  const [githubIssueLinks, setGithubIssueLinks] = useState<Record<string, { issueNumber: number; issueUrl: string }>>({});
+  const [githubIssueLinks, setGithubIssueLinks] = useState<
+    Record<string, { issueNumber: number; issueUrl: string }>
+  >({});
   const [resolvingIssue, setResolvingIssue] = useState<AppFeedback | null>(null);
   const [resolutionNote, setResolutionNote] = useState('');
   const [expandedMessages, setExpandedMessages] = useState<Set<string>>(new Set());
@@ -79,7 +87,7 @@ export default function AdminFeedbackPage() {
 
     // Status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(f => {
+      filtered = filtered.filter((f) => {
         if (filterStatus === 'pending') {
           // Pending: issues that are not resolved
           return f.feedbackType === 'issue' && !f.resolved;
@@ -102,12 +110,12 @@ export default function AdminFeedbackPage() {
 
     // Type filter
     if (filterType !== 'all') {
-      filtered = filtered.filter(f => f.feedbackType === filterType);
+      filtered = filtered.filter((f) => f.feedbackType === filterType);
     }
 
     // Rating filter
     if (filterRating !== 'all') {
-      filtered = filtered.filter(f => f.rating === parseInt(filterRating));
+      filtered = filtered.filter((f) => f.rating === parseInt(filterRating));
     }
 
     setFeedbacks(filtered);
@@ -204,7 +212,9 @@ export default function AdminFeedbackPage() {
     if (feedback.hasResponse) {
       setLoadingResponse(true);
       try {
-        const res = await fetch(`/api/admin/response?feedbackKey=${encodeURIComponent(feedback.key)}`);
+        const res = await fetch(
+          `/api/admin/response?feedbackKey=${encodeURIComponent(feedback.key)}`
+        );
         const data = await res.json();
         if (data.ok && data.responses && data.responses.length > 0) {
           // Get the most recent response
@@ -246,9 +256,8 @@ export default function AdminFeedbackPage() {
     setSubmittingResponse(true);
     try {
       // Get admin wallet from localStorage or use a default
-      const adminWallet = typeof window !== 'undefined'
-        ? localStorage.getItem('wallet_address') || 'admin'
-        : 'admin';
+      const adminWallet =
+        typeof window !== 'undefined' ? localStorage.getItem('wallet_address') || 'admin' : 'admin';
 
       // Add timeout to prevent hanging
       const controller = new AbortController();
@@ -281,7 +290,9 @@ export default function AdminFeedbackPage() {
     } catch (err: any) {
       console.error('Error submitting response:', err);
       if (err.name === 'AbortError') {
-        alert('Request timed out. The response may have been submitted. Please refresh the page to check.');
+        alert(
+          'Request timed out. The response may have been submitted. Please refresh the page to check.'
+        );
       } else {
         alert(err.message || 'Failed to submit response');
       }
@@ -316,7 +327,7 @@ export default function AdminFeedbackPage() {
       }
 
       // Update local state
-      setGithubIssueLinks(prev => ({
+      setGithubIssueLinks((prev) => ({
         ...prev,
         [feedback.key]: {
           issueNumber: data.issueNumber,
@@ -356,9 +367,8 @@ export default function AdminFeedbackPage() {
     console.log('[confirmResolveFeedback] Starting resolution for issue:', resolvingIssue.key);
     setResolvingFeedback(resolvingIssue.key);
     try {
-      const adminWallet = typeof window !== 'undefined'
-        ? localStorage.getItem('wallet_address') || 'admin'
-        : 'admin';
+      const adminWallet =
+        typeof window !== 'undefined' ? localStorage.getItem('wallet_address') || 'admin' : 'admin';
 
       console.log('[confirmResolveFeedback] Admin wallet:', adminWallet);
 
@@ -384,19 +394,27 @@ export default function AdminFeedbackPage() {
       console.log('[confirmResolveFeedback] Arkiv resolution response status:', res.status);
       const data = await res.json();
       console.log('[confirmResolveFeedback] Arkiv resolution response data:', data);
-      
+
       if (!res.ok) {
         throw new Error(data.error || 'Failed to resolve feedback');
       }
 
-      console.log('[confirmResolveFeedback] Arkiv resolution successful. Resolution key:', data.key, 'txHash:', data.txHash);
+      console.log(
+        '[confirmResolveFeedback] Arkiv resolution successful. Resolution key:',
+        data.key,
+        'txHash:',
+        data.txHash
+      );
 
       // Also close GitHub issue if it exists
       const issueLink = githubIssueLinks[resolvingIssue.key];
       console.log('[confirmResolveFeedback] Checking for GitHub issue link:', issueLink);
-      
+
       if (issueLink) {
-        console.log('[confirmResolveFeedback] Found GitHub issue link. Issue #:', issueLink.issueNumber);
+        console.log(
+          '[confirmResolveFeedback] Found GitHub issue link. Issue #:',
+          issueLink.issueNumber
+        );
         try {
           const githubController = new AbortController();
           const githubTimeoutId = setTimeout(() => githubController.abort(), 30000); // 30 second timeout for GitHub
@@ -407,7 +425,10 @@ export default function AdminFeedbackPage() {
             resolutionKey: data.key,
             txHash: data.txHash,
           };
-          console.log('[confirmResolveFeedback] Calling /api/github/close-issue with payload:', githubPayload);
+          console.log(
+            '[confirmResolveFeedback] Calling /api/github/close-issue with payload:',
+            githubPayload
+          );
 
           const githubRes = await fetch('/api/github/close-issue', {
             method: 'PATCH',
@@ -418,12 +439,18 @@ export default function AdminFeedbackPage() {
 
           clearTimeout(githubTimeoutId);
 
-          console.log('[confirmResolveFeedback] GitHub close-issue response status:', githubRes.status);
+          console.log(
+            '[confirmResolveFeedback] GitHub close-issue response status:',
+            githubRes.status
+          );
           const githubData = await githubRes.json();
           console.log('[confirmResolveFeedback] GitHub close-issue response data:', githubData);
-          
+
           if (!githubRes.ok) {
-            console.error('[confirmResolveFeedback] Failed to close GitHub issue:', githubData.error);
+            console.error(
+              '[confirmResolveFeedback] Failed to close GitHub issue:',
+              githubData.error
+            );
             // Continue anyway - Arkiv resolution is more important
           } else {
             console.log('[confirmResolveFeedback] GitHub issue closed successfully!');
@@ -431,21 +458,25 @@ export default function AdminFeedbackPage() {
         } catch (githubErr: any) {
           console.error('[confirmResolveFeedback] Error closing GitHub issue:', githubErr);
           if (githubErr.name === 'AbortError') {
-            console.warn('[confirmResolveFeedback] GitHub close-issue request timed out, but Arkiv resolution succeeded');
+            console.warn(
+              '[confirmResolveFeedback] GitHub close-issue request timed out, but Arkiv resolution succeeded'
+            );
           } else {
             console.warn('[confirmResolveFeedback] Error closing GitHub issue:', githubErr);
           }
           // Continue anyway - Arkiv resolution succeeded
         }
       } else {
-        console.log('[confirmResolveFeedback] No GitHub issue link found for this feedback - resolution completed on Arkiv only');
+        console.log(
+          '[confirmResolveFeedback] No GitHub issue link found for this feedback - resolution completed on Arkiv only'
+        );
       }
 
       // Success message - Arkiv resolution is always the primary action
-      const successMessage = issueLink 
+      const successMessage = issueLink
         ? 'Issue marked as resolved on Arkiv and GitHub issue closed!'
         : 'Issue marked as resolved on Arkiv!';
-      
+
       console.log('[confirmResolveFeedback] ✅ Resolution completed successfully:', successMessage);
       alert(successMessage);
       setResolvingIssue(null);
@@ -454,7 +485,9 @@ export default function AdminFeedbackPage() {
     } catch (err: any) {
       console.error('[confirmResolveFeedback] Error resolving feedback:', err);
       if (err.name === 'AbortError') {
-        alert('Request timed out. The issue may have been resolved. Please refresh the page to check.');
+        alert(
+          'Request timed out. The issue may have been resolved. Please refresh the page to check.'
+        );
       } else {
         alert(err.message || 'Failed to resolve feedback');
       }
@@ -466,9 +499,9 @@ export default function AdminFeedbackPage() {
 
   if (loading && !authenticated) {
     return (
-      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
+      <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
         <div className="flex items-center justify-center">
-          <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400"></div>
         </div>
       </main>
     );
@@ -479,27 +512,25 @@ export default function AdminFeedbackPage() {
   }
 
   return (
-    <main className="h-screen flex flex-col text-gray-900 dark:text-gray-100 overflow-hidden">
-      <div className="flex-1 flex flex-col max-w-[1920px] mx-auto w-full p-6 overflow-hidden">
-        <div className="flex-shrink-0 mb-6 flex items-center justify-between">
+    <main className="flex h-screen flex-col overflow-hidden text-gray-900 dark:text-gray-100">
+      <div className="mx-auto flex w-full max-w-[1920px] flex-1 flex-col overflow-hidden p-6">
+        <div className="mb-6 flex flex-shrink-0 items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-              App Feedback
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50">App Feedback</h1>
+            <p className="mt-2 text-gray-600 dark:text-gray-400">
               User feedback about the app (for builders/admin)
             </p>
           </div>
           <div className="flex gap-4">
             <Link
               href="/admin"
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
+              className="px-4 py-2 text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
             >
               Dashboard
             </Link>
             <button
               onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              className="rounded-lg bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-700"
             >
               Logout
             </button>
@@ -507,32 +538,38 @@ export default function AdminFeedbackPage() {
         </div>
 
         {/* Filters */}
-        <div className="flex-shrink-0 mb-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div className="mb-4 grid flex-shrink-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Page</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Page
+            </label>
             <input
               type="text"
               value={filterPage}
               onChange={(e) => setFilterPage(e.target.value)}
               placeholder="e.g., /network, /me"
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Since Date</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Since Date
+            </label>
             <input
               type="date"
               value={filterSince}
               onChange={(e) => setFilterSince(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Status</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Status
+            </label>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value as any)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
@@ -542,11 +579,13 @@ export default function AdminFeedbackPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Type</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Type
+            </label>
             <select
               value={filterType}
               onChange={(e) => setFilterType(e.target.value as any)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
               <option value="all">All</option>
               <option value="issue">Issue</option>
@@ -554,11 +593,13 @@ export default function AdminFeedbackPage() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Rating</label>
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Rating
+            </label>
             <select
               value={filterRating}
               onChange={(e) => setFilterRating(e.target.value as any)}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             >
               <option value="all">All</option>
               <option value="5">5 Stars</option>
@@ -577,7 +618,7 @@ export default function AdminFeedbackPage() {
                 setFilterType('all');
                 setFilterRating('all');
               }}
-              className="w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+              className="w-full rounded-lg bg-gray-100 px-4 py-2 text-sm text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
             >
               Clear All
             </button>
@@ -585,7 +626,7 @@ export default function AdminFeedbackPage() {
         </div>
 
         {/* Feedback Table */}
-        <div className="flex-1 flex flex-col bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden min-h-0">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-lg bg-gray-50 dark:bg-gray-800">
           {feedbacks.length > 0 ? (
             <div className="flex-1 overflow-auto">
               <table className="w-full">
@@ -609,20 +650,22 @@ export default function AdminFeedbackPage() {
                         {new Date(feedback.createdAt).toLocaleDateString()}
                       </td>
                       <td className="px-4 py-2 text-sm">
-                        <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                          feedback.feedbackType === 'issue'
-                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
-                            : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                        }`}>
+                        <span
+                          className={`inline-flex items-center rounded px-2 py-1 text-xs font-medium ${
+                            feedback.feedbackType === 'issue'
+                              ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+                              : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                          }`}
+                        >
                           {feedback.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-sm font-mono text-xs">
+                      <td className="px-4 py-2 font-mono text-sm text-xs">
                         <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/address/${feedback.wallet}`}
+                          href={`https://explorer.kaolin.hoodi.arkiv.network/address/${feedback.wallet}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
                           title={feedback.wallet}
                         >
                           {feedback.wallet.slice(0, 10)}...{feedback.wallet.slice(-4)}
@@ -634,13 +677,14 @@ export default function AdminFeedbackPage() {
                       <td className="px-4 py-2 text-sm">
                         {feedback.rating ? (
                           <span className="text-yellow-500">
-                            {'★'.repeat(feedback.rating)}{'☆'.repeat(5 - feedback.rating)}
+                            {'★'.repeat(feedback.rating)}
+                            {'☆'.repeat(5 - feedback.rating)}
                           </span>
                         ) : (
                           <span className="text-gray-400">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-2 text-sm max-w-md">
+                      <td className="max-w-md px-4 py-2 text-sm">
                         <div className="space-y-1">
                           <div className={expandedMessages.has(feedback.id) ? '' : 'truncate'}>
                             {feedback.message}
@@ -656,7 +700,7 @@ export default function AdminFeedbackPage() {
                                 }
                                 setExpandedMessages(newExpanded);
                               }}
-                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              className="text-xs text-blue-600 hover:underline dark:text-blue-400"
                             >
                               {expandedMessages.has(feedback.id) ? 'Show less' : 'Show more'}
                             </button>
@@ -667,7 +711,7 @@ export default function AdminFeedbackPage() {
                         {feedback.feedbackType === 'issue' ? (
                           // Issues: Show resolved or pending
                           feedback.resolved ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
+                            <span className="inline-flex items-center rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-300">
                               ✓ Resolved
                               {feedback.resolvedAt && (
                                 <span className="ml-1 text-xs opacity-75">
@@ -676,41 +720,39 @@ export default function AdminFeedbackPage() {
                               )}
                             </span>
                           ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
+                            <span className="inline-flex items-center rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                               ⏳ Pending
                             </span>
                           )
+                        ) : // Feedback: Show responded or waiting response
+                        feedback.hasResponse ? (
+                          <span className="inline-flex items-center rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                            ✓ Responded
+                            {feedback.responseAt && (
+                              <span className="ml-1 text-xs opacity-75">
+                                {new Date(feedback.responseAt).toLocaleDateString()}
+                              </span>
+                            )}
+                          </span>
                         ) : (
-                          // Feedback: Show responded or waiting response
-                          feedback.hasResponse ? (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                              ✓ Responded
-                              {feedback.responseAt && (
-                                <span className="ml-1 text-xs opacity-75">
-                                  {new Date(feedback.responseAt).toLocaleDateString()}
-                                </span>
-                              )}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
-                              📬 Waiting Response
-                            </span>
-                          )
+                          <span className="inline-flex items-center rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                            📬 Waiting Response
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
                         {feedback.txHash ? (
                           <a
-                            href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${feedback.txHash}`}
+                            href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${feedback.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 dark:text-blue-400 hover:underline font-mono text-xs"
+                            className="font-mono text-xs text-blue-600 hover:underline dark:text-blue-400"
                             title={feedback.txHash}
                           >
                             {feedback.txHash.slice(0, 8)}...{feedback.txHash.slice(-6)}
                           </a>
                         ) : (
-                          <span className="text-gray-400 text-xs">—</span>
+                          <span className="text-xs text-gray-400">—</span>
                         )}
                       </td>
                       <td className="px-4 py-2 text-sm">
@@ -720,14 +762,16 @@ export default function AdminFeedbackPage() {
                               <button
                                 onClick={() => handleResolveFeedback(feedback)}
                                 disabled={resolvingFeedback === feedback.key}
-                                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                                className="rounded bg-green-600 px-3 py-1 text-xs text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                               >
-                                {resolvingFeedback === feedback.key ? 'Resolving...' : 'Mark Resolved'}
+                                {resolvingFeedback === feedback.key
+                                  ? 'Resolving...'
+                                  : 'Mark Resolved'}
                               </button>
                             )}
                             <button
                               onClick={() => handleRespond(feedback)}
-                              className={`px-3 py-1 text-white text-xs rounded transition-colors ${
+                              className={`rounded px-3 py-1 text-xs text-white transition-colors ${
                                 feedback.hasResponse
                                   ? 'bg-gray-500 hover:bg-gray-600'
                                   : 'bg-blue-600 hover:bg-blue-700'
@@ -741,7 +785,7 @@ export default function AdminFeedbackPage() {
                               href={githubIssueLinks[feedback.key].issueUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors text-center"
+                              className="rounded bg-gray-600 px-3 py-1 text-center text-xs text-white transition-colors hover:bg-gray-700"
                             >
                               View Issue #{githubIssueLinks[feedback.key].issueNumber}
                             </a>
@@ -751,9 +795,11 @@ export default function AdminFeedbackPage() {
                               <button
                                 onClick={() => handleCreateGitHubIssue(feedback)}
                                 disabled={creatingGitHubIssue === feedback.key}
-                                className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded transition-colors disabled:opacity-50"
+                                className="rounded bg-purple-600 px-3 py-1 text-xs text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
                               >
-                                {creatingGitHubIssue === feedback.key ? 'Creating...' : 'Add to GitHub'}
+                                {creatingGitHubIssue === feedback.key
+                                  ? 'Creating...'
+                                  : 'Add to GitHub'}
                               </button>
                             )
                           )}
@@ -765,13 +811,13 @@ export default function AdminFeedbackPage() {
               </table>
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
+            <div className="flex flex-1 items-center justify-center p-8 text-center text-gray-500 dark:text-gray-400">
               {loading ? 'Loading feedback...' : 'No feedback found.'}
             </div>
           )}
         </div>
 
-        <div className="flex-shrink-0 mt-4 text-sm text-gray-600 dark:text-gray-400">
+        <div className="mt-4 flex-shrink-0 text-sm text-gray-600 dark:text-gray-400">
           Showing {feedbacks.length} of {allFeedbacks.length} feedback entries
         </div>
       </div>
@@ -779,8 +825,8 @@ export default function AdminFeedbackPage() {
       {/* Resolution Modal */}
       {resolvingIssue && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Resolve Issue
               </h3>
@@ -791,51 +837,57 @@ export default function AdminFeedbackPage() {
                 }}
                 className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              This will mark the issue as resolved on Arkiv using the immutable entity update pattern.
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              This will mark the issue as resolved on Arkiv using the immutable entity update
+              pattern.
               {githubIssueLinks[resolvingIssue.key] ? (
-                <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="mt-2 block text-xs text-gray-500 dark:text-gray-400">
                   The linked GitHub issue will also be closed with a resolution comment.
                 </span>
               ) : (
-                <span className="block mt-2 text-xs text-gray-500 dark:text-gray-400">
+                <span className="mt-2 block text-xs text-gray-500 dark:text-gray-400">
                   (No GitHub issue linked - resolution will only be recorded on Arkiv)
                 </span>
               )}
             </p>
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Resolution Note (optional)
               </label>
               <textarea
                 value={resolutionNote}
                 onChange={(e) => setResolutionNote(e.target.value)}
                 placeholder="Describe how this issue was resolved..."
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm resize-none"
+                className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 rows={4}
               />
               {githubIssueLinks[resolvingIssue.key] ? (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   This note will be added as a comment to the GitHub issue.
                 </p>
               ) : (
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                   This note will be stored in the Arkiv resolution entity.
                 </p>
               )}
             </div>
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => {
                   setResolvingIssue(null);
                   setResolutionNote('');
                 }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -846,7 +898,7 @@ export default function AdminFeedbackPage() {
                   confirmResolveFeedback();
                 }}
                 disabled={resolvingFeedback === resolvingIssue.key}
-                className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
               >
                 {resolvingFeedback === resolvingIssue.key ? 'Resolving...' : 'Mark Resolved'}
               </button>
@@ -858,8 +910,8 @@ export default function AdminFeedbackPage() {
       {/* Response Modal */}
       {respondingTo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full p-6">
-            <div className="flex justify-between items-center mb-4">
+          <div className="w-full max-w-2xl rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+            <div className="mb-4 flex items-center justify-between">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 {viewingResponse ? 'View Response' : 'Respond to Feedback'}
               </h2>
@@ -870,74 +922,94 @@ export default function AdminFeedbackPage() {
                   setViewingResponse(null);
                 }}
                 disabled={submittingResponse || loadingResponse}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+                className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:hover:text-gray-300"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
 
-            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+            <div className="mb-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-700">
+              <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                 <strong>Original Feedback:</strong>
               </p>
               <div className="max-h-64 overflow-y-auto">
-                <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{respondingTo.message}</p>
+                <p className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">
+                  {respondingTo.message}
+                </p>
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)} |
-                Page: {respondingTo.page} |
+              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)} | Page:{' '}
+                {respondingTo.page} |
                 {respondingTo.feedbackType === 'issue' ? ' 🐛 Issue' : ' 💬 Feedback'}
               </p>
             </div>
 
             {loadingResponse ? (
-              <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg text-center">
-                <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-600 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin mx-auto"></div>
+              <div className="mb-4 rounded-lg bg-gray-50 p-4 text-center dark:bg-gray-700">
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-600 dark:border-t-blue-400"></div>
                 <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">Loading response...</p>
               </div>
             ) : viewingResponse ? (
               <>
-                <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700">
+                  <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                     <strong>Replying to:</strong>
                   </p>
-                  <div className="max-h-64 overflow-y-auto mb-2">
-                    <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{respondingTo.message}</p>
+                  <div className="mb-2 max-h-64 overflow-y-auto">
+                    <p className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">
+                      {respondingTo.message}
+                    </p>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                    <span>From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)}</span>
+                    <span>
+                      From: {respondingTo.wallet.slice(0, 10)}...{respondingTo.wallet.slice(-4)}
+                    </span>
                     <span>•</span>
                     <span>Page: {respondingTo.page}</span>
                     <span>•</span>
-                    <span>{respondingTo.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}</span>
+                    <span>
+                      {respondingTo.feedbackType === 'issue' ? '🐛 Issue' : '💬 Feedback'}
+                    </span>
                     {respondingTo.rating && (
                       <>
                         <span>•</span>
                         <span className="text-yellow-500">
-                          {'★'.repeat(respondingTo.rating)}{'☆'.repeat(5 - respondingTo.rating)}
+                          {'★'.repeat(respondingTo.rating)}
+                          {'☆'.repeat(5 - respondingTo.rating)}
                         </span>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                  <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                     <strong>Admin Response:</strong>
                   </p>
                   <div className="max-h-96 overflow-y-auto">
-                    <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap">{viewingResponse.message}</p>
+                    <p className="whitespace-pre-wrap text-gray-900 dark:text-gray-100">
+                      {viewingResponse.message}
+                    </p>
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    Responded: {new Date(viewingResponse.createdAt).toLocaleString()} |
-                    By: {viewingResponse.adminWallet.slice(0, 10)}...{viewingResponse.adminWallet.slice(-4)}
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                    Responded: {new Date(viewingResponse.createdAt).toLocaleString()} | By:{' '}
+                    {viewingResponse.adminWallet.slice(0, 10)}...
+                    {viewingResponse.adminWallet.slice(-4)}
                   </p>
                 </div>
               </>
             ) : (
               <div className="mb-4">
-                <label htmlFor="response" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label
+                  htmlFor="response"
+                  className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                   Your Response <span className="text-red-500">*</span>
                 </label>
                 <textarea
@@ -945,7 +1017,7 @@ export default function AdminFeedbackPage() {
                   value={responseMessage}
                   onChange={(e) => setResponseMessage(e.target.value)}
                   rows={6}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                  className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                   placeholder="Type your response to the user here..."
                   required
                 />
@@ -961,7 +1033,7 @@ export default function AdminFeedbackPage() {
                   setViewingResponse(null);
                 }}
                 disabled={submittingResponse || loadingResponse}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 {viewingResponse ? 'Close' : 'Cancel'}
               </button>
@@ -969,7 +1041,7 @@ export default function AdminFeedbackPage() {
                 <button
                   onClick={handleSubmitResponse}
                   disabled={submittingResponse || !responseMessage.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submittingResponse ? 'Submitting...' : 'Send Response'}
                 </button>
@@ -981,4 +1053,3 @@ export default function AdminFeedbackPage() {
     </main>
   );
 }
-
