@@ -28,7 +28,7 @@
     "serve:static": "cd static-app/public && python3 -m http.server 8080"
   },
   "dependencies": {
-    "@arkiv-network/sdk": "^0.4.4",
+    "@arkiv-network/sdk": "0.6.0",
     "@metamask/sdk": "^0.34.0",
     "@simplewebauthn/server": "^9.0.0",
     "@walletconnect/ethereum-provider": "^2.21.8",
