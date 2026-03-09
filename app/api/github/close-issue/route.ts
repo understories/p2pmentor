@@ -1,8 +1,8 @@
 /**
  * GitHub Issue Close API route
- * 
+ *
  * Closes a GitHub issue and adds a resolution comment.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 9
  */
 
@@ -13,7 +13,7 @@ const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
 
 /**
  * PATCH /api/github/close-issue
- * 
+ *
  * Close a GitHub issue and add resolution comment with Arkiv entity link
  * Body: { issueNumber, resolutionNote?, resolutionKey?, txHash? }
  */
@@ -26,10 +26,7 @@ export async function PATCH(request: NextRequest) {
 
     if (!issueNumber) {
       console.error('[api/github/close-issue] Missing issueNumber');
-      return NextResponse.json(
-        { ok: false, error: 'issueNumber is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'issueNumber is required' }, { status: 400 });
     }
 
     console.log('[api/github/close-issue] Closing issue #', issueNumber);
@@ -47,8 +44,8 @@ export async function PATCH(request: NextRequest) {
     console.log('[api/github/close-issue] GitHub token found, proceeding...');
 
     // Build Arkiv explorer link if resolution key is provided
-    const arkivExplorerLink = resolutionKey 
-      ? `https://explorer.mendoza.hoodi.arkiv.network/entity/${resolutionKey}`
+    const arkivExplorerLink = resolutionKey
+      ? `https://explorer.kaolin.hoodi.arkiv.network/entity/${resolutionKey}`
       : null;
 
     console.log('[api/github/close-issue] Resolution key:', resolutionKey);
@@ -67,7 +64,7 @@ This issue has been marked as resolved using Arkiv's immutable entity update pat
     if (arkivExplorerLink) {
       commentBody += `\n\n**Resolution Entity:**\n[View resolution entity on Arkiv Explorer](${arkivExplorerLink})`;
       if (txHash) {
-        const txExplorerUrl = `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`;
+        const txExplorerUrl = `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`;
         commentBody += `\n\n**Transaction:** [${txHash.slice(0, 10)}...${txHash.slice(-8)}](${txExplorerUrl})`;
       }
     }
@@ -82,8 +79,8 @@ This issue has been marked as resolved using Arkiv's immutable entity update pat
       {
         method: 'POST',
         headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -109,8 +106,8 @@ This issue has been marked as resolved using Arkiv's immutable entity update pat
       {
         method: 'PATCH',
         headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

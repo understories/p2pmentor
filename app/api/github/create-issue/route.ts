@@ -1,9 +1,9 @@
 /**
  * GitHub Issue Creation API route
- * 
+ *
  * Creates a GitHub issue from app feedback.
  * Stores the link as an Arkiv entity for transparency.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 9
  */
 
@@ -16,7 +16,7 @@ const GITHUB_REPO = process.env.GITHUB_REPO || 'p2pmentor';
 
 /**
  * POST /api/github/create-issue
- * 
+ *
  * Create a GitHub issue from feedback
  * Body: { feedbackKey, page, message, rating, feedbackType, wallet }
  */
@@ -43,10 +43,10 @@ export async function POST(request: NextRequest) {
 
     // Create GitHub issue
     const issueTitle = `[${feedbackType || 'feedback'}] ${page}: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`;
-    
+
     // Construct Arkiv explorer link with entity key
-    const arkivExplorerUrl = `https://explorer.mendoza.hoodi.arkiv.network/entity/${feedbackKey}`;
-    
+    const arkivExplorerUrl = `https://explorer.kaolin.hoodi.arkiv.network/entity/${feedbackKey}`;
+
     const issueBody = `## Feedback Details
 
 **Page:** ${page}
@@ -66,8 +66,8 @@ ${message}
       {
         method: 'POST',
         headers: {
-          'Authorization': `token ${githubToken}`,
-          'Accept': 'application/vnd.github.v3+json',
+          Authorization: `token ${githubToken}`,
+          Accept: 'application/vnd.github.v3+json',
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({

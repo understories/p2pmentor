@@ -1,8 +1,8 @@
 /**
  * Explorer Transaction Count Endpoint
- * 
+ *
  * Returns total count of transactions (entities) written by the server wallet.
- * Queries Arkiv network directly to get the actual count matching Mendoza explorer.
+ * Queries Arkiv network directly to get the actual count matching Kaolin explorer.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -48,21 +48,22 @@ export async function GET(request: NextRequest) {
     // We use a high limit to get as many as possible in one query
     // Note: If the wallet has more than 5000 entities, we'll get a partial count
     // This is acceptable for the explorer stats - it shows "at least X" transactions
-    
-    let query = publicClient.buildQuery()
+
+    let query = publicClient
+      .buildQuery()
       .where(eq('wallet', CURRENT_WALLET.toLowerCase()))
       .limit(5000); // High limit to get most/all entities in one query
-    
+
     // Add spaceId filter if provided
     if (finalSpaceId) {
       query = query.where(eq('spaceId', finalSpaceId));
     }
-    
+
     const result = await query
       .withAttributes(false) // We don't need attributes, just count
       .withPayload(false) // We don't need payload, just count
       .fetch();
-    
+
     if (!result?.entities || !Array.isArray(result.entities)) {
       return NextResponse.json(
         { ok: true, count: 0 },
@@ -75,7 +76,7 @@ export async function GET(request: NextRequest) {
         }
       );
     }
-    
+
     const totalCount = result.entities.length;
 
     return NextResponse.json(
@@ -101,4 +102,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

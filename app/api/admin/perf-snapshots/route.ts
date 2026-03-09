@@ -1,13 +1,18 @@
 /**
  * Admin API: Performance Snapshots
- * 
+ *
  * Creates and retrieves performance snapshots for historical tracking.
- * 
+ *
  * Reference: Performance monitoring best practices
  */
 
 import { NextResponse } from 'next/server';
-import { createPerfSnapshot, listPerfSnapshots, getLatestSnapshot, shouldCreateSnapshot } from '@/lib/arkiv/perfSnapshots';
+import {
+  createPerfSnapshot,
+  listPerfSnapshots,
+  getLatestSnapshot,
+  shouldCreateSnapshot,
+} from '@/lib/arkiv/perfSnapshots';
 import { getPerfSummary, getPerfSamplesFiltered } from '@/lib/metrics/perf';
 import { listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
@@ -15,7 +20,7 @@ import { getPublicClient } from '@/lib/arkiv/client';
 
 /**
  * POST /api/admin/perf-snapshots
- * 
+ *
  * Creates a new performance snapshot with current metrics.
  * Query params:
  * - operation: string (default: 'buildNetworkGraphData')
@@ -45,17 +50,20 @@ export async function POST(request: Request) {
           const lastTimestamp = new Date(lastSnapshot.timestamp).getTime();
           const now = Date.now();
           const minutesSince = (now - lastTimestamp) / (1000 * 60);
-          
+
           if (minutesSince < 5) {
-            return NextResponse.json({
-              ok: false,
-              error: 'Snapshot created too recently',
-              message: `Last snapshot was ${minutesSince.toFixed(1)} minutes ago. Wait 5 minutes or use ?force=true to override.`,
-              lastSnapshot: {
-                timestamp: lastSnapshot.timestamp,
-                minutesAgo: minutesSince.toFixed(1),
+            return NextResponse.json(
+              {
+                ok: false,
+                error: 'Snapshot created too recently',
+                message: `Last snapshot was ${minutesSince.toFixed(1)} minutes ago. Wait 5 minutes or use ?force=true to override.`,
+                lastSnapshot: {
+                  timestamp: lastSnapshot.timestamp,
+                  minutesAgo: minutesSince.toFixed(1),
+                },
               },
-            }, { status: 429 }); // 429 Too Many Requests
+              { status: 429 }
+            ); // 429 Too Many Requests
           }
         }
       } catch (err) {
@@ -74,7 +82,7 @@ export async function POST(request: Request) {
       // Get current block number (Arkiv block height)
       const blockNumber = await publicClient.getBlockNumber();
       const chainId = await publicClient.getChainId();
-      
+
       arkivMetadata = {
         blockHeight: Number(blockNumber),
         chainId: Number(chainId),
@@ -92,19 +100,19 @@ export async function POST(request: Request) {
     // For snapshots, we want to capture ALL operations (not just one specific operation)
     // This gives us a complete picture of all pages using GraphQL/Arkiv
     // Use the same aggregation logic as the summary endpoint (no operation filter)
-    let perfSummary: any = { graphql: undefined, arkiv: undefined };
-    
+    const perfSummary: any = { graphql: undefined, arkiv: undefined };
+
     // Query ALL Arkiv entities (not filtered by operation) to get complete picture
     try {
       const arkivMetrics = await listDxMetrics({
         limit: 500, // Get more samples for comprehensive snapshot
       });
-      
+
       if (arkivMetrics.length > 0) {
         // Convert DxMetric to PerfSample format and aggregate
         const arkivSamples = arkivMetrics
-          .filter(m => m.source === 'arkiv')
-          .map(m => ({
+          .filter((m) => m.source === 'arkiv')
+          .map((m) => ({
             source: m.source as 'arkiv',
             operation: m.operation,
             route: m.route,
@@ -113,10 +121,10 @@ export async function POST(request: Request) {
             httpRequests: m.httpRequests,
             createdAt: m.createdAt,
           }));
-        
+
         const graphqlSamples = arkivMetrics
-          .filter(m => m.source === 'graphql')
-          .map(m => ({
+          .filter((m) => m.source === 'graphql')
+          .map((m) => ({
             source: m.source as 'graphql',
             operation: m.operation,
             route: m.route,
@@ -125,50 +133,70 @@ export async function POST(request: Request) {
             httpRequests: m.httpRequests,
             createdAt: m.createdAt,
           }));
-        
+
         // Aggregate Arkiv samples across all operations
         if (arkivSamples.length > 0) {
-          const durations = arkivSamples.map(s => s.durationMs);
-          const payloadSizes = arkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
-          const httpCounts = arkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
-          
+          const durations = arkivSamples.map((s) => s.durationMs);
+          const payloadSizes = arkivSamples
+            .filter((s) => s.payloadBytes !== undefined)
+            .map((s) => s.payloadBytes!);
+          const httpCounts = arkivSamples
+            .filter((s) => s.httpRequests !== undefined)
+            .map((s) => s.httpRequests!);
+
           // Count queries per page/route (across all operations)
           const pageCounts: Record<string, number> = {};
-          arkivSamples.forEach(s => {
+          arkivSamples.forEach((s) => {
             const page = s.route || '(no route)';
             pageCounts[page] = (pageCounts[page] || 0) + 1;
           });
-          
+
           perfSummary.arkiv = {
             avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
             minDurationMs: Math.min(...durations),
             maxDurationMs: Math.max(...durations),
-            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
-            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            avgPayloadBytes:
+              payloadSizes.length > 0
+                ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+                : undefined,
+            avgHttpRequests:
+              httpCounts.length > 0
+                ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+                : undefined,
             samples: arkivSamples.length,
             pages: pageCounts,
           };
         }
-        
+
         // Aggregate GraphQL samples across all operations
         if (graphqlSamples.length > 0) {
-          const durations = graphqlSamples.map(s => s.durationMs);
-          const payloadSizes = graphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
-          const httpCounts = graphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
-          
+          const durations = graphqlSamples.map((s) => s.durationMs);
+          const payloadSizes = graphqlSamples
+            .filter((s) => s.payloadBytes !== undefined)
+            .map((s) => s.payloadBytes!);
+          const httpCounts = graphqlSamples
+            .filter((s) => s.httpRequests !== undefined)
+            .map((s) => s.httpRequests!);
+
           // Count queries per page/route (across all operations)
           const pageCounts: Record<string, number> = {};
-          graphqlSamples.forEach(s => {
+          graphqlSamples.forEach((s) => {
             const page = s.route || '(no route)';
             pageCounts[page] = (pageCounts[page] || 0) + 1;
           });
-          
+
           perfSummary.graphql = {
             avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
             minDurationMs: Math.min(...durations),
             maxDurationMs: Math.max(...durations),
-            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
-            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            avgPayloadBytes:
+              payloadSizes.length > 0
+                ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+                : undefined,
+            avgHttpRequests:
+              httpCounts.length > 0
+                ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+                : undefined,
             samples: graphqlSamples.length,
             pages: pageCounts,
           };
@@ -177,34 +205,44 @@ export async function POST(request: Request) {
     } catch (error) {
       console.log('[perf-snapshots] Failed to query Arkiv metrics, using in-memory only:', error);
     }
-    
+
     // Also check in-memory samples for any missing data
     // This ensures we capture all performance data, not just what's on-chain
     try {
       const { getPerfSamples } = await import('@/lib/metrics/perf');
       const allSamples = getPerfSamples();
-      
+
       // Aggregate in-memory GraphQL samples (across all operations)
-      const inMemoryGraphqlSamples = allSamples.filter(s => s.source === 'graphql');
+      const inMemoryGraphqlSamples = allSamples.filter((s) => s.source === 'graphql');
       if (inMemoryGraphqlSamples.length > 0) {
-        const durations = inMemoryGraphqlSamples.map(s => s.durationMs);
-        const payloadSizes = inMemoryGraphqlSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
-        const httpCounts = inMemoryGraphqlSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
-        
+        const durations = inMemoryGraphqlSamples.map((s) => s.durationMs);
+        const payloadSizes = inMemoryGraphqlSamples
+          .filter((s) => s.payloadBytes !== undefined)
+          .map((s) => s.payloadBytes!);
+        const httpCounts = inMemoryGraphqlSamples
+          .filter((s) => s.httpRequests !== undefined)
+          .map((s) => s.httpRequests!);
+
         const pageCounts: Record<string, number> = {};
-        inMemoryGraphqlSamples.forEach(s => {
+        inMemoryGraphqlSamples.forEach((s) => {
           const page = s.route || '(no route)';
           pageCounts[page] = (pageCounts[page] || 0) + 1;
         });
-        
+
         // Merge with existing GraphQL data (prefer Arkiv entities, but include in-memory)
         if (!perfSummary.graphql || perfSummary.graphql.samples === 0) {
           perfSummary.graphql = {
             avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
             minDurationMs: Math.min(...durations),
             maxDurationMs: Math.max(...durations),
-            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
-            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            avgPayloadBytes:
+              payloadSizes.length > 0
+                ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+                : undefined,
+            avgHttpRequests:
+              httpCounts.length > 0
+                ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+                : undefined,
             samples: inMemoryGraphqlSamples.length,
             pages: pageCounts,
           };
@@ -215,28 +253,38 @@ export async function POST(request: Request) {
           });
         }
       }
-      
+
       // Aggregate in-memory Arkiv samples (across all operations)
-      const inMemoryArkivSamples = allSamples.filter(s => s.source === 'arkiv');
+      const inMemoryArkivSamples = allSamples.filter((s) => s.source === 'arkiv');
       if (inMemoryArkivSamples.length > 0) {
-        const durations = inMemoryArkivSamples.map(s => s.durationMs);
-        const payloadSizes = inMemoryArkivSamples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
-        const httpCounts = inMemoryArkivSamples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
-        
+        const durations = inMemoryArkivSamples.map((s) => s.durationMs);
+        const payloadSizes = inMemoryArkivSamples
+          .filter((s) => s.payloadBytes !== undefined)
+          .map((s) => s.payloadBytes!);
+        const httpCounts = inMemoryArkivSamples
+          .filter((s) => s.httpRequests !== undefined)
+          .map((s) => s.httpRequests!);
+
         const pageCounts: Record<string, number> = {};
-        inMemoryArkivSamples.forEach(s => {
+        inMemoryArkivSamples.forEach((s) => {
           const page = s.route || '(no route)';
           pageCounts[page] = (pageCounts[page] || 0) + 1;
         });
-        
+
         // Merge with existing Arkiv data (prefer Arkiv entities, but include in-memory)
         if (!perfSummary.arkiv || perfSummary.arkiv.samples === 0) {
           perfSummary.arkiv = {
             avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
             minDurationMs: Math.min(...durations),
             maxDurationMs: Math.max(...durations),
-            avgPayloadBytes: payloadSizes.length > 0 ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length : undefined,
-            avgHttpRequests: httpCounts.length > 0 ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length : undefined,
+            avgPayloadBytes:
+              payloadSizes.length > 0
+                ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+                : undefined,
+            avgHttpRequests:
+              httpCounts.length > 0
+                ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+                : undefined,
             samples: inMemoryArkivSamples.length,
             pages: pageCounts,
           };
@@ -276,22 +324,29 @@ export async function POST(request: Request) {
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         // Measure twice to avoid cold start skewing results
-        const pageLoadRes1 = await fetch(`${baseUrl}/api/admin/page-load-times?baseUrl=${encodeURIComponent(baseUrl)}`);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s between measurements
-        const pageLoadRes2 = await fetch(`${baseUrl}/api/admin/page-load-times?baseUrl=${encodeURIComponent(baseUrl)}`);
-        
+        const pageLoadRes1 = await fetch(
+          `${baseUrl}/api/admin/page-load-times?baseUrl=${encodeURIComponent(baseUrl)}`
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1s between measurements
+        const pageLoadRes2 = await fetch(
+          `${baseUrl}/api/admin/page-load-times?baseUrl=${encodeURIComponent(baseUrl)}`
+        );
+
         if (pageLoadRes1.ok && pageLoadRes2.ok) {
           const pageLoadData1 = await pageLoadRes1.json();
           const pageLoadData2 = await pageLoadRes2.json();
-          
+
           // Use the better (faster) measurement to avoid cold start
           const data1 = pageLoadData1.ok && pageLoadData1.summary ? pageLoadData1.summary : null;
           const data2 = pageLoadData2.ok && pageLoadData2.summary ? pageLoadData2.summary : null;
-          
-          const bestData = data1 && data2 
-            ? (data1.avgDurationMs < data2.avgDurationMs ? data1 : data2)
-            : (data1 || data2);
-          
+
+          const bestData =
+            data1 && data2
+              ? data1.avgDurationMs < data2.avgDurationMs
+                ? data1
+                : data2
+              : data1 || data2;
+
           if (bestData) {
             pageLoadTimes = {
               avgDurationMs: bestData.avgDurationMs,
@@ -330,29 +385,33 @@ export async function POST(request: Request) {
         timestamp,
         operation,
         method,
-        explorer: `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHash}`,
+        explorer: `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`,
       },
     });
   } catch (error: any) {
     console.error('[admin/perf-snapshots] Error:', error);
-    
+
     // Handle transaction errors gracefully (same pattern as other entity creation)
     const errorMessage = error.message || 'Failed to create snapshot';
-    
+
     // Check for transaction-related errors
     if (errorMessage.includes('replacement transaction') || errorMessage.includes('underpriced')) {
       return NextResponse.json(
-        { 
-          ok: false, 
+        {
+          ok: false,
           error: 'Transaction conflict. Please wait a moment and try again.',
-          details: 'A transaction is already pending. Wait for it to confirm before creating another snapshot.',
+          details:
+            'A transaction is already pending. Wait for it to confirm before creating another snapshot.',
         },
         { status: 429 } // Too Many Requests
       );
     }
-    
+
     // Check for transaction timeout (handled by handleTransactionWithTimeout)
-    if (errorMessage.includes('Transaction submitted') || errorMessage.includes('confirmation pending')) {
+    if (
+      errorMessage.includes('Transaction submitted') ||
+      errorMessage.includes('confirmation pending')
+    ) {
       // Transaction was submitted but confirmation is pending - this is actually a success case
       // Extract txHash if available
       const txHashMatch = errorMessage.match(/0x[a-fA-F0-9]{40,64}/);
@@ -368,24 +427,21 @@ export async function POST(request: Request) {
             timestamp: new Date().toISOString(),
             operation: op,
             method: meth,
-            explorer: `https://explorer.mendoza.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
+            explorer: `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
             pending: true,
           },
           message: 'Snapshot transaction submitted. It will appear once confirmed.',
         });
       }
     }
-    
-    return NextResponse.json(
-      { ok: false, error: errorMessage },
-      { status: 500 }
-    );
+
+    return NextResponse.json({ ok: false, error: errorMessage }, { status: 500 });
   }
 }
 
 /**
  * GET /api/admin/perf-snapshots
- * 
+ *
  * Retrieves performance snapshots.
  * Query params:
  * - operation: string
@@ -406,14 +462,16 @@ export async function GET(request: Request) {
     if (checkAuto && operation) {
       const shouldCreate = await shouldCreateSnapshot(operation);
       const latest = shouldCreate ? null : await getLatestSnapshot(operation);
-      
+
       return NextResponse.json({
         ok: true,
         shouldCreateSnapshot: shouldCreate,
-        lastSnapshot: latest ? {
-          timestamp: latest.timestamp,
-          hoursAgo: (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60),
-        } : null,
+        lastSnapshot: latest
+          ? {
+              timestamp: latest.timestamp,
+              hoursAgo: (Date.now() - new Date(latest.timestamp).getTime()) / (1000 * 60 * 60),
+            }
+          : null,
       });
     }
 
@@ -438,4 +496,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
