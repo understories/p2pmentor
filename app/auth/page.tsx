@@ -12,10 +12,15 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { connectWalletConnect } from '@/lib/auth/walletconnect';
-import { mendoza } from '@arkiv-network/sdk/chains';
+import { kaolin } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
-import { isMobileBrowser, isMetaMaskBrowser, isMetaMaskAvailable, getMobilePlatform } from '@/lib/auth/mobile-detection';
+import {
+  isMobileBrowser,
+  isMetaMaskBrowser,
+  isMetaMaskAvailable,
+  getMobilePlatform,
+} from '@/lib/auth/mobile-detection';
 import { openInMetaMaskBrowser, getMetaMaskInstallUrl } from '@/lib/auth/deep-link';
 import { ArkivQueryTooltip } from '@/components/ArkivQueryTooltip';
 import { useArkivBuilderMode } from '@/lib/hooks/useArkivBuilderMode';
@@ -44,8 +49,8 @@ export default function AuthPage() {
   const [isVerifyingPassword, setIsVerifyingPassword] = useState(false);
 
   // Check if WalletConnect is enabled via feature flag
-  const isWalletConnectEnabled = typeof window !== 'undefined' &&
-    process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
+  const isWalletConnectEnabled =
+    typeof window !== 'undefined' && process.env.NEXT_PUBLIC_WALLETCONNECT_ENABLED === 'true';
 
   // CRITICAL: Clear wallet_address on /auth mount to prevent auto-login
   // /auth should ALWAYS require explicit user action to connect wallet
@@ -93,16 +98,19 @@ export default function AuthPage() {
       // Check beta access (after normalization)
       // Check cookies first (persists across reloads), then localStorage
       // Beta gate is ALWAYS enforced, even for review mode
-      const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-        const [key, value] = cookie.trim().split('=');
-        acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
-      
+      const cookies = document.cookie.split(';').reduce(
+        (acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+
       const cookieCode = cookies['beta_access_code'];
       const cookieKey = cookies['beta_access_key'];
       const localStorageCode = localStorage.getItem('beta_invite_code');
-      
+
       // Check for beta access in cookies or localStorage
       // Beta gate is always enforced (review mode still requires beta access)
       if (!cookieCode && !cookieKey && !localStorageCode) {
@@ -259,9 +267,12 @@ export default function AuthPage() {
 
       // If review mode is enabled and password verified, issue grant and route to review onboarding
       if (isReviewModeEnabled && isPasswordVerified) {
-        console.log('[Auth Page] Review mode enabled and password verified (MetaMask), activating review mode', {
-          address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
-        });
+        console.log(
+          '[Auth Page] Review mode enabled and password verified (MetaMask), activating review mode',
+          {
+            address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+          }
+        );
         // Keep isConnecting true to show "Connecting..." state during review mode activation
         // Pass address directly to avoid React state update timing issues
         await handleReviewModeActivate(address);
@@ -290,36 +301,38 @@ export default function AuthPage() {
         // Normal flow - check onboarding level
         // Only create beta access record for NEW users (level === 0) to avoid double-counting
         import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-          calculateOnboardingLevel(address).then(level => {
-            if (level === 0) {
-              // No profile for this profile wallet - new user, create beta access record
-              // This tracks which profile wallets have used which beta codes (only for new users)
-              const betaCode = localStorage.getItem('beta_invite_code');
-              if (betaCode) {
-                // Create beta access record asynchronously (don't block auth flow)
-                fetch('/api/beta-code', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    code: betaCode,
-                    action: 'createAccess',
-                    wallet: address.toLowerCase(), // Use profile wallet, not signing wallet
-                  }),
-                }).catch(err => {
-                  // Don't block auth flow if beta access creation fails
-                  console.warn('[auth] Failed to create beta access record:', err);
-                });
+          calculateOnboardingLevel(address)
+            .then((level) => {
+              if (level === 0) {
+                // No profile for this profile wallet - new user, create beta access record
+                // This tracks which profile wallets have used which beta codes (only for new users)
+                const betaCode = localStorage.getItem('beta_invite_code');
+                if (betaCode) {
+                  // Create beta access record asynchronously (don't block auth flow)
+                  fetch('/api/beta-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      code: betaCode,
+                      action: 'createAccess',
+                      wallet: address.toLowerCase(), // Use profile wallet, not signing wallet
+                    }),
+                  }).catch((err) => {
+                    // Don't block auth flow if beta access creation fails
+                    console.warn('[auth] Failed to create beta access record:', err);
+                  });
+                }
+                // Redirect to onboarding for new users
+                router.push('/onboarding');
+              } else {
+                // Has profile - existing user, don't create beta access (already counted)
+                router.push('/me');
               }
-              // Redirect to onboarding for new users
-              router.push('/onboarding');
-            } else {
-              // Has profile - existing user, don't create beta access (already counted)
+            })
+            .catch(() => {
+              // On error, default to /me (don't block on calculation failure)
               router.push('/me');
-            }
-          }).catch(() => {
-            // On error, default to /me (don't block on calculation failure)
-            router.push('/me');
-          });
+            });
         });
       }
     } catch (err) {
@@ -377,7 +390,9 @@ export default function AuthPage() {
           : null;
 
         if (existingWalletType === 'metamask' && window.ethereum) {
-          console.log('[Auth Page] Disconnecting existing MetaMask connection before WalletConnect');
+          console.log(
+            '[Auth Page] Disconnecting existing MetaMask connection before WalletConnect'
+          );
           try {
             const { disconnectWallet } = await import('@/lib/auth/metamask');
             await disconnectWallet();
@@ -387,7 +402,10 @@ export default function AuthPage() {
             }
           } catch (disconnectError) {
             // Non-critical - continue with WalletConnect even if MetaMask disconnect fails
-            console.warn('[Auth Page] Failed to disconnect MetaMask (non-critical):', disconnectError);
+            console.warn(
+              '[Auth Page] Failed to disconnect MetaMask (non-critical):',
+              disconnectError
+            );
             // Still clear wallet type to prevent conflicts
             if (existingWallet) {
               localStorage.removeItem(`wallet_type_${existingWallet.toLowerCase()}`);
@@ -412,9 +430,12 @@ export default function AuthPage() {
 
       // If review mode is enabled and password verified, issue grant and route to review onboarding
       if (isReviewModeEnabled && isPasswordVerified) {
-        console.log('[Auth Page] Review mode enabled and password verified (WalletConnect), activating review mode', {
-          address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
-        });
+        console.log(
+          '[Auth Page] Review mode enabled and password verified (WalletConnect), activating review mode',
+          {
+            address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
+          }
+        );
         // Reset connecting state before activating review mode
         setIsConnectingWalletConnect(false);
         // Pass address directly to avoid React state update timing issues
@@ -441,30 +462,32 @@ export default function AuthPage() {
       } else {
         // Normal flow - check onboarding level
         import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-          calculateOnboardingLevel(address).then(level => {
-            if (level === 0) {
-              // No profile for this profile wallet - new user, create beta access record
-              const betaCode = localStorage.getItem('beta_invite_code');
-              if (betaCode) {
-                fetch('/api/beta-code', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    code: betaCode,
-                    action: 'createAccess',
-                    wallet: address.toLowerCase(),
-                  }),
-                }).catch(err => {
-                  console.warn('[auth] Failed to create beta access record:', err);
-                });
+          calculateOnboardingLevel(address)
+            .then((level) => {
+              if (level === 0) {
+                // No profile for this profile wallet - new user, create beta access record
+                const betaCode = localStorage.getItem('beta_invite_code');
+                if (betaCode) {
+                  fetch('/api/beta-code', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      code: betaCode,
+                      action: 'createAccess',
+                      wallet: address.toLowerCase(),
+                    }),
+                  }).catch((err) => {
+                    console.warn('[auth] Failed to create beta access record:', err);
+                  });
+                }
+                router.push('/onboarding');
+              } else {
+                router.push('/me');
               }
-              router.push('/onboarding');
-            } else {
+            })
+            .catch(() => {
               router.push('/me');
-            }
-          }).catch(() => {
-            router.push('/me');
-          });
+            });
         });
       }
     } catch (err) {
@@ -475,7 +498,11 @@ export default function AuthPage() {
 
       let errorMessage = 'Failed to connect with WalletConnect';
       if (err instanceof Error) {
-        if (err.message.includes('cancelled') || err.message.includes('rejected') || err.message.includes('closed')) {
+        if (
+          err.message.includes('cancelled') ||
+          err.message.includes('rejected') ||
+          err.message.includes('closed')
+        ) {
           errorMessage = 'Connection cancelled. Please try again when ready.';
         } else if (err.message.includes('project ID')) {
           errorMessage = 'WalletConnect not configured. Please contact support.';
@@ -517,11 +544,11 @@ export default function AuthPage() {
       const data = encoder.encode(reviewModePassword.trim());
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 
       // Compare to public env var (inlined at build time in Next.js)
       const expectedHash = process.env.NEXT_PUBLIC_ARKIV_REVIEW_PASSWORD_SHA256;
-      
+
       if (!expectedHash) {
         setError('Review mode not configured');
         setIsVerifyingPassword(false);
@@ -601,14 +628,14 @@ export default function AuthPage() {
       // Store wallet in localStorage (like regular flow does) and route to /review
       // No need to wait for grant indexing - we trust the API response
       console.log('[Auth Page] Grant issued successfully, storing wallet and routing to /review');
-      
+
       // Store wallet in localStorage (reuse existing pattern from regular flow)
       if (typeof window !== 'undefined') {
         localStorage.setItem('wallet_address', address);
         // Store connection method for reconnection handling
         localStorage.setItem('wallet_connection_method', 'metamask');
       }
-      
+
       // Clear review mode state
       setIsReviewModeEnabled(false);
       setReviewModePassword('');
@@ -633,7 +660,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleAddMendozaNetwork = async () => {
+  const handleAddKaolinNetwork = async () => {
     if (!window.ethereum) {
       setError('MetaMask not installed');
       return;
@@ -643,7 +670,7 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const chainIdHex = `0x${mendoza.id.toString(16)}`;
+      const chainIdHex = `0x${kaolin.id.toString(16)}`;
 
       // Always call wallet_addEthereumChain directly - MetaMask will handle:
       // - If network doesn't exist: Show add network prompt
@@ -654,10 +681,10 @@ export default function AuthPage() {
         params: [
           {
             chainId: chainIdHex,
-            chainName: mendoza.name,
-            nativeCurrency: mendoza.nativeCurrency,
-            rpcUrls: mendoza.rpcUrls.default.http,
-            blockExplorerUrls: [mendoza.blockExplorers.default.url],
+            chainName: kaolin.name,
+            nativeCurrency: kaolin.nativeCurrency,
+            rpcUrls: kaolin.rpcUrls.default.http,
+            blockExplorerUrls: [kaolin.blockExplorers.default.url],
           },
         ],
       });
@@ -682,12 +709,14 @@ export default function AuthPage() {
         // - Network already exists (various error messages/codes)
         // - User cancelled (already handled above)
         // - Any error that suggests the network is already configured
-        if (errorCode !== 4001 &&
-            !errorMessage.toLowerCase().includes('already') &&
-            !errorMessage.toLowerCase().includes('exists') &&
-            !errorMessage.toLowerCase().includes('duplicate')) {
+        if (
+          errorCode !== 4001 &&
+          !errorMessage.toLowerCase().includes('already') &&
+          !errorMessage.toLowerCase().includes('exists') &&
+          !errorMessage.toLowerCase().includes('duplicate')
+        ) {
           // Only show unexpected errors
-          setError(errorMessage || 'Failed to add Mendoza testnet');
+          setError(errorMessage || 'Failed to add Kaolin testnet');
         } else {
           // Network is already added or user cancelled - clear error
           setError('');
@@ -698,52 +727,51 @@ export default function AuthPage() {
     }
   };
 
-
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-8 text-gray-900 dark:text-gray-100">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
+    <main className="flex min-h-screen flex-col items-center justify-center p-8 text-gray-900 dark:text-gray-100">
+      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-lg dark:border-gray-700 dark:bg-gray-800">
         <div className="mb-4">
           <BackButton href="/beta" forceHref={true} />
         </div>
-        <h1 className="text-2xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+        <h1 className="mb-2 text-2xl font-bold text-gray-900 dark:text-gray-100">
           Connect to p2pmentor
         </h1>
-        <p className="text-base text-gray-600 dark:text-gray-400 mb-6">
+        <p className="mb-6 text-base text-gray-600 dark:text-gray-400">
           Choose your authentication method:
         </p>
 
-        {/* Add Mendoza Testnet Button */}
+        {/* Add Kaolin Testnet Button */}
         {mounted && window.ethereum && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-300 mb-2">
-              <strong>First time?</strong> Add Mendoza testnet to your wallet:
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+            <p className="mb-2 text-sm text-blue-800 dark:text-blue-300">
+              <strong>First time?</strong> Add Kaolin testnet to your wallet:
             </p>
             <button
-              onClick={handleAddMendozaNetwork}
+              onClick={handleAddKaolinNetwork}
               disabled={addingNetwork}
-              className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               title="Don't worry: you do not need any funds in your wallet to use our app. In fact, we recommend using a wallet without any funds as your profile wallet. Read more in the betadocs"
             >
-              {addingNetwork ? 'Adding Network...' : 'Add Mendoza Testnet to Wallet'}
+              {addingNetwork ? 'Adding Network...' : 'Add Kaolin Testnet to Wallet'}
             </button>
           </div>
         )}
 
         {error && (
-          <div className="p-4 mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         )}
 
         {/* Arkiv Review Mode Toggle - Before wallet connection */}
         {mounted && (
-          <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
-            <div className="flex items-center gap-3 mb-3">
+          <div className="mb-4 rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
+            <div className="mb-3 flex items-center gap-3">
               <button
                 type="button"
                 onClick={handleReviewModeToggle}
                 disabled={isConnecting || isActivatingReviewMode}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 ${
                   isReviewModeEnabled
                     ? 'bg-purple-600 dark:bg-purple-500'
                     : 'bg-gray-200 dark:bg-gray-700'
@@ -758,7 +786,7 @@ export default function AuthPage() {
               </button>
               <label
                 onClick={handleReviewModeToggle}
-                className="text-sm font-medium text-purple-800 dark:text-purple-300 cursor-pointer select-none"
+                className="cursor-pointer select-none text-sm font-medium text-purple-800 dark:text-purple-300"
               >
                 Arkiv Review Mode
               </label>
@@ -775,9 +803,15 @@ export default function AuthPage() {
                     }}
                     placeholder="Enter review password"
                     disabled={isConnecting || isActivatingReviewMode || isVerifyingPassword}
-                    className="flex-1 px-3 py-2 text-sm border border-purple-300 dark:border-purple-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 rounded-lg border border-purple-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-purple-700 dark:bg-gray-800 dark:text-gray-100"
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !isConnecting && !isActivatingReviewMode && !isVerifyingPassword && reviewModePassword.trim()) {
+                      if (
+                        e.key === 'Enter' &&
+                        !isConnecting &&
+                        !isActivatingReviewMode &&
+                        !isVerifyingPassword &&
+                        reviewModePassword.trim()
+                      ) {
                         e.preventDefault();
                         handleVerifyPassword();
                       }
@@ -786,16 +820,25 @@ export default function AuthPage() {
                   <button
                     type="button"
                     onClick={handleVerifyPassword}
-                    disabled={isConnecting || isActivatingReviewMode || isVerifyingPassword || !reviewModePassword.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled={
+                      isConnecting ||
+                      isActivatingReviewMode ||
+                      isVerifyingPassword ||
+                      !reviewModePassword.trim()
+                    }
+                    className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isVerifyingPassword ? 'Verifying...' : 'Verify'}
                   </button>
                 </div>
                 {isPasswordVerified && (
                   <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path
+                        fillRule="evenodd"
+                        d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                     <span>Password verified</span>
                   </div>
@@ -808,7 +851,7 @@ export default function AuthPage() {
           </div>
         )}
 
-        <div className="flex flex-col gap-4 mb-6">
+        <div className="mb-6 flex flex-col gap-4">
           {/* Connect Wallet Button - Always visible per acceptance criteria */}
           <ArkivQueryTooltip
             query={[
@@ -821,12 +864,19 @@ export default function AuthPage() {
           >
             <button
               onClick={handleMetaMaskConnect}
-              disabled={isConnecting || isActivatingReviewMode || (isReviewModeEnabled && !isPasswordVerified)}
-              className="w-full px-6 py-3 text-base font-medium text-white bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-green-500 dark:disabled:hover:bg-green-600"
+              disabled={
+                isConnecting ||
+                isActivatingReviewMode ||
+                (isReviewModeEnabled && !isPasswordVerified)
+              }
+              className="w-full rounded-lg bg-green-500 px-6 py-3 text-base font-medium text-white transition-all duration-200 hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-green-500 dark:bg-green-600 dark:hover:bg-green-500 dark:disabled:hover:bg-green-600"
             >
-              {(isConnecting || isActivatingReviewMode) ? 'Connecting...' : (
+              {isConnecting || isActivatingReviewMode ? (
+                'Connecting...'
+              ) : (
                 <>
-                  Connect Wallet (MetaMask) <span className="text-sm opacity-90">← recommended</span>
+                  Connect Wallet (MetaMask){' '}
+                  <span className="text-sm opacity-90">← recommended</span>
                 </>
               )}
             </button>
@@ -845,8 +895,12 @@ export default function AuthPage() {
             >
               <button
                 onClick={handleWalletConnectConnect}
-                disabled={isConnectingWalletConnect || isConnecting || (isReviewModeEnabled && !isPasswordVerified)}
-                className="w-full px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-gray-200 dark:disabled:hover:bg-gray-700"
+                disabled={
+                  isConnectingWalletConnect ||
+                  isConnecting ||
+                  (isReviewModeEnabled && !isPasswordVerified)
+                }
+                className="w-full rounded-lg bg-gray-200 px-6 py-3 text-base font-medium text-gray-700 transition-all duration-200 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:disabled:hover:bg-gray-700"
               >
                 {isConnectingWalletConnect ? 'Connecting...' : 'Connect with WalletConnect'}
               </button>
@@ -854,7 +908,7 @@ export default function AuthPage() {
           )}
 
           {mounted && isWalletConnectEnabled && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 text-center -mt-2 mb-2">
+            <p className="-mt-2 mb-2 text-center text-sm text-gray-600 dark:text-gray-400">
               Use any mobile wallet via QR / deep link. Works on desktop and mobile.
             </p>
           )}
@@ -863,44 +917,49 @@ export default function AuthPage() {
           {mounted && isMobile && (
             <>
               {isMetaMaskMobileBrowser ? (
-                <div className="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <p className="text-sm text-green-800 dark:text-green-300 text-center">
+                <div className="rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-800 dark:bg-green-900/20">
+                  <p className="text-center text-sm text-green-800 dark:text-green-300">
                     You're in MetaMask. Tap Connect to continue.
                   </p>
                 </div>
               ) : openingMetaMask ? (
-                <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                  <p className="text-sm text-blue-800 dark:text-blue-300 text-center">
+                <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                  <p className="text-center text-sm text-blue-800 dark:text-blue-300">
                     Opening MetaMask…
                     {getMetaMaskInstallUrl() ? (
                       <>
-                        {' '}If you don't have MetaMask yet,{' '}
+                        {' '}
+                        If you don't have MetaMask yet,{' '}
                         <a
                           href={getMetaMaskInstallUrl()!}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
+                          className="font-medium text-blue-600 hover:underline dark:text-blue-400"
                         >
                           install MetaMask
-                        </a>.
+                        </a>
+                        .
                       </>
                     ) : null}
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-400 text-center">
-                  On mobile, connect via the MetaMask in-app browser. Tap "Connect Wallet" to open it.
+                <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+                  On mobile, connect via the MetaMask in-app browser. Tap "Connect Wallet" to open
+                  it.
                   {getMetaMaskInstallUrl() ? (
                     <>
-                      {' '}If you don't have MetaMask yet,{' '}
+                      {' '}
+                      If you don't have MetaMask yet,{' '}
                       <a
                         href={getMetaMaskInstallUrl()!}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
                       >
                         install MetaMask
-                      </a>.
+                      </a>
+                      .
                     </>
                   ) : null}
                 </p>
@@ -910,10 +969,10 @@ export default function AuthPage() {
 
           {mounted && (
             <>
-              <div className="flex items-center gap-3 my-2">
-                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+              <div className="my-2 flex items-center gap-3">
+                <div className="h-px flex-1 bg-gray-300 dark:bg-gray-600"></div>
                 <span className="text-sm text-gray-500 dark:text-gray-400">or</span>
-                <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+                <div className="h-px flex-1 bg-gray-300 dark:bg-gray-600"></div>
               </div>
 
               <PasskeyLoginButton
@@ -926,42 +985,45 @@ export default function AuthPage() {
               />
             </>
           )}
-
         </div>
 
-        <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg opacity-60 hover:opacity-100 transition-opacity duration-300">
-          <strong className="text-yellow-800 dark:text-yellow-300 text-sm font-semibold block mb-2">
+        <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 opacity-60 transition-opacity duration-300 hover:opacity-100 dark:border-yellow-800 dark:bg-yellow-900/20">
+          <strong className="mb-2 block text-sm font-semibold text-yellow-800 dark:text-yellow-300">
             ⚠️ Beta Environment
           </strong>
-          <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
+          <p className="mt-2 text-sm leading-relaxed text-yellow-700 dark:text-yellow-400">
             This is a beta environment on{' '}
             <a
-              href="https://mendoza.hoodi.arkiv.network"
+              href="https://kaolin.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
+              className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"
             >
-              Mendoza testnet
-            </a>. You do not need any funds to use the application.{' '}
+              Kaolin testnet
+            </a>
+            . You do not need any funds to use the application.{' '}
             <a
               href="/docs/arkiv/wallet-architecture"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
+              className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"
             >
               Learn more about profile wallet vs signing wallet
-            </a>.
+            </a>
+            .
           </p>
-          <p className="mt-2 text-sm text-yellow-700 dark:text-yellow-400 leading-relaxed">
-            Blockchain data is immutable and transparent by design. All data inputted on this beta is viewable on the{' '}
+          <p className="mt-2 text-sm leading-relaxed text-yellow-700 dark:text-yellow-400">
+            Blockchain data is immutable and transparent by design. All data inputted on this beta
+            is viewable on the{' '}
             <a
-              href="https://explorer.mendoza.hoodi.arkiv.network"
+              href="https://explorer.kaolin.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-yellow-800 dark:text-yellow-300 underline hover:text-yellow-900 dark:hover:text-yellow-200"
+              className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"
             >
               Arkiv explorer
-            </a>.
+            </a>
+            .
           </p>
         </div>
 
@@ -969,16 +1031,16 @@ export default function AuthPage() {
         <div className="mt-4 flex justify-center">
           <a
             href="/docs/philosophy/tracking-and-privacy"
-            className="group inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+            className="group inline-flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
             title="Understand and verify what p2pmentor tracks about users and usage"
           >
-            <span className="text-base" role="img" aria-label="Privacy">🥷</span>
+            <span className="text-base" role="img" aria-label="Privacy">
+              🥷
+            </span>
             <span className="underline">Privacy & Data</span>
           </a>
         </div>
       </div>
-
     </main>
   );
 }
-
