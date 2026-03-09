@@ -353,7 +353,7 @@ export async function completeAssessment({
                 issued: true,
                 certificateId: certificateIdBase,
                 issuedAt: now,
-                verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${entityKey}`,
+                verificationUrl: `https://explorer.kaolin.hoodi.arkiv.network/entity/${entityKey}`,
               },
               metadata: {
                 attemptNumber,
@@ -423,7 +423,7 @@ export async function completeAssessment({
               issued: true,
               certificateId: certificateIdBase,
               issuedAt: now,
-              verificationUrl: `https://explorer.mendoza.hoodi.arkiv.network/entity/${finalEntityKey}`,
+              verificationUrl: `https://explorer.kaolin.hoodi.arkiv.network/entity/${finalEntityKey}`,
             }
           : undefined,
       metadata: {
