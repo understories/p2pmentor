@@ -111,7 +111,7 @@ const query = publicClient.buildQuery()
   .limit(1)
   .fetch();`,
             manualTests: [
-              'Wallet connection on Mendoza testnet',
+              'Wallet connection on Kaolin testnet',
               'Profile entity creation with all fields',
               'Profile entity query by wallet address',
               'Entity visible on Arkiv Explorer',
@@ -194,7 +194,7 @@ const query = publicClient.buildQuery()
           },
           {
             id: 'add-network',
-            title: 'Add Mendoza Testnet',
+            title: 'Add Kaolin Testnet',
             status: 'pass',
             codeVerified: true,
             hasArkivQuery: false,
@@ -204,7 +204,7 @@ const query = publicClient.buildQuery()
             manualTests: [
               'Click "Add Network to Wallet"',
               'MetaMask prompt appears',
-              'Network details match Mendoza testnet config',
+              'Network details match Kaolin testnet config',
               'Network appears in wallet after approval',
             ],
           },
