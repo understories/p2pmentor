@@ -1,41 +1,45 @@
 /**
  * WalletConnect authentication utilities
- * 
+ *
  * Provides WalletConnect connection flow for profile wallet (identity wallet).
  * WalletConnect provider is EIP-1193 compliant and works with viem custom transport.
- * 
+ *
  * Phase 0: Additive connector - does not modify MetaMask flows.
- * 
+ *
  * Reference: WalletConnect Phase 0 Plan
  */
 
 'use client';
 
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
-import { mendoza } from '@arkiv-network/sdk/chains';
+import { kaolin } from '@arkiv-network/sdk/chains';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
  * Connect to WalletConnect and return the connected wallet address
- * 
+ *
  * Initializes WalletConnect EthereumProvider singleton and starts connection flow.
  * Handles QR code display (desktop) and deep linking (mobile).
- * 
+ *
  * @returns Wallet address (0x... format)
  * @throws Error if WalletConnect connection fails
  */
 export async function connectWalletConnect(): Promise<`0x${string}`> {
   const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID;
-  
+
   if (!projectId) {
-    throw new Error('WalletConnect project ID not configured. Please set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID environment variable.');
+    throw new Error(
+      'WalletConnect project ID not configured. Please set NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID environment variable.'
+    );
   }
 
   try {
     // Clean up any existing WalletConnect provider first
     // This prevents conflicts when switching from MetaMask to WalletConnect for the same address
     try {
-      const { getWalletConnectProvider, disconnectWalletConnect } = await import('@/lib/wallet/walletconnectProvider');
+      const { getWalletConnectProvider, disconnectWalletConnect } = await import(
+        '@/lib/wallet/walletconnectProvider'
+      );
       const existingProvider = getWalletConnectProvider();
       if (existingProvider) {
         console.log('[WalletConnect] Cleaning up existing provider before new connection');
@@ -43,27 +47,30 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       }
     } catch (cleanupError) {
       // Non-critical - continue with new connection even if cleanup fails
-      console.warn('[WalletConnect] Failed to cleanup existing provider (non-critical):', cleanupError);
+      console.warn(
+        '[WalletConnect] Failed to cleanup existing provider (non-critical):',
+        cleanupError
+      );
     }
 
-    // Initialize WalletConnect provider with Mendoza chain only
-    // Reuse mendoza config from SDK for consistency
+    // Initialize WalletConnect provider with Kaolin chain only
+    // Reuse kaolin config from SDK for consistency
     console.log('[WalletConnect] Initializing provider', {
       projectId: projectId ? `${projectId.substring(0, 8)}...` : 'missing',
-      chainId: mendoza.id,
-      chainName: mendoza.name,
-      rpcUrl: mendoza.rpcUrls.default.http[0],
+      chainId: kaolin.id,
+      chainName: kaolin.name,
+      rpcUrl: kaolin.rpcUrls.default.http[0],
     });
-    
+
     // Include Ethereum mainnet (1) as a fallback chain so wallets can connect
-    // Mendoza is a custom chain not in WalletConnect registry, so wallets may not recognize it
-    // We'll add Mendoza after connection using wallet_addEthereumChain
+    // Kaolin is a custom chain not in WalletConnect registry, so wallets may not recognize it
+    // We'll add Kaolin after connection using wallet_addEthereumChain
     const provider = await EthereumProvider.init({
       projectId,
-      chains: [1, mendoza.id], // Ethereum mainnet (1) + Mendoza
+      chains: [1, kaolin.id], // Ethereum mainnet (1) + Kaolin
       rpcMap: {
         1: 'https://eth.llamarpc.com', // Public Ethereum RPC
-        [mendoza.id]: mendoza.rpcUrls.default.http[0],
+        [kaolin.id]: kaolin.rpcUrls.default.http[0],
       },
       showQrModal: true, // Use built-in QR modal for Phase 0
       metadata: {
@@ -73,7 +80,7 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
         icons: [],
       },
     });
-    
+
     console.log('[WalletConnect] Provider initialized successfully');
 
     // Enable provider (starts connection flow)
@@ -83,7 +90,7 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
 
     // Get accounts from provider
     const accounts = provider.accounts;
-    
+
     if (!accounts || accounts.length === 0) {
       throw new Error('No accounts returned from WalletConnect');
     }
@@ -113,53 +120,55 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       setWalletConnectProvider(null);
     });
 
-    // After connection, add Mendoza to wallet and switch to it
-    // This ensures wallets can add Mendoza even if they don't recognize it during connection
-    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Mendoza
+    // After connection, add Kaolin to wallet and switch to it
+    // This ensures wallets can add Kaolin even if they don't recognize it during connection
+    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Kaolin
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
-      const expectedChainId = `0x${mendoza.id.toString(16)}`;
-      
+      const expectedChainId = `0x${kaolin.id.toString(16)}`;
+
       if (chainId !== expectedChainId) {
-        console.log('[WalletConnect] Not on Mendoza, attempting to add/switch to Mendoza');
+        console.log('[WalletConnect] Not on Kaolin, attempting to add/switch to Kaolin');
         const chainIdHex = expectedChainId;
-        
+
         try {
           // First try to switch (if chain already exists in wallet)
           await provider.request({
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chainIdHex }],
           });
-          console.log('[WalletConnect] Successfully switched to Mendoza');
+          console.log('[WalletConnect] Successfully switched to Kaolin');
         } catch (switchError: any) {
           // If switch fails (chain doesn't exist), try to add it
-          // This will prompt the wallet to add Mendoza network
-          console.log('[WalletConnect] Switch failed, attempting to add Mendoza chain to wallet');
+          // This will prompt the wallet to add Kaolin network
+          console.log('[WalletConnect] Switch failed, attempting to add Kaolin chain to wallet');
           try {
             await provider.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
                   chainId: chainIdHex,
-                  chainName: mendoza.name,
-                  nativeCurrency: mendoza.nativeCurrency,
-                  rpcUrls: mendoza.rpcUrls.default.http,
-                  blockExplorerUrls: mendoza.blockExplorers?.default?.url ? [mendoza.blockExplorers.default.url] : [],
+                  chainName: kaolin.name,
+                  nativeCurrency: kaolin.nativeCurrency,
+                  rpcUrls: kaolin.rpcUrls.default.http,
+                  blockExplorerUrls: kaolin.blockExplorers?.default?.url
+                    ? [kaolin.blockExplorers.default.url]
+                    : [],
                 },
               ],
             });
-            console.log('[WalletConnect] Successfully added Mendoza chain to wallet');
+            console.log('[WalletConnect] Successfully added Kaolin chain to wallet');
           } catch (addError: any) {
             // Non-critical - user may have rejected or wallet doesn't support adding chains
-            console.warn('[WalletConnect] Failed to add/switch to Mendoza (non-critical):', {
+            console.warn('[WalletConnect] Failed to add/switch to Kaolin (non-critical):', {
               switchError: switchError?.message || switchError,
               addError: addError?.message || addError,
             });
-            // Connection still succeeds, user can manually switch to Mendoza later
+            // Connection still succeeds, user can manually switch to Kaolin later
           }
         }
       } else {
-        console.log('[WalletConnect] Already on Mendoza chain');
+        console.log('[WalletConnect] Already on Kaolin chain');
       }
     } catch (chainError) {
       // Non-critical - continue even if chain check fails
@@ -184,26 +193,37 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       data: error?.data,
       stack: error?.stack,
     });
-    
+
     // Handle user rejection
-    if (error?.code === 4001 || error?.message?.includes('User rejected') || error?.message?.includes('User closed')) {
+    if (
+      error?.code === 4001 ||
+      error?.message?.includes('User rejected') ||
+      error?.message?.includes('User closed')
+    ) {
       throw new Error('Connection cancelled by user');
     }
-    
+
     // Handle session settlement errors (common with WalletConnect v2)
-    if (error?.message?.includes('Invalid session settle request') || 
-        error?.message?.includes('session settle') ||
-        error?.message?.includes('namespaces')) {
-      throw new Error('WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Mendoza testnet. Try using MetaMask instead.');
+    if (
+      error?.message?.includes('Invalid session settle request') ||
+      error?.message?.includes('session settle') ||
+      error?.message?.includes('namespaces')
+    ) {
+      throw new Error(
+        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Kaolin testnet. Try using MetaMask instead.'
+      );
     }
-    
+
     // Handle namespace errors
-    if (error?.message?.includes('No accounts found in approved namespaces') ||
-        error?.message?.includes('approved namespaces')) {
-      throw new Error('Wallet connection failed: No accounts found. Please ensure your wallet has accounts and try again. If using Rainbow or another mobile wallet, make sure you have at least one account set up.');
+    if (
+      error?.message?.includes('No accounts found in approved namespaces') ||
+      error?.message?.includes('approved namespaces')
+    ) {
+      throw new Error(
+        'Wallet connection failed: No accounts found. Please ensure your wallet has accounts and try again. If using Rainbow or another mobile wallet, make sure you have at least one account set up.'
+      );
     }
-    
+
     throw new Error(error?.message || 'Failed to connect with WalletConnect');
   }
 }
-
