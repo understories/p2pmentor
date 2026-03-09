@@ -10,7 +10,7 @@
  * **Usage:**
  *   npm run seed
  *   # Or with explicit target:
- *   ARKIV_TARGET=mendoza npm run seed
+ *   ARKIV_TARGET=kaolin npm run seed
  *
  * **Safety Features:**
  * - Verifies SPACE_ID is set before proceeding
@@ -24,8 +24,8 @@
  * - "rate limit exceeded": Too many requests. Wait a moment and try again.
  * - "insufficient funds": Signing wallet needs funds for transaction fees.
  *
- * Supports ARKIV_TARGET=local (CI default) or ARKIV_TARGET=mendoza (human workflows).
- * CI uses local for determinism; Mendoza is for ecosystem validation.
+ * Supports ARKIV_TARGET=local (CI default) or ARKIV_TARGET=kaolin (human workflows).
+ * CI uses local for determinism; Kaolin is for ecosystem validation.
  */
 
 import { createRecord } from '../src/lib/arkiv/writes';
@@ -117,7 +117,7 @@ function getFriendlyError(error: any): string {
 }
 
 async function seed() {
-  const target = process.env.ARKIV_TARGET || 'mendoza';
+  const target = process.env.ARKIV_TARGET || 'kaolin';
   console.log(`[seed] Targeting: ${target}`);
   console.log('[seed] Verifying prerequisites...\n');
 
@@ -190,7 +190,7 @@ async function seed() {
     console.log('\n[seed] 💡 Tips for resolving errors:');
     console.log('[seed]   - "Transaction conflict": Wait 30-60 seconds and run the script again');
     console.log('[seed]   - "Rate limit": Wait a few minutes between runs');
-    console.log('[seed]   - "Insufficient funds": Fund the signing wallet on Mendoza testnet');
+    console.log('[seed]   - "Insufficient funds": Fund the signing wallet on Kaolin testnet');
   }
 
   console.log('\n[seed] Done!');

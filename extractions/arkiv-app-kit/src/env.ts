@@ -10,15 +10,15 @@
  * 
  * Controls which Arkiv network to target:
  * - 'local': Local node (for CI determinism)
- * - 'mendoza': Mendoza testnet (for ecosystem validation)
+ * - 'kaolin': Kaolin testnet (for ecosystem validation)
  */
-export type ArkivTarget = 'local' | 'mendoza';
+export type ArkivTarget = 'local' | 'kaolin';
 
 /**
  * Get ARKIV_TARGET from environment
  * 
  * Validates that ARKIV_TARGET is one of the allowed values.
- * Defaults to 'mendoza' if not set (testnet-first).
+ * Defaults to 'kaolin' if not set (testnet-first).
  * 
  * @returns Validated ARKIV_TARGET value
  * @throws Error if ARKIV_TARGET is set to an invalid value
@@ -27,13 +27,13 @@ export function getArkivTarget(): ArkivTarget {
   const target = process.env.ARKIV_TARGET;
   
   if (!target) {
-    // Default to Mendoza (testnet-first)
-    return 'mendoza';
+    // Default to Kaolin (testnet-first)
+    return 'kaolin';
   }
   
-  if (target !== 'local' && target !== 'mendoza') {
+  if (target !== 'local' && target !== 'kaolin') {
     throw new Error(
-      `Invalid ARKIV_TARGET: "${target}". Must be "local" or "mendoza".`
+      `Invalid ARKIV_TARGET: "${target}". Must be "local" or "kaolin".`
     );
   }
   
@@ -50,12 +50,12 @@ export function isLocalTarget(): boolean {
 }
 
 /**
- * Check if targeting Mendoza testnet
+ * Check if targeting Kaolin testnet
  * 
- * @returns True if ARKIV_TARGET is 'mendoza'
+ * @returns True if ARKIV_TARGET is 'kaolin'
  */
-export function isMendozaTarget(): boolean {
-  return getArkivTarget() === 'mendoza';
+export function isKaolinTarget(): boolean {
+  return getArkivTarget() === 'kaolin';
 }
 
 /**
@@ -99,7 +99,7 @@ export function requireEnv(name: string): string {
  * 
  * @example
  * ```ts
- * const rpcUrl = getEnv('ARKIV_RPC_URL', 'https://rpc.mendoza.arkiv.network');
+ * const rpcUrl = getEnv('ARKIV_RPC_URL', 'https://kaolin.hoodi.arkiv.network/rpc');
  * ```
  */
 export function getEnv(name: string, defaultValue: string): string {

@@ -86,7 +86,7 @@ Fail-closed helpers for environment variables.
 - `getEnv(name, defaultValue)` - Get env var with default
 - `getArkivTarget()` - Get ARKIV_TARGET ('local' | 'mendoza')
 - `isLocalTarget()` - Check if targeting local node
-- `isMendozaTarget()` - Check if targeting Mendoza testnet
+- `isKaolinTarget()` - Check if targeting Kaolin testnet
 
 **Prohibits "cute fallbacks"** - makes it painful to hardcode values, easy to use config.
 

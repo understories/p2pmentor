@@ -142,7 +142,7 @@ export default function RecordDetailsPage() {
           <div>
             <span className="font-semibold">Transaction:</span>{' '}
             <a
-              href={`https://explorer.mendoza.arkiv.network/tx/${record.txHash}`}
+              href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${record.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-500 hover:underline"
