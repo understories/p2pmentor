@@ -9,7 +9,7 @@ The **Arkiv Explorer** is a public tool that lets anyone view entities and trans
 ## Finding Your Entity
 
 1. **Get your transaction hash** from when you created the entity
-2. **Open the Arkiv Explorer**: [https://explorer.mendoza.hoodi.arkiv.network](https://explorer.mendoza.hoodi.arkiv.network)
+2. **Open the Arkiv Explorer**: [https://explorer.kaolin.hoodi.arkiv.network](https://explorer.kaolin.hoodi.arkiv.network)
 3. **Search for your transaction hash** in the search bar
 4. **View your entity** - You should see:
    - Your entity key
@@ -20,6 +20,7 @@ The **Arkiv Explorer** is a public tool that lets anyone view entities and trans
 ## What You're Seeing
 
 When you view your entity on the Explorer, you're seeing:
+
 - **On-chain proof** that the data exists
 - **Immutable record** - The transaction can't be changed
 - **Public verification** - Anyone can verify it independently
@@ -36,6 +37,7 @@ This is what "trustless" means - you don't need to trust our servers because you
 ## The Power of Verification
 
 This is a fundamental difference from traditional apps:
+
 - **Traditional**: "Trust us, your data is in our database"
 - **Arkiv**: "Here's the transaction hash - verify it yourself on the blockchain"
 
