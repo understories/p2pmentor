@@ -702,7 +702,7 @@ export default function LitePage() {
             <br />
             This means it is visible and verifiable on their{' '}
             <a
-              href="http://explorer.mendoza.hoodi.arkiv.network/"
+              href="http://explorer.kaolin.hoodi.arkiv.network/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-blue-600 underline hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"

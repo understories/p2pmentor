@@ -35,7 +35,12 @@ function shortenWallet(wallet: string): string {
   return `${wallet.slice(0, 6)}...${wallet.slice(-4)}`;
 }
 
-function formatSessionDate(sessionDate: string): { date: string; time: string; isPast: boolean; isToday: boolean } {
+function formatSessionDate(sessionDate: string): {
+  date: string;
+  time: string;
+  isPast: boolean;
+  isToday: boolean;
+} {
   const date = new Date(sessionDate);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -48,13 +53,13 @@ function formatSessionDate(sessionDate: string): { date: string; time: string; i
     weekday: 'long',
     year: 'numeric',
     month: 'long',
-    day: 'numeric'
+    day: 'numeric',
   });
 
   const timeStr = date.toLocaleTimeString('en-US', {
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true
+    hour12: true,
   });
 
   return { date: dateStr, time: timeStr, isPast, isToday };
@@ -108,14 +113,16 @@ export default function SessionsPage() {
       const { listSkills } = await import('@/lib/arkiv/skill');
       const skills = await listSkills({ status: 'active', limit: 200 });
       const skillsMap: Record<string, Skill> = {};
-      skills.forEach(skill => {
+      skills.forEach((skill) => {
         skillsMap[skill.key] = skill;
       });
       setSkillsMap(skillsMap);
 
       // Fetch sessions
       const sessionsParams = `?wallet=${encodeURIComponent(wallet)}`;
-      const sessionsRes = await fetch(`/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`);
+      const sessionsRes = await fetch(
+        `/api/sessions${appendBuilderModeParams(arkivBuilderMode, sessionsParams)}`
+      );
       if (!sessionsRes.ok) {
         throw new Error('Failed to fetch sessions');
       }
@@ -127,8 +134,12 @@ export default function SessionsPage() {
       // Arkiv-native: Use session's spaceId to ensure we query feedback from the correct space
       const feedbackPromises = sessionsList.map(async (session: Session) => {
         try {
-          const spaceIdParam = session.spaceId ? `&spaceId=${encodeURIComponent(session.spaceId)}` : '';
-          const feedbackRes = await fetch(`/api/feedback?sessionKey=${encodeURIComponent(session.key)}${spaceIdParam}`);
+          const spaceIdParam = session.spaceId
+            ? `&spaceId=${encodeURIComponent(session.spaceId)}`
+            : '';
+          const feedbackRes = await fetch(
+            `/api/feedback?sessionKey=${encodeURIComponent(session.key)}${spaceIdParam}`
+          );
           if (feedbackRes.ok) {
             const feedbackData = await feedbackRes.json();
             return { sessionKey: session.key, feedbacks: feedbackData.feedbacks || [] };
@@ -183,16 +194,22 @@ export default function SessionsPage() {
       setProfiles(profileMap);
 
       // For community gathering sessions, fetch gathering info and RSVP wallets
-      const communitySessions = sessionsList.filter((s: Session) =>
-        s.gatheringKey || s.skill === 'virtual_gathering_rsvp' || s.notes?.includes('virtual_gathering_rsvp:')
+      const communitySessions = sessionsList.filter(
+        (s: Session) =>
+          s.gatheringKey ||
+          s.skill === 'virtual_gathering_rsvp' ||
+          s.notes?.includes('virtual_gathering_rsvp:')
       );
 
       if (communitySessions.length > 0) {
         const gatheringKeys = new Set<string>();
         communitySessions.forEach((s: Session) => {
-          const gatheringKey = s.gatheringKey ||
-            (s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
-            (s.notes?.includes('virtual_gathering_rsvp:') ? s.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
+          const gatheringKey =
+            s.gatheringKey ||
+            s.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+            (s.notes?.includes('virtual_gathering_rsvp:')
+              ? s.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim()
+              : null);
           if (gatheringKey) {
             gatheringKeys.add(gatheringKey);
           }
@@ -207,7 +224,9 @@ export default function SessionsPage() {
                 const { getVirtualGatheringByKey } = await import('@/lib/arkiv/virtualGathering');
                 return await getVirtualGatheringByKey(gatheringKey);
               })(),
-              fetch(`/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gatheringKey)}`).then(r => r.json()).catch(() => ({ ok: false, rsvpWallets: [] })),
+              fetch(`/api/virtual-gatherings?gatheringKey=${encodeURIComponent(gatheringKey)}`)
+                .then((r) => r.json())
+                .catch(() => ({ ok: false, rsvpWallets: [] })),
             ]);
 
             return {
@@ -239,8 +258,8 @@ export default function SessionsPage() {
 
         // Load profiles for all RSVP wallets
         const allRsvpWallets = new Set<string>();
-        Object.values(rsvpWalletsMap).forEach(wallets => {
-          wallets.forEach(wallet => allRsvpWallets.add(wallet));
+        Object.values(rsvpWalletsMap).forEach((wallets) => {
+          wallets.forEach((wallet) => allRsvpWallets.add(wallet));
         });
 
         const rsvpProfilePromises = Array.from(allRsvpWallets).map(async (wallet) => {
@@ -296,7 +315,9 @@ export default function SessionsPage() {
         // Check for concurrent confirmation error
         if (data.concurrentError || res.status === 409) {
           // User-friendly message for concurrent confirmation
-          alert('You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.');
+          alert(
+            'You both might have clicked at the same time! Wait a moment then try again. The confirmation may have already succeeded.'
+          );
           // Reload sessions to check if confirmation succeeded
           if (userWallet) {
             setTimeout(() => loadSessions(userWallet), 2000);
@@ -308,7 +329,10 @@ export default function SessionsPage() {
 
       // Check if already confirmed (concurrent confirmation case)
       if (data.alreadyConfirmed) {
-        alert(data.message || 'Session was already confirmed. Both parties may have clicked at the same time!');
+        alert(
+          data.message ||
+            'Session was already confirmed. Both parties may have clicked at the same time!'
+        );
       } else {
         alert('Session confirmed!');
       }
@@ -419,7 +443,7 @@ export default function SessionsPage() {
 
       alert('Payment submitted successfully! The mentor will validate it.');
       // Clear input
-      setPaymentTxHashInput(prev => {
+      setPaymentTxHashInput((prev) => {
         const next = { ...prev };
         delete next[session.key];
         return next;
@@ -489,8 +513,8 @@ export default function SessionsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
@@ -507,7 +531,7 @@ export default function SessionsPage() {
                 `3. GET /api/profile?wallet=${userWallet?.toLowerCase() || '...'}`,
                 `   → type='user_profile', wallet='${userWallet?.toLowerCase() || '...'}'`,
                 `4. GET /api/profile?wallet=... (for each participant)`,
-                `   → type='user_profile', wallet='...'`
+                `   → type='user_profile', wallet='...'`,
               ]}
               label="Loading Sessions"
             >
@@ -523,8 +547,8 @@ export default function SessionsPage() {
 
   if (error && !userWallet) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
@@ -539,8 +563,8 @@ export default function SessionsPage() {
   const isCommunitySession = (s: Session): boolean => {
     return Boolean(
       s.gatheringKey ||
-      s.skill === 'virtual_gathering_rsvp' ||
-      s.notes?.includes('virtual_gathering_rsvp:')
+        s.skill === 'virtual_gathering_rsvp' ||
+        s.notes?.includes('virtual_gathering_rsvp:')
     );
   };
 
@@ -551,7 +575,7 @@ export default function SessionsPage() {
       return sessionList.filter(isCommunitySession);
     }
     // p2p: filter out community sessions
-    return sessionList.filter(s => !isCommunitySession(s));
+    return sessionList.filter((s) => !isCommunitySession(s));
   };
 
   // Helper function to check if a session is upcoming (hasn't started yet)
@@ -566,13 +590,18 @@ export default function SessionsPage() {
     const sessionTime = new Date(s.sessionDate).getTime();
     // Defensive: check if date parsing succeeded
     if (isNaN(sessionTime)) {
-      console.warn('[isSessionUpcoming] Invalid sessionDate:', s.sessionDate, 'for session:', s.key);
+      console.warn(
+        '[isSessionUpcoming] Invalid sessionDate:',
+        s.sessionDate,
+        'for session:',
+        s.key
+      );
       return false;
     }
     // Session is upcoming if it hasn't started yet (future sessions only)
     return now < sessionTime;
   };
-  
+
   // Helper function to check if a session hasn't started yet (for "Next Session" highlight)
   // Arkiv-native: Only show sessions that haven't started as "Next Session"
   const isSessionNotStarted = (s: Session): boolean => {
@@ -584,13 +613,18 @@ export default function SessionsPage() {
     const sessionTime = new Date(s.sessionDate).getTime();
     // Defensive: check if date parsing succeeded
     if (isNaN(sessionTime)) {
-      console.warn('[isSessionNotStarted] Invalid sessionDate:', s.sessionDate, 'for session:', s.key);
+      console.warn(
+        '[isSessionNotStarted] Invalid sessionDate:',
+        s.sessionDate,
+        'for session:',
+        s.key
+      );
       return false;
     }
     // Session hasn't started if current time is before session start time
     return now < sessionTime;
   };
-  
+
   // Helper function to check if a session is past (has started or ended)
   // Arkiv-native: Uses consistent sessionTime and sessionEnd calculation
   // Past includes: sessions that have started (now >= sessionTime) OR ended (now >= sessionEnd)
@@ -628,10 +662,17 @@ export default function SessionsPage() {
   const filterSessionsByStatus = (sessionList: Session[]): Session[] => {
     if (statusFilter === 'all') return sessionList;
     if (statusFilter === 'pending') {
-      return sessionList.filter(s => s.status === 'pending' || !s.mentorConfirmed || !s.learnerConfirmed);
+      return sessionList.filter(
+        (s) => s.status === 'pending' || !s.mentorConfirmed || !s.learnerConfirmed
+      );
     }
     // confirmed: both mentor and learner confirmed, and status is scheduled or completed
-    return sessionList.filter(s => s.mentorConfirmed && s.learnerConfirmed && (s.status === 'scheduled' || s.status === 'completed'));
+    return sessionList.filter(
+      (s) =>
+        s.mentorConfirmed &&
+        s.learnerConfirmed &&
+        (s.status === 'scheduled' || s.status === 'completed')
+    );
   };
 
   // Apply all filters
@@ -646,23 +687,25 @@ export default function SessionsPage() {
   // Group sessions by status, then apply all filters
   // Arkiv-native: All session lists use the same filtered set (respects type, time, status filters)
   const allSessionsFiltered = applyAllFilters(sessions);
-  const pendingSessions = allSessionsFiltered.filter(s => s.status === 'pending');
+  const pendingSessions = allSessionsFiltered.filter((s) => s.status === 'pending');
   // Helper to identify reconstructed/archived sessions
   const isReconstructedSession = (session: Session): boolean => {
-    return session.skill === 'Session (expired)' ||
-           session.notes === 'Session expired - reconstructed from feedback';
+    return (
+      session.skill === 'Session (expired)' ||
+      session.notes === 'Session expired - reconstructed from feedback'
+    );
   };
 
   // Scheduled sessions: already filtered by applyAllFilters (respects time filter)
   // When timeFilter is "past", includes sessions that have started
   // When timeFilter is "upcoming", includes sessions that haven't ended
   // When timeFilter is "all", includes all scheduled sessions
-  const scheduledSessions = allSessionsFiltered.filter(s => s.status === 'scheduled');
-  const allCompletedSessions = allSessionsFiltered.filter(s => s.status === 'completed');
-  const completedSessions = allCompletedSessions.filter(s => !isReconstructedSession(s));
-  const archivedSessions = allCompletedSessions.filter(s => isReconstructedSession(s));
-  const declinedSessions = allSessionsFiltered.filter(s => s.status === 'declined');
-  const cancelledSessions = allSessionsFiltered.filter(s => s.status === 'cancelled');
+  const scheduledSessions = allSessionsFiltered.filter((s) => s.status === 'scheduled');
+  const allCompletedSessions = allSessionsFiltered.filter((s) => s.status === 'completed');
+  const completedSessions = allCompletedSessions.filter((s) => !isReconstructedSession(s));
+  const archivedSessions = allCompletedSessions.filter((s) => isReconstructedSession(s));
+  const declinedSessions = allSessionsFiltered.filter((s) => s.status === 'declined');
+  const cancelledSessions = allSessionsFiltered.filter((s) => s.status === 'cancelled');
   // Show declined and cancelled together in UI (they're semantically different but both represent ended sessions)
   const endedSessions = [...declinedSessions, ...cancelledSessions];
 
@@ -670,24 +713,29 @@ export default function SessionsPage() {
   // Arkiv-native: Use filtered sessions and respect all active filters (type, status)
   // Only show sessions that haven't started yet (for "Next Session" display)
   // CRITICAL: Filter by isSessionNotStarted to ensure we only show future sessions
-  const upcomingSession = scheduledSessions
-    .filter(isSessionNotStarted)
-    .sort((a, b) => {
-      const aTime = new Date(a.sessionDate).getTime();
-      const bTime = new Date(b.sessionDate).getTime();
-      // Defensive: handle invalid dates
-      if (isNaN(aTime) || isNaN(bTime)) {
-        console.warn('[upcomingSession] Invalid sessionDate in sort:', { a: a.sessionDate, b: b.sessionDate });
-        return 0;
-      }
-      return aTime - bTime;
-    })[0];
+  const upcomingSession = scheduledSessions.filter(isSessionNotStarted).sort((a, b) => {
+    const aTime = new Date(a.sessionDate).getTime();
+    const bTime = new Date(b.sessionDate).getTime();
+    // Defensive: handle invalid dates
+    if (isNaN(aTime) || isNaN(bTime)) {
+      console.warn('[upcomingSession] Invalid sessionDate in sort:', {
+        a: a.sessionDate,
+        b: b.sessionDate,
+      });
+      return 0;
+    }
+    return aTime - bTime;
+  })[0];
 
-  const hasAnySessions = pendingSessions.length > 0 || scheduledSessions.length > 0 || completedSessions.length > 0 || endedSessions.length > 0;
+  const hasAnySessions =
+    pendingSessions.length > 0 ||
+    scheduledSessions.length > 0 ||
+    completedSessions.length > 0 ||
+    endedSessions.length > 0;
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-4xl">
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
@@ -710,16 +758,16 @@ export default function SessionsPage() {
                       `Filter: Type = All`,
                       `Shows all sessions (no type filtering)`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: All sessions regardless of gatheringKey`
+                      `Returns: All sessions regardless of gatheringKey`,
                     ]}
                     label="All"
                   >
                     <button
                       onClick={() => setSessionTypeFilter('all')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         sessionTypeFilter === 'all'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       All
@@ -728,10 +776,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setSessionTypeFilter('all')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       sessionTypeFilter === 'all'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     All
@@ -744,16 +792,16 @@ export default function SessionsPage() {
                       `Filters out community sessions`,
                       `Client-side filter: !isCommunitySession(session)`,
                       `isCommunitySession: session.gatheringKey !== undefined`,
-                      `Returns: Sessions without gatheringKey (P2P only)`
+                      `Returns: Sessions without gatheringKey (P2P only)`,
                     ]}
                     label="P2P"
                   >
                     <button
                       onClick={() => setSessionTypeFilter('p2p')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         sessionTypeFilter === 'p2p'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       P2P
@@ -762,10 +810,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setSessionTypeFilter('p2p')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       sessionTypeFilter === 'p2p'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     P2P
@@ -778,16 +826,16 @@ export default function SessionsPage() {
                       `Filters to community sessions only`,
                       `Client-side filter: isCommunitySession(session)`,
                       `isCommunitySession: session.gatheringKey !== undefined`,
-                      `Returns: Sessions with gatheringKey (community only)`
+                      `Returns: Sessions with gatheringKey (community only)`,
                     ]}
                     label="Community"
                   >
                     <button
                       onClick={() => setSessionTypeFilter('community')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         sessionTypeFilter === 'community'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Community
@@ -796,10 +844,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setSessionTypeFilter('community')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       sessionTypeFilter === 'community'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     Community
@@ -818,16 +866,16 @@ export default function SessionsPage() {
                       `Filter: Time = All`,
                       `Shows all sessions (no time filtering)`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: All sessions regardless of sessionDate`
+                      `Returns: All sessions regardless of sessionDate`,
                     ]}
                     label="All"
                   >
                     <button
                       onClick={() => setTimeFilter('all')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         timeFilter === 'all'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       All
@@ -836,10 +884,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setTimeFilter('all')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       timeFilter === 'all'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     All
@@ -852,16 +900,16 @@ export default function SessionsPage() {
                       `Client-side filter: sessionDate > now`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
                       `Filtered: new Date(session.sessionDate).getTime() > Date.now()`,
-                      `Returns: Sessions scheduled in the future`
+                      `Returns: Sessions scheduled in the future`,
                     ]}
                     label="Upcoming"
                   >
                     <button
                       onClick={() => setTimeFilter('upcoming')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         timeFilter === 'upcoming'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Upcoming
@@ -870,10 +918,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setTimeFilter('upcoming')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       timeFilter === 'upcoming'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     Upcoming
@@ -886,16 +934,16 @@ export default function SessionsPage() {
                       `Client-side filter: sessionEnd < now OR status in ['completed', 'declined', 'cancelled']`,
                       `sessionEnd = sessionDate + duration + 1 hour buffer`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: Sessions that have ended or are completed/declined/cancelled`
+                      `Returns: Sessions that have ended or are completed/declined/cancelled`,
                     ]}
                     label="Past"
                   >
                     <button
                       onClick={() => setTimeFilter('past')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         timeFilter === 'past'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Past
@@ -904,10 +952,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setTimeFilter('past')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       timeFilter === 'past'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     Past
@@ -926,16 +974,16 @@ export default function SessionsPage() {
                       `Filter: Status = All`,
                       `Shows all sessions (no status filtering)`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: All sessions regardless of status`
+                      `Returns: All sessions regardless of status`,
                     ]}
                     label="All"
                   >
                     <button
                       onClick={() => setStatusFilter('all')}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         statusFilter === 'all'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       All
@@ -944,10 +992,10 @@ export default function SessionsPage() {
                 ) : (
                   <button
                     onClick={() => setStatusFilter('all')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       statusFilter === 'all'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     All
@@ -959,7 +1007,7 @@ export default function SessionsPage() {
                       `Filter: Status = Pending`,
                       `Client-side filter: status='pending' OR !mentorConfirmed OR !learnerConfirmed`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: Sessions awaiting confirmation from mentor or learner`
+                      `Returns: Sessions awaiting confirmation from mentor or learner`,
                     ]}
                     label="Pending"
                   >
@@ -968,10 +1016,10 @@ export default function SessionsPage() {
                         setStatusFilter('pending');
                         setPendingExpanded(true);
                       }}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         statusFilter === 'pending'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Pending
@@ -983,10 +1031,10 @@ export default function SessionsPage() {
                       setStatusFilter('pending');
                       setPendingExpanded(true);
                     }}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       statusFilter === 'pending'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     Pending
@@ -998,7 +1046,7 @@ export default function SessionsPage() {
                       `Filter: Status = Confirmed`,
                       `Client-side filter: mentorConfirmed && learnerConfirmed && (status='scheduled' || status='completed')`,
                       `Query: type='session', (mentorWallet='${userWallet?.slice(0, 8) || '...'}...' OR learnerWallet='${userWallet?.slice(0, 8) || '...'}...')`,
-                      `Returns: Sessions confirmed by both parties (scheduled or completed)`
+                      `Returns: Sessions confirmed by both parties (scheduled or completed)`,
                     ]}
                     label="Confirmed"
                   >
@@ -1007,10 +1055,10 @@ export default function SessionsPage() {
                         setStatusFilter('confirmed');
                         setScheduledExpanded(true);
                       }}
-                      className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                         statusFilter === 'confirmed'
                           ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                       }`}
                     >
                       Confirmed
@@ -1022,10 +1070,10 @@ export default function SessionsPage() {
                       setStatusFilter('confirmed');
                       setScheduledExpanded(true);
                     }}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       statusFilter === 'confirmed'
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                     }`}
                   >
                     Confirmed
@@ -1041,80 +1089,93 @@ export default function SessionsPage() {
         )}
 
         {/* Upcoming Session Highlight - only show when not filtering by past */}
-        {upcomingSession && timeFilter !== 'past' && (() => {
-          // Defensive: Double-check that session hasn't started (safety check)
-          const now = Date.now();
-          const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
-          if (isNaN(sessionDateTime) || now >= sessionDateTime) {
-            // Session has started or invalid date - don't show as "Next Session"
-            return null;
-          }
-          
-          const isMentor = userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
-          const otherWallet = isMentor ? upcomingSession.learnerWallet : upcomingSession.mentorWallet;
-          const otherProfile = profiles[otherWallet.toLowerCase()];
-          const sessionTime = formatSessionDate(upcomingSession.sessionDate);
-          const remaining = sessionDateTime - now;
-          const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
-          const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-          const minutesUntil = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+        {upcomingSession &&
+          timeFilter !== 'past' &&
+          (() => {
+            // Defensive: Double-check that session hasn't started (safety check)
+            const now = Date.now();
+            const sessionDateTime = new Date(upcomingSession.sessionDate).getTime();
+            if (isNaN(sessionDateTime) || now >= sessionDateTime) {
+              // Session has started or invalid date - don't show as "Next Session"
+              return null;
+            }
 
-          // Check if this is a community gathering session
-          const gatheringKey = upcomingSession.gatheringKey ||
-            (upcomingSession.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
-            (upcomingSession.notes?.includes('virtual_gathering_rsvp:') ? upcomingSession.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
-          const isCommunityGathering = gatheringKey && (upcomingSession.skill === 'virtual_gathering_rsvp' || upcomingSession.notes?.includes('virtual_gathering_rsvp:'));
-          const gathering = gatheringKey ? gatherings[gatheringKey] : null;
+            const isMentor =
+              userWallet?.toLowerCase() === upcomingSession.mentorWallet.toLowerCase();
+            const otherWallet = isMentor
+              ? upcomingSession.learnerWallet
+              : upcomingSession.mentorWallet;
+            const otherProfile = profiles[otherWallet.toLowerCase()];
+            const sessionTime = formatSessionDate(upcomingSession.sessionDate);
+            const remaining = sessionDateTime - now;
+            const daysUntil = Math.floor(remaining / (1000 * 60 * 60 * 24));
+            const hoursUntil = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutesUntil = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
 
-          // Use gathering's videoJoinUrl if available (for community gatherings)
-          const videoJoinUrl = isCommunityGathering && gathering?.videoJoinUrl
-            ? gathering.videoJoinUrl
-            : upcomingSession.videoJoinUrl;
+            // Check if this is a community gathering session
+            const gatheringKey =
+              upcomingSession.gatheringKey ||
+              upcomingSession.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+              (upcomingSession.notes?.includes('virtual_gathering_rsvp:')
+                ? upcomingSession.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim()
+                : null);
+            const isCommunityGathering =
+              gatheringKey &&
+              (upcomingSession.skill === 'virtual_gathering_rsvp' ||
+                upcomingSession.notes?.includes('virtual_gathering_rsvp:'));
+            const gathering = gatheringKey ? gatherings[gatheringKey] : null;
 
-          return (
-            <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
-                  📅 Next Session
-                </h3>
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  {daysUntil > 0
-                    ? `${daysUntil}d ${hoursUntil}h ${minutesUntil}m left`
-                    : hoursUntil > 0
-                    ? `${hoursUntil}h ${minutesUntil}m left`
-                    : `${minutesUntil}m left`}
-                </span>
-              </div>
-              <p className="text-sm text-blue-800 dark:text-blue-300 mb-1">
-                <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong>
-                {!isCommunityGathering && ` with ${otherProfile?.displayName || shortenWallet(otherWallet)}`}
-              </p>
-              <p className="text-sm text-blue-700 dark:text-blue-400">
-                {sessionTime.date} at {sessionTime.time}
-              </p>
-              {isCommunityGathering && gathering && gathering.rsvpCount !== undefined && (
-                <p className="text-sm text-blue-600 dark:text-blue-300">
-                  {gathering.rsvpCount} {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
+            // Use gathering's videoJoinUrl if available (for community gatherings)
+            const videoJoinUrl =
+              isCommunityGathering && gathering?.videoJoinUrl
+                ? gathering.videoJoinUrl
+                : upcomingSession.videoJoinUrl;
+
+            return (
+              <div className="mb-6 rounded-lg border-2 border-blue-300 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/20">
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
+                    📅 Next Session
+                  </h3>
+                  <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
+                    {daysUntil > 0
+                      ? `${daysUntil}d ${hoursUntil}h ${minutesUntil}m left`
+                      : hoursUntil > 0
+                        ? `${hoursUntil}h ${minutesUntil}m left`
+                        : `${minutesUntil}m left`}
+                  </span>
+                </div>
+                <p className="mb-1 text-sm text-blue-800 dark:text-blue-300">
+                  <strong>{formatSessionTitle(upcomingSession, skillsMap)}</strong>
+                  {!isCommunityGathering &&
+                    ` with ${otherProfile?.displayName || shortenWallet(otherWallet)}`}
                 </p>
-              )}
-              {videoJoinUrl && (
-                <a
-                  href={videoJoinUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
-                >
-                  🎥 Join Meeting
-                </a>
-              )}
-            </div>
-          );
-        })()}
+                <p className="text-sm text-blue-700 dark:text-blue-400">
+                  {sessionTime.date} at {sessionTime.time}
+                </p>
+                {isCommunityGathering && gathering && gathering.rsvpCount !== undefined && (
+                  <p className="text-sm text-blue-600 dark:text-blue-300">
+                    {gathering.rsvpCount} {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
+                  </p>
+                )}
+                {videoJoinUrl && (
+                  <a
+                    href={videoJoinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-2 inline-block rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    🎥 Join Meeting
+                  </a>
+                )}
+              </div>
+            );
+          })()}
 
         {/* Pending Sessions */}
         {pendingSessions.length > 0 && (
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex items-center justify-between">
               {arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
@@ -1122,7 +1183,7 @@ export default function SessionsPage() {
                     `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
                     `Filtered: status='pending'`,
                     `Returns: Session[] (${pendingSessions.length} pending sessions)`,
-                    `Each session is a type='session' entity on Arkiv`
+                    `Each session is a type='session' entity on Arkiv`,
                   ]}
                   label={`⏳ Pending (${pendingSessions.length})`}
                 >
@@ -1137,679 +1198,799 @@ export default function SessionsPage() {
               )}
               <button
                 onClick={() => setPendingExpanded(!pendingExpanded)}
-                className="px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                className="rounded border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 title={pendingExpanded ? 'Collapse pending sessions' : 'Expand pending sessions'}
               >
                 {pendingExpanded ? '▼ Collapse' : '▶ Expand'}
               </button>
             </div>
             {pendingExpanded && (
-            <div className="space-y-4">
-              {pendingSessions.map((session) => {
-                const isMentor = Boolean(userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase());
-                const isLearner = Boolean(userWallet && userWallet.toLowerCase() === session.learnerWallet.toLowerCase());
-                const canConfirm = isMentor || isLearner;
-                const userConfirmed = isMentor ? session.mentorConfirmed : (isLearner ? session.learnerConfirmed : false);
-                const otherConfirmed = isMentor ? session.learnerConfirmed : (isLearner ? session.mentorConfirmed : false);
+              <div className="space-y-4">
+                {pendingSessions.map((session) => {
+                  const isMentor = Boolean(
+                    userWallet && userWallet.toLowerCase() === session.mentorWallet.toLowerCase()
+                  );
+                  const isLearner = Boolean(
+                    userWallet && userWallet.toLowerCase() === session.learnerWallet.toLowerCase()
+                  );
+                  const canConfirm = isMentor || isLearner;
+                  const userConfirmed = isMentor
+                    ? session.mentorConfirmed
+                    : isLearner
+                      ? session.learnerConfirmed
+                      : false;
+                  const otherConfirmed = isMentor
+                    ? session.learnerConfirmed
+                    : isLearner
+                      ? session.mentorConfirmed
+                      : false;
 
-                const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
-                const otherProfile = profiles[otherWallet.toLowerCase()];
-                const sessionTime = formatSessionDate(session.sessionDate);
+                  const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+                  const otherProfile = profiles[otherWallet.toLowerCase()];
+                  const sessionTime = formatSessionDate(session.sessionDate);
 
-                return (
-                  <div
-                    key={session.key}
-                    className="p-6 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                          {(() => {
-                            const sessionTime = new Date(session.sessionDate).getTime();
-                            const isExpired = sessionTime < Date.now();
-                            return isExpired ? (
-                              <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
-                                Expired
-                              </span>
-                            ) : (
-                              <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
-                                Pending
-                              </span>
-                            );
-                          })()}
-                          {arkivBuilderMode && session.key && (
-                            <div className="flex items-center gap-2 ml-auto">
-                              <ViewOnArkivLink
-                                entityKey={session.key}
-                                txHash={session.txHash}
-                                label="View Session Entity"
-                                className="text-xs"
-                              />
-                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                                {session.key.slice(0, 12)}...
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        <p className="text-gray-700 dark:text-gray-300 mb-2">
-                          <strong>With:</strong>{' '}
-                          {otherProfile?.displayName || shortenWallet(otherWallet)}
-                        </p>
-                        <p className="text-gray-600 dark:text-gray-400 mb-2">
-                          <strong>Date:</strong> {sessionTime.date}
-                        </p>
-                        <p className="text-gray-600 dark:text-gray-400 mb-2">
-                          <strong>Time:</strong> {sessionTime.time}
-                        </p>
-                        {session.duration && (
-                          <p className="text-gray-600 dark:text-gray-400 mb-2">
-                            <strong>Duration:</strong> {session.duration} minutes
-                          </p>
-                        )}
-                        {session.notes && (
-                          <div className="mt-3">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</p>
-                            <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
-                          </div>
-                        )}
-                        {session.paymentTxHash && (
-                          <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                              💰 Payment Transaction:
-                            </p>
-                            <div className="flex items-center gap-2">
-                              <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
-                              </code>
-                              <a
-                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                View
-                              </a>
-                            </div>
-                            {session.paymentValidated ? (
-                              <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
-                              </p>
-                            ) : (
-                              <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                ⏳ Payment not yet validated
-                              </p>
+                  return (
+                    <div
+                      key={session.key}
+                      className="rounded-lg border border-orange-200 bg-orange-50 p-6 dark:border-orange-800 dark:bg-orange-900/20"
+                    >
+                      <div className="mb-4 flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="mb-2 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold">
+                              📅 {formatSessionTitle(session, skillsMap)}
+                            </h3>
+                            {(() => {
+                              const sessionTime = new Date(session.sessionDate).getTime();
+                              const isExpired = sessionTime < Date.now();
+                              return isExpired ? (
+                                <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200">
+                                  Expired
+                                </span>
+                              ) : (
+                                <span className="rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-200">
+                                  Pending
+                                </span>
+                              );
+                            })()}
+                            {arkivBuilderMode && session.key && (
+                              <div className="ml-auto flex items-center gap-2">
+                                <ViewOnArkivLink
+                                  entityKey={session.key}
+                                  txHash={session.txHash}
+                                  label="View Session Entity"
+                                  className="text-xs"
+                                />
+                                <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                                  {session.key.slice(0, 12)}...
+                                </span>
+                              </div>
                             )}
                           </div>
-                        )}
-                        <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                          {userConfirmed ? (
-                            <span className="text-green-600 dark:text-green-400">✓ You confirmed</span>
-                          ) : otherConfirmed ? (
-                            <span className="text-orange-600 dark:text-orange-400">⏳ Waiting for you</span>
-                          ) : (
-                            <span>⏳ Awaiting confirmation</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Payment Flow Progress Indicator */}
-                    {session.requiresPayment && (
-                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-3">Payment Progress:</p>
-                        <div className="flex items-center gap-2 mb-3">
-                          {/* Step 1: Mentor Confirms */}
-                          <div className={`flex items-center gap-2 ${session.mentorConfirmed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}>
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.mentorConfirmed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
-                              {session.mentorConfirmed ? '✓' : '1'}
-                            </span>
-                            <span className="text-xs">Mentor confirms</span>
-                          </div>
-                          <div className={`flex-1 h-0.5 ${session.mentorConfirmed ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-200 dark:bg-gray-700'}`} />
-                          {/* Step 2: Learner Submits Payment */}
-                          <div className={`flex items-center gap-2 ${session.paymentTxHash ? 'text-green-600 dark:text-green-400' : (session.mentorConfirmed ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentTxHash ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.mentorConfirmed ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
-                              {session.paymentTxHash ? '✓' : '2'}
-                            </span>
-                            <span className="text-xs">Payment submitted</span>
-                          </div>
-                          <div className={`flex-1 h-0.5 ${session.paymentValidated ? 'bg-green-300 dark:bg-green-700' : (session.paymentTxHash ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700')}`} />
-                          {/* Step 3: Mentor Validates Payment */}
-                          <div className={`flex items-center gap-2 ${session.paymentValidated ? 'text-green-600 dark:text-green-400' : (session.paymentTxHash ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500')}`}>
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium ${session.paymentValidated ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : (session.paymentTxHash ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400')}`}>
-                              {session.paymentValidated ? '✓' : '3'}
-                            </span>
-                            <span className="text-xs">Payment validated</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Payment submission UI (for learner after mentor confirms) */}
-                    {session.requiresPayment &&
-                     !session.paymentTxHash &&
-                     session.mentorConfirmed &&
-                     isLearner && (
-                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
-                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Session confirmed! Please submit your payment (Step 2 of 3):
-                        </p>
-                        <div className="mb-3">
-                          <input
-                            type="text"
-                            value={paymentTxHashInput[session.key] || ''}
-                            onChange={(e) => setPaymentTxHashInput(prev => ({
-                              ...prev,
-                              [session.key]: e.target.value
-                            }))}
-                            placeholder="Enter payment transaction hash (0x...)"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                          />
-                        </div>
-                        {arkivBuilderMode ? (
-                          <ArkivQueryTooltip
-                            query={[
-                              `POST /api/sessions { action: 'submitPayment', ... }`,
-                              `Creates: type='session_payment_submission' entity`,
-                              `Attributes: sessionKey='${session.key.slice(0, 12)}...', submittedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
-                              `Payload: { submittedAt: ISO timestamp, paymentTxHash }`,
-                              `TTL: Matches session expiration`,
-                              `Note: Learner submits payment transaction hash for mentor validation`
-                            ]}
-                            label="Submit Payment"
-                          >
-                            <button
-                              onClick={() => handleSubmitPayment(session)}
-                              disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
-                              className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
-                            </button>
-                          </ArkivQueryTooltip>
-                        ) : (
-                          <button
-                            onClick={() => handleSubmitPayment(session)}
-                            disabled={submittingPayment === session.key || !paymentTxHashInput[session.key]?.trim()}
-                            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                          >
-                            {submittingPayment === session.key ? 'Submitting...' : '💰 Submit Payment'}
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {canConfirm && !userConfirmed && (
-                      <div className="mt-4 pt-4 border-t border-orange-200 dark:border-orange-800">
-                        {/* Payment validation button (if payment exists and not validated) */}
-                        {session.paymentTxHash && !session.paymentValidated && isMentor && (
-                          <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                            <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Payment submitted! Please validate (Step 3 of 3):
+                          <p className="mb-2 text-gray-700 dark:text-gray-300">
+                            <strong>With:</strong>{' '}
+                            {otherProfile?.displayName || shortenWallet(otherWallet)}
+                          </p>
+                          <p className="mb-2 text-gray-600 dark:text-gray-400">
+                            <strong>Date:</strong> {sessionTime.date}
+                          </p>
+                          <p className="mb-2 text-gray-600 dark:text-gray-400">
+                            <strong>Time:</strong> {sessionTime.time}
+                          </p>
+                          {session.duration && (
+                            <p className="mb-2 text-gray-600 dark:text-gray-400">
+                              <strong>Duration:</strong> {session.duration} minutes
                             </p>
+                          )}
+                          {session.notes && (
+                            <div className="mt-3">
+                              <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Notes:
+                              </p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">
+                                {session.notes}
+                              </p>
+                            </div>
+                          )}
+                          {session.paymentTxHash && (
+                            <div className="mt-3 rounded border border-blue-200 bg-blue-50 p-2 dark:border-blue-800 dark:bg-blue-900/20">
+                              <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                💰 Payment Transaction:
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <code className="font-mono text-xs text-gray-600 dark:text-gray-400">
+                                  {session.paymentTxHash.slice(0, 10)}...
+                                  {session.paymentTxHash.slice(-8)}
+                                </code>
+                                <a
+                                  href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                >
+                                  View
+                                </a>
+                              </div>
+                              {session.paymentValidated ? (
+                                <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                                  ✓ Validated by{' '}
+                                  {session.paymentValidatedBy
+                                    ? shortenWallet(session.paymentValidatedBy)
+                                    : 'unknown'}
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                                  ⏳ Payment not yet validated
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                            {userConfirmed ? (
+                              <span className="text-green-600 dark:text-green-400">
+                                ✓ You confirmed
+                              </span>
+                            ) : otherConfirmed ? (
+                              <span className="text-orange-600 dark:text-orange-400">
+                                ⏳ Waiting for you
+                              </span>
+                            ) : (
+                              <span>⏳ Awaiting confirmation</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Payment Flow Progress Indicator */}
+                      {session.requiresPayment && (
+                        <div className="mt-4 border-t border-orange-200 pt-4 dark:border-orange-800">
+                          <p className="mb-3 text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Payment Progress:
+                          </p>
+                          <div className="mb-3 flex items-center gap-2">
+                            {/* Step 1: Mentor Confirms */}
+                            <div
+                              className={`flex items-center gap-2 ${session.mentorConfirmed ? 'text-green-600 dark:text-green-400' : 'text-gray-400 dark:text-gray-500'}`}
+                            >
+                              <span
+                                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${session.mentorConfirmed ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                              >
+                                {session.mentorConfirmed ? '✓' : '1'}
+                              </span>
+                              <span className="text-xs">Mentor confirms</span>
+                            </div>
+                            <div
+                              className={`h-0.5 flex-1 ${session.mentorConfirmed ? 'bg-green-300 dark:bg-green-700' : 'bg-gray-200 dark:bg-gray-700'}`}
+                            />
+                            {/* Step 2: Learner Submits Payment */}
+                            <div
+                              className={`flex items-center gap-2 ${session.paymentTxHash ? 'text-green-600 dark:text-green-400' : session.mentorConfirmed ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}
+                            >
+                              <span
+                                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${session.paymentTxHash ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : session.mentorConfirmed ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                              >
+                                {session.paymentTxHash ? '✓' : '2'}
+                              </span>
+                              <span className="text-xs">Payment submitted</span>
+                            </div>
+                            <div
+                              className={`h-0.5 flex-1 ${session.paymentValidated ? 'bg-green-300 dark:bg-green-700' : session.paymentTxHash ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'}`}
+                            />
+                            {/* Step 3: Mentor Validates Payment */}
+                            <div
+                              className={`flex items-center gap-2 ${session.paymentValidated ? 'text-green-600 dark:text-green-400' : session.paymentTxHash ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}
+                            >
+                              <span
+                                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${session.paymentValidated ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' : session.paymentTxHash ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'}`}
+                              >
+                                {session.paymentValidated ? '✓' : '3'}
+                              </span>
+                              <span className="text-xs">Payment validated</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Payment submission UI (for learner after mentor confirms) */}
+                      {session.requiresPayment &&
+                        !session.paymentTxHash &&
+                        session.mentorConfirmed &&
+                        isLearner && (
+                          <div className="mt-4 border-t border-orange-200 pt-4 dark:border-orange-800">
+                            <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                              Session confirmed! Please submit your payment (Step 2 of 3):
+                            </p>
+                            <div className="mb-3">
+                              <input
+                                type="text"
+                                value={paymentTxHashInput[session.key] || ''}
+                                onChange={(e) =>
+                                  setPaymentTxHashInput((prev) => ({
+                                    ...prev,
+                                    [session.key]: e.target.value,
+                                  }))
+                                }
+                                placeholder="Enter payment transaction hash (0x...)"
+                                className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 font-mono text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                              />
+                            </div>
                             {arkivBuilderMode ? (
                               <ArkivQueryTooltip
                                 query={[
-                                  `POST /api/sessions { action: 'validatePayment', ... }`,
-                                  `Creates: type='session_payment_validation' entity`,
-                                  `Attributes: sessionKey='${session.key.slice(0, 12)}...', validatedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
-                                  `Payload: { validatedAt: ISO timestamp, paymentTxHash }`,
+                                  `POST /api/sessions { action: 'submitPayment', ... }`,
+                                  `Creates: type='session_payment_submission' entity`,
+                                  `Attributes: sessionKey='${session.key.slice(0, 12)}...', submittedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
+                                  `Payload: { submittedAt: ISO timestamp, paymentTxHash }`,
                                   `TTL: Matches session expiration`,
-                                  `Note: Mentor validates payment transaction hash submitted by learner`
+                                  `Note: Learner submits payment transaction hash for mentor validation`,
                                 ]}
-                                label="Validate Payment"
+                                label="Submit Payment"
                               >
                                 <button
-                                  onClick={() => handleValidatePayment(session)}
-                                  disabled={validatingPayment === session.key}
-                                  className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                  onClick={() => handleSubmitPayment(session)}
+                                  disabled={
+                                    submittingPayment === session.key ||
+                                    !paymentTxHashInput[session.key]?.trim()
+                                  }
+                                  className="w-full rounded-lg bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
-                                  {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
+                                  {submittingPayment === session.key
+                                    ? 'Submitting...'
+                                    : '💰 Submit Payment'}
                                 </button>
                               </ArkivQueryTooltip>
                             ) : (
                               <button
-                                onClick={() => handleValidatePayment(session)}
-                                disabled={validatingPayment === session.key}
-                                className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                onClick={() => handleSubmitPayment(session)}
+                                disabled={
+                                  submittingPayment === session.key ||
+                                  !paymentTxHashInput[session.key]?.trim()
+                                }
+                                className="w-full rounded-lg bg-purple-600 px-4 py-2 font-medium text-white transition-colors hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                {validatingPayment === session.key ? 'Validating...' : '💰 Validate Payment'}
+                                {submittingPayment === session.key
+                                  ? 'Submitting...'
+                                  : '💰 Submit Payment'}
                               </button>
                             )}
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 text-center">
-                              Validate the payment transaction before confirming
-                            </p>
                           </div>
                         )}
-                        <div className="flex gap-3">
-                          {arkivBuilderMode ? (
-                            <ArkivQueryTooltip
-                              query={[
-                                `POST /api/sessions { action: 'confirmSession', ... }`,
-                                `Creates: type='session_confirmation' entity`,
-                                `Attributes: sessionKey='${session.key.slice(0, 12)}...', confirmedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
-                                `Payload: { confirmedAt: ISO timestamp }`,
-                                `TTL: Matches session expiration`,
-                                `Note: When both parties confirm, creates session_jitsi entity`
-                              ]}
-                              label="Confirm Session"
-                            >
+
+                      {canConfirm && !userConfirmed && (
+                        <div className="mt-4 border-t border-orange-200 pt-4 dark:border-orange-800">
+                          {/* Payment validation button (if payment exists and not validated) */}
+                          {session.paymentTxHash && !session.paymentValidated && isMentor && (
+                            <div className="mb-3 rounded border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                              <p className="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                Payment submitted! Please validate (Step 3 of 3):
+                              </p>
+                              {arkivBuilderMode ? (
+                                <ArkivQueryTooltip
+                                  query={[
+                                    `POST /api/sessions { action: 'validatePayment', ... }`,
+                                    `Creates: type='session_payment_validation' entity`,
+                                    `Attributes: sessionKey='${session.key.slice(0, 12)}...', validatedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', paymentTxHash`,
+                                    `Payload: { validatedAt: ISO timestamp, paymentTxHash }`,
+                                    `TTL: Matches session expiration`,
+                                    `Note: Mentor validates payment transaction hash submitted by learner`,
+                                  ]}
+                                  label="Validate Payment"
+                                >
+                                  <button
+                                    onClick={() => handleValidatePayment(session)}
+                                    disabled={validatingPayment === session.key}
+                                    className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  >
+                                    {validatingPayment === session.key
+                                      ? 'Validating...'
+                                      : '💰 Validate Payment'}
+                                  </button>
+                                </ArkivQueryTooltip>
+                              ) : (
+                                <button
+                                  onClick={() => handleValidatePayment(session)}
+                                  disabled={validatingPayment === session.key}
+                                  className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {validatingPayment === session.key
+                                    ? 'Validating...'
+                                    : '💰 Validate Payment'}
+                                </button>
+                              )}
+                              <p className="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">
+                                Validate the payment transaction before confirming
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex gap-3">
+                            {arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `POST /api/sessions { action: 'confirmSession', ... }`,
+                                  `Creates: type='session_confirmation' entity`,
+                                  `Attributes: sessionKey='${session.key.slice(0, 12)}...', confirmedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
+                                  `Payload: { confirmedAt: ISO timestamp }`,
+                                  `TTL: Matches session expiration`,
+                                  `Note: When both parties confirm, creates session_jitsi entity`,
+                                ]}
+                                label="Confirm Session"
+                              >
+                                <button
+                                  onClick={() => handleConfirm(session)}
+                                  disabled={
+                                    confirming === session.key ||
+                                    Boolean(
+                                      session.paymentTxHash && !session.paymentValidated && isMentor
+                                    )
+                                  }
+                                  className="min-w-[140px] flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  title={
+                                    session.paymentTxHash && !session.paymentValidated && isMentor
+                                      ? 'Please validate payment first'
+                                      : ''
+                                  }
+                                >
+                                  {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
                               <button
                                 onClick={() => handleConfirm(session)}
-                                disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
-                                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
-                                title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
+                                disabled={
+                                  confirming === session.key ||
+                                  Boolean(
+                                    session.paymentTxHash && !session.paymentValidated && isMentor
+                                  )
+                                }
+                                className="min-w-[140px] flex-1 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                title={
+                                  session.paymentTxHash && !session.paymentValidated && isMentor
+                                    ? 'Please validate payment first'
+                                    : ''
+                                }
                               >
                                 {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
                               </button>
-                            </ArkivQueryTooltip>
-                          ) : (
-                            <button
-                              onClick={() => handleConfirm(session)}
-                              disabled={confirming === session.key || Boolean(session.paymentTxHash && !session.paymentValidated && isMentor)}
-                              className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[140px]"
-                              title={session.paymentTxHash && !session.paymentValidated && isMentor ? 'Please validate payment first' : ''}
-                            >
-                              {confirming === session.key ? 'Confirming...' : '✓ Confirm'}
-                            </button>
-                          )}
-                          {arkivBuilderMode ? (
-                            <ArkivQueryTooltip
-                              query={[
-                                `POST /api/sessions { action: 'rejectSession', ... }`,
-                                `Creates: type='session_rejection' entity`,
-                                `Attributes: sessionKey='${session.key.slice(0, 12)}...', rejectedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
-                                `Payload: { rejectedAt: ISO timestamp }`,
-                                `TTL: Matches session expiration`,
-                                `Note: Sets session status to 'declined' (rejecting pending request)`
-                              ]}
-                              label="Reject Session"
-                            >
+                            )}
+                            {arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `POST /api/sessions { action: 'rejectSession', ... }`,
+                                  `Creates: type='session_rejection' entity`,
+                                  `Attributes: sessionKey='${session.key.slice(0, 12)}...', rejectedBy='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', mentorWallet, learnerWallet`,
+                                  `Payload: { rejectedAt: ISO timestamp }`,
+                                  `TTL: Matches session expiration`,
+                                  `Note: Sets session status to 'declined' (rejecting pending request)`,
+                                ]}
+                                label="Reject Session"
+                              >
+                                <button
+                                  onClick={() => handleReject(session)}
+                                  disabled={rejecting === session.key}
+                                  className="flex-1 rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
                               <button
                                 onClick={() => handleReject(session)}
                                 disabled={rejecting === session.key}
-                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 rounded-lg bg-red-600 px-4 py-2 font-medium text-white transition-colors hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
                               </button>
-                            </ArkivQueryTooltip>
-                          ) : (
-                            <button
-                              onClick={() => handleReject(session)}
-                              disabled={rejecting === session.key}
-                              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {rejecting === session.key ? 'Rejecting...' : '✗ Reject'}
-                            </button>
-                          )}
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         )}
 
         {/* Scheduled Sessions */}
-        {scheduledSessions.length > 0 && (() => {
-          // Determine if all sessions in this list are past (for section header)
-          const allPast = scheduledSessions.every(s => isSessionPast(s));
-          const sectionLabel = allPast && timeFilter === 'past' 
-            ? `📅 Past Sessions (${scheduledSessions.length})`
-            : `✅ Scheduled (${scheduledSessions.length})`;
-          const sectionColor = allPast && timeFilter === 'past'
-            ? 'text-orange-600 dark:text-orange-400'
-            : 'text-green-600 dark:text-green-400';
-          
-          return (
-            <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              {arkivBuilderMode ? (
-                <ArkivQueryTooltip
-                  query={[
-                    `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
-                    `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
-                    `Filtered: status='scheduled'${timeFilter === 'past' ? ', isSessionPast=true' : ''}`,
-                    `Returns: Session[] (${scheduledSessions.length} ${allPast && timeFilter === 'past' ? 'past' : 'scheduled'} sessions)`,
-                    `Each session is a type='session' entity on Arkiv`
-                  ]}
-                  label={sectionLabel}
-                >
-                  <h2 className={`text-xl font-semibold ${sectionColor}`}>
-                    {sectionLabel}
-                  </h2>
-                </ArkivQueryTooltip>
-              ) : (
-                <h2 className={`text-xl font-semibold ${sectionColor}`}>
-                  {sectionLabel}
-                </h2>
-              )}
-              <button
-                onClick={() => setScheduledExpanded(!scheduledExpanded)}
-                className="px-3 py-1 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
-                title={scheduledExpanded ? 'Collapse scheduled sessions' : 'Expand scheduled sessions'}
-              >
-                {scheduledExpanded ? '▼ Collapse' : '▶ Expand'}
-              </button>
-            </div>
-            {scheduledExpanded && (
-            <div className="space-y-4">
-              {scheduledSessions.map((session) => {
-                const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
-                const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
-                const otherProfile = profiles[otherWallet.toLowerCase()];
-                const sessionTime = formatSessionDate(session.sessionDate);
-                const sessionHasEnded = hasSessionEnded(session);
+        {scheduledSessions.length > 0 &&
+          (() => {
+            // Determine if all sessions in this list are past (for section header)
+            const allPast = scheduledSessions.every((s) => isSessionPast(s));
+            const sectionLabel =
+              allPast && timeFilter === 'past'
+                ? `📅 Past Sessions (${scheduledSessions.length})`
+                : `✅ Scheduled (${scheduledSessions.length})`;
+            const sectionColor =
+              allPast && timeFilter === 'past'
+                ? 'text-orange-600 dark:text-orange-400'
+                : 'text-green-600 dark:text-green-400';
 
-                // Check if user can give feedback for past scheduled sessions
-                const existingFeedbacks = sessionFeedbacks[session.key] || [];
-                const canGiveFeedback = userWallet && sessionHasEnded && canGiveFeedbackForSessionSync(
-                  session,
-                  userWallet,
-                  existingFeedbacks
-                );
-                const hasGivenFeedback = userWallet && existingFeedbacks.some(
-                  (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
-                );
-
-                // Check if this is a community gathering session
-                const gatheringKey = session.gatheringKey ||
-                  (session.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1]) ||
-                  (session.notes?.includes('virtual_gathering_rsvp:') ? session.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim() : null);
-                const isCommunityGathering = gatheringKey && (session.skill === 'virtual_gathering_rsvp' || session.notes?.includes('virtual_gathering_rsvp:'));
-                const gathering = gatheringKey ? gatherings[gatheringKey] : null;
-                const gatheringRsvpWallets = gatheringKey ? (rsvpWallets[gatheringKey] || []) : [];
-                const rsvpProfiles = gatheringRsvpWallets
-                  .map(wallet => profiles[wallet.toLowerCase()])
-                  .filter(Boolean) as UserProfile[];
-
-                // Use gathering's videoJoinUrl if available (for community gatherings)
-                const videoJoinUrl = isCommunityGathering && gathering?.videoJoinUrl
-                  ? gathering.videoJoinUrl
-                  : session.videoJoinUrl;
-
-                return (
-                  <div
-                    key={session.key}
-                    className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+            return (
+              <div className="mb-8">
+                <div className="mb-4 flex items-center justify-between">
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `GET /api/sessions?wallet=${userWallet?.toLowerCase() || '...'}`,
+                        `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
+                        `Filtered: status='scheduled'${timeFilter === 'past' ? ', isSessionPast=true' : ''}`,
+                        `Returns: Session[] (${scheduledSessions.length} ${allPast && timeFilter === 'past' ? 'past' : 'scheduled'} sessions)`,
+                        `Each session is a type='session' entity on Arkiv`,
+                      ]}
+                      label={sectionLabel}
+                    >
+                      <h2 className={`text-xl font-semibold ${sectionColor}`}>{sectionLabel}</h2>
+                    </ArkivQueryTooltip>
+                  ) : (
+                    <h2 className={`text-xl font-semibold ${sectionColor}`}>{sectionLabel}</h2>
+                  )}
+                  <button
+                    onClick={() => setScheduledExpanded(!scheduledExpanded)}
+                    className="rounded border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-600 transition-colors hover:text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                    title={
+                      scheduledExpanded
+                        ? 'Collapse scheduled sessions'
+                        : 'Expand scheduled sessions'
+                    }
                   >
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                          {/* Show "Past" badge if session has started, "Scheduled" if it hasn't */}
-                          {isSessionPast(session) ? (
-                            <span className="px-2 py-1 text-xs font-medium bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-200 rounded">
-                              Past
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
-                              Scheduled
-                            </span>
-                          )}
-                          {isCommunityGathering && (
-                            <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
-                              Community gathering
-                            </span>
-                          )}
-                          {arkivBuilderMode && session.key && (
-                            <div className="flex items-center gap-2 ml-auto">
-                              <ViewOnArkivLink
-                                entityKey={session.key}
-                                txHash={session.txHash}
-                                label="View Session Entity"
-                                className="text-xs"
-                              />
-                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                                {session.key.slice(0, 12)}...
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                        {isCommunityGathering ? (
-                          <>
-                            {/* Community gathering display - same as topic page */}
-                            <p className="text-gray-700 dark:text-gray-300 mb-2">
-                              <strong>Date:</strong> {sessionTime.date}
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 mb-2">
-                              <strong>Time:</strong> {sessionTime.time}
-                            </p>
-                            {session.duration && (
-                              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                                <strong>Duration:</strong> {session.duration} minutes
-                              </p>
-                            )}
-                            {gathering && gathering.rsvpCount !== undefined && (
-                              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                                <strong>RSVPs:</strong> {gathering.rsvpCount} {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
-                              </p>
-                            )}
-                            {videoJoinUrl && (
-                              <div className="mt-4">
-                                <a
-                                  href={videoJoinUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                                >
-                                  🎥 Join Meeting
-                                </a>
-                              </div>
-                            )}
-                            {/* RSVP'd Profiles List */}
-                            {gatheringRsvpWallets.length > 0 && (
-                              <div className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
-                                <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-2">
-                                  {gatheringRsvpWallets.length} {gatheringRsvpWallets.length === 1 ? 'profile has' : 'profiles have'} RSVP'd:
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                  {rsvpProfiles.map((profile) => (
-                                    <Link
-                                      key={profile.wallet}
-                                      href={`/profiles/${profile.wallet}`}
-                                      className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200 hover:bg-green-200 dark:hover:bg-green-700 transition-colors"
-                                    >
-                                      {profile.displayName || profile.username || profile.wallet.slice(0, 8) + '...'}
-                                    </Link>
-                                  ))}
-                                  {/* Show wallets without profiles */}
-                                  {gatheringRsvpWallets
-                                    .filter(wallet => !profiles[wallet.toLowerCase()])
-                                    .map((wallet) => (
-                                      <span
-                                        key={wallet}
-                                        className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-800/50 text-green-800 dark:text-green-200"
-                                      >
-                                        {wallet.slice(0, 8)}...{wallet.slice(-4)}
-                                      </span>
-                                    ))}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            {/* Regular session display */}
-                            <p className="text-gray-700 dark:text-gray-300 mb-2">
-                              <strong>With:</strong>{' '}
-                              {otherProfile?.displayName || shortenWallet(otherWallet)}
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 mb-2">
-                              <strong>Date:</strong> {sessionTime.date}
-                            </p>
-                            <p className="text-gray-600 dark:text-gray-400 mb-2">
-                              <strong>Time:</strong> {sessionTime.time}
-                            </p>
-                            {session.duration && (
-                              <p className="text-gray-600 dark:text-gray-400 mb-2">
-                                <strong>Duration:</strong> {session.duration} minutes
-                              </p>
-                            )}
-                            {session.notes && (
-                              <div className="mt-3">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Notes:</p>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">{session.notes}</p>
-                              </div>
-                            )}
-                            {session.paymentTxHash && (
-                              <div className="mt-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                  💰 Payment Transaction:
-                                </p>
-                                <div className="flex items-center gap-2">
-                                  <code className="text-xs font-mono text-gray-600 dark:text-gray-400">
-                                    {session.paymentTxHash.slice(0, 10)}...{session.paymentTxHash.slice(-8)}
-                                  </code>
-                                  <a
-                                    href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                                  >
-                                    View
-                                  </a>
-                                </div>
-                                {session.paymentValidated ? (
-                                  <p className="text-xs text-green-600 dark:text-green-400 mt-1">
-                                    ✓ Validated by {session.paymentValidatedBy ? shortenWallet(session.paymentValidatedBy) : 'unknown'}
-                                  </p>
+                    {scheduledExpanded ? '▼ Collapse' : '▶ Expand'}
+                  </button>
+                </div>
+                {scheduledExpanded && (
+                  <div className="space-y-4">
+                    {scheduledSessions.map((session) => {
+                      const isMentor =
+                        userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
+                      const otherWallet = isMentor ? session.learnerWallet : session.mentorWallet;
+                      const otherProfile = profiles[otherWallet.toLowerCase()];
+                      const sessionTime = formatSessionDate(session.sessionDate);
+                      const sessionHasEnded = hasSessionEnded(session);
+
+                      // Check if user can give feedback for past scheduled sessions
+                      const existingFeedbacks = sessionFeedbacks[session.key] || [];
+                      const canGiveFeedback =
+                        userWallet &&
+                        sessionHasEnded &&
+                        canGiveFeedbackForSessionSync(session, userWallet, existingFeedbacks);
+                      const hasGivenFeedback =
+                        userWallet &&
+                        existingFeedbacks.some(
+                          (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
+                        );
+
+                      // Check if this is a community gathering session
+                      const gatheringKey =
+                        session.gatheringKey ||
+                        session.notes?.match(/virtual_gathering_rsvp:([^\s,]+)/)?.[1] ||
+                        (session.notes?.includes('virtual_gathering_rsvp:')
+                          ? session.notes.split('virtual_gathering_rsvp:')[1]?.split(',')[0]?.trim()
+                          : null);
+                      const isCommunityGathering =
+                        gatheringKey &&
+                        (session.skill === 'virtual_gathering_rsvp' ||
+                          session.notes?.includes('virtual_gathering_rsvp:'));
+                      const gathering = gatheringKey ? gatherings[gatheringKey] : null;
+                      const gatheringRsvpWallets = gatheringKey
+                        ? rsvpWallets[gatheringKey] || []
+                        : [];
+                      const rsvpProfiles = gatheringRsvpWallets
+                        .map((wallet) => profiles[wallet.toLowerCase()])
+                        .filter(Boolean) as UserProfile[];
+
+                      // Use gathering's videoJoinUrl if available (for community gatherings)
+                      const videoJoinUrl =
+                        isCommunityGathering && gathering?.videoJoinUrl
+                          ? gathering.videoJoinUrl
+                          : session.videoJoinUrl;
+
+                      return (
+                        <div
+                          key={session.key}
+                          className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20"
+                        >
+                          <div className="mb-4 flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="mb-2 flex items-center gap-2">
+                                <h3 className="text-lg font-semibold">
+                                  📅 {formatSessionTitle(session, skillsMap)}
+                                </h3>
+                                {/* Show "Past" badge if session has started, "Scheduled" if it hasn't */}
+                                {isSessionPast(session) ? (
+                                  <span className="rounded bg-orange-100 px-2 py-1 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-200">
+                                    Past
+                                  </span>
                                 ) : (
-                                  <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">
-                                    ⏳ Payment not yet validated
-                                  </p>
+                                  <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
+                                    Scheduled
+                                  </span>
+                                )}
+                                {isCommunityGathering && (
+                                  <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
+                                    Community gathering
+                                  </span>
+                                )}
+                                {arkivBuilderMode && session.key && (
+                                  <div className="ml-auto flex items-center gap-2">
+                                    <ViewOnArkivLink
+                                      entityKey={session.key}
+                                      txHash={session.txHash}
+                                      label="View Session Entity"
+                                      className="text-xs"
+                                    />
+                                    <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                                      {session.key.slice(0, 12)}...
+                                    </span>
+                                  </div>
                                 )}
                               </div>
-                            )}
-                            {sessionHasEnded ? (
-                              // Past session: show feedback button or display feedback
-                              <div className="mt-4">
-                                {canGiveFeedback ? (
-                                  <button
-                                    onClick={() => setFeedbackSession(session)}
-                                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
-                                  >
-                                    💬 Leave Feedback
-                                  </button>
-                                ) : hasGivenFeedback ? (
-                                  (() => {
-                                    const userFeedback = existingFeedbacks.find(
-                                      (f: any) => f.feedbackFrom.toLowerCase() === userWallet?.toLowerCase()
-                                    );
-                                    return userFeedback ? (
-                                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                                        <div className="flex items-center justify-between mb-2">
-                                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                            ✓ Your Feedback
-                                          </p>
-                                          {userFeedback.rating && (
-                                            <div className="text-lg">
-                                              {'⭐'.repeat(userFeedback.rating)}
-                                              <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
-                                                ({userFeedback.rating}/5)
-                                              </span>
-                                            </div>
-                                          )}
-                                        </div>
-                                        {userFeedback.notes && (
-                                          <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                                            {userFeedback.notes}
-                                          </p>
-                                        )}
-                                        {userFeedback.technicalDxFeedback && (
-                                          <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                              Technical DX Feedback:
-                                            </p>
-                                            <p className="text-sm text-gray-700 dark:text-gray-300">
-                                              {userFeedback.technicalDxFeedback}
-                                            </p>
-                                          </div>
-                                        )}
-                                        <div className="mt-2 flex items-center gap-2">
-                                          <ViewOnArkivLink
-                                            entityKey={userFeedback.key}
-                                            txHash={userFeedback.txHash}
-                                            label="View Feedback Entity"
-                                            className="text-xs"
-                                          />
-                                          {arkivBuilderMode && userFeedback.key && (
-                                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                                              {userFeedback.key.slice(0, 12)}...
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                                        ✓ Feedback submitted
+                              {isCommunityGathering ? (
+                                <>
+                                  {/* Community gathering display - same as topic page */}
+                                  <p className="mb-2 text-gray-700 dark:text-gray-300">
+                                    <strong>Date:</strong> {sessionTime.date}
+                                  </p>
+                                  <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                    <strong>Time:</strong> {sessionTime.time}
+                                  </p>
+                                  {session.duration && (
+                                    <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                      <strong>Duration:</strong> {session.duration} minutes
+                                    </p>
+                                  )}
+                                  {gathering && gathering.rsvpCount !== undefined && (
+                                    <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                      <strong>RSVPs:</strong> {gathering.rsvpCount}{' '}
+                                      {gathering.rsvpCount === 1 ? 'RSVP' : 'RSVPs'}
+                                    </p>
+                                  )}
+                                  {videoJoinUrl && (
+                                    <div className="mt-4">
+                                      <a
+                                        href={videoJoinUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                                      >
+                                        🎥 Join Meeting
+                                      </a>
+                                    </div>
+                                  )}
+                                  {/* RSVP'd Profiles List */}
+                                  {gatheringRsvpWallets.length > 0 && (
+                                    <div className="mt-4 border-t border-green-200 pt-4 dark:border-green-700">
+                                      <p className="mb-2 text-xs font-medium text-green-700 dark:text-green-300">
+                                        {gatheringRsvpWallets.length}{' '}
+                                        {gatheringRsvpWallets.length === 1
+                                          ? 'profile has'
+                                          : 'profiles have'}{' '}
+                                        RSVP'd:
                                       </p>
-                                    );
-                                  })()
-                                ) : null}
-                              </div>
-                            ) : videoJoinUrl ? (
-                              // Upcoming session: show join link
-                              <div className="mt-4">
-                                <a
-                                  href={videoJoinUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-block px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                                >
-                                  🎥 Join Jitsi Meeting
-                                </a>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  Room: {session.videoRoomName || 'N/A'}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                                {session.status === 'expired' ? (
-                                  <span className="text-red-600 dark:text-red-400">
-                                    ⏰ Session expired - Jitsi link not available
-                                  </span>
-                                ) : (() => {
-                                  // Check if session is in the past (U4.3: prevent generating for past sessions)
-                                  const sessionTime = session.sessionDate ? new Date(session.sessionDate).getTime() : 0;
-                                  const isPast = sessionTime > 0 && Date.now() >= sessionTime;
-                                  
-                                  if (isPast && session.status !== 'scheduled') {
-                                    return (
-                                      <span className="text-gray-600 dark:text-gray-400">
-                                        ⏰ Session time has passed - Jitsi link not available
-                                      </span>
-                                    );
-                                  }
-                                  
-                                  return (
-                                    <>
-                                      ⏳ Jitsi link will appear once both parties confirm
-                                      {session.mentorConfirmed && session.learnerConfirmed && session.status === 'scheduled' && !isPast && (
-                                        <span className="block mt-1 text-orange-600 dark:text-orange-400">
-                                          (Both confirmed - link may be generating...)
-                                        </span>
+                                      <div className="flex flex-wrap gap-2">
+                                        {rsvpProfiles.map((profile) => (
+                                          <Link
+                                            key={profile.wallet}
+                                            href={`/profiles/${profile.wallet}`}
+                                            className="rounded bg-green-100 px-2 py-1 text-xs text-green-800 transition-colors hover:bg-green-200 dark:bg-green-800/50 dark:text-green-200 dark:hover:bg-green-700"
+                                          >
+                                            {profile.displayName ||
+                                              profile.username ||
+                                              profile.wallet.slice(0, 8) + '...'}
+                                          </Link>
+                                        ))}
+                                        {/* Show wallets without profiles */}
+                                        {gatheringRsvpWallets
+                                          .filter((wallet) => !profiles[wallet.toLowerCase()])
+                                          .map((wallet) => (
+                                            <span
+                                              key={wallet}
+                                              className="rounded bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-800/50 dark:text-green-200"
+                                            >
+                                              {wallet.slice(0, 8)}...{wallet.slice(-4)}
+                                            </span>
+                                          ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </>
+                              ) : (
+                                <>
+                                  {/* Regular session display */}
+                                  <p className="mb-2 text-gray-700 dark:text-gray-300">
+                                    <strong>With:</strong>{' '}
+                                    {otherProfile?.displayName || shortenWallet(otherWallet)}
+                                  </p>
+                                  <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                    <strong>Date:</strong> {sessionTime.date}
+                                  </p>
+                                  <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                    <strong>Time:</strong> {sessionTime.time}
+                                  </p>
+                                  {session.duration && (
+                                    <p className="mb-2 text-gray-600 dark:text-gray-400">
+                                      <strong>Duration:</strong> {session.duration} minutes
+                                    </p>
+                                  )}
+                                  {session.notes && (
+                                    <div className="mt-3">
+                                      <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        Notes:
+                                      </p>
+                                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                                        {session.notes}
+                                      </p>
+                                    </div>
+                                  )}
+                                  {session.paymentTxHash && (
+                                    <div className="mt-3 rounded border border-blue-200 bg-blue-50 p-2 dark:border-blue-800 dark:bg-blue-900/20">
+                                      <p className="mb-1 text-sm font-medium text-gray-700 dark:text-gray-300">
+                                        💰 Payment Transaction:
+                                      </p>
+                                      <div className="flex items-center gap-2">
+                                        <code className="font-mono text-xs text-gray-600 dark:text-gray-400">
+                                          {session.paymentTxHash.slice(0, 10)}...
+                                          {session.paymentTxHash.slice(-8)}
+                                        </code>
+                                        <a
+                                          href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                                        >
+                                          View
+                                        </a>
+                                      </div>
+                                      {session.paymentValidated ? (
+                                        <p className="mt-1 text-xs text-green-600 dark:text-green-400">
+                                          ✓ Validated by{' '}
+                                          {session.paymentValidatedBy
+                                            ? shortenWallet(session.paymentValidatedBy)
+                                            : 'unknown'}
+                                        </p>
+                                      ) : (
+                                        <p className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                                          ⏳ Payment not yet validated
+                                        </p>
                                       )}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
+                                    </div>
+                                  )}
+                                  {sessionHasEnded ? (
+                                    // Past session: show feedback button or display feedback
+                                    <div className="mt-4">
+                                      {canGiveFeedback ? (
+                                        <button
+                                          onClick={() => setFeedbackSession(session)}
+                                          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+                                        >
+                                          💬 Leave Feedback
+                                        </button>
+                                      ) : hasGivenFeedback ? (
+                                        (() => {
+                                          const userFeedback = existingFeedbacks.find(
+                                            (f: any) =>
+                                              f.feedbackFrom.toLowerCase() ===
+                                              userWallet?.toLowerCase()
+                                          );
+                                          return userFeedback ? (
+                                            <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                                              <div className="mb-2 flex items-center justify-between">
+                                                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                  ✓ Your Feedback
+                                                </p>
+                                                {userFeedback.rating && (
+                                                  <div className="text-lg">
+                                                    {'⭐'.repeat(userFeedback.rating)}
+                                                    <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
+                                                      ({userFeedback.rating}/5)
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                              {userFeedback.notes && (
+                                                <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
+                                                  {userFeedback.notes}
+                                                </p>
+                                              )}
+                                              {userFeedback.technicalDxFeedback && (
+                                                <div className="mt-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                                  <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                                                    Technical DX Feedback:
+                                                  </p>
+                                                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                                                    {userFeedback.technicalDxFeedback}
+                                                  </p>
+                                                </div>
+                                              )}
+                                              <div className="mt-2 flex items-center gap-2">
+                                                <ViewOnArkivLink
+                                                  entityKey={userFeedback.key}
+                                                  txHash={userFeedback.txHash}
+                                                  label="View Feedback Entity"
+                                                  className="text-xs"
+                                                />
+                                                {arkivBuilderMode && userFeedback.key && (
+                                                  <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                                                    {userFeedback.key.slice(0, 12)}...
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                                              ✓ Feedback submitted
+                                            </p>
+                                          );
+                                        })()
+                                      ) : null}
+                                    </div>
+                                  ) : videoJoinUrl ? (
+                                    // Upcoming session: show join link
+                                    <div className="mt-4">
+                                      <a
+                                        href={videoJoinUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-block rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                                      >
+                                        🎥 Join Jitsi Meeting
+                                      </a>
+                                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                                        Room: {session.videoRoomName || 'N/A'}
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                                      {session.status === 'expired' ? (
+                                        <span className="text-red-600 dark:text-red-400">
+                                          ⏰ Session expired - Jitsi link not available
+                                        </span>
+                                      ) : (
+                                        (() => {
+                                          // Check if session is in the past (U4.3: prevent generating for past sessions)
+                                          const sessionTime = session.sessionDate
+                                            ? new Date(session.sessionDate).getTime()
+                                            : 0;
+                                          const isPast =
+                                            sessionTime > 0 && Date.now() >= sessionTime;
+
+                                          if (isPast && session.status !== 'scheduled') {
+                                            return (
+                                              <span className="text-gray-600 dark:text-gray-400">
+                                                ⏰ Session time has passed - Jitsi link not
+                                                available
+                                              </span>
+                                            );
+                                          }
+
+                                          return (
+                                            <>
+                                              ⏳ Jitsi link will appear once both parties confirm
+                                              {session.mentorConfirmed &&
+                                                session.learnerConfirmed &&
+                                                session.status === 'scheduled' &&
+                                                !isPast && (
+                                                  <span className="mt-1 block text-orange-600 dark:text-orange-400">
+                                                    (Both confirmed - link may be generating...)
+                                                  </span>
+                                                )}
+                                            </>
+                                          );
+                                        })()
+                                      )}
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            )}
-            </div>
-          );
-        })()}
+                )}
+              </div>
+            );
+          })()}
 
         {/* Completed Sessions */}
         {completedSessions.length > 0 && (
@@ -1821,16 +2002,16 @@ export default function SessionsPage() {
                   `Query: type='session', (mentorWallet='${userWallet?.toLowerCase() || '...'}' OR learnerWallet='${userWallet?.toLowerCase() || '...'}')`,
                   `Filtered: status='completed'`,
                   `Returns: Session[] (${completedSessions.length} completed sessions)`,
-                  `Each session is a type='session' entity on Arkiv`
+                  `Each session is a type='session' entity on Arkiv`,
                 ]}
                 label={`✓ Completed (${completedSessions.length})`}
               >
-                <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
+                <h2 className="mb-4 text-xl font-semibold text-blue-600 dark:text-blue-400">
                   ✓ Completed ({completedSessions.length})
                 </h2>
               </ArkivQueryTooltip>
             ) : (
-              <h2 className="text-xl font-semibold mb-4 text-blue-600 dark:text-blue-400">
+              <h2 className="mb-4 text-xl font-semibold text-blue-600 dark:text-blue-400">
                 ✓ Completed ({completedSessions.length})
               </h2>
             )}
@@ -1843,36 +2024,39 @@ export default function SessionsPage() {
 
                 // Check if user can give feedback (using reusable utility)
                 const existingFeedbacks = sessionFeedbacks[session.key] || [];
-                const canGiveFeedback = userWallet && canGiveFeedbackForSessionSync(
-                  session,
-                  userWallet,
-                  existingFeedbacks
-                );
-                const hasGivenFeedback = userWallet && existingFeedbacks.some(
-                  (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
-                );
+                const canGiveFeedback =
+                  userWallet &&
+                  canGiveFeedbackForSessionSync(session, userWallet, existingFeedbacks);
+                const hasGivenFeedback =
+                  userWallet &&
+                  existingFeedbacks.some(
+                    (f: any) => f.feedbackFrom.toLowerCase() === userWallet.toLowerCase()
+                  );
 
                 return (
                   <div
                     key={session.key}
-                    className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                    className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                      <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                    <div className="mb-2 flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">
+                        📅 {formatSessionTitle(session, skillsMap)}
+                      </h3>
+                      <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
                         Completed
                       </span>
                     </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-2">
-                      <strong>With:</strong> {otherProfile?.displayName || shortenWallet(otherWallet)}
+                    <p className="mb-2 text-gray-700 dark:text-gray-300">
+                      <strong>With:</strong>{' '}
+                      {otherProfile?.displayName || shortenWallet(otherWallet)}
                     </p>
-                    <p className="text-gray-600 dark:text-gray-400 mb-4">
+                    <p className="mb-4 text-gray-600 dark:text-gray-400">
                       {sessionTime.date} at {sessionTime.time}
                     </p>
                     {canGiveFeedback ? (
                       <button
                         onClick={() => setFeedbackSession(session)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                        className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
                       >
                         💬 Leave Feedback
                       </button>
@@ -1882,28 +2066,28 @@ export default function SessionsPage() {
                           (f: any) => f.feedbackFrom.toLowerCase() === userWallet?.toLowerCase()
                         );
                         return userFeedback ? (
-                          <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
+                          <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
+                            <div className="mb-2 flex items-center justify-between">
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 ✓ Your Feedback
                               </p>
                               {userFeedback.rating && (
                                 <div className="text-lg">
                                   {'⭐'.repeat(userFeedback.rating)}
-                                  <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                                  <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
                                     ({userFeedback.rating}/5)
                                   </span>
                                 </div>
                               )}
                             </div>
                             {userFeedback.notes && (
-                              <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                              <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
                                 {userFeedback.notes}
                               </p>
                             )}
                             {userFeedback.technicalDxFeedback && (
-                              <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                              <div className="mt-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                                <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
                                   Technical DX Feedback:
                                 </p>
                                 <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -1919,7 +2103,7 @@ export default function SessionsPage() {
                                 className="text-xs"
                               />
                               {arkivBuilderMode && userFeedback.key && (
-                                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                                <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                                   {userFeedback.key.slice(0, 12)}...
                                 </span>
                               )}
@@ -1946,7 +2130,7 @@ export default function SessionsPage() {
         {/* Declined/Cancelled Sessions */}
         {endedSessions.length > 0 && (
           <div className="mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-red-600 dark:text-red-400">
+            <h2 className="mb-4 text-xl font-semibold text-red-600 dark:text-red-400">
               ❌ Declined/Cancelled ({endedSessions.length})
             </h2>
             <div className="space-y-4">
@@ -1959,16 +2143,19 @@ export default function SessionsPage() {
                 return (
                   <div
                     key={session.key}
-                    className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+                    className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-800 dark:bg-red-900/20"
                   >
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                      <span className="px-2 py-1 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
+                    <div className="mb-2 flex items-center gap-2">
+                      <h3 className="text-lg font-semibold">
+                        📅 {formatSessionTitle(session, skillsMap)}
+                      </h3>
+                      <span className="rounded bg-red-100 px-2 py-1 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200">
                         {session.status === 'declined' ? 'Declined' : 'Cancelled'}
                       </span>
                     </div>
-                    <p className="text-gray-700 dark:text-gray-300 mb-2">
-                      <strong>With:</strong> {otherProfile?.displayName || shortenWallet(otherWallet)}
+                    <p className="mb-2 text-gray-700 dark:text-gray-300">
+                      <strong>With:</strong>{' '}
+                      {otherProfile?.displayName || shortenWallet(otherWallet)}
                     </p>
                     <p className="text-gray-600 dark:text-gray-400">
                       {sessionTime.date} at {sessionTime.time}
@@ -1985,7 +2172,7 @@ export default function SessionsPage() {
           <div className="mb-8">
             <button
               onClick={() => setArchivedSessionsExpanded(!archivedSessionsExpanded)}
-              className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+              className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
             >
               <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Archived Sessions ({archivedSessions.length})
@@ -1996,8 +2183,9 @@ export default function SessionsPage() {
             </button>
             {archivedSessionsExpanded && (
               <div className="mt-3 space-y-4">
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                  These sessions were reconstructed from feedback after the original session entities expired. Some details may be incomplete.
+                <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                  These sessions were reconstructed from feedback after the original session
+                  entities expired. Some details may be incomplete.
                 </p>
                 {archivedSessions.map((session) => {
                   const isMentor = userWallet?.toLowerCase() === session.mentorWallet.toLowerCase();
@@ -2008,27 +2196,34 @@ export default function SessionsPage() {
                   return (
                     <div
                       key={session.key}
-                      className="p-6 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg opacity-75"
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-6 opacity-75 dark:border-gray-700 dark:bg-gray-800"
                     >
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="text-lg font-semibold">📅 {formatSessionTitle(session, skillsMap)}</h3>
-                        <span className="px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                      <div className="mb-2 flex items-center gap-2">
+                        <h3 className="text-lg font-semibold">
+                          📅 {formatSessionTitle(session, skillsMap)}
+                        </h3>
+                        <span className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
                           Archived
                         </span>
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                        <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
                           Completed
                         </span>
                       </div>
-                      <p className="text-gray-700 dark:text-gray-300 mb-2">
-                        <strong>With:</strong> {otherProfile?.displayName || shortenWallet(otherWallet)}
+                      <p className="mb-2 text-gray-700 dark:text-gray-300">
+                        <strong>With:</strong>{' '}
+                        {otherProfile?.displayName || shortenWallet(otherWallet)}
                       </p>
-                      <p className="text-gray-600 dark:text-gray-400 mb-2">
+                      <p className="mb-2 text-gray-600 dark:text-gray-400">
                         {sessionTime.date} at {sessionTime.time}
                       </p>
                       {session.notes && (
-                        <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                          <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
-                          <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
+                        <div className="mt-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                          <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                            Notes:
+                          </p>
+                          <p className="text-sm text-gray-700 dark:text-gray-300">
+                            {session.notes}
+                          </p>
                         </div>
                       )}
                       {arkivBuilderMode && session.key && (
@@ -2039,7 +2234,7 @@ export default function SessionsPage() {
                             label="View Session Entity"
                             className="text-xs"
                           />
-                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                             {session.key.slice(0, 12)}...
                           </span>
                         </div>
@@ -2057,8 +2252,13 @@ export default function SessionsPage() {
             title="No sessions yet"
             description="Request a meeting from a profile to get started! Browse profiles and connect with mentors or learners."
             icon={
-              <svg className="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              <svg className="h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
               </svg>
             }
           />

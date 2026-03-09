@@ -1,6 +1,6 @@
 /**
  * Data Explorer Page
- * 
+ *
  * Public explorer for viewing p2pmentor entities on Arkiv.
  * Shows profiles, asks, offers, and skills with provenance.
  */
@@ -87,7 +87,7 @@ export default function ExplorerPage() {
   }, [spaceId]);
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex min-h-screen">
       {/* New Adaptive Sidebar - Hidden on mobile, visible on desktop */}
       <div className="hidden md:block">
         <ExplorerSidebar />
@@ -95,95 +95,110 @@ export default function ExplorerPage() {
 
       {/* Main Content - No margin on mobile (sidebar hidden), margin on desktop */}
       {/* Add backdrop-blur-sm to match other pages (blurry effect over background garden) */}
-      <div className="flex-1 ml-0 md:ml-64 p-4 md:p-8 relative z-10 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto">
-        {/* Hero Section */}
-        <PageHeader
-          title="p2pmentor Data Explorer"
-          description="Browse p2pmentor records stored on Arkiv. All data is verifiable on-chain and doesn't depend on a private database as the source of truth."
-        />
+      <div className="relative z-10 ml-0 flex-1 p-4 backdrop-blur-sm md:ml-64 md:p-8">
+        <div className="mx-auto max-w-6xl">
+          {/* Hero Section */}
+          <PageHeader
+            title="p2pmentor Data Explorer"
+            description="Browse p2pmentor records stored on Arkiv. All data is verifiable on-chain and doesn't depend on a private database as the source of truth."
+          />
 
-        {/* Stats Section */}
-        {loading ? (
+          {/* Stats Section */}
+          {loading ? (
+            <div className="mb-8">
+              <LoadingSpinner text="Loading stats..." />
+            </div>
+          ) : summary ? (
+            <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-5">
+              <div className="rounded-lg border border-blue-200 bg-gradient-to-br from-blue-50 to-blue-100 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-blue-800 dark:from-blue-900/20 dark:to-blue-800/20">
+                <div className="mb-1 text-3xl font-bold text-blue-700 dark:text-blue-300">
+                  {summary.profiles}
+                </div>
+                <div className="text-sm font-medium text-blue-600 dark:text-blue-400">Profiles</div>
+              </div>
+              <div className="rounded-lg border border-purple-200 bg-gradient-to-br from-purple-50 to-purple-100 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-purple-800 dark:from-purple-900/20 dark:to-purple-800/20">
+                <div className="mb-1 text-3xl font-bold text-purple-700 dark:text-purple-300">
+                  {summary.asks}
+                </div>
+                <div className="text-sm font-medium text-purple-600 dark:text-purple-400">Asks</div>
+              </div>
+              <div className="rounded-lg border border-green-200 bg-gradient-to-br from-green-50 to-green-100 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-green-800 dark:from-green-900/20 dark:to-green-800/20">
+                <div className="mb-1 text-3xl font-bold text-green-700 dark:text-green-300">
+                  {summary.offers}
+                </div>
+                <div className="text-sm font-medium text-green-600 dark:text-green-400">Offers</div>
+              </div>
+              <div className="rounded-lg border border-orange-200 bg-gradient-to-br from-orange-50 to-orange-100 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-orange-800 dark:from-orange-900/20 dark:to-orange-800/20">
+                <div className="mb-1 text-3xl font-bold text-orange-700 dark:text-orange-300">
+                  {summary.skills}
+                </div>
+                <div className="text-sm font-medium text-orange-600 dark:text-orange-400">
+                  Skills
+                </div>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100 p-6 shadow-sm transition-shadow hover:shadow-md dark:border-gray-800 dark:from-gray-900/20 dark:to-gray-800/20">
+                <div className="mb-1 text-3xl font-bold text-gray-700 dark:text-gray-300">
+                  {transactionCount !== null ? transactionCount : '...'}
+                </div>
+                <div className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                  Transactions
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Entities - Collapsible Entity List */}
           <div className="mb-8">
-            <LoadingSpinner text="Loading stats..." />
-          </div>
-        ) : summary ? (
-          <div className="mb-8 grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg border border-blue-200 dark:border-blue-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-1">{summary.profiles}</div>
-              <div className="text-sm font-medium text-blue-600 dark:text-blue-400">Profiles</div>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-lg border border-purple-200 dark:border-purple-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl font-bold text-purple-700 dark:text-purple-300 mb-1">{summary.asks}</div>
-              <div className="text-sm font-medium text-purple-600 dark:text-purple-400">Asks</div>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-lg border border-green-200 dark:border-green-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl font-bold text-green-700 dark:text-green-300 mb-1">{summary.offers}</div>
-              <div className="text-sm font-medium text-green-600 dark:text-green-400">Offers</div>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-lg border border-orange-200 dark:border-orange-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl font-bold text-orange-700 dark:text-orange-300 mb-1">{summary.skills}</div>
-              <div className="text-sm font-medium text-orange-600 dark:text-orange-400">Skills</div>
-            </div>
-            <div className="p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/20 rounded-lg border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-              <div className="text-3xl font-bold text-gray-700 dark:text-gray-300 mb-1">{transactionCount !== null ? transactionCount : '...'}</div>
-              <div className="text-sm font-medium text-gray-600 dark:text-gray-400">Transactions</div>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Entities - Collapsible Entity List */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Entities</h2>
-            <button
-              onClick={() => setShowEntities(!showEntities)}
-              className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              {showEntities ? 'Hide Entities' : 'Show Entities'}
-            </button>
-          </div>
-          {showEntities && (
-            <div className="mt-4">
-              <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
-            </div>
-          )}
-        </div>
-
-        {/* Recent Activity - Collapsible Transaction Feed */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Recent Activity</h2>
-            <div className="flex items-center gap-2">
-              <a
-                href="https://explorer.mendoza.hoodi.arkiv.network/address/0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F?tab=txs"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 text-sm font-medium border border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
-              >
-                View on Arkiv Explorer
-              </a>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Entities</h2>
               <button
-                onClick={() => setShowTransactions(!showTransactions)}
-                className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                onClick={() => setShowEntities(!showEntities)}
+                className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
               >
-                {showTransactions ? 'Hide Transactions' : 'Show All Transactions'}
+                {showEntities ? 'Hide Entities' : 'Show Entities'}
               </button>
             </div>
+            {showEntities && (
+              <div className="mt-4">
+                <EntityList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
+              </div>
+            )}
           </div>
-          {showTransactions && (
-            <div className="mt-4">
-              <AllTransactionsList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
-            </div>
-          )}
-        </div>
 
-        {/* How It Works */}
-        <HowItWorks />
+          {/* Recent Activity - Collapsible Transaction Feed */}
+          <div className="mb-8">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Recent Activity
+              </h2>
+              <div className="flex items-center gap-2">
+                <a
+                  href="https://explorer.kaolin.hoodi.arkiv.network/address/0x4b6D14e3ad668a2273Ce3Cf9A22cda202f404c5F?tab=txs"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-900/20 dark:text-blue-300 dark:hover:bg-blue-900/30"
+                >
+                  View on Arkiv Explorer
+                </a>
+                <button
+                  onClick={() => setShowTransactions(!showTransactions)}
+                  className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
+                >
+                  {showTransactions ? 'Hide Transactions' : 'Show All Transactions'}
+                </button>
+              </div>
+            </div>
+            {showTransactions && (
+              <div className="mt-4">
+                <AllTransactionsList spaceId={spaceId} onSpaceIdChange={setSpaceId} />
+              </div>
+            )}
+          </div>
+
+          {/* How It Works */}
+          <HowItWorks />
         </div>
       </div>
     </div>
   );
 }
-

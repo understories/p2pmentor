@@ -1,8 +1,8 @@
 /**
  * Profile Garden Notes Page
- * 
+ *
  * Per-profile view of garden notes (notes to/from this profile).
- * 
+ *
  * Features:
  * - Shows notes where this profile is the target
  * - Shows notes authored by this profile
@@ -55,7 +55,9 @@ export default function ProfileGardenNotesPage() {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address)
+          .then(setUserProfile)
+          .catch(() => null);
       }
     }
   }, [wallet]);
@@ -165,36 +167,37 @@ export default function ProfileGardenNotesPage() {
   const profileName = profile?.displayName || profile?.username || wallet.slice(0, 8) + '...';
 
   return (
-    <div className="min-h-screen relative">
+    <div className="relative min-h-screen">
       {/* Background art - no gradients, just the base background */}
       <BackgroundImage />
 
-      <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
+      <div className="container relative z-10 mx-auto max-w-4xl px-4 py-8">
         <BackButton />
         <div className="mb-6">
-          <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="mb-2 text-3xl font-semibold text-gray-900 dark:text-gray-100">
             {profileName}'s Garden Notes
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 text-sm">
-            Public notes in this garden
-          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">Public notes in this garden</p>
         </div>
 
         {/* Lantern-style Educational Banner - Gradient only behind this object */}
-        <div className="mb-6 p-5 rounded-2xl border-2 border-green-400/30 dark:border-green-500/40 backdrop-blur-sm relative overflow-hidden"
+        <div
+          className="relative mb-6 overflow-hidden rounded-2xl border-2 border-green-400/30 p-5 backdrop-blur-sm dark:border-green-500/40"
           style={{
-            background: 'linear-gradient(to bottom, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.08))',
+            background:
+              'linear-gradient(to bottom, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.08))',
             boxShadow: '0 0 20px rgba(34, 197, 94, 0.15), inset 0 0 20px rgba(34, 197, 94, 0.05)',
           }}
         >
-          <div className="flex items-start gap-3 relative z-10">
-            <span className="text-2xl animate-pulse">🌱</span>
+          <div className="relative z-10 flex items-start gap-3">
+            <span className="animate-pulse text-2xl">🌱</span>
             <div className="flex-1">
-              <p className="text-sm font-medium text-green-900 dark:text-green-200 mb-1">
+              <p className="mb-1 text-sm font-medium text-green-900 dark:text-green-200">
                 Public garden notes
               </p>
-              <p className="text-xs text-green-800 dark:text-green-300 leading-relaxed">
-                These are public on-chain messages. They're stored as Arkiv entities, not just in this app.
+              <p className="text-xs leading-relaxed text-green-800 dark:text-green-300">
+                These are public on-chain messages. They're stored as Arkiv entities, not just in
+                this app.
               </p>
             </div>
           </div>
@@ -206,30 +209,30 @@ export default function ProfileGardenNotesPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                 filter === 'all'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               All
             </button>
             <button
               onClick={() => setFilter('to')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                 filter === 'to'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               To {profileName}
             </button>
             <button
               onClick={() => setFilter('from')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 font-medium transition-colors ${
                 filter === 'from'
                   ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
               }`}
             >
               From {profileName}
@@ -237,8 +240,9 @@ export default function ProfileGardenNotesPage() {
           </div>
 
           {/* Compose Button - Always "Plant a Note" */}
-          {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-            arkivBuilderMode ? (
+          {userWallet &&
+            userWallet.toLowerCase() !== wallet.toLowerCase() &&
+            (arkivBuilderMode ? (
               <ArkivQueryTooltip
                 query={[
                   `Opens GardenNoteComposeModal to create garden note`,
@@ -246,13 +250,13 @@ export default function ProfileGardenNotesPage() {
                   `Creates: type='garden_note' entity`,
                   `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', targetWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', channel (optional)`,
                   `Payload: Full garden note data (message, tags, etc.)`,
-                  `TTL: 1 year (31536000 seconds)`
+                  `TTL: 1 year (31536000 seconds)`,
                 ]}
                 label="Plant a Note"
               >
                 <button
                   onClick={() => setShowComposeModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 font-medium text-white transition-all duration-300 hover:from-green-500 hover:to-emerald-600"
                   style={{
                     boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
                   }}
@@ -264,7 +268,7 @@ export default function ProfileGardenNotesPage() {
             ) : (
               <button
                 onClick={() => setShowComposeModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-green-400 to-emerald-500 hover:from-green-500 hover:to-emerald-600 text-white rounded-full font-medium transition-all duration-300 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-full bg-gradient-to-r from-green-400 to-emerald-500 px-6 py-3 font-medium text-white transition-all duration-300 hover:from-green-500 hover:to-emerald-600"
                 style={{
                   boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 6px rgba(0, 0, 0, 0.1)',
                 }}
@@ -272,13 +276,12 @@ export default function ProfileGardenNotesPage() {
                 <span>🌿</span>
                 <span>Plant a Note</span>
               </button>
-            )
-          )}
+            ))}
         </div>
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
           </div>
         )}
@@ -297,7 +300,7 @@ export default function ProfileGardenNotesPage() {
                   `   → type='garden_note', authorWallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
                   `3. getProfileByWallet(...) for each unique wallet`,
                   `   → type='user_profile', wallet='...'`,
-                  `Returns: GardenNote[] (notes to/from this profile)`
+                  `Returns: GardenNote[] (notes to/from this profile)`,
                 ]}
                 label="Loading Garden Notes"
               >
@@ -311,28 +314,28 @@ export default function ProfileGardenNotesPage() {
 
         {/* Empty State - Sprout Scene (no button here, button is always at top) */}
         {!loading && filteredNotes.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
             <div className="relative mb-6">
               {/* Glow below sprout */}
-              <div 
-                className="absolute inset-0 blur-2xl opacity-30"
+              <div
+                className="absolute inset-0 opacity-30 blur-2xl"
                 style={{
                   background: 'radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%)',
                   transform: 'translateY(20px)',
                 }}
               />
               {/* Sprout icon */}
-              <div className="relative text-6xl animate-pulse">🌱</div>
+              <div className="relative animate-pulse text-6xl">🌱</div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
               No notes in the garden yet
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+            <p className="mb-6 max-w-md text-sm text-gray-600 dark:text-gray-400">
               {filter === 'to'
                 ? `No one has left a note in ${profileName}'s garden yet.`
                 : filter === 'from'
-                ? `${profileName} hasn't posted any notes yet.`
-                : `No notes in ${profileName}'s garden yet.`}
+                  ? `${profileName} hasn't posted any notes yet.`
+                  : `No notes in ${profileName}'s garden yet.`}
             </p>
           </div>
         )}
@@ -343,150 +346,161 @@ export default function ProfileGardenNotesPage() {
             {filteredNotes.map((note) => {
               const authorProfile = getAuthorProfile(note.authorWallet);
               const targetProfile = getTargetProfile(note.targetWallet);
-              const authorName = authorProfile?.displayName || authorProfile?.username || note.authorWallet.slice(0, 8) + '...';
-              const authorWalletShort = note.authorWallet.slice(0, 6) + '...' + note.authorWallet.slice(-4);
+              const authorName =
+                authorProfile?.displayName ||
+                authorProfile?.username ||
+                note.authorWallet.slice(0, 8) + '...';
+              const authorWalletShort =
+                note.authorWallet.slice(0, 6) + '...' + note.authorWallet.slice(-4);
               const isToThisProfile = note.targetWallet?.toLowerCase() === wallet.toLowerCase();
               const isFromThisProfile = note.authorWallet.toLowerCase() === wallet.toLowerCase();
 
               return (
                 <div
                   key={note.key}
-                  className="backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:border-green-300/50 dark:hover:border-green-500/30 transition-all duration-300 relative overflow-hidden"
+                  className="relative overflow-hidden rounded-xl border border-gray-200/50 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-green-300/50 hover:shadow-xl dark:border-gray-700/50 dark:hover:border-green-500/30"
                 >
                   {/* Light mode background */}
-                  <div 
-                    className="dark:hidden absolute inset-0 -z-10"
+                  <div
+                    className="absolute inset-0 -z-10 dark:hidden"
                     style={{
-                      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98))',
+                      background:
+                        'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98))',
                     }}
                   />
                   {/* Dark mode background */}
-                  <div 
-                    className="hidden dark:block absolute inset-0 -z-10"
+                  <div
+                    className="absolute inset-0 -z-10 hidden dark:block"
                     style={{
-                      background: 'linear-gradient(to bottom, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.98))',
+                      background:
+                        'linear-gradient(to bottom, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.98))',
                     }}
                   />
                   {/* Gradient only behind this card */}
-                  <div 
+                  <div
                     className="absolute inset-0 -z-10 opacity-30"
                     style={{
-                      background: 'radial-gradient(ellipse at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
+                      background:
+                        'radial-gradient(ellipse at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
                     }}
                   />
                   <div className="relative z-10">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:from-green-400/10 dark:to-blue-500/10 flex items-center justify-center border border-green-300/30 dark:border-green-500/20">
-                        <EmojiIdentitySeed profile={authorProfile} size="lg" showGlow={true} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isFromThisProfile ? (
-                            <span className="font-semibold">You</span>
-                          ) : (
-                            <Link
-                              href={`/profiles/${note.authorWallet}`}
-                              className="font-semibold hover:underline"
-                            >
-                              {authorName}
-                            </Link>
-                          )}
-                          {isToThisProfile && (
-                            <>
-                              <span className="text-gray-400">→</span>
-                              <span className="font-medium text-gray-600 dark:text-gray-400">
-                                {profileName}
-                              </span>
-                            </>
-                          )}
-                          {targetProfile && !isToThisProfile && (
-                            <>
-                              <span className="text-gray-400">→</span>
+                    {/* Header */}
+                    <div className="mb-3 flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full border border-green-300/30 bg-gradient-to-br from-green-400/20 to-blue-500/20 dark:border-green-500/20 dark:from-green-400/10 dark:to-blue-500/10">
+                          <EmojiIdentitySeed profile={authorProfile} size="lg" showGlow={true} />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            {isFromThisProfile ? (
+                              <span className="font-semibold">You</span>
+                            ) : (
                               <Link
-                                href={`/profiles/${note.targetWallet}`}
-                                className="font-medium text-gray-600 dark:text-gray-400 hover:underline"
+                                href={`/profiles/${note.authorWallet}`}
+                                className="font-semibold hover:underline"
                               >
-                                {targetProfile.displayName || targetProfile.username || 'User'}
+                                {authorName}
                               </Link>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-xs">
-                          <span className="text-gray-600 dark:text-gray-400">{formatTimeAgo(note.createdAt)}</span>
-                          {arkivBuilderMode && note.key && (
-                            <>
-                              <span className="text-gray-400 dark:text-gray-500">·</span>
-                              <ViewOnArkivLink 
-                                entityKey={note.key}
-                                txHash={note.txHash}
-                                label="View Garden Note on Arkiv"
-                                className="text-xs"
-                              />
-                              <span className="text-gray-400 dark:text-gray-500 font-mono">
-                                {note.key.slice(0, 12)}...
-                              </span>
-                            </>
-                          )}
-                          {!arkivBuilderMode && note.txHash && note.txHash !== 'undefined' && (
-                            <>
-                              <span className="text-gray-400 dark:text-gray-500">·</span>
-                              <a
-                                href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${note.txHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="hover:underline flex items-center gap-1 text-green-600 dark:text-green-400 font-medium"
-                                title="View in Arkiv Explorer"
-                              >
-                                <span>🔗</span>
-                                <span>Public Arkiv entry</span>
-                              </a>
-                            </>
-                          )}
+                            )}
+                            {isToThisProfile && (
+                              <>
+                                <span className="text-gray-400">→</span>
+                                <span className="font-medium text-gray-600 dark:text-gray-400">
+                                  {profileName}
+                                </span>
+                              </>
+                            )}
+                            {targetProfile && !isToThisProfile && (
+                              <>
+                                <span className="text-gray-400">→</span>
+                                <Link
+                                  href={`/profiles/${note.targetWallet}`}
+                                  className="font-medium text-gray-600 hover:underline dark:text-gray-400"
+                                >
+                                  {targetProfile.displayName || targetProfile.username || 'User'}
+                                </Link>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {formatTimeAgo(note.createdAt)}
+                            </span>
+                            {arkivBuilderMode && note.key && (
+                              <>
+                                <span className="text-gray-400 dark:text-gray-500">·</span>
+                                <ViewOnArkivLink
+                                  entityKey={note.key}
+                                  txHash={note.txHash}
+                                  label="View Garden Note on Arkiv"
+                                  className="text-xs"
+                                />
+                                <span className="font-mono text-gray-400 dark:text-gray-500">
+                                  {note.key.slice(0, 12)}...
+                                </span>
+                              </>
+                            )}
+                            {!arkivBuilderMode && note.txHash && note.txHash !== 'undefined' && (
+                              <>
+                                <span className="text-gray-400 dark:text-gray-500">·</span>
+                                <a
+                                  href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${note.txHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-1 font-medium text-green-600 hover:underline dark:text-green-400"
+                                  title="View in Arkiv Explorer"
+                                >
+                                  <span>🔗</span>
+                                  <span>Public Arkiv entry</span>
+                                </a>
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Message */}
-                  <div className="mb-3">
-                    <p className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap font-medium">
-                      {note.message}
-                    </p>
-                  </div>
-
-                  {/* Tags - Sprout Chips */}
-                  {note.tags && note.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {note.tags.map((tag, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1.5 bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/30 text-green-800 dark:text-green-300 rounded-full text-xs font-medium border border-green-200/50 dark:border-green-700/50 hover:shadow-md hover:shadow-green-200/50 dark:hover:shadow-green-900/30 transition-all duration-200"
-                          style={{
-                            boxShadow: '0 0 8px rgba(34, 197, 94, 0.1)',
-                          }}
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                    {/* Message */}
+                    <div className="mb-3">
+                      <p className="whitespace-pre-wrap font-medium text-gray-900 dark:text-gray-100">
+                        {note.message}
+                      </p>
                     </div>
-                  )}
 
-                  {/* Footer */}
-                  <div className="pt-3 border-t border-gray-300/50 dark:border-gray-600/50 flex items-center justify-between text-xs">
-                    <span className="font-mono text-gray-700 dark:text-gray-300">{authorWalletShort}</span>
-                    {note.txHash && note.txHash !== 'undefined' && (
-                      <a
-                        href={`https://explorer.mendoza.hoodi.arkiv.network/tx/${note.txHash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-green-600 dark:text-green-400 font-medium"
-                      >
-                        View raw data →
-                      </a>
+                    {/* Tags - Sprout Chips */}
+                    {note.tags && note.tags.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {note.tags.map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="rounded-full border border-green-200/50 bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-1.5 text-xs font-medium text-green-800 transition-all duration-200 hover:shadow-md hover:shadow-green-200/50 dark:border-green-700/50 dark:from-green-900/40 dark:to-emerald-900/30 dark:text-green-300 dark:hover:shadow-green-900/30"
+                            style={{
+                              boxShadow: '0 0 8px rgba(34, 197, 94, 0.1)',
+                            }}
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
                     )}
-                  </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between border-t border-gray-300/50 pt-3 text-xs dark:border-gray-600/50">
+                      <span className="font-mono text-gray-700 dark:text-gray-300">
+                        {authorWalletShort}
+                      </span>
+                      {note.txHash && note.txHash !== 'undefined' && (
+                        <a
+                          href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${note.txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-green-600 hover:underline dark:text-green-400"
+                        >
+                          View raw data →
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

@@ -1,6 +1,6 @@
 /**
  * Profile management page
- * 
+ *
  * Create and edit user profile using Arkiv entities.
  * Design inspired by hidden-garden-ui-ux-upgrades.
  */
@@ -30,10 +30,18 @@ export default function ProfilePage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [timezone, setTimezone] = useState<string>('');
-  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
+  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{
+    percent: number;
+    readCount: number;
+    totalMaterials: number;
+  } | null>(null);
   const [mode, setMode] = useState<'select' | 'regrow' | 'create'>('select'); // 'select' = show buttons, 'regrow' = show browser, 'create' = show form
   const [selectedEmoji, setSelectedEmoji] = useState<string>('');
-  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{
+    key: string;
+    txHash: string;
+    entityType: string;
+  } | null>(null);
   const router = useRouter();
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -99,7 +107,7 @@ export default function ProfilePage() {
       // Fetch all active quests
       const questsRes = await fetch('/api/learner-quests');
       const questsData = await questsRes.json();
-      
+
       if (!questsData.ok || !questsData.quests || questsData.quests.length === 0) {
         setLearnerQuestCompletion(null);
         return;
@@ -112,7 +120,9 @@ export default function ProfilePage() {
         try {
           if (quest.questType === 'meta_learning') {
             // Load meta-learning quest progress
-            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`);
+            const res = await fetch(
+              `/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`
+            );
             const data = await res.json();
 
             if (data.ok && data.progress) {
@@ -125,11 +135,15 @@ export default function ProfilePage() {
             return { readCount: 0, totalMaterials: 6 };
           } else {
             // Reading list quests
-            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+            const res = await fetch(
+              `/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`
+            );
             const data = await res.json();
 
             if (data.ok && data.progress) {
-              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const readCount = Object.values(data.progress).filter(
+                (p: any) => p.status === 'read'
+              ).length;
               const totalMaterials = quest.materials?.length || 0;
               return { readCount, totalMaterials };
             }
@@ -152,7 +166,6 @@ export default function ProfilePage() {
       setLearnerQuestCompletion(null);
     }
   };
-
 
   const handleRegrowSelect = async (selectedProfile: any) => {
     try {
@@ -215,16 +228,20 @@ export default function ProfilePage() {
       if (!createResult.ok) {
         // Handle rate limit errors with specific message
         if (createResult.rateLimited || createRes.status === 429) {
-          throw new Error('Rate limit exceeded. The Arkiv network is temporarily limiting requests. Please wait 30-60 seconds and try again.');
+          throw new Error(
+            'Rate limit exceeded. The Arkiv network is temporarily limiting requests. Please wait 30-60 seconds and try again.'
+          );
         }
         throw new Error(createResult.error || 'Failed to clone profile');
       }
 
-      setSuccess(`Profile regrown from history! Entity key: ${createResult.key?.substring(0, 16)}...`);
-      
+      setSuccess(
+        `Profile regrown from history! Entity key: ${createResult.key?.substring(0, 16)}...`
+      );
+
       // Wait a moment to show success message clearly before reloading
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       await loadProfile(walletAddress);
     } catch (err: any) {
       console.error('Error regrowing profile:', err);
@@ -248,7 +265,7 @@ export default function ProfilePage() {
     }
 
     const formData = new FormData(e.target as HTMLFormElement);
-    
+
     // Core Identity
     const displayName = formData.get('displayName') as string;
     // Username can only be set during onboarding - preserve existing if any
@@ -262,19 +279,27 @@ export default function ProfilePage() {
 
     // Languages
     const languagesStr = formData.get('languages') as string;
-    const languages = languagesStr ? languagesStr.split(',').map(s => s.trim()).filter(Boolean) : undefined;
-    
+    const languages = languagesStr
+      ? languagesStr
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined;
+
     // Contact Links - normalize to full URLs
-    const normalizeContactLink = (value: string | null | undefined, type: 'twitter' | 'github' | 'telegram' | 'discord'): string | undefined => {
+    const normalizeContactLink = (
+      value: string | null | undefined,
+      type: 'twitter' | 'github' | 'telegram' | 'discord'
+    ): string | undefined => {
       if (!value || !value.trim()) return undefined;
-      
+
       const trimmed = value.trim();
-      
+
       // If already a full URL, return as-is
       if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
         return trimmed;
       }
-      
+
       // Normalize based on type
       switch (type) {
         case 'twitter':
@@ -297,7 +322,7 @@ export default function ProfilePage() {
           return trimmed;
       }
     };
-    
+
     const contactLinks = {
       twitter: normalizeContactLink(formData.get('contactTwitter') as string, 'twitter'),
       github: normalizeContactLink(formData.get('contactGithub') as string, 'github'),
@@ -305,12 +330,12 @@ export default function ProfilePage() {
       discord: normalizeContactLink(formData.get('contactDiscord') as string, 'discord'),
     };
     // Remove undefined values
-    Object.keys(contactLinks).forEach(key => {
+    Object.keys(contactLinks).forEach((key) => {
       if (!contactLinks[key as keyof typeof contactLinks]) {
         delete contactLinks[key as keyof typeof contactLinks];
       }
     });
-    
+
     // Skills - No longer editable here, must use /me/skills page
     // Keep existing skills from profile
     const skillsArray = profile?.skillsArray;
@@ -323,22 +348,22 @@ export default function ProfilePage() {
       const res = await fetch('/api/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action,
-            wallet: walletAddress,
-            displayName,
-            username: username || undefined,
-            profileImage: profileImage || undefined,
-            bio: bio || undefined,
-            bioShort: bioShort || undefined,
-            bioLong: bioLong || undefined,
-            skills: skillsArray?.join(', ') || '', // Legacy format for backward compatibility
-            skillsArray,
-            timezone: timezoneValue,
-            languages,
-            contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
-            identity_seed: selectedEmoji || undefined,
-          }),
+        body: JSON.stringify({
+          action,
+          wallet: walletAddress,
+          displayName,
+          username: username || undefined,
+          profileImage: profileImage || undefined,
+          bio: bio || undefined,
+          bioShort: bioShort || undefined,
+          bioLong: bioLong || undefined,
+          skills: skillsArray?.join(', ') || '', // Legacy format for backward compatibility
+          skillsArray,
+          timezone: timezoneValue,
+          languages,
+          contactLinks: Object.keys(contactLinks).length > 0 ? contactLinks : undefined,
+          identity_seed: selectedEmoji || undefined,
+        }),
       });
 
       const result = await res.json();
@@ -361,7 +386,11 @@ export default function ProfilePage() {
 
       // Check if transaction is pending
       if (result.pending) {
-        setSuccess(profile ? 'Profile update submitted! Transaction is being processed. Please refresh in a moment.' : 'Profile creation submitted! Transaction is being processed. Please refresh in a moment.');
+        setSuccess(
+          profile
+            ? 'Profile update submitted! Transaction is being processed. Please refresh in a moment.'
+            : 'Profile creation submitted! Transaction is being processed. Please refresh in a moment.'
+        );
         setTimeout(() => loadProfile(walletAddress), 2000);
       } else {
         setSuccess('Profile saved!');
@@ -372,7 +401,7 @@ export default function ProfilePage() {
         // Reload profile with a small delay to allow Arkiv indexing
         // For updates with stable entity keys, the query should find the updated entity immediately
         // But we add a small delay to be safe
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await loadProfile(walletAddress);
       }
     } catch (err: any) {
@@ -393,15 +422,15 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-2xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-2xl">
           {arkivBuilderMode ? (
             <ArkivQueryTooltip
               query={[
                 `getProfileByWallet("${walletAddress || '...'}")`,
                 `Query: type='user_profile', wallet='${walletAddress?.toLowerCase() || '...'}'`,
                 `Returns: UserProfile | null`,
-                `Note: Returns most recent profile (sorted by createdAt DESC)`
+                `Note: Returns most recent profile (sorted by createdAt DESC)`,
               ]}
               label="Loading Profile"
             >
@@ -416,18 +445,18 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
+    <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
       <div className={`${!profile && mode === 'regrow' ? 'max-w-full' : 'max-w-2xl'} mx-auto`}>
         <div className="mb-6 flex items-center justify-between">
           <BackButton href="/me" />
           <Link
             href="/me/skills"
-            className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 border border-blue-300 dark:border-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+            className="rounded-lg border border-blue-300 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:border-blue-600 dark:text-blue-400 dark:hover:bg-blue-900/20 dark:hover:text-blue-300"
           >
             Skills &gt;
           </Link>
         </div>
-        <h1 className="text-3xl font-semibold mb-6">Profile</h1>
+        <h1 className="mb-6 text-3xl font-semibold">Profile</h1>
 
         {/* Day 2: For profile-less wallets, show two buttons at top */}
         {!profile && mode === 'select' && (
@@ -438,14 +467,14 @@ export default function ProfilePage() {
                 `Creates: type='user_profile' entity`,
                 `Attributes: wallet, displayName, username, timezone, skills, ...`,
                 `Payload: Full profile data (bio, contactLinks, etc.)`,
-                `TTL: 1 year (31536000 seconds)`
+                `TTL: 1 year (31536000 seconds)`,
               ]}
               label="Regrow Profile"
             >
-              <div className="relative group">
+              <div className="group relative">
                 <button
                   onClick={() => setMode('regrow')}
-                  className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors flex items-center gap-2"
+                  className="flex items-center gap-2 rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700"
                 >
                   <span>🌱</span>
                   <span>Regrow Profile</span>
@@ -458,14 +487,14 @@ export default function ProfilePage() {
                 `Creates: type='user_profile' entity`,
                 `Attributes: wallet, displayName, username, timezone, skills, ...`,
                 `Payload: Full profile data (bio, contactLinks, etc.)`,
-                `TTL: 1 year (31536000 seconds)`
+                `TTL: 1 year (31536000 seconds)`,
               ]}
               label="Create Profile"
             >
-              <div className="relative group">
+              <div className="group relative">
                 <button
                   onClick={() => setMode('create')}
-                  className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+                  className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700"
                 >
                   Create Profile
                 </button>
@@ -480,19 +509,19 @@ export default function ProfilePage() {
             <nav className="flex gap-4" aria-label="Profile sections">
               <Link
                 href="/me/profile"
-                className="px-4 py-2 text-sm font-medium border-b-2 border-blue-600 dark:border-blue-400 text-blue-600 dark:text-blue-400 transition-colors"
+                className="border-b-2 border-blue-600 px-4 py-2 text-sm font-medium text-blue-600 transition-colors dark:border-blue-400 dark:text-blue-400"
               >
                 Core Identity
               </Link>
               <Link
                 href="/me/skills"
-                className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
               >
                 Skills
               </Link>
               <Link
                 href="/me/availability"
-                className="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 transition-colors"
+                className="border-b-2 border-transparent px-4 py-2 text-sm font-medium text-gray-500 transition-colors hover:border-gray-300 hover:text-gray-700 dark:text-gray-400 dark:hover:border-gray-600 dark:hover:text-gray-300"
               >
                 Availability
               </Link>
@@ -501,50 +530,63 @@ export default function ProfilePage() {
         )}
 
         {error && (
-          <div className="mb-4 p-4 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400">
-            <p className="font-medium mb-2">{error}</p>
-            {error.includes('Username already exists') && typeof window !== 'undefined' && (window as any).duplicateProfiles && Array.isArray((window as any).duplicateProfiles) && (window as any).duplicateProfiles.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-sm">Found {(window as any).duplicateProfiles.length} profile(s) with this username:</p>
-                <div className="space-y-2">
-                  {(window as any).duplicateProfiles.map((dup: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-white dark:bg-gray-800 rounded border border-red-200 dark:border-red-700">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1">
-                          <p className="font-medium">{dup.displayName}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Wallet: {dup.wallet.slice(0, 10)}...{dup.wallet.slice(-8)}</p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">Created: {new Date(dup.createdAt).toLocaleDateString()}</p>
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
+            <p className="mb-2 font-medium">{error}</p>
+            {error.includes('Username already exists') &&
+              typeof window !== 'undefined' &&
+              (window as any).duplicateProfiles &&
+              Array.isArray((window as any).duplicateProfiles) &&
+              (window as any).duplicateProfiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  <p className="text-sm">
+                    Found {(window as any).duplicateProfiles.length} profile(s) with this username:
+                  </p>
+                  <div className="space-y-2">
+                    {(window as any).duplicateProfiles.map((dup: any, idx: number) => (
+                      <div
+                        key={idx}
+                        className="rounded border border-red-200 bg-white p-3 dark:border-red-700 dark:bg-gray-800"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-medium">{dup.displayName}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Wallet: {dup.wallet.slice(0, 10)}...{dup.wallet.slice(-8)}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              Created: {new Date(dup.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <a
+                            href={`https://explorer.kaolin.hoodi.arkiv.network/entity/${dup.key}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex-shrink-0 text-xs text-blue-600 hover:underline dark:text-blue-400"
+                          >
+                            View on Arkiv →
+                          </a>
                         </div>
-                        <a
-                          href={`https://explorer.mendoza.hoodi.arkiv.network/entity/${dup.key}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline flex-shrink-0"
-                        >
-                          View on Arkiv →
-                        </a>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMode('regrow');
+                      setError('');
+                      (window as any).duplicateProfiles = undefined;
+                    }}
+                    className="mt-3 rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+                  >
+                    Regrow Profile?
+                  </button>
                 </div>
-                <button
-                  onClick={() => {
-                    setMode('regrow');
-                    setError('');
-                    (window as any).duplicateProfiles = undefined;
-                  }}
-                  className="mt-3 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors"
-                >
-                  Regrow Profile?
-                </button>
-              </div>
-            )}
+              )}
           </div>
         )}
 
         {success && (
           <div className="mb-4">
-            <div className="p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
               {success}
             </div>
             {lastWriteInfo && (
@@ -560,15 +602,18 @@ export default function ProfilePage() {
 
         {/* Day 2: Show regrow browser when regrow mode is selected */}
         {!profile && mode === 'regrow' && walletAddress && (
-          <div className="mb-6" style={{
-            padding: 'clamp(1.5rem, 5vw, 4rem)',
-            marginLeft: 'clamp(-2rem, -4vw, -1rem)',
-            marginRight: 'clamp(-2rem, -4vw, -1rem)',
-            marginTop: 'clamp(1rem, 3vw, 2rem)'
-          }}>
+          <div
+            className="mb-6"
+            style={{
+              padding: 'clamp(1.5rem, 5vw, 4rem)',
+              marginLeft: 'clamp(-2rem, -4vw, -1rem)',
+              marginRight: 'clamp(-2rem, -4vw, -1rem)',
+              marginTop: 'clamp(1rem, 3vw, 2rem)',
+            }}
+          >
             <button
               onClick={() => setMode('select')}
-              className="mb-6 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              className="mb-6 text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
             >
               ← Back to options
             </button>
@@ -582,39 +627,44 @@ export default function ProfilePage() {
 
         {/* Show create profile intro only in create mode */}
         {!profile && mode === 'create' && (
-          <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-            <div className="flex items-center justify-between mb-2">
+          <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+            <div className="mb-2 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200">
                 Create Your Profile
               </h3>
               <button
                 onClick={() => setMode('select')}
-                className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-sm text-blue-600 hover:underline dark:text-blue-400"
               >
                 ← Back to options
               </button>
             </div>
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              Create your profile to start connecting with mentors and learners in the network.
-              All fields marked with * are required.
+              Create your profile to start connecting with mentors and learners in the network. All
+              fields marked with * are required.
             </p>
           </div>
         )}
 
         {profile && (
-          <div className="mb-6 p-4 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Editing existing profile</p>
+                <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">
+                  Editing existing profile
+                </p>
                 <p className="font-medium">{profile.displayName}</p>
-                {profile.bioShort && <p className="text-sm mt-2">{profile.bioShort}</p>}
+                {profile.bioShort && <p className="mt-2 text-sm">{profile.bioShort}</p>}
                 {learnerQuestCompletion && (
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                    Learning Quests: {learnerQuestCompletion.percent}% complete ({learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials)
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    Learning Quests: {learnerQuestCompletion.percent}% complete (
+                    {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials}{' '}
+                    materials)
                   </p>
                 )}
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                  Changes will update your profile entity on Arkiv. All historical versions are preserved on-chain.
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  Changes will update your profile entity on Arkiv. All historical versions are
+                  preserved on-chain.
                 </p>
                 {arkivBuilderMode && profile.key && (
                   <div className="mt-3 flex items-center gap-2">
@@ -624,7 +674,7 @@ export default function ProfilePage() {
                       label="View Profile Entity"
                       className="text-xs"
                     />
-                    <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                    <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                       Key: {profile.key.slice(0, 16)}...
                     </span>
                   </div>
@@ -636,235 +686,261 @@ export default function ProfilePage() {
 
         {/* Only show form when profile exists or in create mode */}
         {(profile || mode === 'create') && (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Core Identity */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-medium border-b border-gray-200 dark:border-gray-700 pb-2">
-              Core Identity
-            </h2>
-            
-            <div>
-              <label htmlFor="displayName" className="block text-sm font-medium mb-1">
-                Display Name *
-              </label>
-              <input
-                type="text"
-                id="displayName"
-                name="displayName"
-                required
-                defaultValue={profile?.displayName || ''}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="Your name"
-              />
-            </div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Core Identity */}
+            <div className="space-y-4">
+              <h2 className="border-b border-gray-200 pb-2 text-xl font-medium dark:border-gray-700">
+                Core Identity
+              </h2>
 
-            <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-1">
-                Username
-              </label>
-              <input
-                type="text"
-                id="username"
-                name="username"
-                value={profile?.username || ''}
-                readOnly
-                disabled
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed"
-                placeholder="@username"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Username can only be set during onboarding
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="identity_seed" className="block text-sm font-medium mb-2">
-                Identity Emoji
-              </label>
-              <div className="flex items-center gap-4">
-                <div className="text-4xl">
-                  <EmojiIdentitySeed profile={selectedEmoji ? { identity_seed: selectedEmoji } as UserProfile : profile} size="lg" />
-                </div>
-                <div className="flex-1">
-                  <select
-                    id="identity_seed"
-                    name="identity_seed"
-                    value={selectedEmoji}
-                    onChange={(e) => setSelectedEmoji(e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  >
-                    {PLANT_EMOJI_POOL.map((emoji) => (
-                      <option key={emoji} value={emoji}>
-                        {emoji} {emoji}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label htmlFor="displayName" className="mb-1 block text-sm font-medium">
+                  Display Name *
+                </label>
+                <input
+                  type="text"
+                  id="displayName"
+                  name="displayName"
+                  required
+                  defaultValue={profile?.displayName || ''}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="Your name"
+                />
               </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                Choose an emoji to represent your identity
-              </p>
-            </div>
 
-            <div>
-              <label htmlFor="bioShort" className="block text-sm font-medium mb-1">
-                Short Bio
-              </label>
-              <textarea
-                id="bioShort"
-                name="bioShort"
-                rows={2}
-                defaultValue={profile?.bioShort || profile?.bio || ''}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="A brief description of yourself"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="bioLong" className="block text-sm font-medium mb-1">
-                Long Bio
-              </label>
-              <textarea
-                id="bioLong"
-                name="bioLong"
-                rows={4}
-                defaultValue={profile?.bioLong || ''}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                placeholder="A more detailed description"
-              />
-            </div>
-
-            <div>
-              <TimezoneSelector
-                value={timezone}
-                onChange={setTimezone}
-                className=""
-              />
-              {/* Hidden input for form submission */}
-              <input type="hidden" name="timezone" value={timezone} />
-              {/* Display timezone conversion for verification */}
-              <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-xs font-medium text-blue-900 dark:text-blue-200 mb-1">Timezone Verification</p>
-                <p className="text-xs text-blue-800 dark:text-blue-300">
-                  Your timezone: <strong>{timezone}</strong>
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                  Current time in your timezone: {new Date().toLocaleString('en-US', { timeZone: timezone })}
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-400">
-                  UTC time: {new Date().toISOString()}
+              <div>
+                <label htmlFor="username" className="mb-1 block text-sm font-medium">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  id="username"
+                  name="username"
+                  value={profile?.username || ''}
+                  readOnly
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg border border-gray-300 bg-gray-100 px-4 py-2 text-gray-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                  placeholder="@username"
+                />
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Username can only be set during onboarding
                 </p>
               </div>
-            </div>
-          </div>
 
-          {/* Skills - Removed legacy text field, skills must be added as entities via /me/skills */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-medium border-b border-gray-200 dark:border-gray-700 pb-2">
-              Skills
-            </h2>
-            
-            <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-              <p className="text-sm text-blue-900 dark:text-blue-200 mb-2">
-                Skills are managed as first-class entities. Add or remove skills from the <Link href="/me/skills" className="underline font-medium">Skills page</Link>.
-              </p>
-              {profile?.skillsArray && profile.skillsArray.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-xs text-blue-800 dark:text-blue-300 mb-2">Current skills:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {profile.skillsArray.map((skill, idx) => (
-                      <span key={idx} className="px-2 py-1 text-xs rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
-                        {skill}
-                      </span>
-                    ))}
+              <div>
+                <label htmlFor="identity_seed" className="mb-2 block text-sm font-medium">
+                  Identity Emoji
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="text-4xl">
+                    <EmojiIdentitySeed
+                      profile={
+                        selectedEmoji ? ({ identity_seed: selectedEmoji } as UserProfile) : profile
+                      }
+                      size="lg"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <select
+                      id="identity_seed"
+                      name="identity_seed"
+                      value={selectedEmoji}
+                      onChange={(e) => setSelectedEmoji(e.target.value)}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    >
+                      {PLANT_EMOJI_POOL.map((emoji) => (
+                        <option key={emoji} value={emoji}>
+                          {emoji} {emoji}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              )}
-            </div>
-
-          </div>
-
-          {/* Contact Links */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-medium border-b border-gray-200 dark:border-gray-700 pb-2">
-              Contact Links
-            </h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="contactTwitter" className="block text-sm font-medium mb-1">
-                  Twitter
-                </label>
-                <input
-                  type="text"
-                  id="contactTwitter"
-                  name="contactTwitter"
-                  defaultValue={profile?.contactLinks?.twitter ? (profile.contactLinks.twitter.replace('https://x.com/', '').replace('https://twitter.com/', '')) : ''}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="@username or username"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Will be saved as: https://x.com/username
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  Choose an emoji to represent your identity
                 </p>
               </div>
 
               <div>
-                <label htmlFor="contactGithub" className="block text-sm font-medium mb-1">
-                  GitHub
+                <label htmlFor="bioShort" className="mb-1 block text-sm font-medium">
+                  Short Bio
                 </label>
-                <input
-                  type="text"
-                  id="contactGithub"
-                  name="contactGithub"
-                  defaultValue={profile?.contactLinks?.github ? (profile.contactLinks.github.replace('https://github.com/', '')) : ''}
-                  className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  placeholder="username"
+                <textarea
+                  id="bioShort"
+                  name="bioShort"
+                  rows={2}
+                  defaultValue={profile?.bioShort || profile?.bio || ''}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="A brief description of yourself"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Will be saved as: https://github.com/username
-                </p>
+              </div>
+
+              <div>
+                <label htmlFor="bioLong" className="mb-1 block text-sm font-medium">
+                  Long Bio
+                </label>
+                <textarea
+                  id="bioLong"
+                  name="bioLong"
+                  rows={4}
+                  defaultValue={profile?.bioLong || ''}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="A more detailed description"
+                />
+              </div>
+
+              <div>
+                <TimezoneSelector value={timezone} onChange={setTimezone} className="" />
+                {/* Hidden input for form submission */}
+                <input type="hidden" name="timezone" value={timezone} />
+                {/* Display timezone conversion for verification */}
+                <div className="mt-2 rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                  <p className="mb-1 text-xs font-medium text-blue-900 dark:text-blue-200">
+                    Timezone Verification
+                  </p>
+                  <p className="text-xs text-blue-800 dark:text-blue-300">
+                    Your timezone: <strong>{timezone}</strong>
+                  </p>
+                  <p className="mt-1 text-xs text-blue-700 dark:text-blue-400">
+                    Current time in your timezone:{' '}
+                    {new Date().toLocaleString('en-US', { timeZone: timezone })}
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                    UTC time: {new Date().toISOString()}
+                  </p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
-            {arkivBuilderMode ? (
-              <ArkivQueryTooltip
-                query={[
-                  `POST /api/profile { action: 'createProfile' | 'updateProfile', ... }`,
-                  `Creates/Updates: type='user_profile' entity`,
-                  `Attributes: wallet, displayName, username, timezone, skills, ...`,
-                  `Payload: Full profile data (bio, contactLinks, etc.)`,
-                  `Note: Updates use stable entity key (canonical pattern)`,
-                  `TTL: 1 year (31536000 seconds)`
-                ]}
-                label="Profile Entity Creation"
-              >
+            {/* Skills - Removed legacy text field, skills must be added as entities via /me/skills */}
+            <div className="space-y-4">
+              <h2 className="border-b border-gray-200 pb-2 text-xl font-medium dark:border-gray-700">
+                Skills
+              </h2>
+
+              <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+                <p className="mb-2 text-sm text-blue-900 dark:text-blue-200">
+                  Skills are managed as first-class entities. Add or remove skills from the{' '}
+                  <Link href="/me/skills" className="font-medium underline">
+                    Skills page
+                  </Link>
+                  .
+                </p>
+                {profile?.skillsArray && profile.skillsArray.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-2 text-xs text-blue-800 dark:text-blue-300">Current skills:</p>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.skillsArray.map((skill, idx) => (
+                        <span
+                          key={idx}
+                          className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                        >
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Contact Links */}
+            <div className="space-y-4">
+              <h2 className="border-b border-gray-200 pb-2 text-xl font-medium dark:border-gray-700">
+                Contact Links
+              </h2>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <label htmlFor="contactTwitter" className="mb-1 block text-sm font-medium">
+                    Twitter
+                  </label>
+                  <input
+                    type="text"
+                    id="contactTwitter"
+                    name="contactTwitter"
+                    defaultValue={
+                      profile?.contactLinks?.twitter
+                        ? profile.contactLinks.twitter
+                            .replace('https://x.com/', '')
+                            .replace('https://twitter.com/', '')
+                        : ''
+                    }
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    placeholder="@username or username"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Will be saved as: https://x.com/username
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="contactGithub" className="mb-1 block text-sm font-medium">
+                    GitHub
+                  </label>
+                  <input
+                    type="text"
+                    id="contactGithub"
+                    name="contactGithub"
+                    defaultValue={
+                      profile?.contactLinks?.github
+                        ? profile.contactLinks.github.replace('https://github.com/', '')
+                        : ''
+                    }
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+                    placeholder="username"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Will be saved as: https://github.com/username
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-gray-200 pt-4 dark:border-gray-700">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `POST /api/profile { action: 'createProfile' | 'updateProfile', ... }`,
+                    `Creates/Updates: type='user_profile' entity`,
+                    `Attributes: wallet, displayName, username, timezone, skills, ...`,
+                    `Payload: Full profile data (bio, contactLinks, etc.)`,
+                    `Note: Updates use stable entity key (canonical pattern)`,
+                    `TTL: 1 year (31536000 seconds)`,
+                  ]}
+                  label="Profile Entity Creation"
+                >
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {submitting
+                      ? profile
+                        ? 'Updating Profile...'
+                        : 'Creating Profile...'
+                      : profile
+                        ? 'Update Profile'
+                        : 'Create Profile'}
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {submitting 
-                    ? (profile ? 'Updating Profile...' : 'Creating Profile...')
-                    : (profile ? 'Update Profile' : 'Create Profile')
-                  }
+                  {submitting
+                    ? profile
+                      ? 'Updating Profile...'
+                      : 'Creating Profile...'
+                    : profile
+                      ? 'Update Profile'
+                      : 'Create Profile'}
                 </button>
-              </ArkivQueryTooltip>
-            ) : (
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {submitting 
-                  ? (profile ? 'Updating Profile...' : 'Creating Profile...')
-                  : (profile ? 'Update Profile' : 'Create Profile')
-                }
-              </button>
-            )}
-          </div>
-        </form>
+              )}
+            </div>
+          </form>
         )}
       </div>
     </div>
