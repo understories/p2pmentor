@@ -1,16 +1,16 @@
 /**
  * Performance Snapshot CRUD helpers
- * 
+ *
  * Stores aggregated performance snapshots as Arkiv entities for historical tracking.
  * Enables comparison of performance over time as we iterate on query methods.
- * 
+ *
  * Reference: Performance monitoring best practices
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export type PerfSnapshot = {
   key: string;
@@ -19,7 +19,7 @@ export type PerfSnapshot = {
   method: 'arkiv' | 'graphql' | 'both'; // Which method was actually tested (may differ from requested)
   arkivMetadata?: {
     blockHeight?: number; // Arkiv block height at snapshot time
-    chainId?: number; // Chain ID (Mendoza testnet)
+    chainId?: number; // Chain ID (Kaolin testnet)
     timestamp: string; // ISO timestamp when metadata was captured
   };
   graphql?: {
@@ -49,11 +49,11 @@ export type PerfSnapshot = {
   };
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create a performance snapshot entity on Arkiv
- * 
+ *
  * Stores aggregated performance data at a point in time.
  * Used for historical comparison and trend analysis.
  */
@@ -118,7 +118,10 @@ export async function createPerfSnapshot({
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
     // The main perf_snapshot entity is more important
-    console.warn('[perfSnapshots] Failed to create perf_snapshot_txhash entity, but snapshot was created:', error);
+    console.warn(
+      '[perfSnapshots] Failed to create perf_snapshot_txhash entity, but snapshot was created:',
+      error
+    );
   }
 
   return { key: entityKey, txHash };
@@ -140,16 +143,18 @@ export async function listPerfSnapshots({
 } = {}): Promise<PerfSnapshot[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Fetch snapshot entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'perf_snapshot'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'perf_snapshot_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -176,11 +181,12 @@ export async function listPerfSnapshots({
         const snapshotKey = getAttr('snapshotKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && snapshotKey) {
               txHashMap[snapshotKey] = payload.txHash;
@@ -196,11 +202,12 @@ export async function listPerfSnapshots({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -231,19 +238,19 @@ export async function listPerfSnapshots({
 
     // Apply filters
     if (operation) {
-      snapshots = snapshots.filter(s => s.operation === operation);
+      snapshots = snapshots.filter((s) => s.operation === operation);
     }
     if (method) {
-      snapshots = snapshots.filter(s => s.method === method);
+      snapshots = snapshots.filter((s) => s.method === method);
     }
     if (since) {
       const sinceTime = new Date(since).getTime();
-      snapshots = snapshots.filter(s => new Date(s.timestamp).getTime() >= sinceTime);
+      snapshots = snapshots.filter((s) => new Date(s.timestamp).getTime() >= sinceTime);
     }
 
     // Sort by most recent first
-    return snapshots.sort((a, b) => 
-      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    return snapshots.sort(
+      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     );
   } catch (error: any) {
     console.error('Error in listPerfSnapshots:', error);
@@ -265,11 +272,10 @@ export async function getLatestSnapshot(operation: string): Promise<PerfSnapshot
 export async function shouldCreateSnapshot(operation: string): Promise<boolean> {
   const latest = await getLatestSnapshot(operation);
   if (!latest) return true; // No snapshots yet, create one
-  
+
   const lastSnapshotTime = new Date(latest.timestamp).getTime();
   const now = Date.now();
   const hoursSinceLastSnapshot = (now - lastSnapshotTime) / (1000 * 60 * 60);
-  
+
   return hoursSinceLastSnapshot >= 12; // Create if >= 12 hours old
 }
-
