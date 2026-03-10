@@ -184,7 +184,7 @@ export function IdentityStep({ wallet, onComplete, onError }: IdentityStepProps)
           All data you enter here is stored on the Arkiv network. This means it is visible and
           verifiable on their{' '}
           <a
-            href="http://explorer.kaolin.hoodi.arkiv.network/"
+            href="https://explorer.kaolin.hoodi.arkiv.network/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-400 underline hover:text-green-300"
