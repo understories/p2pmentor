@@ -26,8 +26,9 @@ interface Match {
 }
 
 export default function LitePage() {
-  const [spaceId, setSpaceId] = useState<string>('nsfeb26'); // Default spaceId
+  const [spaceId, setSpaceId] = useState<string>('nsmarch26'); // Default spaceId
   const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>([
+    'nsmarch26',
     'nsfeb26',
     'nsjan26',
     'test',
