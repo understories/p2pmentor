@@ -206,6 +206,7 @@ export async function getAllTransactions(params?: {
       'beta-launch',
       'local-dev',
       'local-dev-seed',
+      'nsmarch26',
       'nsfeb26',
       'nsjan26',
       'test',
