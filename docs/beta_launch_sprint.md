@@ -483,6 +483,6 @@ See `.env.example` for the complete list. At minimum for local development:
 
 ## Notes
 
-- This app uses Arkiv testnet (Mendoza chain)
+- This app uses Arkiv testnet (Kaolin chain)
 - Never use wallets with real funds in this beta environment
-- All data written to Arkiv is immutable and viewable on the [Mendoza testnet explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- All data written to Arkiv is immutable and viewable on the [Kaolin testnet explorer](https://explorer.kaolin.hoodi.arkiv.network)

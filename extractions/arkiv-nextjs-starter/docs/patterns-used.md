@@ -39,5 +39,5 @@ This template demonstrates the following Arkiv patterns:
 
 - **TxHash Companion Entities:** Created via `createTxHashEntity()` (strongly recommended)
 - **Result Validation:** Defensive checks via `validateQueryResult()` from app-kit
-- **Testnet-Native:** All defaults target Mendoza testnet
+- **Testnet-Native:** All defaults target Kaolin testnet
 

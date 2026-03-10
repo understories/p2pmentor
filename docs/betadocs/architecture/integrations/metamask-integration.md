@@ -9,23 +9,27 @@ This document details our MetaMask wallet integration implementation, covering d
 ### Core Components
 
 1. **MetaMask SDK** (`lib/auth/metamask-sdk.ts`)
+
    - Provides unified API for desktop and mobile connections
    - Singleton pattern for SDK instance management
    - Disabled deeplinking (we handle redirects explicitly)
 
 2. **Deep Link Utilities** (`lib/auth/deep-link.ts`)
+
    - MetaMask universal link construction
    - Mobile browser redirect handling
    - Deterministic URL construction
 
 3. **Mobile Detection** (`lib/auth/mobile-detection.ts`)
+
    - Browser platform detection (iOS, Android)
    - MetaMask browser detection
    - MetaMask availability checking
 
 4. **MetaMask Connection** (`lib/auth/metamask.ts`)
+
    - Unified connection API
-   - Chain switching (Mendoza testnet)
+   - Chain switching (Kaolin testnet)
    - Error handling and user feedback
 
 5. **Auth Page** (`app/auth/page.tsx`)
@@ -42,7 +46,7 @@ On desktop browsers with MetaMask extension installed:
 1. User clicks "Connect Wallet"
 2. `connectWallet()` detects `window.ethereum`
 3. Requests account access via `eth_requestAccounts`
-4. Switches to Mendoza testnet
+4. Switches to Kaolin testnet
 5. Stores wallet address in localStorage
 6. Redirects based on onboarding level
 
@@ -72,11 +76,13 @@ const metamaskLink = `https://link.metamask.io/dapp/${dappUrl}`;
 We do not use `encodeURIComponent()` on the dappUrl. MetaMask handles unencoded slashes reliably. Encoding creates `%2F` which MetaMask may not decode, leaving `host%2fpath` in the address bar.
 
 **Correct Format:**
+
 ```
 https://link.metamask.io/dapp/p2pmentor.com/auth
 ```
 
 **Incorrect Format (causes bugs):**
+
 ```
 https://link.metamask.io/dapp/p2pmentor.com%2Fauth
 ```
@@ -98,6 +104,7 @@ const dappUrl = `${host}${pathname}${search}`;
 ```
 
 **Why This Works:**
+
 - `window.location.origin` is stable even when `href` is transient
 - Never parses unknown strings
 - Never accepts `"null"` as input
@@ -110,13 +117,10 @@ const dappUrl = `${host}${pathname}${search}`;
 **Solution:** Created `safeRedirect()` helper function:
 
 ```typescript
-export function safeRedirect(
-  value: string | null | undefined,
-  fallback: string = '/auth'
-): string {
+export function safeRedirect(value: string | null | undefined, fallback: string = '/auth'): string {
   if (!value) return fallback;
   if (value === 'null' || value === 'undefined') return fallback;
-  
+
   // Always try to decode once (handles "%2Fauth" -> "/auth")
   let v = value;
   try {
@@ -124,16 +128,17 @@ export function safeRedirect(
   } catch {
     // If malformed, keep original
   }
-  
+
   if (v === 'null' || v === 'undefined') return fallback;
   if (!v.startsWith('/')) return fallback;
   if (v === '/') return fallback;
-  
+
   return v;
 }
 ```
 
 **Usage:**
+
 ```typescript
 const params = new URLSearchParams(window.location.search);
 const redirectParam = params.get('redirect');
@@ -166,6 +171,7 @@ if (href.includes('.com%2f') || href.includes('.xyz%2f')) {
 ```
 
 **Why This Works:**
+
 - Only normalizes the specific `/%2F` pattern (not global decode)
 - No risk of throwing on malformed escape sequences
 - Self-healing fixes legacy bad URLs
@@ -191,6 +197,7 @@ export function safePathname(
 ```
 
 **Usage with URL APIs:**
+
 ```typescript
 const returnUrl = safePathname(pathname, '/auth');
 const url = new URL('/beta', window.location.origin);
@@ -276,17 +283,20 @@ Include self-healing logic for legacy encoded URLs that may persist in browser h
 ## Testing Matrix
 
 ### Desktop
+
 - Chrome with MetaMask extension
 - Firefox with MetaMask extension
 - Safari with MetaMask extension (if supported)
 
 ### Mobile
+
 - Safari on iOS
 - Chrome on Android
 - DuckDuckGo browser (privacy-focused)
 - MetaMask in-app browser
 
 ### Test Cases
+
 - Direct `/auth` page load
 - Redirect from `/beta?redirect=/auth`
 - MetaMask universal link redirect
@@ -306,9 +316,9 @@ Include self-healing logic for legacy encoded URLs that may persist in browser h
 Our MetaMask integration eliminates reliance on transient browser state, normalizes redirect semantics across WebView implementations, and makes the auth flow resilient to hydration timing, privacy browsers, WebView history restoration, and encoded path leakage. This class of bug can kill mobile dapps quietly if not handled properly.
 
 Key achievements:
+
 - Deterministic URL construction from stable primitives
 - Comprehensive redirect parameter validation
 - Targeted pathname normalization
 - Self-healing for legacy encoded URLs
 - Production-ready mobile dapp support
-

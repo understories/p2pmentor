@@ -96,7 +96,7 @@ const data = await graphRequest(`
          ↓
 ┌─────────────────┐
 │  Arkiv Indexer  │
-│  (mendoza RPC)  │
+│  (kaolin RPC)  │
 └─────────────────┘
 ```
 

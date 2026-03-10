@@ -184,7 +184,7 @@ Before running a seed script:
 2. **Set environment variables:** Create a `.env` file in the project root with:
    - `ARKIV_PRIVATE_KEY=0x...` (required for creating entities)
    - `BETA_SPACE_ID=...` (optional, defaults based on `NODE_ENV`)
-3. **Fund the signing wallet:** The wallet derived from `ARKIV_PRIVATE_KEY` must have funds for transaction fees (on Mendoza testnet, use the faucet)
+3. **Fund the signing wallet:** The wallet derived from `ARKIV_PRIVATE_KEY` must have funds for transaction fees (on Kaolin testnet, use the faucet)
 
 #### SpaceId Safety Verification
 
@@ -392,7 +392,7 @@ Before running a seed script, verify:
 **"insufficient funds":**
 
 - Signing wallet doesn't have enough funds for transaction fees
-- Solution: Fund the signing wallet on Mendoza testnet (use faucet)
+- Solution: Fund the signing wallet on Kaolin testnet (use faucet)
 
 **"SPACE_ID mismatch":**
 
@@ -435,7 +435,7 @@ User wallet addresses (profile wallets) are independent of the signing wallet:
 
 Each signing wallet must have funds on the Arkiv network:
 
-- Testnet: Use Mendoza testnet faucet for funds
+- Testnet: Use Kaolin testnet faucet for funds
 - Mainnet: Signing wallet needs mainnet funds for transaction fees
 - Different signing wallets require separate funding
 

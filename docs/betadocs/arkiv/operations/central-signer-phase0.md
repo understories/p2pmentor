@@ -6,14 +6,14 @@
 
 ## Overview
 
-During beta on Mendoza testnet, p2pmentor uses a **central signer model** where all server-side entity creation and updates are signed by a single Arkiv signing wallet (configured via `ARKIV_PRIVATE_KEY` environment variable).
+During beta on Kaolin testnet, p2pmentor uses a **central signer model** where all server-side entity creation and updates are signed by a single Arkiv signing wallet (configured via `ARKIV_PRIVATE_KEY` environment variable).
 
 ## How It Works
 
 ### Signing Wallet
 
 - **Location:** Server-side private key (`ARKIV_PRIVATE_KEY` environment variable)
-- **Network:** Mendoza testnet with testnet funds
+- **Network:** Kaolin testnet with testnet funds
 - **Access:** Controlled by the application server
 - **Usage:** Signs all server-side entity creation and update transactions
 
@@ -38,6 +38,7 @@ All entities created by the app include `signer_wallet` metadata in attributes:
 ```
 
 This metadata makes the Phase 0 trust model observable in data, enabling:
+
 - **Auditability:** Reviewers can confirm "who signed this write" without external logs
 - **Future Migration:** Clear path to migrate to user-signed transactions when Arkiv moves to mainnet
 
@@ -79,4 +80,3 @@ The `signer_wallet` metadata enables this migration by making it clear which tra
 - [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs. signing wallet
 - [Environments](/docs/arkiv/operations/environments) - How spaceId provides data isolation
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Technical migration details
-

@@ -21,7 +21,7 @@ The modules in this package are **Arkiv application primitives** - composable bu
 1. **Fail-closed configuration** - Environment variables throw errors if missing (no silent fallbacks)
 2. **Pattern-aligned code** - All functions follow established patterns from the Arkiv Patterns Catalog
 3. **Type-safe** - Full TypeScript with strict mode
-4. **Testnet-native** - Mendoza-focused with local node support for CI
+4. **Testnet-native** - Kaolin-focused with local node support for CI
 5. **Composable design** - Primitives, not a framework (use as needed)
 
 **What It Is Not:**
@@ -123,7 +123,7 @@ Fail-closed helpers for environment variables with friendly errors.
 
 - `requireEnv(name)` - Require an env var (throws if missing)
 - `getEnv(name, defaultValue)` - Get env var with optional default
-- `getArkivTarget()` - Get ARKIV_TARGET ('local' | 'mendoza')
+- `getArkivTarget()` - Get ARKIV_TARGET ('local' | 'kaolin')
 - `isLocalTarget()` - Check if targeting local node
 - `isKaolinTarget()` - Check if targeting Kaolin testnet
 
@@ -375,7 +375,7 @@ const result = await handleTransactionWithTimeout(async () => {
 
 ### Optional
 
-- `ARKIV_TARGET` - Target network: 'local' or 'mendoza' (default: 'mendoza')
+- `ARKIV_TARGET` - Target network: 'local' or 'kaolin' (default: 'kaolin')
 - `ARKIV_RPC_URL` - Custom RPC URL (overrides default for ARKIV_TARGET)
 
 ---
@@ -394,9 +394,9 @@ const result = await handleTransactionWithTimeout(async () => {
 
 ## Testnet-Native Design
 
-This package is **testnet-native** (Mendoza-focused):
+This package is **testnet-native** (Kaolin-focused):
 
-- Defaults to Mendoza testnet
+- Defaults to Kaolin testnet
 - Supports local node for CI determinism
 - All examples use testnet addresses
 - Mainnet guidance is intentionally non-operational (checklist, not instructions)
@@ -435,7 +435,7 @@ Every template using Arkiv App Kit must pass a minimal conformance test that pro
 4. **TxHash companion entity is written** - If write succeeded, companion `*_txhash` entity is created (non-blocking)
 5. **Reconciliation distinguishes submitted vs indexed** - UI/API correctly represents "submitted" (txHash exists) vs "indexed" (queryable)
 
-This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Mendoza testnet.
+This is not a full integration test suite - it's a minimal compliance check that ensures Arkiv-native patterns are followed. Templates should include a `scripts/conformance-test.ts` or similar that can run against local node or Kaolin testnet.
 
 See `arkiv-nextjs-starter/scripts/smoke-test.ts` for a reference implementation.
 

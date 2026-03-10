@@ -4,7 +4,7 @@ Location: `lib/arkiv/client.ts`
 
 ## Purpose
 
-Provide a single entry point for Arkiv clients. Hide chain configuration and boilerplate (Mendoza testnet).
+Provide a single entry point for Arkiv clients. Hide chain configuration and boilerplate (Kaolin testnet).
 
 ## Features
 
@@ -17,7 +17,7 @@ Provide a single entry point for Arkiv clients. Hide chain configuration and boi
 
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation, adjusted for p2pmentor
-- Uses `@arkiv-network/sdk` with Mendoza chain configuration
+- Uses `@arkiv-network/sdk` with Kaolin chain configuration
 
 ## Usage
 

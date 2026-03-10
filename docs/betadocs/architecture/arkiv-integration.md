@@ -7,11 +7,13 @@ For architectural rationale, see [Serverless and Trustless](/docs/philosophy/ser
 Instead of storing data in our own database, we store everything on Arkiv, a decentralized blockchain network. Think of it like this:
 
 **Traditional app:**
+
 - User creates profile → stored in our database
 - User creates session → stored in our database
 - We control the data, we can delete it, we can change it
 
 **p2pmentor:**
+
 - User creates profile → stored as an entity on Arkiv blockchain
 - User creates session → stored as an entity on Arkiv blockchain
 - We don't control the data, users do. It's verifiable and cryptographically secured.
@@ -28,6 +30,7 @@ If our server goes down, the app breaks. If our database gets corrupted, data is
 
 **Trust requirement**
 With a central server, users must trust us to:
+
 - Not delete their data
 - Not sell their data
 - Not change their data
@@ -55,11 +58,13 @@ Unlike traditional apps that start centralized and try to decentralize later, p2
 
 **What we still need servers for**
 We still run servers, but only for:
+
 - Serving the web app (Next.js frontend)
 - API routes that help format data (GraphQL wrapper)
 - Video calls (Jitsi integration)
 
 But we don't need servers for:
+
 - Storing user data (Arkiv does this)
 - Storing profiles, sessions, asks, offers (all on Arkiv)
 - Data backups (Arkiv network handles this)
@@ -72,7 +77,7 @@ A simpler architecture. Less infrastructure to manage. More resilient to failure
 
 Location: `lib/arkiv/client.ts`
 
-Provides a single entry point for Arkiv clients, hiding chain configuration and boilerplate (Mendoza testnet).
+Provides a single entry point for Arkiv clients, hiding chain configuration and boilerplate (Kaolin testnet).
 
 ### Clients
 
@@ -85,7 +90,7 @@ Provides a single entry point for Arkiv clients, hiding chain configuration and 
 
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation, adjusted for p2pmentor
-- Uses `@arkiv-network/sdk` with Mendoza chain configuration
+- Uses `@arkiv-network/sdk` with Kaolin chain configuration
 
 ## Entity-centric design
 

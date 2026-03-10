@@ -33,10 +33,10 @@ flowchart TD
   F --> J[Get wallet address]
   J --> K[Store wallet in localStorage]
 
-  K --> L[Attempt switch to Mendoza]
+  K --> L[Attempt switch to Kaolin]
   L --> M{Switch successful}
   M -- Yes --> N[Redirect to dashboard]
-  M -- No --> O[Attempt add Mendoza]
+  M -- No --> O[Attempt add Kaolin]
   O --> P{Add successful}
   P -- Yes --> N
   P -- No --> Q[Warning continue anyway]
@@ -91,7 +91,7 @@ flowchart TD
   D2 -- Yes --> S1[Try SDK connection first]
   S1 --> S2[connectWithSDK via MetaMaskSDK]
   S2 --> S3{SDK connection succeeds?}
-  S3 -- Yes --> S4[Switch to Mendoza chain]
+  S3 -- Yes --> S4[Switch to Kaolin chain]
   S4 --> D
   S3 -- No --> S5{User cancelled?}
   S5 -- Yes --> E1
@@ -110,7 +110,7 @@ flowchart TD
   D8 -- Yes --> D9[Request accounts eth_requestAccounts]
   D5 -- Yes --> D9[Request accounts eth_requestAccounts - skip permissions]
 
-  D1 --> D10[Switch to Mendoza chain]
+  D1 --> D10[Switch to Kaolin chain]
   D10 --> D11{Chain switch succeeds?}
   D11 -- No --> D12[Try wallet_addEthereumChain if error 4902]
   D12 --> D13{Network added?}
@@ -121,7 +121,7 @@ flowchart TD
   D9 --> D14{Accounts returned?}
   D14 -- No --> E4[[Error: No accounts returned]]
   E4 --> B
-  D14 -- Yes --> D15[Switch to Mendoza chain]
+  D14 -- Yes --> D15[Switch to Kaolin chain]
   D15 --> D16{Chain switch succeeds?}
   D16 -- No --> D17[Try wallet_addEthereumChain if error 4902]
   D17 --> D18{Network added?}
@@ -145,7 +145,7 @@ flowchart TD
   F3 --> N[User on Dashboard]
   F4 --> N
   N --> N1{User clicks Add Network button?}
-  N1 -- Yes --> N2[wallet_addEthereumChain Mendoza]
+  N1 -- Yes --> N2[wallet_addEthereumChain Kaolin]
   N2 --> N3{Approved?}
   N3 -- No --> W3[[Warning: Network not added - user cancelled]]
   N3 -- Yes --> N4[Network added to wallet]
@@ -210,13 +210,14 @@ flowchart TD
 
 3. **Mobile Redirect**: On mobile (non-MetaMask browser), redirects to `https://link.metamask.io/dapp/{host}{path}` universal link instead of using SDK deep linking.
 
-4. **Permission Management**: 
+4. **Permission Management**:
+
    - Fresh login: Revokes permissions first (`wallet_revokePermissions`), then requests (`wallet_requestPermissions`)
    - Reconnection: Skips permission request, goes directly to `eth_requestAccounts`
 
 5. **Chain Switching**: Happens AFTER connection, not before. Uses `wallet_switchEthereumChain` first, falls back to `wallet_addEthereumChain` if chain doesn't exist (error 4902).
 
-6. **Network Add Button**: Separate optional flow on auth page - user can manually add Mendoza network before connecting.
+6. **Network Add Button**: Separate optional flow on auth page - user can manually add Kaolin network before connecting.
 
 7. **Onboarding Redirect**: Redirects to `/onboarding` for new users (level 0), `/me` for existing users (level > 0).
 
@@ -239,4 +240,3 @@ This flow implements [PAT-AUTH-001: Wallet Authentication Flow](../arkiv-pattern
 - `app/auth/page.tsx` - Auth page UI and flow orchestration
 - `components/navigation/SidebarNav.tsx` - Logout handler
 - `components/navigation/BottomNav.tsx` - Logout handler
-

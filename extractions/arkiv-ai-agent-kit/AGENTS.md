@@ -1,7 +1,7 @@
 # AGENTS.md — Arkiv AI Agent Operating Manual (Testnet-Native)
 
 This repo is designed to be dropped into an LLM's context so it can build Arkiv integrations without "centralized DB brain."
-Everything targets Mendoza testnet for now.
+Everything targets Kaolin testnet for now.
 
 ## 0) Non-negotiables (these are CI-enforced)
 - Build must pass before any commit/PR.
@@ -38,10 +38,10 @@ When asking an agent to implement anything:
 - Prefer stable entity keys for mutable state (Pattern B). Avoid "query-first then decide create" for mutable entities.
 - Prefer companion `*_txhash` entities for observability + reliable lookup.
 
-## 4) Testnet ops reality (Mendoza)
+## 4) Testnet ops reality (Kaolin)
 - Server signer wallet must be funded (or writes will fail / time out).
 - Derive signer address from `ARKIV_PRIVATE_KEY` using `scripts/derive-signer-address.mjs`.
-- CI should use local mode for determinism; humans can use Mendoza for ecosystem validation.
+- CI should use local mode for determinism; humans can use Kaolin for ecosystem validation.
 
 ## 5) Output standards for agents
 When producing code:

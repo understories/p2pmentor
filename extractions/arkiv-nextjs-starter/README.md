@@ -12,7 +12,7 @@ This template demonstrates:
 - **Write path:** Server-signed writes via Next.js API routes (Phase 0)
 - **Optimistic UI:** Handling "submitted vs indexed" states gracefully
 - **Error handling:** Timeout, rate limit, and network error classification
-- **Testnet-native:** Mendoza testnet defaults with local node support for CI
+- **Testnet-native:** Kaolin testnet defaults with local node support for CI
 
 ## Quick Start
 
@@ -27,7 +27,7 @@ This template demonstrates:
    # Edit .env and set:
    # - SPACE_ID (required, no fallback)
    # - ARKIV_PRIVATE_KEY (required for writes)
-   # - ARKIV_TARGET (optional: 'local' or 'mendoza', default: 'mendoza')
+   # - ARKIV_TARGET (optional: 'local' or 'kaolin', default: 'kaolin')
    ```
 
 3. **Run development server:**
@@ -97,11 +97,11 @@ This template uses **copy-in** for app-kit by default. To pull improvements:
 **Fork, deploy, and query your data from a second client without migrating DB credentials.**
 
 **Proof steps:**
-1. Fork this template and deploy to separate environment (both on Mendoza testnet)
-2. Use same `SPACE_ID` (testnet/devrel-scoped) and Mendoza RPC endpoint
+1. Fork this template and deploy to separate environment (both on Kaolin testnet)
+2. Use same `SPACE_ID` (testnet/devrel-scoped) and Kaolin RPC endpoint
 3. Query records created by first deployment
 4. Verify records are independently queryable (no shared DB connection)
-5. **Verify on explorer:** Click txHash link, confirm transaction visible on Mendoza explorer
+5. **Verify on explorer:** Click txHash link, confirm transaction visible on Kaolin explorer
 6. **Testnet validation:** Both deployments read same records from same testnet space
 
 ## Testnet Ops Reality
@@ -178,6 +178,6 @@ If you need to query across multiple spaces:
 
 ---
 
-**Status:** Testnet-native (Mendoza)  
+**Status:** Testnet-native (Kaolin)
 **Last Updated:** 2025-12-30
 

@@ -21,6 +21,7 @@ Our implementation serves as a reference for the standard, and we contribute imp
 ### Entity-Centric Model
 
 All data in p2pmentor is stored as **entities** on Arkiv. An entity consists of:
+
 - **Attributes**: Indexed key-value pairs for querying (e.g., `type`, `wallet`, `spaceId`)
 - **Payload**: JSON data stored in the entity body
 - **Entity Key**: Unique identifier for the entity
@@ -29,6 +30,7 @@ All data in p2pmentor is stored as **entities** on Arkiv. An entity consists of:
 ### Immutability
 
 Arkiv transactions are **immutable**. Once created, they cannot be modified. Application data is mutable at the state level. To change application state:
+
 1. Use `updateEntity()` to create a new transaction that updates an existing entity with a stable entity key
 2. All transaction history is preserved on-chain (immutable ledger)
 3. The application displays the latest canonical state derived from transactions
@@ -38,6 +40,7 @@ This provides a complete audit trail while allowing editable application data.
 ### Wallet-Based Identity
 
 User **wallet identity** (subject) is tied to wallet addresses:
+
 - Wallet address is the primary identifier (normalized to lowercase)
 - No user accounts or passwords required
 - Users sign transactions with their wallet (MetaMask or Passkey)
@@ -45,6 +48,7 @@ User **wallet identity** (subject) is tied to wallet addresses:
 ### Space ID
 
 All entities include a `spaceId` attribute. The default `spaceId` comes from `SPACE_ID` config (`lib/config.ts`), which is:
+
 - `process.env.BETA_SPACE_ID` if set
 - Otherwise: `'beta-launch'` in production, `'local-dev'` in development
 
@@ -53,6 +57,7 @@ This enables multi-tenant or environment-specific data isolation. API routes use
 ## Core Entity Types
 
 ### Primary Entities
+
 - `user_profile`: User profile information
 - `skill`: First-class skill/topic entities
 - `ask`: Learning requests ("I want to learn X")
@@ -62,11 +67,13 @@ This enables multi-tenant or environment-specific data isolation. API routes use
 - `session_feedback`: Post-session feedback and ratings
 
 ### Quest Engine Entities
+
 - `quest_definition`: Quest definitions stored on Arkiv for network-wide discovery
 - `quest_step_progress`: User progress through quest steps with verifiable evidence
 - `proof_of_skill_badge`: Verifiable badges earned for completing quest tracks
 
 ### Supporting Entities
+
 - Transaction hash tracking: `*_txhash` entities for reliable querying
 - Session state: `session_confirmation`, `session_rejection`, `session_jitsi`, `session_payment_*`
 - Community: `virtual_gathering` for community meetings
@@ -80,8 +87,8 @@ This enables multi-tenant or environment-specific data isolation. API routes use
 All queries use the Arkiv SDK query builder:
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "./client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from './client';
 
 const publicClient = getPublicClient();
 const query = publicClient.buildQuery();
@@ -95,6 +102,7 @@ const result = await query
 ```
 
 **Key Patterns:**
+
 - Always filter by `type` first (indexed)
 - Normalize wallet addresses to lowercase
 - Use `.limit()` defensively to avoid unbounded queries
@@ -105,6 +113,7 @@ const result = await query
 ### Transaction Hash Tracking
 
 Separate `*_txhash` entities track transaction hashes for reliable querying:
+
 - `ask_txhash`, `offer_txhash`, `session_txhash`, etc.
 - Linked via entity key reference (e.g., `askKey`, `sessionKey`)
 - Same expiration as main entity
@@ -112,18 +121,21 @@ Separate `*_txhash` entities track transaction hashes for reliable querying:
 ### TTL and Expiration
 
 Ephemeral entities use TTL (Time To Live):
+
 - **Asks**: 3600 seconds (1 hour) default
 - **Offers**: 7200 seconds (2 hours) default
 - **Availability**: 2592000 seconds (30 days)
 - **Sessions**: Calculated as `sessionDate + duration + 1 hour buffer`
 
 **Implementation:**
+
 - Client-side filtering: `createdAt + ttlSeconds < now`
 - Arkiv-level expiration: `expiresIn` parameter for network cleanup
 
 ### Deletion Pattern
 
 Arkiv entities are immutable, so "deletion" uses marker entities:
+
 - Create `*_deletion` entity with reference to original
 - Query filters exclude entities with deletion markers
 - Original entity remains on-chain (audit trail)
@@ -142,13 +154,15 @@ Provides a single entry point for Arkiv clients:
 - `getWalletClientFromPasskey()`: Client-side with passkey wallets
 
 **Design:**
+
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation
-- Uses `@arkiv-network/sdk` with Mendoza testnet configuration
+- Uses `@arkiv-network/sdk` with Kaolin testnet configuration
 
 ## No Central Database
 
 Any additional storage is viewed as **cache or index**, not the source of truth:
+
 - GraphQL layer is a thin wrapper over Arkiv JSON-RPC
 - No PostgreSQL, MongoDB, or other databases
 - All data queries read from Arkiv

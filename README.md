@@ -105,7 +105,7 @@ A full version of a mentorship platform.
 
    **Getting an Arkiv Private Key and Testnet Tokens:**
 
-   p2pmentor uses the Arkiv network (Mendoza testnet) for data storage. You'll need a private key to interact with the network.
+   p2pmentor uses the Arkiv network (Kaolin testnet) for data storage. You'll need a private key to interact with the network.
 
    1. **Create your Arkiv account and get your private key:**
 

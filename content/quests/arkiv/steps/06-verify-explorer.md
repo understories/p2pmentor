@@ -30,7 +30,7 @@ This is what "trustless" means - you don't need to trust our servers because you
 ## Try It Now
 
 1. If you created an entity in the previous step, find its transaction hash
-2. Open the Mendoza Explorer
+2. Open the Kaolin Explorer
 3. Search for your transaction hash
 4. Verify that your entity appears with the correct data
 

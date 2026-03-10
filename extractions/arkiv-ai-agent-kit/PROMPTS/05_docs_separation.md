@@ -28,5 +28,5 @@ You must maintain strict separation:
 ## Allowed phrasing in public docs
 - "Set `ARKIV_PRIVATE_KEY` in your environment; scripts will fail if missing." ✅
 - "Fund the derived signer address via a faucet (manual)." ✅
-- "CI uses local mode for determinism; Mendoza is for humans." ✅
+- "CI uses local mode for determinism; Kaolin is for humans." ✅
 

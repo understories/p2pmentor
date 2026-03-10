@@ -6,7 +6,7 @@ Invite-only, small cohort. Focus on people we can support directly.
 
 ## Wallet connection
 
-MetaMask connection flow with Mendoza testnet detection. Wallet address stored in session/cookies for state management.
+MetaMask connection flow with Kaolin testnet detection. Wallet address stored in session/cookies for state management.
 
 ## Passkey authentication
 

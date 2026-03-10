@@ -18,7 +18,7 @@ The Arkiv Next.js Starter is a complete, minimal template that demonstrates how 
 2. **Write path** - Server-signed writes via Next.js API routes (Phase 0)
 3. **Optimistic UI** - Handling "submitted vs indexed" states gracefully
 4. **Error handling** - Timeout, rate limit, and network error classification
-5. **Testnet-native** - Mendoza testnet defaults with local node support for CI
+5. **Testnet-native** - Kaolin testnet defaults with local node support for CI
 
 **What It Is Not:**
 
@@ -79,15 +79,16 @@ sequenceDiagram
     Signer-->>API: Return {entityKey, txHash, status: "submitted"}
     API-->>UI: Return {ok: true, txHash, status: "submitted"}
     UI->>Client: Update optimistic state (pending)
-    
+
     Note over Arkiv,Indexer: Transaction confirmed on-chain
-    
+
     UI->>Indexer: Poll for entity (reconciliation)
     Indexer-->>UI: Entity found
     UI->>Client: Update state (indexed)
 ```
 
 **Key points:**
+
 - **Server signer** handles all writes (Phase 0)
 - **Optimistic UI** shows "submitted" immediately
 - **Reconciliation** polls indexer until entity appears
@@ -98,25 +99,29 @@ sequenceDiagram
 ## Quick Start
 
 1. **Install dependencies:**
+
    ```bash
    npm install
    ```
 
 2. **Set up environment variables:**
+
    ```bash
    cp .env.example .env
    # Edit .env and set:
    # - SPACE_ID (required, no fallback)
    # - ARKIV_PRIVATE_KEY (required for writes)
-   # - ARKIV_TARGET (optional: 'local' or 'mendoza', default: 'mendoza')
+   # - ARKIV_TARGET (optional: 'local' or 'kaolin', default: 'kaolin')
    ```
 
 3. **Run development server:**
+
    ```bash
    npm run dev
    ```
 
 4. **Seed demo data:**
+
    ```bash
    npm run seed
    ```
@@ -135,6 +140,7 @@ This template uses [Arkiv App Kit](./arkiv-app-primitives.md) via **copy-in** ap
 The app-kit is located at `../arkiv-app-kit/` relative to this template.
 
 **To use in your own project:**
+
 - **Workspace monorepo:** Add `arkiv-app-kit` as a workspace package
 - **Git submodule:** Add as a git submodule
 - **Copy-in:** Copy `src/` directory into your project
@@ -159,11 +165,12 @@ This template uses **copy-in** for app-kit by default. To pull improvements:
 **Fork, deploy, and query your data from a second client without migrating DB credentials.**
 
 **Proof steps:**
-1. Fork this template and deploy to separate environment (both on Mendoza testnet)
-2. Use same `SPACE_ID` (testnet/devrel-scoped) and Mendoza RPC endpoint
+
+1. Fork this template and deploy to separate environment (both on Kaolin testnet)
+2. Use same `SPACE_ID` (testnet/devrel-scoped) and Kaolin RPC endpoint
 3. Query records created by first deployment
 4. Verify records are independently queryable (no shared DB connection)
-5. **Verify on explorer:** Click txHash link, confirm transaction visible on Mendoza explorer
+5. **Verify on explorer:** Click txHash link, confirm transaction visible on Kaolin explorer
 6. **Testnet validation:** Both deployments read same records from same testnet space
 
 ---
@@ -173,20 +180,24 @@ This template uses **copy-in** for app-kit by default. To pull improvements:
 **Server signer wallet must be funded** (or writes will fail/timeout).
 
 **How to derive signer address:**
+
 ```bash
 ARKIV_PRIVATE_KEY=0x... node ../arkiv-ai-agent-kit/scripts/derive-signer-address.mjs
 ```
 
 **Faucet behavior:**
+
 - Manual only (no automation)
 - Fund the signer address shown above
 
 **What failures look like when signer is empty:**
+
 - Timeouts (transaction never submitted)
 - Transaction replacement errors (nonce issues)
 - Rate limit errors (if retrying)
 
 **How to distinguish "indexer lag" from "tx never landed":**
+
 - Indexer lag: Transaction hash exists, explorer shows tx, but query returns empty
 - Tx never landed: No transaction hash, explorer shows nothing, API returns error
 
@@ -210,6 +221,7 @@ See [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) for comprehensive pat
 ## Common Failure Modes
 
 See `docs/failure-modes.md` in the template for detailed information on:
+
 - Timeouts
 - Indexer lag
 - Wallet casing issues
@@ -256,4 +268,3 @@ If you need to query across multiple spaces:
 
 **Last Updated:** 2025-12-30  
 **Status:** Complete and ready for publication
-

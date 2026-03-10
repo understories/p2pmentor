@@ -441,7 +441,7 @@ fix stuff
 
 - Every performance sample has `txHash`
 - All data queryable from Arkiv entities
-- Mendoza explorer links for verification
+- Kaolin explorer links for verification
 - Clear data source in documentation
 
 ### Performance Data
@@ -851,7 +851,7 @@ When encountering complex bugs or issues that require careful investigation:
    const signingWalletAddress = account.address;
    ```
 
-2. **Check balance on Mendoza testnet:**
+2. **Check balance on Kaolin testnet:**
 
    - Use Arkiv Explorer: [https://explorer.kaolin.hoodi.arkiv.network](https://explorer.kaolin.hoodi.arkiv.network)
    - Search for the signing wallet address
@@ -882,7 +882,7 @@ node -e "const { privateKeyToAccount } = require('@arkiv-network/sdk/accounts');
 **Documentation Reference:**
 
 - See [Wallet Architecture](/docs/betadocs/arkiv/wallet-architecture) for details on profile wallet vs signing wallet
-- See [Mendoza Faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet token requests
+- See [Kaolin Faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet token requests
 
 ### Testing Standards
 

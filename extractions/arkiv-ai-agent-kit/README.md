@@ -23,7 +23,7 @@ This repo is designed to be dropped into an AI coding tool's context (Cursor/Cop
 
 ## Key Principles
 
-- **Testnet-native:** Everything targets Mendoza testnet (for now)
+- **Testnet-native:** Everything targets Kaolin testnet (for now)
 - **Indexer lag is normal:** Represent it as a state, not an error
 - **Immutable history:** Design state as interpretation over append-only facts
 - **Wallet normalization everywhere:** Always lowercase in writes and queries
@@ -110,7 +110,7 @@ All changes must pass:
 
 - Server signer wallet must be funded (or writes will fail/timeout)
 - Derive signer address: `ARKIV_PRIVATE_KEY=0x... node scripts/derive-signer-address.mjs`
-- CI uses local mode for determinism; humans can use Mendoza for ecosystem validation
+- CI uses local mode for determinism; humans can use Kaolin for ecosystem validation
 
 ## Related
 
@@ -120,6 +120,6 @@ All changes must pass:
 
 ---
 
-**Status:** Testnet-native (Mendoza)  
+**Status:** Testnet-native (Kaolin)
 **Last Updated:** 2025-12-30
 

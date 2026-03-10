@@ -17,10 +17,11 @@ Drop-in LLM context for building Arkiv integrations correctly from day one. Prov
 **Status:** Available in `extractions/arkiv-ai-agent-kit/` (will be published as standalone repo)
 
 **Key Features:**
+
 - Enforces Engineering Guidelines via CI and precommit scripts
 - Provides LLM-readable prompts covering all essential Arkiv patterns
 - Prevents common mistakes through explicit anti-pattern callouts
-- Testnet-native (Mendoza-focused) with clear operational guidance
+- Testnet-native (Kaolin-focused) with clear operational guidance
 
 ### [Arkiv App Kit](./arkiv-app-primitives.md)
 
@@ -29,10 +30,11 @@ Composable building blocks for Arkiv integrations. Provides the "boring but esse
 **Status:** Available in `extractions/arkiv-app-kit/` (will be published as standalone package `@understories/arkiv-app-kit`)
 
 **Key Features:**
+
 - Fail-closed configuration (environment variables throw errors if missing)
 - Pattern-aligned code (follows established patterns from Arkiv Patterns Catalog)
 - Type-safe (full TypeScript with strict mode)
-- Testnet-native (Mendoza-focused with local node support for CI)
+- Testnet-native (Kaolin-focused with local node support for CI)
 - Composable design (primitives, not a framework)
 
 ### [Arkiv Next.js Starter](./arkiv-nextjs-starter.md)
@@ -42,10 +44,11 @@ Complete starter template for building Arkiv applications with Next.js. Demonstr
 **Status:** Available in `extractions/arkiv-nextjs-starter/` (will be published as standalone repo)
 
 **Key Features:**
+
 - Next.js App Router with server-signed writes (Phase 0)
 - Optimistic UI with indexer lag handling
 - Complete error handling (timeouts, rate limits, network errors)
-- Testnet-native (Mendoza-focused with local node support for CI)
+- Testnet-native (Kaolin-focused with local node support for CI)
 - Uses Arkiv App Kit for all Arkiv operations
 
 ---
@@ -63,4 +66,3 @@ Complete starter template for building Arkiv applications with Next.js. Demonstr
 ---
 
 **Last Updated:** 2025-12-30
-

@@ -20,7 +20,7 @@ We've created a **GraphQL API wrapper** over Arkiv's JSON-RPC indexer, along wit
 
    - All performance data stored as Arkiv entities (`dx_metric`)
    - Historical snapshots stored as Arkiv entities (`perf_snapshot`)
-   - Verifiable on-chain via Mendoza explorer
+   - Verifiable on-chain via Kaolin explorer
 
 3. **Admin Dashboard** (`/admin`)
    - Real-time performance comparison
@@ -36,7 +36,7 @@ We've created a **GraphQL API wrapper** over Arkiv's JSON-RPC indexer, along wit
 3. Click **"Test Query Performance"**
 4. Check response for `transactions` array with `txHash` values
 
-### 2. Verify on Mendoza Explorer
+### 2. Verify on Kaolin Explorer
 
 Each performance sample is stored as an Arkiv entity with transaction hash:
 
@@ -61,7 +61,7 @@ Snapshots aggregate performance data over time:
 
 1. Click **"Create Snapshot"** in admin dashboard
 2. Get `txHash` from response
-3. Verify on Mendoza explorer
+3. Verify on Kaolin explorer
 
 **Snapshot Entity Structure:**
 
@@ -120,7 +120,7 @@ Snapshots aggregate performance data over time:
 
 1. Click **"Create Snapshot"** after each test method
 2. View results in **"Historical Performance Data"** section
-3. Click 🔗 links to verify on Mendoza explorer
+3. Click 🔗 links to verify on Kaolin explorer
 
 ### Step 4: Analyze Results
 
@@ -141,7 +141,7 @@ Compare:
 
 ### ✅ All Data is Verifiable
 
-- Every sample has `txHash` for Mendoza explorer verification
+- Every sample has `txHash` for Kaolin explorer verification
 - Every snapshot has `txHash` for verification
 - All queries prioritize Arkiv entities (on-chain) over in-memory
 
@@ -191,7 +191,7 @@ The admin dashboard provides:
 - **Real-time Performance Comparison:** Side-by-side Arkiv vs GraphQL metrics
 - **Page Load Times:** Actual page load measurements
 - **Historical Snapshots:** Performance trends over time
-- **Verification Links:** Direct links to Mendoza explorer for on-chain verification
+- **Verification Links:** Direct links to Kaolin explorer for on-chain verification
 
 ## What This Demonstrates
 
@@ -226,5 +226,5 @@ We welcome feedback from the Arkiv team on:
 ---
 
 **Built with:** Arkiv Protocol, Next.js, GraphQL  
-**Verifiable on:** Mendoza Testnet Explorer  
+**Verifiable on:** Kaolin Testnet Explorer
 **Repository:** https://github.com/understories/p2pmentor

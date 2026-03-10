@@ -35,11 +35,11 @@ The **signing wallet** is used to sign transactions on Arkiv:
 
 - **Purpose**: Signs all Arkiv transactions (entity creation, updates)
 - **Location**: Server-side private key (`ARKIV_PRIVATE_KEY` environment variable)
-- **Network**: Mendoza testnet with testnet funds
+- **Network**: Kaolin testnet with testnet funds
 - **Access**: Controlled by the application server
 - **Current State**: Single shared signing wallet for all transactions
 
-**Important**: During beta on Mendoza testnet, all transactions are signed by the server's signing wallet. This is a temporary architecture that will change when Arkiv moves to mainnet.
+**Important**: During beta on Kaolin testnet, all transactions are signed by the server's signing wallet. This is a temporary architecture that will change when Arkiv moves to mainnet.
 
 ## Current Implementation (Beta)
 
@@ -82,9 +82,9 @@ const ask = {
 
 If you're building on Arkiv and need testnet funds for your own signing wallet:
 
-### Mendoza Testnet Faucet
+### Kaolin Testnet Faucet
 
-Arkiv provides a faucet for Mendoza testnet funds:
+Arkiv provides a faucet for Kaolin testnet funds:
 
 **Faucet URL**: [https://kaolin.hoodi.arkiv.network/faucet](https://kaolin.hoodi.arkiv.network/faucet)
 
@@ -92,7 +92,7 @@ Use the faucet to:
 
 - Get testnet funds for your own signing wallet
 - Test your own Arkiv integrations
-- Develop and experiment on Mendoza testnet
+- Develop and experiment on Kaolin testnet
 
 **Note**: The faucet is provided by Arkiv for developers building on the network. Follow their guidelines and rate limits.
 
@@ -205,7 +205,7 @@ const query = publicClient
 - **Current State**: Server signs all transactions (beta architecture)
 - **Future State**: Users sign their own transactions (mainnet)
 - **Verifiability**: All data viewable and verifiable on Arkiv Explorer
-- **For Builders**: Use [Mendoza faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet funds
+- **For Builders**: Use [Kaolin faucet](https://kaolin.hoodi.arkiv.network/faucet) for testnet funds
 
 ## See Also
 

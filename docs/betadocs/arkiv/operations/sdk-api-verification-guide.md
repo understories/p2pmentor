@@ -12,7 +12,7 @@ Before implementing entity updates in production, we need to verify that the Ark
 
 - **Package:** `@arkiv-network/sdk`
 - **Version:** `^0.4.4`
-- **Network:** Mendoza testnet
+- **Network:** Kaolin testnet
 
 ## Verification Results
 
@@ -23,12 +23,14 @@ Before implementing entity updates in production, we need to verify that the Ark
 **SDK Version:** `@arkiv-network/sdk@0.4.4`
 
 **Findings:**
+
 1. ✅ `updateEntity` method exists on `walletClient`
 2. ✅ Type definitions found in `node_modules/@arkiv-network/sdk/dist/entity-CWj4qVCX.d.ts`
 3. ✅ API signature matches expected pattern
 4. ✅ Return type includes `entityKey` (stable) and `txHash`
 
 **Verification Steps Used:**
+
 1. Inspected SDK TypeScript definitions: `node_modules/@arkiv-network/sdk/dist/index.d.ts`
 2. Found `UpdateEntityParameters` and `UpdateEntityReturnType` type definitions
 3. Confirmed method signature matches `createEntity` pattern
@@ -54,6 +56,7 @@ const result = await walletClient.updateEntity({
 ```
 
 **Returns:**
+
 ```typescript
 {
   entityKey: `0x${string}`,  // Same as input (stable)
@@ -62,11 +65,13 @@ const result = await walletClient.updateEntity({
 ```
 
 **Type Definitions:**
+
 - `UpdateEntityParameters`: `{ entityKey: Hex, payload: Uint8Array, attributes: Attribute[], contentType: MimeType, expiresIn: number }`
 - `UpdateEntityReturnType`: `{ entityKey: Hex, txHash: Hash }`
 - `Attribute`: `{ key: string, value: string | number }`
 
 **Key Differences from createEntity:**
+
 - `entityKey` is required (not optional)
 - `expiresIn` is required (not optional)
 - `attributes` values can be `string | number` (not just `string`)
@@ -74,6 +79,7 @@ const result = await walletClient.updateEntity({
 ## Alternative Method Names
 
 If `updateEntity` doesn't exist, check for:
+
 - `update`
 - `modifyEntity`
 - `patchEntity`
@@ -96,12 +102,14 @@ If the SDK doesn't support entity updates yet:
 ### ✅ Implementation Complete
 
 1. **✅ Updated `arkivUpsertEntity`** in `lib/arkiv/entity-utils.ts`:
+
    - Replaced placeholder with actual `updateEntity` call
    - Removed error throw for updates
    - Added signer metadata support
    - Handles both create and update paths
 
 2. **✅ Updated documentation:**
+
    - Marked U0.1 as complete in implementation plan
    - Updated `entity-update-rollout.md` Phase 2 status to "✅ Complete"
 
@@ -118,4 +126,3 @@ If the SDK doesn't support entity updates yet:
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Full technical plan
 - [Entity Update Rollout](/docs/arkiv/operations/entity-update-rollout) - Rollout phases
 - [Editable Entities](/docs/arkiv/overview/editable-entities) - Mental model
-

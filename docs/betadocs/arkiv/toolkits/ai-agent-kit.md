@@ -17,7 +17,7 @@ The Arkiv AI Agent Kit is a collection of prompts, scripts, and documentation de
 1. **Enforces Engineering Guidelines** via CI and precommit scripts
 2. **Provides LLM-readable prompts** covering all essential Arkiv patterns
 3. **Prevents common mistakes** through explicit anti-pattern callouts
-4. **Testnet-native** (Mendoza-focused) with clear operational guidance
+4. **Testnet-native** (Kaolin-focused) with clear operational guidance
 
 **What It Is Not:**
 
@@ -87,6 +87,7 @@ This pattern ensures the agent follows all Engineering Guidelines and Arkiv best
 Arkiv is not suitable for all use cases. Use this section to prevent agent hallucination:
 
 **Arkiv cannot do:**
+
 - **OR queries across spaceId** - Arkiv doesn't support OR in queries. Strategy: Query broadly by `type`, then filter client-side by allowed spaceIds.
 - **Instant read-your-writes** - Indexer lag is normal. "Submitted" ≠ "Indexed". Always implement reconciliation.
 - **Mutable state without stable keys** - Use Pattern B (stable entity keys) for mutable state. Avoid "query first, then decide create" for mutable entities.
@@ -94,6 +95,7 @@ Arkiv is not suitable for all use cases. Use this section to prevent agent hallu
 - **Real-time subscriptions** - Arkiv is eventually consistent. Poll for updates if needed.
 
 **When to use centralized DB instead:**
+
 - Real-time collaborative editing
 - High-frequency writes (thousands per second)
 - Complex relational queries with joins
@@ -126,7 +128,7 @@ The README will include:
 
 ### Key Principles
 
-- **Testnet-native:** Everything targets Mendoza testnet (for now)
+- **Testnet-native:** Everything targets Kaolin testnet (for now)
 - **Indexer lag is normal:** Represent it as a state, not an error
 - **Immutable history:** Design state as interpretation over append-only facts
 - **Wallet normalization everywhere:** Always lowercase in writes and queries
@@ -155,6 +157,7 @@ When asking an agent to implement Arkiv functionality:
 ### CI Enforcement
 
 All changes must pass:
+
 - `npm run build`
 - `npm run typecheck`
 - `git diff --check` (no whitespace-only changes)
@@ -166,7 +169,7 @@ All changes must pass:
 
 - Server signer wallet must be funded (or writes will fail/timeout)
 - Derive signer address: `ARKIV_PRIVATE_KEY=0x... node scripts/derive-signer-address.mjs`
-- CI uses local mode for determinism; humans can use Mendoza for ecosystem validation
+- CI uses local mode for determinism; humans can use Kaolin for ecosystem validation
 
 ### Related
 
@@ -206,6 +209,7 @@ The kit converts "good intentions" into "the repo won't accept bad changes" via:
 ## Why This Matters
 
 **Problem:** Most developers (and AI tools) think in "centralized database" patterns:
+
 - Immediate read-your-writes
 - Query-first upserts
 - Treating indexer lag as a bug
@@ -219,10 +223,10 @@ The kit converts "good intentions" into "the repo won't accept bad changes" via:
 
 ## Testnet-Native Design
 
-Everything in this kit assumes **Mendoza testnet**:
+Everything in this kit assumes **Kaolin testnet**:
 
 - All examples use testnet addresses
-- Scripts support `ARKIV_TARGET=local` (CI) or `ARKIV_TARGET=mendoza` (humans)
+- Scripts support `ARKIV_TARGET=local` (CI) or `ARKIV_TARGET=kaolin` (humans)
 - README includes "Testnet Ops Reality" section
 - Mainnet guidance is intentionally non-operational (checklist, not instructions)
 
@@ -252,4 +256,3 @@ Each template demonstrates that the kit works for different use cases.
 
 **Last Updated:** 2025-12-30  
 **Status:** Complete and ready for publication
-

@@ -17,17 +17,20 @@ Your beta access is stored in your browser, so you won't need to enter it again.
 p2pmentor uses your wallet address as your identity. You have three options:
 
 **Option A: MetaMask (Recommended)**
+
 1. Install MetaMask browser extension if you don't have it
 2. Click "Connect Wallet" on the auth page
 3. Approve the connection in MetaMask
-4. If Mendoza testnet isn't added, you'll be prompted to add it automatically
+4. If Kaolin testnet isn't added, you'll be prompted to add it automatically
 
 **Option B: WalletConnect**
+
 1. Click "Connect with WalletConnect" on the auth page
 2. Scan the QR code with your mobile wallet (desktop) or approve the deep link (mobile)
 3. Approve the connection in your wallet app
 
 **Option C: Passkey (No Wallet Extension Needed)**
+
 1. Click "Login with Passkey" on the auth page
 2. Use your device's biometric authentication (fingerprint, face ID, etc.)
 3. A wallet is automatically created for you
@@ -39,14 +42,17 @@ p2pmentor uses your wallet address as your identity. You have three options:
 After connecting your wallet, you'll be taken to onboarding. The first step is creating your identity.
 
 1. **Choose Your Display Name**
+
    - This is how others will see you on the platform
    - You can change it later
 
 2. **Write a Short Bio**
+
    - Tell others what you're exploring or learning
    - Keep it brief (this is your "exploring statement")
 
 3. **Select Your Timezone**
+
    - This helps with scheduling sessions
    - Automatically detected from your browser, but you can change it
 
@@ -59,16 +65,19 @@ Your profile is now stored on Arkiv blockchain. You can view it on the Arkiv exp
 Skills help others find you and help you find mentors or learners.
 
 1. **Browse Available Skills**
+
    - Skills are organized by category
    - You can search for specific skills
 
 2. **Add Skills You're Learning**
+
    - Click on skills you want to learn
    - Set your expertise level (0-5) for each skill
    - Level 0 means you're just starting
    - Level 5 means you're an expert
 
 3. **Add Skills You Can Teach**
+
    - Same process, but these are skills you can offer to teach
    - You can have the same skill in both categories
 
@@ -81,21 +90,25 @@ Your skills are now part of your profile and visible to others.
 The onboarding flow lets you choose what you want to do first:
 
 **Path 1: I Want to Learn (Create an Ask)**
+
 - Post what you want to learn
 - Others who can teach will see it
 - Great for finding mentors
 
 **Path 2: I Want to Teach (Create an Offer)**
+
 - Post what you can teach
 - Others who want to learn will see it
 - Great for finding learners
 
 **Path 3: Explore the Network**
+
 - Browse existing asks and offers
 - See the mentorship network visualization
 - Find connections without posting first
 
 **Path 4: Join a Community**
+
 - Join skill-based communities
 - Connect with others learning the same skills
 - Participate in group learning
@@ -129,15 +142,18 @@ You can do all of these later, but choosing a path helps you get started quickly
 Once you've created an ask or offer, you can find matches:
 
 1. **Go to the Network Page** (`/network`)
+
    - This shows all asks and offers in the system
    - You can filter by skill
 
 2. **View Potential Matches**
+
    - If you created an ask, you'll see offers that match your skill
    - If you created an offer, you'll see asks that match your skill
    - Matches are highlighted
 
 3. **View Profiles**
+
    - Click on any ask or offer to see the person's profile
    - Check their skills, bio, and availability
    - See their rating and session history
@@ -152,15 +168,18 @@ Once you've created an ask or offer, you can find matches:
 When you find someone you want to connect with:
 
 1. **Click "Schedule Session"** on their ask or offer
+
    - Or go to their profile and click "Schedule Session"
 
 2. **Fill in Session Details**
+
    - Select the skill you'll be working on
    - Choose a date and time
    - Set the duration (default 60 minutes)
    - Add optional notes
 
 3. **Submit the Session Request**
+
    - The other person will receive a notification
    - They need to confirm the session
 
@@ -173,10 +192,12 @@ When you find someone you want to connect with:
 When it's time for your session:
 
 1. **Go to Your Sessions Page** (`/me/sessions`)
+
    - See all your scheduled sessions
    - Find the session you want to join
 
 2. **Click "Join Session"**
+
    - This opens the Jitsi video room
    - Both parties can join when ready
 
@@ -189,10 +210,12 @@ When it's time for your session:
 After your session:
 
 1. **Go to Your Sessions Page**
+
    - Find the completed session
    - Click "Give Feedback"
 
 2. **Rate the Session**
+
    - Give a rating from 1-5 stars
    - Write optional notes about what you learned or how it went
 
@@ -214,18 +237,22 @@ Once you've completed onboarding:
 ## Tips for Success
 
 1. **Complete Your Profile**
+
    - The more complete your profile, the easier it is for others to find you
    - Add a bio, skills, and availability
 
 2. **Be Specific in Asks and Offers**
+
    - Clear messages get better matches
    - Include your experience level and what you're looking for
 
 3. **Respond Promptly**
+
    - When someone wants to schedule a session, respond quickly
    - This builds trust and helps connections happen
 
 4. **Give Honest Feedback**
+
    - Feedback helps everyone improve
    - It also helps others decide who to connect with
 
@@ -242,4 +269,3 @@ Once you've completed onboarding:
 - See [Feedback](/docs/user-flows/feedback) for giving and receiving feedback
 
 Remember: All your data is stored on Arkiv blockchain. You own it, and you can verify it on the Arkiv explorer.
-

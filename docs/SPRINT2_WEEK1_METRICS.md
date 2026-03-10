@@ -33,7 +33,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### Test Environment
 
-- **Network:** Mendoza Testnet
+- **Network:** Kaolin Testnet
 - **Arkiv RPC:** Production indexer
 - **GraphQL Endpoint:** `/api/graphql` (Next.js API route)
 - **Sample Size:** 13 tests per method (n=13 for each)
@@ -125,7 +125,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Snapshot 1: Arkiv Baseline
 
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 - **Method:** Arkiv JSON-RPC
 - **Samples:** 13
 - **Status:** ✅ Created
@@ -133,7 +133,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Snapshot 2: GraphQL Test
 
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 - **Method:** GraphQL Wrapper
 - **Samples:** 13
 - **Status:** ✅ Created
@@ -232,7 +232,7 @@ All performance data in this report is:
 
 ### How to Verify
 
-1. Navigate to [Mendoza Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+1. Navigate to [Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
 2. Search for transaction hashes listed in snapshots
 3. Inspect `dx_metric` and `perf_snapshot` entities
 4. Compare with admin dashboard at `/admin`
@@ -389,7 +389,7 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 **Environment:**
 
 - Server: `http://localhost:3000`
-- Network: Mendoza Testnet
+- Network: Kaolin Testnet
 - Arkiv RPC: Production indexer
 
 **Tests Executed:**

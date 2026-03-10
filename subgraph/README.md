@@ -18,7 +18,7 @@ See `docs/graph_indexing_plan.md` for the full implementation plan.
 
 ## Next Steps
 
-1. Identify Arkiv contract address and ABI on Mendoza testnet
+1. Identify Arkiv contract address and ABI on Kaolin testnet
 2. Configure data sources in `subgraph.yaml`
 3. Implement event handlers in `src/mappings/arkiv.ts`
 4. Test locally with Graph Node

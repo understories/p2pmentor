@@ -9,18 +9,21 @@ WalletConnect integration provides an additional wallet connection method for p2
 ### Core Components
 
 1. **WalletConnect Connection** (`lib/auth/walletconnect.ts`)
+
    - Initializes WalletConnect EthereumProvider
    - Handles QR code display (desktop) and deep linking (mobile)
    - Registers lifecycle listeners for session management
-   - Non-critical chain switching to Mendoza testnet
+   - Non-critical chain switching to Kaolin testnet
 
 2. **Provider Singleton** (`lib/wallet/walletconnectProvider.ts`)
+
    - Module-level singleton for provider instance
    - Phase 0: In-memory only (no session persistence across reloads)
    - Provides accessor functions for getting and setting provider
    - Disconnect handling with localStorage cleanup
 
 3. **Unified Wallet Client** (`lib/wallet/getWalletClient.ts`)
+
    - Auto-detects wallet type (MetaMask, Passkey, or WalletConnect)
    - Returns appropriate wallet client based on localStorage `wallet_type`
    - Feature flag guard for WalletConnect support
@@ -35,7 +38,7 @@ WalletConnect integration provides an additional wallet connection method for p2
 ### Connection Flow
 
 1. User clicks "Connect with WalletConnect"
-2. `connectWalletConnect()` initializes EthereumProvider with Mendoza chain
+2. `connectWalletConnect()` initializes EthereumProvider with Kaolin chain
 3. Provider shows QR code (desktop) or triggers deep link (mobile)
 4. User scans QR or approves connection in wallet app
 5. Provider returns connected wallet address
@@ -47,9 +50,9 @@ WalletConnect integration provides an additional wallet connection method for p2
 ```typescript
 const provider = await EthereumProvider.init({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
-  chains: [mendoza.id],
+  chains: [kaolin.id],
   rpcMap: {
-    [mendoza.id]: mendoza.rpcUrls.default.http[0],
+    [kaolin.id]: kaolin.rpcUrls.default.http[0],
   },
   showQrModal: true,
   metadata: {
@@ -64,11 +67,13 @@ const provider = await EthereumProvider.init({
 ### Session Management
 
 **Phase 0 (Current):**
+
 - Provider stored in module singleton (in-memory only)
 - On page reload, provider is null and user must reconnect
 - No localStorage persistence for session metadata
 
 **Phase 1 (Future):**
+
 - Session restore from localStorage
 - Provider re-initialization on page load
 - Automatic reconnection if session still valid
@@ -83,6 +88,7 @@ const walletType = localStorage.getItem(`wallet_type_${address.toLowerCase()}`);
 ```
 
 If `walletType === 'walletconnect'`:
+
 1. Get WalletConnect provider from singleton
 2. If provider is null, throw "WalletConnect session expired" error
 3. Create wallet client with WalletConnect provider (EIP-1193 compliant)
@@ -91,8 +97,9 @@ If `walletType === 'walletconnect'`:
 ### Chain Switching
 
 Chain switching is non-critical (same as MetaMask):
+
 1. After connection, check `eth_chainId`
-2. If mismatch with Mendoza, attempt `wallet_switchEthereumChain`
+2. If mismatch with Kaolin, attempt `wallet_switchEthereumChain`
 3. If switch fails, show non-blocking prompt
 4. Do not attempt `wallet_addEthereumChain` in Phase 0
 
@@ -109,6 +116,7 @@ WalletConnect is feature-flagged for controlled rollout:
 ### Required Environment Variables
 
 1. **NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID**
+
    - WalletConnect Cloud project ID
    - Public and safe to expose in client builds
    - How to get:
@@ -181,16 +189,19 @@ Always store wallet type in localStorage: `wallet_type_${address.toLowerCase()} 
 ## Testing Matrix
 
 ### Desktop
+
 - Chrome with WalletConnect QR code
 - Firefox with WalletConnect QR code
 - Safari with WalletConnect QR code
 
 ### Mobile
+
 - Safari on iOS (deep link or QR)
 - Chrome on Android (deep link or QR)
 - DuckDuckGo browser (QR code)
 
 ### Test Cases
+
 - Direct connection from auth page
 - Session expiry after page reload
 - Disconnect from wallet app
@@ -202,6 +213,7 @@ Always store wallet type in localStorage: `wallet_type_${address.toLowerCase()} 
 ### MetaMask Flows
 
 WalletConnect is fully orthogonal to MetaMask:
+
 - Does not modify MetaMask connection logic
 - Does not interfere with MetaMask mobile browser flow
 - Does not touch MetaMask redirect handling
@@ -210,6 +222,7 @@ WalletConnect is fully orthogonal to MetaMask:
 ### Arkiv Signing Wallet
 
 WalletConnect only affects profile wallet (identity wallet):
+
 - All Arkiv writes still signed by `ARKIV_PRIVATE_KEY` (server-side)
 - Profile wallet address stored as `wallet` attribute on entities
 - Same query patterns as MetaMask addresses
@@ -226,6 +239,7 @@ WalletConnect only affects profile wallet (identity wallet):
 WalletConnect Phase 0 provides an additional wallet connection option that works alongside MetaMask without modifying existing flows. It uses EIP-1193 compliant providers compatible with viem's `custom()` transport, enabling seamless integration with the existing Arkiv client architecture.
 
 Key features:
+
 - QR code connection on desktop
 - Deep linking on mobile
 - Feature-flagged for controlled rollout
@@ -234,4 +248,3 @@ Key features:
 - Fully orthogonal to MetaMask flows
 
 Phase 1 enhancements will add session persistence and automatic reconnection on page reload.
-
