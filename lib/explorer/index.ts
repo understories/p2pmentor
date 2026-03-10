@@ -304,8 +304,16 @@ function deduplicateProfiles(profiles: ExplorerEntity[]): ExplorerEntity[] {
  */
 async function buildExplorerIndex(): Promise<ExplorerIndex> {
   // Known spaceIds - fetch from all spaces to support filtering
-  // Includes: production spaces (beta-launch), dev spaces (local-dev, local-dev-seed), and lite spaces (nsfeb26, nsjan26, test)
-  const allSpaceIds = ['beta-launch', 'local-dev', 'local-dev-seed', 'nsfeb26', 'nsjan26', 'test'];
+  // Includes: production spaces (beta-launch), dev spaces (local-dev, local-dev-seed), and lite spaces (nsmarch26, nsfeb26, nsjan26, test)
+  const allSpaceIds = [
+    'beta-launch',
+    'local-dev',
+    'local-dev-seed',
+    'nsmarch26',
+    'nsfeb26',
+    'nsjan26',
+    'test',
+  ];
 
   // Fetch all entity types in parallel from all spaces
   // Note: lite entities are queried per spaceId since they don't support spaceIds array
