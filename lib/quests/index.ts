@@ -30,4 +30,5 @@ export {
   listQuestsByTrack,
   getRequiredStepIds,
   ensureQuestsDirectory,
+  loadQuestDefinitionByQuestId,
 } from './questLoader';
