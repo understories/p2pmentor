@@ -91,8 +91,6 @@ export function QuizRenderer({
           rubricVersion: rubric.version,
           questionIds,
           answers,
-          rubric,
-          passingScore: rubric.passingScore,
         }),
       });
 
@@ -353,9 +351,9 @@ export function QuizRenderer({
           query={[
             `POST /api/quests/quiz`,
             `Body: { wallet, questId: "${questId}", stepId: "${stepId}",`,
-            `  rubricVersion: "${rubric.version}", questionIds, answers, rubric }`,
+            `  rubricVersion: "${rubric.version}", questionIds, answers }`,
             ``,
-            `Scoring: Server-side scoring against rubric`,
+            `Scoring: Server-side scoring against server-loaded rubric`,
             `Creates: quest_step_progress entity (evidence: quiz_result)`,
             `Creates: learner_quest_assessment_result entity`,
             `Returns: { score, maxScore, percentage, passed }`,
