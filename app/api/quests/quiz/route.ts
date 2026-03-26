@@ -21,6 +21,76 @@ import { loadQuestDefinitionByQuestId } from '@/lib/quests';
 import { getLatestQuestDefinition } from '@/lib/arkiv/questDefinition';
 import type { QuestDefinition, QuizRubric } from '@/lib/quests/questFormat';
 
+// ---------------------------------------------------------------------------
+// Anti-gaming: server-side rate limiting & submission cooldown
+// ---------------------------------------------------------------------------
+
+const QUIZ_IP_LIMIT = 10; // max submissions per IP per window
+const QUIZ_IP_WINDOW_MS = 60_000; // 1 minute
+const QUIZ_COOLDOWN_MS = 30_000; // 30 s between attempts on the same wallet+step
+
+interface RateEntry {
+  count: number;
+  resetAt: number;
+}
+
+const ipRateStore = new Map<string, RateEntry>();
+const cooldownStore = new Map<string, number>(); // key → earliest-allowed timestamp
+
+function getClientIP(request: Request): string {
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  const realIP = request.headers.get('x-real-ip');
+  if (realIP) return realIP;
+  return 'unknown';
+}
+
+function checkQuizRateLimit(request: Request): { allowed: boolean; retryAfterMs: number } {
+  const ip = getClientIP(request);
+  const now = Date.now();
+
+  let entry = ipRateStore.get(ip);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + QUIZ_IP_WINDOW_MS };
+    ipRateStore.set(ip, entry);
+  }
+  entry.count += 1;
+
+  if (entry.count > QUIZ_IP_LIMIT) {
+    return { allowed: false, retryAfterMs: entry.resetAt - now };
+  }
+
+  // Probabilistic cleanup (same pattern as explorer rate limiter)
+  if (Math.random() < 0.02) {
+    for (const [key, val] of ipRateStore.entries()) {
+      if (now > val.resetAt + QUIZ_IP_WINDOW_MS) ipRateStore.delete(key);
+    }
+    for (const [key, ts] of cooldownStore.entries()) {
+      if (now > ts + QUIZ_COOLDOWN_MS) cooldownStore.delete(key);
+    }
+  }
+
+  return { allowed: true, retryAfterMs: 0 };
+}
+
+function checkSubmissionCooldown(
+  wallet: string,
+  stepId: string
+): { allowed: boolean; retryAfterMs: number } {
+  const key = `${wallet.toLowerCase()}:${stepId}`;
+  const now = Date.now();
+  const earliest = cooldownStore.get(key) ?? 0;
+
+  if (now < earliest) {
+    return { allowed: false, retryAfterMs: earliest - now };
+  }
+
+  cooldownStore.set(key, now + QUIZ_COOLDOWN_MS);
+  return { allowed: true, retryAfterMs: 0 };
+}
+
+// ---------------------------------------------------------------------------
+
 /**
  * Resolve the authoritative quest definition server-side.
  * Tries entity store first (when configured), falls back to filesystem.
@@ -76,6 +146,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Anti-gaming: IP rate limit
+    const rateCheck = checkQuizRateLimit(request);
+    if (!rateCheck.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: 'Too many quiz submissions. Please wait before trying again.',
+          retryAfterMs: rateCheck.retryAfterMs,
+        },
+        { status: 429 }
+      );
+    }
+
+    // Anti-gaming: per-wallet+step cooldown
+    const cooldownCheck = checkSubmissionCooldown(wallet, stepId);
+    if (!cooldownCheck.allowed) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Please wait ${Math.ceil(cooldownCheck.retryAfterMs / 1000)}s before retrying this quiz.`,
+          retryAfterMs: cooldownCheck.retryAfterMs,
+        },
+        { status: 429 }
+      );
+    }
+
     // Load rubric server-side from the authoritative quest definition
     const questDef = await resolveQuestDefinition(questId);
     if (!questDef) {
@@ -98,6 +194,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { ok: false, error: `Rubric not found for step: ${stepId}` },
         { status: 404 }
+      );
+    }
+
+    // Validate that all rubric questions are submitted (prevents cherry-picking easy questions)
+    const rubricQuestionIds = new Set(rubric.questions.map((q) => q.id));
+    const submittedIds = new Set<string>(questionIds);
+    const missing = [...rubricQuestionIds].filter((id) => !submittedIds.has(id));
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { ok: false, error: 'All quiz questions must be answered' },
+        { status: 400 }
       );
     }
 
