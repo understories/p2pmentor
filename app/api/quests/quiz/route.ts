@@ -4,18 +4,39 @@
  * Handles quiz submission, scoring, and result storage.
  * Creates both quest_step_progress and learner_quest_assessment_result entities.
  *
- * Week 2 (Feb 8-14) - Quiz engine v1
+ * Rubric is loaded server-side from the quest definition to prevent
+ * clients from submitting a tampered rubric with altered correct answers.
  *
  * POST /api/quests/quiz
  * Body: { wallet, questId, stepId, rubricVersion, questionIds, answers }
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { getPrivateKey, SPACE_ID, QUEST_ENTITY_MODE } from '@/lib/config';
 import { createQuestStepProgress } from '@/lib/arkiv/questProgress';
 import { createStepEvidence } from '@/lib/arkiv/questStep';
 import { createQuizResult } from '@/lib/arkiv/quizResult';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
+import { loadQuestDefinitionByQuestId } from '@/lib/quests';
+import { getLatestQuestDefinition } from '@/lib/arkiv/questDefinition';
+import type { QuestDefinition, QuizRubric } from '@/lib/quests/questFormat';
+
+/**
+ * Resolve the authoritative quest definition server-side.
+ * Tries entity store first (when configured), falls back to filesystem.
+ */
+async function resolveQuestDefinition(questId: string): Promise<QuestDefinition | null> {
+  if (QUEST_ENTITY_MODE === 'entity' || QUEST_ENTITY_MODE === 'dual') {
+    try {
+      const entity = await getLatestQuestDefinition({ questId });
+      if (entity?.quest) return entity.quest;
+    } catch (err) {
+      console.warn('[Quiz API] Entity lookup failed, falling back to file:', err);
+    }
+    if (QUEST_ENTITY_MODE === 'entity') return null;
+  }
+  return loadQuestDefinitionByQuestId(questId);
+}
 
 /**
  * POST - Submit quiz answers and record results
@@ -36,23 +57,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const {
-      wallet,
-      questId,
-      stepId,
-      rubricVersion,
-      questionIds,
-      answers,
-      rubric, // Full rubric with questions for scoring
-      passingScore,
-    } = body;
+    const { wallet, questId, stepId, rubricVersion, questionIds, answers } = body;
 
     // Validate required fields
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'wallet is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'wallet is required' }, { status: 400 });
     }
     if (!questId || !stepId) {
       return NextResponse.json(
@@ -66,21 +75,40 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Load rubric server-side from the authoritative quest definition
+    const questDef = await resolveQuestDefinition(questId);
+    if (!questDef) {
+      return NextResponse.json(
+        { ok: false, error: `Quest not found: ${questId}` },
+        { status: 404 }
+      );
+    }
+
+    const step = questDef.steps.find((s) => s.stepId === stepId);
+    if (!step || step.type !== 'QUIZ' || !step.quizRubricId) {
+      return NextResponse.json(
+        { ok: false, error: `Quiz step not found: ${stepId}` },
+        { status: 404 }
+      );
+    }
+
+    const rubric: QuizRubric | undefined = questDef.rubrics?.[step.quizRubricId];
     if (!rubric || !rubric.questions) {
       return NextResponse.json(
-        { ok: false, error: 'rubric with questions is required for scoring' },
-        { status: 400 }
+        { ok: false, error: `Rubric not found for step: ${stepId}` },
+        { status: 404 }
       );
     }
 
     const privateKey = getPrivateKey();
 
-    // Score the quiz
+    // Score the quiz against the server-loaded rubric
     let score = 0;
     let maxScore = 0;
 
     for (const questionId of questionIds) {
-      const question = rubric.questions.find((q: any) => q.id === questionId);
+      const question = rubric.questions.find((q) => q.id === questionId);
       if (!question) {
         console.warn(`[Quiz API] Question ${questionId} not found in rubric`);
         continue;
@@ -90,15 +118,13 @@ export async function POST(request: NextRequest) {
       const userAnswer = answers[questionId];
       const correctAnswer = question.correctAnswer;
 
-      // Score based on question type
       let isCorrect = false;
       if (question.type === 'multiple_choice' || question.type === 'true_false') {
         isCorrect = String(userAnswer) === String(correctAnswer);
       } else if (question.type === 'fill_blank') {
-        // Case-insensitive comparison for fill-in-the-blank
-        isCorrect = String(userAnswer).toLowerCase().trim() === String(correctAnswer).toLowerCase().trim();
+        isCorrect =
+          String(userAnswer).toLowerCase().trim() === String(correctAnswer).toLowerCase().trim();
       } else if (question.type === 'matching') {
-        // For matching, compare arrays (order matters)
         if (Array.isArray(userAnswer) && Array.isArray(correctAnswer)) {
           isCorrect = JSON.stringify(userAnswer.sort()) === JSON.stringify(correctAnswer.sort());
         }
@@ -109,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const finalPassingScore = passingScore || rubric.passingScore || 0.7;
+    const finalPassingScore = rubric.passingScore || 0.7;
 
     // Create quest step progress with quiz evidence
     try {
