@@ -172,6 +172,31 @@ export async function getRequiredStepIds(trackId: string): Promise<string[]> {
 }
 
 /**
+ * Load quest definition by questId (scans all track directories)
+ *
+ * Unlike loadQuestDefinition which takes a trackId (directory name),
+ * this resolves by the questId field inside the JSON.
+ */
+export async function loadQuestDefinitionByQuestId(
+  questId: string
+): Promise<QuestDefinition | null> {
+  try {
+    const entries = await fs.readdir(QUESTS_BASE_PATH, { withFileTypes: true });
+    const trackIds = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+
+    for (const trackId of trackIds) {
+      const definition = await loadQuestDefinition(trackId);
+      if (definition && definition.questId === questId) {
+        return definition;
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check if content/quests directory exists, create if not
  */
 export async function ensureQuestsDirectory(): Promise<void> {
