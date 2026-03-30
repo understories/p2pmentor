@@ -1,32 +1,32 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{ if .Title }}{{ .Title }} - {{ end }}{{ .Site.Params.siteName }}</title>
-  <meta name="description" content="{{ .Site.Params.description }}">
-  <link rel="stylesheet" href="/css/style.css">
-</head>
-<body>
-  <header>
-    <nav>
-      <a href="/">Home</a>
-      <a href="/profiles/">Profiles</a>
-      <a href="/skills/">Skills</a>
-      <a href="/asks/">Asks</a>
-      <a href="/offers/">Offers</a>
-    </nav>
-  </header>
-  
-  <main>
-    {{ block "main" . }}{{ end }}
-  </main>
-  
-  <footer>
-    <p>p2pmentor - Decentralized mentorship platform</p>
-    <p>Data from <a href="https://arkiv.network">Arkiv Network</a></p>
-    <p>Licensed under <a href="https://github.com/understories/p2pmentor/blob/main/LICENSE">MIT License</a></p>
-  </footer>
-</body>
-</html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ if .Title }}{{ .Title }} - {{ end }}{{ .Site.Params.siteName }}</title>
+    <meta name="description" content="{{ .Site.Params.description }}" />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/">Home</a>
+        <a href="/profiles/">Profiles</a>
+        <a href="/skills/">Skills</a>
+        <a href="/asks/">Asks</a>
+        <a href="/offers/">Offers</a>
+      </nav>
+    </header>
 
+    <main>{{ block "main" . }}{{ end }}</main>
+
+    <footer>
+      <p>p2pmentor - Decentralized mentorship platform</p>
+      <p>Data from <a href="https://arkiv.network">Arkiv Network</a></p>
+      <p>
+        Licensed under
+        <a href="https://github.com/understories/p2pmentor/blob/main/LICENSE">MIT License</a>
+      </p>
+    </footer>
+  </body>
+</html>
