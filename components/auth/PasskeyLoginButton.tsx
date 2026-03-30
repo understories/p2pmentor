@@ -48,6 +48,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
   // Check feature flag and WebAuthn support
   useEffect(() => {
     const checkSupport = async () => {
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- not a hook, feature flag getter
       const enabled = await usePasskeyLogin();
       const supported = isWebAuthnSupported();
       const platformAvailable = supported ? await isPlatformAuthenticatorAvailable() : false;
