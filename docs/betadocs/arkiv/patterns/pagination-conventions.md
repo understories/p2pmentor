@@ -11,11 +11,13 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 ## When to Use
 
 **Always apply this pattern when:**
+
 - Result sets may be large (more than 20-50 items)
 - Users need to browse through multiple pages
 - Performance is a concern (avoid fetching all data at once)
 
 **Strategies:**
+
 1. **Cursor-based pagination:** Use `createdAt` timestamp or `entity_key` as cursor
 2. **Client-side pagination:** Fetch all results with `.limit()`, paginate in UI
 3. **Defensive limits:** Always use `.limit()` to bound queries
@@ -45,18 +47,21 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 ## Canonical Algorithm
 
 **Strategy 1: Cursor-based pagination**
+
 1. Query with `.limit(pageSize)` and filter by cursor (e.g., `createdAt > cursor`)
 2. Sort results by cursor attribute (ascending or descending)
 3. Use last item's cursor value for next page
 4. Continue until no more results
 
 **Strategy 2: Client-side pagination**
+
 1. Query with defensive `.limit(maxResults)` (e.g., 500)
 2. Fetch all results matching filters
 3. Paginate in UI (slice array by page)
 4. Show page controls in UI
 
 **Strategy 3: Defensive limits**
+
 1. Always use `.limit()` on queries
 2. Choose limit based on expected result size
 3. Document limit choices in code
@@ -64,6 +69,7 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/profile.ts` - `listUserProfiles()` uses `.limit(100)` or `.limit(500)` for builder mode
 - `lib/arkiv/asks.ts` - `listAsks()` uses `.limit(500)` with optional `limit` parameter
 - `lib/arkiv/offers.ts` - `listOffers()` uses `.limit(500)` with optional `limit` parameter
@@ -71,60 +77,58 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 - All query functions use defensive limits
 
 **Code examples:**
+
 ```typescript
 // Strategy 1: Cursor-based pagination (not yet implemented, but pattern)
 async function listAsksPaginated(cursor?: string, pageSize: number = 20) {
-  const queryBuilder = publicClient.buildQuery()
+  const queryBuilder = publicClient
+    .buildQuery()
     .where(eq('type', 'ask'))
     .where(eq('status', 'open'))
     .where(eq('spaceId', SPACE_ID));
-  
+
   if (cursor) {
     // Filter by createdAt > cursor for next page
     queryBuilder.where(eq('createdAt', cursor)); // Note: Arkiv may need different syntax
   }
-  
-  const result = await queryBuilder
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(pageSize)
-    .fetch();
-  
+
+  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(pageSize).fetch();
+
   // Sort by createdAt descending (newest first)
   const sorted = result.entities.sort((a, b) => {
     const aTime = getAttr(a, 'createdAt');
     const bTime = getAttr(b, 'createdAt');
     return bTime.localeCompare(aTime);
   });
-  
+
   // Use last item's createdAt as next cursor
-  const nextCursor = sorted.length > 0 
-    ? getAttr(sorted[sorted.length - 1], 'createdAt')
-    : null;
-  
+  const nextCursor = sorted.length > 0 ? getAttr(sorted[sorted.length - 1], 'createdAt') : null;
+
   return { items: sorted, nextCursor };
 }
 
 // Strategy 2: Client-side pagination (current pattern)
 async function listAsks(params?: { limit?: number }) {
   const limit = params?.limit ?? 500; // Defensive limit
-  const queryBuilder = publicClient.buildQuery()
+  const queryBuilder = publicClient
+    .buildQuery()
     .where(eq('type', 'ask'))
     .where(eq('status', 'open'))
     .where(eq('spaceId', SPACE_ID));
-  
+
   const result = await queryBuilder
     .withAttributes(true)
     .withPayload(true)
     .limit(limit) // Always use limit
     .fetch();
-  
+
   // Return all results, paginate in UI
   return result.entities.map(/* ... */);
 }
 
 // Strategy 3: Defensive limits (always use)
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('spaceId', SPACE_ID))
   .withAttributes(true)
@@ -160,4 +164,3 @@ const result = await publicClient.buildQuery()
 
 - [Query Optimization](./query-optimization.md) - Defensive limits are part of query optimization
 - [PAT-QUERY-001: Indexer-Friendly Query Shapes](./query-optimization.md) - Limits are required for indexed queries
-

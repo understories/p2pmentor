@@ -17,6 +17,7 @@ When a reviewer requests review mode access, the app server issues a `review_mod
 **Entity Type:** `review_mode_grant`
 
 **Attributes:**
+
 - `type`: `"review_mode_grant"`
 - `typeVersion`: `"1"`
 - `space_id`: Beta space ID (same as user data)
@@ -31,8 +32,10 @@ When a reviewer requests review mode access, the app server issues a `review_mod
 **Signer:** App server signer wallet (ARKIV_PRIVATE_KEY)
 
 **Query Pattern:**
+
 ```typescript
-const query = publicClient.buildQuery()
+const query = publicClient
+  .buildQuery()
   .where(eq('type', 'review_mode_grant'))
   .where(eq('subject_wallet', walletAddress.toLowerCase()))
   .where(eq('space_id', spaceId))
@@ -100,6 +103,7 @@ The access grant pattern can also be implemented with wallet-signed activations:
 - Client verifies signature instead of issuer address
 
 For this beta, we use app-signed grants because:
+
 - Matches existing central signer architecture
 - Server signer is always available
 - Consistent with other entity creation patterns

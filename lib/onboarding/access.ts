@@ -1,9 +1,9 @@
 /**
  * Onboarding Access Verification Utility
- * 
+ *
  * Client-side utility to verify onboarding access with bypass mechanism.
  * Similar to beta gate pattern - provides consistent onboarding checks app-wide.
- * 
+ *
  * Reference: lib/auth/betaAccess.ts (beta gate pattern)
  */
 
@@ -23,7 +23,7 @@ export type OnboardingAccessCheck = {
  */
 export function hasOnboardingBypass(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   // Check sessionStorage for bypass flag
   const bypass = sessionStorage.getItem('onboarding_bypass');
   return bypass === 'true';
@@ -35,7 +35,7 @@ export function hasOnboardingBypass(): boolean {
  */
 export function setOnboardingBypass(value: boolean = true): void {
   if (typeof window === 'undefined') return;
-  
+
   if (value) {
     sessionStorage.setItem('onboarding_bypass', 'true');
   } else {
@@ -49,7 +49,7 @@ export function setOnboardingBypass(value: boolean = true): void {
  */
 export function hasReviewModeBypass(): boolean {
   if (typeof window === 'undefined') return false;
-  
+
   const bypass = sessionStorage.getItem('review_mode_bypass');
   return bypass === 'true';
 }
@@ -61,7 +61,7 @@ export function hasReviewModeBypass(): boolean {
  */
 export function setReviewModeBypass(value: boolean = true): void {
   if (typeof window === 'undefined') return;
-  
+
   if (value) {
     sessionStorage.setItem('review_mode_bypass', 'true');
   } else {
@@ -71,7 +71,7 @@ export function setReviewModeBypass(value: boolean = true): void {
 
 /**
  * Verify onboarding access
- * 
+ *
  * @param wallet - User wallet address
  * @param requiredLevel - Minimum onboarding level required (default: 0)
  * @param options - Verification options
@@ -86,21 +86,21 @@ export async function verifyOnboardingAccess(
 ): Promise<OnboardingAccessCheck> {
   // No wallet = no access
   if (!wallet) {
-    return { 
-      hasAccess: false, 
+    return {
+      hasAccess: false,
       requiredLevel,
-      error: 'No wallet address provided' 
+      error: 'No wallet address provided',
     };
   }
 
   // Check bypass flag (if allowed)
   const allowBypass = options?.allowBypass !== false;
   if (allowBypass && hasOnboardingBypass()) {
-    return { 
-      hasAccess: true, 
+    return {
+      hasAccess: true,
       requiredLevel,
       level: requiredLevel, // Assume they have the required level if bypassed
-      bypassed: true 
+      bypassed: true,
     };
   }
 
@@ -108,7 +108,7 @@ export async function verifyOnboardingAccess(
   try {
     const { calculateOnboardingLevel } = await import('./state');
     const level = await calculateOnboardingLevel(wallet);
-    
+
     return {
       hasAccess: level >= requiredLevel,
       level,
@@ -131,7 +131,7 @@ export async function verifyOnboardingAccess(
 /**
  * Route-level onboarding check
  * Use this in page components to check access
- * 
+ *
  * @param wallet - User wallet address
  * @param requiredLevel - Minimum onboarding level required
  * @param redirectTo - Where to redirect if access denied (default: '/onboarding')
@@ -143,7 +143,7 @@ export async function checkOnboardingRoute(
   redirectTo: string = '/onboarding'
 ): Promise<boolean> {
   const check = await verifyOnboardingAccess(wallet, requiredLevel);
-  
+
   if (!check.hasAccess && typeof window !== 'undefined') {
     // Redirect to onboarding, but set bypass flag so they can navigate back
     // This allows onboarding flow to link back to the page
@@ -152,14 +152,13 @@ export async function checkOnboardingRoute(
     const currentSearch = window.location.search;
     const validatedPathname = safePathname(currentPathname, '/');
     const currentUrl = validatedPathname + currentSearch;
-    
+
     // Use URL APIs to avoid double-encoding (don't manually encode)
     const url = new URL(redirectTo, window.location.origin);
     url.searchParams.set('returnTo', currentUrl); // URLSearchParams handles encoding automatically
     window.location.href = url.pathname + url.search;
     return false;
   }
-  
+
   return true;
 }
-

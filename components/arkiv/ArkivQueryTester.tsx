@@ -1,9 +1,9 @@
 /**
  * Arkiv Query Tester Component
- * 
+ *
  * Reusable component for testing Arkiv queries with all entity types.
  * Allows inputting parameters and viewing results with explorer links.
- * 
+ *
  * Used in:
  * - Admin dashboard (/admin/arkiv-query)
  * - Arkiv learner community topic page (/topic/arkiv)
@@ -32,7 +32,13 @@ const ENTITY_TYPES = {
     label: 'User Profile',
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: true },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 1 },
     ],
   },
@@ -41,7 +47,13 @@ const ENTITY_TYPES = {
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: false },
       { key: 'skill_id', label: 'Skill ID', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -50,7 +62,13 @@ const ENTITY_TYPES = {
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: false },
       { key: 'skill_id', label: 'Skill ID', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -59,8 +77,19 @@ const ENTITY_TYPES = {
     params: [
       { key: 'mentorWallet', label: 'Mentor Wallet', type: 'text', required: false },
       { key: 'learnerWallet', label: 'Learner Wallet', type: 'text', required: false },
-      { key: 'sessionKey', label: 'Session Key (for confirmations)', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'sessionKey',
+        label: 'Session Key (for confirmations)',
+        type: 'text',
+        required: false,
+      },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -69,7 +98,13 @@ const ENTITY_TYPES = {
     params: [
       { key: 'sessionKey', label: 'Session Key', type: 'text', required: false },
       { key: 'feedbackTo', label: 'Feedback To (Wallet)', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -77,7 +112,13 @@ const ENTITY_TYPES = {
     label: 'Availability',
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -85,7 +126,13 @@ const ENTITY_TYPES = {
     label: 'Skill',
     params: [
       { key: 'status', label: 'Status', type: 'text', required: false, defaultValue: 'active' },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 100 },
     ],
   },
@@ -95,25 +142,43 @@ const ENTITY_TYPES = {
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: false },
       { key: 'sourceEntityType', label: 'Source Entity Type', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
-  'session_confirmation': {
+  session_confirmation: {
     label: 'Session Confirmation',
     params: [
       { key: 'sessionKey', label: 'Session Key', type: 'text', required: false },
       { key: 'confirmedBy', label: 'Confirmed By (Wallet)', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
-  'session_rejection': {
+  session_rejection: {
     label: 'Session Rejection',
     params: [
       { key: 'sessionKey', label: 'Session Key', type: 'text', required: false },
       { key: 'rejectedBy', label: 'Rejected By (Wallet)', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -121,7 +186,13 @@ const ENTITY_TYPES = {
     label: 'Beta Access',
     params: [
       { key: 'wallet', label: 'Wallet Address', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -129,7 +200,13 @@ const ENTITY_TYPES = {
     label: 'Beta Code',
     params: [
       { key: 'code', label: 'Code', type: 'text', required: false },
-      { key: 'spaceId', label: 'Space ID', type: 'text', required: false, defaultValue: 'beta-launch' },
+      {
+        key: 'spaceId',
+        label: 'Space ID',
+        type: 'text',
+        required: false,
+        defaultValue: 'beta-launch',
+      },
       { key: 'limit', label: 'Limit', type: 'number', required: false, defaultValue: 10 },
     ],
   },
@@ -167,7 +244,8 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
         if (value !== '') {
           if (param.type === 'number') {
             const numValue = typeof value === 'string' ? parseInt(value, 10) : value;
-            queryParams[param.key] = (typeof numValue === 'number' && !isNaN(numValue)) ? numValue : (param.defaultValue || 0);
+            queryParams[param.key] =
+              typeof numValue === 'number' && !isNaN(numValue) ? numValue : param.defaultValue || 0;
           } else {
             queryParams[param.key] = String(value);
           }
@@ -206,7 +284,7 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
     setResult(null);
   };
 
-  const containerClass = compact 
+  const containerClass = compact
     ? `bg-white dark:bg-gray-800 rounded-lg shadow p-4 ${className}`
     : `bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 ${className}`;
 
@@ -222,24 +300,23 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
     <div className={className}>
       {!compact && (
         <div className="mb-6">
-          <h1 className={titleClass}>
-            Arkiv Query Tester
-          </h1>
+          <h1 className={titleClass}>Arkiv Query Tester</h1>
           <p className={descriptionClass}>
-            Test Arkiv queries for all entity types. Useful for debugging and finding entities on Arkiv Explorer.
+            Test Arkiv queries for all entity types. Useful for debugging and finding entities on
+            Arkiv Explorer.
           </p>
         </div>
       )}
 
       <div className={containerClass}>
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Entity Type
           </label>
           <select
             value={selectedEntityType}
             onChange={(e) => handleEntityTypeChange(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
           >
             {Object.entries(ENTITY_TYPES).map(([key, config]) => (
               <option key={key} value={key}>
@@ -249,17 +326,19 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
           </select>
         </div>
 
-        <div className="space-y-4 mb-6">
-          <h3 className={`${compact ? 'text-base' : 'text-lg'} font-semibold text-gray-900 dark:text-white`}>
+        <div className="mb-6 space-y-4">
+          <h3
+            className={`${compact ? 'text-base' : 'text-lg'} font-semibold text-gray-900 dark:text-white`}
+          >
             Query Parameters
           </h3>
           {entityConfig.params.map((param) => (
             <div key={param.key}>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              <label className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 {param.label}
-                {param.required && <span className="text-red-500 ml-1">*</span>}
+                {param.required && <span className="ml-1 text-red-500">*</span>}
                 {param.defaultValue && (
-                  <span className="text-gray-500 dark:text-gray-400 text-xs ml-2">
+                  <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                     (default: {param.defaultValue})
                   </span>
                 )}
@@ -268,8 +347,10 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
                 type={param.type}
                 value={params[param.key] || param.defaultValue || ''}
                 onChange={(e) => handleParamChange(param.key, e.target.value)}
-                placeholder={param.defaultValue ? `Default: ${param.defaultValue}` : 'Enter value...'}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={
+                  param.defaultValue ? `Default: ${param.defaultValue}` : 'Enter value...'
+                }
+                className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
           ))}
@@ -278,21 +359,25 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
         <button
           onClick={handleRunQuery}
           disabled={loading}
-          className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-md transition-colors"
+          className="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:bg-gray-400"
         >
           {loading ? 'Running Query...' : 'Run Query'}
         </button>
       </div>
 
       {result && (
-        <div className={`${compact ? 'mt-4' : 'mt-6'} bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6`}>
-          <h2 className={`${compact ? 'text-lg' : 'text-xl'} font-semibold text-gray-900 dark:text-white mb-4`}>
+        <div
+          className={`${compact ? 'mt-4' : 'mt-6'} rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800`}
+        >
+          <h2
+            className={`${compact ? 'text-lg' : 'text-xl'} mb-4 font-semibold text-gray-900 dark:text-white`}
+          >
             Query Results
           </h2>
 
           {result.error ? (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md p-4">
-              <p className="text-red-800 dark:text-red-200 font-medium">Error:</p>
+            <div className="rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
+              <p className="font-medium text-red-800 dark:text-red-200">Error:</p>
               <p className="text-red-600 dark:text-red-300">{result.error}</p>
             </div>
           ) : result.result ? (
@@ -304,7 +389,7 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
               </div>
 
               {result.result.entities.length === 0 ? (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md p-4">
+                <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
                   <p className="text-yellow-800 dark:text-yellow-200">
                     No entities found matching the query parameters.
                   </p>
@@ -314,15 +399,15 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
                   {result.result.entities.map((entity, index) => (
                     <div
                       key={entity.key || index}
-                      className="border border-gray-200 dark:border-gray-700 rounded-md p-4"
+                      className="rounded-md border border-gray-200 p-4 dark:border-gray-700"
                     >
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="mb-2 flex items-start justify-between">
                         <div>
                           <h4 className="font-semibold text-gray-900 dark:text-white">
                             Entity #{index + 1}
                           </h4>
                           {entity.key && (
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-mono">
+                            <p className="font-mono text-sm text-gray-500 dark:text-gray-400">
                               Key: {entity.key.slice(0, 20)}...
                             </p>
                           )}
@@ -338,10 +423,10 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
 
                       <div className="mt-3 space-y-2">
                         <div>
-                          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
+                          <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                             Attributes
                           </p>
-                          <pre className="text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto">
+                          <pre className="overflow-x-auto rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
                             {JSON.stringify(
                               entity.attributes?.reduce((acc: any, attr: any) => {
                                 acc[attr.key] = attr.value;
@@ -355,10 +440,10 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
 
                         {entity.payload && (
                           <div>
-                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">
+                            <p className="mb-1 text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">
                               Payload
                             </p>
-                            <pre className="text-xs bg-gray-50 dark:bg-gray-900 p-2 rounded overflow-x-auto">
+                            <pre className="overflow-x-auto rounded bg-gray-50 p-2 text-xs dark:bg-gray-900">
                               {JSON.stringify(entity.payload, null, 2)}
                             </pre>
                           </div>
@@ -370,7 +455,7 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
               )}
             </div>
           ) : (
-            <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-md p-4">
+            <div className="rounded-md border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900">
               <p className="text-gray-600 dark:text-gray-400">No results returned.</p>
             </div>
           )}
@@ -379,4 +464,3 @@ export function ArkivQueryTester({ className = '', compact = false }: ArkivQuery
     </div>
   );
 }
-

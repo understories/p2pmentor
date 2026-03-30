@@ -1,6 +1,6 @@
 /**
  * Background Image Component
- * 
+ *
  * Theme-aware background image that switches between light and dark mode images.
  * Uses semi-transparent overlays so the painting is visible but covered.
  * The image fades in as data loads, creating a beautiful loading experience.
@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react';
 
 export function BackgroundImage() {
   const [imageLoaded, setImageLoaded] = useState(false);
-  
+
   // Use different images for light and dark mode
   const lightImage = '/understorylight.png';
   const darkImage = '/understory.jpeg';
@@ -21,7 +21,7 @@ export function BackgroundImage() {
     // Preload images and fade in when loaded
     const lightImg = new Image();
     const darkImg = new Image();
-    
+
     let loadedCount = 0;
     const handleLoad = () => {
       loadedCount++;
@@ -33,7 +33,7 @@ export function BackgroundImage() {
 
     lightImg.onload = handleLoad;
     darkImg.onload = handleLoad;
-    
+
     lightImg.src = lightImage;
     darkImg.src = darkImage;
   }, []);
@@ -41,18 +41,18 @@ export function BackgroundImage() {
   return (
     <>
       {/* Light Mode Background - NO OVERLAYS */}
-      <div 
-        className={`fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat dark:hidden transition-opacity duration-1000 ${
+      <div
+        className={`fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 dark:hidden ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         style={{
           backgroundImage: `url(${lightImage})`,
         }}
       />
-      
+
       {/* Dark Mode Background - NO OVERLAYS */}
-      <div 
-        className={`hidden dark:block fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ${
+      <div
+        className={`fixed inset-0 -z-10 hidden bg-cover bg-center bg-no-repeat transition-opacity duration-1000 dark:block ${
           imageLoaded ? 'opacity-100' : 'opacity-0'
         }`}
         style={{
@@ -62,4 +62,3 @@ export function BackgroundImage() {
     </>
   );
 }
-

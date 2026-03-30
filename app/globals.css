@@ -4,7 +4,8 @@
 
 /* Subtle card glow animation for dashboard */
 @keyframes subtleGlow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
   50% {
@@ -13,7 +14,8 @@
 }
 
 @keyframes glowPulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.8;
     transform: scale(1);
   }
@@ -62,7 +64,7 @@
   --border-color: rgba(150, 255, 150, 0.3); /* More visible borders */
   --accent-color: rgba(150, 255, 150, 0.9); /* Brighter for better visibility */
   --accent-hover: rgba(200, 255, 200, 1);
-  
+
   /* Forest glow effects for dark mode - more subtle */
   --glow-soft: rgba(100, 255, 100, 0.08);
   --glow-medium: rgba(150, 255, 150, 0.15);
@@ -73,7 +75,9 @@
 body {
   background-color: transparent; /* Let BackgroundImage component handle background */
   color: var(--text-primary);
-  transition: background-color 2s ease, color 2s ease;
+  transition:
+    background-color 2s ease,
+    color 2s ease;
   min-height: 100vh;
 }
 
@@ -89,7 +93,10 @@ body {
 
 /* Smooth theme transitions for all elements */
 * {
-  transition: background-color 2s ease, color 2s ease, border-color 2s ease;
+  transition:
+    background-color 2s ease,
+    color 2s ease,
+    border-color 2s ease;
 }
 
 /* Light mode text colors - green painting aesthetic */
@@ -163,8 +170,7 @@ body {
 
 /* Dark mode forest background effects - more subtle for readability */
 .dark body {
-  background: 
-    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.1) 0%, transparent 60%),
+  background: radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.1) 0%, transparent 60%),
     radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.08) 0%, transparent 60%),
     radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.06) 0%, transparent 70%),
     linear-gradient(180deg, rgba(5, 20, 5, 0.05) 0%, transparent 50%),
@@ -176,7 +182,7 @@ body {
 .dark h1,
 .dark h2,
 .dark h3 {
-  text-shadow: 
+  text-shadow:
     0 0 5px var(--glow-soft),
     0 0 10px var(--glow-medium);
   color: #e0e0e0; /* Ensure sufficient contrast */
@@ -190,7 +196,7 @@ body {
 
 .dark button:hover,
 .dark a:hover {
-  text-shadow: 
+  text-shadow:
     0 0 8px var(--glow-medium),
     0 0 15px var(--glow-soft);
 }
@@ -280,7 +286,8 @@ body {
 @keyframes hg-seed-pulse-continuous {
   0% {
     transform: scale(1);
-    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8))
+      drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
   }
   50% {
     transform: scale(1.15);
@@ -288,7 +295,8 @@ body {
   }
   100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
+    filter: drop-shadow(0 0 20px rgba(34, 197, 94, 0.8))
+      drop-shadow(0 0 40px rgba(34, 197, 94, 0.4));
   }
 }
 
@@ -359,7 +367,7 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  
+
   .hg-anim-plant-idle,
   .hg-anim-plant-breathe {
     animation: none;
@@ -369,4 +377,3 @@ body {
     transition: none !important;
   }
 }
-

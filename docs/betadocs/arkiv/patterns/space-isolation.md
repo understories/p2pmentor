@@ -11,12 +11,14 @@
 ## When to Use
 
 **Always apply this pattern when:**
+
 - Creating entities (include `spaceId` attribute)
 - Querying entities (filter by `spaceId`)
 - Setting up different environments (dev, staging, prod)
 - Creating seed or test data (use separate `spaceId`)
 
 **Configuration:**
+
 - Use `SPACE_ID` from `lib/config.ts` (never hardcode)
 - Override via `BETA_SPACE_ID` environment variable when needed
 - Default: `'beta-launch'` in production, `'local-dev'` in development
@@ -55,12 +57,14 @@
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/config.ts` - `SPACE_ID` configuration with environment-based defaults
 - All entity creation functions: `spaceId = SPACE_ID` as default parameter
 - All query functions: filter by `spaceId` or use `SPACE_ID` as default
 - API routes: extract `spaceId` from query params or use `SPACE_ID`
 
 **Code examples:**
+
 ```typescript
 // Configuration (lib/config.ts)
 export const SPACE_ID = process.env.BETA_SPACE_ID ||
@@ -131,4 +135,3 @@ if (spaceIds && spaceIds.length > 0) {
 - [Query Optimization](./query-optimization.md) - `spaceId` is an indexed attribute
 - [PAT-IDENTITY-001: Wallet Normalization](./wallet-normalization.md) - Both use normalized attributes
 - [PAT-WRITE-AUTHZ-001: Server-Signed Writes](../arkiv-patterns-catalog.md#pat-write-authz-001-server-signed-writes-phase-0) - Signing wallet vs `spaceId` isolation
-

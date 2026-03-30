@@ -1,8 +1,8 @@
 /**
  * Feedback Button Component
- * 
+ *
  * Floating button to open app feedback modal from any page.
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 4.1
  */
 
@@ -45,16 +45,11 @@ export function FeedbackButton() {
     <>
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-4 shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 group"
+        className="group fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-blue-600 p-4 text-white shadow-lg transition-all duration-200 hover:bg-blue-700 hover:shadow-xl"
         aria-label="Share feedback"
         title="Share your feedback about p2pmentor"
       >
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -62,16 +57,11 @@ export function FeedbackButton() {
             d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"
           />
         </svg>
-        <span className="hidden sm:inline text-sm font-medium group-hover:scale-105 transition-transform">
+        <span className="hidden text-sm font-medium transition-transform group-hover:scale-105 sm:inline">
           Feedback
         </span>
       </button>
-      <AppFeedbackModal
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        userWallet={wallet}
-      />
+      <AppFeedbackModal isOpen={isOpen} onClose={() => setIsOpen(false)} userWallet={wallet} />
     </>
   );
 }
-

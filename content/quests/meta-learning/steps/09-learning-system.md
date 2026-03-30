@@ -7,6 +7,7 @@ Now you'll create a personal learning system that combines all the techniques fr
 ## Your Learning System Plan
 
 Design a system for learning a specific topic or skill using:
+
 - Spaced repetition
 - Deliberative practice
 - Active recall
@@ -20,6 +21,7 @@ What do you want to learn?
 ## Step 2: Design Your System
 
 ### Spaced Repetition Schedule
+
 - When will you review?
 - What will you review?
 - How will you track it?
@@ -27,6 +29,7 @@ What do you want to learn?
 [User input]
 
 ### Deliberative Practice Plan
+
 - What specific skill/components will you practice?
 - How will you get feedback?
 - What's your practice schedule?
@@ -34,6 +37,7 @@ What do you want to learn?
 [User input]
 
 ### Active Recall Strategy
+
 - What questions will you create?
 - How often will you test yourself?
 - What format will you use?
@@ -41,6 +45,7 @@ What do you want to learn?
 [User input]
 
 ### Procedural Learning (if applicable)
+
 - What procedures need to become automatic?
 - How will you practice them?
 - How will you know when they're automatic?

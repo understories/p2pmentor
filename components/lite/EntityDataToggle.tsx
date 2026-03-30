@@ -1,9 +1,9 @@
 /**
  * Entity Data Toggle Component
- * 
+ *
  * Toggleable component that displays transaction and entity data for lite asks/offers.
  * Shows entity key, transaction hash, and "View on Arkiv" links for both.
- * 
+ *
  * Part of lite version implementation - always visible (not builder-mode only).
  */
 
@@ -38,7 +38,7 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
     <div className={className}>
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="inline-flex items-center gap-1 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+        className="inline-flex items-center gap-1 text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
         title="Toggle transaction and entity data"
         aria-label="Toggle transaction and entity data"
       >
@@ -46,17 +46,19 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
       </button>
 
       {isExpanded && (
-        <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 text-xs">
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 text-xs dark:border-gray-700 dark:bg-gray-900">
           <div className="space-y-2">
             {/* Entity Key */}
             <div className="flex items-center gap-2">
-              <span className="text-gray-600 dark:text-gray-400 font-medium min-w-[80px]">Entity Key:</span>
-              <code className="flex-1 font-mono text-gray-800 dark:text-gray-200 break-all">
+              <span className="min-w-[80px] font-medium text-gray-600 dark:text-gray-400">
+                Entity Key:
+              </span>
+              <code className="flex-1 break-all font-mono text-gray-800 dark:text-gray-200">
                 {entityKey}
               </code>
               <button
                 onClick={() => copyToClipboard(entityKey, setCopiedKey)}
-                className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
+                className="rounded bg-gray-200 px-2 py-1 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                 title="Copy entity key"
               >
                 {copiedKey ? '✓' : '📋'}
@@ -66,13 +68,15 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
             {/* Transaction Hash */}
             {txHash && txHash !== 'undefined' && (
               <div className="flex items-center gap-2">
-                <span className="text-gray-600 dark:text-gray-400 font-medium min-w-[80px]">Tx Hash:</span>
-                <code className="flex-1 font-mono text-gray-800 dark:text-gray-200 break-all">
+                <span className="min-w-[80px] font-medium text-gray-600 dark:text-gray-400">
+                  Tx Hash:
+                </span>
+                <code className="flex-1 break-all font-mono text-gray-800 dark:text-gray-200">
                   {txHash}
                 </code>
                 <button
                   onClick={() => copyToClipboard(txHash, setCopiedHash)}
-                  className="px-2 py-1 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
+                  className="rounded bg-gray-200 px-2 py-1 transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
                   title="Copy transaction hash"
                 >
                   {copiedHash ? '✓' : '📋'}
@@ -81,7 +85,7 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
             )}
 
             {/* Explorer Links */}
-            <div className="flex items-center gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-3 border-t border-gray-200 pt-2 dark:border-gray-700">
               <ViewOnArkivLink
                 entityKey={entityKey}
                 label="View Entity"
@@ -93,7 +97,7 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
                   href={getArkivExplorerTxUrl(txHash)}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-green-600 dark:text-green-400 hover:underline text-xs font-medium"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-green-600 hover:underline dark:text-green-400"
                   title="View transaction on Arkiv Explorer"
                 >
                   <span>🔗</span>
@@ -107,4 +111,3 @@ export function EntityDataToggle({ entityKey, txHash, className = '' }: EntityDa
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 /**
  * Admin API: Metric Aggregates
- * 
+ *
  * Lists metric aggregates from Arkiv entities.
  */
 
@@ -9,7 +9,7 @@ import { listMetricAggregates } from '@/lib/arkiv/metricAggregates';
 
 /**
  * GET /api/admin/metric-aggregates
- * 
+ *
  * Query params:
  * - date: string (YYYY-MM-DD)
  * - period: 'daily' | 'weekly'

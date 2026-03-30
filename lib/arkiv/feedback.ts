@@ -1,14 +1,14 @@
 /**
  * Feedback CRUD helpers
- * 
+ *
  * Handles post-session feedback (ratings, notes, technical DX feedback).
- * 
+ *
  * Based on mentor-graph patterns.
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { SPACE_ID } from '@/lib/config';
 
 export type Feedback = {
   key: string;
@@ -23,7 +23,7 @@ export type Feedback = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Check if user has already given feedback for a session
@@ -34,12 +34,12 @@ export async function hasUserGivenFeedbackForSession(
 ): Promise<boolean> {
   const feedbacks = await listFeedbackForSession(sessionKey);
   const normalizedFrom = feedbackFrom.toLowerCase();
-  return feedbacks.some(f => f.feedbackFrom.toLowerCase() === normalizedFrom);
+  return feedbacks.some((f) => f.feedbackFrom.toLowerCase() === normalizedFrom);
 }
 
 /**
  * Create feedback for a session
- * 
+ *
  * Validates:
  * - Session must be confirmed (both mentor and learner confirmed)
  * - User must be a participant
@@ -88,7 +88,7 @@ export async function createFeedback({
   const normalizedMentor = mentorWallet.toLowerCase();
   const normalizedLearner = learnerWallet.toLowerCase();
   const normalizedFrom = feedbackFrom.toLowerCase();
-  
+
   if (normalizedFrom !== normalizedMentor && normalizedFrom !== normalizedLearner) {
     throw new Error('Feedback can only be given by session participants');
   }
@@ -113,13 +113,19 @@ export async function createFeedback({
   // But we still validate here for consistency
   if (mentorConfirmed !== undefined && learnerConfirmed !== undefined) {
     if (!mentorConfirmed || !learnerConfirmed) {
-      throw new Error('Feedback can only be given for confirmed sessions (both mentor and learner must confirm)');
+      throw new Error(
+        'Feedback can only be given for confirmed sessions (both mentor and learner must confirm)'
+      );
     }
   }
 
   // CRITICAL: Validate session status
   if (sessionStatus) {
-    if (sessionStatus === 'pending' || sessionStatus === 'declined' || sessionStatus === 'cancelled') {
+    if (
+      sessionStatus === 'pending' ||
+      sessionStatus === 'declined' ||
+      sessionStatus === 'cancelled'
+    ) {
       throw new Error('Feedback can only be given for scheduled or completed sessions');
     }
   }
@@ -179,19 +185,21 @@ export async function createFeedback({
   });
 
   // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'session_feedback_txhash' },
-      { key: 'feedbackKey', value: entityKey },
-      { key: 'spaceId', value: spaceId },
-      { key: 'createdAt', value: createdAt },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createFeedback] Failed to create session_feedback_txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'session_feedback_txhash' },
+        { key: 'feedbackKey', value: entityKey },
+        { key: 'spaceId', value: spaceId },
+        { key: 'createdAt', value: createdAt },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createFeedback] Failed to create session_feedback_txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
@@ -199,13 +207,17 @@ export async function createFeedback({
 /**
  * List feedback for a session
  */
-export async function listFeedbackForSession(sessionKey: string, spaceId?: string): Promise<Feedback[]> {
+export async function listFeedbackForSession(
+  sessionKey: string,
+  spaceId?: string
+): Promise<Feedback[]> {
   const publicClient = getPublicClient();
-  
+
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  
-  const result = await publicClient.buildQuery()
+
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'session_feedback'))
     .where(eq('sessionKey', sessionKey))
     .where(eq('spaceId', finalSpaceId))
@@ -218,11 +230,12 @@ export async function listFeedbackForSession(sessionKey: string, spaceId?: strin
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -259,21 +272,23 @@ export async function listFeedbackForSession(sessionKey: string, spaceId?: strin
  */
 export async function listFeedbackForWallet(wallet: string, spaceId?: string): Promise<Feedback[]> {
   const publicClient = getPublicClient();
-  
+
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  
+
   // Query feedback where wallet is either feedbackFrom or feedbackTo
   // Filter by spaceId to ensure cross-environment isolation
   const [fromResult, toResult] = await Promise.all([
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'session_feedback'))
       .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'session_feedback'))
       .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
@@ -284,14 +299,14 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
 
   const allEntities = [...fromResult.entities, ...toResult.entities];
   const normalizedWallet = wallet.toLowerCase();
-  
+
   // Filter and deduplicate
   const seenKeys = new Set<string>();
   const feedbacks: Feedback[] = [];
 
   allEntities.forEach((entity: any) => {
     if (seenKeys.has(entity.key)) return;
-    
+
     const attrs = entity.attributes || {};
     const getAttr = (key: string): string => {
       if (Array.isArray(attrs)) {
@@ -306,15 +321,16 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
 
     if (feedbackFrom === normalizedWallet || feedbackTo === normalizedWallet) {
       seenKeys.add(entity.key);
-      
+
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -337,23 +353,24 @@ export async function listFeedbackForWallet(wallet: string, spaceId?: string): P
     }
   });
 
-  return feedbacks.sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  return feedbacks.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 
 /**
  * Get a single session feedback by key
- * 
+ *
  * @param key - Session feedback entity key
  * @returns Feedback or null if not found
  */
 export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
   const publicClient = getPublicClient();
-  
+
   try {
     // Query by key using where clause
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_feedback'))
       .where(eq('key', key))
       .withAttributes(true)
@@ -366,9 +383,10 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
     }
 
     const entity = result.entities[0];
-    
+
     // Fetch txHash in parallel
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_feedback_txhash'))
       .where(eq('feedbackKey', key))
       .withAttributes(true)
@@ -378,14 +396,19 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
 
     // Build txHash
     let txHash: string | undefined;
-    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+    if (
+      txHashResult?.entities &&
+      Array.isArray(txHashResult.entities) &&
+      txHashResult.entities.length > 0
+    ) {
       try {
         const txHashEntity = txHashResult.entities[0];
-        const txHashPayload = txHashEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(txHashEntity.payload)
-          : typeof txHashEntity.payload === 'string'
-          ? txHashEntity.payload
-          : JSON.stringify(txHashEntity.payload);
+        const txHashPayload =
+          txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+              ? txHashEntity.payload
+              : JSON.stringify(txHashEntity.payload);
         const decoded = JSON.parse(txHashPayload);
         txHash = decoded.txHash;
       } catch (e) {
@@ -396,11 +419,12 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -435,4 +459,3 @@ export async function getFeedbackByKey(key: string): Promise<Feedback | null> {
     return null;
   }
 }
-

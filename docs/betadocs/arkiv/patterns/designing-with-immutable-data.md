@@ -13,11 +13,13 @@ Transactions cannot be modified after creation. Each entity mutation (create or 
 Arkiv supports two update patterns:
 
 **Pattern A: Create New Entity per Change** (for versioning scenarios)
+
 - Each change creates a new entity with a new `entity_key`
 - Queries must select the latest version by `createdAt`
 - Use for: document revisions, immutable audit logs, version history as a feature
 
 **Pattern B: Update in Place** (for mutable application state) ⭐ **Recommended for most cases**
+
 - Reuse the same `entity_key` for updates
 - Query by `entity_key` always returns current state
 - Use for: profiles, preferences, notifications, frequently updated entities
@@ -46,4 +48,3 @@ Blockchain operations have inherent latency and uncertainty:
 - **Error recovery**: Allow retries and show clear error messages
 
 See [Error Handling](/docs/arkiv/patterns/error-handling) and [Transaction Timeouts](/docs/arkiv/patterns/transaction-timeouts) for patterns.
-

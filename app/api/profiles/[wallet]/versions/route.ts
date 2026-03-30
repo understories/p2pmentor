@@ -1,12 +1,12 @@
 /**
  * API Route: Get profile version history
- * 
+ *
  * Fetches all versions/transactions for a profile entity.
  * Since profiles use Pattern B (update in place), we need to:
  * 1. Get the current profile to get its entity_key
  * 2. Query all profile entities for that wallet (includes old Pattern A entities)
  * 3. Also try to get transaction history from Arkiv Explorer if available
- * 
+ *
  * Returns all profile versions sorted by creation time.
  */
 
@@ -15,27 +15,18 @@ import { getProfileByWallet, listUserProfilesForWallet } from '@/lib/arkiv/profi
 import { SPACE_ID } from '@/lib/config';
 import { ARKIV_EXPLORER_BASE_URL } from '@/lib/arkiv/explorer';
 
-export async function GET(
-  request: NextRequest,
-  context: { params: Promise<{ wallet: string }> }
-) {
+export async function GET(request: NextRequest, context: { params: Promise<{ wallet: string }> }) {
   try {
     const params = await context.params;
     const wallet = params.wallet?.toLowerCase().trim();
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet address required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet address required' }, { status: 400 });
     }
 
     // Get current profile to get entity_key
     const currentProfile = await getProfileByWallet(wallet);
     if (!currentProfile) {
-      return NextResponse.json(
-        { ok: false, error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'Profile not found' }, { status: 404 });
     }
 
     // Query all profile entities for this wallet
@@ -88,4 +79,3 @@ export async function GET(
     );
   }
 }
-

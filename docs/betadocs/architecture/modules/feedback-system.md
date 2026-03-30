@@ -13,18 +13,21 @@ This document explains how we implement user feedback with blockchain data in a 
 ### Core Components
 
 1. **App Feedback Entities** (`app_feedback`)
+
    - Created when users submit feedback or report issues
    - Immutable - each feedback is a separate entity
    - Contains: wallet, page, message, rating, feedbackType
    - TTL: 1 year (31536000 seconds)
 
 2. **App Feedback Resolution Entities** (`app_feedback_resolution`)
+
    - Created when admins resolve feedback/issues
    - Immutable - each resolution is a separate entity
    - Contains: feedbackKey, resolvedBy, resolvedAt
    - TTL: 1 year (31536000 seconds)
 
 3. **Admin Response Entities** (`admin_response`)
+
    - Created when admins respond to feedback
    - Immutable - each response is a separate entity
    - Contains: feedbackKey, message, adminWallet
@@ -42,22 +45,22 @@ This document explains how we implement user feedback with blockchain data in a 
 
 ```typescript
 type AppFeedback = {
-  key: string;                    // Entity key
-  wallet: string;                 // User wallet (normalized to lowercase)
-  page: string;                   // Page where feedback was given
-  message: string;                // Feedback message
-  rating?: number;                // Optional 1-5 stars
+  key: string; // Entity key
+  wallet: string; // User wallet (normalized to lowercase)
+  page: string; // Page where feedback was given
+  message: string; // Feedback message
+  rating?: number; // Optional 1-5 stars
   feedbackType?: 'feedback' | 'issue'; // Type of feedback
   spaceId: string;
-  createdAt: string;             // ISO timestamp
-  txHash?: string;               // Transaction hash
+  createdAt: string; // ISO timestamp
+  txHash?: string; // Transaction hash
   // Resolution tracking (arkiv-native: query resolution entities)
-  resolved?: boolean;            // Whether resolved
-  resolvedAt?: string;           // When resolved
-  resolvedBy?: string;           // Admin wallet that resolved
+  resolved?: boolean; // Whether resolved
+  resolvedAt?: string; // When resolved
+  resolvedBy?: string; // Admin wallet that resolved
   // Response tracking (arkiv-native: query admin_response entities)
-  hasResponse?: boolean;         // Whether admin responded
-  responseAt?: string;          // When response was created
+  hasResponse?: boolean; // Whether admin responded
+  responseAt?: string; // When response was created
 };
 ```
 
@@ -65,14 +68,14 @@ type AppFeedback = {
 
 ```typescript
 type AdminResponse = {
-  key: string;                    // Entity key
-  feedbackKey: string;          // Reference to app_feedback entity
-  wallet: string;                // User wallet (from feedback)
-  message: string;               // Response message
-  adminWallet: string;           // Admin wallet that responded
+  key: string; // Entity key
+  feedbackKey: string; // Reference to app_feedback entity
+  wallet: string; // User wallet (from feedback)
+  message: string; // Response message
+  adminWallet: string; // Admin wallet that responded
   spaceId: string;
-  createdAt: string;            // ISO timestamp
-  txHash?: string;               // Transaction hash
+  createdAt: string; // ISO timestamp
+  txHash?: string; // Transaction hash
 };
 ```
 
@@ -80,18 +83,18 @@ type AdminResponse = {
 
 ```typescript
 type Feedback = {
-  key: string;                    // Entity key
-  sessionKey: string;            // Reference to session entity
-  mentorWallet: string;          // Mentor wallet
-  learnerWallet: string;         // Learner wallet
-  feedbackFrom: string;          // Wallet giving feedback
-  feedbackTo: string;            // Wallet receiving feedback
-  rating?: number;               // 1-5 stars
-  notes?: string;                // Qualitative feedback
-  technicalDxFeedback?: string;  // Technical DX feedback
+  key: string; // Entity key
+  sessionKey: string; // Reference to session entity
+  mentorWallet: string; // Mentor wallet
+  learnerWallet: string; // Learner wallet
+  feedbackFrom: string; // Wallet giving feedback
+  feedbackTo: string; // Wallet receiving feedback
+  rating?: number; // 1-5 stars
+  notes?: string; // Qualitative feedback
+  technicalDxFeedback?: string; // Technical DX feedback
   spaceId: string;
-  createdAt: string;             // ISO timestamp
-  txHash?: string;               // Transaction hash
+  createdAt: string; // ISO timestamp
+  txHash?: string; // Transaction hash
 };
 ```
 
@@ -100,9 +103,11 @@ type Feedback = {
 ### The Challenge
 
 In a centralized system, feedback resolution is simple:
+
 - Admin resolves feedback → Update database row → Done
 
 In a decentralized system:
+
 - No centralized database
 - Entities are immutable (cannot be modified)
 - Resolution creates a new entity
@@ -114,6 +119,7 @@ In a decentralized system:
 **1. Separate Entities for State**
 
 Feedback, resolution, and response are separate entities:
+
 - `app_feedback`: The original feedback/issue
 - `app_feedback_resolution`: Resolution state (created when resolved)
 - `admin_response`: Admin response (created when admin responds)
@@ -121,20 +127,24 @@ Feedback, resolution, and response are separate entities:
 **2. Parallel Query Pattern**
 
 To get complete feedback state:
+
 ```typescript
 // Query feedback, resolutions, and responses in parallel
 const [feedbackResult, resolutionResult, responseResult] = await Promise.all([
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'app_feedback'))
     .withAttributes(true)
     .withPayload(true)
     .fetch(),
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'app_feedback_resolution'))
     .withAttributes(true)
     .withPayload(true)
     .fetch(),
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'admin_response'))
     .withAttributes(true)
     .withPayload(true)
@@ -143,7 +153,7 @@ const [feedbackResult, resolutionResult, responseResult] = await Promise.all([
 
 // Build maps for efficient lookup
 const resolutionMap: Record<string, { resolvedAt: string; resolvedBy: string }> = {};
-resolutionResult.entities.forEach(entity => {
+resolutionResult.entities.forEach((entity) => {
   const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
@@ -161,7 +171,7 @@ resolutionResult.entities.forEach(entity => {
 });
 
 const responseMap: Record<string, { responseAt: string }> = {};
-responseResult.entities.forEach(entity => {
+responseResult.entities.forEach((entity) => {
   const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
@@ -178,7 +188,7 @@ responseResult.entities.forEach(entity => {
 });
 
 // Combine feedback with resolution and response data
-const feedbacks = feedbackResult.entities.map(entity => {
+const feedbacks = feedbackResult.entities.map((entity) => {
   const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
@@ -224,18 +234,19 @@ const { key, txHash } = await resolveAppFeedback({
 **Rule:** Always normalize wallet addresses to lowercase when storing and querying.
 
 **Implementation:**
+
 ```typescript
 // ✅ Correct: Normalize when storing
 attributes: [
   { key: 'wallet', value: wallet.toLowerCase() },
   { key: 'resolvedBy', value: resolvedByWallet.toLowerCase() },
   // ...
-]
+];
 
 // ✅ Correct: Normalize when querying
 if (wallet) {
   const normalizedWallet = wallet.toLowerCase();
-  feedbacks = feedbacks.filter(f => f.wallet.toLowerCase() === normalizedWallet);
+  feedbacks = feedbacks.filter((f) => f.wallet.toLowerCase() === normalizedWallet);
 }
 ```
 
@@ -258,48 +269,52 @@ export async function listAppFeedback({
   feedbackType?: 'feedback' | 'issue';
 } = {}): Promise<AppFeedback[]> {
   const publicClient = getPublicClient();
-  
+
   // Fetch feedback, txHash, resolution, and response entities in parallel
   const [result, txHashResult, resolutionResult, responseResult] = await Promise.all([
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback'))
       .withAttributes(true)
       .withPayload(true)
       .limit(limit || 100)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback_txhash'))
       .withAttributes(true)
       .withPayload(true)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback_resolution'))
       .withAttributes(true)
       .withPayload(true)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'admin_response'))
       .withAttributes(true)
       .withPayload(true)
       .fetch(),
   ]);
-  
+
   // Build maps for efficient lookup
   const txHashMap: Record<string, string> = {};
   // ... build txHash map
-  
+
   const resolutionMap: Record<string, Resolution> = {};
   // ... build resolution map
-  
+
   const responseMap: Record<string, Response> = {};
   // ... build response map
-  
+
   // Combine feedback with resolution and response data
-  let feedbacks = result.entities.map(entity => {
+  let feedbacks = result.entities.map((entity) => {
     const feedbackKey = entity.key;
     const resolution = resolutionMap[feedbackKey];
     const response = responseMap[feedbackKey];
-    
+
     return {
       key: feedbackKey,
       wallet: getAttr('wallet'),
@@ -315,25 +330,25 @@ export async function listAppFeedback({
       txHash: txHashMap[feedbackKey],
     };
   });
-  
+
   // Apply filters
   if (page) {
-    feedbacks = feedbacks.filter(f => f.page === page);
+    feedbacks = feedbacks.filter((f) => f.page === page);
   }
   if (wallet) {
     const normalizedWallet = wallet.toLowerCase();
-    feedbacks = feedbacks.filter(f => f.wallet.toLowerCase() === normalizedWallet);
+    feedbacks = feedbacks.filter((f) => f.wallet.toLowerCase() === normalizedWallet);
   }
   if (feedbackType) {
-    feedbacks = feedbacks.filter(f => f.feedbackType === feedbackType);
+    feedbacks = feedbacks.filter((f) => f.feedbackType === feedbackType);
   }
   if (since) {
     const sinceTime = new Date(since).getTime();
-    feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
+    feedbacks = feedbacks.filter((f) => new Date(f.createdAt).getTime() >= sinceTime);
   }
-  
-  return feedbacks.sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+
+  return feedbacks.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 }
 ```
@@ -343,37 +358,41 @@ export async function listAppFeedback({
 ```typescript
 export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | null> {
   const publicClient = getPublicClient();
-  
+
   // Query feedback by key
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'app_feedback'))
     .where(eq('key', key))
     .withAttributes(true)
     .withPayload(true)
     .limit(1)
     .fetch();
-  
+
   if (!result || !result.entities || result.entities.length === 0) {
     return null;
   }
-  
+
   // Fetch txHash, resolution, and response in parallel
   const [txHashResult, resolutionResult, responseResult] = await Promise.all([
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback_txhash'))
       .where(eq('feedbackKey', key))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback_resolution'))
       .where(eq('feedbackKey', key))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'admin_response'))
       .where(eq('feedbackKey', key))
       .withAttributes(true)
@@ -381,12 +400,12 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
       .limit(1)
       .fetch(),
   ]);
-  
+
   // Build complete feedback object
   const entity = result.entities[0];
   const resolution = resolutionResult.entities[0];
   const response = responseResult.entities[0];
-  
+
   return {
     key: entity.key,
     wallet: getAttr('wallet'),
@@ -395,7 +414,7 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
     rating: payload.rating,
     feedbackType: getAttr('feedbackType') || 'feedback',
     resolved: !!resolution,
-    resolvedAt: resolution ? (payload.resolvedAt || getAttr('createdAt')) : undefined,
+    resolvedAt: resolution ? payload.resolvedAt || getAttr('createdAt') : undefined,
     resolvedBy: resolution ? getAttr('resolvedBy') : undefined,
     hasResponse: !!response,
     responseAt: response ? getAttr('createdAt') : undefined,
@@ -429,29 +448,31 @@ export async function createAppFeedback({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
-  
+
   // Validate rating if provided
   if (rating !== undefined && (rating < 1 || rating > 5)) {
     throw new Error('Rating must be between 1 and 5');
   }
-  
+
   // Validate: either message OR rating must be provided (at least one)
   const hasMessage = message && message.trim().length > 0;
   const hasRating = rating !== undefined && rating >= 1 && rating <= 5;
   if (!hasMessage && !hasRating) {
     throw new Error('Either a rating or feedback message is required');
   }
-  
+
   // App feedback should persist (1 year) for admin review
   const expiresIn = 31536000; // 1 year in seconds
-  
+
   // Create feedback entity
   const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
-      rating: hasRating ? rating : undefined,
-      createdAt,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
+        rating: hasRating ? rating : undefined,
+        createdAt,
+      })
+    ),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'app_feedback' },
@@ -464,7 +485,7 @@ export async function createAppFeedback({
     ],
     expiresIn,
   });
-  
+
   // Store txHash in a separate entity for reliable querying (similar to asks.ts pattern)
   await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({ txHash })),
@@ -477,21 +498,21 @@ export async function createAppFeedback({
     ],
     expiresIn,
   });
-  
+
   // Create notification for the user who submitted the feedback (tied to their profile wallet)
   // This confirms their feedback/issue was successfully submitted
   try {
     const { createNotification } = await import('./notifications');
-    
+
     // Build notification message from feedback data
-    const feedbackPreview = hasMessage 
-      ? (message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim())
+    const feedbackPreview = hasMessage
+      ? message.trim().length > 100
+        ? message.trim().substring(0, 100) + '...'
+        : message.trim()
       : `Rating: ${rating}/5`;
-    
-    const notificationTitle = feedbackType === 'issue' 
-      ? 'Issue Reported' 
-      : 'Feedback Submitted';
-    
+
+    const notificationTitle = feedbackType === 'issue' ? 'Issue Reported' : 'Feedback Submitted';
+
     await createNotification({
       wallet: wallet.toLowerCase(), // Use profile wallet (user who submitted feedback)
       notificationType: 'app_feedback_submitted',
@@ -519,7 +540,7 @@ export async function createAppFeedback({
     // Notification creation failure shouldn't block feedback creation
     console.warn('[createAppFeedback] Error creating notification:', err);
   }
-  
+
   return { key: entityKey, txHash };
 }
 ```
@@ -541,16 +562,18 @@ export async function resolveAppFeedback({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const resolvedAt = new Date().toISOString();
-  
+
   // Resolution entities should persist as long as the feedback (1 year)
   const expiresIn = 31536000; // 1 year in seconds
-  
+
   // Wrap in handleTransactionWithTimeout for graceful timeout handling
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        resolvedAt,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          resolvedAt,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'app_feedback_resolution' },
@@ -562,17 +585,18 @@ export async function resolveAppFeedback({
       expiresIn,
     });
   });
-  
+
   // Get feedback to find the user wallet
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback'))
       .withAttributes(true)
       .withPayload(true)
       .limit(1000)
       .fetch();
-    
+
     if (result?.entities && Array.isArray(result.entities)) {
       const feedbackEntity = result.entities.find((e: any) => e.key === feedbackKey);
       if (feedbackEntity) {
@@ -585,7 +609,7 @@ export async function resolveAppFeedback({
           return String(attrs[key] || '');
         };
         const userWallet = getAttr('wallet');
-        
+
         if (userWallet) {
           const { createNotification } = await import('./notifications');
           await createNotification({
@@ -626,7 +650,7 @@ export async function resolveAppFeedback({
       privateKey,
     });
   }
-  
+
   return { key: entityKey, txHash };
 }
 ```
@@ -660,26 +684,28 @@ export async function createFeedback({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
-  
+
   // Validate: cannot give feedback to yourself
   if (feedbackFrom.toLowerCase() === feedbackTo.toLowerCase()) {
     throw new Error('Cannot give feedback to yourself');
   }
-  
+
   // Validate: check for duplicate feedback
   const hasGivenFeedback = await hasUserGivenFeedbackForSession(sessionKey, feedbackFrom);
   if (hasGivenFeedback) {
     throw new Error('You have already given feedback for this session');
   }
-  
+
   // Create feedback entity
   const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      rating: rating || undefined,
-      notes: notes || undefined,
-      technicalDxFeedback: technicalDxFeedback || undefined,
-      createdAt,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        rating: rating || undefined,
+        notes: notes || undefined,
+        technicalDxFeedback: technicalDxFeedback || undefined,
+        createdAt,
+      })
+    ),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'session_feedback' },
@@ -694,7 +720,7 @@ export async function createFeedback({
     ],
     expiresIn: 31536000, // 1 year
   });
-  
+
   return { key: entityKey, txHash };
 }
 ```
@@ -704,6 +730,7 @@ export async function createFeedback({
 ### Attributes (Queryable)
 
 Use for fields that need to be queried:
+
 - `type`: Entity type ('app_feedback', 'app_feedback_resolution', 'admin_response', 'session_feedback')
 - `wallet`: User wallet (normalized to lowercase)
 - `page`: Page where feedback was given
@@ -718,6 +745,7 @@ Use for fields that need to be queried:
 ### Payload (Content)
 
 Use for user-facing content:
+
 - `message`: Feedback message text
 - `rating`: Rating as number (also in attributes for querying)
 - `notes`: Session feedback notes
@@ -795,6 +823,7 @@ Always validate result structure before processing. Return empty arrays or null 
 List app feedback.
 
 **Query Params:**
+
 - `wallet`: User wallet address (optional)
 - `page`: Page where feedback was given (optional)
 - `feedbackType`: 'feedback' or 'issue' (optional)
@@ -803,6 +832,7 @@ List app feedback.
 - `key`: Specific feedback key (optional, returns single feedback)
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -828,6 +858,7 @@ List app feedback.
 Create app feedback.
 
 **Body:**
+
 ```json
 {
   "wallet": "0x...",
@@ -843,10 +874,12 @@ Create app feedback.
 Get admin response by feedback key or response key.
 
 **Query Params:**
+
 - `feedbackKey`: Feedback entity key (optional)
 - `key`: Response entity key (optional)
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -908,6 +941,7 @@ if (hasGivenFeedback) {
 ### 1. Feedback Aggregation
 
 Currently, feedback is stored individually. Consider:
+
 - Aggregate feedback by page or feature
 - Calculate average ratings per page
 - Track feedback trends over time
@@ -915,6 +949,7 @@ Currently, feedback is stored individually. Consider:
 ### 2. Feedback Threading
 
 Currently, admin responses are single responses. Consider:
+
 - Multiple response support
 - Response threading
 - User follow-up capability
@@ -922,6 +957,7 @@ Currently, admin responses are single responses. Consider:
 ### 3. Feedback Analytics
 
 Consider:
+
 - Feedback volume tracking
 - Resolution time metrics
 - Response rate tracking
@@ -930,6 +966,7 @@ Consider:
 ### 4. Feedback Expiration
 
 Feedback has 1 year TTL. Consider:
+
 - Auto-renewal for unresolved issues
 - Archival for resolved feedback
 - Graceful degradation for expired feedback
@@ -952,4 +989,3 @@ The Arkiv-native feedback system uses immutable entities to track feedback, reso
 6. **Notification Integration:** Create notifications for feedback submission, resolution, and responses
 
 This approach provides a robust, decentralized feedback system that works without a centralized database, preserving full history for audit and allowing admins to track and respond to user feedback effectively.
-

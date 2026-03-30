@@ -1,6 +1,6 @@
 /**
  * Feedback Modal Component
- * 
+ *
  * Modal for submitting post-session feedback (rating, notes, technical DX feedback).
  */
 
@@ -56,7 +56,7 @@ export function FeedbackModal({
 
   const handleFinalSubmit = async () => {
     setError('');
-    
+
     if (formData.rating < 1 || formData.rating > 5) {
       setError('Please provide a rating between 1 and 5');
       return;
@@ -122,38 +122,39 @@ export function FeedbackModal({
   if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      onClick={handleClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={handleClose}>
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" />
 
       {/* Modal */}
       <div
-        className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        className="relative max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white shadow-xl dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
-          <h2 className="text-2xl font-semibold mb-4">Session Feedback</h2>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+          <h2 className="mb-4 text-2xl font-semibold">Session Feedback</h2>
+          <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
             Share your experience with this mentorship session
           </p>
 
           {/* Progress Indicator */}
           <div className="mb-6 flex items-center gap-2">
-            <div className={`flex-1 h-1 rounded ${step === 'rating' ? 'bg-blue-600' : 'bg-blue-300 dark:bg-blue-700'}`} />
-            <div className={`flex-1 h-1 rounded ${step === 'notes' ? 'bg-blue-600' : step === 'technical' ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'}`} />
-            <div className={`flex-1 h-1 rounded ${step === 'technical' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`} />
+            <div
+              className={`h-1 flex-1 rounded ${step === 'rating' ? 'bg-blue-600' : 'bg-blue-300 dark:bg-blue-700'}`}
+            />
+            <div
+              className={`h-1 flex-1 rounded ${step === 'notes' ? 'bg-blue-600' : step === 'technical' ? 'bg-blue-300 dark:bg-blue-700' : 'bg-gray-200 dark:bg-gray-700'}`}
+            />
+            <div
+              className={`h-1 flex-1 rounded ${step === 'technical' ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'}`}
+            />
           </div>
 
           {/* Step 1: Rating (Required) */}
           {step === 'rating' && (
             <div>
               <div className="mb-6">
-                <label className="block text-sm font-medium mb-2">
-                  Rating * (1-5 stars)
-                </label>
+                <label className="mb-2 block text-sm font-medium">Rating * (1-5 stars)</label>
                 <div className="flex gap-2">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
@@ -164,21 +165,21 @@ export function FeedbackModal({
                         formData.rating >= star
                           ? 'text-yellow-400'
                           : 'text-gray-300 dark:text-gray-600'
-                      } hover:text-yellow-400 transition-colors`}
+                      } transition-colors hover:text-yellow-400`}
                     >
                       ★
                     </button>
                   ))}
                 </div>
                 {formData.rating > 0 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                     {formData.rating} out of 5 stars
                   </p>
                 )}
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+                <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                   {error}
                 </div>
               )}
@@ -188,7 +189,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={handleClose}
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Cancel
                 </button>
@@ -196,7 +197,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={handleRatingSubmit}
                   disabled={submitting || formData.rating < 1}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Continue
                 </button>
@@ -208,28 +209,43 @@ export function FeedbackModal({
           {step === 'notes' && (
             <div>
               <div className="mb-6">
-                <label htmlFor="notes" className="block text-sm font-medium mb-1">
+                <label htmlFor="notes" className="mb-1 block text-sm font-medium">
                   Feedback Description *
                 </label>
                 <div className="mb-2 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, notes: 'Great session! Very helpful explanations.' })}
-                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        notes: 'Great session! Very helpful explanations.',
+                      })
+                    }
+                    className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
                   >
                     Great session
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, notes: 'Clear communication and well-structured content.' })}
-                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        notes: 'Clear communication and well-structured content.',
+                      })
+                    }
+                    className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
                   >
                     Clear communication
                   </button>
                   <button
                     type="button"
-                    onClick={() => setFormData({ ...formData, notes: 'Learned a lot! Would love to continue learning.' })}
-                    className="px-2 py-1 text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded transition-colors"
+                    onClick={() =>
+                      setFormData({
+                        ...formData,
+                        notes: 'Learned a lot! Would love to continue learning.',
+                      })
+                    }
+                    className="rounded bg-gray-100 px-2 py-1 text-xs transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
                   >
                     Learned a lot
                   </button>
@@ -241,12 +257,12 @@ export function FeedbackModal({
                   rows={4}
                   placeholder="How was the session? What did you learn? Any suggestions? (e.g., 'Great explanation of ownership concepts!')"
                   required
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                 />
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+                <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                   {error}
                 </div>
               )}
@@ -256,7 +272,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={() => setStep('rating')}
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Back
                 </button>
@@ -264,7 +280,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={handleNotesNext}
                   disabled={submitting || !formData.notes.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {formData.technicalDxFeedback.trim() ? 'Continue' : 'Submit Feedback'}
                 </button>
@@ -276,24 +292,26 @@ export function FeedbackModal({
           {step === 'technical' && (
             <div>
               <div className="mb-6">
-                <label htmlFor="technicalDxFeedback" className="block text-sm font-medium mb-1">
+                <label htmlFor="technicalDxFeedback" className="mb-1 block text-sm font-medium">
                   Technical DX Feedback (optional, advanced)
                 </label>
                 <textarea
                   id="technicalDxFeedback"
                   value={formData.technicalDxFeedback}
-                  onChange={(e) => setFormData({ ...formData, technicalDxFeedback: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, technicalDxFeedback: e.target.value })
+                  }
                   rows={3}
                   placeholder="Technical feedback about the platform, tools, or developer experience..."
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                 />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   Help us improve the platform with your technical insights
                 </p>
               </div>
 
               {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-sm text-red-800 dark:text-red-200">
+                <div className="mb-4 rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200">
                   {error}
                 </div>
               )}
@@ -303,7 +321,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={() => setStep('notes')}
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+                  className="flex-1 rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 disabled:opacity-50 dark:border-gray-600 dark:hover:bg-gray-700"
                 >
                   Back
                 </button>
@@ -311,7 +329,7 @@ export function FeedbackModal({
                   type="button"
                   onClick={handleFinalSubmit}
                   disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {submitting ? 'Submitting...' : 'Submit Feedback'}
                 </button>
@@ -323,4 +341,3 @@ export function FeedbackModal({
     </div>
   );
 }
-

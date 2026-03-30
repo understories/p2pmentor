@@ -34,11 +34,7 @@ Room names are generated deterministically from session keys:
 ```typescript
 function buildJitsiRoomName(sessionKey: string): string {
   const prefix = 'mg';
-  const hash = crypto
-    .createHash('sha256')
-    .update(sessionKey)
-    .digest('hex')
-    .slice(0, 16);
+  const hash = crypto.createHash('sha256').update(sessionKey).digest('hex').slice(0, 16);
   return `${prefix}-${sessionKey}-${hash}`;
 }
 ```
@@ -66,7 +62,7 @@ The `session_jitsi` entity is created automatically in `confirmSession()` when b
 ```typescript
 if (mentorConfirmed && learnerConfirmed) {
   const jitsiInfo = generateJitsiMeeting(sessionKey, JITSI_BASE_URL);
-  
+
   await walletClient.createEntity({
     payload: {
       videoProvider: jitsiInfo.videoProvider,

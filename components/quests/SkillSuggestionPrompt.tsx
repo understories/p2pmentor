@@ -50,36 +50,39 @@ export function SkillSuggestionPrompt({
   const arkivBuilderMode = useArkivBuilderMode();
 
   // Poll for skill link entity after submission (following useProgressReconciliation pattern)
-  const pollForSkillLink = useCallback(async (maxAttempts = 10) => {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const delay = Math.min(1000 * Math.pow(1.5, attempt), 10000); // Exponential backoff, max 10s
-      await new Promise(resolve => setTimeout(resolve, delay));
+  const pollForSkillLink = useCallback(
+    async (maxAttempts = 10) => {
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        const delay = Math.min(1000 * Math.pow(1.5, attempt), 10000); // Exponential backoff, max 10s
+        await new Promise((resolve) => setTimeout(resolve, delay));
 
-      try {
-        const links = await getQuestCompletionSkillLinks({
-          wallet,
-          questId,
-          stepId,
-        });
+        try {
+          const links = await getQuestCompletionSkillLinks({
+            wallet,
+            questId,
+            stepId,
+          });
 
-        const foundLink = links.find(
-          (link) => link.questId === questId && link.stepId === stepId
-        );
+          const foundLink = links.find(
+            (link) => link.questId === questId && link.stepId === stepId
+          );
 
-        if (foundLink) {
-          setStatus('indexed');
-          setLinkEntityKey(foundLink.key);
-          setLinkTxHash(foundLink.txHash || null);
-          return true;
+          if (foundLink) {
+            setStatus('indexed');
+            setLinkEntityKey(foundLink.key);
+            setLinkTxHash(foundLink.txHash || null);
+            return true;
+          }
+        } catch (err) {
+          console.warn('[SkillSuggestionPrompt] Polling error:', err);
         }
-      } catch (err) {
-        console.warn('[SkillSuggestionPrompt] Polling error:', err);
       }
-    }
 
-    // Max attempts reached - leave as submitted (user can refresh)
-    return false;
-  }, [wallet, questId, stepId]);
+      // Max attempts reached - leave as submitted (user can refresh)
+      return false;
+    },
+    [wallet, questId, stepId]
+  );
 
   const handleAddSkill = async (skill: string, step: string, prof?: number) => {
     try {
@@ -120,8 +123,7 @@ export function SkillSuggestionPrompt({
       const errorMessage = err.message || 'Failed to add skill';
 
       // Check for transaction rate limiting (following transaction-utils pattern)
-      if (errorMessage.includes('still processing') ||
-          errorMessage.includes('wait a moment')) {
+      if (errorMessage.includes('still processing') || errorMessage.includes('wait a moment')) {
         setError('Transaction is still processing. Please wait a moment and try again.');
       } else {
         setError(errorMessage);
@@ -132,7 +134,7 @@ export function SkillSuggestionPrompt({
   // Success state (indexed)
   if (status === 'indexed') {
     return (
-      <div className="mt-4 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
+      <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-emerald-600 dark:text-emerald-400">✓</span>
@@ -157,10 +159,10 @@ export function SkillSuggestionPrompt({
   // Submitted state (waiting for indexing)
   if (status === 'submitted') {
     return (
-      <div className="mt-4 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800 bg-yellow-50 dark:bg-yellow-900/20">
+      <div className="mt-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
         <div className="flex items-start gap-3">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="mb-2 flex items-center gap-2">
               <LoadingSpinner text="" className="py-0" />
               <span className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
                 Skill link submitted
@@ -170,7 +172,7 @@ export function SkillSuggestionPrompt({
               Transaction is being processed. Please wait a moment and refresh if needed.
             </p>
             {arkivBuilderMode && linkTxHash && (
-              <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400 font-mono">
+              <div className="mt-2 font-mono text-xs text-yellow-600 dark:text-yellow-400">
                 TxHash: {linkTxHash.slice(0, 10)}...
               </div>
             )}
@@ -186,35 +188,34 @@ export function SkillSuggestionPrompt({
   const isError = status === 'error';
 
   return (
-    <div className="mt-4 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="mb-2 flex items-center gap-2">
             <span className="text-lg">💡</span>
             <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200">
               Skill Suggestion
             </h4>
           </div>
-          <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-            {message || `You've completed this step! Would you like to add "${skillName}" to your profile?`}
+          <p className="mb-3 text-sm text-blue-700 dark:text-blue-300">
+            {message ||
+              `You've completed this step! Would you like to add "${skillName}" to your profile?`}
           </p>
           {proficiency && (
-            <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
+            <p className="mb-3 text-xs text-blue-600 dark:text-blue-400">
               Suggested proficiency level: {proficiency}/5
             </p>
           )}
           {isError && error && (
-            <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
-              <p className="text-xs text-red-600 dark:text-red-400 mb-1">
-                {error}
-              </p>
+            <div className="mb-3 rounded border border-red-200 bg-red-50 p-2 dark:border-red-800 dark:bg-red-900/20">
+              <p className="mb-1 text-xs text-red-600 dark:text-red-400">{error}</p>
               <button
                 onClick={() => {
                   setStatus('idle');
                   setError(null);
                   handleAddSkill(skillName, stepId, proficiency);
                 }}
-                className="text-xs text-red-700 dark:text-red-300 underline"
+                className="text-xs text-red-700 underline dark:text-red-300"
               >
                 Try again
               </button>
@@ -224,11 +225,11 @@ export function SkillSuggestionPrompt({
             <button
               onClick={() => handleAddSkill(skillName, stepId, proficiency)}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-medium rounded bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-blue-500 dark:hover:bg-blue-600"
             >
               {status === 'pending' ? (
                 <>
-                  <LoadingSpinner text="" className="py-0 mr-1" />
+                  <LoadingSpinner text="" className="mr-1 py-0" />
                   Adding...
                 </>
               ) : (
@@ -238,7 +239,7 @@ export function SkillSuggestionPrompt({
             <button
               onClick={onDismiss}
               disabled={isLoading}
-              className="px-3 py-1.5 text-xs font-medium rounded border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="rounded border border-blue-300 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-blue-700 dark:text-blue-300 dark:hover:bg-blue-900/50"
             >
               Maybe Later
             </button>
@@ -255,7 +256,7 @@ export function SkillSuggestionPrompt({
             ]}
             label="Skill Linkage"
           >
-            <div className="text-xs text-blue-600 dark:text-blue-400 font-mono cursor-help border border-blue-300 dark:border-blue-700 rounded px-2 py-1 bg-blue-100 dark:bg-blue-900/50">
+            <div className="cursor-help rounded border border-blue-300 bg-blue-100 px-2 py-1 font-mono text-xs text-blue-600 dark:border-blue-700 dark:bg-blue-900/50 dark:text-blue-400">
               Query
             </div>
           </ArkivQueryTooltip>

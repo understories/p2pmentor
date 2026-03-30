@@ -1,8 +1,8 @@
 /**
  * Reusable utility for checking if a user can give feedback for a session
- * 
+ *
  * Follows arkiv-native patterns and engineering guidelines.
- * 
+ *
  * This logic is reused across:
  * - Sessions page (completed sessions list)
  * - Notifications page (session completion notifications)
@@ -15,12 +15,12 @@ import { hasUserGivenFeedbackForSession } from '@/lib/arkiv/feedback';
 
 /**
  * Check if a session has ended (can receive feedback)
- * 
+ *
  * A session has ended if:
  * - Status is 'completed', OR
  * - Status is 'scheduled' AND the session time has passed (including duration buffer), OR
  * - Status is 'pending' AND the session time has passed (including duration buffer)
- * 
+ *
  * @param session - Session to check
  * @returns true if session has ended
  */
@@ -28,7 +28,7 @@ export function hasSessionEnded(session: Session): boolean {
   if (session.status === 'completed') {
     return true;
   }
-  
+
   // Check if session time has passed (including duration + buffer) for scheduled or pending sessions
   if (session.status === 'scheduled' || session.status === 'pending') {
     const sessionTime = new Date(session.sessionDate).getTime();
@@ -36,22 +36,22 @@ export function hasSessionEnded(session: Session): boolean {
     const buffer = 60 * 60 * 1000; // 1 hour buffer
     const sessionEnd = sessionTime + duration + buffer;
     const now = Date.now();
-    
+
     return now >= sessionEnd;
   }
-  
+
   return false;
 }
 
 /**
  * Check if a user can give feedback for a session
- * 
+ *
  * Requirements:
  * 1. User must be a participant (mentor or learner)
  * 2. Session must be confirmed (both mentor and learner confirmed)
  * 3. Session must have ended (completed or past scheduled time)
  * 4. User must not have already given feedback
- * 
+ *
  * @param session - Session to check
  * @param userWallet - Wallet address of the user
  * @param existingFeedbacks - Optional array of existing feedbacks (to avoid extra query)
@@ -66,13 +66,14 @@ export async function canGiveFeedbackForSession(
   const normalizedUserWallet = userWallet.toLowerCase().trim();
   const normalizedMentor = session.mentorWallet.toLowerCase();
   const normalizedLearner = session.learnerWallet.toLowerCase();
-  
+
   // 1. Check if user is a participant
-  const isParticipant = normalizedUserWallet === normalizedMentor || normalizedUserWallet === normalizedLearner;
+  const isParticipant =
+    normalizedUserWallet === normalizedMentor || normalizedUserWallet === normalizedLearner;
   if (!isParticipant) {
     return false;
   }
-  
+
   // 2. Check if session has ended
   const sessionHasEnded = hasSessionEnded(session);
   if (!sessionHasEnded) {
@@ -82,16 +83,16 @@ export async function canGiveFeedbackForSession(
     }
     return false; // Session hasn't ended yet
   }
-  
+
   // 3. For past sessions (sessionHasEnded === true), allow feedback regardless of confirmation status
   // The session time has passed, so both parties should be able to give feedback
   // We skip the confirmation check for past sessions to ensure BOTH wallets can give feedback
-  
+
   // 4. Check if user has already given feedback
   if (existingFeedbacks) {
     // Use provided feedbacks array (faster, avoids extra query)
     const hasGivenFeedback = existingFeedbacks.some(
-      f => f.feedbackFrom.toLowerCase() === normalizedUserWallet
+      (f) => f.feedbackFrom.toLowerCase() === normalizedUserWallet
     );
     if (hasGivenFeedback) {
       return false;
@@ -103,15 +104,15 @@ export async function canGiveFeedbackForSession(
       return false;
     }
   }
-  
+
   return true;
 }
 
 /**
  * Synchronous version that uses existing feedbacks array
- * 
+ *
  * Use this when you already have the feedbacks loaded to avoid async overhead.
- * 
+ *
  * @param session - Session to check
  * @param userWallet - Wallet address of the user
  * @param existingFeedbacks - Array of existing feedbacks for the session
@@ -126,32 +127,32 @@ export function canGiveFeedbackForSessionSync(
   const normalizedUserWallet = userWallet.toLowerCase().trim();
   const normalizedMentor = session.mentorWallet.toLowerCase();
   const normalizedLearner = session.learnerWallet.toLowerCase();
-  
+
   // 1. Check if user is a participant
-  const isParticipant = normalizedUserWallet === normalizedMentor || normalizedUserWallet === normalizedLearner;
+  const isParticipant =
+    normalizedUserWallet === normalizedMentor || normalizedUserWallet === normalizedLearner;
   if (!isParticipant) {
     return false;
   }
-  
+
   // 2. Check if session has ended
   const sessionHasEnded = hasSessionEnded(session);
   if (!sessionHasEnded) {
     // Session hasn't ended yet - don't allow feedback
     return false;
   }
-  
+
   // 3. For past sessions (sessionHasEnded === true), allow feedback regardless of confirmation status
   // The session time has passed, so both parties should be able to give feedback
   // We skip the confirmation check for past sessions to ensure both wallets can give feedback
-  
+
   // 4. Check if user has already given feedback
   const hasGivenFeedback = existingFeedbacks.some(
-    f => f.feedbackFrom.toLowerCase() === normalizedUserWallet
+    (f) => f.feedbackFrom.toLowerCase() === normalizedUserWallet
   );
   if (hasGivenFeedback) {
     return false;
   }
-  
+
   return true;
 }
-

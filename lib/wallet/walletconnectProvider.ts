@@ -1,12 +1,12 @@
 /**
  * WalletConnect Provider Singleton
- * 
+ *
  * Manages WalletConnect EthereumProvider instance as a module singleton.
  * Provides accessor functions for getting and setting the provider.
- * 
+ *
  * Phase 0: In-memory only (no session persistence across reloads).
  * Phase 1: Can add localStorage persistence for session restore.
- * 
+ *
  * Reference: WalletConnect Phase 0 Plan
  */
 
@@ -19,17 +19,20 @@ let walletConnectProvider: InstanceType<typeof EthereumProvider> | null = null;
  * EIP-1193 Provider type alias for type safety
  */
 export type EIP1193Provider = {
-  request: (args: { method: string; params?: unknown[] | Record<string, unknown> }) => Promise<unknown>;
+  request: (args: {
+    method: string;
+    params?: unknown[] | Record<string, unknown>;
+  }) => Promise<unknown>;
   on?: (event: string, handler: (...args: unknown[]) => void) => void;
   removeListener?: (event: string, handler: (...args: unknown[]) => void) => void;
 };
 
 /**
  * Get WalletConnect provider (if available)
- * 
+ *
  * Phase 0: Returns null if provider not initialized (e.g., after page reload).
  * Phase 1: Can attempt to restore session from localStorage.
- * 
+ *
  * @returns WalletConnect provider or null if not available
  */
 export function getWalletConnectProvider(): EIP1193Provider | null {
@@ -39,21 +42,23 @@ export function getWalletConnectProvider(): EIP1193Provider | null {
 
 /**
  * Set WalletConnect provider (internal use)
- * 
+ *
  * Called by connection flow to store provider reference.
- * 
+ *
  * @param provider - WalletConnect EthereumProvider instance or null to clear
  */
-export function setWalletConnectProvider(provider: InstanceType<typeof EthereumProvider> | null): void {
+export function setWalletConnectProvider(
+  provider: InstanceType<typeof EthereumProvider> | null
+): void {
   walletConnectProvider = provider;
 }
 
 /**
  * Disconnect WalletConnect session
- * 
+ *
  * Disconnects the provider and clears the singleton.
  * Also clears localStorage wallet_type for the connected address.
- * 
+ *
  * @param walletAddress - Optional wallet address to clear wallet_type for
  */
 export async function disconnectWalletConnect(walletAddress?: string): Promise<void> {
@@ -74,4 +79,3 @@ export async function disconnectWalletConnect(walletAddress?: string): Promise<v
 
 // Re-export type for convenience
 export type { EthereumProvider } from '@walletconnect/ethereum-provider';
-

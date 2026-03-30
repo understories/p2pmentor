@@ -1,16 +1,16 @@
 /**
  * Beta Access Tracking
- * 
+ *
  * Tracks wallet-to-beta-code binding on Arkiv.
  * Links wallet addresses to beta codes for audit and access control.
- * 
+ *
  * Reference: refs/docs/beta_code_gating_plan.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { getPrivateKey, SPACE_ID } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type BetaAccess = {
   key: string;
@@ -23,10 +23,10 @@ export type BetaAccess = {
 
 /**
  * Create beta access entity on Arkiv
- * 
+ *
  * Records that a wallet has been granted access via a beta code.
  * This creates an immutable audit trail on-chain.
- * 
+ *
  * @param params - Beta access data
  * @returns Entity key and transaction hash
  */
@@ -45,27 +45,29 @@ export async function createBetaAccess({
   const { privateKeyToAccount } = await import('@arkiv-network/sdk/accounts');
   const serverSignerAccount = privateKeyToAccount(privateKey);
   const serverSignerAddress = serverSignerAccount.address.toLowerCase();
-  
+
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  
+
   // Verify wallet client account matches server signer
   const walletClientAccount = walletClient.account;
   if (!walletClientAccount) {
     throw new Error('[createBetaAccess] Wallet client missing account - cannot sign transaction');
   }
   const walletClientAddress = walletClientAccount.address.toLowerCase();
-  
+
   if (walletClientAddress !== serverSignerAddress) {
-    throw new Error(`[createBetaAccess] Wallet client account mismatch: expected ${serverSignerAddress}, got ${walletClientAddress}`);
+    throw new Error(
+      `[createBetaAccess] Wallet client account mismatch: expected ${serverSignerAddress}, got ${walletClientAddress}`
+    );
   }
-  
+
   console.log('[createBetaAccess] Using server signer wallet:', {
     serverSignerAddress: `${serverSignerAddress.substring(0, 6)}...${serverSignerAddress.substring(serverSignerAddress.length - 4)}`,
     walletClientAddress: `${walletClientAddress.substring(0, 6)}...${walletClientAddress.substring(walletClientAddress.length - 4)}`,
     wallet: `${wallet.toLowerCase().substring(0, 6)}...${wallet.toLowerCase().substring(wallet.length - 4)}`,
     note: 'wallet is the grant recipient, serverSignerAddress signs the transaction',
   });
-  
+
   const enc = new TextEncoder();
   const grantedAt = new Date().toISOString();
   const normalizedCode = code.toLowerCase().trim();
@@ -96,38 +98,44 @@ export async function createBetaAccess({
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'beta_access_txhash' },
-      { key: 'accessKey', value: entityKey },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createBetaAccess] Failed to create txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'beta_access_txhash' },
+        { key: 'accessKey', value: entityKey },
+        { key: 'wallet', value: normalizedWallet },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createBetaAccess] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
 
 /**
  * Get beta access by wallet address
- * 
+ *
  * Queries Arkiv for beta access records for a specific wallet.
- * 
+ *
  * @param wallet - Wallet address
  * @returns Beta access record or null if not found
  */
-export async function getBetaAccessByWallet(wallet: string, spaceId?: string): Promise<BetaAccess | null> {
+export async function getBetaAccessByWallet(
+  wallet: string,
+  spaceId?: string
+): Promise<BetaAccess | null> {
   const publicClient = getPublicClient();
   const normalizedWallet = wallet.toLowerCase();
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'beta_access'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('spaceId', finalSpaceId))
@@ -144,11 +152,12 @@ export async function getBetaAccessByWallet(wallet: string, spaceId?: string): P
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -165,7 +174,8 @@ export async function getBetaAccessByWallet(wallet: string, spaceId?: string): P
     };
 
     // Get txHash
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'beta_access_txhash'))
       .where(eq('accessKey', entity.key))
       .where(eq('spaceId', finalSpaceId))
@@ -178,11 +188,12 @@ export async function getBetaAccessByWallet(wallet: string, spaceId?: string): P
     if (txHashResult.entities && txHashResult.entities.length > 0) {
       try {
         const txHashEntity = txHashResult.entities[0];
-        const txHashPayload = txHashEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(txHashEntity.payload)
-          : typeof txHashEntity.payload === 'string'
-          ? txHashEntity.payload
-          : JSON.stringify(txHashEntity.payload);
+        const txHashPayload =
+          txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+              ? txHashEntity.payload
+              : JSON.stringify(txHashEntity.payload);
         const decoded = JSON.parse(txHashPayload);
         txHash = decoded.txHash;
       } catch (e) {
@@ -202,7 +213,7 @@ export async function getBetaAccessByWallet(wallet: string, spaceId?: string): P
     console.error('[getBetaAccessByWallet] Arkiv query failed:', {
       message: error?.message,
       stack: error?.stack,
-      error
+      error,
     });
     return null;
   }
@@ -210,7 +221,7 @@ export async function getBetaAccessByWallet(wallet: string, spaceId?: string): P
 
 /**
  * List all beta access records for a code
- * 
+ *
  * @param code - Beta code string
  * @param spaceId - Optional space ID to filter by (defaults to SPACE_ID from config)
  * @returns Array of beta access records
@@ -221,7 +232,8 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'beta_access'))
       .where(eq('code', normalizedCode))
       .where(eq('spaceId', finalSpaceId))
@@ -238,11 +250,12 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -261,7 +274,11 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
       // Always use normalized wallet from attributes (Arkiv-native pattern)
       // Attributes are queryable and normalized, payload may contain original case
       const walletAttr = getAttr('wallet') || '';
-      const normalizedWallet = walletAttr ? walletAttr.toLowerCase() : (payload.wallet ? payload.wallet.toLowerCase() : '');
+      const normalizedWallet = walletAttr
+        ? walletAttr.toLowerCase()
+        : payload.wallet
+          ? payload.wallet.toLowerCase()
+          : '';
 
       return {
         key: entity.key,
@@ -275,7 +292,7 @@ export async function listBetaAccessByCode(code: string, spaceId?: string): Prom
     console.error('[listBetaAccessByCode] Arkiv query failed:', {
       message: error?.message,
       stack: error?.stack,
-      error
+      error,
     });
     return [];
   }

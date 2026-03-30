@@ -29,4 +29,3 @@ Supporting entity types for observability, metrics, and system operations.
 - [Performance Snapshot](/docs/arkiv/entities/perf-snapshot) - Performance snapshots for comparison
 - [Retention Metric](/docs/arkiv/entities/retention-metric) - User retention tracking
 - [Virtual Gathering](/docs/arkiv/entities/virtual-gathering) - Virtual event management
-

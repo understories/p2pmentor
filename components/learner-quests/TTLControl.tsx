@@ -20,7 +20,7 @@ const TTL_PRESETS: Record<TTLPreset, number> = {
   '6months': 15552000, // 180 days
   '1year': 31536000, // 365 days (default)
   '3years': 94608000, // 3 years
-  'custom': 0, // Will be set by user input
+  custom: 0, // Will be set by user input
 };
 
 const TTL_PRESET_LABELS: Record<TTLPreset, string> = {
@@ -30,7 +30,7 @@ const TTL_PRESET_LABELS: Record<TTLPreset, string> = {
   '6months': '6 months',
   '1year': '1 year',
   '3years': '3 years',
-  'custom': 'Custom',
+  custom: 'Custom',
 };
 
 export interface TTLControlProps {
@@ -103,13 +103,12 @@ export function TTLControl({
       {/* Visible retention summary (collapsed by default) */}
       <div className="flex items-center justify-between">
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          <span className="font-medium">Retention:</span>{' '}
-          <span>{formatTTL(value)}</span>
+          <span className="font-medium">Retention:</span> <span>{formatTTL(value)}</span>
         </div>
         <button
           type="button"
           onClick={toggleAdvanced}
-          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+          className="text-xs text-blue-600 hover:underline dark:text-blue-400"
         >
           {showAdvanced ? 'Hide' : 'Advanced'} options
         </button>
@@ -117,33 +116,38 @@ export function TTLControl({
 
       {/* Advanced TTL controls */}
       {showAdvanced && (
-        <div className="space-y-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+        <div className="space-y-4 border-t border-gray-200 pt-3 dark:border-gray-700">
           {/* Presets */}
           <div>
-            <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
               Retention Duration
             </label>
             <div className="grid grid-cols-3 gap-2">
-              {(['1day', '1week', '1month', '6months', '1year', '3years'] as TTLPreset[]).map((preset) => (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => handlePresetChange(preset)}
-                  className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                    selectedPreset === preset
-                      ? 'bg-blue-600 text-white border-blue-600'
-                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400'
-                  }`}
-                >
-                  {TTL_PRESET_LABELS[preset]}
-                </button>
-              ))}
+              {(['1day', '1week', '1month', '6months', '1year', '3years'] as TTLPreset[]).map(
+                (preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => handlePresetChange(preset)}
+                    className={`rounded-lg border px-3 py-2 text-sm transition-colors ${
+                      selectedPreset === preset
+                        ? 'border-blue-600 bg-blue-600 text-white'
+                        : 'border-gray-300 bg-white text-gray-700 hover:border-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-blue-400'
+                    }`}
+                  >
+                    {TTL_PRESET_LABELS[preset]}
+                  </button>
+                )
+              )}
             </div>
           </div>
 
           {/* Custom input */}
           <div>
-            <label htmlFor="custom-ttl" className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+            <label
+              htmlFor="custom-ttl"
+              className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
               Custom (seconds)
             </label>
             <input
@@ -157,7 +161,7 @@ export function TTLControl({
                 handleCustomChange(e.target.value);
               }}
               placeholder={value.toString()}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
             />
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Minimum: 3600 seconds (1 hour)
@@ -172,9 +176,12 @@ export function TTLControl({
                 type="checkbox"
                 checked={applyToRemaining || false}
                 onChange={(e) => onApplyToRemainingChange(e.target.checked)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
-              <label htmlFor="apply-to-remaining" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+              <label
+                htmlFor="apply-to-remaining"
+                className="ml-2 text-sm text-gray-700 dark:text-gray-300"
+              >
                 Apply this retention to remaining steps in this quest
               </label>
             </div>
@@ -184,4 +191,3 @@ export function TTLControl({
     </div>
   );
 }
-

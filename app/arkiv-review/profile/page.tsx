@@ -1,9 +1,9 @@
 /**
  * Arkiv Review Mode Profile Creation Page
- * 
+ *
  * Barebones profile creation form for reviewers to test wallet creation
  * without going through onboarding. Follows M1 acceptance criteria exactly.
- * 
+ *
  * Guards:
  * - Wallet must be connected
  * - Arkiv must confirm valid review activation
@@ -37,7 +37,9 @@ export default function ArkivReviewProfilePage() {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [createdProfile, setCreatedProfile] = useState<{ key: string; txHash: string } | null>(null);
+  const [createdProfile, setCreatedProfile] = useState<{ key: string; txHash: string } | null>(
+    null
+  );
   const [checkingGuards, setCheckingGuards] = useState(true);
   const arkivBuilderMode = useArkivBuilderMode();
 
@@ -48,27 +50,27 @@ export default function ArkivReviewProfilePage() {
       try {
         // Try to get wallet from connected provider first
         if (typeof window !== 'undefined' && window.ethereum) {
-          const accounts = await window.ethereum.request({ method: 'eth_accounts' }) as string[];
+          const accounts = (await window.ethereum.request({ method: 'eth_accounts' })) as string[];
           if (Array.isArray(accounts) && accounts.length > 0) {
             const address = accounts[0];
             setWallet(address);
             // Store in localStorage as cache (not source of truth)
             localStorage.setItem('wallet_address', address);
-            
+
             // Auto-detect timezone
             const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            setFormData(prev => ({ ...prev, timezone }));
+            setFormData((prev) => ({ ...prev, timezone }));
             return;
           }
         }
-        
+
         // Fallback to localStorage if provider unavailable (log for debugging)
         const storedWallet = localStorage.getItem('wallet_address');
         if (storedWallet) {
           console.warn('[ArkivReviewProfile] Using localStorage wallet (provider unavailable)');
           setWallet(storedWallet);
           const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          setFormData(prev => ({ ...prev, timezone }));
+          setFormData((prev) => ({ ...prev, timezone }));
         } else {
           router.push('/auth');
         }
@@ -77,7 +79,7 @@ export default function ArkivReviewProfilePage() {
         router.push('/auth');
       }
     };
-    
+
     getConnectedWallet();
   }, [router]);
 
@@ -85,30 +87,30 @@ export default function ArkivReviewProfilePage() {
   useEffect(() => {
     const checkReviewMode = async () => {
       if (!wallet) return;
-      
+
       setCheckingGuards(true);
-      
+
       try {
         const { getLatestValidReviewModeGrant } = await import('@/lib/arkiv/reviewModeGrant');
         const { getProfileByWallet } = await import('@/lib/arkiv/profile');
-        
+
         const [grant, profile] = await Promise.all([
           getLatestValidReviewModeGrant(wallet),
           getProfileByWallet(wallet),
         ]);
-        
+
         // Guards: wallet connected, grant exists, no profile yet
         if (!grant) {
           router.push('/auth');
           return;
         }
-        
+
         if (profile) {
           // Profile already exists - redirect to dashboard
           router.push('/me');
           return;
         }
-        
+
         // All guards passed
         setCheckingGuards(false);
       } catch (err) {
@@ -116,7 +118,7 @@ export default function ArkivReviewProfilePage() {
         router.push('/auth');
       }
     };
-    
+
     checkReviewMode();
   }, [wallet, router]);
 
@@ -180,7 +182,7 @@ export default function ArkivReviewProfilePage() {
 
   if (checkingGuards || !wallet) {
     return (
-      <main className="min-h-screen p-8 flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center p-8">
         <div className="text-center">
           <p className="text-gray-600 dark:text-gray-400">Checking review mode access...</p>
         </div>
@@ -190,31 +192,35 @@ export default function ArkivReviewProfilePage() {
 
   return (
     <main className="min-h-screen p-8">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold mb-4">Arkiv Review Mode: Create Profile</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+      <div className="mx-auto max-w-2xl">
+        <h1 className="mb-4 text-2xl font-bold">Arkiv Review Mode: Create Profile</h1>
+        <p className="mb-6 text-sm text-gray-600 dark:text-gray-400">
           This is a testing mode for Arkiv team. Following M1 acceptance criteria exactly.
         </p>
 
         {createdProfile ? (
-          <div className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4 text-green-800 dark:text-green-300">
+          <div className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20">
+            <h2 className="mb-4 text-xl font-semibold text-green-800 dark:text-green-300">
               Profile Created Successfully
             </h2>
-            <div className="space-y-2 mb-4">
-              <p><strong>Entity Key:</strong> {createdProfile.key}</p>
-              <p><strong>Transaction Hash:</strong> {createdProfile.txHash}</p>
+            <div className="mb-4 space-y-2">
+              <p>
+                <strong>Entity Key:</strong> {createdProfile.key}
+              </p>
+              <p>
+                <strong>Transaction Hash:</strong> {createdProfile.txHash}
+              </p>
             </div>
             <ViewOnArkivLink entityKey={createdProfile.key} txHash={createdProfile.txHash} />
             <div className="mt-4">
               <button
                 onClick={() => router.push('/me')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
               >
                 Go to Dashboard
               </button>
             </div>
-            
+
             {/* Builder Mode Info */}
             {arkivBuilderMode && (
               <div className="mt-4">
@@ -230,70 +236,72 @@ export default function ArkivReviewProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Display Name */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Display Name <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.displayName}
-                onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, displayName: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
 
             {/* Username */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Username <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.username}
-                onChange={(e) => setFormData(prev => ({ ...prev, username: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, username: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
 
             {/* Bio */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Bio <span className="text-red-500">*</span>
               </label>
               <textarea
                 value={formData.bio}
-                onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
                 required
                 rows={4}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
 
             {/* Timezone */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Timezone <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.timezone}
-                onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+                onChange={(e) => setFormData((prev) => ({ ...prev, timezone: e.target.value }))}
                 required
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
 
             {/* Seniority */}
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Seniority <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.seniority}
-                onChange={(e) => setFormData(prev => ({ ...prev, seniority: e.target.value as any }))}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, seniority: e.target.value as any }))
+                }
                 required
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               >
                 <option value="">Select...</option>
                 <option value="beginner">Beginner</option>
@@ -305,68 +313,83 @@ export default function ArkivReviewProfilePage() {
 
             {/* Contact Links (Optional) */}
             <div>
-              <label className="block text-sm font-medium mb-2">Contact Links (Optional)</label>
+              <label className="mb-2 block text-sm font-medium">Contact Links (Optional)</label>
               <div className="space-y-2">
                 <input
                   type="text"
                   placeholder="Twitter"
                   value={formData.contactLinks.twitter}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    contactLinks: { ...prev.contactLinks, twitter: e.target.value }
-                  }))}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactLinks: { ...prev.contactLinks, twitter: e.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   placeholder="GitHub"
                   value={formData.contactLinks.github}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    contactLinks: { ...prev.contactLinks, github: e.target.value }
-                  }))}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactLinks: { ...prev.contactLinks, github: e.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   placeholder="Telegram"
                   value={formData.contactLinks.telegram}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    contactLinks: { ...prev.contactLinks, telegram: e.target.value }
-                  }))}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactLinks: { ...prev.contactLinks, telegram: e.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 />
                 <input
                   type="text"
                   placeholder="Discord"
                   value={formData.contactLinks.discord}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    contactLinks: { ...prev.contactLinks, discord: e.target.value }
-                  }))}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      contactLinks: { ...prev.contactLinks, discord: e.target.value },
+                    }))
+                  }
+                  className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 />
               </div>
             </div>
 
             {/* Skills Array (Optional) */}
             <div>
-              <label className="block text-sm font-medium mb-2">Skills (Optional, comma-separated)</label>
+              <label className="mb-2 block text-sm font-medium">
+                Skills (Optional, comma-separated)
+              </label>
               <input
                 type="text"
                 placeholder="e.g., Rust, Solidity, JavaScript"
                 value={formData.skillsArray.join(', ')}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  skillsArray: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
-                }))}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    skillsArray: e.target.value
+                      .split(',')
+                      .map((s) => s.trim())
+                      .filter(Boolean),
+                  }))
+                }
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
               />
             </div>
 
             {error && (
-              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg">
+              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
                 {error}
               </div>
             )}
@@ -374,7 +397,7 @@ export default function ArkivReviewProfilePage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? 'Creating Profile...' : 'Create Profile'}
             </button>
@@ -384,4 +407,3 @@ export default function ArkivReviewProfilePage() {
     </main>
   );
 }
-

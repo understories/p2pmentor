@@ -1,6 +1,6 @@
 /**
  * Offers page
- * 
+ *
  * Browse and create "I am teaching" offers.
  * Design inspired by hidden-garden-ui-ux-upgrades.
  */
@@ -40,7 +40,7 @@ function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSecon
   useEffect(() => {
     const updateTimer = () => {
       const created = new Date(createdAt).getTime();
-      const expires = created + (ttlSeconds * 1000);
+      const expires = created + ttlSeconds * 1000;
       const now = Date.now();
       const remaining = expires - now;
 
@@ -73,8 +73,9 @@ function CountdownTimer({ createdAt, ttlSeconds }: { createdAt: string; ttlSecon
 
   const isExpired = timeRemaining === 'Expired';
   return (
-    <span className="text-orange-600 dark:text-orange-400 font-medium">
-      ⏰ {timeRemaining}{isExpired ? '' : ' left'}
+    <span className="font-medium text-orange-600 dark:text-orange-400">
+      ⏰ {timeRemaining}
+      {isExpired ? '' : ' left'}
     </span>
   );
 }
@@ -90,10 +91,10 @@ export default function OffersPage() {
   const [success, setSuccess] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
-  const [newOffer, setNewOffer] = useState({ 
+  const [newOffer, setNewOffer] = useState({
     skill: '', // Legacy: kept for backward compatibility
     skill_id: '', // New: Skill entity ID (preferred for beta)
-    message: '', 
+    message: '',
     availabilityWindow: '',
     availabilityKey: '', // Reference to Availability entity
     availabilityType: 'structured' as 'saved' | 'structured', // Type of availability input (removed 'custom' legacy text option)
@@ -104,10 +105,16 @@ export default function OffersPage() {
     ttlHours: '168', // Default 1 week (more reasonable for offers)
     customTtlHours: '', // For custom input
   });
-  const [savedAvailabilities, setSavedAvailabilities] = useState<Array<{ key: string; displayText: string }>>([]);
+  const [savedAvailabilities, setSavedAvailabilities] = useState<
+    Array<{ key: string; displayText: string }>
+  >([]);
   const [loadingAvailabilities, setLoadingAvailabilities] = useState(false);
   const [skillJustCreated, setSkillJustCreated] = useState<string | null>(null); // Track newly created skill
-  const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string; entityType: string } | null>(null);
+  const [lastWriteInfo, setLastWriteInfo] = useState<{
+    key: string;
+    txHash: string;
+    entityType: string;
+  } | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [selectedOfferProfile, setSelectedOfferProfile] = useState<UserProfile | null>(null);
@@ -123,7 +130,7 @@ export default function OffersPage() {
         return;
       }
       setWalletAddress(address);
-      
+
       // Check onboarding access (requires level 2 for offers)
       import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
         checkOnboardingRoute(address, 2, '/onboarding').catch(() => {
@@ -132,8 +139,10 @@ export default function OffersPage() {
       });
       loadData(address);
       // Load user profile for RequestMeetingModal
-      getProfileByWallet(address).then(setUserProfile).catch(() => null);
-      
+      getProfileByWallet(address)
+        .then(setUserProfile)
+        .catch(() => null);
+
       // Check for ?create=true param to auto-show form
       const params = new URLSearchParams(window.location.search);
       if (params.get('create') === 'true') {
@@ -169,12 +178,12 @@ export default function OffersPage() {
   const loadData = async (wallet: string) => {
     try {
       setLoading(true);
-      
+
       // Load availabilities in parallel
       loadAvailabilities(wallet);
 
       const useGraphQL = await useGraphqlForOffers();
-      
+
       if (useGraphQL) {
         // Try GraphQL first
         try {
@@ -182,11 +191,11 @@ export default function OffersPage() {
             getProfileByWallet(wallet).catch(() => null),
             fetchOffers({ includeExpired: false, limit: 100 }),
           ]);
-          
+
           // Only use GraphQL results if we got valid data
           if (graphqlOffers && Array.isArray(graphqlOffers) && graphqlOffers.length >= 0) {
             setProfile(profileData);
-            const mappedOffers = graphqlOffers.map(offer => ({
+            const mappedOffers = graphqlOffers.map((offer) => ({
               id: offer.id,
               key: offer.key,
               wallet: offer.wallet,
@@ -206,17 +215,17 @@ export default function OffersPage() {
               spaceId: (offer as any).spaceId || SPACE_ID, // Use actual spaceId if available, fallback to SPACE_ID from config
             })) as Offer[];
             // Sort by newest first (invert order)
-            const sortedOffers = mappedOffers.sort((a, b) => 
-              new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            const sortedOffers = mappedOffers.sort(
+              (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
             );
             setOffers(sortedOffers);
-            
+
             // Load profiles for all unique wallet addresses
             const uniqueWallets = new Set<string>();
             sortedOffers.forEach((offer: Offer) => {
               uniqueWallets.add(offer.wallet.toLowerCase());
             });
-            
+
             const profilePromises = Array.from(uniqueWallets).map(async (w) => {
               try {
                 const profile = await getProfileByWallet(w);
@@ -225,7 +234,7 @@ export default function OffersPage() {
                 return { wallet: w, profile: null };
               }
             });
-            
+
             const profileResults = await Promise.all(profilePromises);
             const newProfileMap: Record<string, UserProfile> = {};
             profileResults.forEach((result) => {
@@ -234,29 +243,34 @@ export default function OffersPage() {
               }
             });
             setProfileMap(newProfileMap);
-            
+
             return; // Success, exit early
           }
         } catch (graphqlError) {
-          console.warn('[OffersPage] GraphQL query failed, falling back to JSON-RPC:', graphqlError);
+          console.warn(
+            '[OffersPage] GraphQL query failed, falling back to JSON-RPC:',
+            graphqlError
+          );
           // Fall through to JSON-RPC fallback
         }
       }
-      
+
       // Fallback to JSON-RPC (either GraphQL disabled or GraphQL failed)
       const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        
-        const builderParams = buildBuilderModeParams(arkivBuilderMode);
-        const [profileData, offersRes] = await Promise.all([
-          getProfileByWallet(wallet).catch(() => null),
-          fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        ]);
-        
-        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-        const payloadBytes = JSON.stringify(offersRes).length;
-        
-        // Record performance sample (async, don't block)
-        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+
+      const builderParams = buildBuilderModeParams(arkivBuilderMode);
+      const [profileData, offersRes] = await Promise.all([
+        getProfileByWallet(wallet).catch(() => null),
+        fetch(`/api/offers${builderParams}`).then((r) => r.json()),
+      ]);
+
+      const durationMs =
+        typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const payloadBytes = JSON.stringify(offersRes).length;
+
+      // Record performance sample (async, don't block)
+      import('@/lib/metrics/perf')
+        .then(({ recordPerfSample }) => {
           recordPerfSample({
             source: 'arkiv',
             operation: 'listOffers',
@@ -266,24 +280,25 @@ export default function OffersPage() {
             httpRequests: 1, // Single API call
             createdAt: new Date().toISOString(),
           });
-        }).catch(() => {
+        })
+        .catch(() => {
           // Silently fail if metrics module not available
         });
-        
+
       setProfile(profileData);
       if (offersRes.ok) {
         // Sort by newest first (invert order)
-        const sortedOffers = (offersRes.offers || []).sort((a: Offer, b: Offer) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const sortedOffers = (offersRes.offers || []).sort(
+          (a: Offer, b: Offer) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         );
         setOffers(sortedOffers);
-        
+
         // Load profiles for all unique wallet addresses
         const uniqueWallets = new Set<string>();
         sortedOffers.forEach((offer: Offer) => {
           uniqueWallets.add(offer.wallet.toLowerCase());
         });
-        
+
         const profilePromises = Array.from(uniqueWallets).map(async (w) => {
           try {
             const profile = await getProfileByWallet(w);
@@ -292,7 +307,7 @@ export default function OffersPage() {
             return { wallet: w, profile: null };
           }
         });
-        
+
         const profileResults = await Promise.all(profilePromises);
         const newProfileMap: Record<string, UserProfile> = {};
         profileResults.forEach((result) => {
@@ -336,7 +351,7 @@ export default function OffersPage() {
         return;
       }
     }
-    
+
     // Validate payment fields if paid
     if (newOffer.isPaid) {
       if (!newOffer.cost.trim()) {
@@ -379,7 +394,8 @@ export default function OffersPage() {
           skill_label: newOffer.skill.trim(), // Derived from Skill entity
           message: newOffer.message.trim(),
           availabilityWindow: availabilityWindowValue,
-          availabilityKey: newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
+          availabilityKey:
+            newOffer.availabilityType === 'saved' ? newOffer.availabilityKey : undefined,
           isPaid: newOffer.isPaid,
           cost: newOffer.isPaid ? newOffer.cost.trim() : undefined,
           paymentAddress: newOffer.isPaid ? newOffer.paymentAddress.trim() : undefined,
@@ -394,8 +410,23 @@ export default function OffersPage() {
         trackActionCompletion('offer_created');
 
         if (data.pending) {
-          setSuccess('Offer submitted! Transaction is being processed. Please refresh in a moment.');
-          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setSuccess(
+            'Offer submitted! Transaction is being processed. Please refresh in a moment.'
+          );
+          setNewOffer({
+            skill: '',
+            skill_id: '',
+            message: '',
+            availabilityWindow: '',
+            availabilityKey: '',
+            availabilityType: 'structured',
+            structuredAvailability: null,
+            isPaid: false,
+            cost: '',
+            paymentAddress: '',
+            ttlHours: '168',
+            customTtlHours: '',
+          });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers after a delay using the same method as initial load (GraphQL if enabled)
@@ -403,12 +434,27 @@ export default function OffersPage() {
             await loadData(walletAddress!);
           }, 2000);
         } else {
-          setSuccess(`Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`);
+          setSuccess(
+            `Offer created successfully! "${newOffer.skill}" is now live and visible to learners. View it in Network →`
+          );
           // Store entity info for builder mode display (U1.x.1: Explorer Independence)
           if (data.key && data.txHash) {
             setLastWriteInfo({ key: data.key, txHash: data.txHash, entityType: 'offer' });
           }
-          setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
+          setNewOffer({
+            skill: '',
+            skill_id: '',
+            message: '',
+            availabilityWindow: '',
+            availabilityKey: '',
+            availabilityType: 'structured',
+            structuredAvailability: null,
+            isPaid: false,
+            cost: '',
+            paymentAddress: '',
+            ttlHours: '168',
+            customTtlHours: '',
+          });
           setShowAdvancedOptions(false);
           setShowCreateForm(false);
           // Reload offers using the same method as initial load (GraphQL if enabled)
@@ -441,7 +487,7 @@ export default function OffersPage() {
 
   const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     const now = Date.now();
     const remaining = expires - now;
 
@@ -467,7 +513,7 @@ export default function OffersPage() {
 
   const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     return Date.now() >= expires;
   };
 
@@ -478,26 +524,29 @@ export default function OffersPage() {
   // Helper function to render offer card
   const renderOfferCard = (offer: Offer) => {
     // Find similar offers (same skill, different wallet)
-    const similarOffers = offers.filter(
-      (o) =>
-        o.key !== offer.key &&
-        o.skill.toLowerCase() === offer.skill.toLowerCase() &&
-        o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
-    ).slice(0, 3); // Limit to 3 similar offers
+    const similarOffers = offers
+      .filter(
+        (o) =>
+          o.key !== offer.key &&
+          o.skill.toLowerCase() === offer.skill.toLowerCase() &&
+          o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
+      )
+      .slice(0, 3); // Limit to 3 similar offers
 
     const offerProfile = profileMap[offer.wallet.toLowerCase()];
-    const displayName = offerProfile?.displayName || `${offer.wallet.slice(0, 6)}...${offer.wallet.slice(-4)}`;
+    const displayName =
+      offerProfile?.displayName || `${offer.wallet.slice(0, 6)}...${offer.wallet.slice(-4)}`;
     const isMyOffer = walletAddress && offer.wallet.toLowerCase() === walletAddress.toLowerCase();
 
     return (
       <div key={offer.key}>
-        <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <div className="flex justify-between items-start mb-3">
+        <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+          <div className="mb-3 flex items-start justify-between">
             <div>
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                 {offer.skill}
               </h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {formatDate(offer.createdAt)}
               </p>
             </div>
@@ -505,12 +554,12 @@ export default function OffersPage() {
               {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
             </span>
           </div>
-          <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
+          <p className="mb-3 whitespace-pre-wrap text-gray-700 dark:text-gray-300">
             {offer.message}
           </p>
           {offer.availabilityWindow && (
-            <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-              <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
+            <div className="mb-3 rounded border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+              <p className="mb-1 text-sm font-medium text-blue-900 dark:text-blue-200">
                 Availability:
               </p>
               <p className="text-sm text-blue-800 dark:text-blue-300">
@@ -518,8 +567,8 @@ export default function OffersPage() {
               </p>
             </div>
           )}
-          <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
-            <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
+          <div className="mb-3 rounded border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-900/20">
+            <p className="mb-1 text-sm font-medium text-purple-900 dark:text-purple-200">
               Payment:
             </p>
             <p className="text-sm text-purple-800 dark:text-purple-300">
@@ -532,21 +581,21 @@ export default function OffersPage() {
                     </span>
                   )}
                   {offer.paymentAddress && (
-                    <div className="mt-2 text-xs font-mono text-purple-600 dark:text-purple-400 break-all">
+                    <div className="mt-2 break-all font-mono text-xs text-purple-600 dark:text-purple-400">
                       Payment: {offer.paymentAddress}
                     </div>
                   )}
                 </>
               ) : (
-                <span className="text-blue-600 dark:text-blue-400 font-medium">🆓 Free</span>
+                <span className="font-medium text-blue-600 dark:text-blue-400">🆓 Free</span>
               )}
             </p>
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
             {offerProfile ? (
               <Link
                 href={`/profiles/${offer.wallet}`}
-                className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline font-medium"
+                className="font-medium text-blue-600 hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
               >
                 {displayName}
               </Link>
@@ -557,14 +606,12 @@ export default function OffersPage() {
             {arkivBuilderMode && offer.key && (
               <div className="flex items-center gap-2">
                 <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} className="text-xs" />
-                <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                   {offer.key.slice(0, 12)}...
                 </span>
               </div>
             )}
-            {!arkivBuilderMode && (
-              <ViewOnArkivLink entityKey={offer.key} />
-            )}
+            {!arkivBuilderMode && <ViewOnArkivLink entityKey={offer.key} />}
           </div>
           {/* Request Meeting Button - only show if not own offer */}
           {!isMyOffer && (
@@ -577,7 +624,7 @@ export default function OffersPage() {
                     `Creates: type='session' entity`,
                     `Attributes: mentorWallet='${offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
                     `Payload: Full session data`,
-                    `TTL: sessionDate + duration + 1 hour buffer`
+                    `TTL: sessionDate + duration + 1 hour buffer`,
                   ]}
                   label="Request Meeting"
                 >
@@ -594,7 +641,7 @@ export default function OffersPage() {
                         setError('Could not load profile for this offer');
                       }
                     }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
                   >
                     Request Meeting
                   </button>
@@ -613,7 +660,7 @@ export default function OffersPage() {
                       setError('Could not load profile for this offer');
                     }
                   }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
                 >
                   Request Meeting
                 </button>
@@ -624,29 +671,32 @@ export default function OffersPage() {
 
         {/* Similar Offers Section */}
         {similarOffers.length > 0 && (
-          <div className="mt-3 ml-6 pl-4 border-l-2 border-green-200 dark:border-green-800">
-            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
+          <div className="ml-6 mt-3 border-l-2 border-green-200 pl-4 dark:border-green-800">
+            <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
               {offerEmojis.default} Others teaching {offer.skill}:
             </p>
             <div className="space-y-2">
               {similarOffers.map((similarOffer) => {
                 const similarProfile = profileMap[similarOffer.wallet.toLowerCase()];
-                const similarDisplayName = similarProfile?.displayName || `${similarOffer.wallet.slice(0, 6)}...${similarOffer.wallet.slice(-4)}`;
+                const similarDisplayName =
+                  similarProfile?.displayName ||
+                  `${similarOffer.wallet.slice(0, 6)}...${similarOffer.wallet.slice(-4)}`;
                 return (
                   <Link
                     key={similarOffer.key}
                     href={`/offers#${similarOffer.key}`}
-                    className="block p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+                    className="block rounded bg-green-50 p-2 text-sm transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30"
                   >
                     <span className="font-medium text-green-700 dark:text-green-300">
                       {similarOffer.message.substring(0, 60)}
                       {similarOffer.message.length > 60 ? '...' : ''}
                     </span>
-                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                      by {similarProfile ? (
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                      by{' '}
+                      {similarProfile ? (
                         <Link
                           href={`/profiles/${similarOffer.wallet}`}
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
                           onClick={(e) => e.stopPropagation()}
                         >
                           {similarDisplayName}
@@ -668,8 +718,8 @@ export default function OffersPage() {
   if (loading) {
     return (
       <BetaGate>
-        <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-          <div className="max-w-4xl mx-auto">
+        <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+          <div className="mx-auto max-w-4xl">
             <div className="mb-6">
               <BackButton href="/network" />
             </div>
@@ -685,7 +735,7 @@ export default function OffersPage() {
                   `3. fetchOffers({ includeExpired: false, limit: 100 }) (GraphQL) OR`,
                   `   GET /api/offers (JSON-RPC)`,
                   `   → type='offer', status='active'`,
-                  `Returns: Offer[] (all active offers)`
+                  `Returns: Offer[] (all active offers)`,
                 ]}
                 label="Loading Offers"
               >
@@ -702,200 +752,258 @@ export default function OffersPage() {
 
   return (
     <BetaGate>
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
-          <BackButton href="/network" />
-        </div>
-
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex-1">
-            <PageHeader
-              title="Offers"
-              description="Browse what others are teaching, or post your own teaching offer."
-            />
-            {offers.length > 0 && (
-              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {offers.length} active {offers.length === 1 ? 'offer' : 'offers'}
-              </p>
-            )}
-          </div>
-          <Link
-            href="/asks"
-            className={`px-4 py-2 text-sm font-medium ${askColors.buttonOutline} rounded-lg transition-colors`}
-          >
-            Asks &gt;
-          </Link>
-        </div>
-
-        {/* Create Offer Button */}
-        {!showCreateForm && (
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
-            {arkivBuilderMode ? (
-              <ArkivQueryTooltip
-                query={[
-                  `Clicking opens form to create offer entity`,
-                  `POST /api/offers { action: 'createOffer', ... }`,
-                  `Creates: type='offer' entity`,
-                  `Attributes: wallet, skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
-                  `Payload: Full offer data`,
-                  `TTL: expiresIn (default 1 week = 604800 seconds)`
-                ]}
-                label="Create Offer"
-              >
+            <BackButton href="/network" />
+          </div>
+
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex-1">
+              <PageHeader
+                title="Offers"
+                description="Browse what others are teaching, or post your own teaching offer."
+              />
+              {offers.length > 0 && (
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                  {offers.length} active {offers.length === 1 ? 'offer' : 'offers'}
+                </p>
+              )}
+            </div>
+            <Link
+              href="/asks"
+              className={`px-4 py-2 text-sm font-medium ${askColors.buttonOutline} rounded-lg transition-colors`}
+            >
+              Asks &gt;
+            </Link>
+          </div>
+
+          {/* Create Offer Button */}
+          {!showCreateForm && (
+            <div className="mb-6">
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Clicking opens form to create offer entity`,
+                    `POST /api/offers { action: 'createOffer', ... }`,
+                    `Creates: type='offer' entity`,
+                    `Attributes: wallet, skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
+                    `Payload: Full offer data`,
+                    `TTL: expiresIn (default 1 week = 604800 seconds)`,
+                  ]}
+                  label="Create Offer"
+                >
+                  <button
+                    onClick={() => setShowCreateForm(true)}
+                    className={`px-4 py-2 ${offerColors.button} flex items-center gap-2 rounded-lg font-medium transition-colors`}
+                  >
+                    {offerEmojis.default} Create Offer
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
                 <button
                   onClick={() => setShowCreateForm(true)}
-                  className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
+                  className={`px-4 py-2 ${offerColors.button} flex items-center gap-2 rounded-lg font-medium transition-colors`}
                 >
                   {offerEmojis.default} Create Offer
                 </button>
-              </ArkivQueryTooltip>
-            ) : (
-              <button
-                onClick={() => setShowCreateForm(true)}
-                className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
-              >
-                {offerEmojis.default} Create Offer
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Create Offer Form */}
-        {showCreateForm && (
-          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold mb-4">Create New Offer</h2>
-            <form onSubmit={handleCreateOffer} className="space-y-4">
-              <div>
-                <label htmlFor="skill" className="block text-sm font-medium mb-2">
-                  Skill you can teach *
-                </label>
-                <SkillSelector
-                  value={newOffer.skill_id}
-                  onChange={(skillId, skillName) => setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })}
-                  placeholder="Search for a skill..."
-                  allowCreate={true}
-                  required
-                  onSkillCreated={async (skillName, skillId, pending, txHash, isNewSkill) => {
-                    if (isNewSkill && pending) {
-                      // Skill was created but is pending - show feedback and wait
-                      setSkillJustCreated(skillName);
-                      // Wait for skill to be indexed (similar to SkillsStep delay)
-                      await new Promise(resolve => setTimeout(resolve, 2000));
-                      setSkillJustCreated(null);
-                    }
-                  }}
-                />
-              </div>
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium mb-2">
-                  Message *
-                </label>
-                <textarea
-                  id="message"
-                  value={newOffer.message}
-                  onChange={(e) => setNewOffer({ ...newOffer, message: e.target.value })}
-                  placeholder="Describe what you can teach..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                />
-              </div>
-
-              {/* Skill creation feedback */}
-              {skillJustCreated && (
-                <div className="p-4 bg-green-50/90 dark:bg-green-900/30 backdrop-blur-md rounded-lg border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 text-sm">
-                  <span className="animate-pulse">✨</span> Skill added. Now submit your offer!
-                </div>
               )}
+            </div>
+          )}
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Availability *
-                </label>
-                <div className="mb-3">
-                  <div className="flex flex-wrap gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="availabilityType"
-                        checked={newOffer.availabilityType === 'saved'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'saved', structuredAvailability: null })}
-                        className="mr-2"
-                      />
-                      <span>Use saved availability</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="availabilityType"
-                        checked={newOffer.availabilityType === 'structured'}
-                        onChange={() => setNewOffer({ ...newOffer, availabilityType: 'structured', availabilityKey: '' })}
-                        className="mr-2"
-                      />
-                      <span>Create structured availability</span>
-                    </label>
-                  </div>
+          {/* Create Offer Form */}
+          {showCreateForm && (
+            <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+              <h2 className="mb-4 text-xl font-semibold">Create New Offer</h2>
+              <form onSubmit={handleCreateOffer} className="space-y-4">
+                <div>
+                  <label htmlFor="skill" className="mb-2 block text-sm font-medium">
+                    Skill you can teach *
+                  </label>
+                  <SkillSelector
+                    value={newOffer.skill_id}
+                    onChange={(skillId, skillName) =>
+                      setNewOffer({ ...newOffer, skill_id: skillId, skill: skillName })
+                    }
+                    placeholder="Search for a skill..."
+                    allowCreate={true}
+                    required
+                    onSkillCreated={async (skillName, skillId, pending, txHash, isNewSkill) => {
+                      if (isNewSkill && pending) {
+                        // Skill was created but is pending - show feedback and wait
+                        setSkillJustCreated(skillName);
+                        // Wait for skill to be indexed (similar to SkillsStep delay)
+                        await new Promise((resolve) => setTimeout(resolve, 2000));
+                        setSkillJustCreated(null);
+                      }
+                    }}
+                  />
                 </div>
-                {newOffer.availabilityType === 'saved' ? (
-                  <div>
-                    {loadingAvailabilities ? (
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Loading availabilities...</div>
-                    ) : savedAvailabilities.length === 0 ? (
-                      <div className="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded">
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          No saved availability blocks found. <Link href="/me/availability" className="underline">Create one here</Link> or create structured availability below.
-                        </p>
-                      </div>
-                    ) : (
-                      <select
-                        id="availabilityKey"
-                        value={newOffer.availabilityKey}
-                        onChange={(e) => setNewOffer({ ...newOffer, availabilityKey: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        required={newOffer.availabilityType === 'saved'}
-                      >
-                        <option value="">Select saved availability...</option>
-                        {savedAvailabilities.map((avail) => (
-                          <option key={avail.key} value={avail.key}>
-                            {avail.displayText}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    <WeeklyAvailabilityEditor
-                      value={newOffer.structuredAvailability}
-                      onChange={(availability) => setNewOffer({ ...newOffer, structuredAvailability: availability })}
-                      className="bg-white dark:bg-gray-700 p-4 rounded-lg border border-gray-300 dark:border-gray-600"
-                    />
+                <div>
+                  <label htmlFor="message" className="mb-2 block text-sm font-medium">
+                    Message *
+                  </label>
+                  <textarea
+                    id="message"
+                    value={newOffer.message}
+                    onChange={(e) => setNewOffer({ ...newOffer, message: e.target.value })}
+                    placeholder="Describe what you can teach..."
+                    rows={4}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                    required
+                  />
+                </div>
+
+                {/* Skill creation feedback */}
+                {skillJustCreated && (
+                  <div className="rounded-lg border border-green-200 bg-green-50/90 p-4 text-sm text-green-700 backdrop-blur-md dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
+                    <span className="animate-pulse">✨</span> Skill added. Now submit your offer!
                   </div>
                 )}
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Payment Type *
-                </label>
-                {arkivBuilderMode ? (
-                  <ArkivQueryTooltip
-                    query={[
-                      `Payment Type Selection`,
-                      `Stored as: attribute='isPaid' on offer entity`,
-                      `Values: 'true' | 'false' (string)`,
-                      `Determines if cost and paymentAddress are required`
-                    ]}
-                    label="Payment Type"
-                  >
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Availability *</label>
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-4">
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="availabilityType"
+                          checked={newOffer.availabilityType === 'saved'}
+                          onChange={() =>
+                            setNewOffer({
+                              ...newOffer,
+                              availabilityType: 'saved',
+                              structuredAvailability: null,
+                            })
+                          }
+                          className="mr-2"
+                        />
+                        <span>Use saved availability</span>
+                      </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="availabilityType"
+                          checked={newOffer.availabilityType === 'structured'}
+                          onChange={() =>
+                            setNewOffer({
+                              ...newOffer,
+                              availabilityType: 'structured',
+                              availabilityKey: '',
+                            })
+                          }
+                          className="mr-2"
+                        />
+                        <span>Create structured availability</span>
+                      </label>
+                    </div>
+                  </div>
+                  {newOffer.availabilityType === 'saved' ? (
+                    <div>
+                      {loadingAvailabilities ? (
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          Loading availabilities...
+                        </div>
+                      ) : savedAvailabilities.length === 0 ? (
+                        <div className="rounded border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-800 dark:bg-yellow-900/20">
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            No saved availability blocks found.{' '}
+                            <Link href="/me/availability" className="underline">
+                              Create one here
+                            </Link>{' '}
+                            or create structured availability below.
+                          </p>
+                        </div>
+                      ) : (
+                        <select
+                          id="availabilityKey"
+                          value={newOffer.availabilityKey}
+                          onChange={(e) =>
+                            setNewOffer({ ...newOffer, availabilityKey: e.target.value })
+                          }
+                          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                          required={newOffer.availabilityType === 'saved'}
+                        >
+                          <option value="">Select saved availability...</option>
+                          {savedAvailabilities.map((avail) => (
+                            <option key={avail.key} value={avail.key}>
+                              {avail.displayText}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      <WeeklyAvailabilityEditor
+                        value={newOffer.structuredAvailability}
+                        onChange={(availability) =>
+                          setNewOffer({ ...newOffer, structuredAvailability: availability })
+                        }
+                        className="rounded-lg border border-gray-300 bg-white p-4 dark:border-gray-600 dark:bg-gray-700"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-medium">Payment Type *</label>
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `Payment Type Selection`,
+                        `Stored as: attribute='isPaid' on offer entity`,
+                        `Values: 'true' | 'false' (string)`,
+                        `Determines if cost and paymentAddress are required`,
+                      ]}
+                      label="Payment Type"
+                    >
+                      <div className="flex gap-4">
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="paymentType"
+                            checked={!newOffer.isPaid}
+                            onChange={() =>
+                              setNewOffer({
+                                ...newOffer,
+                                isPaid: false,
+                                cost: '',
+                                paymentAddress: '',
+                              })
+                            }
+                            className="mr-2"
+                          />
+                          <span>Free</span>
+                        </label>
+                        <label className="flex items-center">
+                          <input
+                            type="radio"
+                            name="paymentType"
+                            checked={newOffer.isPaid}
+                            onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
+                            className="mr-2"
+                          />
+                          <span>Paid</span>
+                        </label>
+                      </div>
+                    </ArkivQueryTooltip>
+                  ) : (
                     <div className="flex gap-4">
                       <label className="flex items-center">
                         <input
                           type="radio"
                           name="paymentType"
                           checked={!newOffer.isPaid}
-                          onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
+                          onChange={() =>
+                            setNewOffer({
+                              ...newOffer,
+                              isPaid: false,
+                              cost: '',
+                              paymentAddress: '',
+                            })
+                          }
                           className="mr-2"
                         />
                         <span>Free</span>
@@ -911,49 +1019,44 @@ export default function OffersPage() {
                         <span>Paid</span>
                       </label>
                     </div>
-                  </ArkivQueryTooltip>
-                ) : (
-                  <div className="flex gap-4">
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="paymentType"
-                        checked={!newOffer.isPaid}
-                        onChange={() => setNewOffer({ ...newOffer, isPaid: false, cost: '', paymentAddress: '' })}
-                        className="mr-2"
-                      />
-                      <span>Free</span>
-                    </label>
-                    <label className="flex items-center">
-                      <input
-                        type="radio"
-                        name="paymentType"
-                        checked={newOffer.isPaid}
-                        onChange={() => setNewOffer({ ...newOffer, isPaid: true })}
-                        className="mr-2"
-                      />
-                      <span>Paid</span>
-                    </label>
-                  </div>
-                )}
-              </div>
-              
-              {newOffer.isPaid && (
-                <>
-                  <div>
-                    {arkivBuilderMode ? (
-                      <ArkivQueryTooltip
-                        query={[
-                          `Cost Input (Paid Offers)`,
-                          `Stored as: attribute='cost' on offer entity`,
-                          `Required when: isPaid='true'`,
-                          `Format: Free text (e.g., "0.1 ETH", "$50", "100 USDC")`,
-                          `Also stored in payload for retrieval`
-                        ]}
-                        label="Cost"
-                      >
+                  )}
+                </div>
+
+                {newOffer.isPaid && (
+                  <>
+                    <div>
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Cost Input (Paid Offers)`,
+                            `Stored as: attribute='cost' on offer entity`,
+                            `Required when: isPaid='true'`,
+                            `Format: Free text (e.g., "0.1 ETH", "$50", "100 USDC")`,
+                            `Also stored in payload for retrieval`,
+                          ]}
+                          label="Cost"
+                        >
+                          <div>
+                            <label htmlFor="cost" className="mb-2 block text-sm font-medium">
+                              Cost *
+                            </label>
+                            <input
+                              id="cost"
+                              type="text"
+                              value={newOffer.cost}
+                              onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
+                              placeholder="e.g., 0.1 ETH, $50, 100 USDC"
+                              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                              required={newOffer.isPaid}
+                            />
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              The cost for this mentorship session
+                            </p>
+                          </div>
+                        </ArkivQueryTooltip>
+                      ) : (
                         <div>
-                          <label htmlFor="cost" className="block text-sm font-medium mb-2">
+                          <label htmlFor="cost" className="mb-2 block text-sm font-medium">
                             Cost *
                           </label>
                           <input
@@ -962,460 +1065,500 @@ export default function OffersPage() {
                             value={newOffer.cost}
                             onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
                             placeholder="e.g., 0.1 ETH, $50, 100 USDC"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                             required={newOffer.isPaid}
                           />
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             The cost for this mentorship session
                           </p>
                         </div>
-                      </ArkivQueryTooltip>
-                    ) : (
-                      <div>
-                        <label htmlFor="cost" className="block text-sm font-medium mb-2">
-                          Cost *
-                        </label>
-                        <input
-                          id="cost"
-                          type="text"
-                          value={newOffer.cost}
-                          onChange={(e) => setNewOffer({ ...newOffer, cost: e.target.value })}
-                          placeholder="e.g., 0.1 ETH, $50, 100 USDC"
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          required={newOffer.isPaid}
-                        />
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          The cost for this mentorship session
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    {arkivBuilderMode ? (
-                      <ArkivQueryTooltip
-                        query={[
-                          `Payment Address Input (Paid Offers)`,
-                          `Stored as: attribute='paymentAddress' on offer entity`,
-                          `Required when: isPaid='true'`,
-                          `Format: Ethereum wallet address (0x...)`,
-                          `Also stored in payload for retrieval`,
-                          `Visible to requesters on offer cards`
-                        ]}
-                        label="Payment Address"
-                      >
+                      )}
+                    </div>
+                    <div>
+                      {arkivBuilderMode ? (
+                        <ArkivQueryTooltip
+                          query={[
+                            `Payment Address Input (Paid Offers)`,
+                            `Stored as: attribute='paymentAddress' on offer entity`,
+                            `Required when: isPaid='true'`,
+                            `Format: Ethereum wallet address (0x...)`,
+                            `Also stored in payload for retrieval`,
+                            `Visible to requesters on offer cards`,
+                          ]}
+                          label="Payment Address"
+                        >
+                          <div>
+                            <label
+                              htmlFor="paymentAddress"
+                              className="mb-2 block text-sm font-medium"
+                            >
+                              Payment Address *
+                            </label>
+                            <input
+                              id="paymentAddress"
+                              type="text"
+                              value={newOffer.paymentAddress}
+                              onChange={(e) =>
+                                setNewOffer({ ...newOffer, paymentAddress: e.target.value })
+                              }
+                              placeholder="0x..."
+                              className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 font-mono text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                              required={newOffer.isPaid}
+                            />
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              Wallet address where you'll receive payment for this offer
+                            </p>
+                          </div>
+                        </ArkivQueryTooltip>
+                      ) : (
                         <div>
-                          <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
+                          <label
+                            htmlFor="paymentAddress"
+                            className="mb-2 block text-sm font-medium"
+                          >
                             Payment Address *
                           </label>
                           <input
                             id="paymentAddress"
                             type="text"
                             value={newOffer.paymentAddress}
-                            onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
+                            onChange={(e) =>
+                              setNewOffer({ ...newOffer, paymentAddress: e.target.value })
+                            }
                             placeholder="0x..."
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 font-mono text-sm focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                             required={newOffer.isPaid}
                           />
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             Wallet address where you'll receive payment for this offer
                           </p>
                         </div>
-                      </ArkivQueryTooltip>
-                    ) : (
-                      <div>
-                        <label htmlFor="paymentAddress" className="block text-sm font-medium mb-2">
-                          Payment Address *
-                        </label>
-                        <input
-                          id="paymentAddress"
-                          type="text"
-                          value={newOffer.paymentAddress}
-                          onChange={(e) => setNewOffer({ ...newOffer, paymentAddress: e.target.value })}
-                          placeholder="0x..."
-                          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
-                          required={newOffer.isPaid}
-                        />
-                        <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                          Wallet address where you'll receive payment for this offer
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {/* Expiration Date Display */}
-              {(() => {
-                const ttlValue = newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
-                const ttlHoursNum = parseFloat(ttlValue) || 168;
-                const expirationDate = new Date(Date.now() + ttlHoursNum * 3600 * 1000);
-                const formattedDate = expirationDate.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                  year: 'numeric',
-                  hour: 'numeric',
-                  minute: '2-digit'
-                });
-                return (
-                  <div className="pt-2 pb-2 text-sm text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">Expires:</span> {formattedDate}
-                  </div>
-                );
-              })()}
-
-              {/* Advanced Options Toggle */}
-              <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                <button
-                  type="button"
-                  onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-                  className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
-                >
-                  <svg
-                    className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
-                  Advanced Options
-                </button>
-              </div>
-
-              {/* Advanced Options (Collapsed by Default) */}
-              {showAdvancedOptions && (
-                <div className="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-                  <div>
-                    <label htmlFor="ttlHours" className="block text-sm font-medium mb-2">
-                      Expiration Duration (optional)
-                      {arkivBuilderMode ? (
-                        <ArkivQueryTooltip
-                          query={[
-                            `TTL (Time To Live)`,
-                            `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
-                            ``,
-                            `Current Selection: ${newOffer.ttlHours === 'custom' ? `${newOffer.customTtlHours || '...'} hours` : `${newOffer.ttlHours || '168'} hours`}`,
-                            `Conversion: hours → seconds (${newOffer.ttlHours === 'custom' ? (parseFloat(newOffer.customTtlHours || '168') * 3600) : (parseFloat(newOffer.ttlHours || '168') * 3600)} seconds)`,
-                            ``,
-                            `In Offer Entity:`,
-                            `→ Attribute: ttlSeconds='${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)}'`,
-                            `→ Arkiv expiresIn: ${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)} seconds`,
-                            ``,
-                            `Client-Side Filtering:`,
-                            `→ Checks: createdAt + ttlSeconds < now`,
-                            `→ Expired offers filtered out (unless includeExpired: true)`,
-                            ``,
-                            `Arkiv-Level Expiration:`,
-                            `→ Hard deletion after expiresIn seconds`,
-                            `→ Used for network cleanup`
-                          ]}
-                          label="TTL Info"
-                        >
-                          <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 cursor-help">ℹ️</span>
-                        </ArkivQueryTooltip>
-                      ) : (
-                        <span className="ml-2 text-xs text-gray-500 dark:text-gray-400" title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.">ℹ️</span>
-                      )}
-                    </label>
-                    <div className="flex gap-2">
-                      <select
-                        id="ttlHours"
-                        value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
-                        onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
-                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="1">1 hour</option>
-                        <option value="2">2 hours</option>
-                        <option value="6">6 hours</option>
-                        <option value="12">12 hours</option>
-                        <option value="24">24 hours (1 day)</option>
-                        <option value="48">48 hours (2 days)</option>
-                        <option value="168">1 week - Recommended</option>
-                        <option value="720">1 month (30 days)</option>
-                        <option value="custom">Custom (hours)</option>
-                      </select>
-                      {newOffer.ttlHours === 'custom' && (
-                        <input
-                          type="number"
-                          min="1"
-                          max="8760"
-                          step="1"
-                          placeholder="Hours"
-                          value={newOffer.customTtlHours}
-                          onChange={(e) => {
-                            setNewOffer({ ...newOffer, customTtlHours: e.target.value });
-                          }}
-                          className="w-32 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
                       )}
                     </div>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      How long should this offer remain active? Default: 1 week
-                    </p>
-                  </div>
-                </div>
-              )}
+                  </>
+                )}
 
-              <div className="flex gap-3">
-                {arkivBuilderMode ? (
-                  <ArkivQueryTooltip
-                    query={[
-                      `POST /api/offers { action: 'createOffer', ... }`,
-                      `Creates: type='offer' entity`,
-                      `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
-                      `Payload: Full offer data`,
-                      `TTL: expiresIn (default 1 week = 604800 seconds)`,
-                      `Note: Creates offer_txhash entity for transaction tracking`
-                    ]}
-                    label="Create Offer"
+                {/* Expiration Date Display */}
+                {(() => {
+                  const ttlValue =
+                    newOffer.ttlHours === 'custom' ? newOffer.customTtlHours : newOffer.ttlHours;
+                  const ttlHoursNum = parseFloat(ttlValue) || 168;
+                  const expirationDate = new Date(Date.now() + ttlHoursNum * 3600 * 1000);
+                  const formattedDate = expirationDate.toLocaleDateString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    year: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  });
+                  return (
+                    <div className="pb-2 pt-2 text-sm text-gray-600 dark:text-gray-400">
+                      <span className="font-medium">Expires:</span> {formattedDate}
+                    </div>
+                  );
+                })()}
+
+                {/* Advanced Options Toggle */}
+                <div className="border-t border-gray-200 pt-2 dark:border-gray-700">
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+                    className="flex items-center gap-2 text-sm text-gray-600 transition-colors hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
                   >
+                    <svg
+                      className={`h-4 w-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                    Advanced Options
+                  </button>
+                </div>
+
+                {/* Advanced Options (Collapsed by Default) */}
+                {showAdvancedOptions && (
+                  <div className="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <div>
+                      <label htmlFor="ttlHours" className="mb-2 block text-sm font-medium">
+                        Expiration Duration (optional)
+                        {arkivBuilderMode ? (
+                          <ArkivQueryTooltip
+                            query={[
+                              `TTL (Time To Live)`,
+                              `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
+                              ``,
+                              `Current Selection: ${newOffer.ttlHours === 'custom' ? `${newOffer.customTtlHours || '...'} hours` : `${newOffer.ttlHours || '168'} hours`}`,
+                              `Conversion: hours → seconds (${newOffer.ttlHours === 'custom' ? parseFloat(newOffer.customTtlHours || '168') * 3600 : parseFloat(newOffer.ttlHours || '168') * 3600} seconds)`,
+                              ``,
+                              `In Offer Entity:`,
+                              `→ Attribute: ttlSeconds='${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)}'`,
+                              `→ Arkiv expiresIn: ${newOffer.ttlHours === 'custom' ? Math.floor(parseFloat(newOffer.customTtlHours || '168') * 3600) : Math.floor(parseFloat(newOffer.ttlHours || '168') * 3600)} seconds`,
+                              ``,
+                              `Client-Side Filtering:`,
+                              `→ Checks: createdAt + ttlSeconds < now`,
+                              `→ Expired offers filtered out (unless includeExpired: true)`,
+                              ``,
+                              `Arkiv-Level Expiration:`,
+                              `→ Hard deletion after expiresIn seconds`,
+                              `→ Used for network cleanup`,
+                            ]}
+                            label="TTL Info"
+                          >
+                            <span className="ml-2 cursor-help text-xs text-gray-500 dark:text-gray-400">
+                              ℹ️
+                            </span>
+                          </ArkivQueryTooltip>
+                        ) : (
+                          <span
+                            className="ml-2 text-xs text-gray-500 dark:text-gray-400"
+                            title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network."
+                          >
+                            ℹ️
+                          </span>
+                        )}
+                      </label>
+                      <div className="flex gap-2">
+                        <select
+                          id="ttlHours"
+                          value={newOffer.ttlHours === 'custom' ? 'custom' : newOffer.ttlHours}
+                          onChange={(e) => setNewOffer({ ...newOffer, ttlHours: e.target.value })}
+                          className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                        >
+                          <option value="1">1 hour</option>
+                          <option value="2">2 hours</option>
+                          <option value="6">6 hours</option>
+                          <option value="12">12 hours</option>
+                          <option value="24">24 hours (1 day)</option>
+                          <option value="48">48 hours (2 days)</option>
+                          <option value="168">1 week - Recommended</option>
+                          <option value="720">1 month (30 days)</option>
+                          <option value="custom">Custom (hours)</option>
+                        </select>
+                        {newOffer.ttlHours === 'custom' && (
+                          <input
+                            type="number"
+                            min="1"
+                            max="8760"
+                            step="1"
+                            placeholder="Hours"
+                            value={newOffer.customTtlHours}
+                            onChange={(e) => {
+                              setNewOffer({ ...newOffer, customTtlHours: e.target.value });
+                            }}
+                            className="w-32 rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                          />
+                        )}
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        How long should this offer remain active? Default: 1 week
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  {arkivBuilderMode ? (
+                    <ArkivQueryTooltip
+                      query={[
+                        `POST /api/offers { action: 'createOffer', ... }`,
+                        `Creates: type='offer' entity`,
+                        `Attributes: wallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill, skill_id, message, availabilityWindow, availabilityKey (optional), isPaid, cost, paymentAddress`,
+                        `Payload: Full offer data`,
+                        `TTL: expiresIn (default 1 week = 604800 seconds)`,
+                        `Note: Creates offer_txhash entity for transaction tracking`,
+                      ]}
+                      label="Create Offer"
+                    >
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {submitting ? 'Creating...' : 'Create Offer'}
+                      </button>
+                    </ArkivQueryTooltip>
+                  ) : (
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {submitting ? 'Creating...' : 'Create Offer'}
                     </button>
-                  </ArkivQueryTooltip>
-                ) : (
+                  )}
                   <button
-                    type="submit"
-                    disabled={submitting}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    type="button"
+                    onClick={() => {
+                      setShowCreateForm(false);
+                      setNewOffer({
+                        skill: '',
+                        skill_id: '',
+                        message: '',
+                        availabilityWindow: '',
+                        availabilityKey: '',
+                        availabilityType: 'structured',
+                        structuredAvailability: null,
+                        isPaid: false,
+                        cost: '',
+                        paymentAddress: '',
+                        ttlHours: '168',
+                        customTtlHours: '',
+                      });
+                      setShowAdvancedOptions(false);
+                      setError('');
+                      setSuccess('');
+                    }}
+                    className="rounded-lg border border-gray-300 px-4 py-2 font-medium transition-colors hover:bg-gray-100 dark:border-gray-600 dark:hover:bg-gray-700"
                   >
-                    {submitting ? 'Creating...' : 'Create Offer'}
+                    Cancel
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(false);
-                    setNewOffer({ skill: '', skill_id: '', message: '', availabilityWindow: '', availabilityKey: '', availabilityType: 'structured', structuredAvailability: null, isPaid: false, cost: '', paymentAddress: '', ttlHours: '168', customTtlHours: '' });
-                    setShowAdvancedOptions(false);
-                    setError('');
-                    setSuccess('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-            {error && (
-              <Alert type="error" message={error} onClose={() => setError('')} className="mt-4" />
-            )}
-            {success && (
-              <Alert type="success" message={success} onClose={() => setSuccess('')} className="mt-4" />
-            )}
-            {lastWriteInfo && (
-              <EntityWriteInfo
-                entityKey={lastWriteInfo.key}
-                txHash={lastWriteInfo.txHash}
-                entityType={lastWriteInfo.entityType}
-                className="mt-4"
+                </div>
+              </form>
+              {error && (
+                <Alert type="error" message={error} onClose={() => setError('')} className="mt-4" />
+              )}
+              {success && (
+                <Alert
+                  type="success"
+                  message={success}
+                  onClose={() => setSuccess('')}
+                  className="mt-4"
+                />
+              )}
+              {lastWriteInfo && (
+                <EntityWriteInfo
+                  entityKey={lastWriteInfo.key}
+                  txHash={lastWriteInfo.txHash}
+                  entityType={lastWriteInfo.entityType}
+                  className="mt-4"
+                />
+              )}
+            </div>
+          )}
+
+          {/* Offers List */}
+          <div className="space-y-4">
+            {offers.length === 0 ? (
+              <EmptyState
+                title="No offers yet"
+                description="Be the first to share what you can teach! Create an offer to connect with learners who need your expertise."
+                icon={<span className="text-4xl">{offerEmojis.default}</span>}
+                action={
+                  !showCreateForm && (
+                    <button
+                      onClick={() => setShowCreateForm(true)}
+                      className={`px-4 py-2 ${offerColors.button} flex items-center gap-2 rounded-lg font-medium transition-colors`}
+                    >
+                      {offerEmojis.default} Create Your First Offer
+                    </button>
+                  )
+                }
               />
+            ) : (
+              offers.map((offer) => {
+                // Find similar offers (same skill, different wallet)
+                const similarOffers = offers
+                  .filter(
+                    (o) =>
+                      o.key !== offer.key &&
+                      o.skill.toLowerCase() === offer.skill.toLowerCase() &&
+                      o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
+                  )
+                  .slice(0, 3); // Limit to 3 similar offers
+
+                return (
+                  <div key={offer.key}>
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+                      <div className="mb-3 flex items-start justify-between">
+                        <div>
+                          <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                            {offer.skill}
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {formatDate(offer.createdAt)}
+                          </p>
+                        </div>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}
+                        >
+                          {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
+                        </span>
+                      </div>
+                      <p className="mb-3 whitespace-pre-wrap text-gray-700 dark:text-gray-300">
+                        {offer.message}
+                      </p>
+                      {offer.availabilityWindow && (
+                        <div className="mb-3 rounded border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-900/20">
+                          <p className="mb-1 text-sm font-medium text-blue-900 dark:text-blue-200">
+                            Availability:
+                          </p>
+                          <p className="text-sm text-blue-800 dark:text-blue-300">
+                            {formatAvailabilityForDisplay(offer.availabilityWindow)}
+                          </p>
+                        </div>
+                      )}
+                      <div className="mb-3 rounded border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-900/20">
+                        <p className="mb-1 text-sm font-medium text-purple-900 dark:text-purple-200">
+                          Payment:
+                        </p>
+                        <p className="text-sm text-purple-800 dark:text-purple-300">
+                          {offer.isPaid ? (
+                            <>
+                              <span className={`${offerColors.text} font-medium`}>
+                                💰 Requires payment
+                              </span>
+                              {offer.cost && (
+                                <span className="ml-2 text-purple-700 dark:text-purple-300">
+                                  ({offer.cost})
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="font-medium text-blue-600 dark:text-blue-400">
+                              🆓 Free
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <span className="font-mono text-xs">
+                          {offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}
+                        </span>
+                        <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
+                        {arkivBuilderMode && offer.key && (
+                          <div className="flex items-center gap-2">
+                            <ViewOnArkivLink
+                              entityKey={offer.key}
+                              txHash={offer.txHash}
+                              className="text-xs"
+                            />
+                            <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
+                              {offer.key.slice(0, 12)}...
+                            </span>
+                          </div>
+                        )}
+                        {!arkivBuilderMode && <ViewOnArkivLink entityKey={offer.key} />}
+                      </div>
+                      {/* Request Meeting Button - only show if not own offer */}
+                      {walletAddress &&
+                        walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (
+                          <div className="mt-4">
+                            {arkivBuilderMode ? (
+                              <ArkivQueryTooltip
+                                query={[
+                                  `Opens RequestMeetingModal to create session`,
+                                  `POST /api/sessions { action: 'createSession', ... }`,
+                                  `Creates: type='session' entity`,
+                                  `Attributes: mentorWallet='${offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                                  `Payload: Full session data`,
+                                  `TTL: sessionDate + duration + 1 hour buffer`,
+                                ]}
+                                label="Request Meeting"
+                              >
+                                <button
+                                  onClick={async () => {
+                                    // Load profile for the offer's wallet
+                                    const offerProfile = await getProfileByWallet(
+                                      offer.wallet
+                                    ).catch(() => null);
+                                    if (offerProfile) {
+                                      setSelectedOffer(offer);
+                                      setSelectedOfferProfile(offerProfile);
+                                      // Use setTimeout to ensure state is updated before opening modal
+                                      setTimeout(() => setShowMeetingModal(true), 0);
+                                    } else {
+                                      setError('Could not load profile for this offer');
+                                    }
+                                  }}
+                                  className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                                >
+                                  Request Meeting
+                                </button>
+                              </ArkivQueryTooltip>
+                            ) : (
+                              <button
+                                onClick={async () => {
+                                  // Load profile for the offer's wallet
+                                  const offerProfile = await getProfileByWallet(offer.wallet).catch(
+                                    () => null
+                                  );
+                                  if (offerProfile) {
+                                    setSelectedOffer(offer);
+                                    setSelectedOfferProfile(offerProfile);
+                                    // Use setTimeout to ensure state is updated before opening modal
+                                    setTimeout(() => setShowMeetingModal(true), 0);
+                                  } else {
+                                    setError('Could not load profile for this offer');
+                                  }
+                                }}
+                                className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                              >
+                                Request Meeting
+                              </button>
+                            )}
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Similar Offers Section */}
+                    {similarOffers.length > 0 && (
+                      <div className="ml-6 mt-3 border-l-2 border-green-200 pl-4 dark:border-green-800">
+                        <p className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+                          {offerEmojis.default} Others teaching {offer.skill}:
+                        </p>
+                        <div className="space-y-2">
+                          {similarOffers.map((similarOffer) => (
+                            <Link
+                              key={similarOffer.key}
+                              href={`/offers#${similarOffer.key}`}
+                              className="block rounded bg-green-50 p-2 text-sm transition-colors hover:bg-green-100 dark:bg-green-900/20 dark:hover:bg-green-900/30"
+                            >
+                              <span className="font-medium text-green-700 dark:text-green-300">
+                                {similarOffer.message.substring(0, 60)}
+                                {similarOffer.message.length > 60 ? '...' : ''}
+                              </span>
+                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
+                                by {similarOffer.wallet.slice(0, 6)}...
+                                {similarOffer.wallet.slice(-4)}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
-        )}
 
-        {/* Offers List */}
-        <div className="space-y-4">
-          {offers.length === 0 ? (
-            <EmptyState
-              title="No offers yet"
-              description="Be the first to share what you can teach! Create an offer to connect with learners who need your expertise."
-              icon={<span className="text-4xl">{offerEmojis.default}</span>}
-              action={
-                !showCreateForm && (
-                  <button
-                    onClick={() => setShowCreateForm(true)}
-                    className={`px-4 py-2 ${offerColors.button} rounded-lg font-medium transition-colors flex items-center gap-2`}
-                  >
-                    {offerEmojis.default} Create Your First Offer
-                  </button>
-                )
-              }
-            />
-          ) : (
-            offers.map((offer) => {
-              // Find similar offers (same skill, different wallet)
-              const similarOffers = offers.filter(
-                (o) =>
-                  o.key !== offer.key &&
-                  o.skill.toLowerCase() === offer.skill.toLowerCase() &&
-                  o.wallet.toLowerCase() !== offer.wallet.toLowerCase()
-              ).slice(0, 3); // Limit to 3 similar offers
-
-              return (
-                <div key={offer.key}>
-                  <div className="p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                      {offer.skill}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                      {formatDate(offer.createdAt)}
-                    </p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium ${offerColors.badge} rounded`}>
-                    {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
-                  </span>
-                </div>
-                <p className="text-gray-700 dark:text-gray-300 mb-3 whitespace-pre-wrap">
-                  {offer.message}
-                </p>
-                {offer.availabilityWindow && (
-                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">
-                      Availability:
-                    </p>
-                    <p className="text-sm text-blue-800 dark:text-blue-300">
-                      {formatAvailabilityForDisplay(offer.availabilityWindow)}
-                    </p>
-                  </div>
-                )}
-                <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
-                  <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
-                    Payment:
-                  </p>
-                  <p className="text-sm text-purple-800 dark:text-purple-300">
-                    {offer.isPaid ? (
-                      <>
-                        <span className={`${offerColors.text} font-medium`}>💰 Requires payment</span>
-                        {offer.cost && (
-                          <span className="ml-2 text-purple-700 dark:text-purple-300">
-                            ({offer.cost})
-                          </span>
-                        )}
-                      </>
-                    ) : (
-                      <span className="text-blue-600 dark:text-blue-400 font-medium">🆓 Free</span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                  <span className="font-mono text-xs">{offer.wallet.slice(0, 6)}...{offer.wallet.slice(-4)}</span>
-                  <CountdownTimer createdAt={offer.createdAt} ttlSeconds={offer.ttlSeconds} />
-                  {arkivBuilderMode && offer.key && (
-                    <div className="flex items-center gap-2">
-                      <ViewOnArkivLink entityKey={offer.key} txHash={offer.txHash} className="text-xs" />
-                      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
-                        {offer.key.slice(0, 12)}...
-                      </span>
-                    </div>
-                  )}
-                  {!arkivBuilderMode && (
-                    <ViewOnArkivLink entityKey={offer.key} />
-                  )}
-                </div>
-                {/* Request Meeting Button - only show if not own offer */}
-                {walletAddress && walletAddress.toLowerCase() !== offer.wallet.toLowerCase() && (
-                  <div className="mt-4">
-                    {arkivBuilderMode ? (
-                      <ArkivQueryTooltip
-                        query={[
-                          `Opens RequestMeetingModal to create session`,
-                          `POST /api/sessions { action: 'createSession', ... }`,
-                          `Creates: type='session' entity`,
-                          `Attributes: mentorWallet='${offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
-                          `Payload: Full session data`,
-                          `TTL: sessionDate + duration + 1 hour buffer`
-                        ]}
-                        label="Request Meeting"
-                      >
-                        <button
-                          onClick={async () => {
-                            // Load profile for the offer's wallet
-                            const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                            if (offerProfile) {
-                              setSelectedOffer(offer);
-                              setSelectedOfferProfile(offerProfile);
-                              // Use setTimeout to ensure state is updated before opening modal
-                              setTimeout(() => setShowMeetingModal(true), 0);
-                            } else {
-                              setError('Could not load profile for this offer');
-                            }
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Request Meeting
-                        </button>
-                      </ArkivQueryTooltip>
-                    ) : (
-                      <button
-                        onClick={async () => {
-                          // Load profile for the offer's wallet
-                          const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
-                          if (offerProfile) {
-                            setSelectedOffer(offer);
-                            setSelectedOfferProfile(offerProfile);
-                            // Use setTimeout to ensure state is updated before opening modal
-                            setTimeout(() => setShowMeetingModal(true), 0);
-                          } else {
-                            setError('Could not load profile for this offer');
-                          }
-                        }}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                      >
-                        Request Meeting
-                      </button>
-                    )}
-                  </div>
-                )}
-                  </div>
-
-                  {/* Similar Offers Section */}
-                  {similarOffers.length > 0 && (
-                    <div className="mt-3 ml-6 pl-4 border-l-2 border-green-200 dark:border-green-800">
-                      <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                        {offerEmojis.default} Others teaching {offer.skill}:
-                      </p>
-                      <div className="space-y-2">
-                        {similarOffers.map((similarOffer) => (
-                          <Link
-                            key={similarOffer.key}
-                            href={`/offers#${similarOffer.key}`}
-                            className="block p-2 bg-green-50 dark:bg-green-900/20 rounded text-sm hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
-                          >
-                            <span className="font-medium text-green-700 dark:text-green-300">
-                              {similarOffer.message.substring(0, 60)}
-                              {similarOffer.message.length > 60 ? '...' : ''}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
-                              by {similarOffer.wallet.slice(0, 6)}...{similarOffer.wallet.slice(-4)}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
+          {/* Request Meeting Modal */}
+          <RequestMeetingModal
+            isOpen={showMeetingModal}
+            onClose={() => {
+              setShowMeetingModal(false);
+              setSelectedOffer(null);
+              setSelectedOfferProfile(null);
+            }}
+            profile={selectedOfferProfile}
+            userWallet={walletAddress}
+            userProfile={userProfile}
+            offer={selectedOffer}
+            onSuccess={() => {
+              console.log('Meeting requested successfully');
+              setSelectedOffer(null);
+              setSelectedOfferProfile(null);
+            }}
+          />
         </div>
-
-        {/* Request Meeting Modal */}
-        <RequestMeetingModal
-          isOpen={showMeetingModal}
-          onClose={() => {
-            setShowMeetingModal(false);
-            setSelectedOffer(null);
-            setSelectedOfferProfile(null);
-          }}
-          profile={selectedOfferProfile}
-          userWallet={walletAddress}
-          userProfile={userProfile}
-          offer={selectedOffer}
-          onSuccess={() => {
-            console.log('Meeting requested successfully');
-            setSelectedOffer(null);
-            setSelectedOfferProfile(null);
-          }}
-        />
       </div>
-    </div>
     </BetaGate>
   );
 }

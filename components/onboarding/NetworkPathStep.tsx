@@ -1,6 +1,6 @@
 /**
  * Network Path Step Component
- * 
+ *
  * Redirects to network page and tracks exploration
  */
 
@@ -44,13 +44,13 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
     }
 
     trackExploration();
-    
+
     // Set bypass flag so network page allows access
     setOnboardingBypass(true);
-    
+
     // Redirect to network page
     router.push('/network');
-    
+
     // Call onComplete after a short delay (user will be on network page)
     setTimeout(() => {
       onComplete();
@@ -58,25 +58,25 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
   }, [wallet, router, onComplete]);
 
   return (
-    <div className="space-y-8 text-center animate-fade-in">
-      <div 
-        className="text-6xl mb-4"
+    <div className="animate-fade-in space-y-8 text-center">
+      <div
+        className="mb-4 text-6xl"
         style={{
           filter: 'drop-shadow(0 0 20px rgba(255, 255, 255, 0.6))',
         }}
       >
         🌐
       </div>
-      <h2 
-        className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+      <h2
+        className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
         style={{
           textShadow: '0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.3)',
         }}
       >
         Exploring the Network
       </h2>
-      <p 
-        className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+      <p
+        className="mb-8 text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
         style={{
           textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
         }}
@@ -84,7 +84,7 @@ export function NetworkPathStep({ wallet, onComplete, onError }: NetworkPathStep
         Redirecting you to the network page...
       </p>
       <div className="animate-pulse">
-        <div className="inline-block w-8 h-8 border-4 border-green-500 border-t-transparent rounded-full"></div>
+        <div className="inline-block h-8 w-8 rounded-full border-4 border-green-500 border-t-transparent"></div>
       </div>
     </div>
   );

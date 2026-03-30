@@ -11,6 +11,7 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 ## When to Use
 
 **Apply this pattern when:**
+
 - Building space selection UIs (dropdowns, filters)
 - Discovering spaces created by other applications
 - Enabling network-wide space browsing
@@ -18,6 +19,7 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 - Displaying space metadata (entity counts, activity)
 
 **Do not use when:**
+
 - Querying entities for a known `spaceId` (use [Space Isolation](./space-isolation.md) instead)
 - Performance-critical queries (this queries all entities)
 - Private or hidden spaces (all discovered spaces are public)
@@ -67,16 +69,19 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 6. Return unique space IDs with full metadata
 
 **Implementation:**
+
 ```typescript
 // Query all entities of both types without spaceId filter
 const [asksResult, offersResult] = await Promise.all([
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'lite_ask'))
     .withAttributes(true)
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'lite_offer'))
     .withAttributes(true)
     .limit(1000)
@@ -94,13 +99,16 @@ const getAttr = (attrs: any, key: string): string => {
 };
 
 // Track metadata per space ID
-const spaceIdMap = new Map<string, {
-  askCount: number;
-  offerCount: number;
-  mostRecentActivity: number; // timestamp
-  isP2pmentorSpace: boolean;
-  hasActiveEntities: boolean;
-}>();
+const spaceIdMap = new Map<
+  string,
+  {
+    askCount: number;
+    offerCount: number;
+    mostRecentActivity: number; // timestamp
+    isP2pmentorSpace: boolean;
+    hasActiveEntities: boolean;
+  }
+>();
 
 // Process entities from both types
 [asksResult, offersResult].forEach((result, typeIndex) => {
@@ -113,7 +121,7 @@ const spaceIdMap = new Map<string, {
       const createdAt = getAttr(attrs, 'createdAt');
       const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
       const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
-      const expiresAt = createdAtTime + (ttlSeconds * 1000);
+      const expiresAt = createdAtTime + ttlSeconds * 1000;
       const isActive = Date.now() < expiresAt;
 
       const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
@@ -161,9 +169,9 @@ let results: SpaceIdMetadata[] = Array.from(spaceIdMap.entries()).map(([spaceId,
 
 // Apply filters (filter, minEntities, recentDays)
 if (filter === 'p2pmentor') {
-  results = results.filter(r => r.isP2pmentorSpace);
+  results = results.filter((r) => r.isP2pmentorSpace);
 } else if (filter === 'network') {
-  results = results.filter(r => !r.isP2pmentorSpace);
+  results = results.filter((r) => !r.isP2pmentorSpace);
 }
 
 // Sort by relevance: total entities (desc), then most recent activity (desc)
@@ -178,11 +186,13 @@ results.sort((a, b) => {
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/liteSpaceIds.ts` - `getAllLiteSpaceIds()` function
 - `app/api/lite/space-ids/route.ts` - API endpoint with filtering
 - `app/lite/page.tsx` - Frontend space ID selector with metadata
 
 **Code references:**
+
 - Function: `getAllLiteSpaceIds()` in `lib/arkiv/liteSpaceIds.ts` (lines 37-212)
 - Function: `getAllLiteSpaceIdsSimple()` in `lib/arkiv/liteSpaceIds.ts` (lines 220-227) - backward compatibility
 - API route: `GET /api/lite/space-ids` in `app/api/lite/space-ids/route.ts` (lines 19-53)
@@ -191,16 +201,19 @@ results.sort((a, b) => {
 - Frontend: Filter dropdown in `app/lite/page.tsx` (lines 572-611)
 
 **Query pattern:**
+
 ```typescript
 // Query both entity types in parallel without spaceId filter (discovery mode)
 const [asksResult, offersResult] = await Promise.all([
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'lite_ask'))
     .withAttributes(true)
     .limit(1000)
     .fetch()
     .catch(() => ({ entities: [] })),
-  publicClient.buildQuery()
+  publicClient
+    .buildQuery()
     .where(eq('type', 'lite_offer'))
     .withAttributes(true)
     .limit(1000)
@@ -264,17 +277,20 @@ const ttlSeconds = parseInt(getAttr(entity.attributes, 'ttlSeconds') || '2592000
 ## Filtering Options
 
 **By Creator:**
+
 - Filter by `signer_wallet` to show only app-created spaces
 - Compare with `CURRENT_WALLET` from config to identify own app's spaces
 - Use `filter: 'p2pmentor' | 'network' | 'all'` in API
 - Space is marked as p2pmentor if ANY entity has matching `signer_wallet`
 
 **By Activity:**
+
 - Filter by `minEntities` to show only spaces with minimum entity count
 - Filter by `recentDays` to show only spaces with activity in last N days
 - Sort by total entity count (descending), then most recent activity (descending)
 
 **Frontend Filtering Behavior:**
+
 - When filter is "all": Merge network results with localStorage (backward compatibility)
 - When filter is "p2pmentor" or "network": Show only filtered results (no localStorage merge)
 - Current `spaceId` is always included in dropdown even if not in filtered list (UX)

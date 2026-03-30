@@ -1,18 +1,22 @@
 /**
  * Profile CRUD helpers
- * 
+ *
  * Based on mentor-graph implementation.
- * 
+ *
  * Reference: refs/mentor-graph/src/arkiv/profiles.ts
  */
 
-import { eq } from "@arkiv-network/sdk/query"
-import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client"
-import { getWalletClient } from "@/lib/wallet/getWalletClient"
-import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE } from "../config"
-import { handleTransactionWithTimeout } from "./transaction-utils"
-import { selectRandomEmoji } from "@/lib/profile/identitySeed"
-import { arkivUpsertEntity } from "./entity-utils"
+import { eq } from '@arkiv-network/sdk/query';
+import {
+  getPublicClient,
+  getWalletClientFromPrivateKey,
+  getWalletClientFromMetaMask,
+} from './client';
+import { getWalletClient } from '@/lib/wallet/getWalletClient';
+import { CURRENT_WALLET, SPACE_ID, ENTITY_UPDATE_MODE } from '../config';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { selectRandomEmoji } from '@/lib/profile/identitySeed';
+import { arkivUpsertEntity } from './entity-utils';
 
 export type UserProfile = {
   key: string;
@@ -61,17 +65,17 @@ export type UserProfile = {
   spaceId: string;
   createdAt?: string;
   txHash?: string;
-}
+};
 
 /**
  * Create user profile (client-side with MetaMask or Passkey)
- * 
+ *
  * @param data - Profile data
  * @param wallet - Profile wallet address (from localStorage 'wallet_address')
  *                 This is used as the 'wallet' attribute on the profile entity.
  * @param account - Wallet address for signing the transaction (MetaMask or Passkey)
  * @returns Entity key and transaction hash
- * 
+ *
  * Note: The wallet parameter is the profile wallet address (stored in localStorage 'wallet_address').
  * This is used as the 'wallet' attribute on the entity. The account parameter is used for signing
  * the transaction via the walletClient. The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY)
@@ -136,17 +140,24 @@ export async function createUserProfileClient({
   const lastActiveTimestamp = new Date().toISOString();
 
   // Use skillsArray if provided, otherwise parse skills string
-  const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const finalSkillsArray =
+    skillsArray ||
+    (skills
+      ? skills
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : []);
 
   // Calculate avgRating if this is an update (get existing profile first)
   let avgRating = 0;
   let existingProfile: UserProfile | null = null;
   try {
-      existingProfile = await getProfileByWallet(wallet);
-      if (existingProfile) {
-        // Recalculate from all feedback
-        avgRating = await calculateAverageRating(wallet);
-      }
+    existingProfile = await getProfileByWallet(wallet);
+    if (existingProfile) {
+      // Recalculate from all feedback
+      avgRating = await calculateAverageRating(wallet);
+    }
   } catch (e) {
     // New profile or calculation failed - use 0
     avgRating = 0;
@@ -154,9 +165,10 @@ export async function createUserProfileClient({
 
   // Use provided identity_seed if explicitly set, otherwise preserve existing, or auto-assign for new profiles
   // If identity_seed is undefined, preserve existing; if explicitly provided (even empty string), use it
-  const finalIdentitySeed = identity_seed !== undefined
-    ? (identity_seed || undefined) // Allow empty string to clear identity_seed
-    : (existingProfile?.identity_seed || selectRandomEmoji());
+  const finalIdentitySeed =
+    identity_seed !== undefined
+      ? identity_seed || undefined // Allow empty string to clear identity_seed
+      : existingProfile?.identity_seed || selectRandomEmoji();
 
   // Preserve existing createdAt when updating
   const finalCreatedAt = existingProfile?.createdAt || createdAt;
@@ -221,9 +233,8 @@ export async function createUserProfileClient({
   // Otherwise, use Pattern A (createEntity)
   // Client-side updates require walletClient directly (no private key available)
   const normalizedWallet = wallet.toLowerCase();
-  const shouldUpdate = existingProfile?.key && (
-    ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow'
-  );
+  const shouldUpdate =
+    existingProfile?.key && (ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow');
 
   if (shouldUpdate && existingProfile?.key) {
     // Client-side update using walletClient.updateEntity
@@ -231,7 +242,7 @@ export async function createUserProfileClient({
     const updateResult = await handleTransactionWithTimeout(async () => {
       const { addSignerMetadata } = await import('./signer-metadata');
       const attributesWithSigner = addSignerMetadata(attributes, account);
-      
+
       return await walletClient.updateEntity({
         entityKey: existingProfile.key as `0x${string}`,
         payload: enc.encode(JSON.stringify(payload)),
@@ -259,12 +270,12 @@ export async function createUserProfileClient({
 
 /**
  * Create user profile (server-side with private key)
- * 
+ *
  * @param data - Profile data
  * @param wallet - Profile wallet address (used as the 'wallet' attribute on the entity)
  * @param privateKey - Private key for signing (global Arkiv signing wallet from ARKIV_PRIVATE_KEY)
  * @returns Entity key and transaction hash
- * 
+ *
  * Note: The wallet parameter is the profile wallet address (used as entity attribute).
  * The privateKey is the global Arkiv signing wallet (from ARKIV_PRIVATE_KEY env var) that signs
  * all server-side transactions. Entities are tied to the profile wallet, not the signing wallet.
@@ -327,17 +338,24 @@ export async function createUserProfile({
   const lastActiveTimestamp = new Date().toISOString();
 
   // Use skillsArray if provided, otherwise parse skills string
-  const finalSkillsArray = skillsArray || (skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : []);
+  const finalSkillsArray =
+    skillsArray ||
+    (skills
+      ? skills
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : []);
 
   // Calculate avgRating if this is an update (get existing profile first)
   let avgRating = 0;
   let existingProfile: UserProfile | null = null;
   try {
-      existingProfile = await getProfileByWallet(wallet);
-      if (existingProfile) {
-        // Recalculate from all feedback
-        avgRating = await calculateAverageRating(wallet);
-      }
+    existingProfile = await getProfileByWallet(wallet);
+    if (existingProfile) {
+      // Recalculate from all feedback
+      avgRating = await calculateAverageRating(wallet);
+    }
   } catch (e) {
     // New profile or calculation failed - use 0
     avgRating = 0;
@@ -345,9 +363,10 @@ export async function createUserProfile({
 
   // Use provided identity_seed if explicitly set, otherwise preserve existing, or auto-assign for new profiles
   // If identity_seed is undefined, preserve existing; if explicitly provided (even empty string), use it
-  const finalIdentitySeed = identity_seed !== undefined
-    ? (identity_seed || undefined) // Allow empty string to clear identity_seed
-    : (existingProfile?.identity_seed || selectRandomEmoji());
+  const finalIdentitySeed =
+    identity_seed !== undefined
+      ? identity_seed || undefined // Allow empty string to clear identity_seed
+      : existingProfile?.identity_seed || selectRandomEmoji();
 
   // Preserve existing createdAt when updating
   const finalCreatedAt = existingProfile?.createdAt || createdAt;
@@ -410,9 +429,8 @@ export async function createUserProfile({
   // Otherwise, use Pattern A (createEntity)
   // This replaces the migration status check which was in-memory only
   const normalizedWallet = wallet.toLowerCase();
-  const shouldUpdate = existingProfile?.key && (
-    ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow'
-  );
+  const shouldUpdate =
+    existingProfile?.key && (ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow');
 
   if (shouldUpdate && existingProfile?.key) {
     // Use canonical helper to update existing entity (Pattern B)
@@ -458,7 +476,7 @@ export async function createUserProfile({
   // Create new profile (old behavior or fallback)
   const { addSignerMetadata } = await import('./signer-metadata');
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
-  
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
@@ -500,16 +518,16 @@ export async function createUserProfile({
 
 /**
  * List all user profiles (with optional filters)
- * 
+ *
  * Based on mentor-graph implementation.
- * 
+ *
  * Reference: refs/mentor-graph/src/arkiv/profiles.ts (listUserProfiles)
- * 
+ *
  * @param params - Optional filters (skill, seniority, spaceId, spaceIds)
  * @returns Array of user profiles
  */
-export async function listUserProfiles(params?: { 
-  skill?: string; 
+export async function listUserProfiles(params?: {
+  skill?: string;
   seniority?: string;
   spaceId?: string;
   spaceIds?: string[];
@@ -517,7 +535,7 @@ export async function listUserProfiles(params?: {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   let queryBuilder = query.where(eq('type', 'user_profile'));
-  
+
   // Note: Skill filtering is done client-side after fetching
   // because skills can be stored in multiple ways:
   // - skill_ids array in payload (preferred, beta)
@@ -525,11 +543,11 @@ export async function listUserProfiles(params?: {
   // - skills attribute (legacy comma-separated string)
   // - skill_0, skill_1, etc. attributes (for querying, but not reliable for filtering)
   // We fetch all profiles and filter client-side for accuracy
-  
+
   if (params?.seniority) {
     queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
   }
-  
+
   // Support multiple spaceIds (builder mode) or single spaceId
   let limit = 100; // Default limit
   if (params?.spaceIds && params.spaceIds.length > 0) {
@@ -541,14 +559,10 @@ export async function listUserProfiles(params?: {
     const spaceId = params?.spaceId || SPACE_ID;
     queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
   }
-  
+
   let result: any = null;
   try {
-    result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(limit)
-      .fetch();
+    result = await queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch();
   } catch (fetchError: any) {
     console.error('[listUserProfiles] Arkiv query failed:', {
       message: fetchError?.message,
@@ -584,11 +598,12 @@ export async function listUserProfiles(params?: {
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -613,7 +628,15 @@ export async function listUserProfiles(params?: {
         }
       });
     }
-    const finalSkillsArray = payload.skillsArray || skillsArray.length > 0 ? skillsArray : (payload.skills ? payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+    const finalSkillsArray =
+      payload.skillsArray || skillsArray.length > 0
+        ? skillsArray
+        : payload.skills
+          ? payload.skills
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
 
     // Handle trustEdges: convert legacy string[] to object[] if needed
     let trustEdges = payload.trustEdges || [];
@@ -663,11 +686,13 @@ export async function listUserProfiles(params?: {
       skill_ids: payload.skill_ids || [], // Include skill_ids for client-side filtering
     };
   });
-  
+
   // Filter by spaceIds client-side if multiple requested
   if (params?.spaceIds && params.spaceIds.length > 0) {
     const beforeFilter = profiles.length;
-    profiles = profiles.filter((profile: UserProfile) => params.spaceIds!.includes(profile.spaceId));
+    profiles = profiles.filter((profile: UserProfile) =>
+      params.spaceIds!.includes(profile.spaceId)
+    );
     console.log('[listUserProfiles] Filtered by spaceIds:', {
       beforeFilter,
       afterFilter: profiles.length,
@@ -682,11 +707,14 @@ export async function listUserProfiles(params?: {
     profiles = profiles.filter((profile: UserProfile) => {
       // Check skillsArray (legacy) - match by name
       if (profile.skillsArray && Array.isArray(profile.skillsArray)) {
-        return profile.skillsArray.some(skill => skill.toLowerCase().includes(skillFilter));
+        return profile.skillsArray.some((skill) => skill.toLowerCase().includes(skillFilter));
       }
       // Check skills string (legacy)
       if (profile.skills) {
-        const skillsList = profile.skills.toLowerCase().split(',').map((s: string) => s.trim());
+        const skillsList = profile.skills
+          .toLowerCase()
+          .split(',')
+          .map((s: string) => s.trim());
         return skillsList.some((skill: string) => skill.includes(skillFilter));
       }
       // Note: skill_ids array would require loading all skills to match IDs to names
@@ -694,7 +722,7 @@ export async function listUserProfiles(params?: {
       return false;
     });
   }
-  
+
   return profiles;
 }
 
@@ -710,7 +738,10 @@ export async function listUserProfiles(params?: {
  * @param spaceId - Optional space ID filter
  * @returns User profile or null if not found
  */
-export async function getProfileByWallet(wallet: string, spaceId?: string): Promise<UserProfile | null> {
+export async function getProfileByWallet(
+  wallet: string,
+  spaceId?: string
+): Promise<UserProfile | null> {
   // Normalize wallet: trim and convert to lowercase for consistent querying
   const normalizedWallet = wallet.trim().toLowerCase();
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
@@ -730,11 +761,19 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
       // Multiple profiles found - this is expected during migration transition
       // Sort by lastActiveTimestamp descending (most recent first) to get canonical profile
       profiles.sort((a, b) => {
-        const aTime = a.lastActiveTimestamp ? new Date(a.lastActiveTimestamp).getTime() : (a.createdAt ? new Date(a.createdAt).getTime() : 0);
-        const bTime = b.lastActiveTimestamp ? new Date(b.lastActiveTimestamp).getTime() : (b.createdAt ? new Date(b.createdAt).getTime() : 0);
+        const aTime = a.lastActiveTimestamp
+          ? new Date(a.lastActiveTimestamp).getTime()
+          : a.createdAt
+            ? new Date(a.createdAt).getTime()
+            : 0;
+        const bTime = b.lastActiveTimestamp
+          ? new Date(b.lastActiveTimestamp).getTime()
+          : b.createdAt
+            ? new Date(b.createdAt).getTime()
+            : 0;
         return bTime - aTime;
       });
-      
+
       // Log at info level (not warning) since this is handled correctly
       // Only log once per wallet to avoid log spam (use a simple cache)
       const logKey = `multi-profile-${normalizedWallet}`;
@@ -742,16 +781,16 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
         (globalThis as any).__profileLogCache = new Set<string>();
       }
       const logCache = (globalThis as any).__profileLogCache as Set<string>;
-      
+
       if (!logCache.has(logKey)) {
         logCache.add(logKey);
         // Clear cache after 5 minutes to allow re-logging if needed
         setTimeout(() => logCache.delete(logKey), 5 * 60 * 1000);
-        
+
         console.info(
           `[getProfileByWallet] Multiple profiles found for wallet ${normalizedWallet.slice(0, 10)}... ` +
-          `(${profiles.length} profiles). Using most recent profile (${profiles[0].key.slice(0, 12)}...). ` +
-          `Run consolidation script to clean up duplicates if needed.`
+            `(${profiles.length} profiles). Using most recent profile (${profiles[0].key.slice(0, 12)}...). ` +
+            `Run consolidation script to clean up duplicates if needed.`
         );
       }
     } else if (profiles.length === 1) {
@@ -762,22 +801,25 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
     const profile = profiles[0];
 
     // Record performance metrics
-    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const durationMs =
+      typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
     const payloadBytes = JSON.stringify(profile).length;
 
     // Record performance sample (async, don't block)
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'arkiv',
-        operation: 'getProfileByWallet',
-        durationMs: Math.round(durationMs),
-        payloadBytes,
-        httpRequests: 1, // Single query
-        createdAt: new Date().toISOString(),
+    import('@/lib/metrics/perf')
+      .then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'getProfileByWallet',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 1, // Single query
+          createdAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently fail if metrics module not available
       });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
 
     return profile;
   } else {
@@ -792,22 +834,25 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
     const profile = profiles[0];
 
     // Record performance metrics
-    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const durationMs =
+      typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
     const payloadBytes = JSON.stringify(profile).length;
 
     // Record performance sample (async, don't block)
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'arkiv',
-        operation: 'getProfileByWallet',
-        durationMs: Math.round(durationMs),
-        payloadBytes,
-        httpRequests: 1, // Single query
-        createdAt: new Date().toISOString(),
+    import('@/lib/metrics/perf')
+      .then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'getProfileByWallet',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 1, // Single query
+          createdAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently fail if metrics module not available
       });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
 
     return profile;
   }
@@ -824,7 +869,10 @@ export async function getProfileByWallet(wallet: string, spaceId?: string): Prom
  * @param spaceId - Optional space ID filter
  * @returns Array of user profiles (should be 1 with updates, may be multiple with old pattern)
  */
-export async function listUserProfilesForWallet(wallet: string, spaceId?: string): Promise<UserProfile[]> {
+export async function listUserProfilesForWallet(
+  wallet: string,
+  spaceId?: string
+): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   let queryBuilder = query
@@ -835,11 +883,7 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
   const finalSpaceId = spaceId || SPACE_ID;
   queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
 
-  const result = await queryBuilder
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
+  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
 
   // Determine query strategy based on update mode
   // With Pattern B (updateEntity), we expect a single canonical entity
@@ -871,9 +915,9 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
       // Use console.info instead of console.warn since this is handled correctly
       console.info(
         `[listUserProfilesForWallet] Multiple profiles found for migrated wallet ${normalizedWallet.slice(0, 10)}... ` +
-        `(${result.entities.length} profiles). Using most recent profile. ` +
-        `This may indicate incomplete migration or old entities not yet cleaned up. ` +
-        `Run consolidation script to clean up duplicates if needed.`
+          `(${result.entities.length} profiles). Using most recent profile. ` +
+          `This may indicate incomplete migration or old entities not yet cleaned up. ` +
+          `Run consolidation script to clean up duplicates if needed.`
       );
     }
     // Sort by lastActiveTimestamp descending (most recent first)
@@ -883,11 +927,12 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
       const getLastActive = (entity: any): string => {
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             return payload.lastActiveTimestamp || payload.createdAt || '';
           }
@@ -895,7 +940,11 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
           // Ignore parse errors
         }
         // Fallback to createdAt from attributes
-        const createdAt = entity.attributes?.createdAt || (Array.isArray(entity.attributes) ? entity.attributes.find((attr: any) => attr.key === 'createdAt')?.value : '');
+        const createdAt =
+          entity.attributes?.createdAt ||
+          (Array.isArray(entity.attributes)
+            ? entity.attributes.find((attr: any) => attr.key === 'createdAt')?.value
+            : '');
         return createdAt;
       };
       const aTime = getLastActive(a);
@@ -909,11 +958,12 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -938,7 +988,15 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
         }
       });
     }
-    const finalSkillsArray = payload.skillsArray || skillsArray.length > 0 ? skillsArray : (payload.skills ? payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+    const finalSkillsArray =
+      payload.skillsArray || skillsArray.length > 0
+        ? skillsArray
+        : payload.skills
+          ? payload.skills
+              .split(',')
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : [];
 
     // Handle trustEdges: convert legacy string[] to object[] if needed
     let trustEdges = payload.trustEdges || [];
@@ -989,10 +1047,10 @@ export async function listUserProfilesForWallet(wallet: string, spaceId?: string
 
 /**
  * Empirically check if a profile exists and is loadable
- * 
+ *
  * This method validates that a profile can be successfully queried and loaded,
  * which is necessary for the profile detail page to work properly.
- * 
+ *
  * @param wallet - Wallet address to check
  * @returns Object with existence and loadability status
  */
@@ -1003,33 +1061,33 @@ export async function checkProfileExistence(wallet: string): Promise<{
   error?: string;
 }> {
   const normalizedWallet = wallet.toLowerCase().trim();
-  
+
   try {
     // Step 1: Query profile entities (arkiv-native pattern)
     const profiles = await listUserProfilesForWallet(normalizedWallet);
-    
+
     if (profiles.length === 0) {
       return { exists: false, loadable: false, profile: null };
     }
-    
+
     // Step 2: Get most recent profile (same logic as getProfileByWallet)
     profiles.sort((a, b) => {
       const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime;
     });
-    
+
     const profile = profiles[0];
-    
+
     // Step 3: Validate loadability
     // Check minimum required fields
     const hasRequiredFields = Boolean(
-      profile.wallet && 
-      profile.wallet.toLowerCase() === normalizedWallet &&
-      profile.displayName !== undefined &&
-      profile.createdAt !== undefined
+      profile.wallet &&
+        profile.wallet.toLowerCase() === normalizedWallet &&
+        profile.displayName !== undefined &&
+        profile.createdAt !== undefined
     );
-    
+
     // Try to load via getProfileByWallet (same as detail page)
     let loadable = false;
     try {
@@ -1038,7 +1096,7 @@ export async function checkProfileExistence(wallet: string): Promise<{
     } catch (e) {
       loadable = false;
     }
-    
+
     return {
       exists: true,
       loadable: loadable && hasRequiredFields,
@@ -1057,9 +1115,9 @@ export async function checkProfileExistence(wallet: string): Promise<{
 
 /**
  * Check if username is already taken (queries all historical profiles)
- * 
+ *
  * Uses same query pattern as regrow function to check all profiles.
- * 
+ *
  * @param username - Username to check
  * @returns Array of profiles with this username (all historical versions)
  */
@@ -1070,7 +1128,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
 
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  
+
   try {
     // Query all profiles with this username (check both attribute and payload)
     const result = await query
@@ -1087,16 +1145,17 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
 
     // Also check payload for username (in case it's only in payload, not attribute)
     const profilesWithUsername: UserProfile[] = [];
-    
+
     result.entities.forEach((entity: any) => {
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -1116,7 +1175,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
       const attrUsername = getAttr('username');
       const payloadUsername = payload.username;
       const normalizedInput = username.trim().toLowerCase();
-      
+
       if (
         (attrUsername && attrUsername.toLowerCase() === normalizedInput) ||
         (payloadUsername && payloadUsername.toLowerCase() === normalizedInput)
@@ -1130,10 +1189,21 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
             }
           });
         }
-        const finalSkillsArrayFromPayload = payload.skillsArray || (payload.skills ? payload.skills.split(',').map((s: string) => s.trim()).filter(Boolean) : []);
+        const finalSkillsArrayFromPayload =
+          payload.skillsArray ||
+          (payload.skills
+            ? payload.skills
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : []);
 
         let trustEdges = payload.trustEdges || [];
-        if (Array.isArray(trustEdges) && trustEdges.length > 0 && typeof trustEdges[0] === 'string') {
+        if (
+          Array.isArray(trustEdges) &&
+          trustEdges.length > 0 &&
+          typeof trustEdges[0] === 'string'
+        ) {
           trustEdges = trustEdges.map((wallet: string) => ({
             toWallet: wallet,
             strength: 1,
@@ -1152,7 +1222,8 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
           bioShort: payload.bioShort || payload.bio || getAttr('bio') || undefined,
           bioLong: payload.bioLong || undefined,
           skills: getAttr('skills') || payload.skills || '',
-          skillsArray: finalSkillsArrayFromPayload.length > 0 ? finalSkillsArrayFromPayload : finalSkillsArray,
+          skillsArray:
+            finalSkillsArrayFromPayload.length > 0 ? finalSkillsArrayFromPayload : finalSkillsArray,
           timezone: getAttr('timezone') || payload.timezone || '',
           languages: payload.languages || [],
           contactLinks: payload.contactLinks || {},
@@ -1167,7 +1238,11 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
           npsScore: payload.npsScore || 0,
           topSkillsUsage: payload.topSkillsUsage || [],
           peerTestimonials: payload.peerTestimonials || [],
-          trustEdges: trustEdges as Array<{ toWallet: string; strength: number; createdAt: string }>,
+          trustEdges: trustEdges as Array<{
+            toWallet: string;
+            strength: number;
+            createdAt: string;
+          }>,
           lastActiveTimestamp: payload.lastActiveTimestamp || undefined,
           communityAffiliations: payload.communityAffiliations || [],
           reputationScore: payload.reputationScore || 0,
@@ -1183,7 +1258,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
     console.error('[checkUsernameExists] Arkiv query failed:', {
       message: error?.message,
       stack: error?.stack,
-      error: error
+      error: error,
     });
     return []; // Return empty array on query failure
   }
@@ -1191,7 +1266,7 @@ export async function checkUsernameExists(username: string): Promise<UserProfile
 
 /**
  * Calculate average rating from feedback entities for a wallet
- * 
+ *
  * @param wallet - Wallet address
  * @returns Average rating (0 if no feedback)
  */
@@ -1199,20 +1274,20 @@ export async function calculateAverageRating(wallet: string): Promise<number> {
   try {
     const { listFeedbackForWallet } = await import('./feedback');
     const feedbacks = await listFeedbackForWallet(wallet);
-    
+
     // Filter feedback received (feedbackTo matches wallet)
-    const receivedFeedback = feedbacks.filter(f => 
-      f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+    const receivedFeedback = feedbacks.filter(
+      (f) => f.feedbackTo.toLowerCase() === wallet.toLowerCase()
     );
-    
+
     const ratings = receivedFeedback
-      .map(f => f.rating)
+      .map((f) => f.rating)
       .filter((r): r is number => r !== undefined && r > 0);
-    
+
     if (ratings.length === 0) {
       return 0;
     }
-    
+
     return ratings.reduce((sum, r) => sum + r, 0) / ratings.length;
   } catch (error: any) {
     console.error('[calculateAverageRating] Error:', error);
@@ -1222,9 +1297,9 @@ export async function calculateAverageRating(wallet: string): Promise<number> {
 
 /**
  * Update profile avgRating field
- * 
+ *
  * Creates new profile entity with updated avgRating.
- * 
+ *
  * @param wallet - Wallet address
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -1238,10 +1313,10 @@ export async function updateProfileAvgRating(
   if (!currentProfile) {
     throw new Error('Profile not found');
   }
-  
+
   // Calculate new average rating
   const avgRating = await calculateAverageRating(wallet);
-  
+
   // Create new profile entity with updated avgRating
   return await createUserProfile({
     wallet,

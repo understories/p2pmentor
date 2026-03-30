@@ -1,6 +1,6 @@
 /**
  * Global Toggles Component
- * 
+ *
  * Combines ThemeToggle and ArkivBuilderModeToggle in a single global component.
  * Positioned in the top-right corner, available on every page.
  */
@@ -22,7 +22,7 @@ export function GlobalToggles() {
   // Explorer page should have theme toggle in top right
   const showThemeToggle = !isLitePage;
   const [arkivBuilderMode, setArkivBuilderMode] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
     // Load Arkiv Builder Mode from localStorage
@@ -66,7 +66,11 @@ export function GlobalToggles() {
 
   // Show on all pages (including /, /auth, /beta, /docs)
   // Show on mobile for landing, beta, auth, and docs pages
-  const showOnMobile = pathname === '/' || pathname === '/beta' || pathname === '/auth' || (pathname && pathname.startsWith('/docs'));
+  const showOnMobile =
+    pathname === '/' ||
+    pathname === '/beta' ||
+    pathname === '/auth' ||
+    (pathname && pathname.startsWith('/docs'));
   const mobileClass = showOnMobile ? 'block' : 'hidden md:block';
 
   // For docs pages on mobile, position above the navbar (navbar is at top-0 with z-40)
@@ -76,37 +80,38 @@ export function GlobalToggles() {
   const topPosition = isDocsPage ? 'top-2 md:top-4' : 'top-4';
 
   return (
-    <div 
+    <div
       className={`${mobileClass} fixed ${topPosition} right-4 z-50 flex flex-row items-center justify-end gap-2`}
     >
       {/* Theme Toggle - show on all pages except lite (has it in FloatingButtonCluster) and explorer */}
       {showThemeToggle && (
-      <button
-        onClick={handleThemeToggle}
-        className="flex items-center justify-center p-3 rounded-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 flex-shrink-0"
-        style={{
-          backgroundColor: theme === 'dark' 
-            ? 'rgba(5, 20, 5, 0.3)' 
-            : 'rgba(240, 240, 240, 0.9)',
-          color: theme === 'dark'
-            ? 'rgba(200, 255, 200, 0.9)'
-            : '#495057',
-          boxShadow: theme === 'dark'
-            ? '0 0 20px rgba(100, 255, 100, 0.1), inset 0 0 20px rgba(100, 255, 100, 0.05)'
-            : '0 1px 3px rgba(0, 0, 0, 0.1)',
-          backdropFilter: 'blur(10px)',
-        }}
-        title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      >
-        <span className="text-xl" style={{ 
-          textShadow: theme === 'dark' 
-            ? '0 0 8px rgba(150, 255, 150, 0.4), 0 0 15px rgba(100, 255, 100, 0.2)'
-            : 'none'
-        }}>
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </span>
-      </button>
+        <button
+          onClick={handleThemeToggle}
+          className="flex flex-shrink-0 items-center justify-center rounded-lg p-3 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2"
+          style={{
+            backgroundColor: theme === 'dark' ? 'rgba(5, 20, 5, 0.3)' : 'rgba(240, 240, 240, 0.9)',
+            color: theme === 'dark' ? 'rgba(200, 255, 200, 0.9)' : '#495057',
+            boxShadow:
+              theme === 'dark'
+                ? '0 0 20px rgba(100, 255, 100, 0.1), inset 0 0 20px rgba(100, 255, 100, 0.05)'
+                : '0 1px 3px rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(10px)',
+          }}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span
+            className="text-xl"
+            style={{
+              textShadow:
+                theme === 'dark'
+                  ? '0 0 8px rgba(150, 255, 150, 0.4), 0 0 15px rgba(100, 255, 100, 0.2)'
+                  : 'none',
+            }}
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </span>
+        </button>
       )}
 
       {/* Arkiv Builder Mode Toggle - hidden on lite and explorer pages */}
@@ -119,4 +124,3 @@ export function GlobalToggles() {
     </div>
   );
 }
-

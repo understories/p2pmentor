@@ -11,12 +11,14 @@
 ## Why These Docs Are Operational
 
 This folder contains documentation that answers:
+
 - **How does this run in reality?** (environments, signers, rollouts)
 - **What breaks and how?** (timeouts, indexer lag, transaction failures)
 - **Who fixes it?** (debugging guides, verification procedures)
 - **What's temporary?** (beta-only features, phase-0 patterns)
 
 Unlike patterns (which are stable rules), operational docs reflect:
+
 - Current deployment configuration
 - Temporary workarounds
 - Beta-specific constraints
@@ -39,6 +41,7 @@ Unlike patterns (which are stable rules), operational docs reflect:
 ## Link Hygiene
 
 Operational docs should link to:
+
 - **Patterns** for canonical rules (e.g., revocation patterns, marker entities)
 - **Entities** for schema references
 - **Not** to other operational docs for authority (they're descriptive, not normative)
@@ -48,4 +51,3 @@ Operational docs should link to:
 - **[Patterns](../patterns/pattern-catalog.md)** - Single source of truth for rules and invariants
 - **[Entities](../entities/README.md)** - Entity schemas and specifications
 - **[Overview](../overview/overview.md)** - Conceptual introduction to Arkiv
-

@@ -1,6 +1,6 @@
 /**
  * Floating Action Button (FAB)
- * 
+ *
  * Phase 6: Magical garden-themed FAB with seed-to-sprout transformation.
  * Filters actions based on onboarding level.
  */
@@ -32,7 +32,15 @@ export function FloatingActionButton() {
 
   // Don't show on landing, auth, beta, admin, docs, or onboarding pages
   const hideNavPaths = ['/', '/auth', '/beta', '/admin', '/docs', '/onboarding'];
-  if (hideNavPaths.some(path => pathname === path || pathname?.startsWith('/admin') || pathname?.startsWith('/docs') || pathname?.startsWith('/onboarding'))) {
+  if (
+    hideNavPaths.some(
+      (path) =>
+        pathname === path ||
+        pathname?.startsWith('/admin') ||
+        pathname?.startsWith('/docs') ||
+        pathname?.startsWith('/onboarding')
+    )
+  ) {
     return null;
   }
 
@@ -56,7 +64,7 @@ export function FloatingActionButton() {
 
   // Filter actions based on onboarding level
   // On error or bypass, show all actions to avoid locking out users
-  const actions = allActions.filter(action => {
+  const actions = allActions.filter((action) => {
     if (hasBypass || levelError) return true; // Show all during bypass or on error
     return level >= action.minLevel;
   });
@@ -79,42 +87,32 @@ export function FloatingActionButton() {
         {/* Action Buttons - Grow from seed */}
         {isOpen && actions.length > 0 && (
           <div
-            className="flex flex-col-reverse gap-3 mb-3"
+            className="mb-3 flex flex-col-reverse gap-3"
             style={{
               animation: 'fadeInUp 200ms ease-out',
             }}
           >
             {actions.map((action, index) => {
               // Add query param to trigger create form
-              const hrefWithCreate = action.href === '/asks' 
-                ? '/asks?create=true'
-                : action.href === '/offers'
-                ? '/offers?create=true'
-                : action.href;
-              
+              const hrefWithCreate =
+                action.href === '/asks'
+                  ? '/asks?create=true'
+                  : action.href === '/offers'
+                    ? '/offers?create=true'
+                    : action.href;
+
               return (
                 <Link
                   key={action.href}
                   href={hrefWithCreate}
                   onClick={() => setIsOpen(false)}
-                  className={`
-                    flex items-center gap-2
-                    px-3 py-2
-                    rounded-full
-                    ${action.color}
-                    shadow-lg
-                    transition-all duration-200 ease-out
-                    hover:scale-105
-                    ml-4
-                    mb-1
-                    hg-anim-plant-grow-in
-                  `}
+                  className={`flex items-center gap-2 rounded-full px-3 py-2 ${action.color} hg-anim-plant-grow-in mb-1 ml-4 shadow-lg transition-all duration-200 ease-out hover:scale-105`}
                   style={{
                     animationDelay: `${index * 80}ms`,
                   }}
                 >
                   <span className="text-lg">{action.icon}</span>
-                  <span className="text-sm font-medium text-white whitespace-nowrap">
+                  <span className="whitespace-nowrap text-sm font-medium text-white">
                     {action.label}
                   </span>
                 </Link>
@@ -126,23 +124,13 @@ export function FloatingActionButton() {
         {/* Main FAB Button - Seed that becomes Sprout */}
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className={`
-            w-14 h-14
-            rounded-full
-            bg-green-600 hover:bg-green-700
-            dark:bg-green-500 dark:hover:bg-green-600
-            text-white
-            shadow-lg hover:shadow-xl
-            flex items-center justify-center
-            transition-all duration-300 ease-out
-            ${isOpen ? 'hg-anim-plant-pulse' : 'hg-anim-plant-idle'}
-          `}
+          className={`flex h-14 w-14 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-out hover:bg-green-700 hover:shadow-xl dark:bg-green-500 dark:hover:bg-green-600 ${isOpen ? 'hg-anim-plant-pulse' : 'hg-anim-plant-idle'} `}
           aria-label={isOpen ? 'Close menu' : 'Create'}
           style={{
             filter: isOpen ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.6))' : 'none',
           }}
         >
-          <span 
+          <span
             className="text-2xl transition-all duration-300"
             style={{
               transform: isOpen ? 'scale(1.1) rotate(5deg)' : 'scale(1)',
@@ -168,4 +156,3 @@ export function FloatingActionButton() {
     </>
   );
 }
-

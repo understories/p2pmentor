@@ -1,6 +1,7 @@
 # Availability Entity Schema
 
 ## Entity Type
+
 `availability`
 
 ## Patterns Used
@@ -11,26 +12,28 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "availability" |
-| wallet | string | Yes | Attribute | Wallet address (lowercase) |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| timezone | string | Yes | Attribute | IANA timezone (e.g., "America/New_York") |
-| availabilityVersion | string | Yes | Attribute | "1.0" (structured) | "legacy" (text) |
-| timeBlocks | string | Yes | Payload | JSON string (WeeklyAvailability) or legacy text |
-| timezone | string | Yes | Payload | IANA timezone |
-| createdAt | string | Yes | Payload | ISO timestamp |
+| Field Name          | Type   | Required | Location  | Description                                                                                                |
+| ------------------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | --------------- |
+| type                | string | Yes      | Attribute | Always "availability"                                                                                      |
+| wallet              | string | Yes      | Attribute | Wallet address (lowercase)                                                                                 |
+| spaceId             | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt           | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| timezone            | string | Yes      | Attribute | IANA timezone (e.g., "America/New_York")                                                                   |
+| availabilityVersion | string | Yes      | Attribute | "1.0" (structured)                                                                                         | "legacy" (text) |
+| timeBlocks          | string | Yes      | Payload   | JSON string (WeeklyAvailability) or legacy text                                                            |
+| timezone            | string | Yes      | Payload   | IANA timezone                                                                                              |
+| createdAt           | string | Yes      | Payload   | ISO timestamp                                                                                              |
 
 ## Timezone Storage and Conversion Approach
 
 ### Storage
+
 - Timezone stored in both attribute and payload as IANA timezone string (e.g., "America/New_York")
 - Availability time blocks stored in user's timezone (not converted to UTC)
 - Conversion happens client-side when displaying to viewers in different timezones
 
 ### Conversion Logic
+
 1. **Storage**: Availability stored in user's timezone (no conversion)
 2. **Display**: Convert to viewer's timezone when displaying
 3. **Validation**: When scheduling session, convert requested time to mentor's timezone and validate against availability
@@ -48,6 +51,7 @@ Example conversion:
 ## Structured vs Legacy Format
 
 ### Structured Format (Version 1.0)
+
 Stored as JSON string in `timeBlocks` payload:
 
 ```json
@@ -69,7 +73,9 @@ Stored as JSON string in `timeBlocks` payload:
 ```
 
 ### Legacy Format
+
 Stored as plain text string in `timeBlocks` payload:
+
 - Example: "Mon-Fri 9am-5pm EST"
 - Less precise, cannot validate specific time slots
 - Still supported for backward compatibility
@@ -99,8 +105,8 @@ const deletions = await deletionQuery
   .limit(100)
   .fetch();
 
-const deletedKeys = new Set(deletions.entities.map(e => e.attributes.availabilityKey));
-const activeAvailability = result.entities.filter(e => !deletedKeys.has(e.key));
+const deletedKeys = new Set(deletions.entities.map((e) => e.attributes.availabilityKey));
+const activeAvailability = result.entities.filter((e) => !deletedKeys.has(e.key));
 ```
 
 Implementation: `lib/arkiv/availability.ts` - `listAvailabilityForWallet()` handles deletion filtering.
@@ -114,6 +120,7 @@ Arkiv entities are immutable. To delete availability:
 3. Original availability entity remains on-chain (not actually deleted)
 
 Deletion entity:
+
 - `type`: "availability_deletion"
 - `availabilityKey`: Entity key of availability being deleted
 - `wallet`: Wallet address
@@ -134,8 +141,8 @@ Availability entities expire after 30 days (2592000 seconds). This matches mento
 ## Transaction Hash Tracking
 
 Separate `availability_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "availability_txhash"
 - `availabilityKey`: Entity key of availability
 - `wallet`: Wallet address
 - `spaceId`: "local-dev"
-

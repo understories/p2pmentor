@@ -4,6 +4,7 @@ This document sets the tone for all design decisions in p2pmentor.
 It complements the ENGINEERING_GUIDELINES and the previous [WHITE_HAT_OCTALYSIS_REFERENCE](https://github.com/understories/hidden-garden/blob/ui-ux-upgrades/docs/WHITE_HAT_OCTALYSIS_REFERENCE.md) (leaderboards).
 
 Our users:
+
 - People who want to **learn**
 - People who want to **teach**
 - People who want to **coordinate** learning in a network-native way
@@ -40,6 +41,7 @@ We intentionally optimize for **positive, long-term motivators**:
   - Emphasize peers, mutual support, and reciprocity.
 
 We avoid:
+
 - Manipulative scarcity and FOMO
 - Punitive streak mechanics
 - Shame-based messaging
@@ -58,7 +60,7 @@ We avoid:
   - Creating Asks/Offers
   - Browsing and matching
   - Scheduling and communication
-- Intentionally add *light* friction for:
+- Intentionally add _light_ friction for:
   - Committing to paid sessions
   - Confirming time-heavy commitments
   - Actions that affect others’ reputation or trust

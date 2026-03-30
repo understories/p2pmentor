@@ -1,11 +1,15 @@
 /**
  * Feedback API route
- * 
+ *
  * Handles feedback creation and retrieval.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createFeedback, listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
+import {
+  createFeedback,
+  listFeedbackForSession,
+  listFeedbackForWallet,
+} from '@/lib/arkiv/feedback';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
 
@@ -17,7 +21,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -40,7 +47,11 @@ export async function POST(request: NextRequest) {
 
     if (!sessionKey || !mentorWallet || !learnerWallet || !feedbackFrom || !feedbackTo) {
       return NextResponse.json(
-        { ok: false, error: 'sessionKey, mentorWallet, learnerWallet, feedbackFrom, and feedbackTo are required' },
+        {
+          ok: false,
+          error:
+            'sessionKey, mentorWallet, learnerWallet, feedbackFrom, and feedbackTo are required',
+        },
         { status: 400 }
       );
     }
@@ -55,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const targetSpaceId = spaceId || SPACE_ID;
-    
+
     const { key, txHash } = await createFeedback({
       sessionKey,
       mentorWallet,
@@ -126,7 +137,7 @@ export async function GET(request: Request) {
     const sessionKey = searchParams.get('sessionKey');
     const wallet = searchParams.get('wallet');
     const key = searchParams.get('key');
-    
+
     // Extract spaceId from query params (for builder mode) or use SPACE_ID from config
     const spaceId = searchParams.get('spaceId') || undefined;
 
@@ -137,10 +148,7 @@ export async function GET(request: Request) {
       if (feedback) {
         return NextResponse.json({ ok: true, feedback });
       } else {
-        return NextResponse.json(
-          { ok: false, error: 'Feedback not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ ok: false, error: 'Feedback not found' }, { status: 404 });
       }
     } else if (sessionKey) {
       const feedbacks = await listFeedbackForSession(sessionKey, spaceId || SPACE_ID);
@@ -162,4 +170,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

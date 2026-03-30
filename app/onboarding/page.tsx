@@ -1,8 +1,8 @@
 /**
  * Onboarding Page
- * 
+ *
  * Magical onboarding experience where identity, skills, asks, offers, and communities grow.
- * 
+ *
  * Reference: refs/doc/onboarding_levelup.md
  */
 
@@ -47,7 +47,7 @@ export default function OnboardingPage() {
       const storedWallet = localStorage.getItem('wallet_address');
       if (storedWallet) {
         setWallet(storedWallet); // Profile wallet address
-        
+
         // Set bypass flag when on onboarding page
         // This allows navigation to protected pages during onboarding flow
         import('@/lib/onboarding/access').then(({ setOnboardingBypass }) => {
@@ -88,7 +88,7 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (wallet && !loading) {
       getProfileByWallet(wallet)
-        .then(profile => {
+        .then((profile) => {
           if (profile) {
             const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
             setGardenSkills(skills);
@@ -100,8 +100,8 @@ export default function OnboardingPage() {
 
       // Load learning follows for glow
       listLearningFollows({ profile_wallet: wallet, active: true })
-        .then(follows => {
-          setLearningSkillIds(follows.map(f => f.skill_id));
+        .then((follows) => {
+          setLearningSkillIds(follows.map((f) => f.skill_id));
         })
         .catch(() => {
           // Learning follows not found - that's okay
@@ -123,9 +123,9 @@ export default function OnboardingPage() {
 
   if (loading || !wallet) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-pulse text-2xl mb-4">🌱</div>
+          <div className="mb-4 animate-pulse text-2xl">🌱</div>
           <p className="text-gray-600 dark:text-gray-400">Loading your garden...</p>
         </div>
       </div>
@@ -168,13 +168,13 @@ export default function OnboardingPage() {
   const showIdentitySeed = currentStep === 'welcome' || currentStep === 'identity';
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="relative min-h-screen overflow-hidden">
       {/* Forest Background */}
       <BackgroundImage />
-      
+
       {/* Garden Layer - shows plants behind the UI */}
-      <GardenLayer 
-        skills={gardenSkills} 
+      <GardenLayer
+        skills={gardenSkills}
         skillProfileCounts={skillProfileCounts}
         learningSkillIds={learningSkillIds}
         showIdentitySeed={showIdentitySeed}
@@ -182,34 +182,33 @@ export default function OnboardingPage() {
         onSeedClick={currentStep === 'welcome' ? () => handleStepComplete('identity') : undefined}
         showSeedTooltip={currentStep === 'welcome'}
       />
-      
 
       {/* Content */}
-      <div className={`relative ${currentStep === 'welcome' ? 'z-5' : 'z-10'} min-h-screen flex flex-col`}>
+      <div
+        className={`relative ${currentStep === 'welcome' ? 'z-5' : 'z-10'} flex min-h-screen flex-col`}
+      >
         {/* Header - hide on welcome step for game-like feel */}
         {currentStep !== 'welcome' && (
-          <header className="flex justify-between items-center p-4">
-            <div className="text-sm text-gray-400 dark:text-gray-500">
-              Onboarding
-            </div>
+          <header className="flex items-center justify-between p-4">
+            <div className="text-sm text-gray-400 dark:text-gray-500">Onboarding</div>
           </header>
         )}
 
         {/* Main Content */}
-        <main className="flex-1 flex items-center justify-center p-4 md:p-8">
+        <main className="flex flex-1 items-center justify-center p-4 md:p-8">
           <div className="w-full max-w-2xl">
             {/* Error Message - only show if not welcome step */}
             {error && currentStep !== 'welcome' && (
-              <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400 text-sm">
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
                 {error}
               </div>
             )}
 
             {/* Welcome Step - No card, floating text with fade-in */}
             {currentStep === 'welcome' && (
-              <div className="text-center animate-fade-in">
-                <h1 
-                  className="text-4xl md:text-5xl font-bold text-white dark:text-white mb-4 drop-shadow-lg"
+              <div className="animate-fade-in text-center">
+                <h1
+                  className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
                   style={{
                     textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
                     animation: 'fadeIn 1.5s ease-in',
@@ -225,69 +224,70 @@ export default function OnboardingPage() {
               <>
                 {/* Error Message */}
                 {error && (
-                  <div className="mb-6 p-4 bg-red-50/90 dark:bg-red-900/30 backdrop-blur-md rounded-lg border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm shadow-lg">
+                  <div className="mb-6 rounded-lg border border-red-200 bg-red-50/90 p-4 text-sm text-red-700 shadow-lg backdrop-blur-md dark:border-red-800 dark:bg-red-900/30 dark:text-red-400">
                     {error}
                   </div>
                 )}
 
                 {/* Step Content - Floating over background */}
 
-              {currentStep === 'identity' && wallet && (
-                <IdentityStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('skills')}
-                  onError={handleError}
-                />
-              )}
+                {currentStep === 'identity' && wallet && (
+                  <IdentityStep
+                    wallet={wallet}
+                    onComplete={() => handleStepComplete('skills')}
+                    onError={handleError}
+                  />
+                )}
 
-              {currentStep === 'skills' && wallet && (
-                <SkillsStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('paths')}
-                  onError={handleError}
-                  onSkillAdded={(skillId) => {
-                    // Trigger garden animation for new skill
-                    setAnimateNewSkill(skillId);
-                    // Reload garden skills after a delay to allow Arkiv indexing
-                    setTimeout(() => {
-                      getProfileByWallet(wallet)
-                        .then(profile => {
-                          if (profile) {
-                            const skills = profileToGardenSkills(profile.skillsArray, profile.skillExpertise);
-                            setGardenSkills(skills);
-                          }
-                        })
-                        .catch(() => {});
-                    }, 1000); // 1 second delay to allow Arkiv to index the profile update
-                    // Clear animation after animation completes
-                    setTimeout(() => setAnimateNewSkill(undefined), 800);
-                  }}
-                />
-              )}
+                {currentStep === 'skills' && wallet && (
+                  <SkillsStep
+                    wallet={wallet}
+                    onComplete={() => handleStepComplete('paths')}
+                    onError={handleError}
+                    onSkillAdded={(skillId) => {
+                      // Trigger garden animation for new skill
+                      setAnimateNewSkill(skillId);
+                      // Reload garden skills after a delay to allow Arkiv indexing
+                      setTimeout(() => {
+                        getProfileByWallet(wallet)
+                          .then((profile) => {
+                            if (profile) {
+                              const skills = profileToGardenSkills(
+                                profile.skillsArray,
+                                profile.skillExpertise
+                              );
+                              setGardenSkills(skills);
+                            }
+                          })
+                          .catch(() => {});
+                      }, 1000); // 1 second delay to allow Arkiv to index the profile update
+                      // Clear animation after animation completes
+                      setTimeout(() => setAnimateNewSkill(undefined), 800);
+                    }}
+                  />
+                )}
 
-              {currentStep === 'paths' && (
-                <PathSelectionStep onSelectPath={handlePathSelect} />
-              )}
+                {currentStep === 'paths' && <PathSelectionStep onSelectPath={handlePathSelect} />}
 
-              {currentStep === 'ask' && wallet && (
-                <AskPathStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('complete')}
-                  onError={handleError}
-                />
-              )}
+                {currentStep === 'ask' && wallet && (
+                  <AskPathStep
+                    wallet={wallet}
+                    onComplete={() => handleStepComplete('complete')}
+                    onError={handleError}
+                  />
+                )}
 
-              {currentStep === 'offer' && wallet && (
-                <OfferPathStep
-                  wallet={wallet}
-                  onComplete={() => handleStepComplete('complete')}
-                  onError={handleError}
-                />
-              )}
+                {currentStep === 'offer' && wallet && (
+                  <OfferPathStep
+                    wallet={wallet}
+                    onComplete={() => handleStepComplete('complete')}
+                    onError={handleError}
+                  />
+                )}
 
-              {currentStep === 'complete' && (
-                <CompleteStep onEnterGarden={() => router.push('/me')} />
-              )}
+                {currentStep === 'complete' && (
+                  <CompleteStep onEnterGarden={() => router.push('/me')} />
+                )}
               </>
             )}
           </div>

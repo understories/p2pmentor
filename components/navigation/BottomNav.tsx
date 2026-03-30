@@ -1,6 +1,6 @@
 /**
  * Top Navigation Bar (Mobile)
- * 
+ *
  * Phase 0: Simple top nav bar with 4-5 primary sections.
  * Minimal motion (120-200ms, ease-out).
  */
@@ -86,7 +86,7 @@ export function BottomNav() {
       setWallet(storedWallet);
       // Check bypass flag
       setHasBypass(hasOnboardingBypass());
-      
+
       // Load user profile to check if they're an existing user
       if (storedWallet) {
         getProfileByWallet(storedWallet)
@@ -106,7 +106,7 @@ export function BottomNav() {
   // Otherwise, filter based on level
   // On error, be permissive to avoid locking out users
   const navItems = allNavItems
-    .filter(item => {
+    .filter((item) => {
       if (item.minLevel === undefined) return true;
       if (hasBypass || levelLoading || levelError) return true; // Show all during bypass, loading, or on error
       return level >= item.minLevel;
@@ -124,7 +124,7 @@ export function BottomNav() {
         const needsText = totalItems * 60 > viewportWidth;
         setHideText(needsText || totalItems > 5);
       };
-      
+
       checkTextVisibility();
       window.addEventListener('resize', checkTextVisibility);
       return () => window.removeEventListener('resize', checkTextVisibility);
@@ -133,7 +133,7 @@ export function BottomNav() {
 
   // Don't show on landing, auth, beta, or admin pages
   const hideNavPaths = ['/', '/auth', '/beta', '/admin'];
-  if (hideNavPaths.some(path => pathname === path || pathname.startsWith('/admin'))) {
+  if (hideNavPaths.some((path) => pathname === path || pathname.startsWith('/admin'))) {
     return null;
   }
 
@@ -146,64 +146,72 @@ export function BottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed top-0 left-0 right-0 z-50 border-b border-gray-200/30 dark:border-emerald-900/30 safe-area-inset-top bg-white/95 dark:bg-emerald-950/95 backdrop-blur-sm"
+      className="safe-area-inset-top fixed left-0 right-0 top-0 z-50 border-b border-gray-200/30 bg-white/95 backdrop-blur-sm dark:border-emerald-900/30 dark:bg-emerald-950/95 md:hidden"
       style={{
         paddingTop: 'env(safe-area-inset-top, 0)',
       }}
     >
-      <div className="flex items-center h-14 w-full px-0.5">
+      <div className="flex h-14 w-full items-center px-0.5">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const isDashboard = item.href === '/me';
 
           // Intercept all navigation clicks during onboarding
           const handleNavClick = async (e: React.MouseEvent<HTMLAnchorElement>) => {
-              // Check if we're on onboarding page
-              if (pathname === '/onboarding') {
-                e.preventDefault();
+            // Check if we're on onboarding page
+            if (pathname === '/onboarding') {
+              e.preventDefault();
               setShowOnboardingPopup(true);
-                return;
-              }
+              return;
+            }
 
-              // Don't block if bypass is active, review mode bypass is active, loading, or there's an error
-              if (hasBypass || hasReviewModeBypass() || levelLoading || levelError) {
-                return; // Allow navigation
-              }
+            // Don't block if bypass is active, review mode bypass is active, loading, or there's an error
+            if (hasBypass || hasReviewModeBypass() || levelLoading || levelError) {
+              return; // Allow navigation
+            }
 
-              // Check if user has a profile (existing user) - if yes, never lock
-              if (userProfile) {
-                return; // Existing user with profile - allow navigation
-              }
+            // Check if user has a profile (existing user) - if yes, never lock
+            if (userProfile) {
+              return; // Existing user with profile - allow navigation
+            }
 
-              // If no profile, check if they have skills
-              // Load profile if not already loaded
-              if (!userProfile && wallet) {
-                try {
-                  const profile = await getProfileByWallet(wallet);
-                  if (profile) {
-                    setUserProfile(profile);
-                    return; // Profile exists - allow navigation
-                  }
-                } catch {
-                  // Profile not found - continue to check skills
+            // If no profile, check if they have skills
+            // Load profile if not already loaded
+            if (!userProfile && wallet) {
+              try {
+                const profile = await getProfileByWallet(wallet);
+                if (profile) {
+                  setUserProfile(profile);
+                  return; // Profile exists - allow navigation
                 }
+              } catch {
+                // Profile not found - continue to check skills
               }
+            }
 
-              // Check if user has skills (even without profile)
-              // If they have skills, they're progressing and shouldn't be locked
-              if (userProfile) {
-                const skills = (userProfile as UserProfile).skillsArray;
-                if (skills && skills.length > 0) {
-                  return; // User has skills - allow navigation
-                }
+            // Check if user has skills (even without profile)
+            // If they have skills, they're progressing and shouldn't be locked
+            if (userProfile) {
+              const skills = (userProfile as UserProfile).skillsArray;
+              if (skills && skills.length > 0) {
+                return; // User has skills - allow navigation
               }
+            }
 
-              // Only lock if: no profile AND no skills AND no review toggle
-              // This matches the requirement: "ONLY apply to users with zero skills that log in without the arkiv review toggle"
-              if (wallet && !hasBypass && !hasReviewModeBypass() && !levelLoading && !levelError && level !== null && level < 2) {
-                e.preventDefault();
+            // Only lock if: no profile AND no skills AND no review toggle
+            // This matches the requirement: "ONLY apply to users with zero skills that log in without the arkiv review toggle"
+            if (
+              wallet &&
+              !hasBypass &&
+              !hasReviewModeBypass() &&
+              !levelLoading &&
+              !levelError &&
+              level !== null &&
+              level < 2
+            ) {
+              e.preventDefault();
               setShowOnboardingPopup(true);
-                return;
+              return;
             }
           };
 
@@ -212,19 +220,11 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               onClick={handleNavClick}
-              className={`
-                relative flex flex-col items-center justify-center
-                flex-1 h-full min-w-0 max-w-full
-                transition-all duration-150 ease-out
-                ${active 
-                  ? 'opacity-100' 
-                  : 'opacity-60 hover:opacity-80'
-                }
-              `}
+              className={`relative flex h-full min-w-0 max-w-full flex-1 flex-col items-center justify-center transition-all duration-150 ease-out ${
+                active ? 'opacity-100' : 'opacity-60 hover:opacity-80'
+              } `}
               style={{
-                boxShadow: active
-                  ? `0 0 8px ${navTokens.node.active.glow}`
-                  : undefined,
+                boxShadow: active ? `0 0 8px ${navTokens.node.active.glow}` : undefined,
                 flexBasis: 0, // Ensure equal distribution
               }}
               onMouseEnter={(e) => {
@@ -238,27 +238,27 @@ export function BottomNav() {
                 }
               }}
             >
-              <span className="text-lg mb-0.5 flex-shrink-0">{item.icon}</span>
+              <span className="mb-0.5 flex-shrink-0 text-lg">{item.icon}</span>
               {!hideText && (
-                <div className="flex flex-col items-center min-w-0 w-full">
-                  <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">
+                <div className="flex w-full min-w-0 flex-col items-center">
+                  <span className="w-full truncate text-center text-xs font-medium text-gray-700 dark:text-gray-300">
                     {item.label}
                   </span>
                   {item.href === '/me' && wallet && (
-                    <span className="text-[9px] text-gray-500 dark:text-gray-500 font-mono leading-tight mt-0.5 truncate w-full text-center">
+                    <span className="mt-0.5 w-full truncate text-center font-mono text-[9px] leading-tight text-gray-500 dark:text-gray-500">
                       {wallet.slice(0, 6)}...{wallet.slice(-4)}
                     </span>
                   )}
                 </div>
               )}
               {item.badge !== undefined && item.badge > 0 && (
-                <span className="absolute top-0 right-1/2 translate-x-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                <span className="absolute right-1/2 top-0 flex h-[18px] min-w-[18px] translate-x-2 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
                   {item.badge > 99 ? '99+' : item.badge}
                 </span>
               )}
               {active && (
-                <div 
-                  className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-emerald-500 dark:bg-emerald-400 rounded-t"
+                <div
+                  className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-t bg-emerald-500 dark:bg-emerald-400"
                   style={{
                     transition: 'opacity 150ms ease-out',
                     boxShadow: `0 0 4px ${navTokens.node.active.borderGlow}`,
@@ -270,100 +270,109 @@ export function BottomNav() {
         })}
         {/* Theme Toggle */}
         <button
-              onClick={toggleTheme}
-              className="flex flex-col items-center justify-center flex-1 h-full min-w-0 max-w-full transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
-              aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{ flexBasis: 0 }}
-            >
-              <span className="text-lg mb-0.5 flex-shrink-0">{theme === 'dark' ? '☀️' : '🌙'}</span>
-              {!hideText && (
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">Theme</span>
-              )}
+          onClick={toggleTheme}
+          className="flex h-full min-w-0 max-w-full flex-1 flex-col items-center justify-center opacity-60 transition-opacity duration-150 ease-out hover:opacity-80"
+          aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          style={{ flexBasis: 0 }}
+        >
+          <span className="mb-0.5 flex-shrink-0 text-lg">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          {!hideText && (
+            <span className="w-full truncate text-center text-xs font-medium text-gray-700 dark:text-gray-300">
+              Theme
+            </span>
+          )}
         </button>
         {/* Logout Button */}
         <button
-              onClick={async () => {
-                if (typeof window !== 'undefined') {
-                  // Disconnect wallet based on type
-                  const walletAddress = localStorage.getItem('wallet_address');
-                  if (walletAddress) {
-                    const walletType = localStorage.getItem(`wallet_type_${walletAddress.toLowerCase()}`);
+          onClick={async () => {
+            if (typeof window !== 'undefined') {
+              // Disconnect wallet based on type
+              const walletAddress = localStorage.getItem('wallet_address');
+              if (walletAddress) {
+                const walletType = localStorage.getItem(
+                  `wallet_type_${walletAddress.toLowerCase()}`
+                );
 
-                    // Disconnect MetaMask if it's a MetaMask wallet
-                    if (walletType === 'metamask' && window.ethereum) {
-                      try {
-                        const { disconnectWallet } = await import('@/lib/auth/metamask');
-                        await disconnectWallet();
-                      } catch (error) {
-                        // Silently fail - clearing localStorage is the important part
-                        console.warn('Failed to disconnect MetaMask:', error);
-                      }
-                    }
-
-                    // Disconnect WalletConnect if it's a WalletConnect wallet
-                    if (walletType === 'walletconnect') {
-                      try {
-                        const { disconnectWalletConnect } = await import('@/lib/wallet/walletconnectProvider');
-                        await disconnectWalletConnect(walletAddress);
-                      } catch (error) {
-                        // Silently fail - clearing localStorage is the important part
-                        console.warn('Failed to disconnect WalletConnect:', error);
-                      }
-                    }
+                // Disconnect MetaMask if it's a MetaMask wallet
+                if (walletType === 'metamask' && window.ethereum) {
+                  try {
+                    const { disconnectWallet } = await import('@/lib/auth/metamask');
+                    await disconnectWallet();
+                  } catch (error) {
+                    // Silently fail - clearing localStorage is the important part
+                    console.warn('Failed to disconnect MetaMask:', error);
                   }
-                  
-                  // Clear all wallet-related localStorage
-                  localStorage.removeItem('wallet_address');
-                  localStorage.removeItem('passkey_user_id');
-                  // Clear all passkey-related keys
-                  const keysToRemove: string[] = [];
-                  for (let i = 0; i < localStorage.length; i++) {
-                    const key = localStorage.key(i);
-                    if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
-                      keysToRemove.push(key);
-                    }
-                  }
-                  keysToRemove.forEach(key => localStorage.removeItem(key));
-                  // Redirect to auth page
-                  window.location.href = '/auth';
                 }
-              }}
-              className="flex flex-col items-center justify-center flex-1 h-full min-w-0 max-w-full transition-opacity duration-150 ease-out opacity-60 hover:opacity-80"
-              title="Disconnect wallet and logout"
-              style={{ flexBasis: 0 }}
-            >
-              <span className="text-lg mb-0.5 flex-shrink-0">⚡</span>
-              {!hideText && (
-                <span className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate w-full text-center">Logout</span>
-              )}
+
+                // Disconnect WalletConnect if it's a WalletConnect wallet
+                if (walletType === 'walletconnect') {
+                  try {
+                    const { disconnectWalletConnect } = await import(
+                      '@/lib/wallet/walletconnectProvider'
+                    );
+                    await disconnectWalletConnect(walletAddress);
+                  } catch (error) {
+                    // Silently fail - clearing localStorage is the important part
+                    console.warn('Failed to disconnect WalletConnect:', error);
+                  }
+                }
+              }
+
+              // Clear all wallet-related localStorage
+              localStorage.removeItem('wallet_address');
+              localStorage.removeItem('passkey_user_id');
+              // Clear all passkey-related keys
+              const keysToRemove: string[] = [];
+              for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('passkey_') || key.startsWith('wallet_type_'))) {
+                  keysToRemove.push(key);
+                }
+              }
+              keysToRemove.forEach((key) => localStorage.removeItem(key));
+              // Redirect to auth page
+              window.location.href = '/auth';
+            }
+          }}
+          className="flex h-full min-w-0 max-w-full flex-1 flex-col items-center justify-center opacity-60 transition-opacity duration-150 ease-out hover:opacity-80"
+          title="Disconnect wallet and logout"
+          style={{ flexBasis: 0 }}
+        >
+          <span className="mb-0.5 flex-shrink-0 text-lg">⚡</span>
+          {!hideText && (
+            <span className="w-full truncate text-center text-xs font-medium text-gray-700 dark:text-gray-300">
+              Logout
+            </span>
+          )}
         </button>
       </div>
 
       {/* Onboarding Popup - rendered as portal for proper centering */}
-      {showOnboardingPopup && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
-            <div className="text-center">
-              <div className="text-6xl mb-4">🌱</div>
-              <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
-                Click grow to start
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Complete onboarding to unlock navigation.
-              </p>
-              <button
-                onClick={() => setShowOnboardingPopup(false)}
-                className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
-              >
-                Got it
-              </button>
+      {showOnboardingPopup &&
+        typeof window !== 'undefined' &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800">
+              <div className="text-center">
+                <div className="mb-4 text-6xl">🌱</div>
+                <h3 className="mb-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+                  Click grow to start
+                </h3>
+                <p className="mb-6 text-gray-600 dark:text-gray-400">
+                  Complete onboarding to unlock navigation.
+                </p>
+                <button
+                  onClick={() => setShowOnboardingPopup(false)}
+                  className="w-full rounded-lg bg-green-600 px-6 py-3 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl"
+                >
+                  Got it
+                </button>
+              </div>
             </div>
-          </div>
-        </div>,
-        document.body
-      )}
+          </div>,
+          document.body
+        )}
     </nav>
   );
 }
-

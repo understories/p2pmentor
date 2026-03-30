@@ -1,6 +1,6 @@
 /**
  * Landing page
- * 
+ *
  * Adapted from understories.github.io design with dark forest aesthetic.
  * Reference: refs/understories.github.io/index.html
  */
@@ -21,7 +21,7 @@ export default function Home() {
       const container = treesContainerRef.current;
       container.innerHTML = '';
       const treeCount = 8;
-      
+
       for (let i = 0; i < treeCount; i++) {
         const tree = document.createElement('div');
         tree.className = 'tree';
@@ -53,20 +53,17 @@ export default function Home() {
       <div className="fog-layer fog-2"></div>
       <div className="trees-back" ref={treesContainerRef}></div>
       <SunriseSunsetTimer />
-      
+
       <main className="landing-container">
         <h1 className="main-text">p2pmentor</h1>
         <p className="subtitle-text">Planting the first beta seed of peer to peer mentorship</p>
-        
+
         <div className="enter-beta-container">
-          <Link 
-            href="/beta"
-            className="enter-beta-link"
-          >
+          <Link href="/beta" className="enter-beta-link">
             Enter Beta
           </Link>
         </div>
-        
+
         <div className="no-js-container" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
             <span
@@ -81,7 +78,8 @@ export default function Home() {
                 borderRadius: '4px',
                 opacity: 0.6,
                 cursor: 'not-allowed',
-                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", serif',
               }}
             >
               Load Without JavaScript (Coming Soon)
@@ -98,16 +96,16 @@ export default function Home() {
                 transition: 'opacity 0.2s',
                 cursor: 'pointer',
               }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+              onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+              onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
             >
               <span style={{ fontSize: '0.875rem' }}>→</span>
             </Link>
           </div>
         </div>
-        
+
         <div className="admin-link-container" style={{ marginTop: '1rem' }}>
-          <Link 
+          <Link
             href="/admin/login"
             className="admin-link"
             style={{
@@ -115,10 +113,10 @@ export default function Home() {
               opacity: 0.7,
               textDecoration: 'none',
               color: 'inherit',
-              transition: 'opacity 0.2s'
+              transition: 'opacity 0.2s',
             }}
-            onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-            onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '0.7')}
           >
             Admin Login
           </Link>

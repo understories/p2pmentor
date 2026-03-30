@@ -14,6 +14,7 @@ Cryptography is the practice of securing information by transforming it into a f
 ## Why It Matters
 
 Cryptography is everywhere:
+
 - **Blockchain:** Transactions are secured with cryptographic signatures
 - **HTTPS:** Your web browsing is encrypted
 - **Passwords:** Stored as hashes, not plain text
@@ -22,10 +23,12 @@ Cryptography is everywhere:
 ## Key Concepts
 
 **Encryption vs Hashing:**
+
 - Encryption is reversible (you can decrypt)
 - Hashing is one-way (you can't reverse it)
 
 **Public vs Private Keys:**
+
 - Public key: Share with everyone (like your address)
 - Private key: Keep secret (like your house key)
 

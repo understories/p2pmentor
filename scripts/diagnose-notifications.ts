@@ -1,6 +1,6 @@
 /**
  * Diagnostic script to check notification wallet matching
- * 
+ *
  * Run with: npx tsx scripts/diagnose-notifications.ts <wallet_address>
  */
 
@@ -45,7 +45,7 @@ async function diagnoseNotifications(walletAddress: string) {
   console.log('👥 Checking all profiles for wallet format issues...');
   const allProfiles = await listUserProfiles();
   const walletFormats = new Map<string, number>();
-  allProfiles.forEach(profile => {
+  allProfiles.forEach((profile) => {
     if (profile.wallet) {
       const wallet = profile.wallet;
       const normalized = wallet.toLowerCase().trim();
@@ -60,14 +60,14 @@ async function diagnoseNotifications(walletAddress: string) {
   console.log('');
 
   // Check if there are any notifications with mismatched wallets
-  const mismatched = notifications.filter(n => {
+  const mismatched = notifications.filter((n) => {
     const notifWallet = n.wallet?.toLowerCase().trim() || '';
     return notifWallet !== normalizedWallet;
   });
 
   if (mismatched.length > 0) {
     console.log('❌ Found mismatched notifications:');
-    mismatched.forEach(notif => {
+    mismatched.forEach((notif) => {
       console.log(`  - ${notif.key}: wallet="${notif.wallet}" (expected: "${normalizedWallet}")`);
     });
   } else {
@@ -86,4 +86,3 @@ if (require.main === module) {
 }
 
 export { diagnoseNotifications };
-

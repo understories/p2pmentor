@@ -1,8 +1,8 @@
 /**
  * GraphQL queries for offers pages
- * 
+ *
  * Queries GraphQL endpoint for offers data.
- * 
+ *
  * Reference: refs/docs/sprint2.md
  */
 
@@ -76,7 +76,7 @@ export interface OffersParams {
 
 /**
  * Fetch offers via GraphQL
- * 
+ *
  * @param params - Query parameters
  * @param options - Optional endpoint override (for server-side calls)
  * @returns Array of offers
@@ -85,12 +85,7 @@ export async function fetchOffers(
   params: OffersParams = {},
   options?: { endpoint?: string }
 ): Promise<OffersResponse['offers']> {
-  const {
-    skill,
-    wallet,
-    includeExpired = false,
-    limit = 100,
-  } = params;
+  const { skill, wallet, includeExpired = false, limit = 100 } = params;
 
   const variables: Record<string, any> = {
     skill,
@@ -100,16 +95,16 @@ export async function fetchOffers(
   };
 
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  
-  const response = await graphRequest<OffersResponse>(
-    OFFERS_QUERY,
-    variables,
-    { operationName: 'Offers', endpoint: options?.endpoint }
-  );
-  
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+
+  const response = await graphRequest<OffersResponse>(OFFERS_QUERY, variables, {
+    operationName: 'Offers',
+    endpoint: options?.endpoint,
+  });
+
+  const durationMs =
+    typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
   const payloadBytes = JSON.stringify(response).length;
-  
+
   // Record performance metrics
   try {
     const { recordPerfSample } = await import('@/lib/metrics/perf');
@@ -125,7 +120,6 @@ export async function fetchOffers(
   } catch (err) {
     // Silently fail if metrics module not available
   }
-  
+
   return response.offers;
 }
-

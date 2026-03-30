@@ -1,9 +1,9 @@
 /**
  * Passkey Login Button Component
- * 
+ *
  * Handles passkey registration (first time) and login (subsequent).
  * Shows passkey option only if feature flag is enabled and WebAuthn is supported.
- * 
+ *
  * Reference: Arkiv Passkey Wallet Beta Implementation Plan
  */
 
@@ -11,13 +11,23 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { registerPasskey, loginWithPasskey, isWebAuthnSupported, isPlatformAuthenticatorAvailable } from '@/lib/auth/passkey-webauthn-client';
+import {
+  registerPasskey,
+  loginWithPasskey,
+  isWebAuthnSupported,
+  isPlatformAuthenticatorAvailable,
+} from '@/lib/auth/passkey-webauthn-client';
 import { createPasskeyWallet, unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { usePasskeyLogin } from '@/lib/auth/passkeyFeatureFlags';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 import { listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
 import { getWalletClientFromPasskey } from '@/lib/wallet/getWalletClientFromPasskey';
-import { hasLocalPasskeyWallet, hasArkivPasskeyIdentity, hasBackupWallet, recoverPasskeyWallet } from '@/lib/auth/passkey-recovery';
+import {
+  hasLocalPasskeyWallet,
+  hasArkivPasskeyIdentity,
+  hasBackupWallet,
+  recoverPasskeyWallet,
+} from '@/lib/auth/passkey-recovery';
 import { connectWallet, createArkivClients } from '@/lib/auth/metamask';
 import { SPACE_ID } from '@/lib/config';
 
@@ -67,57 +77,66 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       // CREDENTIAL-FIRST FLOW: No wallet pre-checks
       // localStorage is only a cache, never a prerequisite
       // Server will query Arkiv by credentialID from WebAuthn response
-      
-      const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null;
-      const storedWallet = typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
-      
+
+      const storedUserId =
+        typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null;
+      const storedWallet =
+        typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
+
       // [PASSKEY][LOGIN][START] - Log start (no wallet pre-check)
       console.log('[PASSKEY][LOGIN][START]', {
         env: typeof window !== 'undefined' ? window.location.hostname : 'server',
-        rpId: typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown',
+        rpId:
+          typeof window !== 'undefined'
+            ? window.location.hostname.replace(/^www\./, '')
+            : 'unknown',
         origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
         userId: storedUserId || 'none',
         walletAddress: storedWallet || 'none',
         note: 'Credential-first flow - no wallet pre-check',
       });
-      
+
       // STEP 1: CREDENTIAL-FIRST LOGIN
       // Always attempt login first - server queries Arkiv by credentialID from WebAuthn response
       // This works even if localStorage is empty or wallet address is wrong
       // localStorage is only a cache, never a prerequisite
-      
-      console.log('[PasskeyLoginButton] Attempting credential-first login (server queries Arkiv by credentialID)');
-      
+
+      console.log(
+        '[PasskeyLoginButton] Attempting credential-first login (server queries Arkiv by credentialID)'
+      );
+
       try {
         // Pass userId/walletAddress as hints only (optional) - server will query by credentialID
         const userIdHint = storedUserId || userId || undefined;
         const walletHint = storedWallet || undefined;
-        
+
         // Attempt authentication - server queries Arkiv by credentialID first (from WebAuthn response)
         const loginResult = await loginWithPasskey(userIdHint, walletHint);
         credentialID = loginResult.credentialID;
-        
+
         // CRITICAL: Server returns walletAddress from Arkiv entity (source of truth)
         const serverWalletAddress = loginResult.walletAddress;
-        
+
         if (!credentialID) {
           throw new Error('Credential ID not found in login response');
         }
-        
+
         if (!serverWalletAddress) {
-          throw new Error('Wallet address not found in login response - credential may not be registered on Arkiv');
+          throw new Error(
+            'Wallet address not found in login response - credential may not be registered on Arkiv'
+          );
         }
-        
+
         // Use wallet address from server (Arkiv entity) - this is the source of truth
         const correctWalletAddress = serverWalletAddress;
         const correctUserId = `wallet_${correctWalletAddress.toLowerCase().slice(2, 10)}`;
-        
+
         // Create/recover local wallet using correct userId
         const hasLocal = await hasLocalPasskeyWallet(correctUserId);
         if (!hasLocal) {
           const walletResult = await createPasskeyWallet(correctUserId, credentialID);
           address = walletResult.address;
-          
+
           // Verify wallet address matches server (should match, but log if not)
           if (address.toLowerCase() !== correctWalletAddress.toLowerCase()) {
             console.warn('[PasskeyLoginButton] Wallet address mismatch:', {
@@ -130,7 +149,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
         } else {
           const unlockResult = await unlockPasskeyWallet(correctUserId, credentialID);
           address = unlockResult.address;
-          
+
           // Verify wallet address matches server
           if (address.toLowerCase() !== correctWalletAddress.toLowerCase()) {
             console.warn('[PasskeyLoginButton] Wallet address mismatch on unlock:', {
@@ -141,7 +160,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
             address = correctWalletAddress as `0x${string}`;
           }
         }
-        
+
         // Update localStorage with CORRECT wallet address from Arkiv (cache only)
         if (typeof window !== 'undefined') {
           localStorage.setItem(`passkey_credential_${correctUserId}`, credentialID);
@@ -150,14 +169,18 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           localStorage.setItem('passkey_user_id', correctUserId);
           setWalletType(address, 'passkey');
         }
-        
+
         console.log('[PasskeyLoginButton] ✅ Successfully logged in - wallet from Arkiv:', address);
       } catch (error: any) {
         console.error('[PasskeyLoginButton] Login failed:', error);
-        
+
         // Check if error is "not registered" - if so, try registration
         const errorMessage = error?.message || String(error);
-        if (errorMessage.includes('not registered') || errorMessage.includes('not found') || errorMessage.includes('Credential not found')) {
+        if (
+          errorMessage.includes('not registered') ||
+          errorMessage.includes('not found') ||
+          errorMessage.includes('Credential not found')
+        ) {
           console.log('[PasskeyLoginButton] Credential not found on Arkiv, will try registration');
           // Fall through to registration flow below
           address = undefined; // Ensure we go to registration
@@ -166,17 +189,19 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           throw error;
         }
       }
-      
+
       // STEP 2: Registration flow - ONLY if login failed with "not registered"
       // This is truly a new user/device registration
       if (address === undefined) {
-        console.log('[PasskeyLoginButton] Starting registration flow (credential not found on Arkiv)');
-        
+        console.log(
+          '[PasskeyLoginButton] Starting registration flow (credential not found on Arkiv)'
+        );
+
         // Generate stable userId from wallet address (if we have one) or use provided userId
         // NEVER use user_${Date.now()} - always use wallet-based stable ID for production
         let userIdToUse: string;
         let userNameToUse: string | undefined;
-        
+
         if (storedWallet) {
           // Use wallet address to generate stable user ID
           userIdToUse = `wallet_${storedWallet.toLowerCase().slice(2, 10)}`;
@@ -190,32 +215,47 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
           // Last resort: this should rarely happen in production
           // Only for truly new users with no wallet yet (first-time passkey registration)
           // In this case, we'll create the wallet first, then use it for stable ID
-          console.warn('[PasskeyLoginButton] No wallet address available for stable userId generation');
+          console.warn(
+            '[PasskeyLoginButton] No wallet address available for stable userId generation'
+          );
           // We'll generate a temporary ID, but this should be replaced with wallet-based ID after wallet creation
           userIdToUse = `new_user_${Date.now()}`;
           userNameToUse = 'New User';
         }
-        
-        console.log('[PasskeyLoginButton] Registering new passkey with stable userId:', userIdToUse, 'userName:', userNameToUse);
-        
+
+        console.log(
+          '[PasskeyLoginButton] Registering new passkey with stable userId:',
+          userIdToUse,
+          'userName:',
+          userNameToUse
+        );
+
         // Step 1: Register passkey
         // Server will query Arkiv and populate excludeCredentials to prevent duplicates
         // platformOnly: use strict platform-only constraints to prevent QR dialog
-        const registerResult = await registerPasskey(userIdToUse, userNameToUse, storedWallet || undefined, platformOnly);
+        const registerResult = await registerPasskey(
+          userIdToUse,
+          userNameToUse,
+          storedWallet || undefined,
+          platformOnly
+        );
         credentialID = registerResult.credentialID;
-        
+
         // Type guard for credential metadata
         const hasCredentialMetadata = registerResult.credentialPublicKey !== undefined;
 
         // Step 2: Create wallet
         const walletResult = await createPasskeyWallet(userIdToUse, credentialID);
         address = walletResult.address;
-        
+
         // Step 2.5: If we used a temporary userId, update to wallet-based stable ID
         // This ensures future sessions use the stable ID
         if (userIdToUse.startsWith('new_user_')) {
           const stableUserId = `wallet_${address.toLowerCase().slice(2, 10)}`;
-          console.log('[PasskeyLoginButton] Updating temporary userId to stable wallet-based ID:', stableUserId);
+          console.log(
+            '[PasskeyLoginButton] Updating temporary userId to stable wallet-based ID:',
+            stableUserId
+          );
           userIdToUse = stableUserId;
         }
 
@@ -232,7 +272,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               attempting: true,
               method: 'api_route_with_global_signing_wallet',
             });
-            
+
             // Use API route that signs with global Arkiv wallet (from ARKIV_PRIVATE_KEY)
             // This matches the pattern used for profile creation and all other Arkiv entities
             const arkivRes = await fetch('/api/passkey/register/arkiv', {
@@ -249,13 +289,16 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
             });
 
             const arkivData = await arkivRes.json();
-            
+
             if (!arkivRes.ok || !arkivData.ok) {
               // CRITICAL: Registration without Arkiv write is a hard error
               // User must retry - we cannot proceed without Arkiv identity
-              throw new Error(arkivData.error || 'Failed to create Arkiv passkey identity. Registration cannot complete without Arkiv storage.');
+              throw new Error(
+                arkivData.error ||
+                  'Failed to create Arkiv passkey identity. Registration cannot complete without Arkiv storage.'
+              );
             }
-            
+
             // [PASSKEY][REGISTER][ARKIV_WRITE] - Log success
             console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
               success: true,
@@ -265,7 +308,7 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               credentialId_stored: credentialID,
               method: 'api_route_with_global_signing_wallet',
             });
-            
+
             console.log('[PasskeyLoginButton] ✅ Created Arkiv auth_identity entity');
           } catch (error: any) {
             // [PASSKEY][REGISTER][ARKIV_WRITE] - Log failure
@@ -278,7 +321,9 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
               method: 'api_route_with_global_signing_wallet',
             });
             // HARD ERROR: Registration cannot complete without Arkiv write
-            throw new Error(`Registration failed: ${error?.message || 'Failed to create Arkiv passkey identity'}. Please try again.`);
+            throw new Error(
+              `Registration failed: ${error?.message || 'Failed to create Arkiv passkey identity'}. Please try again.`
+            );
           }
         } else {
           throw new Error('Registration failed: missing credential metadata');
@@ -314,18 +359,20 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       } else {
         // Check if user has profile for this profile wallet - redirect to onboarding if not
         import('@/lib/onboarding/state').then(({ calculateOnboardingLevel }) => {
-          calculateOnboardingLevel(address).then(level => {
-            if (level === 0) {
-              // No profile for this profile wallet - redirect to onboarding
-              router.push('/onboarding');
-            } else {
-              // Has profile - go to dashboard
+          calculateOnboardingLevel(address)
+            .then((level) => {
+              if (level === 0) {
+                // No profile for this profile wallet - redirect to onboarding
+                router.push('/onboarding');
+              } else {
+                // Has profile - go to dashboard
+                router.push('/me');
+              }
+            })
+            .catch(() => {
+              // On error, default to /me (don't block on calculation failure)
               router.push('/me');
-            }
-          }).catch(() => {
-            // On error, default to /me (don't block on calculation failure)
-            router.push('/me');
-          });
+            });
         });
       }
     } catch (err) {
@@ -335,14 +382,17 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
 
       // Better error messages for platform-only failures
       // Check for constraint errors that indicate platform authenticator unavailable
-      if (platformOnly && (
-        errorName === 'ConstraintError' ||
-        errorName === 'NotSupportedError' ||
-        errorMessage.toLowerCase().includes('constraint') ||
-        errorMessage.toLowerCase().includes('not supported') ||
-        errorMessage.toLowerCase().includes('platform authenticator')
-      )) {
-        const friendlyError = new Error('This device doesn\'t have Touch ID / Windows Hello enabled. Try "Use a phone or security key" instead.');
+      if (
+        platformOnly &&
+        (errorName === 'ConstraintError' ||
+          errorName === 'NotSupportedError' ||
+          errorMessage.toLowerCase().includes('constraint') ||
+          errorMessage.toLowerCase().includes('not supported') ||
+          errorMessage.toLowerCase().includes('platform authenticator'))
+      ) {
+        const friendlyError = new Error(
+          'This device doesn\'t have Touch ID / Windows Hello enabled. Try "Use a phone or security key" instead.'
+        );
         setError(friendlyError.message);
         if (onError) {
           onError(friendlyError);
@@ -377,11 +427,11 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       <button
         onClick={handlePlatformOnly}
         disabled={isLoading}
-        className="w-full px-6 py-3 text-base font-medium text-white bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-500 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:bg-blue-500 dark:disabled:hover:bg-blue-600 relative group"
+        className="group relative w-full rounded-lg bg-blue-500 px-6 py-3 text-base font-medium text-white transition-all duration-200 hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-blue-500 dark:bg-blue-600 dark:hover:bg-blue-500 dark:disabled:hover:bg-blue-600"
         title="Use Touch ID, Face ID, or Windows Hello on this device"
       >
         {isLoading ? 'Authenticating...' : 'Use this device (Touch ID / Windows Hello)'}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-80 p-3 rounded-lg shadow-lg bg-white/95 dark:bg-gray-800 text-gray-900 dark:text-white text-xs text-center border border-gray-200 dark:border-gray-700 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10">
+        <div className="absolute left-1/2 top-full z-10 mt-2 w-80 -translate-x-1/2 rounded-lg border border-gray-200 bg-white/95 p-3 text-center text-xs text-gray-900 opacity-0 shadow-lg backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
           Future-compatible with{' '}
           <a
             href="https://eips.ethereum.org/EIPS/eip-7951"
@@ -390,8 +440,8 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
             className="underline hover:text-blue-600 dark:hover:text-blue-400"
           >
             EIP-7951
-          </a>
-          {' '}(Fusaka upgrade) for native secp256r1 signature verification on-chain
+          </a>{' '}
+          (Fusaka upgrade) for native secp256r1 signature verification on-chain
         </div>
       </button>
 
@@ -399,24 +449,23 @@ export function PasskeyLoginButton({ userId, onSuccess, onError }: PasskeyLoginB
       <button
         onClick={handleCrossDevice}
         disabled={isLoading}
-        className="w-full px-6 py-3 text-base font-medium text-gray-700 dark:text-gray-300 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full rounded-lg bg-gray-100 px-6 py-3 text-base font-medium text-gray-700 transition-all duration-200 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
         title="Use a phone or security key (may show QR code)"
       >
         Use a phone or security key
       </button>
-      
+
       {!isPlatformAvailable && isSupported && (
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 text-center">
+        <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">
           Platform authenticator (Touch ID, Face ID, Windows Hello) not available on this device
         </p>
       )}
 
       {error && (
-        <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
         </div>
       )}
     </div>
   );
 }
-

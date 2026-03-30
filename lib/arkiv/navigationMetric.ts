@@ -103,13 +103,15 @@ export async function listNavigationMetrics({
 
     // Fetch metric entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'navigation_metric'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'navigation_metric_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -136,11 +138,12 @@ export async function listNavigationMetrics({
         const metricKey = getAttr('metricKey');
         if (metricKey) {
           try {
-            const payload = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const payload =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const decoded = JSON.parse(payload);
             if (decoded.txHash) {
               txHashMap[metricKey] = decoded.txHash;
@@ -181,11 +184,12 @@ export async function listNavigationMetrics({
         // Parse payload
         let payload: any = {};
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
 
@@ -215,4 +219,3 @@ export async function listNavigationMetrics({
     return [];
   }
 }
-

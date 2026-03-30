@@ -1,16 +1,16 @@
 /**
  * Skill CRUD helpers
- * 
+ *
  * Skills are first-class Arkiv entities for beta.
  * All user-facing flows must reference Skill.id, not free-text strings.
- * 
+ *
  * Reference: refs/doc/learner_communities_QUESTIONS.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export type Skill = {
   key: string;
@@ -22,7 +22,7 @@ export type Skill = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Normalize skill name to slug
@@ -60,7 +60,9 @@ export async function createSkill({
   // Always create slug - this is required for topic/learning community pages
   const slug = normalizeSkillSlug(name_canonical);
   if (!slug || slug.trim() === '') {
-    throw new Error(`Cannot create skill "${name_canonical}": slug normalization resulted in empty string`);
+    throw new Error(
+      `Cannot create skill "${name_canonical}": slug normalization resulted in empty string`
+    );
   }
   const status = 'active';
 
@@ -69,9 +71,11 @@ export async function createSkill({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        description: description || undefined,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          description: description || undefined,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'skill' },
@@ -80,7 +84,9 @@ export async function createSkill({
         { key: 'status', value: status },
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: createdAt },
-        ...(created_by_profile ? [{ key: 'created_by_profile', value: created_by_profile.toLowerCase() }] : []),
+        ...(created_by_profile
+          ? [{ key: 'created_by_profile', value: created_by_profile.toLowerCase() }]
+          : []),
       ],
       expiresIn,
     });
@@ -136,7 +142,10 @@ export async function createSkill({
     } catch (error: any) {
       // Don't block skill creation if follow creation fails
       // This is a non-critical operation - user can manually join if needed
-      console.warn('[createSkill] Failed to automatically add creator as member, but skill was created:', error);
+      console.warn(
+        '[createSkill] Failed to automatically add creator as member, but skill was created:',
+        error
+      );
     }
   }
 
@@ -146,11 +155,11 @@ export async function createSkill({
   try {
     const { createNotification } = await import('./notifications');
     const { listUserProfiles } = await import('./profile');
-    
+
     // Get all profiles in the same spaceId
     const allProfiles = await listUserProfiles({ spaceId });
     const uniqueWallets = new Set<string>();
-    allProfiles.forEach(profile => {
+    allProfiles.forEach((profile) => {
       // Ensure wallet is normalized and not empty
       // Also verify profile is in the same spaceId (safety check)
       const wallet = profile.wallet?.trim();
@@ -160,7 +169,7 @@ export async function createSkill({
     });
 
     // Create notification for each profile
-    const notificationPromises = Array.from(uniqueWallets).map(wallet => 
+    const notificationPromises = Array.from(uniqueWallets).map((wallet) =>
       createNotification({
         wallet,
         notificationType: 'new_skill_created',
@@ -214,9 +223,10 @@ export async function listSkills({
 } = {}): Promise<Skill[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Build query with space ID filtering
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'skill'))
       .withAttributes(true)
       .withPayload(true);
@@ -232,11 +242,12 @@ export async function listSkills({
       // Use provided limit or default to 500 to ensure we get all skills
       queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 500);
     }
-    
+
     // Fetch skill entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
       queryBuilder.fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'skill_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -247,7 +258,7 @@ export async function listSkills({
       console.error('[listSkills] Invalid result from Arkiv query:', result);
       return [];
     }
-    
+
     // Log for debugging
     console.log('[listSkills] Arkiv query result:', {
       spaceId: spaceId || SPACE_ID,
@@ -271,11 +282,12 @@ export async function listSkills({
         const skillKey = getAttr('skillKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && skillKey) {
               txHashMap[skillKey] = payload.txHash;
@@ -291,11 +303,12 @@ export async function listSkills({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -331,32 +344,32 @@ export async function listSkills({
 
     // Apply filters
     if (status) {
-      skills = skills.filter(s => s.status === status);
+      skills = skills.filter((s) => s.status === status);
     }
     if (slug) {
       const normalizedSlug = normalizeSkillSlug(slug);
-      skills = skills.filter(s => s.slug === normalizedSlug);
+      skills = skills.filter((s) => s.slug === normalizedSlug);
     }
 
     // Deduplicate skills by name_canonical (case-insensitive) or slug
     // If duplicates exist, keep the most recent one (by createdAt) or the one with a slug
     // This ensures users see only one "German" skill, not multiple duplicates
     const skillMap = new Map<string, Skill>();
-    
-    skills.forEach(skill => {
+
+    skills.forEach((skill) => {
       // Use normalized name_canonical as the deduplication key (case-insensitive)
       const dedupeKey = skill.name_canonical.toLowerCase().trim();
       const existing = skillMap.get(dedupeKey);
-      
+
       if (existing) {
         // Duplicate found - decide which one to keep
         const existingDate = existing.createdAt ? new Date(existing.createdAt).getTime() : 0;
         const currentDate = skill.createdAt ? new Date(skill.createdAt).getTime() : 0;
-        
+
         // Prefer skill with slug, then most recent, then existing
         const existingHasSlug = existing.slug && existing.slug.trim() !== '';
         const currentHasSlug = skill.slug && skill.slug.trim() !== '';
-        
+
         if (currentHasSlug && !existingHasSlug) {
           // Current has slug, existing doesn't - replace
           skillMap.set(dedupeKey, skill);
@@ -373,10 +386,10 @@ export async function listSkills({
         skillMap.set(dedupeKey, skill);
       }
     });
-    
+
     // Convert back to array
     const deduplicatedSkills = Array.from(skillMap.values());
-    
+
     // Log if duplicates were found (for debugging)
     if (skills.length > deduplicatedSkills.length) {
       console.log('[listSkills] Deduplicated skills:', {
@@ -396,7 +409,7 @@ export async function listSkills({
 
 /**
  * Get Skill by slug
- * 
+ *
  * @param slug - Skill slug (normalized name)
  * @param spaceId - Optional spaceId to filter by. If not provided, uses SPACE_ID from config.
  *                  This ensures we only find skills in the current environment.
@@ -414,7 +427,11 @@ export async function getSkillBySlug(slug: string, spaceId?: string): Promise<Sk
  */
 export async function getSkillByKey(key: string): Promise<Skill | null> {
   try {
-    console.log('[getSkillByKey] Fetching skill with key:', { key, length: key.length, startsWith0x: key.startsWith('0x') });
+    console.log('[getSkillByKey] Fetching skill with key:', {
+      key,
+      length: key.length,
+      startsWith0x: key.startsWith('0x'),
+    });
     const publicClient = getPublicClient();
 
     // Use getEntity for direct entity key lookup (more reliable than querying)
@@ -441,10 +458,14 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
       return null;
     }
 
-    console.log('[getSkillByKey] Found skill entity:', { entityKey: entity.key, name: getAttr('name_canonical') });
+    console.log('[getSkillByKey] Found skill entity:', {
+      entityKey: entity.key,
+      name: getAttr('name_canonical'),
+    });
 
     // Fetch txHash
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'skill_txhash'))
       .where(eq('skillKey', key))
       .withAttributes(true)
@@ -453,15 +474,20 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
       .fetch();
 
     let txHash: string | undefined;
-    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+    if (
+      txHashResult?.entities &&
+      Array.isArray(txHashResult.entities) &&
+      txHashResult.entities.length > 0
+    ) {
       try {
         const txHashEntity = txHashResult.entities[0];
         if (txHashEntity.payload) {
-          const decoded = txHashEntity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(txHashEntity.payload)
-            : typeof txHashEntity.payload === 'string'
-            ? txHashEntity.payload
-            : JSON.stringify(txHashEntity.payload);
+          const decoded =
+            txHashEntity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(txHashEntity.payload)
+              : typeof txHashEntity.payload === 'string'
+                ? txHashEntity.payload
+                : JSON.stringify(txHashEntity.payload);
           const payload = JSON.parse(decoded);
           txHash = payload.txHash;
         }
@@ -473,11 +499,12 @@ export async function getSkillByKey(key: string): Promise<Skill | null> {
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {

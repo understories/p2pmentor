@@ -61,4 +61,3 @@ When using or contributing to p2pmentor, keep these best practices in mind:
 ## License Location
 
 The full license text is available in the [LICENSE](https://github.com/understories/p2pmentor/blob/main/LICENSE) file at the root of the repository.
-

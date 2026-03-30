@@ -69,8 +69,8 @@ export async function createQuestDefinition({
       { key: 'questId', value: quest.questId },
       { key: 'track', value: quest.track },
       { key: 'version', value: quest.version },
-      ...(quest.track === 'mandarin' || quest.track === 'spanish' 
-        ? [{ key: 'language', value: quest.track === 'mandarin' ? 'zh' : 'es' }] 
+      ...(quest.track === 'mandarin' || quest.track === 'spanish'
+        ? [{ key: 'language', value: quest.track === 'mandarin' ? 'zh' : 'es' }]
         : []),
       { key: 'spaceId', value: finalSpaceId },
       { key: 'status', value: 'active' },
@@ -94,21 +94,23 @@ export async function createQuestDefinition({
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash, questKey: entityKey })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'quest_definition_txhash' },
-        { key: 'questKey', value: entityKey },
-        { key: 'txHash', value: txHash },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: 315360000, // 10 years (matches quest entity)
-    }).catch((err) => {
-      // Non-blocking - log but don't fail
-      console.warn('[createQuestDefinition] Failed to create txhash entity:', err);
-    });
+    walletClient
+      .createEntity({
+        payload: enc.encode(JSON.stringify({ txHash, questKey: entityKey })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'quest_definition_txhash' },
+          { key: 'questKey', value: entityKey },
+          { key: 'txHash', value: txHash },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: createdAt },
+        ],
+        expiresIn: 315360000, // 10 years (matches quest entity)
+      })
+      .catch((err) => {
+        // Non-blocking - log but don't fail
+        console.warn('[createQuestDefinition] Failed to create txhash entity:', err);
+      });
 
     return { key: entityKey, txHash };
   } catch (error: any) {
@@ -196,9 +198,7 @@ export async function getLatestQuestDefinition({
     const quests = result.entities
       .map(parseQuestDefinitionEntity)
       .filter((q): q is QuestDefinitionEntity => q !== null)
-      .sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     return quests[0] || null;
   } catch (error: any) {
@@ -274,15 +274,15 @@ export async function listQuestDefinitions({
  */
 function parseQuestDefinitionEntity(entity: any): QuestDefinitionEntity | null {
   try {
-    const getAttr = (key: string) =>
-      entity.attributes?.find((a: any) => a.key === key)?.value;
+    const getAttr = (key: string) => entity.attributes?.find((a: any) => a.key === key)?.value;
 
     let payload: QuestDefinition;
     try {
       if (entity.payload) {
-        const payloadStr = typeof entity.payload === 'string'
-          ? entity.payload
-          : new TextDecoder().decode(entity.payload);
+        const payloadStr =
+          typeof entity.payload === 'string'
+            ? entity.payload
+            : new TextDecoder().decode(entity.payload);
         payload = JSON.parse(payloadStr) as QuestDefinition;
       } else {
         return null;

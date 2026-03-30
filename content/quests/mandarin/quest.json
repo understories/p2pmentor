@@ -226,12 +226,7 @@
           "id": "q1",
           "type": "multiple_choice",
           "question": "What does '你好' mean?",
-          "options": [
-            "Goodbye",
-            "Hello",
-            "Thank you",
-            "Sorry"
-          ],
+          "options": ["Goodbye", "Hello", "Thank you", "Sorry"],
           "correctAnswer": "Hello",
           "points": 1,
           "explanation": "'你好' (nǐ hǎo) is the standard greeting meaning 'hello'."
@@ -240,12 +235,7 @@
           "id": "q2",
           "type": "multiple_choice",
           "question": "How do you say 'five' in Chinese?",
-          "options": [
-            "三",
-            "四",
-            "五",
-            "六"
-          ],
+          "options": ["三", "四", "五", "六"],
           "correctAnswer": "五",
           "points": 1,
           "explanation": "'五' (wǔ) means five."
@@ -254,12 +244,7 @@
           "id": "q3",
           "type": "multiple_choice",
           "question": "What is the pinyin for 'mother'?",
-          "options": [
-            "bà ba",
-            "mā ma",
-            "gē ge",
-            "jiě jie"
-          ],
+          "options": ["bà ba", "mā ma", "gē ge", "jiě jie"],
           "correctAnswer": "mā ma",
           "points": 1,
           "explanation": "'妈妈' (mā ma) means mother."
@@ -268,12 +253,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What does '水' mean?",
-          "options": [
-            "Tea",
-            "Water",
-            "Rice",
-            "Fruit"
-          ],
+          "options": ["Tea", "Water", "Rice", "Fruit"],
           "correctAnswer": "Water",
           "points": 1,
           "explanation": "'水' (shuǐ) means water."
@@ -296,12 +276,7 @@
           "id": "q1",
           "type": "multiple_choice",
           "question": "What does '今天' mean?",
-          "options": [
-            "Tomorrow",
-            "Today",
-            "Yesterday",
-            "Now"
-          ],
+          "options": ["Tomorrow", "Today", "Yesterday", "Now"],
           "correctAnswer": "Today",
           "points": 1,
           "explanation": "'今天' (jīn tiān) means today."
@@ -310,12 +285,7 @@
           "id": "q2",
           "type": "multiple_choice",
           "question": "How do you say 'to go' in Chinese?",
-          "options": [
-            "来",
-            "去",
-            "看",
-            "听"
-          ],
+          "options": ["来", "去", "看", "听"],
           "correctAnswer": "去",
           "points": 1,
           "explanation": "'去' (qù) means to go."
@@ -324,12 +294,7 @@
           "id": "q3",
           "type": "multiple_choice",
           "question": "What is the Chinese character for 'school'?",
-          "options": [
-            "家",
-            "商店",
-            "学校",
-            "医院"
-          ],
+          "options": ["家", "商店", "学校", "医院"],
           "correctAnswer": "学校",
           "points": 1,
           "explanation": "'学校' (xué xiào) means school."
@@ -338,12 +303,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What does '好' mean?",
-          "options": [
-            "Bad",
-            "Good",
-            "Big",
-            "Small"
-          ],
+          "options": ["Bad", "Good", "Big", "Small"],
           "correctAnswer": "Good",
           "points": 1,
           "explanation": "'好' (hǎo) means good."
@@ -360,12 +320,7 @@
           "id": "q6",
           "type": "multiple_choice",
           "question": "What is the pinyin for 'to study'?",
-          "options": [
-            "gōng zuò",
-            "xué xí",
-            "xiū xi",
-            "shuō"
-          ],
+          "options": ["gōng zuò", "xué xí", "xiū xi", "shuō"],
           "correctAnswer": "xué xí",
           "points": 1,
           "explanation": "'学习' (xué xí) means to study."
@@ -374,12 +329,7 @@
           "id": "q7",
           "type": "multiple_choice",
           "question": "How do you say 'new' in Chinese?",
-          "options": [
-            "旧",
-            "新",
-            "大",
-            "小"
-          ],
+          "options": ["旧", "新", "大", "小"],
           "correctAnswer": "新",
           "points": 1,
           "explanation": "'新' (xīn) means new."

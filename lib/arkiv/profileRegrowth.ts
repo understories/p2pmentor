@@ -1,9 +1,9 @@
 /**
  * Profile Regrowth from Arkiv History
- * 
+ *
  * Beta: Regrow profiles from historical Arkiv data.
  * Pure Arkiv queries - no central database.
- * 
+ *
  * Based on profile_stability.md - Beta Launch Plan
  */
 
@@ -34,10 +34,10 @@ export interface RegrowResult {
 
 /**
  * Fetch all historical profile data for an identity
- * 
+ *
  * Queries Arkiv for all Profile entities tied to this wallet/identity.
  * Sorts by createdAt descending to get latest first.
- * 
+ *
  * @param identity - Normalized wallet address or Arkiv identity
  * @returns Historical profile data, or null if no history found
  */
@@ -46,26 +46,24 @@ export async function fetchHistoricalProfileData(
 ): Promise<HistoricalProfileData | null> {
   try {
     const normalizedIdentity = normalizeIdentity(identity);
-    
+
     // Query all profiles for this wallet
     // Note: This should find all profiles regardless of when they were created
     let profiles = await listUserProfilesForWallet(normalizedIdentity);
-    
+
     // Fallback: If no profiles found via wallet attribute query, try fetching all profiles
     // and filtering by wallet (in case older profiles have wallet only in payload, not in attributes)
     // This ensures we can regrow from all historical profiles regardless of how they were stored
     if (!profiles || profiles.length === 0) {
       const { listUserProfiles } = await import('./profile');
       const allProfiles = await listUserProfiles();
-      profiles = allProfiles.filter(p => 
-        p.wallet?.toLowerCase() === normalizedIdentity
-      );
+      profiles = allProfiles.filter((p) => p.wallet?.toLowerCase() === normalizedIdentity);
     }
-    
+
     if (!profiles || profiles.length === 0) {
       return null;
     }
-    
+
     // Sort by createdAt descending (newest first)
     // createdAt is in attributes or payload
     const sortedProfiles = profiles.sort((a, b) => {
@@ -73,22 +71,23 @@ export async function fetchHistoricalProfileData(
       const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return bTime - aTime; // Descending
     });
-    
+
     const latestProfile = sortedProfiles[0];
-    const profileIds = sortedProfiles.map(p => p.key);
-    
+    const profileIds = sortedProfiles.map((p) => p.key);
+
     // Find first and last seen timestamps
     const timestamps = sortedProfiles
-      .map(p => p.createdAt ? new Date(p.createdAt).getTime() : 0)
-      .filter(t => t > 0)
+      .map((p) => (p.createdAt ? new Date(p.createdAt).getTime() : 0))
+      .filter((t) => t > 0)
       .sort((a, b) => a - b);
-    
-    const firstSeenAt = timestamps.length > 0 
-      ? new Date(timestamps[0]).toISOString()
-      : latestProfile.createdAt || new Date().toISOString();
-    
+
+    const firstSeenAt =
+      timestamps.length > 0
+        ? new Date(timestamps[0]).toISOString()
+        : latestProfile.createdAt || new Date().toISOString();
+
     const lastSeenAt = latestProfile.createdAt || new Date().toISOString();
-    
+
     return {
       latestProfile,
       allProfiles: sortedProfiles, // Day 2: Return all profiles for browsing
@@ -105,9 +104,9 @@ export async function fetchHistoricalProfileData(
 
 /**
  * Build candidate profile from a specific historical profile
- * 
+ *
  * Day 2: Can build from any profile, not just latest.
- * 
+ *
  * @param profile - Historical profile to build from
  * @returns Candidate profile data for creation
  */
@@ -157,9 +156,9 @@ export function buildProfileFromHistory(profile: UserProfile): Partial<{
 
 /**
  * Regrow profile from a specific historical profile ID
- * 
+ *
  * Day 2: Allows regrowing from any historical profile, not just latest.
- * 
+ *
  * @param identity - Normalized wallet address or Arkiv identity
  * @param profileId - Specific profile ID to regrow from (optional, defaults to latest)
  * @param privateKey - Private key for creating new profile entity
@@ -172,18 +171,18 @@ export async function regrowProfileFromArkiv(
 ): Promise<RegrowResult> {
   try {
     const normalizedIdentity = normalizeIdentity(identity);
-    
+
     // Fetch historical data
     const history = await fetchHistoricalProfileData(normalizedIdentity);
-    
+
     if (!history) {
       return { status: 'no-history' };
     }
-    
+
     // Day 2: Select specific profile if provided, otherwise use latest
     let selectedProfile: UserProfile;
     if (profileId) {
-      const foundProfile = history.allProfiles.find(p => p.key === profileId);
+      const foundProfile = history.allProfiles.find((p) => p.key === profileId);
       if (!foundProfile) {
         return {
           status: 'error',
@@ -194,10 +193,10 @@ export async function regrowProfileFromArkiv(
     } else {
       selectedProfile = history.latestProfile;
     }
-    
+
     // Build candidate profile from selected historical profile
     const candidateData = buildProfileFromHistory(selectedProfile);
-    
+
     // Ensure required fields are present
     if (!candidateData.displayName) {
       return {
@@ -205,7 +204,7 @@ export async function regrowProfileFromArkiv(
         error: 'Historical profile missing required displayName',
       };
     }
-    
+
     // Create new profile with historical data
     // Store metadata about regrowth source in a comment or optional field
     const { key, txHash } = await createUserProfile({
@@ -228,19 +227,19 @@ export async function regrowProfileFromArkiv(
       availabilityWindow: candidateData.availabilityWindow,
       privateKey,
     });
-    
+
     // Fetch the newly created profile to return
-    const newProfile = await listUserProfilesForWallet(normalizedIdentity).then(profiles => {
-      return profiles.find(p => p.key === key) || null;
+    const newProfile = await listUserProfilesForWallet(normalizedIdentity).then((profiles) => {
+      return profiles.find((p) => p.key === key) || null;
     });
-    
+
     if (!newProfile) {
       return {
         status: 'error',
         error: 'Failed to fetch newly created profile',
       };
     }
-    
+
     return {
       status: 'regrown',
       newProfile,
@@ -254,4 +253,3 @@ export async function regrowProfileFromArkiv(
     };
   }
 }
-

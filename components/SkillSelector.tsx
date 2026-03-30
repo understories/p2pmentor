@@ -2,10 +2,10 @@
 
 /**
  * SkillSelector Component
- * 
+ *
  * Reusable component for selecting Skills from curated list.
  * Used in Ask/Offer/Profile creation forms.
- * 
+ *
  * Features:
  * - Typeahead search
  * - Create new skill flow (if allowed)
@@ -24,7 +24,13 @@ interface SkillSelectorProps {
   required?: boolean;
   onFocus?: () => void; // Optional callback when input is focused
   onCreatingSkill?: (skillName: string) => void; // Optional callback when skill creation starts
-  onSkillCreated?: (skillName: string, skillId: string, pending: boolean, txHash?: string, isNewSkill?: boolean) => void; // Optional callback when skill creation completes. isNewSkill=true means this was a newly created skill (not just selected)
+  onSkillCreated?: (
+    skillName: string,
+    skillId: string,
+    pending: boolean,
+    txHash?: string,
+    isNewSkill?: boolean
+  ) => void; // Optional callback when skill creation completes. isNewSkill=true means this was a newly created skill (not just selected)
 }
 
 export function SkillSelector({
@@ -44,7 +50,11 @@ export function SkillSelector({
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -63,7 +73,7 @@ export function SkillSelector({
   // Load selected skill if value provided
   useEffect(() => {
     if (value && skills.length > 0) {
-      const skill = skills.find(s => s.key === value);
+      const skill = skills.find((s) => s.key === value);
       if (skill) {
         setSelectedSkill(skill);
         setSearchTerm(skill.name_canonical);
@@ -79,10 +89,11 @@ export function SkillSelector({
     }
 
     const term = searchTerm.toLowerCase();
-    const filtered = skills.filter(skill =>
-      skill.name_canonical.toLowerCase().includes(term) ||
-      skill.slug.includes(term) ||
-      (skill.description && skill.description.toLowerCase().includes(term))
+    const filtered = skills.filter(
+      (skill) =>
+        skill.name_canonical.toLowerCase().includes(term) ||
+        skill.slug.includes(term) ||
+        (skill.description && skill.description.toLowerCase().includes(term))
     );
     setFilteredSkills(filtered);
   }, [searchTerm, skills]);
@@ -92,7 +103,7 @@ export function SkillSelector({
     function handleClickOutside(event: MouseEvent) {
       const target = event.target as Node;
       if (
-        dropdownRef.current && 
+        dropdownRef.current &&
         !dropdownRef.current.contains(target) &&
         inputRef.current &&
         !inputRef.current.contains(target)
@@ -145,7 +156,7 @@ export function SkillSelector({
     setSearchTerm(term);
     setIsOpen(true);
     updateDropdownPosition();
-    
+
     // Clear selection if user is typing
     if (selectedSkill && term !== selectedSkill.name_canonical) {
       setSelectedSkill(null);
@@ -190,16 +201,15 @@ export function SkillSelector({
     }
 
     const skillName = searchTerm.trim();
-    
+
     try {
       setLoading(true);
       // Notify parent that skill creation is starting
       onCreatingSkill?.(skillName);
-      
+
       // Get wallet address from localStorage to pass as creator
-      const walletAddress = typeof window !== 'undefined'
-        ? localStorage.getItem('wallet_address')
-        : null;
+      const walletAddress =
+        typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
 
       // Create new skill entity on Arkiv
       const res = await fetch('/api/skills', {
@@ -228,12 +238,12 @@ export function SkillSelector({
       if (data.pending && data.skill) {
         // Notify parent that skill was created but is pending (isNewSkill=true)
         onSkillCreated?.(skillName, data.skill.key, true, data.txHash, true);
-        
+
         // Skill was created but not yet indexed - wait a bit and reload
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         await loadSkills();
         // Try to find the skill by slug
-        const foundSkill = skills.find(s => s.slug === data.skill.slug);
+        const foundSkill = skills.find((s) => s.slug === data.skill.slug);
         if (foundSkill) {
           handleSelect(foundSkill);
         } else {
@@ -245,7 +255,7 @@ export function SkillSelector({
 
       // Reload skills to include the new one
       await loadSkills();
-      
+
       // Select the newly created skill (isNewSkill=true)
       if (data.skill) {
         handleSelect(data.skill);
@@ -269,14 +279,14 @@ export function SkillSelector({
         onFocus={handleInputFocus}
         placeholder={loading ? 'Loading skills...' : placeholder}
         required={required}
-        className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+        className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
         autoComplete="off"
       />
 
       {isOpen && dropdownPosition && (
-        <div 
+        <div
           ref={dropdownRef}
-          className="fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl max-h-60 overflow-auto"
+          className="fixed z-[9999] max-h-60 overflow-auto rounded-lg border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-800"
           style={{
             top: `${dropdownPosition.top}px`,
             left: `${dropdownPosition.left}px`,
@@ -293,25 +303,29 @@ export function SkillSelector({
                 <button
                   type="button"
                   onClick={handleCreateNew}
-                  className="text-emerald-600 dark:text-emerald-400 hover:underline w-full text-left"
+                  className="w-full text-left text-emerald-600 hover:underline dark:text-emerald-400"
                 >
                   Create "{searchTerm}"
                 </button>
               ) : searchTerm.trim() ? (
                 <div>
-                  <div className="text-gray-500 dark:text-gray-400 mb-1">No skills found matching "{searchTerm}"</div>
+                  <div className="mb-1 text-gray-500 dark:text-gray-400">
+                    No skills found matching "{searchTerm}"
+                  </div>
                   {allowCreate && (
                     <button
                       type="button"
                       onClick={handleCreateNew}
-                      className="text-emerald-600 dark:text-emerald-400 hover:underline"
+                      className="text-emerald-600 hover:underline dark:text-emerald-400"
                     >
                       Create "{searchTerm}"
                     </button>
                   )}
                 </div>
               ) : (
-                <div className="text-gray-400 dark:text-gray-500">Start typing to search skills...</div>
+                <div className="text-gray-400 dark:text-gray-500">
+                  Start typing to search skills...
+                </div>
               )}
             </div>
           ) : (
@@ -321,7 +335,7 @@ export function SkillSelector({
                   key={skill.key}
                   type="button"
                   onClick={() => handleSelect(skill)}
-                  className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                  className={`w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${
                     selectedSkill?.key === skill.key ? 'bg-emerald-50 dark:bg-emerald-900/20' : ''
                   }`}
                 >
@@ -329,22 +343,26 @@ export function SkillSelector({
                     {skill.name_canonical}
                   </div>
                   {skill.description && (
-                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
                       {skill.description}
                     </div>
                   )}
                 </button>
               ))}
-              {allowCreate && searchTerm.trim() && !filteredSkills.some(s => s.name_canonical.toLowerCase() === searchTerm.toLowerCase()) && (
-                <button
-                  type="button"
-                  onClick={handleCreateNew}
-                  disabled={loading}
-                  className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 border-t border-gray-200 dark:border-gray-700 text-emerald-600 dark:text-emerald-400 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Creating...' : `+ Create "${searchTerm}"`}
-                </button>
-              )}
+              {allowCreate &&
+                searchTerm.trim() &&
+                !filteredSkills.some(
+                  (s) => s.name_canonical.toLowerCase() === searchTerm.toLowerCase()
+                ) && (
+                  <button
+                    type="button"
+                    onClick={handleCreateNew}
+                    disabled={loading}
+                    className="w-full border-t border-gray-200 px-4 py-2 text-left font-medium text-emerald-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-700 dark:text-emerald-400 dark:hover:bg-gray-700"
+                  >
+                    {loading ? 'Creating...' : `+ Create "${searchTerm}"`}
+                  </button>
+                )}
             </>
           )}
         </div>

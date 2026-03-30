@@ -1,6 +1,6 @@
 /**
  * Beta invite gate page
- * 
+ *
  * Simple invite code system to prevent DDOS.
  * Beta code is configured via NEXT_PUBLIC_BETA_INVITE_CODE environment variable.
  */
@@ -26,19 +26,19 @@ export default function BetaPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Prevent double-submission
     if (submitting) {
       return;
     }
-    
+
     if (!expectedCode) {
       setError('Beta access is not configured. Please contact the administrator.');
       return;
     }
-    
+
     const normalizedCode = inviteCode.toLowerCase().trim();
-    
+
     if (normalizedCode !== expectedCode) {
       setError('Invalid invite code');
       return;
@@ -59,13 +59,17 @@ export default function BetaPage() {
       } catch (networkError: any) {
         // Network error (fetch failed entirely - no response)
         console.error('[Beta] Network error during validation:', networkError);
-        throw new Error('Network error: Unable to connect to the server. Please check your internet connection and try again.');
+        throw new Error(
+          'Network error: Unable to connect to the server. Please check your internet connection and try again.'
+        );
       }
 
       // Check if response is ok before parsing JSON
       if (!validateRes.ok) {
         const errorText = await validateRes.text().catch(() => 'Unknown error');
-        throw new Error(`Server error (${validateRes.status}): ${errorText || 'Failed to validate beta code'}`);
+        throw new Error(
+          `Server error (${validateRes.status}): ${errorText || 'Failed to validate beta code'}`
+        );
       }
 
       let validateData: any;
@@ -75,13 +79,15 @@ export default function BetaPage() {
         console.error('[Beta] JSON parse error:', jsonError);
         throw new Error('Invalid response from server. Please try again.');
       }
-      
+
       if (!validateData.ok) {
         throw new Error(validateData.error || 'Failed to validate beta code');
       }
 
       if (!validateData.canUse) {
-        setError(`This beta code has reached its usage limit (${validateData.usage?.limit || 50} uses).`);
+        setError(
+          `This beta code has reached its usage limit (${validateData.usage?.limit || 50} uses).`
+        );
         setSubmitting(false);
         return;
       }
@@ -97,13 +103,17 @@ export default function BetaPage() {
       } catch (networkError: any) {
         // Network error (fetch failed entirely - no response)
         console.error('[Beta] Network error during tracking:', networkError);
-        throw new Error('Network error: Unable to connect to the server. Please check your internet connection and try again.');
+        throw new Error(
+          'Network error: Unable to connect to the server. Please check your internet connection and try again.'
+        );
       }
 
       // Check if response is ok before parsing JSON
       if (!trackRes.ok) {
         const errorText = await trackRes.text().catch(() => 'Unknown error');
-        throw new Error(`Server error (${trackRes.status}): ${errorText || 'Failed to track beta code usage'}`);
+        throw new Error(
+          `Server error (${trackRes.status}): ${errorText || 'Failed to track beta code usage'}`
+        );
       }
 
       let trackData: any;
@@ -113,15 +123,19 @@ export default function BetaPage() {
         console.error('[Beta] JSON parse error:', jsonError);
         throw new Error('Invalid response from server. Please try again.');
       }
-      
+
       if (!trackData.ok) {
         // Handle specific transaction errors with user-friendly messages
         const errorMessage = trackData.error || 'Failed to track beta code usage';
-        if (errorMessage.includes('replacement transaction underpriced') || 
-            errorMessage.includes('nonce') ||
-            errorMessage.includes('underpriced') ||
-            errorMessage.includes('still processing')) {
-          throw new Error('Transaction is still processing from a previous request. Please wait a moment and try again.');
+        if (
+          errorMessage.includes('replacement transaction underpriced') ||
+          errorMessage.includes('nonce') ||
+          errorMessage.includes('underpriced') ||
+          errorMessage.includes('still processing')
+        ) {
+          throw new Error(
+            'Transaction is still processing from a previous request. Please wait a moment and try again.'
+          );
         }
         throw new Error(errorMessage);
       }
@@ -138,25 +152,31 @@ export default function BetaPage() {
           document.cookie = `beta_access_key=${accessKey}; path=/; max-age=31536000; SameSite=Lax`;
         } catch (cookieError) {
           // Cookies may be blocked by privacy settings - log but don't fail
-          console.warn('[Beta] Failed to set cookies (may be blocked by privacy settings):', cookieError);
+          console.warn(
+            '[Beta] Failed to set cookies (may be blocked by privacy settings):',
+            cookieError
+          );
         }
-        
+
         try {
           // Also keep in localStorage for client-side checks
           localStorage.setItem('beta_invite_code', normalizedCode);
           localStorage.setItem('beta_access_key', accessKey);
         } catch (storageError) {
           // localStorage may be blocked by privacy settings - log but don't fail
-          console.warn('[Beta] Failed to set localStorage (may be blocked by privacy settings):', storageError);
+          console.warn(
+            '[Beta] Failed to set localStorage (may be blocked by privacy settings):',
+            storageError
+          );
         }
       }
-      
+
       // Redirect to auth or return URL
       // Validate redirect param to prevent routing to "null" (URLSearchParams.get() returns null)
       const params = new URLSearchParams(window.location.search);
       const redirectParam = params.get('redirect');
       const redirectUrl = safeRedirect(redirectParam, '/auth');
-      
+
       // Development assertion to catch invalid redirects
       if (process.env.NODE_ENV === 'development' && redirectUrl === 'null') {
         console.error('[Beta] Invalid redirect detected: "null"', {
@@ -164,7 +184,7 @@ export default function BetaPage() {
           search: window.location.search,
         });
       }
-      
+
       router.push(redirectUrl);
     } catch (err: any) {
       console.error('[Beta] Beta code error:', err);
@@ -176,16 +196,16 @@ export default function BetaPage() {
   };
 
   return (
-    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <div className="max-w-2xl mx-auto">
+    <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-2xl">
         <div className="mb-6">
           <BackButton href="/" />
         </div>
-        
-        <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-50">
+
+        <h1 className="mb-6 text-3xl font-bold text-gray-900 dark:text-gray-50">
           Welcome to p2pmentor Beta
         </h1>
-        
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
@@ -197,22 +217,12 @@ export default function BetaPage() {
               }}
               placeholder="Invite code"
               title="Enter your invite code to continue"
-              className="w-full px-4 py-3 text-base border-2 rounded-lg 
-                       bg-white dark:bg-gray-800 
-                       text-gray-900 dark:text-gray-100
-                       border-[var(--border-color)] dark:border-gray-600
-                       focus:border-[var(--accent-color)] dark:focus:border-emerald-500
-                       focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]/20 dark:focus:ring-emerald-500/20
-                       transition-colors"
+              className="focus:ring-[var(--accent-color)]/20 w-full rounded-lg border-2 border-[var(--border-color)] bg-white px-4 py-3 text-base text-gray-900 transition-colors focus:border-[var(--accent-color)] focus:outline-none focus:ring-2 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-emerald-500 dark:focus:ring-emerald-500/20"
             />
           </div>
-          
-          {error && (
-            <p className="text-red-600 dark:text-red-400 text-sm font-medium">
-              {error}
-            </p>
-          )}
-          
+
+          {error && <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>}
+
           <ArkivQueryTooltip
             query={[
               `getBetaCodeUsage(code='${inviteCode || '...'}')`,
@@ -225,13 +235,7 @@ export default function BetaPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full px-6 py-3 text-base font-semibold rounded-lg
-                       bg-[var(--accent-color)] dark:bg-emerald-600
-                       text-white
-                       hover:bg-[var(--accent-hover)] dark:hover:bg-emerald-700
-                       focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] dark:focus:ring-emerald-500 focus:ring-offset-2
-                       transition-colors
-                       disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded-lg bg-[var(--accent-color)] px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-600 dark:hover:bg-emerald-700 dark:focus:ring-emerald-500"
             >
               {submitting ? 'Processing...' : 'Unlock Beta'}
             </button>
@@ -241,4 +245,3 @@ export default function BetaPage() {
     </main>
   );
 }
-

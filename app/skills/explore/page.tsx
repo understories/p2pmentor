@@ -1,6 +1,6 @@
 /**
  * Explore Skills Page
- * 
+ *
  * Lists all skill entities with profile counts (how many profiles have each skill).
  */
 
@@ -50,7 +50,7 @@ export default function ExploreSkillsPage() {
   const loadFollowedSkills = async (wallet: string) => {
     try {
       const follows = await listLearningFollows({ profile_wallet: wallet, active: true });
-      setFollowedSkills(follows.map(f => f.skill_id));
+      setFollowedSkills(follows.map((f) => f.skill_id));
     } catch (error) {
       console.error('Error loading followed skills:', error);
     }
@@ -60,11 +60,11 @@ export default function ExploreSkillsPage() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const res = await fetch(`/api/skills/explore${builderParams}`);
       const data = await res.json();
-      
+
       if (data.ok) {
         setSkills(data.skills || []);
       } else {
@@ -79,15 +79,16 @@ export default function ExploreSkillsPage() {
   };
 
   // Filter skills by search term
-  const filteredSkills = skills.filter(skill =>
-    skill.name_canonical.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
-    skill.slug?.toLowerCase().includes(searchTerm.toLowerCase().trim())
+  const filteredSkills = skills.filter(
+    (skill) =>
+      skill.name_canonical.toLowerCase().includes(searchTerm.toLowerCase().trim()) ||
+      skill.slug?.toLowerCase().includes(searchTerm.toLowerCase().trim())
   );
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
@@ -99,7 +100,7 @@ export default function ExploreSkillsPage() {
               `   → type='skill', status='active'`,
               `2. listLearningFollows({ profile_wallet: "${walletAddress?.toLowerCase() || '...'}", active: true })`,
               `   → type='learning_follow', profile_wallet='${walletAddress?.toLowerCase() || '...'}'`,
-              `Returns: Skill[] with profileCount (how many profiles have each skill)`
+              `Returns: Skill[] with profileCount (how many profiles have each skill)`,
             ]}
             label="Loading Skills"
           >
@@ -112,23 +113,20 @@ export default function ExploreSkillsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
-          <EmptyState
-            title="Error loading skills"
-            description={error}
-          />
+          <EmptyState title="Error loading skills" description={error} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-6xl">
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
@@ -139,9 +137,10 @@ export default function ExploreSkillsPage() {
         />
 
         {/* Instructions */}
-        <div className="mb-6 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+        <div className="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Click a skill to view the learning community, schedule a community meeting, or leave a message on the community board.
+            Click a skill to view the learning community, schedule a community meeting, or leave a
+            message on the community board.
           </p>
         </div>
 
@@ -152,7 +151,7 @@ export default function ExploreSkillsPage() {
             placeholder="Search skills..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-400"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:ring-emerald-400"
           />
         </div>
 
@@ -160,22 +159,26 @@ export default function ExploreSkillsPage() {
         {filteredSkills.length === 0 ? (
           <EmptyState
             title="No skills found"
-            description={searchTerm ? `No skills match "${searchTerm}". Try a different search term.` : 'No skills found in the network yet.'}
+            description={
+              searchTerm
+                ? `No skills match "${searchTerm}". Try a different search term.`
+                : 'No skills found in the network yet.'
+            }
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredSkills.map((skill) => {
               // Use proper slug normalization - ensure skill has a slug
               // If skill doesn't have a slug, generate one from name_canonical using proper normalization
               const skillSlug = skill.slug || normalizeSkillSlug(skill.name_canonical);
               const topicLink = skillSlug ? `/topic/${skillSlug}` : null;
-              
+
               const isJoined = walletAddress && followedSkills.includes(skill.key);
               const isSubmitting = submitting === skill.key;
 
               const content = (
-                <div className="p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-emerald-500 dark:hover:border-emerald-400 hover:shadow-md transition-all duration-200">
-                  <div className="flex items-start justify-between mb-2">
+                <div className="rounded-lg border border-gray-200 bg-white p-4 transition-all duration-200 hover:border-emerald-500 hover:shadow-md dark:border-gray-700 dark:bg-gray-800 dark:hover:border-emerald-400">
+                  <div className="mb-2 flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         {skill.name_canonical}
@@ -188,7 +191,7 @@ export default function ExploreSkillsPage() {
                             label="View Skill Entity"
                             className="text-xs"
                           />
-                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                             Key: {skill.key.slice(0, 12)}...
                           </span>
                         </div>
@@ -196,7 +199,7 @@ export default function ExploreSkillsPage() {
                     </div>
                   </div>
                   {skill.description && (
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                    <p className="mb-3 line-clamp-2 text-sm text-gray-600 dark:text-gray-400">
                       {skill.description}
                     </p>
                   )}
@@ -211,12 +214,12 @@ export default function ExploreSkillsPage() {
                       <ArkivQueryTooltip
                         query={[
                           `POST /api/learning-follow { action: '${isJoined ? 'unfollow' : 'follow'}', ... }`,
-                          isJoined 
+                          isJoined
                             ? `Updates: type='learning_follow' entity (sets active=false)`
                             : `Creates: type='learning_follow' entity`,
                           `Attributes: profile_wallet='${walletAddress.toLowerCase().slice(0, 8)}...', skill_id='${skill.key.slice(0, 12)}...', active=${!isJoined}`,
                           `Payload: Full learning follow data`,
-                          `TTL: 1 year (31536000 seconds)`
+                          `TTL: 1 year (31536000 seconds)`,
                         ]}
                         label={isJoined ? 'Leave Community' : 'Join Community'}
                       >
@@ -225,7 +228,7 @@ export default function ExploreSkillsPage() {
                             e.preventDefault();
                             e.stopPropagation();
                             if (!walletAddress || !skill.key || isSubmitting) return;
-                            
+
                             const action = isJoined ? 'unfollow' : 'follow';
                             setSubmitting(skill.key);
                             try {
@@ -238,45 +241,53 @@ export default function ExploreSkillsPage() {
                                   skill_id: skill.key,
                                 }),
                               });
-                              
+
                               const data = await res.json();
                               if (data.ok) {
                                 // Wait for Arkiv to index the new entity (especially important for joins)
-                                await new Promise(resolve => setTimeout(resolve, 1500));
+                                await new Promise((resolve) => setTimeout(resolve, 1500));
                                 await loadFollowedSkills(walletAddress);
                               } else {
-                                alert(data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`);
+                                alert(
+                                  data.error || `Failed to ${isJoined ? 'leave' : 'join'} community`
+                                );
                               }
                             } catch (error: any) {
-                              console.error(`Error ${isJoined ? 'leaving' : 'joining'} community:`, error);
+                              console.error(
+                                `Error ${isJoined ? 'leaving' : 'joining'} community:`,
+                                error
+                              );
                               alert(`Failed to ${isJoined ? 'leave' : 'join'} community`);
                             } finally {
                               setSubmitting(null);
                             }
                           }}
                           disabled={isSubmitting}
-                          className={`text-xs px-3 py-1 rounded border transition-colors ${
+                          className={`rounded border px-3 py-1 text-xs transition-colors ${
                             isJoined
-                              ? 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                              : 'border-emerald-500 dark:border-emerald-400 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                              ? 'border-gray-300 text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700'
+                              : 'border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-400 dark:text-emerald-400 dark:hover:bg-emerald-900/20'
+                          } disabled:cursor-not-allowed disabled:opacity-50`}
                         >
-                          {isSubmitting 
-                            ? (isJoined ? 'Leaving...' : 'Joining...') 
-                            : (isJoined ? 'Leave' : 'Join')
-                          }
+                          {isSubmitting
+                            ? isJoined
+                              ? 'Leaving...'
+                              : 'Joining...'
+                            : isJoined
+                              ? 'Leave'
+                              : 'Join'}
                         </button>
                       </ArkivQueryTooltip>
                     )}
                   </div>
                 </div>
               );
-              
+
               // If skill has a slug, link to topic page; otherwise show as non-clickable
               if (topicLink) {
                 return (
-                  <Link 
-                    key={skill.key} 
+                  <Link
+                    key={skill.key}
                     href={topicLink}
                     className="block"
                     onClick={(e) => {
@@ -293,7 +304,7 @@ export default function ExploreSkillsPage() {
                 return (
                   <div key={skill.key}>
                     {content}
-                    <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-2">
+                    <div className="mt-2 text-xs text-yellow-600 dark:text-yellow-400">
                       ⚠️ Topic page unavailable (missing slug)
                     </div>
                   </div>
@@ -305,13 +316,14 @@ export default function ExploreSkillsPage() {
 
         {/* Stats */}
         {skills.length > 0 && (
-          <div className="mt-8 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <div className="mt-8 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
             <div className="text-sm text-gray-600 dark:text-gray-400">
               <span className="font-medium">{skills.length}</span> total skills in the network
               {searchTerm && (
                 <>
                   {' • '}
-                  <span className="font-medium">{filteredSkills.length}</span> matching "{searchTerm}"
+                  <span className="font-medium">{filteredSkills.length}</span> matching "
+                  {searchTerm}"
                 </>
               )}
             </div>
@@ -321,4 +333,3 @@ export default function ExploreSkillsPage() {
     </div>
   );
 }
-

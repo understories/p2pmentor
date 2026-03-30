@@ -1,22 +1,22 @@
 /**
  * Retention Metrics CRUD helpers
- * 
+ *
  * Privacy-preserving retention and cohort analysis.
  * Uses one-way hashed wallets for internal calculations.
  * Stores only aggregated results (no per-wallet history).
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 6
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { keccak256, toBytes } from "viem";
-import { listUserProfiles } from "./profile";
-import { listAsks } from "./asks";
-import { listOffers } from "./offers";
-import { listSessions } from "./sessions";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { keccak256, toBytes } from 'viem';
+import { listUserProfiles } from './profile';
+import { listAsks } from './asks';
+import { listOffers } from './offers';
+import { listSessions } from './sessions';
+import { SPACE_ID } from '@/lib/config';
 
 export type RetentionCohort = {
   key: string;
@@ -33,7 +33,7 @@ export type RetentionCohort = {
 
 /**
  * Hash wallet address for privacy-preserving retention calculations
- * 
+ *
  * One-way hash: cannot reverse to get original wallet.
  * Deterministic: same wallet always produces same hash.
  */
@@ -45,7 +45,7 @@ export function hashWalletForRetention(wallet: string): string {
 
 /**
  * Get active wallets for a date range
- * 
+ *
  * A wallet is considered "active" if it has:
  * - Created/updated a profile
  * - Created an ask
@@ -68,7 +68,7 @@ export async function getActiveWalletsForDateRange(
     ]);
 
     // Check profiles
-    profiles.forEach(profile => {
+    profiles.forEach((profile) => {
       const profileDate = profile.createdAt ? new Date(profile.createdAt) : null;
       if (profileDate && profileDate >= startDate && profileDate <= endDate) {
         activeWallets.add(profile.wallet.toLowerCase());
@@ -76,7 +76,7 @@ export async function getActiveWalletsForDateRange(
     });
 
     // Check asks
-    asks.forEach(ask => {
+    asks.forEach((ask) => {
       const askDate = new Date(ask.createdAt);
       if (askDate >= startDate && askDate <= endDate) {
         activeWallets.add(ask.wallet.toLowerCase());
@@ -84,7 +84,7 @@ export async function getActiveWalletsForDateRange(
     });
 
     // Check offers
-    offers.forEach(offer => {
+    offers.forEach((offer) => {
       const offerDate = new Date(offer.createdAt);
       if (offerDate >= startDate && offerDate <= endDate) {
         activeWallets.add(offer.wallet.toLowerCase());
@@ -92,7 +92,7 @@ export async function getActiveWalletsForDateRange(
     });
 
     // Check sessions
-    sessions.forEach(session => {
+    sessions.forEach((session) => {
       const sessionDate = new Date(session.sessionDate);
       if (sessionDate >= startDate && sessionDate <= endDate) {
         activeWallets.add(session.mentorWallet.toLowerCase());
@@ -108,7 +108,7 @@ export async function getActiveWalletsForDateRange(
 
 /**
  * Compute retention cohort
- * 
+ *
  * Tracks how many users from a cohort date remain active over time.
  * Uses hashed wallets for privacy.
  */
@@ -127,7 +127,7 @@ export async function computeRetentionCohort(
 
   // Hash wallets for privacy-preserving tracking
   const hashedCohort = new Set<string>();
-  cohortWallets.forEach(wallet => {
+  cohortWallets.forEach((wallet) => {
     hashedCohort.add(hashWalletForRetention(wallet));
   });
 
@@ -143,7 +143,7 @@ export async function computeRetentionCohort(
   const day1End = new Date(day1Start);
   day1End.setHours(23, 59, 59, 999);
   const day1Wallets = await getActiveWalletsForDateRange(day1Start, day1End);
-  day1Wallets.forEach(wallet => {
+  day1Wallets.forEach((wallet) => {
     if (hashedCohort.has(hashWalletForRetention(wallet))) {
       day1++;
     }
@@ -155,7 +155,7 @@ export async function computeRetentionCohort(
   const day7End = new Date(day7Start);
   day7End.setHours(23, 59, 59, 999);
   const day7Wallets = await getActiveWalletsForDateRange(day7Start, day7End);
-  day7Wallets.forEach(wallet => {
+  day7Wallets.forEach((wallet) => {
     if (hashedCohort.has(hashWalletForRetention(wallet))) {
       day7++;
     }
@@ -167,7 +167,7 @@ export async function computeRetentionCohort(
   const day14End = new Date(day14Start);
   day14End.setHours(23, 59, 59, 999);
   const day14Wallets = await getActiveWalletsForDateRange(day14Start, day14End);
-  day14Wallets.forEach(wallet => {
+  day14Wallets.forEach((wallet) => {
     if (hashedCohort.has(hashWalletForRetention(wallet))) {
       day14++;
     }
@@ -179,7 +179,7 @@ export async function computeRetentionCohort(
   const day30End = new Date(day30Start);
   day30End.setHours(23, 59, 59, 999);
   const day30Wallets = await getActiveWalletsForDateRange(day30Start, day30End);
-  day30Wallets.forEach(wallet => {
+  day30Wallets.forEach((wallet) => {
     if (hashedCohort.has(hashWalletForRetention(wallet))) {
       day30++;
     }
@@ -281,15 +281,17 @@ export async function listRetentionCohorts({
 } = {}): Promise<RetentionCohort[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'retention_cohort'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'retention_cohort_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -315,11 +317,12 @@ export async function listRetentionCohorts({
         const cohortKey = getAttr('cohortKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && cohortKey) {
               txHashMap[cohortKey] = payload.txHash;
@@ -335,11 +338,12 @@ export async function listRetentionCohorts({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -360,10 +364,30 @@ export async function listRetentionCohorts({
         cohortDate: getAttr('cohortDate') || payload.cohortDate,
         period: (getAttr('period') || payload.period || 'daily') as 'daily' | 'weekly' | 'monthly',
         day0: payload.day0 || parseInt(getAttr('day0'), 10),
-        day1: payload.day1 !== undefined ? payload.day1 : (getAttr('day1') ? parseInt(getAttr('day1'), 10) : undefined),
-        day7: payload.day7 !== undefined ? payload.day7 : (getAttr('day7') ? parseInt(getAttr('day7'), 10) : undefined),
-        day14: payload.day14 !== undefined ? payload.day14 : (getAttr('day14') ? parseInt(getAttr('day14'), 10) : undefined),
-        day30: payload.day30 !== undefined ? payload.day30 : (getAttr('day30') ? parseInt(getAttr('day30'), 10) : undefined),
+        day1:
+          payload.day1 !== undefined
+            ? payload.day1
+            : getAttr('day1')
+              ? parseInt(getAttr('day1'), 10)
+              : undefined,
+        day7:
+          payload.day7 !== undefined
+            ? payload.day7
+            : getAttr('day7')
+              ? parseInt(getAttr('day7'), 10)
+              : undefined,
+        day14:
+          payload.day14 !== undefined
+            ? payload.day14
+            : getAttr('day14')
+              ? parseInt(getAttr('day14'), 10)
+              : undefined,
+        day30:
+          payload.day30 !== undefined
+            ? payload.day30
+            : getAttr('day30')
+              ? parseInt(getAttr('day30'), 10)
+              : undefined,
         createdAt: getAttr('createdAt') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
       };
@@ -371,14 +395,14 @@ export async function listRetentionCohorts({
 
     // Apply filters
     if (cohortDate) {
-      cohorts = cohorts.filter(c => c.cohortDate === cohortDate);
+      cohorts = cohorts.filter((c) => c.cohortDate === cohortDate);
     }
     if (period) {
-      cohorts = cohorts.filter(c => c.period === period);
+      cohorts = cohorts.filter((c) => c.period === period);
     }
 
-    return cohorts.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return cohorts.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('[listRetentionCohorts] Error:', error);

@@ -15,4 +15,3 @@ Core system modules that implement major features of p2pmentor.
 - [Arkiv Client](arkiv-client.md) - Arkiv client wrapper
 - [GraphQL API](graphql-api.md) - GraphQL interface over Arkiv
 - [Feedback Modules](feedback-modules.md) - Feedback-related utilities
-

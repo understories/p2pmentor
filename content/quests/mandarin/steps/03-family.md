@@ -13,6 +13,7 @@ Learn the Chinese words for family members. Notice how some words are repeated s
 ## Family Structure
 
 Chinese has specific terms for:
+
 - Older vs younger siblings (哥哥/弟弟, 姐姐/妹妹)
 - Different family relationships
 - Extended family concepts

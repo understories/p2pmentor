@@ -7,6 +7,7 @@ Greetings are the foundation of any conversation. In this step, you'll learn 10 
 ## Practice with Flashcards
 
 Use the flashcards below to practice. Each card shows:
+
 - **Spanish word** on the front
 - **English translation** on the back
 
@@ -22,6 +23,7 @@ Use the flashcards below to practice. Each card shows:
 ## Vocabulary Overview
 
 You'll learn:
+
 - Basic greetings (hello, goodbye)
 - Polite expressions (thank you, you're welcome)
 - Apologies (sorry, it's okay)

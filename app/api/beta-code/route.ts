@@ -25,10 +25,7 @@ export async function POST(request: NextRequest) {
     const { code, action = 'validate' } = body;
 
     if (!code) {
-      return NextResponse.json(
-        { ok: false, error: 'Beta code is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Beta code is required' }, { status: 400 });
     }
 
     if (action === 'validate') {
@@ -40,7 +37,7 @@ export async function POST(request: NextRequest) {
       // Get actual unique wallet count for accurate remaining calculation
       const { listBetaAccessByCode } = await import('@/lib/arkiv/betaAccess');
       const accessRecords = await listBetaAccessByCode(code.toLowerCase().trim(), SPACE_ID);
-      const actualWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+      const actualWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
       const limit = usage?.limit || 50;
 
       return NextResponse.json({
@@ -62,10 +59,13 @@ export async function POST(request: NextRequest) {
       const canUse = usage ? usage.usageCount < usage.limit : true; // New code or under limit
 
       if (!canUse) {
-        return NextResponse.json({
-          ok: false,
-          error: `Beta code has reached its usage limit (${usage?.usageCount || 0}/${usage?.limit || 50} unique wallets).`,
-        }, { status: 403 }); // 403 Forbidden
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Beta code has reached its usage limit (${usage?.usageCount || 0}/${usage?.limit || 50} unique wallets).`,
+          },
+          { status: 403 }
+        ); // 403 Forbidden
       }
 
       // Return validation result (code is valid, limit check passed)
@@ -73,15 +73,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         ok: true,
         canUse: true,
-        usage: usage ? {
-          usageCount: usage.usageCount,
-          limit: usage.limit,
-          remaining: Math.max(0, usage.limit - usage.usageCount),
-        } : {
-          usageCount: 0,
-          limit: 50,
-          remaining: 50,
-        },
+        usage: usage
+          ? {
+              usageCount: usage.usageCount,
+              limit: usage.limit,
+              remaining: Math.max(0, usage.limit - usage.usageCount),
+            }
+          : {
+              usageCount: 0,
+              limit: 50,
+              remaining: 50,
+            },
         message: 'Beta code validated. Usage will be tracked when wallet connects.',
       });
     } else if (action === 'createAccess') {
@@ -102,7 +104,9 @@ export async function POST(request: NextRequest) {
         const normalizedWallet = wallet.toLowerCase();
 
         // Check if wallet already has access (prevent duplicates)
-        const { getBetaAccessByWallet, listBetaAccessByCode } = await import('@/lib/arkiv/betaAccess');
+        const { getBetaAccessByWallet, listBetaAccessByCode } = await import(
+          '@/lib/arkiv/betaAccess'
+        );
         const existingAccess = await getBetaAccessByWallet(normalizedWallet, SPACE_ID);
 
         if (existingAccess && existingAccess.code === normalizedCode) {
@@ -119,17 +123,20 @@ export async function POST(request: NextRequest) {
         // Check limit based on ACTUAL unique wallet count (Arkiv-native, accurate)
         // Count unique wallets from beta_access entities (source of truth)
         const accessRecords = await listBetaAccessByCode(normalizedCode, SPACE_ID);
-        const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+        const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
         const usage = await getBetaCodeUsage(normalizedCode, SPACE_ID);
         const limit = usage?.limit || 50;
 
         // Enforce limit based on actual unique wallet count
         if (uniqueWalletCount >= limit) {
-          return NextResponse.json({
-            ok: false,
-            error: `Beta code has reached its usage limit (${uniqueWalletCount}/${limit} unique wallets).`,
-          }, { status: 403 }); // 403 Forbidden
+          return NextResponse.json(
+            {
+              ok: false,
+              error: `Beta code has reached its usage limit (${uniqueWalletCount}/${limit} unique wallets).`,
+            },
+            { status: 403 }
+          ); // 403 Forbidden
         }
 
         // Create beta access record first
@@ -184,10 +191,7 @@ export async function GET(request: Request) {
     const code = searchParams.get('code');
 
     if (!code) {
-      return NextResponse.json(
-        { ok: false, error: 'Beta code is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Beta code is required' }, { status: 400 });
     }
 
     const usage = await getBetaCodeUsage(code, SPACE_ID);
@@ -195,12 +199,14 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ok: true,
-      usage: usage ? {
-        usageCount: usage.usageCount,
-        limit: usage.limit,
-        remaining: Math.max(0, usage.limit - usage.usageCount),
-        txHash: usage.txHash,
-      } : null,
+      usage: usage
+        ? {
+            usageCount: usage.usageCount,
+            limit: usage.limit,
+            remaining: Math.max(0, usage.limit - usage.usageCount),
+            txHash: usage.txHash,
+          }
+        : null,
       canUse,
     });
   } catch (error: any) {

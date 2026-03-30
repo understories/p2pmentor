@@ -21,8 +21,8 @@ Admin responses to user app feedback. Allows administrators to respond to user f
 
 ```typescript
 {
-  message: string;          // Admin's response message
-  createdAt: string;        // ISO timestamp
+  message: string; // Admin's response message
+  createdAt: string; // ISO timestamp
 }
 ```
 
@@ -39,11 +39,12 @@ Admin responses to user app feedback. Allows administrators to respond to user f
 ### Get All Responses for Feedback
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'admin_response'))
   .where(eq('feedbackKey', feedbackKey))
   .withAttributes(true)
@@ -53,14 +54,15 @@ const result = await publicClient.buildQuery()
 
 // Sort by createdAt descending to get most recent first
 const responses = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
 ### Check if Feedback Has Response
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'admin_response'))
   .where(eq('feedbackKey', feedbackKey))
   .withAttributes(true)
@@ -73,14 +75,14 @@ const hasResponse = result.entities.length > 0;
 ## Creation
 
 ```typescript
-import { createAdminResponse } from "@/lib/arkiv/adminResponse";
-import { getPrivateKey } from "@/lib/config";
+import { createAdminResponse } from '@/lib/arkiv/adminResponse';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createAdminResponse({
-  feedbackKey: "app_feedback:abc123",
-  wallet: "0x1234...",
+  feedbackKey: 'app_feedback:abc123',
+  wallet: '0x1234...',
   message: "Thank you for the feedback! We're working on this.",
-  adminWallet: "0xadmin...",
+  adminWallet: '0xadmin...',
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -110,20 +112,20 @@ User submits feedback about slow network graph. Admin responds:
 ```typescript
 // User feedback
 const feedback = {
-  key: "app_feedback:abc123",
-  wallet: "0xuser...",
-  page: "/network",
-  message: "The network graph is slow to load",
-  feedbackType: "issue"
+  key: 'app_feedback:abc123',
+  wallet: '0xuser...',
+  page: '/network',
+  message: 'The network graph is slow to load',
+  feedbackType: 'issue',
 };
 
 // Admin response
 const response = await createAdminResponse({
   feedbackKey: feedback.key,
   wallet: feedback.wallet,
-  message: "Thank you for reporting this! We've identified the issue and are working on a fix. Expect improvements in the next release.",
-  adminWallet: "0xadmin...",
+  message:
+    "Thank you for reporting this! We've identified the issue and are working on a fix. Expect improvements in the next release.",
+  adminWallet: '0xadmin...',
   privateKey: getPrivateKey(),
 });
 ```
-

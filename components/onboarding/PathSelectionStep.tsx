@@ -1,6 +1,6 @@
 /**
  * Path Selection Step Component
- * 
+ *
  * Step 3: Choose one of four paths (Ask, Offer, Network, Community)
  */
 
@@ -35,18 +35,18 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
   ];
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8">
       <div className="text-center">
-        <h2 
-          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        <h2
+          className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
           style={{
             textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
           }}
         >
           Choose your path
         </h2>
-        <p 
-          className="text-gray-200 dark:text-gray-300 text-lg mb-12 drop-shadow-md"
+        <p
+          className="mb-12 text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
@@ -55,7 +55,7 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 max-w-2xl mx-auto">
+      <div className="mx-auto grid max-w-2xl grid-cols-1 gap-8 md:grid-cols-2 md:gap-12">
         {paths.map((path) => (
           <button
             key={path.id}
@@ -64,11 +64,12 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
               // Small delay for visual feedback before transitioning
               setTimeout(() => onSelectPath(path.id), 300);
             }}
-            className="relative flex flex-col items-center justify-center transition-all duration-300 group"
+            className="group relative flex flex-col items-center justify-center transition-all duration-300"
             style={{
-              filter: selectedPath === path.id
-                ? `drop-shadow(0 0 20px ${path.glowColor}) drop-shadow(0 0 40px ${path.glowColor})`
-                : undefined,
+              filter:
+                selectedPath === path.id
+                  ? `drop-shadow(0 0 20px ${path.glowColor}) drop-shadow(0 0 40px ${path.glowColor})`
+                  : undefined,
             }}
             onMouseEnter={(e) => {
               if (selectedPath !== path.id) {
@@ -83,40 +84,40 @@ export function PathSelectionStep({ onSelectPath }: PathSelectionStepProps) {
               }
             }}
           >
-            <div 
-              className="text-6xl md:text-7xl mb-4 transition-all duration-300"
+            <div
+              className="mb-4 text-6xl transition-all duration-300 md:text-7xl"
               style={{
                 transform: selectedPath === path.id ? 'scale(1.1)' : 'scale(1)',
-                filter: selectedPath === path.id
-                  ? `drop-shadow(0 0 15px ${path.glowColor})`
-                  : undefined,
+                filter:
+                  selectedPath === path.id ? `drop-shadow(0 0 15px ${path.glowColor})` : undefined,
               }}
             >
               {path.icon}
             </div>
-            <h3 
-              className="font-bold text-2xl md:text-3xl mb-2 text-white dark:text-white drop-shadow-lg transition-all duration-300"
+            <h3
+              className="mb-2 text-2xl font-bold text-white drop-shadow-lg transition-all duration-300 dark:text-white md:text-3xl"
               style={{
-                textShadow: selectedPath === path.id
-                  ? `0 0 10px ${path.glowColor}, 0 0 20px ${path.glowColor}`
-                  : '0 0 10px rgba(0, 0, 0, 0.5)',
+                textShadow:
+                  selectedPath === path.id
+                    ? `0 0 10px ${path.glowColor}, 0 0 20px ${path.glowColor}`
+                    : '0 0 10px rgba(0, 0, 0, 0.5)',
               }}
             >
               {path.title}
             </h3>
-            <p 
-              className="text-base md:text-lg text-gray-200 dark:text-gray-300 drop-shadow-md text-center"
+            <p
+              className="text-center text-base text-gray-200 drop-shadow-md dark:text-gray-300 md:text-lg"
               style={{
                 textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
               }}
             >
               {path.description}
             </p>
-            
+
             {selectedPath === path.id && (
-              <div className="absolute -top-2 -right-2">
-                <span 
-                  className="text-green-400 text-3xl drop-shadow-lg"
+              <div className="absolute -right-2 -top-2">
+                <span
+                  className="text-3xl text-green-400 drop-shadow-lg"
                   style={{
                     filter: 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.8))',
                   }}

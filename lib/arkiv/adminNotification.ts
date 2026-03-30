@@ -1,50 +1,50 @@
 /**
  * Admin Notification Entity
- * 
+ *
  * Brand new implementation from first principles using Pattern B (update in place).
  * Stores admin notifications with read/unread/archived state.
- * 
+ *
  * Entity Type: `admin_notification`
  * Update Pattern: Pattern B (updateEntity with stable entity_key)
- * 
+ *
  * Key Design:
  * - Stable entity_key derived from (wallet, notificationId)
  * - Uses updateEntity for state changes (read/unread/archived)
  * - Full transaction history preserved
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { SPACE_ID } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
-export type AdminNotificationType = 
-  | 'feedback_response'      // Admin responded to user feedback
-  | 'issue_resolved'          // Admin resolved an issue
-  | 'system_alert';           // System-level alerts for admins
+export type AdminNotificationType =
+  | 'feedback_response' // Admin responded to user feedback
+  | 'issue_resolved' // Admin resolved an issue
+  | 'system_alert'; // System-level alerts for admins
 
 export type AdminNotification = {
-  key: string;                    // Entity key (stable)
-  wallet: string;                 // Admin wallet (normalized to lowercase)
-  notificationId: string;          // Unique notification identifier
+  key: string; // Entity key (stable)
+  wallet: string; // Admin wallet (normalized to lowercase)
+  notificationId: string; // Unique notification identifier
   notificationType: AdminNotificationType;
-  title: string;                  // Notification title
-  message: string;                // Notification message
-  link?: string;                  // Optional link
-  sourceEntityType?: string;       // Source entity type (e.g., 'app_feedback', 'admin_response')
-  sourceEntityKey?: string;        // Source entity key
-  read: boolean;                   // Read/unread state
-  archived: boolean;               // Archived/deleted state
-  metadata?: Record<string, any>;  // Additional context
+  title: string; // Notification title
+  message: string; // Notification message
+  link?: string; // Optional link
+  sourceEntityType?: string; // Source entity type (e.g., 'app_feedback', 'admin_response')
+  sourceEntityKey?: string; // Source entity key
+  read: boolean; // Read/unread state
+  archived: boolean; // Archived/deleted state
+  metadata?: Record<string, any>; // Additional context
   spaceId: string;
-  createdAt: string;              // ISO timestamp
-  updatedAt: string;              // ISO timestamp (last update)
-  txHash?: string;                // Transaction hash
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp (last update)
+  txHash?: string; // Transaction hash
 };
 
 /**
  * Derive stable entity key for admin notification
- * 
+ *
  * Pattern: admin_notification:{wallet}:{notificationId}
  * This ensures one entity per (wallet, notificationId) pair
  */
@@ -55,7 +55,7 @@ function deriveAdminNotificationKey(wallet: string, notificationId: string): str
 
 /**
  * Create a new admin notification
- * 
+ *
  * Creates the initial notification entity. State changes (read/unread/archived)
  * should use updateAdminNotificationState instead.
  */
@@ -94,7 +94,8 @@ export async function createAdminNotification({
 
   // Check if notification already exists
   const publicClient = getPublicClient();
-  const existing = await publicClient.buildQuery()
+  const existing = await publicClient
+    .buildQuery()
     .where(eq('type', 'admin_notification'))
     .where(eq('wallet', normalizedWallet))
     .where(eq('notificationId', notificationId))
@@ -133,9 +134,14 @@ export async function createAdminNotification({
           { key: 'notificationId', value: notificationId },
           { key: 'notificationType', value: notificationType },
           { key: 'spaceId', value: spaceId },
-          { key: 'createdAt', value: existing.entities[0].attributes && Array.isArray(existing.entities[0].attributes)
-            ? (existing.entities[0].attributes.find((a: any) => a.key === 'createdAt')?.value || now)
-            : (existing.entities[0].attributes as any)?.createdAt || now },
+          {
+            key: 'createdAt',
+            value:
+              existing.entities[0].attributes && Array.isArray(existing.entities[0].attributes)
+                ? existing.entities[0].attributes.find((a: any) => a.key === 'createdAt')?.value ||
+                  now
+                : (existing.entities[0].attributes as any)?.createdAt || now,
+          },
           { key: 'updatedAt', value: now },
           ...(sourceEntityType ? [{ key: 'sourceEntityType', value: sourceEntityType }] : []),
           ...(sourceEntityKey ? [{ key: 'sourceEntityKey', value: sourceEntityKey }] : []),
@@ -171,7 +177,8 @@ export async function createAdminNotification({
 
   // Get the actual entity key (from update or create result)
   // Query to get the key we just created/updated
-  const verifyResult = await publicClient.buildQuery()
+  const verifyResult = await publicClient
+    .buildQuery()
     .where(eq('type', 'admin_notification'))
     .where(eq('wallet', normalizedWallet))
     .where(eq('notificationId', notificationId))
@@ -183,26 +190,28 @@ export async function createAdminNotification({
   const actualKey = verifyResult?.entities?.[0]?.key || entityKey;
 
   // Store txHash in separate entity for reliable querying (non-blocking)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'admin_notification_txhash' },
-      { key: 'notificationKey', value: actualKey },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((err: any) => {
-    console.warn('[createAdminNotification] Failed to create txHash entity (non-critical):', err);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'admin_notification_txhash' },
+        { key: 'notificationKey', value: actualKey },
+        { key: 'wallet', value: normalizedWallet },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((err: any) => {
+      console.warn('[createAdminNotification] Failed to create txHash entity (non-critical):', err);
+    });
 
   return { key: actualKey, txHash };
 }
 
 /**
  * Update admin notification state (read/unread/archived)
- * 
+ *
  * Uses Pattern B: updateEntity with stable entity_key
  * This updates the existing entity in place rather than creating a new one.
  */
@@ -228,7 +237,8 @@ export async function updateAdminNotificationState({
 
   // Get current notification state by wallet + notificationId (stable query)
   const publicClient = getPublicClient();
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'admin_notification'))
     .where(eq('wallet', normalizedWallet))
     .where(eq('notificationId', notificationId))
@@ -238,21 +248,24 @@ export async function updateAdminNotificationState({
     .fetch();
 
   if (!result?.entities || result.entities.length === 0) {
-    throw new Error(`Admin notification not found: ${notificationId} for wallet ${normalizedWallet}`);
+    throw new Error(
+      `Admin notification not found: ${notificationId} for wallet ${normalizedWallet}`
+    );
   }
 
   const entity = result.entities[0];
   const entityKey = entity.key;
-  
+
   // Decode current payload
   let currentPayload: any = {};
   try {
     if (entity.payload) {
-      const decoded = entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-        ? entity.payload
-        : JSON.stringify(entity.payload);
+      const decoded =
+        entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
       currentPayload = JSON.parse(decoded);
     }
   } catch (e) {
@@ -272,8 +285,8 @@ export async function updateAdminNotificationState({
   // Build updated payload
   const updatedPayload = {
     ...currentPayload,
-    read: read !== undefined ? read : currentPayload.read ?? false,
-    archived: archived !== undefined ? archived : currentPayload.archived ?? false,
+    read: read !== undefined ? read : (currentPayload.read ?? false),
+    archived: archived !== undefined ? archived : (currentPayload.archived ?? false),
     updatedAt: now,
   };
 
@@ -292,8 +305,12 @@ export async function updateAdminNotificationState({
         { key: 'spaceId', value: spaceId },
         { key: 'createdAt', value: getAttr('createdAt') || now },
         { key: 'updatedAt', value: now },
-        ...(getAttr('sourceEntityType') ? [{ key: 'sourceEntityType', value: getAttr('sourceEntityType') }] : []),
-        ...(getAttr('sourceEntityKey') ? [{ key: 'sourceEntityKey', value: getAttr('sourceEntityKey') }] : []),
+        ...(getAttr('sourceEntityType')
+          ? [{ key: 'sourceEntityType', value: getAttr('sourceEntityType') }]
+          : []),
+        ...(getAttr('sourceEntityKey')
+          ? [{ key: 'sourceEntityKey', value: getAttr('sourceEntityKey') }]
+          : []),
       ],
       expiresIn,
     });
@@ -305,12 +322,11 @@ export async function updateAdminNotificationState({
 /**
  * Get admin notification by key
  */
-export async function getAdminNotificationByKey(
-  key: string
-): Promise<AdminNotification | null> {
+export async function getAdminNotificationByKey(key: string): Promise<AdminNotification | null> {
   const publicClient = getPublicClient();
 
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'admin_notification'))
     .where(eq('key', key))
     .withAttributes(true)
@@ -346,7 +362,8 @@ export async function listAdminNotifications({
 } = {}): Promise<AdminNotification[]> {
   const publicClient = getPublicClient();
 
-  const query = publicClient.buildQuery()
+  const query = publicClient
+    .buildQuery()
     .where(eq('type', 'admin_notification'))
     .withAttributes(true)
     .withPayload(true)
@@ -374,16 +391,16 @@ export async function listAdminNotifications({
 
   // Client-side filters (read/archived are in payload)
   if (read !== undefined) {
-    notifications = notifications.filter(n => n.read === read);
+    notifications = notifications.filter((n) => n.read === read);
   }
 
   if (archived !== undefined) {
-    notifications = notifications.filter(n => n.archived === archived);
+    notifications = notifications.filter((n) => n.archived === archived);
   }
 
   // Sort by updatedAt descending (most recent first)
-  return notifications.sort((a, b) => 
-    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  return notifications.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
   );
 }
 
@@ -404,11 +421,12 @@ function decodeAdminNotificationEntity(entity: any): AdminNotification {
   let payload: any = {};
   try {
     if (entity.payload) {
-      const decoded = entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-        ? entity.payload
-        : JSON.stringify(entity.payload);
+      const decoded =
+        entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
       payload = JSON.parse(decoded);
     }
   } catch (e) {
@@ -433,4 +451,3 @@ function decodeAdminNotificationEntity(entity: any): AdminNotification {
     updatedAt: payload.updatedAt || getAttr('updatedAt') || getAttr('createdAt'),
   };
 }
-

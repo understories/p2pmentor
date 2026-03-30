@@ -1,9 +1,9 @@
 /**
  * Garden Layer Component
- * 
+ *
  * Displays emoji plants in a garden strip at the bottom of the screen.
  * Used in onboarding and persistent on /me and /garden pages.
- * 
+ *
  * Phase 6: Emoji Garden - game-like visual progression
  */
 
@@ -26,7 +26,7 @@ interface GardenLayerProps {
   showSeedTooltip?: boolean; // Show "grow" tooltip on seed
 }
 
-export function GardenLayer({ 
+export function GardenLayer({
   skills, // User's skills (for glowing)
   allSkills, // All skills in system (for background display)
   skillProfileCounts = {}, // Profile counts by skill name (normalized)
@@ -41,24 +41,24 @@ export function GardenLayer({
 
   // Use allSkills if provided, otherwise fall back to user's skills
   const skillsToDisplay = allSkills || skills;
-  
+
   // Create a set of user's skill names (normalized) for glowing
   const userSkillNames = useMemo(() => {
-    return new Set(skills.map(s => s.name.toLowerCase().trim()));
+    return new Set(skills.map((s) => s.name.toLowerCase().trim()));
   }, [skills]);
 
   // Create a set of learning skill IDs for glowing
   const learningSkillIdSet = useMemo(() => {
     return new Set(learningSkillIds);
   }, [learningSkillIds]);
-  
+
   // Remove duplicates from allSkills by skill name
   // Keep the first occurrence of each skill name to ensure consistent slot assignment
   const uniqueSkillsToDisplay = useMemo(() => {
     const seen = new Map<string, GardenSkill>(); // Map normalized name -> first skill seen
     const result: GardenSkill[] = [];
-    
-    skillsToDisplay.forEach(skill => {
+
+    skillsToDisplay.forEach((skill) => {
       const normalizedName = skill.name.toLowerCase().trim();
       if (!seen.has(normalizedName)) {
         seen.set(normalizedName, skill);
@@ -66,10 +66,10 @@ export function GardenLayer({
       }
       // If duplicate found, skip it (already have one with this name)
     });
-    
+
     return result;
   }, [skillsToDisplay]);
-  
+
   const slots = useMemo(() => {
     // For background display, use more slots to show all skills
     const maxSlots = allSkills ? Math.min(uniqueSkillsToDisplay.length, 20) : 7;
@@ -89,12 +89,12 @@ export function GardenLayer({
   }, [uniqueSkillsToDisplay, showIdentitySeed, allSkills]);
 
   // Find the identity seed slot
-  const identitySeedSlot = slots.find(s => s?.id === 'identity_seed');
+  const identitySeedSlot = slots.find((s) => s?.id === 'identity_seed');
 
   return (
     <div className={`fixed inset-0 ${showSeedTooltip ? 'z-20' : 'z-[1]'} ${className}`}>
       {/* Bottom garden strip - responsive spacing with padding to prevent cutoff, lowered for visibility */}
-      <div className="absolute inset-x-0 bottom-2 md:bottom-4 flex justify-center items-end gap-3 md:gap-8 px-4 md:px-8 pb-20 md:pb-24 overflow-visible">
+      <div className="absolute inset-x-0 bottom-2 flex items-end justify-center gap-3 overflow-visible px-4 pb-20 md:bottom-4 md:gap-8 md:px-8 md:pb-24">
         {slots.map((skill, i) =>
           skill ? (
             skill.id === 'identity_seed' && showSeedTooltip && onSeedClick ? (
@@ -119,68 +119,71 @@ export function GardenLayer({
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
-                className="flex flex-col items-center gap-1 relative z-[100] cursor-pointer bg-transparent border-none p-2 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-lg transition-transform duration-200 hover:scale-110 active:scale-95"
+                className="relative z-[100] flex cursor-pointer flex-col items-center gap-1 rounded-lg border-none bg-transparent p-2 transition-transform duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 active:scale-95"
                 style={{
                   zIndex: 100,
                 }}
                 aria-label="Grow - continue to next step"
               >
-              <span 
-                className={`text-3xl md:text-4xl relative inline-block transition-all duration-300 ${
-                  skill.id === 'identity_seed' && showSeedTooltip ? 'hg-anim-seed-pulse-continuous' : ''
-                }`}
-                style={{
-                  filter: skill.id === 'identity_seed' && showSeedTooltip
-                    ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                    : skill.id === 'identity_seed' 
-                    ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                    : skill.level === 5 
-                    ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))' 
-                    : 'none',
-                }}
-                >
-                  🌱
-                </span>
-              {skill.id === 'identity_seed' && showSeedTooltip && (
-                <span className="text-xs font-medium text-green-400 dark:text-green-300 animate-pulse mt-1">
-                  grow
-                </span>
-              )}
-              </button>
-            ) : (
-              <div
-                key={skill.id}
-                className={`
-                  flex flex-col items-center gap-1
-                  ${skill.id === 'identity_seed' ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'}
-                  ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : 'hg-anim-plant-idle'}
-                `}
-              >
-                <span 
-                  className={`text-3xl md:text-4xl relative inline-block transition-all duration-300 ${
-                    skill.id === 'identity_seed' && showSeedTooltip ? 'hg-anim-seed-pulse-continuous' : ''
+                <span
+                  className={`relative inline-block text-3xl transition-all duration-300 md:text-4xl ${
+                    skill.id === 'identity_seed' && showSeedTooltip
+                      ? 'hg-anim-seed-pulse-continuous'
+                      : ''
                   }`}
                   style={{
-                    filter: skill.id === 'identity_seed' && showSeedTooltip
-                      ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                      : skill.id === 'identity_seed' 
-                      ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
-                      : userSkillNames.has(skill.name.toLowerCase().trim()) || learningSkillIdSet.has(skill.id)
-                      ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.5))' // Glow for user's skills or learning skills
-                      : 'none',
+                    filter:
+                      skill.id === 'identity_seed' && showSeedTooltip
+                        ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                        : skill.id === 'identity_seed'
+                          ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                          : skill.level === 5
+                            ? 'drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) drop-shadow(0 0 12px rgba(34, 197, 94, 0.4))'
+                            : 'none',
                   }}
                 >
                   🌱
                 </span>
                 {skill.id === 'identity_seed' && showSeedTooltip && (
-                  <span className="text-xs font-medium text-green-400 dark:text-green-300 animate-pulse mt-1">
+                  <span className="mt-1 animate-pulse text-xs font-medium text-green-400 dark:text-green-300">
+                    grow
+                  </span>
+                )}
+              </button>
+            ) : (
+              <div
+                key={skill.id}
+                className={`flex flex-col items-center gap-1 ${skill.id === 'identity_seed' ? 'pointer-events-auto cursor-pointer' : 'pointer-events-none'} ${animateNew === skill.id ? 'hg-anim-plant-grow-in hg-anim-plant-sparkle' : 'hg-anim-plant-idle'} `}
+              >
+                <span
+                  className={`relative inline-block text-3xl transition-all duration-300 md:text-4xl ${
+                    skill.id === 'identity_seed' && showSeedTooltip
+                      ? 'hg-anim-seed-pulse-continuous'
+                      : ''
+                  }`}
+                  style={{
+                    filter:
+                      skill.id === 'identity_seed' && showSeedTooltip
+                        ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                        : skill.id === 'identity_seed'
+                          ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 40px rgba(34, 197, 94, 0.4))'
+                          : userSkillNames.has(skill.name.toLowerCase().trim()) ||
+                              learningSkillIdSet.has(skill.id)
+                            ? 'drop-shadow(0 0 8px rgba(34, 197, 94, 0.8)) drop-shadow(0 0 16px rgba(34, 197, 94, 0.5))' // Glow for user's skills or learning skills
+                            : 'none',
+                  }}
+                >
+                  🌱
+                </span>
+                {skill.id === 'identity_seed' && showSeedTooltip && (
+                  <span className="mt-1 animate-pulse text-xs font-medium text-green-400 dark:text-green-300">
                     grow
                   </span>
                 )}
                 {skill.name !== 'Identity' && skill.id !== 'identity_seed' && (
-                  <div className="flex flex-col items-center gap-0.5 w-full max-w-[100px] min-w-0">
+                  <div className="flex w-full min-w-0 max-w-[100px] flex-col items-center gap-0.5">
                     <span
-                      className="text-[8px] md:text-[9px] text-gray-600 dark:text-gray-400 text-center whitespace-normal"
+                      className="whitespace-normal text-center text-[8px] text-gray-600 dark:text-gray-400 md:text-[9px]"
                       style={{
                         maxWidth: '100px',
                         width: '100%',
@@ -201,11 +204,13 @@ export function GardenLayer({
 
                       // Always show count
                       const content = (
-                        <span className={`text-[9px] md:text-[10px] font-medium ${
-                          profileCount > 0 
-                            ? 'text-emerald-600 dark:text-emerald-400' 
-                            : 'text-gray-400 dark:text-gray-500'
-                        }`}>
+                        <span
+                          className={`text-[9px] font-medium md:text-[10px] ${
+                            profileCount > 0
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-gray-400 dark:text-gray-500'
+                          }`}
+                        >
                           {countText}
                         </span>
                       );
@@ -224,7 +229,7 @@ export function GardenLayer({
                               `   - Check skill_ids array (new format)`,
                               `   - Check skillsArray (legacy format)`,
                               `   - Check skills string (legacy format)`,
-                              `Returns: Skill[] with profileCount for "${skill.name}"`
+                              `Returns: Skill[] with profileCount for "${skill.name}"`,
                             ]}
                             label={`${profileCount} ${profileCount === 1 ? 'profile' : 'profiles'}`}
                           >
@@ -239,8 +244,12 @@ export function GardenLayer({
               </div>
             )
           ) : (
-            <div key={i} className="w-8 md:w-10 h-8 md:h-10 pointer-events-none" aria-hidden="true" />
-          ),
+            <div
+              key={i}
+              className="pointer-events-none h-8 w-8 md:h-10 md:w-10"
+              aria-hidden="true"
+            />
+          )
         )}
       </div>
     </div>

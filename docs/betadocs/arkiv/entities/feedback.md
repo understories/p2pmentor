@@ -1,40 +1,44 @@
 # Feedback Entity Schema
 
 ## Status
+
 - Canonical for p2pmentor: Yes
 - Mutability: Pattern A
 - Pattern dependencies: PAT-QUERY-001, PAT-REF-001, PAT-SPACE-001
 
 ## Entity Type
+
 `session_feedback`
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "session_feedback" |
-| sessionKey | string | Yes | Attribute | Session entity key |
-| mentorWallet | string | Yes | Attribute | Mentor wallet address (lowercase) |
-| learnerWallet | string | Yes | Attribute | Learner wallet address (lowercase) |
-| feedbackFrom | string | Yes | Attribute | Wallet address of person giving feedback |
-| feedbackTo | string | Yes | Attribute | Wallet address of person receiving feedback |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| rating | string | No | Attribute | Rating 1-5 (stored as string) |
-| rating | number | No | Payload | Rating 1-5 |
-| notes | string | No | Payload | Qualitative feedback text |
-| technicalDxFeedback | string | No | Payload | Technical developer experience feedback |
-| createdAt | string | Yes | Payload | ISO timestamp |
+| Field Name          | Type   | Required | Location  | Description                                                                                                |
+| ------------------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| type                | string | Yes      | Attribute | Always "session_feedback"                                                                                  |
+| sessionKey          | string | Yes      | Attribute | Session entity key                                                                                         |
+| mentorWallet        | string | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
+| learnerWallet       | string | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
+| feedbackFrom        | string | Yes      | Attribute | Wallet address of person giving feedback                                                                   |
+| feedbackTo          | string | Yes      | Attribute | Wallet address of person receiving feedback                                                                |
+| spaceId             | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt           | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| rating              | string | No       | Attribute | Rating 1-5 (stored as string)                                                                              |
+| rating              | number | No       | Payload   | Rating 1-5                                                                                                 |
+| notes               | string | No       | Payload   | Qualitative feedback text                                                                                  |
+| technicalDxFeedback | string | No       | Payload   | Technical developer experience feedback                                                                    |
+| createdAt           | string | Yes      | Payload   | ISO timestamp                                                                                              |
 
 ## Linking to Sessions and Profiles
 
 ### Session Link
+
 - `sessionKey` attribute: Direct reference to Session entity key
 - `mentorWallet` and `learnerWallet` attributes: Wallet addresses from session
 - Validation: `feedbackFrom` must be either `mentorWallet` or `learnerWallet`
 - Validation: `feedbackTo` must be the other participant (not self)
 
 ### Profile Link
+
 - `feedbackTo` attribute: Wallet address of profile receiving feedback
 - Query pattern: Fetch all feedback for a profile by querying `feedbackTo` attribute
 - Average rating: Calculated on-demand by querying all feedback for wallet and computing mean
@@ -53,11 +57,9 @@ const result = await query
 
 // Calculate average rating
 const ratings = result.entities
-  .map(e => e.payload.rating)
-  .filter(r => r !== undefined && r > 0);
-const avgRating = ratings.length > 0
-  ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length
-  : 0;
+  .map((e) => e.payload.rating)
+  .filter((r) => r !== undefined && r > 0);
+const avgRating = ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
 ```
 
 Implementation: `app/profiles/[wallet]/page.tsx` - Calculates average rating on-demand from feedback entities.
@@ -110,4 +112,3 @@ Feedback entities expire after 1 year (31536000 seconds). This is effectively pe
 
 - Links to Session entity via `sessionKey` attribute
 - Links to Profile entities via `feedbackTo` and `feedbackFrom` attributes (wallet addresses)
-

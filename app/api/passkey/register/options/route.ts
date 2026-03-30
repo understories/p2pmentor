@@ -1,8 +1,8 @@
 /**
  * Passkey Registration Options API
- * 
+ *
  * Returns WebAuthn registration options for creating a new passkey.
- * 
+ *
  * POST /api/passkey/register/options
  * Body: { userId: string, userName?: string }
  */
@@ -16,16 +16,18 @@ export async function POST(request: Request) {
     const { userId, userName, walletAddress, platformOnly } = body;
 
     if (!userId) {
-      return NextResponse.json(
-        { ok: false, error: 'userId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'userId is required' }, { status: 400 });
     }
 
     // CRITICAL: Pass walletAddress to query Arkiv for existing credentials
     // This populates excludeCredentials to prevent duplicate registrations
     // platformOnly: if true, use strict platform-only constraints to prevent QR dialog
-    const options = await getRegistrationOptions(userId, userName, walletAddress, platformOnly === true);
+    const options = await getRegistrationOptions(
+      userId,
+      userName,
+      walletAddress,
+      platformOnly === true
+    );
 
     // Store challenge in response (in production, store in session/DB)
     // For beta, client will send it back in complete step
@@ -41,4 +43,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

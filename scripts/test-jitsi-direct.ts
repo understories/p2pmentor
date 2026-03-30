@@ -1,6 +1,6 @@
 /**
  * Direct test of Jitsi generation
- * 
+ *
  * This script tests Jitsi generation directly to verify it works.
  */
 
@@ -26,13 +26,14 @@ async function testJitsiGeneration() {
   // Test 2: Check if we can query for Jitsi entities
   console.log('2. Testing Jitsi entity query...');
   const publicClient = getPublicClient();
-  const jitsiQuery = await publicClient.buildQuery()
+  const jitsiQuery = await publicClient
+    .buildQuery()
     .where(eq('type', 'session_jitsi'))
     .withAttributes(true)
     .withPayload(true)
     .limit(10)
     .fetch();
-  
+
   console.log(`   Found ${jitsiQuery.entities.length} Jitsi entities in Arkiv\n`);
 
   if (jitsiQuery.entities.length > 0) {
@@ -46,15 +47,16 @@ async function testJitsiGeneration() {
         }
         return String(attrs[key] || '');
       };
-      
+
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -64,7 +66,7 @@ async function testJitsiGeneration() {
       const sessionKey = getAttr('sessionKey');
       const roomName = payload.videoRoomName || getAttr('videoRoomName') || 'N/A';
       const joinUrl = payload.videoJoinUrl || getAttr('videoJoinUrl') || 'N/A';
-      
+
       console.log(`   Entity ${idx + 1}:`);
       console.log(`     Session Key: ${sessionKey}`);
       console.log(`     Room Name: ${roomName}`);
@@ -79,15 +81,17 @@ async function testJitsiGeneration() {
     const walletClient = getWalletClientFromPrivateKey(getPrivateKey());
     const enc = new TextEncoder();
     const testJitsiInfo = generateJitsiMeeting('test-create-' + Date.now(), JITSI_BASE_URL);
-    
+
     console.log('   Creating test Jitsi entity...');
     const result = await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        videoProvider: testJitsiInfo.videoProvider,
-        videoRoomName: testJitsiInfo.videoRoomName,
-        videoJoinUrl: testJitsiInfo.videoJoinUrl,
-        generatedAt: new Date().toISOString(),
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          videoProvider: testJitsiInfo.videoProvider,
+          videoRoomName: testJitsiInfo.videoRoomName,
+          videoJoinUrl: testJitsiInfo.videoJoinUrl,
+          generatedAt: new Date().toISOString(),
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'session_jitsi' },
@@ -99,25 +103,26 @@ async function testJitsiGeneration() {
       ],
       expiresIn: 3600, // 1 hour
     });
-    
+
     console.log('✅ Test Jitsi entity created!');
     console.log(`   Entity Key: ${result.entityKey}`);
     console.log(`   Transaction Hash: ${result.txHash}`);
     console.log(`   Room Name: ${testJitsiInfo.videoRoomName}`);
     console.log(`   Join URL: ${testJitsiInfo.videoJoinUrl}\n`);
-    
+
     // Wait a moment and try to query it back
     console.log('4. Waiting 2 seconds and querying back...');
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const queryBack = await publicClient.buildQuery()
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    const queryBack = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('key', result.entityKey))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
       .fetch();
-    
+
     if (queryBack.entities.length > 0) {
       console.log('✅ Successfully queried back the Jitsi entity!');
       const entity = queryBack.entities[0];
@@ -129,27 +134,27 @@ async function testJitsiGeneration() {
         }
         return String(attrs[key] || '');
       };
-      
+
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
         console.error('   Error decoding payload:', e);
       }
-      
+
       console.log(`   Room Name: ${payload.videoRoomName || getAttr('videoRoomName') || 'N/A'}`);
       console.log(`   Join URL: ${payload.videoJoinUrl || getAttr('videoJoinUrl') || 'N/A'}`);
     } else {
       console.log('⚠️  Could not query back the entity (may need more time to propagate)');
     }
-    
   } catch (error: any) {
     console.error('❌ Error creating test Jitsi entity:', error.message);
     if (error.message?.includes('Transaction receipt')) {
@@ -161,5 +166,3 @@ async function testJitsiGeneration() {
 }
 
 testJitsiGeneration().catch(console.error);
-
-

@@ -72,11 +72,12 @@ Stores aggregated performance snapshots as Arkiv entities for historical trackin
 ### Get All Snapshots
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'perf_snapshot'))
   .where(eq('operation', 'buildNetworkGraphData'))
   .withAttributes(true)
@@ -85,14 +86,15 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const snapshots = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 ```
 
 ### Get Latest Snapshot
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'perf_snapshot'))
   .where(eq('operation', 'buildNetworkGraphData'))
   .withAttributes(true)
@@ -110,21 +112,27 @@ const latest = result.entities[0]
 ```typescript
 async function compareSnapshots(operation: string) {
   const snapshots = await getPerfSnapshots(operation, 2);
-  
+
   if (snapshots.length < 2) {
     return null; // Need at least 2 snapshots
   }
-  
+
   const [latest, previous] = snapshots;
-  
+
   return {
     graphql: {
       avgChange: latest.graphql?.avgDurationMs - previous.graphql?.avgDurationMs,
-      improvement: ((previous.graphql?.avgDurationMs - latest.graphql?.avgDurationMs) / previous.graphql?.avgDurationMs) * 100,
+      improvement:
+        ((previous.graphql?.avgDurationMs - latest.graphql?.avgDurationMs) /
+          previous.graphql?.avgDurationMs) *
+        100,
     },
     arkiv: {
       avgChange: latest.arkiv?.avgDurationMs - previous.arkiv?.avgDurationMs,
-      improvement: ((previous.arkiv?.avgDurationMs - latest.arkiv?.avgDurationMs) / previous.arkiv?.avgDurationMs) * 100,
+      improvement:
+        ((previous.arkiv?.avgDurationMs - latest.arkiv?.avgDurationMs) /
+          previous.arkiv?.avgDurationMs) *
+        100,
     },
   };
 }
@@ -133,8 +141,8 @@ async function compareSnapshots(operation: string) {
 ## Creation
 
 ```typescript
-import { createPerfSnapshot } from "@/lib/arkiv/perfSnapshots";
-import { getPrivateKey } from "@/lib/config";
+import { createPerfSnapshot } from '@/lib/arkiv/perfSnapshots';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createPerfSnapshot({
   operation: 'buildNetworkGraphData',
@@ -216,7 +224,7 @@ async function createPerformanceSnapshot() {
   const graphqlData = await collectGraphQLMetrics('buildNetworkGraphData');
   const arkivData = await collectArkivMetrics('buildNetworkGraphData');
   const pageLoadData = await measurePageLoadTimes();
-  
+
   // 2. Create snapshot
   await createPerfSnapshot({
     operation: 'buildNetworkGraphData',
@@ -226,10 +234,9 @@ async function createPerformanceSnapshot() {
     pageLoadTimes: pageLoadData,
     privateKey: getPrivateKey(),
   });
-  
+
   // 3. Compare with previous
   const comparison = await compareSnapshots('buildNetworkGraphData');
   console.log('Performance change:', comparison);
 }
 ```
-

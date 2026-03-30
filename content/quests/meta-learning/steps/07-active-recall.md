@@ -7,6 +7,7 @@ Active recall is retrieving information from memory without looking at the sourc
 ## Why It Works
 
 Research consistently shows active recall beats passive review:
+
 - **Re-reading:** Feels productive, weak memory
 - **Active recall:** Feels difficult, strong memory
 
@@ -15,6 +16,7 @@ The **testing effect** shows that testing yourself creates learning, not just me
 ## How Active Recall Works
 
 ### Traditional Study Method
+
 1. Read notes
 2. Highlight important parts
 3. Re-read highlighted parts
@@ -22,6 +24,7 @@ The **testing effect** shows that testing yourself creates learning, not just me
 5. Forget it quickly
 
 ### Active Recall Method
+
 1. Read notes once
 2. Close the notes
 3. Write/say what you remember
@@ -32,16 +35,19 @@ The **testing effect** shows that testing yourself creates learning, not just me
 ## Types of Active Recall
 
 ### 1. Free Recall
+
 - Write everything you remember about a topic
 - No prompts or hints
 - Most challenging, most effective
 
 ### 2. Cued Recall
+
 - Use prompts or questions
 - "What are the three stages of memory?"
 - Easier than free recall, still effective
 
 ### 3. Recognition
+
 - Multiple choice questions
 - "Which of these is correct?"
 - Easiest, least effective (but still better than re-reading)
@@ -49,12 +55,14 @@ The **testing effect** shows that testing yourself creates learning, not just me
 ## Creating Recall Questions
 
 Good recall questions:
+
 - **Test understanding, not memorization**
 - **Require explanation, not just facts**
 - **Connect concepts**
 - **Apply knowledge**
 
 Examples:
+
 - ❌ "What is the capital of France?" (just memorization)
 - ✅ "Explain why Paris became the capital of France" (understanding)
 - ❌ "What is spaced repetition?" (definition)

@@ -52,11 +52,12 @@ Community virtual gatherings (public meetings). Anyone can suggest a gathering, 
 ### Get All Gatherings
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'virtual_gathering'))
   .withAttributes(true)
   .withPayload(true)
@@ -64,15 +65,16 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const gatherings = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(g => new Date(g.sessionDate) >= new Date()) // Future only
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((g) => new Date(g.sessionDate) >= new Date()) // Future only
   .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 ```
 
 ### Get Gatherings by Community
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'virtual_gathering'))
   .where(eq('community', skillSlug))
   .withAttributes(true)
@@ -84,7 +86,8 @@ const result = await publicClient.buildQuery()
 ### Get Gatherings by Organizer
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'virtual_gathering'))
   .where(eq('organizerWallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -96,16 +99,16 @@ const result = await publicClient.buildQuery()
 ## Creation
 
 ```typescript
-import { createVirtualGathering } from "@/lib/arkiv/virtualGathering";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createVirtualGathering } from '@/lib/arkiv/virtualGathering';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createVirtualGathering({
   organizerWallet: walletAddress,
-  community: "spanish", // Skill slug
-  title: "Spanish Conversation Practice",
-  description: "Weekly Spanish conversation practice for learners",
-  sessionDate: "2024-01-20T18:00:00Z",
+  community: 'spanish', // Skill slug
+  title: 'Spanish Conversation Practice',
+  description: 'Weekly Spanish conversation practice for learners',
+  sessionDate: '2024-01-20T18:00:00Z',
   duration: 60, // 60 minutes
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
@@ -136,13 +139,14 @@ const session = await createSession({
 
 ```typescript
 async function getRSVPCount(gatheringKey: string): Promise<number> {
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'session'))
     .where(eq('gatheringKey', gatheringKey))
     .withAttributes(true)
     .limit(1000)
     .fetch();
-  
+
   return result.entities.length;
 }
 ```
@@ -178,10 +182,10 @@ const gathering = {
 ```typescript
 await createVirtualGathering({
   organizerWallet: userWallet,
-  community: "javascript",
-  title: "JavaScript Study Group",
-  description: "Weekly JavaScript study group for all levels",
-  sessionDate: "2024-01-20T19:00:00Z",
+  community: 'javascript',
+  title: 'JavaScript Study Group',
+  description: 'Weekly JavaScript study group for all levels',
+  sessionDate: '2024-01-20T19:00:00Z',
   duration: 90,
   privateKey: userPrivateKey,
 });
@@ -191,21 +195,22 @@ await createVirtualGathering({
 
 ```typescript
 async function getUpcomingGatherings(community?: string) {
-  const query = publicClient.buildQuery()
+  const query = publicClient
+    .buildQuery()
     .where(eq('type', 'virtual_gathering'))
     .withAttributes(true)
     .withPayload(true)
     .limit(100);
-  
+
   if (community) {
     query.where(eq('community', community));
   }
-  
+
   const result = await query.fetch();
-  
+
   return result.entities
-    .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-    .filter(g => new Date(g.sessionDate) >= new Date())
+    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+    .filter((g) => new Date(g.sessionDate) >= new Date())
     .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 }
 ```
@@ -222,4 +227,3 @@ async function getUpcomingGatherings(community?: string) {
 - **Public**: Anyone can view and RSVP
 - **Community-Based**: Organized by skill/community
 - **RSVP via Session**: Users RSVP by creating session entities
-

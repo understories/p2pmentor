@@ -13,8 +13,8 @@ This explorer shows the **public parts of p2pmentor**: profiles, asks, offers, a
 
 Each item here corresponds to:
 
-* a record written to Arkiv, and
-* a transaction hash that proves when and how it was written.
+- a record written to Arkiv, and
+- a transaction hash that proves when and how it was written.
 
 Nothing on this page requires logging in. Nothing here is pulled from a hidden internal database.
 
@@ -27,13 +27,13 @@ p2pmentor doesn't do that for public records.
 
 When something public is created in p2pmentor:
 
-* it's written as an **entity on Arkiv**, and
-* that write produces a **transaction**.
+- it's written as an **entity on Arkiv**, and
+- that write produces a **transaction**.
 
 When you browse this page:
 
-* we read public entities from Arkiv, and
-* we link each one to its originating transaction so you can verify it yourself.
+- we read public entities from Arkiv, and
+- we link each one to its originating transaction so you can verify it yourself.
 
 This page is a **viewer**, not a vault.
 
@@ -43,9 +43,9 @@ This page is a **viewer**, not a vault.
 
 For every public record shown:
 
-* you can see the transaction hash that created it,
-* you can open that transaction in the network explorer,
-* you can confirm the timestamp and status independently.
+- you can see the transaction hash that created it,
+- you can open that transaction in the network explorer,
+- you can confirm the timestamp and status independently.
 
 You don't have to trust p2pmentor's UI for these facts.
 The network provides the proof.
@@ -56,9 +56,9 @@ The network provides the proof.
 
 **We do run software for:**
 
-* [serving this website](/docs/architecture/integrations/vercel-integration),
-* formatting and displaying public data,
-* [coordinating user interactions](/docs/architecture/integrations/jitsi-integration) (for example, video calls).
+- [serving this website](/docs/architecture/integrations/vercel-integration),
+- formatting and displaying public data,
+- [coordinating user interactions](/docs/architecture/integrations/jitsi-integration) (for example, video calls).
 
 **We do not run a private database that acts as the source of truth for public records.**
 
@@ -70,15 +70,15 @@ If this website disappeared, the public records shown here would still be verifi
 
 This explorer only shows data designed to be public:
 
-* public profiles
-* public asks and offers
-* public skills
+- public profiles
+- public asks and offers
+- public skills
 
 It does **not** show:
 
-* private session details
-* notifications or preferences
-* internal or administrative records
+- private session details
+- notifications or preferences
+- internal or administrative records
 
 Public visibility is intentional and enforced by design.
 
@@ -90,9 +90,9 @@ In the current beta, some transactions are submitted by an operational signer on
 
 What matters for verification is that:
 
-* once written, records are anchored by a transaction hash,
-* that transaction can be independently inspected,
-* the data does not depend on a private database to be checked.
+- once written, records are anchored by a transaction hash,
+- that transaction can be independently inspected,
+- the data does not depend on a private database to be checked.
 
 The explorer reflects this reality rather than abstracting it away.
 
@@ -102,9 +102,9 @@ The explorer reflects this reality rather than abstracting it away.
 
 Arkiv entities have an active lifetime.
 
-* During that period, entities are queryable from standard nodes.
-* After expiry, historical verification may require archival infrastructure.
-* Archival access may not always be free or guaranteed.
+- During that period, entities are queryable from standard nodes.
+- After expiry, historical verification may require archival infrastructure.
+- Archival access may not always be free or guaranteed.
 
 This page shows currently accessible public data and links to the underlying transactions that prove it existed.
 
@@ -116,9 +116,9 @@ This explorer exists so you don't have to take architectural claims on faith.
 
 It's meant to:
 
-* make public data legible to humans,
-* make verification obvious,
-* show the difference between *serving data* and *being the source of truth*.
+- make public data legible to humans,
+- make verification obvious,
+- show the difference between _serving data_ and _being the source of truth_.
 
 You're encouraged to click through, inspect transactions, and decide for yourself.
 
@@ -127,4 +127,3 @@ You're encouraged to click through, inspect transactions, and decide for yoursel
 ## Deeper context
 
 For more on the architectural principles behind this explorer, see [Serverless & Verifiable by Design](/docs/philosophy/serverless-and-trustless).
-

@@ -1,17 +1,17 @@
 /**
  * Client Performance Metric CRUD helpers
- * 
+ *
  * Stores client-side performance metrics as Arkiv entities.
  * Privacy-preserving: no PII, only performance data.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 5
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import type { ClientPerfMetric } from "@/lib/metrics/clientPerf";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import type { ClientPerfMetric } from '@/lib/metrics/clientPerf';
+import { SPACE_ID } from '@/lib/config';
 
 export type ClientPerfMetricEntity = {
   key: string;
@@ -115,15 +115,17 @@ export async function listClientPerfMetrics({
 } = {}): Promise<ClientPerfMetricEntity[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'client_perf_metric'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'client_perf_metric_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -149,11 +151,12 @@ export async function listClientPerfMetrics({
         const metricKey = getAttr('metricKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && metricKey) {
               txHashMap[metricKey] = payload.txHash;
@@ -169,11 +172,12 @@ export async function listClientPerfMetrics({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -198,7 +202,9 @@ export async function listClientPerfMetrics({
         fid: payload.fid || (getAttr('fid') ? parseInt(getAttr('fid'), 10) : undefined),
         cls: payload.cls || (getAttr('cls') ? parseFloat(getAttr('cls')) : undefined),
         tti: payload.tti || (getAttr('tti') ? parseInt(getAttr('tti'), 10) : undefined),
-        renderTime: payload.renderTime || (getAttr('renderTime') ? parseInt(getAttr('renderTime'), 10) : undefined),
+        renderTime:
+          payload.renderTime ||
+          (getAttr('renderTime') ? parseInt(getAttr('renderTime'), 10) : undefined),
         userAgent: getAttr('userAgent') || payload.userAgent || undefined,
         createdAt: getAttr('createdAt') || payload.createdAt,
         txHash: txHashMap[entity.key] || payload.txHash || undefined,
@@ -207,15 +213,15 @@ export async function listClientPerfMetrics({
 
     // Apply filters
     if (page) {
-      metrics = metrics.filter(m => m.page === page);
+      metrics = metrics.filter((m) => m.page === page);
     }
     if (since) {
       const sinceTime = new Date(since).getTime();
-      metrics = metrics.filter(m => new Date(m.createdAt).getTime() >= sinceTime);
+      metrics = metrics.filter((m) => new Date(m.createdAt).getTime() >= sinceTime);
     }
 
-    return metrics.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return metrics.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('[listClientPerfMetrics] Error:', error);

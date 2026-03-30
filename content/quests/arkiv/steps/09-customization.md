@@ -7,6 +7,7 @@ Now that you understand the basics, let's customize the starter to create someth
 ## Step 1: Define Your Entity Type
 
 Think about what data you want to store. Examples:
+
 - **Blog posts** - `type: 'blog_post'`
 - **User notes** - `type: 'note'`
 - **Bookmarks** - `type: 'bookmark'`
@@ -19,11 +20,13 @@ Modify the entity creation code:
 ```typescript
 // Example: Creating a note entity
 const result = await walletClient.createEntity({
-  payload: enc.encode(JSON.stringify({
-    title: 'My First Note',
-    content: 'This is stored on Arkiv!',
-    tags: ['learning', 'arkiv'],
-  })),
+  payload: enc.encode(
+    JSON.stringify({
+      title: 'My First Note',
+      content: 'This is stored on Arkiv!',
+      tags: ['learning', 'arkiv'],
+    })
+  ),
   contentType: 'application/json',
   attributes: [
     { key: 'type', value: 'note' },
@@ -59,6 +62,7 @@ result.entities.forEach((entity) => {
 ## Step 4: Build a UI
 
 Create a simple interface:
+
 - **Form** to create new entities
 - **List** to display existing entities
 - **Details view** to show entity content
@@ -66,12 +70,14 @@ Create a simple interface:
 ## Design Considerations
 
 **Attributes (Queryable):**
+
 - `type` - Entity type
 - `wallet` - Owner wallet
 - `createdAt` - Timestamp
 - `status` - Current state (if applicable)
 
 **Payload (Content):**
+
 - User-generated content
 - Large text fields
 - Complex nested objects

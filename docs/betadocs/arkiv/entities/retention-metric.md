@@ -46,7 +46,7 @@ Privacy-preserving retention and cohort analysis. Uses one-way hashed wallets fo
 Wallets are hashed using one-way hash for privacy:
 
 ```typescript
-import { keccak256, toBytes } from "viem";
+import { keccak256, toBytes } from 'viem';
 
 function hashWalletForRetention(wallet: string): string {
   const normalized = wallet.toLowerCase().trim();
@@ -55,6 +55,7 @@ function hashWalletForRetention(wallet: string): string {
 ```
 
 **Properties:**
+
 - **One-way**: Cannot reverse to get original wallet
 - **Deterministic**: Same wallet always produces same hash
 - **Privacy-preserving**: No wallet addresses in retention data
@@ -64,11 +65,12 @@ function hashWalletForRetention(wallet: string): string {
 ### Get Cohorts
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'retention_cohort'))
   .where(eq('period', 'weekly'))
   .withAttributes(true)
@@ -77,7 +79,7 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const cohorts = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => b.cohortDate.localeCompare(a.cohortDate));
 ```
 
@@ -86,11 +88,17 @@ const cohorts = result.entities
 ```typescript
 function calculateRetentionRate(cohort: RetentionCohort, days: number): number {
   const day0 = cohort.day0 || 0;
-  const dayN = days === 1 ? cohort.day1 : 
-               days === 7 ? cohort.day7 : 
-               days === 14 ? cohort.day14 : 
-               days === 30 ? cohort.day30 : 0;
-  
+  const dayN =
+    days === 1
+      ? cohort.day1
+      : days === 7
+        ? cohort.day7
+        : days === 14
+          ? cohort.day14
+          : days === 30
+            ? cohort.day30
+            : 0;
+
   if (day0 === 0) return 0;
   return (dayN / day0) * 100;
 }
@@ -102,8 +110,8 @@ const retention7d = calculateRetentionRate(cohort, 7);
 ## Creation
 
 ```typescript
-import { createRetentionCohort } from "@/lib/arkiv/retentionMetrics";
-import { getPrivateKey } from "@/lib/config";
+import { createRetentionCohort } from '@/lib/arkiv/retentionMetrics';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createRetentionCohort({
   cohortDate: '2024-01-08',
@@ -127,18 +135,18 @@ async function computeWeeklyCohort(cohortDate: string) {
   // 1. Get active wallets for cohort date (day 0)
   const day0Wallets = await getActiveWalletsForDate(cohortDate);
   const day0 = day0Wallets.length;
-  
+
   // 2. Hash wallets for privacy
   const hashedDay0 = day0Wallets.map(hashWalletForRetention);
-  
+
   // 3. Check activity on subsequent days
   const day1Date = addDays(cohortDate, 1);
   const day1Wallets = await getActiveWalletsForDate(day1Date);
   const hashedDay1 = day1Wallets.map(hashWalletForRetention);
-  const day1 = hashedDay1.filter(h => hashedDay0.includes(h)).length;
-  
+  const day1 = hashedDay1.filter((h) => hashedDay0.includes(h)).length;
+
   // Similar for day7, day14, day30...
-  
+
   // 4. Create cohort
   return await createRetentionCohort({
     cohortDate,
@@ -178,8 +186,8 @@ Admin dashboard retention analysis:
 ```typescript
 async function getRetentionReport() {
   const cohorts = await getRetentionCohorts('weekly', 4);
-  
-  return cohorts.map(cohort => ({
+
+  return cohorts.map((cohort) => ({
     cohortDate: cohort.cohortDate,
     day0: cohort.day0,
     day7: cohort.day7,
@@ -190,4 +198,3 @@ async function getRetentionReport() {
   }));
 }
 ```
-

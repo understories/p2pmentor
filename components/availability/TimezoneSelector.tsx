@@ -29,15 +29,43 @@ function getAllTimezones(): string[] {
   // Fallback to common timezones if API not available
   return [
     'UTC',
-    'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles',
-    'America/Phoenix', 'America/Anchorage', 'Pacific/Honolulu',
-    'Europe/London', 'Europe/Paris', 'Europe/Berlin', 'Europe/Rome', 'Europe/Madrid',
-    'Europe/Amsterdam', 'Europe/Stockholm', 'Europe/Vienna', 'Europe/Zurich',
-    'Asia/Tokyo', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Singapore', 'Asia/Dubai',
-    'Asia/Kolkata', 'Asia/Seoul', 'Asia/Bangkok', 'Asia/Jakarta',
-    'Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Perth',
-    'Pacific/Auckland', 'America/Toronto', 'America/Vancouver', 'America/Mexico_City',
-    'America/Sao_Paulo', 'America/Buenos_Aires', 'Africa/Cairo', 'Africa/Johannesburg',
+    'America/New_York',
+    'America/Chicago',
+    'America/Denver',
+    'America/Los_Angeles',
+    'America/Phoenix',
+    'America/Anchorage',
+    'Pacific/Honolulu',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'Europe/Rome',
+    'Europe/Madrid',
+    'Europe/Amsterdam',
+    'Europe/Stockholm',
+    'Europe/Vienna',
+    'Europe/Zurich',
+    'Asia/Tokyo',
+    'Asia/Shanghai',
+    'Asia/Hong_Kong',
+    'Asia/Singapore',
+    'Asia/Dubai',
+    'Asia/Kolkata',
+    'Asia/Seoul',
+    'Asia/Bangkok',
+    'Asia/Jakarta',
+    'Australia/Sydney',
+    'Australia/Melbourne',
+    'Australia/Brisbane',
+    'Australia/Perth',
+    'Pacific/Auckland',
+    'America/Toronto',
+    'America/Vancouver',
+    'America/Mexico_City',
+    'America/Sao_Paulo',
+    'America/Buenos_Aires',
+    'Africa/Cairo',
+    'Africa/Johannesburg',
   ];
 }
 
@@ -73,7 +101,7 @@ function formatTimezoneDisplay(timezone: string): string {
       timeZoneName: 'short',
     });
     const parts = tzFormatter.formatToParts(now);
-    const tzAbbr = parts.find(p => p.type === 'timeZoneName')?.value || '';
+    const tzAbbr = parts.find((p) => p.type === 'timeZoneName')?.value || '';
 
     return `${cityName}${tzAbbr ? ` (${tzAbbr})` : ''} - ${time}`;
   } catch {
@@ -98,7 +126,7 @@ function getUserTimezone(): string {
 function groupTimezonesByRegion(timezones: string[]): Record<string, string[]> {
   const grouped: Record<string, string[]> = {};
 
-  timezones.forEach(tz => {
+  timezones.forEach((tz) => {
     const region = getTimezoneRegion(tz);
     if (!grouped[region]) {
       grouped[region] = [];
@@ -108,15 +136,28 @@ function groupTimezonesByRegion(timezones: string[]): Record<string, string[]> {
 
   // Sort regions
   const sortedRegions: Record<string, string[]> = {};
-  const regionOrder = ['UTC', 'America', 'Europe', 'Asia', 'Africa', 'Australia', 'Pacific', 'Atlantic', 'Indian', 'Antarctica', 'Arctic', 'Other'];
-  regionOrder.forEach(region => {
+  const regionOrder = [
+    'UTC',
+    'America',
+    'Europe',
+    'Asia',
+    'Africa',
+    'Australia',
+    'Pacific',
+    'Atlantic',
+    'Indian',
+    'Antarctica',
+    'Arctic',
+    'Other',
+  ];
+  regionOrder.forEach((region) => {
     if (grouped[region]) {
       sortedRegions[region] = grouped[region].sort();
     }
   });
 
   // Add any remaining regions
-  Object.keys(grouped).forEach(region => {
+  Object.keys(grouped).forEach((region) => {
     if (!sortedRegions[region]) {
       sortedRegions[region] = grouped[region].sort();
     }
@@ -133,7 +174,9 @@ interface TimezoneSelectorProps {
 
 export function TimezoneSelector({ value, onChange, className = '' }: TimezoneSelectorProps) {
   const [allTimezones] = useState<string[]>(() => getAllTimezones());
-  const [groupedTimezones] = useState<Record<string, string[]>>(() => groupTimezonesByRegion(allTimezones));
+  const [groupedTimezones] = useState<Record<string, string[]>>(() =>
+    groupTimezonesByRegion(allTimezones)
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const [filteredGroups, setFilteredGroups] = useState<Record<string, string[]>>(groupedTimezones);
@@ -171,11 +214,13 @@ export function TimezoneSelector({ value, onChange, className = '' }: TimezoneSe
     const term = searchTerm.toLowerCase();
     const filtered: Record<string, string[]> = {};
 
-    Object.keys(groupedTimezones).forEach(region => {
-      const matching = groupedTimezones[region].filter(tz => {
+    Object.keys(groupedTimezones).forEach((region) => {
+      const matching = groupedTimezones[region].filter((tz) => {
         const cityName = tz.split('/').pop()?.toLowerCase().replace(/_/g, ' ') || '';
         const regionName = region.toLowerCase();
-        return cityName.includes(term) || regionName.includes(term) || tz.toLowerCase().includes(term);
+        return (
+          cityName.includes(term) || regionName.includes(term) || tz.toLowerCase().includes(term)
+        );
       });
 
       if (matching.length > 0) {
@@ -255,13 +300,11 @@ export function TimezoneSelector({ value, onChange, className = '' }: TimezoneSe
     }
   };
 
-  const displayValue = value
-    ? formatTimezoneDisplay(value)
-    : '';
+  const displayValue = value ? formatTimezoneDisplay(value) : '';
 
   return (
     <div className={className}>
-      <label htmlFor="timezone" className="block text-sm font-medium mb-2">
+      <label htmlFor="timezone" className="mb-2 block text-sm font-medium">
         Timezone *
       </label>
       <div className="relative">
@@ -273,41 +316,48 @@ export function TimezoneSelector({ value, onChange, className = '' }: TimezoneSe
           onChange={handleInputChange}
           onFocus={handleInputFocus}
           onKeyDown={handleInputKeyDown}
-          placeholder={value ? "Type to search timezone..." : "Type to search timezone (e.g., New York, London, Tokyo)..."}
-          className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          placeholder={
+            value
+              ? 'Type to search timezone...'
+              : 'Type to search timezone (e.g., New York, London, Tokyo)...'
+          }
+          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
         />
         {isOpen && (
           <div
             ref={dropdownRef}
-            className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-96 overflow-y-auto"
+            className="absolute z-50 mt-1 max-h-96 w-full overflow-y-auto rounded-lg border border-gray-300 bg-white shadow-lg dark:border-gray-600 dark:bg-gray-800"
           >
             {Object.keys(filteredGroups).length === 0 ? (
               <div className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
                 No timezones found matching "{searchTerm}"
               </div>
             ) : (
-              Object.keys(filteredGroups).map(region => (
-                <div key={region} className="border-b border-gray-200 dark:border-gray-700 last:border-b-0">
-                  <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900 text-xs font-semibold text-gray-700 dark:text-gray-300 sticky top-0">
+              Object.keys(filteredGroups).map((region) => (
+                <div
+                  key={region}
+                  className="border-b border-gray-200 last:border-b-0 dark:border-gray-700"
+                >
+                  <div className="sticky top-0 bg-gray-50 px-3 py-2 text-xs font-semibold text-gray-700 dark:bg-gray-900 dark:text-gray-300">
                     {region}
                   </div>
-                  {filteredGroups[region].map(timezone => {
+                  {filteredGroups[region].map((timezone) => {
                     const isSelected = timezone === value;
                     return (
                       <button
                         key={timezone}
                         type="button"
                         onClick={() => handleSelect(timezone)}
-                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors ${
+                        className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/20 ${
                           isSelected
-                            ? 'bg-blue-100 dark:bg-blue-900/30 font-medium'
+                            ? 'bg-blue-100 font-medium dark:bg-blue-900/30'
                             : 'text-gray-900 dark:text-gray-100'
                         }`}
                       >
                         <div className="flex items-center justify-between">
                           <span>{formatTimezoneDisplay(timezone)}</span>
                           {isSelected && (
-                            <span className="text-blue-600 dark:text-blue-400 ml-2">✓</span>
+                            <span className="ml-2 text-blue-600 dark:text-blue-400">✓</span>
                           )}
                         </div>
                       </button>

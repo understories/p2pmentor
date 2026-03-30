@@ -1,6 +1,6 @@
 /**
  * App Shell Component
- * 
+ *
  * Phase 0: Wraps app content with navigation (bottom nav on mobile, sidebar on desktop).
  * Provides consistent layout without breaking existing flows.
  */
@@ -41,8 +41,8 @@ export function AppShell({ children }: AppShellProps) {
       {/* PRESERVED FOR FUTURE USE: Brave browser zoom fix (disabled due to issues) */}
       {/* style={isBrave ? { transform: 'scale(0.93)', transformOrigin: 'top left' } : undefined} */}
       {/* Global z-index fix: ensure content is always above skill garden (z-[1]) */}
-      <main 
-        className={`relative z-10 md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} pt-14 md:pt-0 pb-4 min-h-screen transition-all duration-300 ease-out backdrop-blur-sm`}
+      <main
+        className={`relative z-10 md:ml-4 ${sidebarHovered ? 'md:ml-56' : ''} min-h-screen pb-4 pt-14 backdrop-blur-sm transition-all duration-300 ease-out md:pt-0`}
       >
         {children}
       </main>
@@ -52,4 +52,3 @@ export function AppShell({ children }: AppShellProps) {
     </>
   );
 }
-

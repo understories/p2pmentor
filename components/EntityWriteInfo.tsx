@@ -20,7 +20,12 @@ interface EntityWriteInfoProps {
   className?: string;
 }
 
-export function EntityWriteInfo({ entityKey, txHash, entityType, className = '' }: EntityWriteInfoProps) {
+export function EntityWriteInfo({
+  entityKey,
+  txHash,
+  entityType,
+  className = '',
+}: EntityWriteInfoProps) {
   const arkivBuilderMode = useArkivBuilderMode();
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
@@ -40,21 +45,25 @@ export function EntityWriteInfo({ entityKey, txHash, entityType, className = '' 
   };
 
   return (
-    <div className={`mt-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 ${className}`}>
-      <div className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+    <div
+      className={`mt-2 rounded-lg border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-900 ${className}`}
+    >
+      <div className="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
         {entityType ? `${entityType} Entity` : 'Entity'} Created
       </div>
-      
+
       <div className="space-y-2 text-xs">
         {/* Entity Key */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-600 dark:text-gray-400 font-medium min-w-[80px]">Entity Key:</span>
-          <code className="flex-1 font-mono text-gray-800 dark:text-gray-200 break-all">
+          <span className="min-w-[80px] font-medium text-gray-600 dark:text-gray-400">
+            Entity Key:
+          </span>
+          <code className="flex-1 break-all font-mono text-gray-800 dark:text-gray-200">
             {entityKey}
           </code>
           <button
             onClick={() => copyToClipboard(entityKey, setCopiedKey)}
-            className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
+            className="rounded bg-gray-200 px-2 py-1 text-xs transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
             title="Copy entity key"
           >
             {copiedKey ? '✓' : '📋'}
@@ -63,13 +72,15 @@ export function EntityWriteInfo({ entityKey, txHash, entityType, className = '' 
 
         {/* Transaction Hash */}
         <div className="flex items-center gap-2">
-          <span className="text-gray-600 dark:text-gray-400 font-medium min-w-[80px]">Tx Hash:</span>
-          <code className="flex-1 font-mono text-gray-800 dark:text-gray-200 break-all">
+          <span className="min-w-[80px] font-medium text-gray-600 dark:text-gray-400">
+            Tx Hash:
+          </span>
+          <code className="flex-1 break-all font-mono text-gray-800 dark:text-gray-200">
             {txHash}
           </code>
           <button
             onClick={() => copyToClipboard(txHash, setCopiedHash)}
-            className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded transition-colors"
+            className="rounded bg-gray-200 px-2 py-1 text-xs transition-colors hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
             title="Copy transaction hash"
           >
             {copiedHash ? '✓' : '📋'}
@@ -77,14 +88,14 @@ export function EntityWriteInfo({ entityKey, txHash, entityType, className = '' 
         </div>
 
         {/* Explorer Link */}
-        <div className="flex items-center gap-2 pt-1 border-t border-gray-200 dark:border-gray-700">
+        <div className="flex items-center gap-2 border-t border-gray-200 pt-1 dark:border-gray-700">
           <ViewOnArkivLink
             entityKey={entityKey}
             txHash={txHash}
             label="View on Arkiv Explorer"
             className="text-xs"
           />
-          <span className="text-gray-500 dark:text-gray-400 text-xs italic">
+          <span className="text-xs italic text-gray-500 dark:text-gray-400">
             (may take time to appear)
           </span>
         </div>
@@ -92,4 +103,3 @@ export function EntityWriteInfo({ entityKey, txHash, entityType, className = '' 
     </div>
   );
 }
-

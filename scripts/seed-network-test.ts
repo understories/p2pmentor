@@ -1,6 +1,6 @@
 /**
  * Seed script for testing network page
- * 
+ *
  * Creates diverse asks and offers to test matching functionality.
  * Uses the example wallet from ARKIV_PRIVATE_KEY.
  */
@@ -11,16 +11,16 @@ import { createOffer } from '../lib/arkiv/offers';
 import { getPrivateKey, CURRENT_WALLET } from '../lib/config';
 
 // Simple delay to avoid rate limiting
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function seedNetworkTest() {
   console.log('🌱 Seeding network test data (long-lasting for demos)...\n');
-  
+
   if (!CURRENT_WALLET) {
     console.error('❌ ARKIV_PRIVATE_KEY is not available. Please set it in your .env file.');
     process.exit(1);
   }
-  
+
   const wallet = CURRENT_WALLET;
   const privateKey = getPrivateKey();
   console.log(`Using wallet: ${wallet}\n`);
@@ -34,7 +34,10 @@ async function seedNetworkTest() {
     console.log('❓ Creating asks (learning requests)...');
     const asks = [
       { skill: 'React', message: 'I want to learn React hooks and state management' },
-      { skill: 'TypeScript', message: 'Looking for help with TypeScript generics and advanced types' },
+      {
+        skill: 'TypeScript',
+        message: 'Looking for help with TypeScript generics and advanced types',
+      },
       { skill: 'Solidity', message: 'Need guidance on smart contract security best practices' },
       { skill: 'Rust', message: 'Want to learn Rust ownership and borrowing concepts' },
       { skill: 'Next.js', message: 'Need help with Next.js App Router and server components' },
@@ -62,14 +65,56 @@ async function seedNetworkTest() {
     console.log('\n💼 Creating offers (teaching offers)...');
     // Create matching offers - some will match asks, some won't
     const offers = [
-      { skill: 'React', message: 'Experienced React developer, happy to help with hooks and state management', availabilityWindow: 'Mon-Fri 6-8pm EST', isPaid: false },
-      { skill: 'TypeScript', message: 'TypeScript expert available for mentoring on advanced patterns', availabilityWindow: 'Weekends flexible', isPaid: false },
-      { skill: 'Solidity', message: 'Smart contract auditor offering security reviews and best practices', availabilityWindow: 'Weekdays 9am-5pm EST', isPaid: true, cost: '0.1 ETH' },
-      { skill: 'Rust', message: 'Rust core contributor, can help with ownership and async programming', availabilityWindow: 'Evenings after 7pm EST', isPaid: false },
-      { skill: 'Python', message: 'Python mentor for data science and web development', availabilityWindow: 'Flexible', isPaid: false },
-      { skill: 'JavaScript', message: 'JavaScript fundamentals and modern ES6+ features', availabilityWindow: 'Weekends 10am-2pm EST', isPaid: false },
-      { skill: 'GraphQL', message: 'GraphQL schema design and query optimization', availabilityWindow: 'Weekdays flexible', isPaid: true, cost: '0.05 ETH' },
-      { skill: 'Web3', message: 'Web3 development and smart contract integration', availabilityWindow: 'Evenings', isPaid: false },
+      {
+        skill: 'React',
+        message: 'Experienced React developer, happy to help with hooks and state management',
+        availabilityWindow: 'Mon-Fri 6-8pm EST',
+        isPaid: false,
+      },
+      {
+        skill: 'TypeScript',
+        message: 'TypeScript expert available for mentoring on advanced patterns',
+        availabilityWindow: 'Weekends flexible',
+        isPaid: false,
+      },
+      {
+        skill: 'Solidity',
+        message: 'Smart contract auditor offering security reviews and best practices',
+        availabilityWindow: 'Weekdays 9am-5pm EST',
+        isPaid: true,
+        cost: '0.1 ETH',
+      },
+      {
+        skill: 'Rust',
+        message: 'Rust core contributor, can help with ownership and async programming',
+        availabilityWindow: 'Evenings after 7pm EST',
+        isPaid: false,
+      },
+      {
+        skill: 'Python',
+        message: 'Python mentor for data science and web development',
+        availabilityWindow: 'Flexible',
+        isPaid: false,
+      },
+      {
+        skill: 'JavaScript',
+        message: 'JavaScript fundamentals and modern ES6+ features',
+        availabilityWindow: 'Weekends 10am-2pm EST',
+        isPaid: false,
+      },
+      {
+        skill: 'GraphQL',
+        message: 'GraphQL schema design and query optimization',
+        availabilityWindow: 'Weekdays flexible',
+        isPaid: true,
+        cost: '0.05 ETH',
+      },
+      {
+        skill: 'Web3',
+        message: 'Web3 development and smart contract integration',
+        availabilityWindow: 'Evenings',
+        isPaid: false,
+      },
     ];
 
     for (const offer of offers) {
@@ -85,7 +130,9 @@ async function seedNetworkTest() {
           privateKey,
           expiresIn: DEMO_TTL_SECONDS, // 7 days for demo
         });
-        console.log(`✅ Offer created: ${offer.skill} (${offer.isPaid ? 'Paid' : 'Free'}) - ${result.key.substring(0, 16)}...`);
+        console.log(
+          `✅ Offer created: ${offer.skill} (${offer.isPaid ? 'Paid' : 'Free'}) - ${result.key.substring(0, 16)}...`
+        );
       } catch (error: any) {
         console.log(`⚠️  Skipped offer (${offer.skill}): ${error.message}`);
       }
@@ -113,5 +160,3 @@ async function seedNetworkTest() {
 }
 
 seedNetworkTest();
-
-

@@ -1,14 +1,14 @@
 /**
  * GraphQL client for GraphQL queries (subgraph or Arkiv GraphQL API)
- * 
+ *
  * Minimal wrapper around fetch for querying GraphQL endpoints.
  * Works with:
  * - The Graph subgraph endpoints
  * - Arkiv GraphQL API wrapper (see /app/api/graphql)
  * - Any GraphQL endpoint
- * 
+ *
  * No heavy dependencies (no Apollo, no urql) - just typed fetch with error handling.
- * 
+ *
  * Reference: refs/docs/sprint2.md
  */
 
@@ -48,24 +48,24 @@ export type GraphRequestOptions = {
 
 /**
  * Execute a GraphQL query against the GraphQL endpoint
- * 
+ *
  * Endpoint resolution (in order):
  * 1. options.endpoint (explicit override)
  * 2. GRAPH_SUBGRAPH_URL env var (external subgraph or local)
  * 3. '/api/graphql' (default local Next.js route)
- * 
+ *
  * @param query - GraphQL query string
  * @param variables - Optional query variables
  * @param options - Optional endpoint override and operation name
  * @returns Typed response data
  * @throws GraphRequestError if the request fails or GraphQL returns errors
- * 
+ *
  * @example
  * ```ts
  * const data = await graphRequest<{ profiles: Profile[] }>(
  *   `query { profiles { id wallet } }`
  * );
- * 
+ *
  * // With explicit endpoint
  * const data = await graphRequest(query, vars, { endpoint: 'https://api.example.com/graphql' });
  * ```
@@ -76,10 +76,7 @@ export async function graphRequest<T = any>(
   options: GraphRequestOptions = {}
 ): Promise<T> {
   // Resolve endpoint: explicit override > env var > default local
-  const endpoint =
-    options.endpoint ||
-    process.env.GRAPH_SUBGRAPH_URL ||
-    '/api/graphql';
+  const endpoint = options.endpoint || process.env.GRAPH_SUBGRAPH_URL || '/api/graphql';
 
   // Use performance.now() if available (browser), otherwise Date.now() (Node.js)
   const perf = typeof performance !== 'undefined' ? performance : { now: () => Date.now() };
@@ -109,7 +106,7 @@ export async function graphRequest<T = any>(
 
     // Check for GraphQL errors in response
     if (result.errors && result.errors.length > 0) {
-      const errorMessages = result.errors.map(e => e.message).join('; ');
+      const errorMessages = result.errors.map((e) => e.message).join('; ');
       throw new GraphRequestError(
         `GraphQL errors: ${errorMessages}`,
         response.status,
@@ -118,10 +115,7 @@ export async function graphRequest<T = any>(
     }
 
     if (!result.data) {
-      throw new GraphRequestError(
-        'GraphQL response missing data field',
-        response.status
-      );
+      throw new GraphRequestError('GraphQL response missing data field', response.status);
     }
 
     // Note: Performance tracking is handled by the calling functions (fetchAsks, fetchOffers, etc.)
@@ -136,11 +130,6 @@ export async function graphRequest<T = any>(
 
     // Wrap other errors (network errors, JSON parse errors, etc.)
     const message = error instanceof Error ? error.message : 'Unknown error';
-    throw new GraphRequestError(
-      `GraphQL request failed: ${message}`,
-      undefined,
-      error
-    );
+    throw new GraphRequestError(`GraphQL request failed: ${message}`, undefined, error);
   }
 }
-

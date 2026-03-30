@@ -14,6 +14,7 @@ The system uses two complementary entity types:
 2. **`beta_access`**: Records wallet-to-code bindings (who used which code)
 
 Together, these entities provide:
+
 - **Accurate tracking**: `beta_access` entities are the source of truth for unique wallet counts
 - **Efficient queries**: `beta_code_usage` provides quick limit checks
 - **Complete audit trail**: Every access grant is recorded immutably on-chain
@@ -30,6 +31,7 @@ Tracks usage statistics for each invite code.
 **Immutability:** Updates create new entities (usage count changes)
 
 **Attributes:**
+
 - `type`: `'beta_code_usage'` (required)
 - `code`: Beta code string (required, lowercase, trimmed)
 - `usageCount`: Current usage count (required, as string)
@@ -38,6 +40,7 @@ Tracks usage statistics for each invite code.
 - `createdAt`: ISO timestamp (required)
 
 **Payload:**
+
 ```typescript
 {
   code: string;            // Beta code (lowercase, trimmed)
@@ -59,6 +62,7 @@ Records wallet-to-code bindings. This is the **source of truth** for unique wall
 **Immutability:** Immutable - each access grant creates a new entity
 
 **Attributes:**
+
 - `type`: `'beta_access'` (required)
 - `wallet`: Wallet address granted access (required, lowercase)
 - `code`: Beta code used (required, lowercase, trimmed)
@@ -66,11 +70,12 @@ Records wallet-to-code bindings. This is the **source of truth** for unique wall
 - `grantedAt`: ISO timestamp (required)
 
 **Payload:**
+
 ```typescript
 {
-  wallet: string;          // Wallet address (lowercase)
-  code: string;            // Beta code (lowercase, trimmed)
-  grantedAt: string;       // ISO timestamp when access was granted
+  wallet: string; // Wallet address (lowercase)
+  code: string; // Beta code (lowercase, trimmed)
+  grantedAt: string; // ISO timestamp when access was granted
 }
 ```
 
@@ -93,6 +98,7 @@ POST /api/beta-code
 ```
 
 **API Response:**
+
 ```typescript
 {
   ok: true,
@@ -106,6 +112,7 @@ POST /api/beta-code
 ```
 
 **What Happens:**
+
 - Queries `beta_code_usage` for current usage stats
 - Queries `beta_access` to get actual unique wallet count (source of truth)
 - Returns whether code can be used and remaining slots
@@ -123,6 +130,7 @@ POST /api/beta-code
 ```
 
 **What Happens:**
+
 - Checks if code exists and hasn't exceeded limit
 - Returns validation result
 - **Does NOT increment usage count yet** (wallet not known)
@@ -151,6 +159,7 @@ if (level === 0) {
 This is where the limit is enforced and access is granted:
 
 **Step 1: Check for Duplicates**
+
 ```typescript
 const existingAccess = await getBetaAccessByWallet(wallet, SPACE_ID);
 if (existingAccess && existingAccess.code === normalizedCode) {
@@ -160,10 +169,11 @@ if (existingAccess && existingAccess.code === normalizedCode) {
 ```
 
 **Step 2: Enforce Limit (Source of Truth)**
+
 ```typescript
 // Count unique wallets from beta_access entities (Arkiv-native, accurate)
 const accessRecords = await listBetaAccessByCode(normalizedCode, SPACE_ID);
-const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
 if (uniqueWalletCount >= limit) {
   return { ok: false, error: 'Beta code limit reached' }; // 403 Forbidden
@@ -171,6 +181,7 @@ if (uniqueWalletCount >= limit) {
 ```
 
 **Step 3: Create Access Record**
+
 ```typescript
 const { key, txHash } = await createBetaAccess({
   wallet: normalizedWallet,
@@ -180,12 +191,14 @@ const { key, txHash } = await createBetaAccess({
 ```
 
 **Step 4: Sync Usage Count**
+
 ```typescript
 // Sync usageCount with actual unique wallet count (includes this new wallet)
 await syncBetaCodeUsageCount(normalizedCode, SPACE_ID);
 ```
 
 **Result:**
+
 - New `beta_access` entity created (wallet → code binding)
 - `beta_code_usage` entity updated (usageCount incremented)
 - Limit enforced based on actual unique wallet count
@@ -199,17 +212,21 @@ The limit is enforced at **50 unique wallets** per code. Enforcement happens in 
 ```typescript
 // Count unique wallets from beta_access entities (source of truth)
 const accessRecords = await listBetaAccessByCode(normalizedCode, SPACE_ID);
-const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
 if (uniqueWalletCount >= limit) {
-  return NextResponse.json({
-    ok: false,
-    error: `Beta code has reached its usage limit (${uniqueWalletCount}/${limit} unique wallets).`,
-  }, { status: 403 }); // 403 Forbidden
+  return NextResponse.json(
+    {
+      ok: false,
+      error: `Beta code has reached its usage limit (${uniqueWalletCount}/${limit} unique wallets).`,
+    },
+    { status: 403 }
+  ); // 403 Forbidden
 }
 ```
 
 **Why this works:**
+
 - Uses actual unique wallet count from `beta_access` entities
 - Prevents race conditions (checks before creating)
 - Accurate even if `usageCount` is temporarily out of sync
@@ -224,13 +241,14 @@ export async function canUseBetaCode(code: string, spaceId?: string): Promise<bo
   // Check actual unique wallet count (source of truth)
   const { listBetaAccessByCode } = await import('./betaAccess');
   const accessRecords = await listBetaAccessByCode(code, spaceId);
-  const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+  const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
   return uniqueWalletCount < limit;
 }
 ```
 
 **Why this works:**
+
 - Always uses actual unique wallet count
 - Used by `validate` action for early checks
 - Provides accurate remaining count
@@ -248,7 +266,7 @@ const usage = await getBetaCodeUsage(code, SPACE_ID);
 
 // Get actual unique wallet count (source of truth)
 const accessRecords = await listBetaAccessByCode(code, SPACE_ID);
-const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
 console.log(`Usage: ${uniqueWalletCount}/${usage?.limit || 50}`);
 console.log(`Remaining: ${Math.max(0, (usage?.limit || 50) - uniqueWalletCount)}`);
@@ -271,7 +289,7 @@ if (access && access.code === normalizedCode) {
 import { listBetaAccessByCode } from '@/lib/arkiv/betaAccess';
 
 const accessRecords = await listBetaAccessByCode(code, SPACE_ID);
-const uniqueWallets = new Set(accessRecords.map(a => a.wallet.toLowerCase()));
+const uniqueWallets = new Set(accessRecords.map((a) => a.wallet.toLowerCase()));
 
 console.log(`${uniqueWallets.size} unique wallets have used code "${code}"`);
 ```
@@ -281,6 +299,7 @@ console.log(`${uniqueWallets.size} unique wallets have used code "${code}"`);
 ### 1. Transparency
 
 All access grants are public and verifiable on-chain:
+
 - Anyone can query `beta_access` entities to see who used which code
 - Usage statistics are public (`beta_code_usage`)
 - Complete audit trail of all access grants
@@ -288,6 +307,7 @@ All access grants are public and verifiable on-chain:
 ### 2. Accuracy
 
 Usage tracking is based on actual unique wallet count:
+
 - `beta_access` entities are the source of truth
 - `usageCount` is synchronized with actual wallet count
 - Prevents double-counting (duplicate checks)
@@ -295,6 +315,7 @@ Usage tracking is based on actual unique wallet count:
 ### 3. Decentralization
 
 No centralized database required:
+
 - All data stored as Arkiv entities
 - Queries use Arkiv's public client
 - No server-side state management
@@ -302,6 +323,7 @@ No centralized database required:
 ### 4. Immutability
 
 Complete audit trail:
+
 - Every access grant creates an immutable entity
 - History of usage count changes preserved
 - Cannot be tampered with
@@ -309,6 +331,7 @@ Complete audit trail:
 ### 5. Serverless
 
 No backend state management:
+
 - All logic uses Arkiv queries
 - Stateless API routes
 - Scales automatically
@@ -318,11 +341,13 @@ No backend state management:
 ### Code Normalization
 
 All codes are normalized to ensure consistency:
+
 ```typescript
 const normalizedCode = code.toLowerCase().trim();
 ```
 
 This ensures:
+
 - Case-insensitive matching
 - Whitespace handling
 - Consistent storage
@@ -330,11 +355,13 @@ This ensures:
 ### Wallet Normalization
 
 All wallet addresses are normalized:
+
 ```typescript
 const normalizedWallet = wallet.toLowerCase();
 ```
 
 This ensures:
+
 - Case-insensitive matching
 - Consistent storage
 - Accurate unique counting
@@ -342,6 +369,7 @@ This ensures:
 ### Concurrency Handling
 
 The system handles concurrent requests:
+
 - Duplicate checks prevent double-counting
 - Limit checks happen before entity creation
 - `syncBetaCodeUsageCount` ensures accuracy
@@ -349,6 +377,7 @@ The system handles concurrent requests:
 ### Error Handling
 
 Graceful error handling:
+
 - Network errors don't block auth flow
 - Failed access creation doesn't prevent login
 - Errors logged but don't crash system
@@ -376,6 +405,7 @@ Graceful error handling:
 - Usage statistics are public
 
 **Implications:**
+
 - Anyone can see who used which code
 - Code privacy not guaranteed
 - Consider for production: use codes that don't reveal sensitive info
@@ -395,9 +425,9 @@ Graceful error handling:
 ## Future Enhancements
 
 Potential improvements:
+
 - Multiple codes per wallet support
 - Code expiration dates
 - Admin code management UI
 - Usage analytics dashboard
 - Code generation automation
-

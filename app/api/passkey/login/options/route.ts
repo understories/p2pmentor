@@ -1,8 +1,8 @@
 /**
  * Passkey Login Options API
- * 
+ *
  * Returns WebAuthn authentication options for passkey login.
- * 
+ *
  * POST /api/passkey/login/options
  * Body: { userId?: string } (optional, for allowCredentials filtering)
  */
@@ -16,7 +16,10 @@ export async function POST(request: Request) {
     const { userId, walletAddress } = body;
 
     // Capture request origin for RP ID consistency checks
-    const requestOrigin = request.headers.get('origin') || request.headers.get('referer')?.split('/').slice(0, 3).join('/') || undefined;
+    const requestOrigin =
+      request.headers.get('origin') ||
+      request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+      undefined;
 
     console.log('[api/passkey/login/options] Request received:', {
       userId: userId || 'none',
@@ -47,4 +50,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

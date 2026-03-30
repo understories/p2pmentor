@@ -1,8 +1,8 @@
 /**
  * Garden Notes API route
- * 
+ *
  * Handles creation and listing of public garden notes (bulletin board).
- * 
+ *
  * Features:
  * - Public by design (anyone can read)
  * - On-chain / on-Arkiv (stored as Arkiv entity)
@@ -10,9 +10,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  createGardenNote, 
-  listGardenNotes, 
+import {
+  createGardenNote,
+  listGardenNotes,
   getGardenNoteByKey,
   hasExceededDailyLimit,
   GARDEN_NOTE_MAX_LENGTH,
@@ -34,10 +34,7 @@ export async function GET(request: Request) {
     if (key) {
       const note = await getGardenNoteByKey(key);
       if (!note) {
-        return NextResponse.json(
-          { ok: false, error: 'Garden note not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ ok: false, error: 'Garden note not found' }, { status: 404 });
       }
       return NextResponse.json({ ok: true, note });
     }
@@ -54,7 +51,7 @@ export async function GET(request: Request) {
 
     if (builderMode && spaceIdsParam) {
       // Builder mode: query multiple spaceIds
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+      spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
     } else if (spaceIdParam) {
       // Override default spaceId
       spaceId = spaceIdParam;
@@ -92,37 +89,27 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
 
   try {
     const body = await request.json();
-    const { 
-      wallet, 
-      targetWallet, 
-      message, 
-      tags = [], 
-      replyToNoteId,
-      publishConsent,
-    } = body;
+    const { wallet, targetWallet, message, tags = [], replyToNoteId, publishConsent } = body;
 
     // Validate wallet
     const authorWallet = wallet || CURRENT_WALLET || '';
     if (!authorWallet) {
-      return NextResponse.json(
-        { ok: false, error: 'No wallet address provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'No wallet address provided' }, { status: 400 });
     }
 
     // Validate message
     if (!message || typeof message !== 'string' || message.trim().length === 0) {
-      return NextResponse.json(
-        { ok: false, error: 'Message is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Message is required' }, { status: 400 });
     }
 
     if (message.length > GARDEN_NOTE_MAX_LENGTH) {
@@ -144,9 +131,9 @@ export async function POST(request: NextRequest) {
     const exceeded = await hasExceededDailyLimit(authorWallet);
     if (exceeded) {
       return NextResponse.json(
-        { 
-          ok: false, 
-          error: `Daily limit reached. You can post up to ${GARDEN_NOTE_DAILY_LIMIT} notes per day.` 
+        {
+          ok: false,
+          error: `Daily limit reached. You can post up to ${GARDEN_NOTE_DAILY_LIMIT} notes per day.`,
         },
         { status: 429 }
       );
@@ -164,9 +151,9 @@ export async function POST(request: NextRequest) {
       publishConsent: true, // Already validated above
     });
 
-    return NextResponse.json({ 
-      ok: true, 
-      key, 
+    return NextResponse.json({
+      ok: true,
+      key,
       txHash,
       message: 'Garden note published successfully',
     });
@@ -178,4 +165,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

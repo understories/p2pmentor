@@ -40,13 +40,14 @@ Tracks beta code usage on Arkiv to enforce limits. Each beta code has a usage li
 ### Get Beta Code Usage
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
 const normalizedCode = code.toLowerCase().trim();
 
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'beta_code_usage'))
   .where(eq('code', normalizedCode))
   .withAttributes(true)
@@ -56,7 +57,7 @@ const result = await publicClient.buildQuery()
 
 // Get latest version (highest usageCount or most recent createdAt)
 const latest = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => {
     // Sort by usageCount descending, then createdAt descending
     if (a.usageCount !== b.usageCount) {
@@ -78,12 +79,12 @@ const isAvailable = usage && usage.usageCount < usage.limit;
 ## Creation/Update
 
 ```typescript
-import { trackBetaCodeUsage } from "@/lib/arkiv/betaCode";
+import { trackBetaCodeUsage } from '@/lib/arkiv/betaCode';
 
 // Create new code or increment existing
 const { key, txHash } = await trackBetaCodeUsage(
-  code,      // Beta code string
-  50         // Usage limit (default: 50)
+  code, // Beta code string
+  50 // Usage limit (default: 50)
 );
 ```
 
@@ -119,23 +120,23 @@ Beta code validation and usage tracking:
 async function validateAndUseBetaCode(code: string, wallet: string) {
   // 1. Get current usage
   const betaCode = await getBetaCodeUsage(code);
-  
+
   if (!betaCode) {
     // First use - create initial entity
     await trackBetaCodeUsage(code, 50);
   } else if (betaCode.usageCount >= betaCode.limit) {
     throw new Error('Beta code limit reached');
   }
-  
+
   // 2. Check if wallet already used this code
   const existingAccess = await getBetaAccess(wallet, code);
   if (existingAccess) {
     throw new Error('Wallet already has access via this code');
   }
-  
+
   // 3. Grant access
   await createBetaAccess({ wallet, code, privateKey: getPrivateKey() });
-  
+
   // 4. Increment usage count
   await trackBetaCodeUsage(code, betaCode?.limit || 50);
 }
@@ -158,4 +159,3 @@ async function validateAndUseBetaCode(code: string, wallet: string) {
 - **Public Data**: Beta codes and usage counts are public on-chain
 - **Code Privacy**: Consider implications of storing codes on-chain
 - **Rate Limiting**: Usage limits enforced client-side (verify on-chain)
-

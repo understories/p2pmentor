@@ -1,6 +1,6 @@
 /**
  * Offer Path Step Component
- * 
+ *
  * Simplified form to create an offer during onboarding
  */
 
@@ -42,9 +42,9 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
 
         // Filter to user's skills if available
         if (profile?.skillsArray && profile.skillsArray.length > 0) {
-          const userSkills = allSkills.filter(skill =>
-            profile.skillsArray!.some(userSkill =>
-              skill.name_canonical.toLowerCase() === userSkill.toLowerCase()
+          const userSkills = allSkills.filter((skill) =>
+            profile.skillsArray!.some(
+              (userSkill) => skill.name_canonical.toLowerCase() === userSkill.toLowerCase()
             )
           );
           setAvailableSkills(userSkills.length > 0 ? userSkills : allSkills.slice(0, 10));
@@ -93,7 +93,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
     setIsSubmitting(true);
 
     try {
-      const skill = availableSkills.find(s => s.key === selectedSkill);
+      const skill = availableSkills.find((s) => s.key === selectedSkill);
 
       if (!skill) {
         throw new Error('Selected skill not found');
@@ -102,7 +102,8 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
       // Convert hours to seconds for expiresIn
       const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
       const ttlHoursNum = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600); // Default to 1 week if invalid
+      const expiresIn =
+        isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600); // Default to 1 week if invalid
 
       // Use API route for offer creation
       // wallet is the profile wallet address (from localStorage 'wallet_address')
@@ -113,7 +114,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
       const profile = await getProfileByWallet(normalizedWallet).catch(() => null);
       const userTimezone = profile?.timezone || 'UTC';
       const defaultAvailability = createDefaultWeeklyAvailability(userTimezone);
-      
+
       const res = await fetch('/api/offers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -150,26 +151,26 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8">
       <div className="text-center">
-        <div 
-          className="text-6xl mb-4"
+        <div
+          className="mb-4 text-6xl"
           style={{
             filter: 'drop-shadow(0 0 20px rgba(6, 182, 212, 0.6))',
           }}
         >
           💎
         </div>
-        <h2 
-          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        <h2
+          className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
           style={{
             textShadow: '0 0 20px rgba(6, 182, 212, 0.5), 0 0 40px rgba(6, 182, 212, 0.3)',
           }}
         >
           What can you share?
         </h2>
-        <p 
-          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+        <p
+          className="mb-8 text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
@@ -186,7 +187,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
             onChange={(e) => setSelectedSkill(e.target.value)}
             required
             autoFocus
-            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all shadow-lg"
+            className="w-full rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
             disabled={isLoadingSkills || isSubmitting}
           >
             {isLoadingSkills ? (
@@ -212,7 +213,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
             placeholder="What can you teach or share?"
             rows={4}
             required
-            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all resize-none shadow-lg"
+            className="w-full resize-none rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
             disabled={isSubmitting}
           />
         </div>
@@ -227,24 +228,24 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
             day: 'numeric',
             year: 'numeric',
             hour: 'numeric',
-            minute: '2-digit'
+            minute: '2-digit',
           });
           return (
-            <div className="pt-2 pb-2 text-sm text-gray-200 dark:text-gray-400">
+            <div className="pb-2 pt-2 text-sm text-gray-200 dark:text-gray-400">
               <span className="font-medium">Expires:</span> {formattedDate}
             </div>
           );
         })()}
 
         {/* Advanced Options Toggle */}
-        <div className="pt-2 border-t border-white/20 dark:border-white/10">
+        <div className="border-t border-white/20 pt-2 dark:border-white/10">
           <button
             type="button"
             onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
-            className="flex items-center gap-2 text-sm text-gray-200 dark:text-gray-400 hover:text-white dark:hover:text-gray-200 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-200 transition-colors hover:text-white dark:text-gray-400 dark:hover:text-gray-200"
           >
             <svg
-              className={`w-4 h-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
+              className={`h-4 w-4 transition-transform ${showAdvancedOptions ? 'rotate-90' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -257,9 +258,12 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
 
         {/* Advanced Options (Collapsed by Default) */}
         {showAdvancedOptions && (
-          <div className="space-y-4 pt-4 border-t border-white/20 dark:border-white/10">
+          <div className="space-y-4 border-t border-white/20 pt-4 dark:border-white/10">
             <div>
-              <label htmlFor="ttlHours" className="block text-sm font-medium mb-2 text-white dark:text-white">
+              <label
+                htmlFor="ttlHours"
+                className="mb-2 block text-sm font-medium text-white dark:text-white"
+              >
                 Expiration Duration (optional)
                 {arkivBuilderMode ? (
                   <ArkivQueryTooltip
@@ -268,7 +272,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
                       `TLDR: Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.`,
                       ``,
                       `Current Selection: ${ttlHours === 'custom' ? `${customTtlHours || '...'} hours` : `${ttlHours || '48'} hours`}`,
-                      `Conversion: hours → seconds (${ttlHours === 'custom' ? (parseFloat(customTtlHours || '48') * 3600) : (parseFloat(ttlHours || '48') * 3600)} seconds)`,
+                      `Conversion: hours → seconds (${ttlHours === 'custom' ? parseFloat(customTtlHours || '48') * 3600 : parseFloat(ttlHours || '48') * 3600} seconds)`,
                       ``,
                       `In Offer Entity:`,
                       `→ Attribute: ttlSeconds='${ttlHours === 'custom' ? Math.floor(parseFloat(customTtlHours || '48') * 3600) : Math.floor(parseFloat(ttlHours || '48') * 3600)}'`,
@@ -280,14 +284,21 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
                       ``,
                       `Arkiv-Level Expiration:`,
                       `→ Hard deletion after expiresIn seconds`,
-                      `→ Used for network cleanup`
+                      `→ Used for network cleanup`,
                     ]}
                     label="TTL Info"
                   >
-                    <span className="ml-2 text-xs text-gray-300 dark:text-gray-500 cursor-help">ℹ️</span>
+                    <span className="ml-2 cursor-help text-xs text-gray-300 dark:text-gray-500">
+                      ℹ️
+                    </span>
                   </ArkivQueryTooltip>
                 ) : (
-                  <span className="ml-2 text-xs text-gray-300 dark:text-gray-500" title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network.">ℹ️</span>
+                  <span
+                    className="ml-2 text-xs text-gray-300 dark:text-gray-500"
+                    title="TTL (Time To Live): Arkiv entities have an expiration date. After this time, the entity is automatically deleted from the network."
+                  >
+                    ℹ️
+                  </span>
                 )}
               </label>
               <div className="flex gap-2">
@@ -295,7 +306,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
                   id="ttlHours"
                   value={ttlHours === 'custom' ? 'custom' : ttlHours}
                   onChange={(e) => setTtlHours(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-white/30 dark:border-white/20 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                  className="flex-1 rounded-lg border border-white/30 bg-white/90 px-4 py-2 text-gray-900 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-cyan-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
                   disabled={isSubmitting}
                 >
                   <option value="1">1 hour</option>
@@ -316,7 +327,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
                     placeholder="Hours"
                     value={customTtlHours}
                     onChange={(e) => setCustomTtlHours(e.target.value)}
-                    className="w-32 px-4 py-2 border border-white/30 dark:border-white/20 rounded-lg bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                    className="w-32 rounded-lg border border-white/30 bg-white/90 px-4 py-2 text-gray-900 backdrop-blur-md focus:border-transparent focus:ring-2 focus:ring-cyan-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
                     disabled={isSubmitting}
                   />
                 )}
@@ -332,14 +343,14 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
               `Creates: type='offer' entity`,
               `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skill, skill_id, message, availabilityWindow, status='active'`,
               `Payload: Full offer data`,
-              `TTL: expiresIn (default 48 hours = 172800 seconds)`
+              `TTL: expiresIn (default 48 hours = 172800 seconds)`,
             ]}
             label="Continue"
           >
             <button
               type="submit"
               disabled={!message.trim() || !selectedSkill || isSubmitting}
-              className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+              className="w-full rounded-xl bg-cyan-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-cyan-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -355,7 +366,7 @@ export function OfferPathStep({ wallet, onComplete, onError }: OfferPathStepProp
           <button
             type="submit"
             disabled={!message.trim() || !selectedSkill || isSubmitting}
-            className="w-full px-6 py-4 bg-cyan-600 hover:bg-cyan-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            className="w-full rounded-xl bg-cyan-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-cyan-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">

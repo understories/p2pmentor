@@ -1,11 +1,11 @@
 /**
  * Transaction Event Entity
- * 
+ *
  * Creates tx_event entities for the explorer transaction feed.
  * This is an append-only log that records all app-recorded transaction events.
- * 
+ *
  * Pattern: Immutable log (Pattern A) - each transaction event is a new entity
- * 
+ *
  * Reference: refs/docs/explorer-all-transactions-display-plan.md
  */
 
@@ -30,10 +30,10 @@ export interface CreateTxEventParams {
 
 /**
  * Create a tx_event entity
- * 
+ *
  * This records a transaction event for the explorer feed.
  * Should be called whenever a *_txhash entity is created.
- * 
+ *
  * @param params - Transaction event parameters
  * @returns Entity key and transaction hash (non-blocking, errors are logged but don't throw)
  */
@@ -106,4 +106,3 @@ export async function createTxEvent({
     return null;
   }
 }
-

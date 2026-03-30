@@ -1,6 +1,6 @@
 /**
  * Loading spinner component
- * 
+ *
  * Consistent loading indicator across the app.
  */
 
@@ -19,12 +19,10 @@ export function LoadingSpinner({ size = 'md', text, className = '' }: LoadingSpi
 
   return (
     <div className={`flex flex-col items-center justify-center gap-3 ${className}`}>
-      <div className={`${sizeClasses[size]} border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin`} />
-      {text && (
-        <p className="text-sm text-gray-600 dark:text-gray-400">{text}</p>
-      )}
+      <div
+        className={`${sizeClasses[size]} animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400`}
+      />
+      {text && <p className="text-sm text-gray-600 dark:text-gray-400">{text}</p>}
     </div>
   );
 }
-
-

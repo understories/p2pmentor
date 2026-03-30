@@ -1,11 +1,13 @@
 # Proof of Skill Badge Entity Schema
 
 ## Status
+
 - Canonical for p2pmentor: Yes
 - Mutability: Pattern B
 - Pattern dependencies: PAT-UPDATE-001, PAT-QUERY-001, PAT-IDENTITY-001, PAT-SPACE-001, PAT-REF-001
 
 ## Entity Type
+
 `proof_of_skill_badge`
 
 ## Patterns Used
@@ -18,26 +20,26 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "proof_of_skill_badge" |
-| wallet | string | Yes | Attribute | Wallet address (lowercase, primary identifier) |
-| badgeType | string | Yes | Attribute | Badge type: "arkiv_builder" | "mandarin_starter" | "spanish_starter" | "cryptography_basics" | "privacy_fundamentals" | "ai_intro" |
-| questId | string | Yes | Attribute | Quest identifier this badge was earned for (e.g., "arkiv_builder") |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| issuedAt | string | Yes | Attribute | ISO timestamp when badge was issued |
-| evidenceRefs | Array<EvidenceRef> | Yes | Payload | Array of evidence references to quest_step_progress entities |
-| questVersion | string | Yes | Payload | Quest version this badge was earned on (e.g., "1") |
-| version | string | Yes | Payload | Badge schema version (currently "1") |
-| issuer | string | Yes | Payload | Badge issuer identifier (e.g., "p2pmentor") |
+| Field Name   | Type               | Required | Location  | Description                                                                                                |
+| ------------ | ------------------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------------------ | ----------------- | --------------------- | ---------------------- | ---------- |
+| type         | string             | Yes      | Attribute | Always "proof_of_skill_badge"                                                                              |
+| wallet       | string             | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
+| badgeType    | string             | Yes      | Attribute | Badge type: "arkiv_builder"                                                                                | "mandarin_starter" | "spanish_starter" | "cryptography_basics" | "privacy_fundamentals" | "ai_intro" |
+| questId      | string             | Yes      | Attribute | Quest identifier this badge was earned for (e.g., "arkiv_builder")                                         |
+| spaceId      | string             | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| issuedAt     | string             | Yes      | Attribute | ISO timestamp when badge was issued                                                                        |
+| evidenceRefs | Array<EvidenceRef> | Yes      | Payload   | Array of evidence references to quest_step_progress entities                                               |
+| questVersion | string             | Yes      | Payload   | Quest version this badge was earned on (e.g., "1")                                                         |
+| version      | string             | Yes      | Payload   | Badge schema version (currently "1")                                                                       |
+| issuer       | string             | Yes      | Payload   | Badge issuer identifier (e.g., "p2pmentor")                                                                |
 
 ## Evidence Reference Structure
 
 ```typescript
 interface EvidenceRef {
-  stepId: string;        // Step identifier
-  entityKey: string;    // Entity key of quest_step_progress entity
-  txHash?: string;      // Transaction hash (optional, for verification)
+  stepId: string; // Step identifier
+  entityKey: string; // Entity key of quest_step_progress entity
+  txHash?: string; // Transaction hash (optional, for verification)
 }
 ```
 
@@ -50,6 +52,7 @@ Badge entities use stable entity keys (Pattern B). The same entity key is reused
 **Example:** `badge:beta-launch:0xabc123:arkiv_builder`
 
 **Rationale:**
+
 - Stable keys enable reliable querying
 - Badge updates overwrite previous state (last-write-wins)
 - Full transaction history preserved on-chain
@@ -116,6 +119,7 @@ Badges are issued when a user completes all required steps for a quest. Eligibil
 4. Verifying progress entities reference the same quest version
 
 **Eligibility Check:**
+
 ```typescript
 const eligibility = await checkBadgeEligibility({
   wallet,
@@ -149,6 +153,7 @@ Badges store `questVersion` in payload to reference the specific quest version t
 - Historical accuracy of badge requirements
 
 **Version Chain:**
+
 - Badge → `questId` + `questVersion` (in payload)
 - Badge → `evidenceRefs` → `quest_step_progress` entities
 - `quest_step_progress` → `questId` + `questVersion` (in payload)
@@ -168,6 +173,7 @@ Badge entities expire after 1 year (31536000 seconds). This is effectively perma
 ## Transaction Hash Tracking
 
 Separate `proof_of_skill_badge_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "proof_of_skill_badge_txhash"
 - `badgeKey`: Entity key of badge
 - `txHash`: Transaction hash
@@ -178,6 +184,7 @@ Separate `proof_of_skill_badge_txhash` entity (optional) tracks transaction hash
 ## Badge Types
 
 Supported badge types:
+
 - `arkiv_builder` - Completed Arkiv Builder track
 - `mandarin_starter` - Completed Mandarin Starter track
 - `spanish_starter` - Completed Spanish Starter track
@@ -197,20 +204,21 @@ Badges are verifiable on-chain:
 4. **Step Validation:** Verify all required steps are completed
 
 **Verification Flow:**
+
 ```typescript
 // 1. Load badge
 const badge = await getUserBadge({ wallet, badgeType: 'arkiv_builder' });
 
 // 2. Load quest definition for the version badge was earned on
-const quest = await getQuestDefinition({ 
-  questId: badge.questId, 
-  version: badge.questVersion 
+const quest = await getQuestDefinition({
+  questId: badge.questId,
+  version: badge.questVersion,
 });
 
 // 3. Verify evidence refs match required steps
-const requiredSteps = quest.steps.filter(s => s.required).map(s => s.stepId);
-const completedSteps = badge.evidenceRefs.map(ref => ref.stepId);
-const valid = requiredSteps.every(stepId => completedSteps.includes(stepId));
+const requiredSteps = quest.steps.filter((s) => s.required).map((s) => s.stepId);
+const completedSteps = badge.evidenceRefs.map((ref) => ref.stepId);
+const valid = requiredSteps.every((stepId) => completedSteps.includes(stepId));
 ```
 
 ## Files Referenced

@@ -11,12 +11,14 @@ Blockchain writes have latency (seconds to minutes). The UI should update optimi
 ## When to Use
 
 **Always apply this pattern when:**
+
 - User actions trigger blockchain writes (entity creation, updates)
 - UI needs immediate feedback (notifications, preferences, session confirmations)
 - Transaction latency would degrade user experience
 - State changes are reversible (can rollback on failure)
 
 **State machine:**
+
 1. **Pending:** User action triggers optimistic update
 2. **Submitted:** Transaction submitted, `txHash` received
 3. **Confirmed:** Transaction confirmed on blockchain (receipt)
@@ -59,12 +61,14 @@ Blockchain writes have latency (seconds to minutes). The UI should update optimi
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `app/notifications/page.tsx` - `markAsRead()`, `markAllAsRead()` with optimistic updates
 - `lib/arkiv/transaction-utils.ts` - `handleTransactionWithTimeout()` handles pending states
 - `app/admin/feedback/page.tsx` - Optimistic feedback resolution
 - `lib/arkiv/sessions.ts` - Session confirmation with reconciliation
 
 **Code examples:**
+
 ```typescript
 // Optimistic update pattern
 const markAsRead = async (notificationId: string) => {
@@ -157,4 +161,3 @@ setTimeout(async () => {
 - [Error Handling](./error-handling.md) - Rollback and error recovery
 - [Read-Your-Writes Under Indexer Lag](./indexer-lag-handling.md) - Reconciliation polling strategy
 - [PAT-SESSION-001: Session State Machine](../arkiv-patterns-catalog.md#pat-session-001-session-state-machine) - State machine for pending states
-

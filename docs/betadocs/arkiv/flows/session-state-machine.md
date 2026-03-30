@@ -1,6 +1,6 @@
 # Session State Machine
 
-**Note:** This document describes *derived logic*, not a schema. Session status is computed from supporting entities (confirmations, rejections), not stored directly.
+**Note:** This document describes _derived logic_, not a schema. Session status is computed from supporting entities (confirmations, rejections), not stored directly.
 
 Technical documentation of session state transitions and workflow.
 
@@ -116,6 +116,7 @@ stateDiagram-v2
 1. **Status is Computed, Not Stored**: The session entity has a `status` attribute, but the actual status is computed dynamically from supporting entities (`session_confirmation`, `session_rejection`). The code explicitly states: "Don't trust the entity's status attribute - recalculate based on confirmations."
 
 2. **Auto-Confirmation of Requester**: When a session is created, the requester is automatically confirmed by creating a `session_confirmation` entity for them. This means:
+
    - If learner requests from offer: learner is auto-confirmed
    - If mentor offers to help on ask: mentor is auto-confirmed
    - Only the other party needs to confirm
@@ -127,12 +128,14 @@ stateDiagram-v2
 5. **Rejection Creates Entity**: Rejection doesn't update the session entity directly. Instead, it creates a `session_rejection` entity, and the status is computed as `declined` when this entity exists.
 
 6. **Supporting Entities**:
+
    - `session_confirmation`: Links to session via `sessionKey`, contains `confirmedBy` (mentorWallet or learnerWallet)
    - `session_rejection`: Links to session via `sessionKey`, contains `rejectedBy` (mentorWallet or learnerWallet)
    - `session_jitsi`: Links to session via `sessionKey`, contains `videoJoinUrl` in payload
    - `session_txhash`: Tracks transaction hash for session creation (separate entity)
 
 7. **Status Computation Logic** (from `listSessions`):
+
    ```typescript
    if (mentorRejected || learnerRejected) {
      finalStatus = 'declined';
@@ -152,10 +155,11 @@ stateDiagram-v2
      finalStatus = 'pending'; // Revert if status doesn't match confirmations
    }
    ```
-   
+
    **Critical Fix**: The status computation now preserves `'completed'` and `'in-progress'` statuses when both parties have confirmed. Previously, these statuses were being overwritten to `'scheduled'`, causing completed sessions to disappear from profile stats, notifications, and past filters.
 
-8. **Future States**: 
+8. **Future States**:
+
    - `in-progress`: Manual status update (future feature)
    - `completed`: Manual status update after session ends
    - `cancelled`: Reserved for canceling already-scheduled sessions (not yet implemented)
@@ -181,4 +185,3 @@ stateDiagram-v2
 - ✅ **Jitsi URL**: Generated on confirmation (when both parties confirm) and stored in `session_jitsi` entity
 - ✅ **Status Computation**: Status is computed from supporting entities, not stored directly
 - ✅ **Entity Structure**: Uses separate entities (`session_confirmation`, `session_rejection`, `session_jitsi`) linked via `sessionKey`
-

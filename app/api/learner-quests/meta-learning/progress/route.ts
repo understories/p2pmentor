@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -37,10 +40,7 @@ export async function GET(request: NextRequest) {
     const includeExpired = searchParams.get('includeExpired') === 'true';
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet required' }, { status: 400 });
     }
 
     const progress = await getMetaLearningProgress({
@@ -54,10 +54,7 @@ export async function GET(request: NextRequest) {
     // When no artifacts exist, it returns a valid progress object with status 'not_started'
     if (!progress) {
       console.error('[meta-learning/progress] getMetaLearningProgress returned null');
-      return NextResponse.json(
-        { ok: false, error: 'Failed to fetch progress' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Failed to fetch progress' }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, progress });
@@ -69,4 +66,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

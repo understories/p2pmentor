@@ -1,20 +1,21 @@
 # Skill Entity Schema
 
 ## Entity Type
+
 `skill`
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "skill" |
-| name_canonical | string | Yes | Attribute | Display name (e.g., "Spanish") |
-| slug | string | Yes | Attribute | Normalized key (e.g., "spanish") |
-| status | string | Yes | Attribute | "active" | "archived" |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| created_by_profile | string | No | Attribute | Wallet address of creator (null for curated) |
-| description | string | No | Payload | Skill description |
+| Field Name         | Type   | Required | Location  | Description                                                                                                |
+| ------------------ | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ---------- |
+| type               | string | Yes      | Attribute | Always "skill"                                                                                             |
+| name_canonical     | string | Yes      | Attribute | Display name (e.g., "Spanish")                                                                             |
+| slug               | string | Yes      | Attribute | Normalized key (e.g., "spanish")                                                                           |
+| status             | string | Yes      | Attribute | "active"                                                                                                   | "archived" |
+| spaceId            | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt          | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_by_profile | string | No       | Attribute | Wallet address of creator (null for curated)                                                               |
+| description        | string | No       | Payload   | Skill description                                                                                          |
 
 ## Skill-to-Profile Linking Strategy
 
@@ -25,10 +26,12 @@ Skills are first-class entities. Profiles link to skills via:
 3. **Query Pattern**: Query profiles by skill using `skill_id` attribute or `skill_0`, `skill_1`, etc. attributes
 
 Profile references skill:
+
 - Profile payload: `skill_ids: ["skill_entity_key_1", "skill_entity_key_2"]`
 - Profile payload: `skillExpertise: {"skill_entity_key_1": 3, "skill_entity_key_2": 5}` (expertise level 0-5)
 
 Ask/Offer references skill:
+
 - `skill_id` attribute: Skill entity key (preferred)
 - `skill` attribute: Skill name (legacy, for backward compatibility)
 
@@ -68,6 +71,7 @@ Implementation: `lib/arkiv/skill.ts` - `getSkillBySlug()` and `listSkills()`
 ## Slug Normalization
 
 Slug is generated from `name_canonical`:
+
 - Convert to lowercase
 - Remove special characters
 - Replace spaces with hyphens
@@ -83,8 +87,8 @@ Skill entities expire after 1 year (31536000 seconds). This is effectively perma
 ## Transaction Hash Tracking
 
 Separate `skill_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "skill_txhash"
 - `skillKey`: Entity key of skill
 - `slug`: Skill slug
 - `spaceId`: "local-dev"
-

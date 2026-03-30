@@ -20,7 +20,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -31,10 +34,7 @@ export async function POST(request: NextRequest) {
     // Use wallet from request, fallback to CURRENT_WALLET for example wallet
     const targetWallet = wallet || CURRENT_WALLET || '';
     if (!targetWallet) {
-      return NextResponse.json(
-        { ok: false, error: 'No wallet address provided' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'No wallet address provided' }, { status: 400 });
     }
 
     if (action === 'createAsk') {
@@ -81,7 +81,11 @@ export async function POST(request: NextRequest) {
 
       if (!skillEntity) {
         return NextResponse.json(
-          { ok: false, error: 'Failed to find or create skill entity. Please provide a valid skill_id or skill name.' },
+          {
+            ok: false,
+            error:
+              'Failed to find or create skill entity. Please provide a valid skill_id or skill name.',
+          },
           { status: 400 }
         );
       }
@@ -133,16 +137,13 @@ export async function POST(request: NextRequest) {
             key: null,
             txHash: null,
             pending: true,
-            message: error.message || 'Transaction submitted, confirmation pending'
+            message: error.message || 'Transaction submitted, confirmation pending',
           });
         }
         throw error;
       }
     } else {
-      return NextResponse.json(
-        { ok: false, error: 'Invalid action' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
     }
   } catch (error: any) {
     console.error('Asks API error:', error);
@@ -171,7 +172,7 @@ export async function GET(request: Request) {
 
     if (builderMode && spaceIdsParam) {
       // Builder mode: query multiple spaceIds
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+      spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
     } else if (spaceIdParam) {
       // Override default spaceId
       spaceId = spaceIdParam;
@@ -197,4 +198,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

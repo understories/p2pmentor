@@ -1,6 +1,6 @@
 /**
  * GraphQL Resolvers for Arkiv Mentorship Data
- * 
+ *
  * Resolvers translate GraphQL queries to Arkiv JSON-RPC queries.
  * Reusable tool for any Arkiv-based application.
  */
@@ -11,7 +11,15 @@ import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
 import { listSessionsForWallet } from '@/lib/arkiv/sessions';
 import { listFeedbackForSession, listFeedbackForWallet } from '@/lib/arkiv/feedback';
 import { listAppFeedback } from '@/lib/arkiv/appFeedback';
-import { transformAsk, transformOffer, transformProfile, transformSession, transformFeedback, transformAppFeedback, createSkillRef } from './transformers';
+import {
+  transformAsk,
+  transformOffer,
+  transformProfile,
+  transformSession,
+  transformFeedback,
+  transformAppFeedback,
+  createSkillRef,
+} from './transformers';
 
 /**
  * Build network overview with skills, asks, and offers
@@ -34,7 +42,7 @@ async function buildNetworkOverview(args: any) {
   // Group by skill
   const skillMap = new Map<string, { asks: any[]; offers: any[] }>();
 
-  asks.forEach(ask => {
+  asks.forEach((ask) => {
     if (!ask.skill) return;
     const skillName = ask.skill.toLowerCase().trim();
     if (!skillMap.has(skillName)) {
@@ -43,7 +51,7 @@ async function buildNetworkOverview(args: any) {
     skillMap.get(skillName)!.asks.push(ask);
   });
 
-  offers.forEach(offer => {
+  offers.forEach((offer) => {
     if (!offer.skill) return;
     const skillName = offer.skill.toLowerCase().trim();
     if (!skillMap.has(skillName)) {
@@ -97,9 +105,14 @@ export const resolvers = {
       // GraphQL will throw "Cannot return null for non-nullable field" if we do
       try {
         const { skill, wallet, includeExpired = false, limit = 100 } = args;
-        
-        console.log('[GraphQL] asks resolver called with:', { skill, wallet, includeExpired, limit });
-        
+
+        console.log('[GraphQL] asks resolver called with:', {
+          skill,
+          wallet,
+          includeExpired,
+          limit,
+        });
+
         let asks: any = null;
         try {
           console.log('[GraphQL] Calling listAsks...');
@@ -108,12 +121,16 @@ export const resolvers = {
           } else {
             asks = await listAsks({ skill, includeExpired, limit });
           }
-          console.log('[GraphQL] listAsks returned:', { count: asks?.length, type: typeof asks, isArray: Array.isArray(asks) });
+          console.log('[GraphQL] listAsks returned:', {
+            count: asks?.length,
+            type: typeof asks,
+            isArray: Array.isArray(asks),
+          });
         } catch (fetchError: any) {
           console.error('[GraphQL] Error fetching asks from Arkiv:', {
             message: fetchError?.message,
             stack: fetchError?.stack,
-            error: fetchError
+            error: fetchError,
           });
           // Return empty array immediately on fetch error
           return [];
@@ -121,12 +138,15 @@ export const resolvers = {
 
         // Ensure we always return an array, never null
         if (!asks || !Array.isArray(asks)) {
-          console.warn('[GraphQL] asks resolver: received non-array result, returning empty array', { 
-            asks, 
-            type: typeof asks,
-            isArray: Array.isArray(asks),
-            asksValue: asks ? JSON.stringify(asks).substring(0, 200) : 'null/undefined'
-          });
+          console.warn(
+            '[GraphQL] asks resolver: received non-array result, returning empty array',
+            {
+              asks,
+              type: typeof asks,
+              isArray: Array.isArray(asks),
+              asksValue: asks ? JSON.stringify(asks).substring(0, 200) : 'null/undefined',
+            }
+          );
           return [];
         }
 
@@ -140,19 +160,21 @@ export const resolvers = {
               } catch (transformError: any) {
                 console.error('[GraphQL] Error transforming ask:', {
                   error: transformError?.message,
-                  ask: ask ? JSON.stringify(ask).substring(0, 100) : 'null'
+                  ask: ask ? JSON.stringify(ask).substring(0, 100) : 'null',
                 });
                 return null;
               }
             })
             .filter((ask) => ask !== null);
 
-          console.log('[GraphQL] Transformation complete:', { transformedCount: transformed.length });
+          console.log('[GraphQL] Transformation complete:', {
+            transformedCount: transformed.length,
+          });
           return transformed;
         } catch (transformError: any) {
           console.error('[GraphQL] Error during transformation:', {
             message: transformError?.message,
-            stack: transformError?.stack
+            stack: transformError?.stack,
           });
           return []; // Return empty array if transformation fails
         }
@@ -162,7 +184,7 @@ export const resolvers = {
         console.error('[GraphQL] Unexpected error in asks resolver (outer catch):', {
           message: error?.message,
           stack: error?.stack,
-          error: error?.toString()
+          error: error?.toString(),
         });
         return []; // Always return array, never null
       }
@@ -170,13 +192,13 @@ export const resolvers = {
 
     ask: async (_: any, { key }: { key: string }) => {
       const asks = await listAsks({ limit: 1000, includeExpired: true });
-      const ask = asks.find(a => a.key === key);
+      const ask = asks.find((a) => a.key === key);
       return ask ? transformAsk(ask) : null;
     },
 
     offers: async (_: any, args: any) => {
       const { skill, wallet, includeExpired = false, limit = 100 } = args;
-      
+
       try {
         let offers: any = null;
         try {
@@ -192,7 +214,10 @@ export const resolvers = {
 
         // Ensure we always return an array, never null
         if (!offers || !Array.isArray(offers)) {
-          console.warn('[GraphQL] offers resolver: received non-array result, returning empty array', { offers, type: typeof offers });
+          console.warn(
+            '[GraphQL] offers resolver: received non-array result, returning empty array',
+            { offers, type: typeof offers }
+          );
           return [];
         }
 
@@ -222,7 +247,7 @@ export const resolvers = {
 
     offer: async (_: any, { key }: { key: string }) => {
       const offers = await listOffers({ limit: 1000, includeExpired: true });
-      const offer = offers.find(o => o.key === key);
+      const offer = offers.find((o) => o.key === key);
       return offer ? transformOffer(offer) : null;
     },
 
@@ -230,14 +255,14 @@ export const resolvers = {
       const { search, limit = 100 } = args;
       try {
         const overview = await buildNetworkOverview({ limitSkills: limit });
-        
+
         let skillRefs = overview.skillRefs;
-        
+
         if (search) {
           const searchLower = search.toLowerCase();
-          skillRefs = skillRefs.filter(sr => sr.name.includes(searchLower));
+          skillRefs = skillRefs.filter((sr) => sr.name.includes(searchLower));
         }
-        
+
         return skillRefs;
       } catch (error) {
         console.error('Error fetching skills:', error);
@@ -247,17 +272,12 @@ export const resolvers = {
 
     skill: async (_: any, { name }: { name: string }) => {
       const overview = await buildNetworkOverview({ limitSkills: 1000 });
-      const skillRef = overview.skillRefs.find(sr => sr.name === name.toLowerCase().trim());
+      const skillRef = overview.skillRefs.find((sr) => sr.name === name.toLowerCase().trim());
       return skillRef || null;
     },
 
     meOverview: async (_: any, args: any) => {
-      const { 
-        wallet, 
-        limitAsks = 50, 
-        limitOffers = 50, 
-        limitSessions = 50 
-      } = args;
+      const { wallet, limitAsks = 50, limitOffers = 50, limitSessions = 50 } = args;
 
       try {
         // Fetch all data in parallel
@@ -288,10 +308,10 @@ export const resolvers = {
     feedback: async (_: any, args: any) => {
       // Always return an array, never null/undefined
       let result: any[] = [];
-      
+
       try {
         const { sessionKey, wallet, limit = 100, since } = args || {};
-        
+
         // This is for SESSION feedback (peer-to-peer), not app feedback
         let feedbacks: Awaited<ReturnType<typeof listFeedbackForSession>> = [];
         if (sessionKey) {
@@ -306,7 +326,7 @@ export const resolvers = {
         // Filter by since date if provided
         if (since) {
           const sinceTime = new Date(since).getTime();
-          feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
+          feedbacks = feedbacks.filter((f) => new Date(f.createdAt).getTime() >= sinceTime);
         }
 
         // Apply limit and transform
@@ -317,7 +337,7 @@ export const resolvers = {
         console.error('Error fetching feedback:', error);
         console.error('Error message:', error?.message);
       }
-      
+
       // Always return an array, never null/undefined
       return Array.isArray(result) ? result : [];
     },
@@ -327,21 +347,21 @@ export const resolvers = {
       // Using direct call to ensure it works
       try {
         const { page, wallet, limit = 100, since } = args || {};
-        
+
         const params: any = {};
         if (page) params.page = page;
         if (wallet) params.wallet = wallet;
         if (limit) params.limit = limit;
         if (since) params.since = since;
-        
+
         // Call listAppFeedback directly
         const feedbacks = await listAppFeedback(params);
-        
+
         // Transform and return
         if (Array.isArray(feedbacks)) {
           return feedbacks.map(transformAppFeedback);
         }
-        
+
         // Fallback: return empty array
         return [];
       } catch (error: any) {
@@ -355,20 +375,20 @@ export const resolvers = {
   SkillRef: {
     asks: async (parent: any, args: any) => {
       const { includeExpired = false, limit = 100 } = args;
-      const asks = await listAsks({ 
-        skill: parent.name, 
-        includeExpired, 
-        limit 
+      const asks = await listAsks({
+        skill: parent.name,
+        includeExpired,
+        limit,
       });
       return asks.map(transformAsk);
     },
 
     offers: async (parent: any, args: any) => {
       const { includeExpired = false, limit = 100 } = args;
-      const offers = await listOffers({ 
-        skill: parent.name, 
-        includeExpired, 
-        limit 
+      const offers = await listOffers({
+        skill: parent.name,
+        includeExpired,
+        limit,
       });
       return offers.map(transformOffer);
     },
@@ -408,4 +428,3 @@ export const resolvers = {
     },
   },
 };
-

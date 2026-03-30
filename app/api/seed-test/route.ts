@@ -1,6 +1,6 @@
 /**
  * Test seeding API route
- * 
+ *
  * Creates test asks and offers for network page testing.
  * Only works in development mode.
  */
@@ -11,7 +11,7 @@ import { createOffer } from '@/lib/arkiv/offers';
 import { getPrivateKey, CURRENT_WALLET } from '@/lib/config';
 
 // Simple delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export async function POST() {
   // Only allow in development
@@ -37,7 +37,10 @@ export async function POST() {
     // Create diverse asks
     const asks = [
       { skill: 'React', message: 'I want to learn React hooks and state management' },
-      { skill: 'TypeScript', message: 'Looking for help with TypeScript generics and advanced types' },
+      {
+        skill: 'TypeScript',
+        message: 'Looking for help with TypeScript generics and advanced types',
+      },
       { skill: 'Solidity', message: 'Need guidance on smart contract security best practices' },
       { skill: 'Rust', message: 'Want to learn Rust ownership and borrowing concepts' },
       { skill: 'Next.js', message: 'Need help with Next.js App Router and server components' },
@@ -60,12 +63,36 @@ export async function POST() {
 
     // Create matching offers
     const offers = [
-      { skill: 'React', message: 'Experienced React developer, happy to help with hooks and state management', availabilityWindow: 'Mon-Fri 6-8pm EST' },
-      { skill: 'TypeScript', message: 'TypeScript expert available for mentoring on advanced patterns', availabilityWindow: 'Weekends flexible' },
-      { skill: 'Solidity', message: 'Smart contract auditor offering security reviews and best practices', availabilityWindow: 'Weekdays 9am-5pm EST' },
-      { skill: 'Rust', message: 'Rust core contributor, can help with ownership and async programming', availabilityWindow: 'Evenings after 7pm EST' },
-      { skill: 'Python', message: 'Python mentor for data science and web development', availabilityWindow: 'Flexible' },
-      { skill: 'JavaScript', message: 'JavaScript fundamentals and modern ES6+ features', availabilityWindow: 'Weekends 10am-2pm EST' },
+      {
+        skill: 'React',
+        message: 'Experienced React developer, happy to help with hooks and state management',
+        availabilityWindow: 'Mon-Fri 6-8pm EST',
+      },
+      {
+        skill: 'TypeScript',
+        message: 'TypeScript expert available for mentoring on advanced patterns',
+        availabilityWindow: 'Weekends flexible',
+      },
+      {
+        skill: 'Solidity',
+        message: 'Smart contract auditor offering security reviews and best practices',
+        availabilityWindow: 'Weekdays 9am-5pm EST',
+      },
+      {
+        skill: 'Rust',
+        message: 'Rust core contributor, can help with ownership and async programming',
+        availabilityWindow: 'Evenings after 7pm EST',
+      },
+      {
+        skill: 'Python',
+        message: 'Python mentor for data science and web development',
+        availabilityWindow: 'Flexible',
+      },
+      {
+        skill: 'JavaScript',
+        message: 'JavaScript fundamentals and modern ES6+ features',
+        availabilityWindow: 'Weekends 10am-2pm EST',
+      },
     ];
 
     for (const offer of offers) {
@@ -103,4 +130,3 @@ export async function POST() {
     );
   }
 }
-

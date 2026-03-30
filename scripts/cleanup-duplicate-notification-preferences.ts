@@ -48,12 +48,15 @@ interface DuplicateSet {
  * Find all wallets with duplicate notification preferences
  * Queries raw entities to see duplicates before deduplication
  */
-async function findDuplicatePreferences(spaceId: string = SPACE_ID): Promise<Map<string, DuplicateSet[]>> {
+async function findDuplicatePreferences(
+  spaceId: string = SPACE_ID
+): Promise<Map<string, DuplicateSet[]>> {
   console.log('[findDuplicatePreferences] Finding duplicate preferences...');
-  
+
   // Query raw entities (bypass deduplication to see all)
   const publicClient = getPublicClient();
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'notification_preference'))
     .where(eq('spaceId', spaceId))
     .withAttributes(true)
@@ -70,11 +73,12 @@ async function findDuplicatePreferences(spaceId: string = SPACE_ID): Promise<Map
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -96,14 +100,15 @@ async function findDuplicatePreferences(spaceId: string = SPACE_ID): Promise<Map
       notificationId: getAttr('notificationId'),
       read: getAttr('read') === 'true' || payload.read === true,
       archived: getAttr('archived') === 'true' || payload.archived === true,
-      updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt') || payload.createdAt,
+      updatedAt:
+        getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt') || payload.createdAt,
       createdAt: getAttr('createdAt') || payload.createdAt,
     };
   });
 
   // Group by (wallet, notificationId)
   const preferenceGroups = new Map<string, typeof allPreferences>();
-  allPreferences.forEach(pref => {
+  allPreferences.forEach((pref) => {
     const key = `${pref.wallet.toLowerCase()}:${pref.notificationId}`;
     if (!preferenceGroups.has(key)) {
       preferenceGroups.set(key, []);
@@ -113,16 +118,16 @@ async function findDuplicatePreferences(spaceId: string = SPACE_ID): Promise<Map
 
   // Find duplicates (groups with more than 1 preference)
   const duplicates = new Map<string, DuplicateSet[]>();
-  
+
   for (const [groupKey, prefs] of preferenceGroups.entries()) {
     if (prefs.length > 1) {
       // Sort by updatedAt descending to find canonical (most recent)
-      const sorted = [...prefs].sort((a, b) => 
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      const sorted = [...prefs].sort(
+        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       );
-      
+
       const canonical = sorted[0];
-      const duplicateKeys = sorted.slice(1).map(p => ({
+      const duplicateKeys = sorted.slice(1).map((p) => ({
         key: p.key,
         read: p.read,
         archived: p.archived,
@@ -149,7 +154,9 @@ async function findDuplicatePreferences(spaceId: string = SPACE_ID): Promise<Map
     }
   }
 
-  console.log(`[findDuplicatePreferences] Found ${duplicates.size} wallets with duplicate preferences`);
+  console.log(
+    `[findDuplicatePreferences] Found ${duplicates.size} wallets with duplicate preferences`
+  );
   return duplicates;
 }
 
@@ -167,7 +174,9 @@ async function reportWalletDuplicates(
   let verified = 0;
   let issues = 0;
 
-  console.log(`\n[reportWalletDuplicates] Wallet ${normalizedWallet}: ${duplicateSets.length} duplicate sets`);
+  console.log(
+    `\n[reportWalletDuplicates] Wallet ${normalizedWallet}: ${duplicateSets.length} duplicate sets`
+  );
 
   for (const duplicateSet of duplicateSets) {
     try {
@@ -181,20 +190,26 @@ async function reportWalletDuplicates(
 
       if (deduplicated.length > 0) {
         const returned = deduplicated[0];
-        
+
         if (returned.key === duplicateSet.canonical.key) {
           // ✅ Deduplication working correctly
-          console.log(`  ✅ ${duplicateSet.notificationId}: Canonical found (${duplicateSet.totalCount} total, ${duplicateSet.duplicates.length} duplicates ignored)`);
+          console.log(
+            `  ✅ ${duplicateSet.notificationId}: Canonical found (${duplicateSet.totalCount} total, ${duplicateSet.duplicates.length} duplicates ignored)`
+          );
           verified++;
         } else {
           // ⚠️ Deduplication returned different preference
-          console.warn(`  ⚠️ ${duplicateSet.notificationId}: Expected canonical ${duplicateSet.canonical.key}, got ${returned.key}`);
+          console.warn(
+            `  ⚠️ ${duplicateSet.notificationId}: Expected canonical ${duplicateSet.canonical.key}, got ${returned.key}`
+          );
           console.warn(`     Total duplicates: ${duplicateSet.totalCount}`);
           issues++;
         }
       } else {
         // ⚠️ No preference returned (shouldn't happen if canonical exists)
-        console.warn(`  ⚠️ ${duplicateSet.notificationId}: No preference returned (expected canonical ${duplicateSet.canonical.key})`);
+        console.warn(
+          `  ⚠️ ${duplicateSet.notificationId}: No preference returned (expected canonical ${duplicateSet.canonical.key})`
+        );
         issues++;
       }
     } catch (err: any) {
@@ -209,10 +224,12 @@ async function reportWalletDuplicates(
 /**
  * Main verification function
  */
-async function verifyDuplicates(options: {
-  wallet?: string;
-  spaceId?: string;
-} = {}) {
+async function verifyDuplicates(
+  options: {
+    wallet?: string;
+    spaceId?: string;
+  } = {}
+) {
   const { wallet, spaceId = SPACE_ID } = options;
 
   console.log('[verifyDuplicates] Starting verification...');
@@ -226,9 +243,7 @@ async function verifyDuplicates(options: {
     const allDuplicates = await findDuplicatePreferences(spaceId);
 
     // Filter by wallet if specified
-    const walletsToCheck = wallet 
-      ? [wallet.toLowerCase()]
-      : Array.from(allDuplicates.keys());
+    const walletsToCheck = wallet ? [wallet.toLowerCase()] : Array.from(allDuplicates.keys());
 
     if (walletsToCheck.length === 0) {
       console.log('\n[verifyDuplicates] No duplicates found! ✅');
@@ -241,18 +256,14 @@ async function verifyDuplicates(options: {
 
     for (const walletToCheck of walletsToCheck) {
       const duplicateSets = allDuplicates.get(walletToCheck) || [];
-      
+
       if (duplicateSets.length === 0) {
         console.log(`\n[verifyDuplicates] Wallet ${walletToCheck}: No duplicates found ✅`);
         continue;
       }
 
       totalDuplicateSets += duplicateSets.length;
-      const result = await reportWalletDuplicates(
-        walletToCheck,
-        duplicateSets,
-        spaceId
-      );
+      const result = await reportWalletDuplicates(walletToCheck, duplicateSets, spaceId);
 
       totalVerified += result.verified;
       totalIssues += result.issues;
@@ -267,7 +278,9 @@ async function verifyDuplicates(options: {
     if (totalIssues === 0) {
       console.log('\n✅ All duplicates are handled correctly by deduplication logic!');
       console.log('  Future updates will use Pattern B (updateEntity) with canonical keys');
-      console.log('  Old duplicate entities remain on-chain (immutable) but are ignored by queries');
+      console.log(
+        '  Old duplicate entities remain on-chain (immutable) but are ignored by queries'
+      );
     } else {
       console.log('\n⚠️ Some issues found. Review the warnings above.');
     }
@@ -279,13 +292,12 @@ async function verifyDuplicates(options: {
 
 // CLI
 const args = process.argv.slice(2);
-const walletArg = args.find(arg => arg.startsWith('--wallet='));
+const walletArg = args.find((arg) => arg.startsWith('--wallet='));
 const wallet = walletArg ? walletArg.split('=')[1] : undefined;
 
 verifyDuplicates({ wallet })
   .then(() => process.exit(0))
-  .catch(err => {
+  .catch((err) => {
     console.error(err);
     process.exit(1);
   });
-

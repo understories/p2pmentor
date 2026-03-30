@@ -23,6 +23,7 @@ The arkiv-nextjs-starter includes example code for creating entities. Let's use 
 ## Understanding What Happened
 
 When you clicked create, the app:
+
 1. **Built an entity** with attributes and payload
 2. **Signed a transaction** with your private key
 3. **Submitted to Arkiv** network
@@ -35,10 +36,12 @@ Look at the entity creation code in the starter:
 ```typescript
 // Example from starter app
 const result = await walletClient.createEntity({
-  payload: enc.encode(JSON.stringify({
-    message: 'Hello, Arkiv!',
-    timestamp: new Date().toISOString(),
-  })),
+  payload: enc.encode(
+    JSON.stringify({
+      message: 'Hello, Arkiv!',
+      timestamp: new Date().toISOString(),
+    })
+  ),
   contentType: 'application/json',
   attributes: [
     { key: 'type', value: 'hello_world' },
@@ -60,6 +63,7 @@ const result = await walletClient.createEntity({
 ## Save Your Results
 
 **Important:** Copy and save:
+
 - The **entity key** - You'll use this to query the entity
 - The **transaction hash** - You'll use this to verify on Explorer
 

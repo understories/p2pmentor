@@ -42,8 +42,8 @@ export function FixedBackgroundGarden() {
   const deduplicatedSystemSkills = useMemo(() => {
     const seen = new Map<string, GardenSkill>(); // Map normalized name -> first skill seen
     const result: GardenSkill[] = [];
-    
-    allSystemSkills.forEach(skill => {
+
+    allSystemSkills.forEach((skill) => {
       const normalizedName = skill.name.toLowerCase().trim();
       if (!seen.has(normalizedName)) {
         seen.set(normalizedName, skill);
@@ -51,7 +51,7 @@ export function FixedBackgroundGarden() {
       }
       // If duplicate found, skip it (already have one with this name)
     });
-    
+
     return result;
   }, [allSystemSkills]);
 
@@ -69,18 +69,21 @@ export function FixedBackgroundGarden() {
             name: skill.name_canonical,
             level: 0, // Background skills don't have levels
           }));
-          
+
           // Log for debugging: check for duplicates by name
           const nameCounts = new Map<string, number>();
-          gardenSkills.forEach(skill => {
+          gardenSkills.forEach((skill) => {
             const normalizedName = skill.name.toLowerCase().trim();
             nameCounts.set(normalizedName, (nameCounts.get(normalizedName) || 0) + 1);
           });
           const duplicates = Array.from(nameCounts.entries()).filter(([_, count]) => count > 1);
           if (duplicates.length > 0) {
-            console.warn('[FixedBackgroundGarden] Duplicate skill names found (will be deduplicated):', duplicates);
+            console.warn(
+              '[FixedBackgroundGarden] Duplicate skill names found (will be deduplicated):',
+              duplicates
+            );
           }
-          
+
           setAllSystemSkills(gardenSkills);
         }
       } catch (err) {
@@ -119,7 +122,7 @@ export function FixedBackgroundGarden() {
           profile_wallet: walletAddress,
           active: true,
         });
-        setLearningSkillIds(follows.map(f => f.skill_id));
+        setLearningSkillIds(follows.map((f) => f.skill_id));
       } catch (err) {
         console.error('Error loading user data for background garden:', err);
       }
@@ -144,7 +147,7 @@ export function FixedBackgroundGarden() {
   );
 
   return (
-    <div className="fixed inset-0 z-[1] pointer-events-none">
+    <div className="pointer-events-none fixed inset-0 z-[1]">
       {arkivBuilderMode ? (
         <ArkivQueryTooltip
           query={[
@@ -159,7 +162,7 @@ export function FixedBackgroundGarden() {
             `   - Check skill_ids array (new format)`,
             `   - Check skillsArray (legacy format)`,
             `   - Check skills string (legacy format)`,
-            `Returns: Skill[] with profileCount for each skill`
+            `Returns: Skill[] with profileCount for each skill`,
           ]}
           label="Skill Garden"
         >

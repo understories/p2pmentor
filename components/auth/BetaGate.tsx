@@ -1,11 +1,11 @@
 /**
  * Beta Gate Component
- * 
+ *
  * Client-side component to protect pages with beta access check.
  * Provides fast UX feedback and redirects if no access.
- * 
+ *
  * Note: This is UX-only - server-side middleware provides actual security.
- * 
+ *
  * Reference: refs/docs/beta_code_gating_plan.md Phase 4
  */
 
@@ -26,7 +26,7 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
       // Redirect to /beta with return URL
       // Validate pathname to prevent encoding "null" (pathname can be null during hydration)
       const returnUrl = safePathname(pathname, '/auth');
-      
+
       // Use URL APIs to avoid double-encoding (don't manually encode)
       if (typeof window !== 'undefined') {
         const url = new URL('/beta', window.location.origin);
@@ -41,9 +41,9 @@ export function BetaGate({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-pulse text-2xl mb-4">🌱</div>
+          <div className="mb-4 animate-pulse text-2xl">🌱</div>
           <p className="text-gray-600 dark:text-gray-400">Verifying access...</p>
         </div>
       </div>

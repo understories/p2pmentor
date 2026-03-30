@@ -11,7 +11,7 @@ The Admin Dashboard (`/admin`) provides a comprehensive view of application perf
 The dashboard is organized into three main sections:
 
 1. **Performance Metrics** (Engineering Dashboard) - Default collapsed
-2. **Beta Metrics** (Engineering Dashboard) - Default collapsed  
+2. **Beta Metrics** (Engineering Dashboard) - Default collapsed
 3. **User Feedback** (Customer Support) - Default expanded
 
 ---
@@ -34,6 +34,7 @@ When expanded, this section contains:
 ### 1.1 GraphQL Migration Status
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 🚀 GraphQL Migration Status                                  │
@@ -53,11 +54,13 @@ When expanded, this section contains:
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/admin/graphql-flags
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -79,6 +82,7 @@ GET /api/admin/graphql-flags
 ### 1.2 Query Performance Comparison
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Query Performance (JSON-RPC vs GraphQL)                      │
@@ -101,11 +105,13 @@ GET /api/admin/graphql-flags
 **API Endpoints:**
 
 **Get Performance Summary:**
+
 ```
 GET /api/admin/perf-samples?summary=true
 ```
 
 **Example Response:**
+
 ```json
 {
   "graphql": {
@@ -138,11 +144,13 @@ GET /api/admin/perf-samples?summary=true
 ```
 
 **Get Recent Performance Samples:**
+
 ```
 GET /api/admin/perf-samples?limit=20
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -171,16 +179,19 @@ GET /api/admin/perf-samples?limit=20
 ```
 
 **Test Query Performance (Generate Real Data):**
+
 ```
 GET /api/admin/perf-samples?seed=true&method=both
 ```
 
 This endpoint makes actual API calls to generate real performance metrics. The `method` parameter can be:
+
 - `arkiv` - Test JSON-RPC path only
-- `graphql` - Test GraphQL path only  
+- `graphql` - Test GraphQL path only
 - `both` - Test both paths (default)
 
 **Example Response:**
+
 ```json
 {
   "success": true,
@@ -192,6 +203,7 @@ This endpoint makes actual API calls to generate real performance metrics. The `
 ### 1.3 Page Load Times
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Page Load Times                                              │
@@ -208,11 +220,13 @@ This endpoint makes actual API calls to generate real performance metrics. The `
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/admin/page-load-times?baseUrl=http://localhost:3000
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -248,6 +262,7 @@ GET /api/admin/page-load-times?baseUrl=http://localhost:3000
 ### 1.4 Recent Performance Samples
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Recent Performance Samples                                   │
@@ -262,6 +277,7 @@ GET /api/admin/page-load-times?baseUrl=http://localhost:3000
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/admin/perf-samples?limit=20&source=graphql
 ```
@@ -269,6 +285,7 @@ GET /api/admin/perf-samples?limit=20&source=graphql
 ### 1.5 Historical Performance Snapshots
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Historical Performance Snapshots                             │
@@ -300,11 +317,13 @@ GET /api/admin/perf-samples?limit=20&source=graphql
 **API Endpoints:**
 
 **Get Snapshots:**
+
 ```
 GET /api/admin/perf-snapshots?limit=20
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -352,11 +371,13 @@ GET /api/admin/perf-snapshots?limit=20
 ```
 
 **Create Snapshot:**
+
 ```
 POST /api/admin/perf-snapshots?operation=buildNetworkGraphData&method=both
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -369,11 +390,13 @@ POST /api/admin/perf-snapshots?operation=buildNetworkGraphData&method=both
 ```
 
 **Check Auto-Snapshot Status:**
+
 ```
 GET /api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -393,6 +416,7 @@ GET /api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData
 ### 2.1 Client Performance (Web Vitals)
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Client Performance (Web Vitals)                              │
@@ -408,11 +432,13 @@ GET /api/admin/perf-snapshots?checkAuto=true&operation=buildNetworkGraphData
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/client-perf?limit=50
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -434,6 +460,7 @@ GET /api/client-perf?limit=50
 ### 2.2 Retention Cohorts
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Retention Cohorts                                            │
@@ -446,11 +473,13 @@ GET /api/client-perf?limit=50
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/admin/retention-cohorts?limit=20&period=weekly
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -471,6 +500,7 @@ GET /api/admin/retention-cohorts?limit=20&period=weekly
 ### 2.3 Daily Aggregates (Percentiles)
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Daily Aggregates (Percentiles)                              │
@@ -484,11 +514,13 @@ GET /api/admin/retention-cohorts?limit=20&period=weekly
 ```
 
 **API Endpoint:**
+
 ```
 GET /api/admin/metric-aggregates?limit=50&period=daily
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -531,6 +563,7 @@ When expanded, shows recent feedback with action buttons:
 ### 3.1 Feedback Display
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ 💬 User Feedback                                             │
@@ -567,6 +600,7 @@ Each feedback item has three action buttons (visual examples):
 #### Button 1: Respond
 
 **Visual:**
+
 ```
 ┌──────────┐
 │ Respond  │  (Blue button, white text)
@@ -574,12 +608,14 @@ Each feedback item has three action buttons (visual examples):
 ```
 
 **Behavior:**
+
 - Opens a modal with the original feedback
 - Shows textarea for admin response
 - If response already exists, shows "View Response" instead
 - Button changes to gray "View Response" after responding
 
 **API Endpoint:**
+
 ```
 POST /api/admin/response
 Content-Type: application/json
@@ -593,6 +629,7 @@ Content-Type: application/json
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -602,11 +639,13 @@ Content-Type: application/json
 ```
 
 **Get Existing Response:**
+
 ```
 GET /api/admin/response?feedbackKey=app_feedback:abc123
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -624,6 +663,7 @@ GET /api/admin/response?feedbackKey=app_feedback:abc123
 #### Button 2: Add to GitHub
 
 **Visual:**
+
 ```
 ┌──────────────┐
 │ Add to GitHub│  (Purple button, white text)
@@ -631,12 +671,14 @@ GET /api/admin/response?feedbackKey=app_feedback:abc123
 ```
 
 **Behavior:**
+
 - Only shown for `issue` type feedback (not regular feedback)
 - Creates a GitHub issue from the feedback
 - After creation, button changes to "View Issue #123" (gray button)
 - Opens GitHub issue in new tab
 
 **API Endpoint:**
+
 ```
 POST /api/github/create-issue
 Content-Type: application/json
@@ -652,6 +694,7 @@ Content-Type: application/json
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -661,11 +704,13 @@ Content-Type: application/json
 ```
 
 **Get GitHub Issue Links:**
+
 ```
 GET /api/github/issue-links
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -682,6 +727,7 @@ GET /api/github/issue-links
 #### Button 3: Mark Resolved
 
 **Visual:**
+
 ```
 ┌──────────────┐
 │Mark Resolved │  (Green button, white text)
@@ -689,6 +735,7 @@ GET /api/github/issue-links
 ```
 
 **Behavior:**
+
 - Only shown for `issue` type feedback that is not yet resolved
 - Opens a modal asking for optional resolution note
 - Marks feedback as resolved on Arkiv
@@ -696,6 +743,7 @@ GET /api/github/issue-links
 - Button disappears after resolution (shows "✓ Resolved" badge instead)
 
 **API Endpoint:**
+
 ```
 POST /api/app-feedback
 Content-Type: application/json
@@ -708,6 +756,7 @@ Content-Type: application/json
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -717,6 +766,7 @@ Content-Type: application/json
 ```
 
 **Close GitHub Issue:**
+
 ```
 PATCH /api/github/close-issue
 Content-Type: application/json
@@ -728,6 +778,7 @@ Content-Type: application/json
 ```
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -738,11 +789,13 @@ Content-Type: application/json
 ### 3.3 Feedback List API
 
 **Get All Feedback:**
+
 ```
 GET /api/app-feedback?limit=100&page=/network&since=2024-01-01&feedbackType=issue
 ```
 
 **Query Parameters:**
+
 - `limit`: Number of feedback items to return (default: all)
 - `page`: Filter by page path (e.g., `/network`)
 - `wallet`: Filter by user wallet address
@@ -750,6 +803,7 @@ GET /api/app-feedback?limit=100&page=/network&since=2024-01-01&feedbackType=issu
 - `feedbackType`: Filter by type (`feedback` or `issue`)
 
 **Example Response:**
+
 ```json
 {
   "ok": true,
@@ -774,6 +828,7 @@ GET /api/app-feedback?limit=100&page=/network&since=2024-01-01&feedbackType=issu
 ### 3.4 Response Modal
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Respond to Feedback                              [×]        │
@@ -799,6 +854,7 @@ GET /api/app-feedback?limit=100&page=/network&since=2024-01-01&feedbackType=issu
 ```
 
 When viewing an existing response:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ View Response                                    [×]        │
@@ -827,6 +883,7 @@ When viewing an existing response:
 ### 3.5 Resolution Modal
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ Resolve Issue                                    [×]        │
@@ -859,6 +916,7 @@ The dashboard links to a dedicated feedback page at `/admin/feedback` that shows
 - All the same action buttons (Respond, Add to GitHub, Mark Resolved)
 
 **Visual Example:**
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │ App Feedback                                                 │
@@ -879,36 +937,36 @@ The dashboard links to a dedicated feedback page at `/admin/feedback` that shows
 
 ### Performance Metrics APIs
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/admin/graphql-flags` | GET | Get GraphQL migration status |
-| `/api/admin/perf-samples?summary=true` | GET | Get performance summary |
-| `/api/admin/perf-samples?limit=20` | GET | Get recent performance samples |
-| `/api/admin/perf-samples?seed=true&method=both` | GET | Generate real performance data |
-| `/api/admin/page-load-times?baseUrl=...` | GET | Measure page load times |
-| `/api/admin/perf-snapshots?limit=20` | GET | Get historical snapshots |
-| `/api/admin/perf-snapshots?operation=...&method=both` | POST | Create performance snapshot |
-| `/api/admin/perf-snapshots?checkAuto=true&operation=...` | GET | Check if auto-snapshot needed |
+| Endpoint                                                 | Method | Purpose                        |
+| -------------------------------------------------------- | ------ | ------------------------------ |
+| `/api/admin/graphql-flags`                               | GET    | Get GraphQL migration status   |
+| `/api/admin/perf-samples?summary=true`                   | GET    | Get performance summary        |
+| `/api/admin/perf-samples?limit=20`                       | GET    | Get recent performance samples |
+| `/api/admin/perf-samples?seed=true&method=both`          | GET    | Generate real performance data |
+| `/api/admin/page-load-times?baseUrl=...`                 | GET    | Measure page load times        |
+| `/api/admin/perf-snapshots?limit=20`                     | GET    | Get historical snapshots       |
+| `/api/admin/perf-snapshots?operation=...&method=both`    | POST   | Create performance snapshot    |
+| `/api/admin/perf-snapshots?checkAuto=true&operation=...` | GET    | Check if auto-snapshot needed  |
 
 ### Beta Metrics APIs
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/client-perf?limit=50` | GET | Get client performance metrics |
-| `/api/admin/retention-cohorts?limit=20&period=weekly` | GET | Get retention cohort data |
-| `/api/admin/metric-aggregates?limit=50&period=daily` | GET | Get daily metric aggregates |
+| Endpoint                                              | Method | Purpose                        |
+| ----------------------------------------------------- | ------ | ------------------------------ |
+| `/api/client-perf?limit=50`                           | GET    | Get client performance metrics |
+| `/api/admin/retention-cohorts?limit=20&period=weekly` | GET    | Get retention cohort data      |
+| `/api/admin/metric-aggregates?limit=50&period=daily`  | GET    | Get daily metric aggregates    |
 
 ### Feedback APIs
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/app-feedback?limit=100&page=...&since=...` | GET | Get app feedback list |
-| `/api/app-feedback` | POST | Create or resolve feedback |
-| `/api/admin/response?feedbackKey=...` | GET | Get admin response to feedback |
-| `/api/admin/response` | POST | Create admin response |
-| `/api/github/create-issue` | POST | Create GitHub issue from feedback |
-| `/api/github/issue-links` | GET | Get GitHub issue links |
-| `/api/github/close-issue` | PATCH | Close GitHub issue |
+| Endpoint                                         | Method | Purpose                           |
+| ------------------------------------------------ | ------ | --------------------------------- |
+| `/api/app-feedback?limit=100&page=...&since=...` | GET    | Get app feedback list             |
+| `/api/app-feedback`                              | POST   | Create or resolve feedback        |
+| `/api/admin/response?feedbackKey=...`            | GET    | Get admin response to feedback    |
+| `/api/admin/response`                            | POST   | Create admin response             |
+| `/api/github/create-issue`                       | POST   | Create GitHub issue from feedback |
+| `/api/github/issue-links`                        | GET    | Get GitHub issue links            |
+| `/api/github/close-issue`                        | PATCH  | Close GitHub issue                |
 
 ---
 
@@ -929,7 +987,7 @@ The admin dashboard uses simple password-based authentication for beta. Access i
 All metrics and feedback are stored as **Arkiv entities** on-chain:
 
 - Performance metrics → `DxMetric` entities
-- Performance snapshots → `PerfSnapshot` entities  
+- Performance snapshots → `PerfSnapshot` entities
 - App feedback → `AppFeedback` entities
 - Admin responses → `AdminResponse` entities
 - Client performance → `ClientPerf` entities
@@ -937,6 +995,7 @@ All metrics and feedback are stored as **Arkiv entities** on-chain:
 - Metric aggregates → `MetricAggregate` entities
 
 This ensures:
+
 - **Transparency**: All data is verifiable on-chain
 - **Immutability**: Historical data cannot be altered
 - **Privacy**: User wallets are hashed for retention metrics
@@ -1011,4 +1070,3 @@ curl "http://localhost:3000/api/client-perf?limit=100"
 - Export metrics to CSV/JSON for analysis
 - Custom date range filtering for all metrics
 - Comparison view between different time periods
-

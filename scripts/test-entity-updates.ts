@@ -20,9 +20,22 @@
  */
 
 import 'dotenv/config';
-import { createUserProfile, getProfileByWallet, listUserProfilesForWallet } from '../lib/arkiv/profile';
-import { upsertNotificationPreference, listNotificationPreferences } from '../lib/arkiv/notificationPreferences';
-import { getPrivateKey, SPACE_ID, ENTITY_UPDATE_MODE, isWalletMigrated, markWalletMigrated } from '../lib/config';
+import {
+  createUserProfile,
+  getProfileByWallet,
+  listUserProfilesForWallet,
+} from '../lib/arkiv/profile';
+import {
+  upsertNotificationPreference,
+  listNotificationPreferences,
+} from '../lib/arkiv/notificationPreferences';
+import {
+  getPrivateKey,
+  SPACE_ID,
+  ENTITY_UPDATE_MODE,
+  isWalletMigrated,
+  markWalletMigrated,
+} from '../lib/config';
 import { privateKeyToAccount } from 'viem/accounts';
 
 interface TestResult {
@@ -48,7 +61,7 @@ function generateTestWallet(): string {
 async function testProfileCreation(wallet: string, privateKey: `0x${string}`): Promise<TestResult> {
   try {
     console.log(`\n[Test 1] Creating profile for wallet: ${wallet}`);
-    
+
     const { key, txHash } = await createUserProfile({
       wallet,
       displayName: 'Test User',
@@ -105,7 +118,7 @@ async function testProfileCreation(wallet: string, privateKey: `0x${string}`): P
 async function testProfileUpdate(wallet: string, privateKey: `0x${string}`): Promise<TestResult> {
   try {
     console.log(`\n[Test 2] Updating profile for wallet: ${wallet}`);
-    
+
     // Get existing profile
     const existingProfile = await getProfileByWallet(wallet);
     if (!existingProfile) {
@@ -208,12 +221,15 @@ async function testProfileUpdate(wallet: string, privateKey: `0x${string}`): Pro
 /**
  * Test 3: Notification Preference Update
  */
-async function testNotificationUpdate(wallet: string, privateKey: `0x${string}`): Promise<TestResult> {
+async function testNotificationUpdate(
+  wallet: string,
+  privateKey: `0x${string}`
+): Promise<TestResult> {
   try {
     console.log(`\n[Test 3] Testing notification preference update for wallet: ${wallet}`);
-    
+
     const notificationId = `test_notification_${Date.now()}`;
-    
+
     // Create initial preference
     const { key: initialKey } = await upsertNotificationPreference({
       wallet,
@@ -311,7 +327,7 @@ async function testNotificationUpdate(wallet: string, privateKey: `0x${string}`)
 async function testQueryPath(wallet: string): Promise<TestResult> {
   try {
     console.log(`\n[Test 4] Testing query path for wallet: ${wallet}`);
-    
+
     const profile = await getProfileByWallet(wallet);
     if (!profile) {
       return {
@@ -357,10 +373,10 @@ async function testQueryPath(wallet: string): Promise<TestResult> {
 async function testMigrationMarkers(wallet: string): Promise<TestResult> {
   try {
     console.log(`\n[Test 5] Testing migration markers for wallet: ${wallet}`);
-    
+
     const normalizedWallet = wallet.toLowerCase();
     const initiallyMigrated = isWalletMigrated(normalizedWallet);
-    
+
     // Mark as migrated
     markWalletMigrated(normalizedWallet);
     const afterMarking = isWalletMigrated(normalizedWallet);
@@ -401,7 +417,7 @@ async function runTests() {
 
   // Parse command line arguments
   const args = process.argv.slice(2);
-  const walletArg = args.find(arg => arg.startsWith('--wallet='));
+  const walletArg = args.find((arg) => arg.startsWith('--wallet='));
   const testWallet = walletArg ? walletArg.split('=')[1] : generateTestWallet();
 
   // Verify private key is available
@@ -427,8 +443,8 @@ async function runTests() {
 
   // Summary
   console.log('\n📊 Test Results Summary:');
-  const passed = results.filter(r => r.passed).length;
-  const failed = results.filter(r => !r.passed).length;
+  const passed = results.filter((r) => r.passed).length;
+  const failed = results.filter((r) => !r.passed).length;
 
   for (const result of results) {
     const icon = result.passed ? '✅' : '❌';
@@ -460,4 +476,3 @@ runTests().catch((error) => {
   console.error('❌ Test suite failed:', error);
   process.exit(1);
 });
-

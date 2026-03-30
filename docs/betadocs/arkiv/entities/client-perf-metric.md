@@ -49,11 +49,12 @@ Stores client-side performance metrics (Web Vitals) as Arkiv entities. Privacy-p
 ### Get Metrics for Page
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'client_perf_metric'))
   .where(eq('page', '/network'))
   .withAttributes(true)
@@ -61,16 +62,17 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const metrics = result.entities.map(e => ({
+const metrics = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get Recent Metrics
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'client_perf_metric'))
   .withAttributes(true)
   .withPayload(true)
@@ -78,7 +80,7 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const recent = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
@@ -87,20 +89,20 @@ const recent = result.entities
 ```typescript
 const metrics = await getClientPerfMetrics('/network', 100);
 
-const avgTtfb = metrics
-  .filter(m => m.ttfb)
-  .reduce((sum, m) => sum + m.ttfb, 0) / metrics.filter(m => m.ttfb).length;
+const avgTtfb =
+  metrics.filter((m) => m.ttfb).reduce((sum, m) => sum + m.ttfb, 0) /
+  metrics.filter((m) => m.ttfb).length;
 
-const avgLcp = metrics
-  .filter(m => m.lcp)
-  .reduce((sum, m) => sum + m.lcp, 0) / metrics.filter(m => m.lcp).length;
+const avgLcp =
+  metrics.filter((m) => m.lcp).reduce((sum, m) => sum + m.lcp, 0) /
+  metrics.filter((m) => m.lcp).length;
 ```
 
 ## Creation
 
 ```typescript
-import { createClientPerfMetric } from "@/lib/arkiv/clientPerfMetric";
-import { getPrivateKey } from "@/lib/config";
+import { createClientPerfMetric } from '@/lib/arkiv/clientPerfMetric';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createClientPerfMetric({
   metric: {
@@ -141,7 +143,7 @@ if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
     const entries = list.getEntries();
     const lastEntry = entries[entries.length - 1];
     const lcp = lastEntry.renderTime || lastEntry.loadTime;
-    
+
     // Send to server for storage
     fetch('/api/client-perf', {
       method: 'POST',
@@ -167,4 +169,3 @@ if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
 - **Optional Fields**: Not all metrics may be available on all pages
 - **Client-Side**: Collected in browser, sent to server for storage
 - **Verifiability**: On-chain storage enables verification of performance claims
-

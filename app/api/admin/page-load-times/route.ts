@@ -1,6 +1,6 @@
 /**
  * Admin API: Page Load Times
- * 
+ *
  * Measures page load times for key pages using the sample wallet.
  * This helps track real-world performance from a user perspective.
  */
@@ -20,7 +20,7 @@ interface PageLoadResult {
  */
 async function measurePageLoad(baseUrl: string, path: string): Promise<PageLoadResult> {
   const startTime = Date.now();
-  
+
   try {
     const url = `${baseUrl}${path}`;
     const response = await fetch(url, {
@@ -29,10 +29,10 @@ async function measurePageLoad(baseUrl: string, path: string): Promise<PageLoadR
         'User-Agent': 'p2pmentor-admin-dashboard',
       },
     });
-    
+
     const endTime = Date.now();
     const durationMs = endTime - startTime;
-    
+
     return {
       page: path,
       durationMs,
@@ -51,7 +51,7 @@ async function measurePageLoad(baseUrl: string, path: string): Promise<PageLoadR
 
 /**
  * GET /api/admin/page-load-times
- * 
+ *
  * Measures load times for key pages.
  * Uses the sample wallet (CURRENT_WALLET) for wallet-specific pages.
  */
@@ -59,7 +59,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const baseUrl = searchParams.get('baseUrl') || 'http://localhost:3000';
-    
+
     // Key pages to measure
     const pages = [
       '/',
@@ -73,33 +73,28 @@ export async function GET(request: Request) {
       '/profiles',
       ...(CURRENT_WALLET ? [`/profiles/${CURRENT_WALLET}`] : []),
     ];
-    
+
     // Warm up: Make a request to each page first to avoid cold start skewing results
     // This ensures we're measuring actual page load time, not compilation time
-    await Promise.all(
-      pages.map(page => measurePageLoad(baseUrl, page))
-    );
-    
+    await Promise.all(pages.map((page) => measurePageLoad(baseUrl, page)));
+
     // Wait a moment for server to stabilize
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // Now measure for real (warm measurements)
-    const results = await Promise.all(
-      pages.map(page => measurePageLoad(baseUrl, page))
-    );
-    
+    const results = await Promise.all(pages.map((page) => measurePageLoad(baseUrl, page)));
+
     // Calculate summary stats
-    const successful = results.filter(r => r.status === 200);
-    const avgDuration = successful.length > 0
-      ? successful.reduce((sum, r) => sum + r.durationMs, 0) / successful.length
-      : 0;
-    const minDuration = successful.length > 0
-      ? Math.min(...successful.map(r => r.durationMs))
-      : 0;
-    const maxDuration = successful.length > 0
-      ? Math.max(...successful.map(r => r.durationMs))
-      : 0;
-    
+    const successful = results.filter((r) => r.status === 200);
+    const avgDuration =
+      successful.length > 0
+        ? successful.reduce((sum, r) => sum + r.durationMs, 0) / successful.length
+        : 0;
+    const minDuration =
+      successful.length > 0 ? Math.min(...successful.map((r) => r.durationMs)) : 0;
+    const maxDuration =
+      successful.length > 0 ? Math.max(...successful.map((r) => r.durationMs)) : 0;
+
     return NextResponse.json({
       ok: true,
       results,
@@ -121,4 +116,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

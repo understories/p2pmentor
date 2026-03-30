@@ -11,12 +11,14 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 ## When to Use
 
 **Always use this pattern when:**
+
 - Creating or updating entities (use `arkivUpsertEntity()` instead of separate create/update functions)
 - Implementing Pattern B (stable entity key updates)
 - Ensuring idempotent writes
 - Maintaining consistent entity update behavior
 
 **Key derivation:**
+
 - If `key` is provided and entity exists: updates the entity
 - If `key` is not provided or entity doesn't exist: creates a new entity
 - Deterministic key derivation enables idempotent operations
@@ -56,11 +58,13 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/entity-utils.ts` - `arkivUpsertEntity()` canonical helper function
 - `lib/arkiv/profile.ts` - `createUserProfile()` uses `arkivUpsertEntity()` for Pattern B updates
 - `lib/arkiv/notificationPreferences.ts` - `upsertNotificationPreference()` uses `arkivUpsertEntity()`
 
 **Code examples:**
+
 ```typescript
 // Canonical upsert helper
 export async function arkivUpsertEntity({
@@ -81,10 +85,10 @@ export async function arkivUpsertEntity({
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  
+
   // Add signer metadata to attributes
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
-  
+
   if (key) {
     // Update existing entity
     const finalExpiresIn = expiresIn ?? 15768000; // 6 months default
@@ -162,4 +166,3 @@ const result = await arkivUpsertEntity({
 - [Stable Entity Key Updates](./stable-entity-key-updates.md) - Upsert enables Pattern B updates
 - [Idempotent Writes](./idempotent-writes.md) - Upsert with deterministic keys ensures idempotency
 - [PAT-TIMEOUT-001: Transaction Timeouts](./transaction-timeouts.md) - Upsert uses timeout handling
-

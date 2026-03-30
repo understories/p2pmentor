@@ -12,6 +12,7 @@ In a decentralized application (dapp), the frontend often loads before blockchai
 ## Solution Architecture
 
 We use a **three-phase loading pattern**:
+
 1. **Loading State** - Show loading indicator while fetching
 2. **Empty State** - Show appropriate message when no data exists
 3. **Data State** - Render content when data is available
@@ -28,17 +29,18 @@ This pattern ensures the UI never tries to render data that doesn't exist, preve
 
 ```typescript
 // ✅ CORRECT: Safe defaults
-const [data, setData] = useState<DataType[]>([]);  // Array defaults to empty
-const [loading, setLoading] = useState(true);        // Start in loading state
-const [error, setError] = useState('');             // Error starts empty
-const [wallet, setWallet] = useState<string | null>(null);  // Nullable types use null
+const [data, setData] = useState<DataType[]>([]); // Array defaults to empty
+const [loading, setLoading] = useState(true); // Start in loading state
+const [error, setError] = useState(''); // Error starts empty
+const [wallet, setWallet] = useState<string | null>(null); // Nullable types use null
 
 // ❌ WRONG: Undefined or missing initialization
-const [data, setData] = useState<DataType[]>();     // Undefined!
-const [loading, setLoading] = useState(false);     // Shows content before data loads!
+const [data, setData] = useState<DataType[]>(); // Undefined!
+const [loading, setLoading] = useState(false); // Shows content before data loads!
 ```
 
 **Why this works:**
+
 - Empty arrays `[]` are safe to iterate over (won't crash)
 - `null` is explicit and can be checked with `if (!wallet)`
 - `loading: true` prevents premature rendering
@@ -74,11 +76,12 @@ return (
 ```
 
 **Example from `app/me/sessions/page.tsx`:**
+
 ```typescript
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);  // Start loading
-  
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const address = localStorage.getItem('wallet_address');
@@ -95,7 +98,7 @@ export default function SessionsPage() {
     try {
       setLoading(true);
       setError('');
-      
+
       const sessionsRes = await fetch(`/api/sessions?wallet=${wallet}`);
       const sessionsData = await sessionsRes.json();
       const sessionsList = sessionsData.sessions || [];  // Fallback to empty array
@@ -153,13 +156,14 @@ export default function SessionsPage() {
 ```
 
 **Example from `app/profiles/page.tsx`:**
+
 ```typescript
 {loading ? (
   <LoadingSpinner text="Loading profiles..." className="py-12" />
 ) : profiles.length === 0 ? (
   <EmptyState
     title={skillFilter ? `No profiles found` : 'No profiles yet'}
-    description={skillFilter 
+    description={skillFilter
       ? `No profiles match "${skillFilter}". Try a different skill or clear the filter.`
       : 'Be the first to create a profile and join the network!'}
     icon={
@@ -205,21 +209,22 @@ const sessionsList = sessionsData.sessions;  // Could be undefined!
 ```
 
 **Example from `app/network/page.tsx`:**
+
 ```typescript
 const loadNetwork = async () => {
   try {
     setLoading(true);
     const [asksRes, offersRes] = await Promise.all([
-      fetch('/api/asks').then(r => r.json()),
-      fetch('/api/offers').then(r => r.json()),
+      fetch('/api/asks').then((r) => r.json()),
+      fetch('/api/offers').then((r) => r.json()),
     ]);
 
     // Defensive: Use fallback to empty array
     if (asksRes.ok) {
-      setAsks(asksRes.asks || []);  // ✅ Safe fallback
+      setAsks(asksRes.asks || []); // ✅ Safe fallback
     }
     if (offersRes.ok) {
-      setOffers(offersRes.offers || []);  // ✅ Safe fallback
+      setOffers(offersRes.offers || []); // ✅ Safe fallback
     }
 
     // Defensive: Check array exists before iterating
@@ -233,14 +238,15 @@ const loadNetwork = async () => {
         const profile = await getProfileByWallet(wallet);
         return { wallet, profile };
       } catch {
-        return { wallet, profile: null };  // ✅ Return null on error
+        return { wallet, profile: null }; // ✅ Return null on error
       }
     });
 
     const profileResults = await Promise.all(profilePromises);
     const profilesMap: Record<string, UserProfile> = {};
     profileResults.forEach(({ wallet, profile }) => {
-      if (profile) {  // ✅ Only add if profile exists
+      if (profile) {
+        // ✅ Only add if profile exists
         profilesMap[wallet] = profile;
       }
     });
@@ -248,7 +254,7 @@ const loadNetwork = async () => {
   } catch (err) {
     console.error('Error loading network:', err);
   } finally {
-    setLoading(false);  // ✅ Always stop loading
+    setLoading(false); // ✅ Always stop loading
   }
 };
 ```
@@ -276,16 +282,15 @@ const firstSkill = profile.skillsArray[0];  // Crashes if array is empty!
 ```
 
 **Example from `app/asks/page.tsx`:**
+
 ```typescript
 // Pre-fill skill from offer or profile's first skill
 useEffect(() => {
   if (profile && isOpen) {
     // ✅ Safe optional chaining with fallbacks
-    const skill = offer?.skill 
-      || profile.skillsArray?.[0] 
-      || profile.skills?.split(',')[0]?.trim() 
-      || '';
-    setFormData(prev => ({
+    const skill =
+      offer?.skill || profile.skillsArray?.[0] || profile.skills?.split(',')[0]?.trim() || '';
+    setFormData((prev) => ({
       ...prev,
       skill: skill,
     }));
@@ -305,29 +310,30 @@ const loadData = async (wallet: string) => {
   try {
     setLoading(true);
     setError('');
-    
+
     const res = await fetch(`/api/data?wallet=${wallet}`);
     if (!res.ok) {
       throw new Error('Failed to fetch data');
     }
-    
+
     const data = await res.json();
     if (!data.ok) {
       throw new Error(data.error || 'Unknown error');
     }
-    
-    setData(data.items || []);  // Fallback to empty array
+
+    setData(data.items || []); // Fallback to empty array
   } catch (err: any) {
     console.error('Error loading data:', err);
     setError(err.message || 'Failed to load data');
-    setData([]);  // Reset to empty on error
+    setData([]); // Reset to empty on error
   } finally {
-    setLoading(false);  // Always stop loading
+    setLoading(false); // Always stop loading
   }
 };
 ```
 
 **Example from `app/me/sessions/page.tsx`:**
+
 ```typescript
 const loadSessions = async (wallet: string) => {
   try {
@@ -339,20 +345,20 @@ const loadSessions = async (wallet: string) => {
       throw new Error('Failed to fetch sessions');
     }
     const sessionsData = await sessionsRes.json();
-    const sessionsList = sessionsData.sessions || [];  // ✅ Fallback
+    const sessionsList = sessionsData.sessions || []; // ✅ Fallback
     setSessions(sessionsList);
 
     // Optional profile fetch - doesn't fail if profile doesn't exist
     const profileRes = await fetch(`/api/profile?wallet=${wallet}`);
     if (profileRes.ok) {
       const profileData = await profileRes.json();
-      setUserProfile(profileData.profile);  // ✅ Can be null
+      setUserProfile(profileData.profile); // ✅ Can be null
     }
   } catch (err: any) {
     console.error('Error loading sessions:', err);
     setError(err.message || 'Failed to load sessions');
   } finally {
-    setLoading(false);  // ✅ Always stop loading
+    setLoading(false); // ✅ Always stop loading
   }
 };
 ```
@@ -389,6 +395,7 @@ if (!walletAddress) {
 ```
 
 **Example from `app/me/page.tsx`:**
+
 ```typescript
 export default function MePage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -433,7 +440,7 @@ export async function listAsks(params?: { skill?: string; spaceId?: string }): P
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     let queryBuilder = query.where(eq('type', 'ask')).where(eq('status', 'open'));
-    
+
     let result: any = null;
     try {
       result = await queryBuilder.withAttributes(true).withPayload(true).limit(500).fetch();
@@ -441,21 +448,23 @@ export async function listAsks(params?: { skill?: string; spaceId?: string }): P
       console.error('[listAsks] Arkiv query failed:', {
         message: fetchError?.message,
         stack: fetchError?.stack,
-        error: fetchError
+        error: fetchError,
       });
-      return [];  // ✅ Return empty array on query failure
+      return []; // ✅ Return empty array on query failure
     }
 
     // ✅ Defensive check: ensure result structure is valid
     if (!result || !result.entities || !Array.isArray(result.entities)) {
-      console.warn('[listAsks] Invalid result structure, returning empty array', { 
-        result: result ? { 
-          hasEntities: !!result.entities, 
-          entitiesType: typeof result.entities, 
-          entitiesIsArray: Array.isArray(result.entities) 
-        } : 'null/undefined'
+      console.warn('[listAsks] Invalid result structure, returning empty array', {
+        result: result
+          ? {
+              hasEntities: !!result.entities,
+              entitiesType: typeof result.entities,
+              entitiesIsArray: Array.isArray(result.entities),
+            }
+          : 'null/undefined',
       });
-      return [];  // ✅ Return empty array on invalid structure
+      return []; // ✅ Return empty array on invalid structure
     }
 
     // Process entities...
@@ -467,7 +476,7 @@ export async function listAsks(params?: { skill?: string; spaceId?: string }): P
     });
   } catch (error: any) {
     console.error('[listAsks] Unexpected error:', error);
-    return [];  // ✅ Always return empty array on error
+    return []; // ✅ Always return empty array on error
   }
 }
 ```
@@ -517,7 +526,7 @@ export default function SessionsPage() {
       if (!sessionsRes.ok) {
         throw new Error('Failed to fetch sessions');
       }
-      
+
       const sessionsData = await sessionsRes.json();
       // ✅ Pattern 4: Defensive data access with fallback
       const sessionsList = sessionsData.sessions || [];
@@ -619,13 +628,13 @@ export function LoadingSpinner({ text, className }: { text?: string; className?:
 
 ```typescript
 // components/EmptyState.tsx
-export function EmptyState({ 
-  title, 
-  description, 
-  icon 
-}: { 
-  title: string; 
-  description: string; 
+export function EmptyState({
+  title,
+  description,
+  icon
+}: {
+  title: string;
+  description: string;
   icon?: React.ReactNode;
 }) {
   return (
@@ -668,6 +677,7 @@ When creating or updating a page that loads blockchain data, ensure:
 ## Common Anti-Patterns to Avoid
 
 ### ❌ Anti-Pattern 1: No Loading State
+
 ```typescript
 // BAD: Renders before data loads
 const [data, setData] = useState<Data[]>([]);
@@ -679,6 +689,7 @@ return <div>{data.map(item => <Item key={item.id} />)}</div>;  // Crashes!
 ```
 
 ### ❌ Anti-Pattern 2: Undefined State
+
 ```typescript
 // BAD: State can be undefined
 const [data, setData] = useState<Data[]>();  // Undefined!
@@ -687,25 +698,28 @@ data.map(...)  // TypeError: Cannot read property 'map' of undefined
 ```
 
 ### ❌ Anti-Pattern 3: No Fallbacks
+
 ```typescript
 // BAD: No fallback for API response
 const data = await res.json();
-setData(data.items);  // What if data.items is undefined?
+setData(data.items); // What if data.items is undefined?
 ```
 
 ### ❌ Anti-Pattern 4: Direct Property Access
+
 ```typescript
 // BAD: Direct access without checks
 <h2>{profile.displayName}</h2>  // Crashes if profile is null!
 ```
 
 ### ❌ Anti-Pattern 5: Missing Error Handling
+
 ```typescript
 // BAD: No error handling
 const loadData = async () => {
   const res = await fetch('/api/data');
   const data = await res.json();
-  setData(data.items);  // What if fetch fails?
+  setData(data.items); // What if fetch fails?
 };
 ```
 
@@ -720,7 +734,7 @@ const loadData = async () => {
 export async function listEntities(): Promise<Entity[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  
+
   try {
     const result = await query
       .where(eq('type', 'entity'))
@@ -728,13 +742,13 @@ export async function listEntities(): Promise<Entity[]> {
       .withPayload(true)
       .limit(100)
       .fetch();
-    
+
     // ✅ Validate result structure
     if (!result?.entities || !Array.isArray(result.entities)) {
       console.warn('[listEntities] Invalid result structure');
       return [];
     }
-    
+
     return result.entities.map((entity: any) => {
       // ✅ Safe attribute access
       const attrs = entity.attributes || {};
@@ -745,7 +759,7 @@ export async function listEntities(): Promise<Entity[]> {
         }
         return String(attrs[key] || '');
       };
-      
+
       return {
         key: entity.key,
         wallet: getAttr('wallet') || '',
@@ -757,7 +771,7 @@ export async function listEntities(): Promise<Entity[]> {
       message: error?.message,
       stack: error?.stack,
     });
-    return [];  // ✅ Always return empty array on error
+    return []; // ✅ Always return empty array on error
   }
 }
 ```
@@ -767,18 +781,22 @@ export async function listEntities(): Promise<Entity[]> {
 ```typescript
 // ✅ CORRECT: Handle transaction receipt timeouts
 try {
-  const { entityKey, txHash } = await walletClient.createEntity({ /* ... */ });
+  const { entityKey, txHash } = await walletClient.createEntity({
+    /* ... */
+  });
   return { ok: true, key: entityKey, txHash };
 } catch (error: any) {
   // Handle transaction receipt timeout - common on testnets
-  if (error.message?.includes('confirmation pending') || 
-      error.message?.includes('Transaction submitted')) {
-    return NextResponse.json({ 
-      ok: true, 
+  if (
+    error.message?.includes('confirmation pending') ||
+    error.message?.includes('Transaction submitted')
+  ) {
+    return NextResponse.json({
+      ok: true,
       key: null,
       txHash: null,
       pending: true,
-      message: error.message || 'Transaction submitted, confirmation pending'
+      message: error.message || 'Transaction submitted, confirmation pending',
     });
   }
   throw error;
@@ -800,4 +818,3 @@ The key principles for handling blockchain data loading:
 7. **Always stop loading** - Use `finally` blocks
 
 Following these patterns ensures the dapp never crashes due to missing blockchain data, providing a smooth user experience even when network conditions are poor.
-

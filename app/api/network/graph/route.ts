@@ -1,6 +1,6 @@
 /**
  * Network Graph API Route
- * 
+ *
  * Returns graph data (nodes and links) for the forest visualization.
  */
 
@@ -11,8 +11,8 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skillFilter = searchParams.get('skill') || undefined;
-    const limitAsks = searchParams.get('limitAsks') 
-      ? parseInt(searchParams.get('limitAsks')!, 10) 
+    const limitAsks = searchParams.get('limitAsks')
+      ? parseInt(searchParams.get('limitAsks')!, 10)
       : undefined;
     const limitOffers = searchParams.get('limitOffers')
       ? parseInt(searchParams.get('limitOffers')!, 10)
@@ -41,5 +41,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-

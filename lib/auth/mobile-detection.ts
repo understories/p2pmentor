@@ -75,4 +75,3 @@ export function isMetaMaskAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   return typeof window.ethereum !== 'undefined';
 }
-

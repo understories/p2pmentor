@@ -1,9 +1,9 @@
 /**
  * Weekly Availability Editor Component
- * 
+ *
  * Main component for editing weekly availability (Calendly-style).
  * Allows day-by-day configuration with multiple time slots per day.
- * 
+ *
  * Reference: Availability UX Upgrade Plan
  */
 
@@ -11,9 +11,9 @@
 
 import { useState, useEffect } from 'react';
 import type { WeeklyAvailability, DayOfWeek } from '@/lib/arkiv/availability';
-import { 
-  createDefaultWeeklyAvailability, 
-  validateWeeklyAvailability
+import {
+  createDefaultWeeklyAvailability,
+  validateWeeklyAvailability,
 } from '@/lib/arkiv/availability';
 import { DayAvailabilityRow } from './DayAvailabilityRow';
 import { TimezoneSelector } from './TimezoneSelector';
@@ -83,7 +83,7 @@ export function WeeklyAvailabilityEditor({
 
   const handleDayChange = (day: DayOfWeek, dayAvailability: any) => {
     if (!availability) return;
-    
+
     const updated: WeeklyAvailability = {
       ...availability,
       days: {
@@ -91,9 +91,9 @@ export function WeeklyAvailabilityEditor({
         [day]: dayAvailability,
       },
     };
-    
+
     setAvailability(updated);
-    
+
     // Validate
     const validation = validateWeeklyAvailability(updated);
     if (validation.valid) {
@@ -120,7 +120,7 @@ export function WeeklyAvailabilityEditor({
 
   const handleCopyToWeekdays = () => {
     if (!availability) return;
-    
+
     const mondaySlots = availability.days.monday.timeSlots;
     const updated: WeeklyAvailability = {
       ...availability,
@@ -132,14 +132,14 @@ export function WeeklyAvailabilityEditor({
         friday: { available: availability.days.monday.available, timeSlots: [...mondaySlots] },
       },
     };
-    
+
     setAvailability(updated);
     onChange(updated);
   };
 
   const handleClearAll = () => {
     if (!availability) return;
-    
+
     const cleared = createDefaultWeeklyAvailability(timezone);
     setAvailability(cleared);
     onChange(cleared);
@@ -147,7 +147,7 @@ export function WeeklyAvailabilityEditor({
 
   const handleSetStandardHours = () => {
     if (!availability) return;
-    
+
     const standardSlot = { start: '09:00', end: '17:00' };
     const updated: WeeklyAvailability = {
       ...availability,
@@ -161,7 +161,7 @@ export function WeeklyAvailabilityEditor({
         saturday: { available: false, timeSlots: [] },
       },
     };
-    
+
     setAvailability(updated);
     onChange(updated);
   };
@@ -173,11 +173,9 @@ export function WeeklyAvailabilityEditor({
   return (
     <div className={className}>
       <div className="mb-6">
-        <div className="flex items-center justify-between mb-2">
+        <div className="mb-2 flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Weekly hours
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Weekly hours</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Set when you are typically available for meetings
             </p>
@@ -187,10 +185,7 @@ export function WeeklyAvailabilityEditor({
 
       {/* Timezone Selector */}
       <div className="mb-6">
-        <TimezoneSelector
-          value={timezone}
-          onChange={handleTimezoneChange}
-        />
+        <TimezoneSelector value={timezone} onChange={handleTimezoneChange} />
       </div>
 
       {/* Bulk Actions */}
@@ -199,21 +194,21 @@ export function WeeklyAvailabilityEditor({
           <button
             type="button"
             onClick={handleCopyToWeekdays}
-            className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
           >
             Copy Monday to all weekdays
           </button>
           <button
             type="button"
             onClick={handleSetStandardHours}
-            className="px-3 py-1.5 text-sm text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+            className="rounded-lg bg-gray-100 px-3 py-1.5 text-sm text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
           >
             Set standard hours (Mon-Fri 9am-5pm)
           </button>
           <button
             type="button"
             onClick={handleClearAll}
-            className="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+            className="rounded-lg bg-red-50 px-3 py-1.5 text-sm text-red-600 transition-colors hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
           >
             Clear all
           </button>
@@ -222,7 +217,7 @@ export function WeeklyAvailabilityEditor({
 
       {/* Validation Error */}
       {validationError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-400">
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {validationError}
         </div>
       )}
@@ -243,4 +238,3 @@ export function WeeklyAvailabilityEditor({
     </div>
   );
 }
-

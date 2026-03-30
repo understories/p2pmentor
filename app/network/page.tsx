@@ -1,9 +1,9 @@
 /**
  * Network graph page
- * 
+ *
  * View network, match asks ↔ offers ↔ skills, and filter.
  * Beta-ready simplified version focused on functionality.
- * 
+ *
  * Reference: refs/mentor-graph/pages/network.tsx (simplified)
  */
 
@@ -74,52 +74,56 @@ export default function NetworkPage() {
   useEffect(() => {
     // Get user wallet
     if (typeof window !== 'undefined') {
-        const address = localStorage.getItem('wallet_address');
-        setUserWallet(address);
-        // Load user profile
-        if (address) {
-          getProfileByWallet(address.toLowerCase().trim()).then(setUserProfile).catch(() => null);
-        }
-        
-        // Check onboarding access (requires level 3 for network)
+      const address = localStorage.getItem('wallet_address');
+      setUserWallet(address);
+      // Load user profile
+      if (address) {
+        getProfileByWallet(address.toLowerCase().trim())
+          .then(setUserProfile)
+          .catch(() => null);
+      }
+
+      // Check onboarding access (requires level 3 for network)
       if (address) {
         import('@/lib/onboarding/access').then(({ checkOnboardingRoute }) => {
-          checkOnboardingRoute(address, 3, '/onboarding').then((hasAccess) => {
-            // If access granted, continue loading
-            if (hasAccess) {
-              // Check for returnTo param from onboarding redirect
-              const urlParams = new URLSearchParams(window.location.search);
-              const returnTo = urlParams.get('returnTo');
-              // Use safeRedirect helper to validate and decode (handles %2Fauth -> /auth)
-              const safe = safeRedirect(returnTo, window.location.pathname);
-              if (safe !== window.location.pathname) {
-                // Clean up URL
-                window.history.replaceState({}, '', safe);
+          checkOnboardingRoute(address, 3, '/onboarding')
+            .then((hasAccess) => {
+              // If access granted, continue loading
+              if (hasAccess) {
+                // Check for returnTo param from onboarding redirect
+                const urlParams = new URLSearchParams(window.location.search);
+                const returnTo = urlParams.get('returnTo');
+                // Use safeRedirect helper to validate and decode (handles %2Fauth -> /auth)
+                const safe = safeRedirect(returnTo, window.location.pathname);
+                if (safe !== window.location.pathname) {
+                  // Clean up URL
+                  window.history.replaceState({}, '', safe);
+                }
               }
-            }
-            // If no access, checkOnboardingRoute will redirect
-          }).catch(() => {
-            // On error, allow access (don't block on calculation failure)
-          });
+              // If no access, checkOnboardingRoute will redirect
+            })
+            .catch(() => {
+              // On error, allow access (don't block on calculation failure)
+            });
         });
       } else {
         // No wallet - redirect to auth
         router.push('/auth');
       }
-      
+
       // Check for skill_id or skill in URL params
       const urlParams = new URLSearchParams(window.location.search);
       const skillId = urlParams.get('skill_id');
       const skillSlug = urlParams.get('skill');
-      
+
       if (skillId) {
         setSkillIdFilter(skillId);
         setShowContent(true); // Show content when skill is selected from URL
       } else if (skillSlug) {
         // Try to resolve skill slug to skill_id
         fetch(`/api/skills?slug=${encodeURIComponent(skillSlug)}&limit=1`)
-          .then(r => r.json())
-          .then(data => {
+          .then((r) => r.json())
+          .then((data) => {
             if (data.ok && data.skills && data.skills.length > 0) {
               setSkillIdFilter(data.skills[0].key);
               setShowContent(true); // Show content when skill is selected from URL
@@ -142,8 +146,12 @@ export default function NetworkPage() {
     // Load user's asks and offers for match detection
     if (userWallet) {
       Promise.all([
-        fetch(`/api/asks?wallet=${encodeURIComponent(userWallet)}`).then(r => r.json()).catch(() => ({ ok: false, asks: [] })),
-        fetch(`/api/offers?wallet=${encodeURIComponent(userWallet)}`).then(r => r.json()).catch(() => ({ ok: false, offers: [] })),
+        fetch(`/api/asks?wallet=${encodeURIComponent(userWallet)}`)
+          .then((r) => r.json())
+          .catch(() => ({ ok: false, asks: [] })),
+        fetch(`/api/offers?wallet=${encodeURIComponent(userWallet)}`)
+          .then((r) => r.json())
+          .catch(() => ({ ok: false, offers: [] })),
       ]).then(([asksRes, offersRes]) => {
         if (asksRes.ok) setUserAsks(asksRes.asks || []);
         if (offersRes.ok) setUserOffers(offersRes.offers || []);
@@ -172,9 +180,11 @@ export default function NetworkPage() {
       setLoading(true);
       const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const [asksRes, offersRes, skillsRes] = await Promise.all([
-        fetch(`/api/asks${builderParams}`).then(r => r.json()),
-        fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        fetch(`/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`).then(r => r.json()),
+        fetch(`/api/asks${builderParams}`).then((r) => r.json()),
+        fetch(`/api/offers${builderParams}`).then((r) => r.json()),
+        fetch(
+          `/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`
+        ).then((r) => r.json()),
         // fetch(`/api/skills/explore${builderParams}`).then(r => r.json()), // Commented out: Skill Canopy removed for now (may use in future)
       ]);
 
@@ -204,7 +214,7 @@ export default function NetworkPage() {
         const skillsMap: Record<string, Skill> = {};
         const skillsByName: Record<string, Skill> = {}; // name_canonical -> skill
         const skillsBySlug: Record<string, Skill> = {}; // slug -> skill
-        
+
         skillsRes.skills.forEach((skill: Skill) => {
           skillsMap[skill.key] = skill;
           // Build reverse lookups for resolving skill strings to entities
@@ -289,7 +299,13 @@ export default function NetworkPage() {
           // One has skill_id, one doesn't: try to match by skill string
           const askSkill = (ask.skill || '').toLowerCase();
           const offerSkill = (offer.skill || '').toLowerCase();
-          if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+          if (
+            askSkill &&
+            offerSkill &&
+            (askSkill === offerSkill ||
+              askSkill.includes(offerSkill) ||
+              offerSkill.includes(askSkill))
+          ) {
             isMatch = true;
             skillMatchLabel = ask.skill || offer.skill;
           }
@@ -297,7 +313,13 @@ export default function NetworkPage() {
           // Both use legacy skill string: case-insensitive, partial match
           const askSkill = (ask.skill || '').toLowerCase();
           const offerSkill = (offer.skill || '').toLowerCase();
-          if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+          if (
+            askSkill &&
+            offerSkill &&
+            (askSkill === offerSkill ||
+              askSkill.includes(offerSkill) ||
+              offerSkill.includes(askSkill))
+          ) {
             isMatch = true;
             skillMatchLabel = ask.skill;
           }
@@ -326,7 +348,7 @@ export default function NetworkPage() {
   };
 
   // Compute user matches (matches involving user's asks or offers)
-  const userMatches = matches.filter(match => {
+  const userMatches = matches.filter((match) => {
     if (!userWallet) return false;
     const isUserAsk = match.ask.wallet.toLowerCase() === userWallet.toLowerCase();
     const isUserOffer = match.offer.wallet.toLowerCase() === userWallet.toLowerCase();
@@ -348,7 +370,7 @@ export default function NetworkPage() {
 
   const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     const now = Date.now();
     const remaining = expires - now;
 
@@ -370,7 +392,7 @@ export default function NetworkPage() {
 
   const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     return Date.now() >= expires;
   };
 
@@ -386,7 +408,7 @@ export default function NetworkPage() {
   // Filter data based on filters (prioritize skill_id filter)
   // const activeSkillFilter = selectedCanopySkill || skillFilter; // Commented out: Skill Canopy removed for now (may use in future)
   const activeSkillFilter = skillFilter;
-  
+
   const filteredAsks = asks.filter((ask) => {
     // If skill_id filter is set, use it
     if (skillIdFilter) {
@@ -416,7 +438,7 @@ export default function NetworkPage() {
   const filteredMatches = matches.filter((match) => {
     // If skill_id filter is set, check if match involves that skill_id
     if (skillIdFilter) {
-      return (match.ask.skill_id === skillIdFilter || match.offer.skill_id === skillIdFilter);
+      return match.ask.skill_id === skillIdFilter || match.offer.skill_id === skillIdFilter;
     }
     // Otherwise use string filter (legacy)
     if (activeSkillFilter) {
@@ -460,7 +482,7 @@ export default function NetworkPage() {
     if (skillId && skills[skillId]) {
       return skillId;
     }
-    
+
     // Otherwise, try to resolve skill string to entity
     if (skillString) {
       const normalized = skillString.toLowerCase().trim();
@@ -473,32 +495,35 @@ export default function NetworkPage() {
         return skillsByName[normalized].key;
       }
     }
-    
+
     // Fallback: return the original identifier (skill_id or skill string)
     // This ensures grouping still works even if skill entity not found
     return skillId || skillString || 'unknown';
   };
 
   // Group asks/offers/matches by skill (resolve skill strings to entity keys)
-  const skillsMap = new Map<string, { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }>();
-  
-  filteredAsks.forEach(ask => {
+  const skillsMap = new Map<
+    string,
+    { asks: Ask[]; offers: Offer[]; matches: Match[]; skillKey: string }
+  >();
+
+  filteredAsks.forEach((ask) => {
     const skillKey = resolveSkillKey(ask.skill_id, ask.skill);
     if (!skillsMap.has(skillKey)) {
       skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
     skillsMap.get(skillKey)!.asks.push(ask);
   });
-  
-  filteredOffers.forEach(offer => {
+
+  filteredOffers.forEach((offer) => {
     const skillKey = resolveSkillKey(offer.skill_id, offer.skill);
     if (!skillsMap.has(skillKey)) {
       skillsMap.set(skillKey, { asks: [], offers: [], matches: [], skillKey });
     }
     skillsMap.get(skillKey)!.offers.push(offer);
   });
-  
-  filteredMatches.forEach(match => {
+
+  filteredMatches.forEach((match) => {
     // Resolve skill from ask/offer skill_id or skillMatch string
     const skillKey = resolveSkillKey(
       match.ask.skill_id || match.offer.skill_id,
@@ -517,21 +542,21 @@ export default function NetworkPage() {
       // Get skill name from entity if available
       const skill = skills[skillKey];
       const skillName = skill ? skill.name_canonical : skillKey;
-      
+
       // Sort asks by createdAt (newest first)
       const sortedAsks = [...data.asks].sort((a, b) => {
         const aTime = new Date(a.createdAt).getTime();
         const bTime = new Date(b.createdAt).getTime();
         return bTime - aTime; // Newest first
       });
-      
+
       // Sort offers by createdAt (newest first)
       const sortedOffers = [...data.offers].sort((a, b) => {
         const aTime = new Date(a.createdAt).getTime();
         const bTime = new Date(b.createdAt).getTime();
         return bTime - aTime; // Newest first
       });
-      
+
       return {
         skill: skillName,
         skillKey: skillKey, // Explicitly set skillKey
@@ -545,8 +570,8 @@ export default function NetworkPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-6xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-6xl">
           <div className="mb-6">
             <BackButton href="/me" />
           </div>
@@ -563,7 +588,7 @@ export default function NetworkPage() {
                 `   → type='skill', status='active'`,
                 `4. getProfileByWallet(...) for each unique wallet`,
                 `   → type='user_profile', wallet='...'`,
-                `Returns: Computed network graph data (asks, offers, matches, skills, profiles)`
+                `Returns: Computed network graph data (asks, offers, matches, skills, profiles)`,
               ]}
               label="Loading Network"
             >
@@ -578,41 +603,38 @@ export default function NetworkPage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4 overflow-visible">
-      <div className="max-w-6xl mx-auto overflow-visible">
+    <div className="min-h-screen overflow-visible p-4 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-6xl overflow-visible">
         <div className="mb-6">
           <BackButton href="/me" />
         </div>
 
-        <PageHeader
-          title="Network"
-          description="A living map of learning + teaching connections"
-        />
+        <PageHeader title="Network" description="A living map of learning + teaching connections" />
 
         {/* Public Garden Board Link, Browse Profiles, Learner Communities, and Learner Quests */}
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/garden/public-board"
-            className="relative inline-flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+            className="relative inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
             title="Public Garden Board"
           >
             <span className="text-lg">💌</span>
           </Link>
           <Link
             href="/profiles"
-            className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
+            className="text-sm text-gray-700 transition-colors hover:text-gray-900 hover:underline dark:text-gray-300 dark:hover:text-gray-100"
           >
             Browse Profiles
           </Link>
           <Link
             href="/skills/explore"
-            className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
+            className="text-sm text-gray-700 transition-colors hover:text-gray-900 hover:underline dark:text-gray-300 dark:hover:text-gray-100"
           >
             Explore Skills
           </Link>
           <Link
             href="/learner-quests"
-            className="text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 hover:underline transition-colors"
+            className="text-sm text-gray-700 transition-colors hover:text-gray-900 hover:underline dark:text-gray-300 dark:hover:text-gray-100"
           >
             Learning Quests
           </Link>
@@ -681,7 +703,9 @@ export default function NetworkPage() {
               setShowContent(true);
               // Verify skill exists on Arkiv (query by slug or name)
               try {
-                const skillRes = await fetch(`/api/skills?slug=${encodeURIComponent(value.toLowerCase().trim())}&limit=1`);
+                const skillRes = await fetch(
+                  `/api/skills?slug=${encodeURIComponent(value.toLowerCase().trim())}&limit=1`
+                );
                 const skillData = await skillRes.json();
                 if (skillData.ok && skillData.skills && skillData.skills.length > 0) {
                   // Found skill entity - use skill_id filter
@@ -692,7 +716,10 @@ export default function NetworkPage() {
                   setSkillIdFilter(null);
                 }
               } catch (err) {
-                console.warn('[NetworkPage] Failed to verify skill on Arkiv, using string filter:', err);
+                console.warn(
+                  '[NetworkPage] Failed to verify skill on Arkiv, using string filter:',
+                  err
+                );
                 setSkillIdFilter(null);
               }
             }
@@ -708,47 +735,47 @@ export default function NetworkPage() {
                 `Type Filter`,
                 `Filters displayed asks, offers, and matches`,
                 `Applied client-side after skill filtering`,
-                `Options: All, Asks only, Offers only, Matches only`
+                `Options: All, Asks only, Offers only, Matches only`,
               ]}
               label="Type Filter"
             >
               <div className="flex gap-2">
                 <button
                   onClick={() => setTypeFilter('all')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                     typeFilter === 'all'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   All
                 </button>
                 <button
                   onClick={() => setTypeFilter('asks')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                     typeFilter === 'asks'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   Asks only
                 </button>
                 <button
                   onClick={() => setTypeFilter('offers')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                     typeFilter === 'offers'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   Offers only
                 </button>
                 <button
                   onClick={() => setTypeFilter('matches')}
-                  className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                  className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                     typeFilter === 'matches'
                       ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
                   Matches only
@@ -759,40 +786,40 @@ export default function NetworkPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setTypeFilter('all')}
-                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                   typeFilter === 'all'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 All
               </button>
               <button
                 onClick={() => setTypeFilter('asks')}
-                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                   typeFilter === 'asks'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 Asks only
               </button>
               <button
                 onClick={() => setTypeFilter('offers')}
-                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                   typeFilter === 'offers'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 Offers only
               </button>
               <button
                 onClick={() => setTypeFilter('matches')}
-                className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+                className={`rounded-lg px-3 py-1 text-sm transition-colors ${
                   typeFilter === 'matches'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
                 Matches only
@@ -804,54 +831,74 @@ export default function NetworkPage() {
         {/* Section D: Skill Clusters with Sprouts - Only show when content should be visible */}
         {showContent && sortedSkills.length > 0 ? (
           <div className="space-y-8">
-            {sortedSkills.map(({ skill, skillKey, asks: skillAsks, offers: skillOffers, matches: skillMatches }) => {
-              // Apply type filter to skill cluster
-              const displayAsks = (typeFilter === 'all' || typeFilter === 'asks') ? skillAsks : [];
-              const displayOffers = (typeFilter === 'all' || typeFilter === 'offers') ? skillOffers : [];
-              const displayMatches = (typeFilter === 'all' || typeFilter === 'matches') ? skillMatches : [];
-              
-              if (displayAsks.length === 0 && displayOffers.length === 0 && displayMatches.length === 0) {
-                return null;
-              }
+            {sortedSkills.map(
+              ({
+                skill,
+                skillKey,
+                asks: skillAsks,
+                offers: skillOffers,
+                matches: skillMatches,
+              }) => {
+                // Apply type filter to skill cluster
+                const displayAsks = typeFilter === 'all' || typeFilter === 'asks' ? skillAsks : [];
+                const displayOffers =
+                  typeFilter === 'all' || typeFilter === 'offers' ? skillOffers : [];
+                const displayMatches =
+                  typeFilter === 'all' || typeFilter === 'matches' ? skillMatches : [];
 
-              // Display skill cluster directly (no navigation wrapper)
-              // Users can click individual asks/offers/matches for details
-              return (
-                <SkillCluster
-                  key={skillKey}
-                  skill={skill}
-                  asks={displayAsks}
-                  offers={displayOffers}
-                  matches={displayMatches}
-                  profiles={profiles}
-                  userWallet={userWallet}
-                  onRequestMeetingFromOffer={async (offer, profile) => {
-                    setSelectedOffer(offer);
-                    setSelectedAsk(null);
-                    setSelectedProfile(profile);
-                    setMeetingMode('request');
-                    setTimeout(() => setShowMeetingModal(true), 0);
-                  }}
-                  onOfferToHelpFromAsk={async (ask, profile) => {
-                    setSelectedAsk(ask);
-                    setSelectedOffer(null);
-                    setSelectedProfile(profile);
-                    setMeetingMode('offer');
-                    setTimeout(() => setShowMeetingModal(true), 0);
-                  }}
-                  arkivBuilderMode={arkivBuilderMode}
-                />
-              );
-            })}
+                if (
+                  displayAsks.length === 0 &&
+                  displayOffers.length === 0 &&
+                  displayMatches.length === 0
+                ) {
+                  return null;
+                }
+
+                // Display skill cluster directly (no navigation wrapper)
+                // Users can click individual asks/offers/matches for details
+                return (
+                  <SkillCluster
+                    key={skillKey}
+                    skill={skill}
+                    asks={displayAsks}
+                    offers={displayOffers}
+                    matches={displayMatches}
+                    profiles={profiles}
+                    userWallet={userWallet}
+                    onRequestMeetingFromOffer={async (offer, profile) => {
+                      setSelectedOffer(offer);
+                      setSelectedAsk(null);
+                      setSelectedProfile(profile);
+                      setMeetingMode('request');
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    }}
+                    onOfferToHelpFromAsk={async (ask, profile) => {
+                      setSelectedAsk(ask);
+                      setSelectedOffer(null);
+                      setSelectedProfile(profile);
+                      setMeetingMode('offer');
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    }}
+                    arkivBuilderMode={arkivBuilderMode}
+                  />
+                );
+              }
+            )}
           </div>
         ) : showContent ? (
           <EmptyState
             title="No skills found"
-            description={skillIdFilter || activeSkillFilter ? `No skills match the filter. Try a different filter.` : 'No asks or offers found in the network yet.'}
+            description={
+              skillIdFilter || activeSkillFilter
+                ? `No skills match the filter. Try a different filter.`
+                : 'No asks or offers found in the network yet.'
+            }
           />
         ) : (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            <p className="text-lg mb-2">Use the filter above to explore asks, offers, and matches</p>
+          <div className="py-12 text-center text-gray-500 dark:text-gray-400">
+            <p className="mb-2 text-lg">
+              Use the filter above to explore asks, offers, and matches
+            </p>
             <p className="text-sm">Search for a specific skill to get started</p>
           </div>
         )}

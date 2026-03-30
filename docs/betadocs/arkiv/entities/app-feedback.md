@@ -48,11 +48,12 @@ User feedback about the application itself (for builders/admin). Separate from s
 ### Get All Feedback
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback'))
   .withAttributes(true)
   .withPayload(true)
@@ -63,7 +64,8 @@ const result = await publicClient.buildQuery()
 ### Filter by Page
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback'))
   .where(eq('page', '/network'))
   .withAttributes(true)
@@ -75,7 +77,8 @@ const result = await publicClient.buildQuery()
 ### Filter by Feedback Type
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback'))
   .where(eq('feedbackType', 'issue'))
   .withAttributes(true)
@@ -87,7 +90,8 @@ const result = await publicClient.buildQuery()
 ### Filter by Wallet
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -101,7 +105,8 @@ const result = await publicClient.buildQuery()
 ```typescript
 // Get feedback since a date
 const since = '2024-01-01T00:00:00Z';
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback'))
   .withAttributes(true)
   .withPayload(true)
@@ -110,24 +115,24 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side
 const feedbacks = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(f => new Date(f.createdAt) >= new Date(since))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((f) => new Date(f.createdAt) >= new Date(since))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
 ## Creation
 
 ```typescript
-import { createAppFeedback } from "@/lib/arkiv/appFeedback";
-import { getWalletClientFromPrivateKey } from "@/lib/arkiv/client";
+import { createAppFeedback } from '@/lib/arkiv/appFeedback';
+import { getWalletClientFromPrivateKey } from '@/lib/arkiv/client';
 
 const walletClient = getWalletClientFromPrivateKey(privateKey);
 const { key, txHash } = await createAppFeedback({
-  wallet: "0x1234...",
-  page: "/network",
-  message: "The network graph is slow to load",
+  wallet: '0x1234...',
+  page: '/network',
+  message: 'The network graph is slow to load',
   rating: 3,
-  feedbackType: "issue",
+  feedbackType: 'issue',
   privateKey: privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -138,11 +143,11 @@ const { key, txHash } = await createAppFeedback({
 App feedback can be resolved via separate resolution entities:
 
 ```typescript
-import { resolveAppFeedback } from "@/lib/arkiv/appFeedback";
+import { resolveAppFeedback } from '@/lib/arkiv/appFeedback';
 
 const { key, txHash } = await resolveAppFeedback({
-  feedbackKey: "app_feedback:abc123",
-  resolvedByWallet: "0xadmin...",
+  feedbackKey: 'app_feedback:abc123',
+  resolvedByWallet: '0xadmin...',
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -152,7 +157,8 @@ Resolution creates a separate entity that marks the feedback as resolved. Query 
 
 ```typescript
 // Check if feedback is resolved
-const resolutionResult = await publicClient.buildQuery()
+const resolutionResult = await publicClient
+  .buildQuery()
   .where(eq('type', 'app_feedback_resolution'))
   .where(eq('feedbackKey', feedbackKey))
   .withAttributes(true)
@@ -179,9 +185,9 @@ const isResolved = resolutionResult.entities.length > 0;
 ```typescript
 const feedback = await createAppFeedback({
   wallet: userWallet,
-  page: "/network",
-  message: "The network graph takes 5 seconds to load",
-  feedbackType: "issue",
+  page: '/network',
+  message: 'The network graph takes 5 seconds to load',
+  feedbackType: 'issue',
   privateKey: userPrivateKey,
 });
 ```
@@ -191,9 +197,9 @@ const feedback = await createAppFeedback({
 ```typescript
 const feedback = await createAppFeedback({
   wallet: userWallet,
-  page: "/me",
+  page: '/me',
   rating: 5,
-  feedbackType: "feedback",
+  feedbackType: 'feedback',
   privateKey: userPrivateKey,
 });
 ```
@@ -215,4 +221,3 @@ await resolveAppFeedback({
 - **Immutability**: Cannot edit or delete feedback once created
 - **Resolution**: Separate resolution entities track resolution status
 - **GitHub Integration**: Can be linked to GitHub issues via `github_issue_link` entity
-

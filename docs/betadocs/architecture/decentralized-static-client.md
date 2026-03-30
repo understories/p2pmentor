@@ -2,7 +2,7 @@
 
 ## Overview
 
-The static client is a **read-only, no-JavaScript snapshot viewer** for p2pmentor data. It renders **public data pulled from Arkiv at build time** and is **content-addressed on IPFS** with optional **ENS naming**. 
+The static client is a **read-only, no-JavaScript snapshot viewer** for p2pmentor data. It renders **public data pulled from Arkiv at build time** and is **content-addressed on IPFS** with optional **ENS naming**.
 
 Every build includes a **snapshot manifest** that documents exactly what Arkiv data was used, enabling verification that the rendered content matches the on-chain source.
 
@@ -70,12 +70,14 @@ Instead of querying Arkiv at runtime, the static client:
 ### Data Coverage
 
 **Beta (Current):**
+
 - User profiles
 - Skills
 - Asks
 - Offers
 
 **Future:**
+
 - Sessions
 - Availability
 - Session feedback
@@ -103,7 +105,7 @@ Instead of querying Arkiv at runtime, the static client:
 
 ## Verifiability and Provenance
 
-**Important distinction:** IPFS guarantees content integrity (the bytes you fetched are exactly what was published). The snapshot manifest enables *data correctness verification* by allowing independent recomputation from Arkiv.
+**Important distinction:** IPFS guarantees content integrity (the bytes you fetched are exactly what was published). The snapshot manifest enables _data correctness verification_ by allowing independent recomputation from Arkiv.
 
 Every static build includes a **snapshot manifest** (`/snapshot/index.html` and `snapshot.json`) that documents:
 
@@ -138,11 +140,13 @@ This enables verification that the rendered content matches the on-chain source 
 IPFS content requires **pinning** for availability. Content will vanish from the network unless actively pinned.
 
 **During Beta:**
+
 - We pin via our infrastructure
 - Optionally pinned via a pinning service (Pinata, Web3.Storage, etc.) for redundancy
 - Users can also pin the CID on their own IPFS nodes
 
 **Pinning Strategy:**
+
 - Local IPFS node (required)
 - At least one pinning service (for redundancy)
 - Users encouraged to pin if they want to ensure long-term availability
@@ -200,4 +204,3 @@ Complete implementation includes all entity types, advanced features, automated 
 - **Implementation Plan**: `refs/static-build-experiment-implementation-plan.md` (internal)
 - **Arkiv Data Model**: [Arkiv Data Model](/docs/arkiv/entities/data-model)
 - **Serverless Architecture**: [Serverless & Trustless](/docs/philosophy/serverless-and-trustless)
-

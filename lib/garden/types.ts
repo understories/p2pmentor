@@ -1,6 +1,6 @@
 /**
  * Garden Types
- * 
+ *
  * Types for the Emoji Garden feature (Phase 6).
  * Lightweight, Arkiv-native - derives from profile skills.
  */
@@ -17,10 +17,10 @@ export type GardenSkill = {
 
 /**
  * Map skill expertise level to plant emoji
- * 
+ *
  * Must match exactly the emoji array used in SkillsStep.tsx:
  * ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨']
- * 
+ *
  * 0: 🌱 (Beginner)
  * 1: 🌿 (Beginner)
  * 2: 🌳 (Intermediate)
@@ -43,30 +43,31 @@ export function levelToLabel(level: SkillLevel): string {
 
 /**
  * Assign skills to garden slots deterministically
- * 
+ *
  * Uses hash of skill ID to assign consistent slot positions.
  * This ensures the same skill always appears in the same position.
  */
-export function assignSkillsToSlots(skills: GardenSkill[], maxSlots: number = 7): (GardenSkill | null)[] {
+export function assignSkillsToSlots(
+  skills: GardenSkill[],
+  maxSlots: number = 7
+): (GardenSkill | null)[] {
   const slots: (GardenSkill | null)[] = new Array(maxSlots).fill(null);
-  
+
   // Simple hash function for deterministic slot assignment
   const hash = (str: string): number => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash);
   };
-  
-  skills.forEach(skill => {
+
+  skills.forEach((skill) => {
     // Use existing slotIndex if provided, otherwise calculate from hash
-    const slotIndex = skill.slotIndex !== undefined 
-      ? skill.slotIndex 
-      : hash(skill.id) % maxSlots;
-    
+    const slotIndex = skill.slotIndex !== undefined ? skill.slotIndex : hash(skill.id) % maxSlots;
+
     // If slot is empty, assign skill
     if (slots[slotIndex] === null) {
       slots[slotIndex] = skill;
@@ -81,13 +82,13 @@ export function assignSkillsToSlots(skills: GardenSkill[], maxSlots: number = 7)
       }
     }
   });
-  
+
   return slots;
 }
 
 /**
  * Convert profile skills to garden skills
- * 
+ *
  * Derives garden state from Arkiv profile data (Arkiv-native).
  * No new entity type needed - uses existing profile.skillsArray and profile.skillExpertise.
  */
@@ -98,13 +99,13 @@ export function profileToGardenSkills(
   if (!skillsArray || skillsArray.length === 0) {
     return [];
   }
-  
+
   return skillsArray.map((skillName, index) => {
     const normalizedId = skillName.toLowerCase();
-    const level = (skillExpertise?.[normalizedId] ?? 
-                   skillExpertise?.[skillName.toLowerCase()] ?? 
-                   1) as SkillLevel;
-    
+    const level = (skillExpertise?.[normalizedId] ??
+      skillExpertise?.[skillName.toLowerCase()] ??
+      1) as SkillLevel;
+
     return {
       id: normalizedId,
       name: skillName,

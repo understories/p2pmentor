@@ -3,13 +3,13 @@
  *
  * Complete overhaul following admin notification pattern (Pattern B).
  * Uses updateEntity for state changes with state stored in notification payload.
- * 
+ *
  * Key changes:
  * - Removed separate notification_preference entities
  * - Read/archived state stored directly in notification payload
  * - Uses /api/notifications/state for state updates
  * - Simplified code, no preference management needed
- * 
+ *
  * Reference: refs/docs/admin-vs-regular-notifications-comparison.md
  */
 
@@ -39,7 +39,8 @@ export default function NotificationsPage() {
 
   // Filtering state
   const [filterType, setFilterType] = useState<FilterType>('all');
-  const [filterNotificationType, setFilterNotificationType] = useState<FilterNotificationType>('all');
+  const [filterNotificationType, setFilterNotificationType] =
+    useState<FilterNotificationType>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   // Arkiv Builder Mode state (global)
@@ -68,7 +69,9 @@ export default function NotificationsPage() {
       // Normalize wallet to lowercase for consistent querying
       const normalizedWallet = wallet.toLowerCase().trim();
       const notificationsParams = `?wallet=${encodeURIComponent(normalizedWallet)}&archived=false`;
-      const res = await fetch(`/api/notifications${appendBuilderModeParams(arkivBuilderMode, notificationsParams)}`);
+      const res = await fetch(
+        `/api/notifications${appendBuilderModeParams(arkivBuilderMode, notificationsParams)}`
+      );
       const data = await res.json();
 
       if (!data.ok) {
@@ -83,8 +86,9 @@ export default function NotificationsPage() {
         .filter((n: any) => !n.archived) // Filter out archived notifications
         .map((n: any): Notification => {
           // Ensure notificationId is available (from attributes, not metadata)
-          const notificationId = n.notificationId || deriveNotificationId(n.sourceEntityType, n.sourceEntityKey);
-          
+          const notificationId =
+            n.notificationId || deriveNotificationId(n.sourceEntityType, n.sourceEntityKey);
+
           return {
             id: n.key, // Use entity key as ID
             type: n.notificationType,
@@ -106,9 +110,12 @@ export default function NotificationsPage() {
         });
 
       // Update state with notifications from Arkiv
-      setNotifications(notificationsList.sort((a: Notification, b: Notification) =>
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      ));
+      setNotifications(
+        notificationsList.sort(
+          (a: Notification, b: Notification) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        )
+      );
 
       setLoading(false);
     } catch (err: any) {
@@ -124,8 +131,8 @@ export default function NotificationsPage() {
     }
 
     const walletLower = userWallet.toLowerCase().trim();
-    const notification = notifications.find(n => n.id === notificationId);
-    
+    const notification = notifications.find((n) => n.id === notificationId);
+
     if (!notification) {
       console.error('[markAsRead] Notification not found:', notificationId);
       return;
@@ -139,10 +146,8 @@ export default function NotificationsPage() {
     }
 
     // Optimistic update
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === notificationId ? { ...n, read: true } : n
-      )
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
     );
 
     // Persist to Arkiv
@@ -163,24 +168,24 @@ export default function NotificationsPage() {
       }
 
       // Small delay to ensure Arkiv has indexed the update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
       // Dispatch event to notify other components (e.g., navbar) of the change
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('[markAsRead] Error marking notification as read:', err);
       // Revert on error
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, read: false } : n
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: false } : n))
       );
     }
   };
@@ -189,8 +194,8 @@ export default function NotificationsPage() {
     if (!userWallet) return;
 
     const walletLower = userWallet.toLowerCase().trim();
-    const notification = notifications.find(n => n.id === notificationId);
-    
+    const notification = notifications.find((n) => n.id === notificationId);
+
     if (!notification) {
       console.error('[markAsUnread] Notification not found:', notificationId);
       return;
@@ -204,10 +209,8 @@ export default function NotificationsPage() {
     }
 
     // Optimistic update
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id === notificationId ? { ...n, read: false } : n
-      )
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: false } : n))
     );
 
     // Persist to Arkiv
@@ -228,24 +231,24 @@ export default function NotificationsPage() {
       }
 
       // Small delay to ensure Arkiv has indexed the update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('[markAsUnread] Error marking notification as unread:', err);
       // Revert on error
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, read: true } : n
-        )
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
       );
     }
   };
@@ -253,42 +256,50 @@ export default function NotificationsPage() {
   const markAllAsRead = async () => {
     if (!userWallet) return;
 
-    const unreadNotifications = notifications.filter(n => !n.read);
+    const unreadNotifications = notifications.filter((n) => !n.read);
     if (unreadNotifications.length === 0) return;
 
     // Optimistic update
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
     // Persist to Arkiv (update each notification)
     try {
       const walletLower = userWallet.toLowerCase().trim();
-      const updates = unreadNotifications.map(n => {
-        const notificationId = n.metadata?.notificationId;
-        if (!notificationId) {
-          console.warn('[markAllAsRead] Skipping notification without notificationId:', n.id);
-          return null;
-        }
-        
-        return fetch('/api/notifications/state', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet: walletLower,
-            notificationId,
-            read: true,
-          }),
-        });
-      }).filter(Boolean) as Promise<Response>[];
+      const updates = unreadNotifications
+        .map((n) => {
+          const notificationId = n.metadata?.notificationId;
+          if (!notificationId) {
+            console.warn('[markAllAsRead] Skipping notification without notificationId:', n.id);
+            return null;
+          }
+
+          return fetch('/api/notifications/state', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: walletLower,
+              notificationId,
+              read: true,
+            }),
+          });
+        })
+        .filter(Boolean) as Promise<Response>[];
 
       // Wait for all updates to complete (use allSettled to handle individual failures)
       const results = await Promise.allSettled(updates);
-      
+
       // Log any failures
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          console.error(`[markAllAsRead] Failed to update notification ${unreadNotifications[index]?.id}:`, result.reason);
+          console.error(
+            `[markAllAsRead] Failed to update notification ${unreadNotifications[index]?.id}:`,
+            result.reason
+          );
         } else if (result.status === 'fulfilled' && !result.value.ok) {
-          console.error(`[markAllAsRead] Update failed for notification ${unreadNotifications[index]?.id}:`, result.value.status);
+          console.error(
+            `[markAllAsRead] Update failed for notification ${unreadNotifications[index]?.id}:`,
+            result.value.status
+          );
         }
       });
 
@@ -297,88 +308,104 @@ export default function NotificationsPage() {
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('Error marking all as read:', err);
       // Revert on error
-      setNotifications(prev => prev.map(n => {
-        const wasUnread = unreadNotifications.some(un => un.id === n.id);
-        return wasUnread ? { ...n, read: false } : n;
-      }));
+      setNotifications((prev) =>
+        prev.map((n) => {
+          const wasUnread = unreadNotifications.some((un) => un.id === n.id);
+          return wasUnread ? { ...n, read: false } : n;
+        })
+      );
     }
   };
 
   const markAllAsUnread = async () => {
     if (!userWallet) return;
 
-    const readNotifications = notifications.filter(n => n.read);
+    const readNotifications = notifications.filter((n) => n.read);
     if (readNotifications.length === 0) return;
 
     // Optimistic update
-    setNotifications(prev => prev.map(n => ({ ...n, read: false })));
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: false })));
 
     // Persist to Arkiv (update each notification)
     try {
       const walletLower = userWallet.toLowerCase().trim();
-      const updates = readNotifications.map(n => {
-        const notificationId = n.metadata?.notificationId;
-        if (!notificationId) {
-          console.warn('[markAllAsUnread] Skipping notification without notificationId:', n.id);
-          return null;
-        }
-        
-        return fetch('/api/notifications/state', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            wallet: walletLower,
-            notificationId,
-            read: false,
-          }),
-        });
-      }).filter(Boolean) as Promise<Response>[];
+      const updates = readNotifications
+        .map((n) => {
+          const notificationId = n.metadata?.notificationId;
+          if (!notificationId) {
+            console.warn('[markAllAsUnread] Skipping notification without notificationId:', n.id);
+            return null;
+          }
+
+          return fetch('/api/notifications/state', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              wallet: walletLower,
+              notificationId,
+              read: false,
+            }),
+          });
+        })
+        .filter(Boolean) as Promise<Response>[];
 
       // Wait for all updates to complete
       const results = await Promise.allSettled(updates);
-      
+
       // Log any failures
       results.forEach((result, index) => {
         if (result.status === 'rejected') {
-          console.error(`[markAllAsUnread] Failed to update notification ${readNotifications[index]?.id}:`, result.reason);
+          console.error(
+            `[markAllAsUnread] Failed to update notification ${readNotifications[index]?.id}:`,
+            result.reason
+          );
         } else if (result.status === 'fulfilled' && !result.value.ok) {
-          console.error(`[markAllAsUnread] Update failed for notification ${readNotifications[index]?.id}:`, result.value.status);
+          console.error(
+            `[markAllAsUnread] Update failed for notification ${readNotifications[index]?.id}:`,
+            result.value.status
+          );
         }
       });
 
       // Small delay to ensure Arkiv has indexed the updates
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('Error marking all as unread:', err);
       // Revert on error
-      setNotifications(prev => prev.map(n => {
-        const wasRead = readNotifications.some(rn => rn.id === n.id);
-        return wasRead ? { ...n, read: true } : n;
-      }));
+      setNotifications((prev) =>
+        prev.map((n) => {
+          const wasRead = readNotifications.some((rn) => rn.id === n.id);
+          return wasRead ? { ...n, read: true } : n;
+        })
+      );
     }
   };
 
   const deleteNotification = async (notificationId: string) => {
     if (!userWallet) return;
 
-    const notification = notifications.find(n => n.id === notificationId);
+    const notification = notifications.find((n) => n.id === notificationId);
     if (!notification) return;
 
     // Get notificationId from metadata
@@ -389,7 +416,7 @@ export default function NotificationsPage() {
     }
 
     // Optimistic update
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+    setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
 
     // Persist to Arkiv (mark as archived)
     try {
@@ -410,16 +437,18 @@ export default function NotificationsPage() {
       }
 
       // Small delay to ensure Arkiv has indexed the update
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
@@ -432,7 +461,11 @@ export default function NotificationsPage() {
     if (!userWallet) return;
 
     // Confirm with user
-    if (!confirm(`Are you sure you want to delete all ${notifications.length} notifications? This cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete all ${notifications.length} notifications? This cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -454,16 +487,18 @@ export default function NotificationsPage() {
       console.log(`[deleteAllNotifications] Deleted ${data.archived || 0} notifications`);
 
       // Small delay to ensure Arkiv has indexed the updates
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Refresh notifications to get updated state from Arkiv
       await loadNotifications(userWallet);
 
       // Dispatch event to notify other components
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-          detail: { wallet: walletLower },
-        }));
+        window.dispatchEvent(
+          new CustomEvent('notification-preferences-updated', {
+            detail: { wallet: walletLower },
+          })
+        );
       }
     } catch (err) {
       console.error('Error deleting all notifications:', err);
@@ -532,7 +567,9 @@ export default function NotificationsPage() {
   const loadFollowedSkills = async (wallet: string) => {
     try {
       const normalizedWallet = wallet.toLowerCase().trim();
-      const res = await fetch(`/api/learning-follow?profile_wallet=${encodeURIComponent(normalizedWallet)}`);
+      const res = await fetch(
+        `/api/learning-follow?profile_wallet=${encodeURIComponent(normalizedWallet)}`
+      );
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.follows) {
@@ -561,7 +598,7 @@ export default function NotificationsPage() {
 
       const data = await res.json();
       if (data.ok) {
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         await loadFollowedSkills(userWallet);
       } else {
         alert(data.error || `Failed to ${action} community`);
@@ -602,25 +639,32 @@ export default function NotificationsPage() {
       return;
     }
 
-    setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: true }));
+    setLoadingFeedback((prev) => ({ ...prev, [feedbackKey]: true }));
     try {
       const res = await fetch(`/api/app-feedback?key=${encodeURIComponent(feedbackKey)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.feedback) {
-          setFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
+          setFeedbackDetails((prev) => ({ ...prev, [feedbackKey]: data.feedback }));
         } else {
-          console.warn(`[loadFeedbackDetails] Feedback ${feedbackKey} not found in response:`, data);
+          console.warn(
+            `[loadFeedbackDetails] Feedback ${feedbackKey} not found in response:`,
+            data
+          );
         }
       } else if (res.status === 404) {
         console.warn(`[loadFeedbackDetails] Feedback ${feedbackKey} not found (404)`);
       } else {
-        console.error(`[loadFeedbackDetails] Error fetching feedback ${feedbackKey}:`, res.status, res.statusText);
+        console.error(
+          `[loadFeedbackDetails] Error fetching feedback ${feedbackKey}:`,
+          res.status,
+          res.statusText
+        );
       }
     } catch (err) {
       console.error('[loadFeedbackDetails] Error loading feedback details:', err);
     } finally {
-      setLoadingFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+      setLoadingFeedback((prev) => ({ ...prev, [feedbackKey]: false }));
     }
   };
 
@@ -635,25 +679,34 @@ export default function NotificationsPage() {
       return;
     }
 
-    setLoadingSessionFeedback(prev => ({ ...prev, [feedbackKey]: true }));
+    setLoadingSessionFeedback((prev) => ({ ...prev, [feedbackKey]: true }));
     try {
       const res = await fetch(`/api/feedback?key=${encodeURIComponent(feedbackKey)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.feedback) {
-          setSessionFeedbackDetails(prev => ({ ...prev, [feedbackKey]: data.feedback }));
+          setSessionFeedbackDetails((prev) => ({ ...prev, [feedbackKey]: data.feedback }));
         } else {
-          console.warn(`[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found in response:`, data);
+          console.warn(
+            `[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found in response:`,
+            data
+          );
         }
       } else if (res.status === 404) {
-        console.warn(`[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found (404)`);
+        console.warn(
+          `[loadSessionFeedbackDetails] Session feedback ${feedbackKey} not found (404)`
+        );
       } else {
-        console.error(`[loadSessionFeedbackDetails] Error fetching session feedback ${feedbackKey}:`, res.status, res.statusText);
+        console.error(
+          `[loadSessionFeedbackDetails] Error fetching session feedback ${feedbackKey}:`,
+          res.status,
+          res.statusText
+        );
       }
     } catch (err) {
       console.error('[loadSessionFeedbackDetails] Error loading session feedback details:', err);
     } finally {
-      setLoadingSessionFeedback(prev => ({ ...prev, [feedbackKey]: false }));
+      setLoadingSessionFeedback((prev) => ({ ...prev, [feedbackKey]: false }));
     }
   };
 
@@ -668,25 +721,32 @@ export default function NotificationsPage() {
       return;
     }
 
-    setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: true }));
+    setLoadingAdminResponse((prev) => ({ ...prev, [responseKey]: true }));
     try {
       const res = await fetch(`/api/admin/response?key=${encodeURIComponent(responseKey)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.response) {
-          setAdminResponseDetails(prev => ({ ...prev, [responseKey]: data.response }));
+          setAdminResponseDetails((prev) => ({ ...prev, [responseKey]: data.response }));
         } else {
-          console.warn(`[loadAdminResponseDetails] Admin response ${responseKey} not found in response:`, data);
+          console.warn(
+            `[loadAdminResponseDetails] Admin response ${responseKey} not found in response:`,
+            data
+          );
         }
       } else if (res.status === 404) {
         console.warn(`[loadAdminResponseDetails] Admin response ${responseKey} not found (404)`);
       } else {
-        console.error(`[loadAdminResponseDetails] Error fetching admin response ${responseKey}:`, res.status, res.statusText);
+        console.error(
+          `[loadAdminResponseDetails] Error fetching admin response ${responseKey}:`,
+          res.status,
+          res.statusText
+        );
       }
     } catch (err) {
       console.error('[loadAdminResponseDetails] Error loading admin response details:', err);
     } finally {
-      setLoadingAdminResponse(prev => ({ ...prev, [responseKey]: false }));
+      setLoadingAdminResponse((prev) => ({ ...prev, [responseKey]: false }));
     }
   };
 
@@ -701,49 +761,53 @@ export default function NotificationsPage() {
       return;
     }
 
-    setLoadingSession(prev => ({ ...prev, [sessionKey]: true }));
+    setLoadingSession((prev) => ({ ...prev, [sessionKey]: true }));
     try {
       const res = await fetch(`/api/sessions?key=${encodeURIComponent(sessionKey)}`);
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.session) {
-          setSessionDetails(prev => ({ ...prev, [sessionKey]: data.session }));
+          setSessionDetails((prev) => ({ ...prev, [sessionKey]: data.session }));
         } else {
           console.warn(`[loadSessionDetails] Session ${sessionKey} not found in response:`, data);
         }
       } else if (res.status === 404) {
         console.warn(`[loadSessionDetails] Session ${sessionKey} not found (404)`);
       } else {
-        console.error(`[loadSessionDetails] Error fetching session ${sessionKey}:`, res.status, res.statusText);
+        console.error(
+          `[loadSessionDetails] Error fetching session ${sessionKey}:`,
+          res.status,
+          res.statusText
+        );
       }
     } catch (err) {
       console.error('[loadSessionDetails] Error loading session details:', err);
     } finally {
-      setLoadingSession(prev => ({ ...prev, [sessionKey]: false }));
+      setLoadingSession((prev) => ({ ...prev, [sessionKey]: false }));
     }
   };
 
   // Apply filters
   let filteredNotifications = notifications;
   if (filterType === 'unread') {
-    filteredNotifications = filteredNotifications.filter(n => !n.read);
+    filteredNotifications = filteredNotifications.filter((n) => !n.read);
   } else if (filterType === 'read') {
-    filteredNotifications = filteredNotifications.filter(n => n.read);
+    filteredNotifications = filteredNotifications.filter((n) => n.read);
   }
 
   if (filterNotificationType !== 'all') {
-    filteredNotifications = filteredNotifications.filter(n => n.type === filterNotificationType);
+    filteredNotifications = filteredNotifications.filter((n) => n.type === filterNotificationType);
   }
 
   const unreadCount = getUnreadCount(notifications);
 
   if (loading) {
     return (
-      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton />
           <div className="mt-8 flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-gray-200 dark:border-gray-700 border-t-blue-600 dark:border-t-blue-400 rounded-full animate-spin"></div>
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-blue-600 dark:border-gray-700 dark:border-t-blue-400"></div>
           </div>
         </div>
       </main>
@@ -751,13 +815,13 @@ export default function NotificationsPage() {
   }
 
   return (
-    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-4xl">
         <BackButton />
-        
-        <div className="mt-8 mb-6 flex items-center justify-between">
+
+        <div className="mb-6 mt-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 mb-2">
+            <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-50">
               Notifications
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
@@ -774,29 +838,29 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 rounded-lg transition-colors"
+                className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 dark:bg-blue-900/20 dark:text-blue-400 dark:hover:text-blue-300"
               >
                 Mark All Read
               </button>
             )}
-            {notifications.filter(n => n.read).length > 0 && (
+            {notifications.filter((n) => n.read).length > 0 && (
               <button
                 onClick={markAllAsUnread}
-                className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors"
+                className="rounded-lg bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
               >
                 Mark All Unread
               </button>
             )}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-50 dark:bg-gray-800 rounded-lg transition-colors"
+              className="rounded-lg bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:text-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:text-gray-300"
             >
               {showFilters ? 'Hide' : 'Show'} Filters
             </button>
             {notifications.length > 0 && (
               <button
                 onClick={deleteAllNotifications}
-                className="px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 rounded-lg transition-colors"
+                className="rounded-lg bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:text-red-700 dark:bg-red-900/20 dark:text-red-400 dark:hover:text-red-300"
                 title="Delete all notifications (cannot be undone)"
               >
                 Delete All
@@ -806,16 +870,16 @@ export default function NotificationsPage() {
         </div>
 
         {showFilters && (
-          <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="mb-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Status
                 </label>
                 <select
                   value={filterType}
                   onChange={(e) => setFilterType(e.target.value as FilterType)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="all">All</option>
                   <option value="unread">Unread</option>
@@ -823,13 +887,15 @@ export default function NotificationsPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Type
                 </label>
                 <select
                   value={filterNotificationType}
-                  onChange={(e) => setFilterNotificationType(e.target.value as FilterNotificationType)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  onChange={(e) =>
+                    setFilterNotificationType(e.target.value as FilterNotificationType)
+                  }
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 >
                   <option value="all">All Types</option>
                   <option value="meeting_request">Meeting Request</option>
@@ -851,7 +917,7 @@ export default function NotificationsPage() {
         )}
 
         {filteredNotifications.length === 0 ? (
-          <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+          <div className="rounded-lg bg-gray-50 p-8 text-center dark:bg-gray-800">
             <p className="text-gray-600 dark:text-gray-400">
               {notifications.length === 0
                 ? 'No notifications yet.'
@@ -863,26 +929,26 @@ export default function NotificationsPage() {
             {filteredNotifications.map((notification) => (
               <div
                 key={notification.id}
-                className={`p-4 rounded-lg border ${
+                className={`rounded-lg border p-4 ${
                   notification.read
-                    ? 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                    ? 'border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800'
+                    : 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <span className="text-lg">{getNotificationIcon(notification.type)}</span>
                       <h3 className="font-semibold text-gray-900 dark:text-gray-50">
                         {notification.title}
                       </h3>
                       {!notification.read && (
-                        <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded">
+                        <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
                           New
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                    <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
                       {notification.message}
                     </p>
                     <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
@@ -890,7 +956,7 @@ export default function NotificationsPage() {
                       {notification.link && (
                         <Link
                           href={notification.link}
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
                         >
                           View →
                         </Link>
@@ -905,11 +971,11 @@ export default function NotificationsPage() {
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4">
+                  <div className="ml-4 flex items-center gap-2">
                     {!notification.read ? (
                       <button
                         onClick={() => markAsRead(notification.id)}
-                        className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                        className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         title="Mark as read"
                       >
                         Mark Read
@@ -917,7 +983,7 @@ export default function NotificationsPage() {
                     ) : (
                       <button
                         onClick={() => markAsUnread(notification.id)}
-                        className="px-3 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 transition-colors"
+                        className="rounded border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-600 transition-colors hover:text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                         title="Mark as unread"
                       >
                         Mark Unread
@@ -925,7 +991,7 @@ export default function NotificationsPage() {
                     )}
                     <button
                       onClick={() => deleteNotification(notification.id)}
-                      className="px-3 py-1 text-xs font-medium text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 bg-white dark:bg-gray-700 rounded border border-red-300 dark:border-red-600 transition-colors"
+                      className="rounded border border-red-300 bg-white px-3 py-1 text-xs font-medium text-red-600 transition-colors hover:text-red-700 dark:border-red-600 dark:bg-gray-700 dark:text-red-400 dark:hover:text-red-300"
                       title="Delete"
                     >
                       Delete

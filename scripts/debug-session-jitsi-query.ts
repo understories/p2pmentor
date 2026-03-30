@@ -23,7 +23,8 @@ async function debugSessionJitsiQuery() {
 
     // Query Jitsi entities directly for this session key
     const publicClient = getPublicClient();
-    const jitsiQuery = await publicClient.buildQuery()
+    const jitsiQuery = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('sessionKey', session.key))
       .withAttributes(true)
@@ -48,11 +49,12 @@ async function debugSessionJitsiQuery() {
         let payload: any = {};
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             payload = JSON.parse(decoded);
           }
         } catch (e) {
@@ -70,7 +72,8 @@ async function debugSessionJitsiQuery() {
       });
     } else {
       // Try querying all Jitsi entities to see what sessionKeys exist
-      const allJitsi = await publicClient.buildQuery()
+      const allJitsi = await publicClient
+        .buildQuery()
         .where(eq('type', 'session_jitsi'))
         .withAttributes(true)
         .limit(20)
@@ -78,7 +81,7 @@ async function debugSessionJitsiQuery() {
 
       console.log(`\n  No match found. Checking all Jitsi entities...`);
       console.log(`  Total Jitsi entities: ${allJitsi.entities.length}`);
-      
+
       const sessionKeysInJitsi = new Set<string>();
       allJitsi.entities.forEach((entity: any) => {
         const attrs = entity.attributes || {};
@@ -94,9 +97,11 @@ async function debugSessionJitsiQuery() {
       });
 
       console.log(`  Session keys in Jitsi entities (first 5):`);
-      Array.from(sessionKeysInJitsi).slice(0, 5).forEach(sk => {
-        console.log(`    - ${sk}`);
-      });
+      Array.from(sessionKeysInJitsi)
+        .slice(0, 5)
+        .forEach((sk) => {
+          console.log(`    - ${sk}`);
+        });
       console.log(`  Looking for: ${session.key}`);
       console.log(`  Exact match in set: ${sessionKeysInJitsi.has(session.key)}`);
     }
@@ -104,5 +109,3 @@ async function debugSessionJitsiQuery() {
 }
 
 debugSessionJitsiQuery().catch(console.error);
-
-

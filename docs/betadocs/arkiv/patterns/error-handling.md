@@ -9,20 +9,23 @@ Robust error handling is essential for reliable Arkiv integration. This document
 ### Timeout Handling
 
 ```typescript
-import { handleTransactionWithTimeout } from "@/lib/arkiv/transaction-utils";
+import { handleTransactionWithTimeout } from '@/lib/arkiv/transaction-utils';
 
 async function createEntityWithTimeout(data: EntityData) {
   try {
-    return await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(data.payload)),
-        attributes: data.attributes,
-        expiresIn: data.expiresIn,
-      });
-    }, {
-      timeoutMs: 30000, // 30 seconds
-      retries: 2,
-    });
+    return await handleTransactionWithTimeout(
+      async () => {
+        return await walletClient.createEntity({
+          payload: enc.encode(JSON.stringify(data.payload)),
+          attributes: data.attributes,
+          expiresIn: data.expiresIn,
+        });
+      },
+      {
+        timeoutMs: 30000, // 30 seconds
+        retries: 2,
+      }
+    );
   } catch (error) {
     if (error.message.includes('timeout')) {
       // Handle timeout
@@ -39,7 +42,7 @@ async function createEntityWithTimeout(data: EntityData) {
 ```typescript
 async function waitForReceipt(txHash: string, timeoutMs: number = 30000) {
   const startTime = Date.now();
-  
+
   while (Date.now() - startTime < timeoutMs) {
     try {
       const receipt = await publicClient.getTransactionReceipt({ hash: txHash });
@@ -49,10 +52,10 @@ async function waitForReceipt(txHash: string, timeoutMs: number = 30000) {
     } catch (error) {
       // Receipt not ready yet
     }
-    
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second
+
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
   }
-  
+
   throw new Error('Transaction receipt timeout');
 }
 ```
@@ -64,18 +67,19 @@ async function waitForReceipt(txHash: string, timeoutMs: number = 30000) {
 ```typescript
 async function getProfile(wallet: string): Promise<Profile | null> {
   try {
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'user_profile'))
       .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(1)
       .fetch();
-    
+
     if (result.entities.length === 0) {
       return null; // Not found
     }
-    
+
     return parseProfile(result.entities[0]);
   } catch (error) {
     console.error('Error fetching profile:', error);
@@ -87,29 +91,25 @@ async function getProfile(wallet: string): Promise<Profile | null> {
 ### Handle Network Errors
 
 ```typescript
-async function queryWithRetry<T>(
-  queryFn: () => Promise<T>,
-  maxRetries: number = 3
-): Promise<T> {
+async function queryWithRetry<T>(queryFn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
   let lastError: Error | null = null;
-  
+
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await queryFn();
     } catch (error) {
       lastError = error as Error;
-      
+
       // Don't retry on certain errors
-      if (error.message.includes('not found') || 
-          error.message.includes('invalid')) {
+      if (error.message.includes('not found') || error.message.includes('invalid')) {
         throw error;
       }
-      
+
       // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
+      await new Promise((resolve) => setTimeout(resolve, 1000 * (i + 1)));
     }
   }
-  
+
   throw lastError || new Error('Query failed after retries');
 }
 ```
@@ -123,15 +123,15 @@ function validateProfile(profile: Partial<Profile>): void {
   if (!profile.wallet) {
     throw new Error('Wallet address is required');
   }
-  
+
   if (!profile.displayName || profile.displayName.trim().length === 0) {
     throw new Error('Display name is required');
   }
-  
+
   if (!profile.timezone) {
     throw new Error('Timezone is required');
   }
-  
+
   // Validate timezone format
   try {
     Intl.DateTimeFormat(undefined, { timeZone: profile.timezone });
@@ -159,15 +159,15 @@ function categorizeError(error: Error): ArkivErrorType {
   if (error.message.includes('timeout')) {
     return ArkivErrorType.TIMEOUT;
   }
-  
+
   if (error.message.includes('not found')) {
     return ArkivErrorType.NOT_FOUND;
   }
-  
+
   if (error.message.includes('network') || error.message.includes('fetch')) {
     return ArkivErrorType.NETWORK_ERROR;
   }
-  
+
   return ArkivErrorType.VALIDATION_ERROR;
 }
 ```
@@ -187,7 +187,7 @@ async function createProfileSafely(data: ProfileData): Promise<Profile> {
   try {
     // 1. Validate
     validateProfile(data);
-    
+
     // 2. Create with timeout
     const result = await handleTransactionWithTimeout(async () => {
       return await createProfile({
@@ -195,14 +195,14 @@ async function createProfileSafely(data: ProfileData): Promise<Profile> {
         privateKey: userPrivateKey,
       });
     });
-    
+
     // 3. Wait for receipt
     await waitForReceipt(result.txHash);
-    
+
     return result;
   } catch (error) {
     const errorType = categorizeError(error);
-    
+
     switch (errorType) {
       case ArkivErrorType.TIMEOUT:
         throw new Error('Request timed out. Please try again.');
@@ -216,4 +216,3 @@ async function createProfileSafely(data: ProfileData): Promise<Profile> {
   }
 }
 ```
-

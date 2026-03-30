@@ -1,14 +1,17 @@
 /**
  * Admin Notifications API route
- * 
+ *
  * Handles fetching and updating admin notifications.
- * 
+ *
  * Notifications are tied to ADMIN_WALLET (defaults to signing wallet address).
  * All admins see the same notifications regardless of who is logged in.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { listAdminNotifications, updateAdminNotificationState } from '@/lib/arkiv/adminNotification';
+import {
+  listAdminNotifications,
+  updateAdminNotificationState,
+} from '@/lib/arkiv/adminNotification';
 import { ADMIN_WALLET, getPrivateKey } from '@/lib/config';
 
 export async function GET(request: Request) {
@@ -16,7 +19,12 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const includeArchived = searchParams.get('includeArchived') === 'true';
     const notificationType = searchParams.get('notificationType') || undefined;
-    const read = searchParams.get('read') === 'true' ? true : searchParams.get('read') === 'false' ? false : undefined;
+    const read =
+      searchParams.get('read') === 'true'
+        ? true
+        : searchParams.get('read') === 'false'
+          ? false
+          : undefined;
     const limit = parseInt(searchParams.get('limit') || '100', 10);
 
     if (!ADMIN_WALLET) {
@@ -34,7 +42,7 @@ export async function GET(request: Request) {
       limit,
     });
 
-    const unreadCount = notifications.filter(n => !n.read && !n.archived).length;
+    const unreadCount = notifications.filter((n) => !n.read && !n.archived).length;
 
     return NextResponse.json({
       ok: true,
@@ -57,10 +65,7 @@ export async function PATCH(request: NextRequest) {
     const { notificationId, read, archived } = body;
 
     if (!notificationId) {
-      return NextResponse.json(
-        { ok: false, error: 'notificationId is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'notificationId is required' }, { status: 400 });
     }
 
     if (!ADMIN_WALLET) {
@@ -91,4 +96,3 @@ export async function PATCH(request: NextRequest) {
     );
   }
 }
-

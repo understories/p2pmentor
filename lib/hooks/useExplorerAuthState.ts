@@ -1,15 +1,15 @@
 /**
  * Explorer Auth State Hook
- * 
+ *
  * Thin adapter for UI state detection. Does not confer authorization.
  * Reflects current client auth state for UI adaptation only.
- * 
+ *
  * This hook is read-only and non-authoritative. It adapts existing auth
  * sources (cookies, localStorage) for UI purposes only.
- * 
+ *
  * Listens for wallet changes via storage events to update UI when user
  * logs in/out from other tabs or same tab.
- * 
+ *
  * Reference: refs/docs/explorer-adaptive-sidebar-plan.md
  */
 
@@ -38,7 +38,7 @@ export function useExplorerAuthState() {
     // Use centralized beta access helper (exported from betaAccess.ts)
     const { hasBetaAccessFromCookieString } = await import('@/lib/auth/betaAccess');
     const hasBetaAccess = hasBetaAccessFromCookieString(document.cookie);
-    
+
     // Check login state from localStorage
     // TODO: If canonical useWallet() or useAuth() hook exists, use that instead
     const walletRaw = localStorage.getItem('wallet_address');
@@ -92,4 +92,3 @@ export function useExplorerAuthState() {
 
   return { ...state, loading };
 }
-

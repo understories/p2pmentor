@@ -11,12 +11,14 @@ Relationships between entities must survive updates. Use stable identifiers (wal
 ## When to Use
 
 **Always apply this pattern when:**
+
 - Entities reference other entities (relationships)
 - Referenced entities may be updated
 - Using Pattern A (entity versioning) where `entity_key` changes
 - Relationships must persist across entity updates
 
 **Stable identifier strategies:**
+
 1. **Pattern B (preferred):** Use stable `entity_key` (never changes)
 2. **Pattern A with stable IDs:** Reference `wallet` or logical ID instead of `entity_key`
 3. **Explicit logical IDs:** Use domain-specific stable identifiers (e.g., `sessionKey`, `notificationId`)
@@ -46,16 +48,19 @@ Relationships between entities must survive updates. Use stable identifiers (wal
 ## Canonical Algorithm
 
 **Pattern B (preferred):**
+
 1. Use stable `entity_key` for all entity updates
 2. Reference other entities by their stable `entity_key`
 3. Relationships never break (entity_key never changes)
 
 **Pattern A with stable IDs:**
+
 1. Reference entities by stable identifier (e.g., `wallet`, `sessionKey`)
 2. Query for current entity using stable identifier
 3. Don't reference volatile `entity_key` in relationships
 
 **Backlink pattern:**
+
 1. Store reference in both directions (bidirectional)
 2. Use stable identifiers for both forward and back references
 3. Query from either direction using stable identifier
@@ -63,12 +68,14 @@ Relationships between entities must survive updates. Use stable identifiers (wal
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - Pattern B: `lib/arkiv/profile.ts` - Profiles use stable `entity_key` per wallet
 - Pattern B: `lib/arkiv/notificationPreferences.ts` - Preferences use stable `entity_key` per `(wallet, notificationId)`
 - Pattern A: `lib/arkiv/learnerQuest.ts` - Quest progress references `questKey` (stable entity_key from Pattern B)
 - Backlinks: Feedback entities reference profiles by stable `entity_key`
 
 **Code examples:**
+
 ```typescript
 // Pattern B: Stable entity_key (relationships never break)
 const profile = await arkivUpsertEntity({
@@ -150,4 +157,3 @@ const sessions = await query({ type: 'session', mentorWallet: wallet });
 - [Stable Entity Key Updates](./stable-entity-key-updates.md) - Pattern B ensures stable references
 - [Entity Versioning](./entity-versioning.md) - Pattern A requires stable identifier references
 - [PAT-UPSERT-001: Canonical Upsert Helper](./canonical-upsert.md) - Upsert with stable keys enables Pattern B
-

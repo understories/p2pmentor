@@ -27,10 +27,12 @@ export async function POST(request: NextRequest) {
     if (actionType && typeof clicksToComplete === 'number') {
       // Store as navigation metric with action completion pattern
       const metric: NavigationMetric = {
-        aggregates: [{
-          pattern: `action:${actionType}:clicks:${clicksToComplete}`,
-          count: 1,
-        }],
+        aggregates: [
+          {
+            pattern: `action:${actionType}:clicks:${clicksToComplete}`,
+            count: 1,
+          },
+        ],
         page: page || 'unknown',
         createdAt: createdAt || new Date().toISOString(),
       };
@@ -87,4 +89,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

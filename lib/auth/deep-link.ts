@@ -67,4 +67,3 @@ export function getMetaMaskInstallUrl(): string | null {
   }
   return null;
 }
-

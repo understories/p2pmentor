@@ -5,12 +5,14 @@
 Understanding the difference between **attributes** and **payload** is crucial for building efficient Arkiv apps.
 
 ### Attributes
+
 - **Indexed** - Can be queried efficiently
 - **Limited size** - Keep them small
 - **Use for filtering** - `type`, `wallet`, `createdAt`, `status`
 - **Examples**: `type: 'hello_world'`, `wallet: '0x123...'`, `createdAt: '2024-01-01'`
 
 ### Payload
+
 - **Not indexed** - Can't query by payload content
 - **Unlimited size** - Can store large data
 - **Use for content** - Messages, descriptions, complex objects
@@ -38,6 +40,7 @@ payload: enc.encode(JSON.stringify({
 **Indexer lag** is the delay between when you create an entity and when it appears in queries.
 
 ### Why It Happens
+
 1. You submit a transaction to the blockchain
 2. The transaction is confirmed (usually fast)
 3. Indexers process the transaction (takes a few seconds)
@@ -46,6 +49,7 @@ payload: enc.encode(JSON.stringify({
 ### Handling Indexer Lag
 
 **Optimistic UI Pattern:**
+
 ```typescript
 // 1. Show "submitted" state immediately
 setStatus('submitted');
@@ -62,6 +66,7 @@ const pollForEntity = async () => {
 ```
 
 **Best Practices:**
+
 - Show "submitted" state immediately after transaction
 - Poll for indexer confirmation (with backoff)
 - Handle gracefully - don't show errors during normal lag
@@ -78,11 +83,13 @@ const entityKey = `message:${spaceId}:${wallet}:${messageId}`;
 ```
 
 Benefits:
+
 - Predictable - Same inputs = same key
 - No query needed - You know the key before creating
 - Idempotent - Safe to retry
 
 Use when:
+
 - You need to update entities later
 - You want to prevent duplicates
 - You need predictable keys
@@ -92,10 +99,11 @@ Use when:
 Entities can have an expiration time. After the TTL expires, the entity is automatically removed.
 
 ```typescript
-expiresIn: 31536000 // 1 year in seconds
+expiresIn: 31536000; // 1 year in seconds
 ```
 
 **Common TTL values:**
+
 - `31536000` - 1 year (for persistent data)
 - `2592000` - 30 days (for temporary data)
 - `86400` - 1 day (for ephemeral data)

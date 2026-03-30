@@ -40,10 +40,12 @@ The `admin_notification` entity provides a notification system for administrator
 ### Current State (Problem)
 
 Currently, admin operations use:
+
 - **Admin Wallet**: `localStorage.getItem('wallet_address') || 'admin'` (user's profile wallet)
 - **Signing Wallet**: `ARKIV_PRIVATE_KEY` (server-side, for transaction signing)
 
 **Issues:**
+
 1. Admin wallet is tied to the logged-in user's profile wallet
 2. Multiple admins would see different notifications (or miss notifications)
 3. No consistent admin identity across sessions
@@ -58,11 +60,13 @@ Currently, admin operations use:
 export const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS as `0x${string}` | undefined;
 
 // Default to signing wallet address if not set (backward compatible)
-export const ADMIN_WALLET = ADMIN_WALLET_ADDRESS || 
+export const ADMIN_WALLET =
+  ADMIN_WALLET_ADDRESS ||
   (ARKIV_PRIVATE_KEY ? privateKeyToAccount(ARKIV_PRIVATE_KEY).address : undefined);
 ```
 
 **Benefits:**
+
 1. **Consistent Identity**: All admins see the same notifications
 2. **Separation of Concerns**: Admin identity separate from user profile wallets
 3. **Auditability**: All admin actions tied to one wallet address
@@ -79,7 +83,7 @@ import { createAdminNotification } from '@/lib/arkiv/adminNotification';
 import { ADMIN_WALLET, getPrivateKey } from '@/lib/config';
 
 await createAdminNotification({
-  wallet: ADMIN_WALLET,  // Dedicated admin wallet
+  wallet: ADMIN_WALLET, // Dedicated admin wallet
   notificationId: `feedback_response_${feedbackKey}_${Date.now()}`,
   notificationType: 'feedback_response',
   title: 'Response Sent',
@@ -87,7 +91,7 @@ await createAdminNotification({
   link: `/admin/feedback?feedbackKey=${feedbackKey}`,
   sourceEntityType: 'app_feedback',
   sourceEntityKey: feedbackKey,
-  privateKey: getPrivateKey(),  // Server-side signing wallet
+  privateKey: getPrivateKey(), // Server-side signing wallet
 });
 ```
 
@@ -101,7 +105,7 @@ import { ADMIN_WALLET } from '@/lib/config';
 
 const notifications = await listAdminNotifications({
   wallet: ADMIN_WALLET,
-  includeArchived: false,  // Only show active notifications
+  includeArchived: false, // Only show active notifications
 });
 ```
 
@@ -142,12 +146,12 @@ import { ADMIN_WALLET } from '@/lib/config';
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const includeArchived = searchParams.get('includeArchived') === 'true';
-  
+
   const notifications = await listAdminNotifications({
     wallet: ADMIN_WALLET,
     includeArchived,
   });
-  
+
   return NextResponse.json({ ok: true, notifications });
 }
 ```
@@ -193,11 +197,13 @@ ARKIV_PRIVATE_KEY=0x...
 ## Security Considerations
 
 1. **Admin Wallet vs Signing Wallet**:
+
    - **Admin Wallet** (`ADMIN_WALLET_ADDRESS`): Public address, used for identity/notifications
    - **Signing Wallet** (`ARKIV_PRIVATE_KEY`): Private key, used for transaction signing
    - These can be the same wallet (default), or separate for better security
 
 2. **Access Control**:
+
    - Admin dashboard still requires `ADMIN_PASSWORD`
    - Notifications are queryable by wallet address (public data)
    - Only server-side code can create/update notifications (requires private key)
@@ -250,4 +256,3 @@ await createAdminNotification({
   privateKey: getPrivateKey(),
 });
 ```
-

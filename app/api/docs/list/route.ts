@@ -15,34 +15,34 @@ interface DocFile {
  * Natural order: Introduction → Philosophy → History & Future → Architecture → Arkiv → User Flows → Modules → Practices → Integrations → Meta
  */
 const SECTION_ORDER: Record<string, number> = {
-  'introduction': 1,
-  'philosophy': 2,
+  introduction: 1,
+  philosophy: 2,
   'history-future': 3,
-  'architecture': 4,
-  'arkiv': 5,
+  architecture: 4,
+  arkiv: 5,
   'user-flows': 6,
-  'modules': 7,
-  'practices': 8,
-  'integrations': 9,
-  'meta': 10,
+  modules: 7,
+  practices: 8,
+  integrations: 9,
+  meta: 10,
 };
 
 const FILE_ORDER: Record<string, Record<string, number>> = {
   // Root level files (standalone docs)
   '': {
-    'roadmap': 1,
+    roadmap: 1,
   },
   // Introduction section
-  'introduction': {
-    'README': 1,
+  introduction: {
+    README: 1,
     'documentation-tour': 2,
-    'introduction': 3,
-    'overview': 4,
+    introduction: 3,
+    overview: 4,
     'getting-started': 5,
-    'roadmap': 6,
+    roadmap: 6,
   },
   // Philosophy section
-  'philosophy': {
+  philosophy: {
     'first-principles': 1,
     'dark-forest-garden': 2,
     'design-values': 3,
@@ -50,83 +50,83 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'engineering-guidelines': 5,
     'a-platform-that-teaches': 6,
     'serverless-and-trustless': 7,
-    'license': 8,
+    license: 8,
   },
   // History & Future section
   'history-future': {
-    'README': 1,
-    'context': 2,
-    'roadmap': 3,
+    README: 1,
+    context: 2,
+    roadmap: 3,
   },
   // Architecture section
-  'architecture': {
-    'overview': 1,
+  architecture: {
+    overview: 1,
     'arkiv-integration': 2,
     'graphql-performance': 3,
     'passkey-integration': 4,
     'admin-dashboard': 5,
   },
   // Arkiv section
-  'arkiv': {
-    'overview': 1,
+  arkiv: {
+    overview: 1,
     'data-model': 2,
     'entity-overview': 3, // Overview page (will be linked from folder)
     'wallet-architecture': 4,
     'wallet-authentication-flow': 5,
     'profile-creation-flow': 6,
     'session-state-machine': 7,
-    'environments': 8,
+    environments: 8,
     'privacy-consent': 9,
     'implementation-faq': 10,
     // Extractions section
-    'extractions': 11,
+    extractions: 11,
     // Entity schemas (alphabetical, grouped under entity-schemas folder)
-    'ask': 1,
-    'availability': 2,
-    'feedback': 3,
-    'offer': 4,
-    'profile': 5,
-    'session': 6,
-    'skill': 7,
+    ask: 1,
+    availability: 2,
+    feedback: 3,
+    offer: 4,
+    profile: 5,
+    session: 6,
+    skill: 7,
   },
   // Extractions section (subdirectory of arkiv)
   'arkiv/extractions': {
-    'README': 1,
+    README: 1,
     'ai-agent-kit': 2,
     'arkiv-app-primitives': 3,
     'arkiv-nextjs-starter': 4,
   },
   // Modules section
-  'modules': {
+  modules: {
     'arkiv-client': 1,
     'graphql-api': 2,
     'feedback-modules': 3,
   },
   // Practices section
-  'practices': {
+  practices: {
     'developer-experience': 1,
-    'performance': 2,
+    performance: 2,
     'arkiv-integration': 3,
   },
   // User Flows section
   'user-flows': {
-    'overview': 1,
+    overview: 1,
     'getting-started': 2,
     'profiles-skills': 3,
     'asks-offers': 4,
     'network-discovery': 5,
-    'sessions': 6,
-    'feedback': 7,
+    sessions: 6,
+    feedback: 7,
   },
   // Integrations section
-  'integrations': {
+  integrations: {
     'jitsi-integration': 1,
     'github-integration': 2,
     'graphql-integration': 3,
   },
   // Meta section
-  'meta': {
-    'outline': 1,
+  meta: {
+    outline: 1,
   },
 };
 
@@ -184,14 +184,14 @@ async function listDocs(dir: string, basePath: string = ''): Promise<DocFile[]> 
  */
 function groupEntitySchemas(files: DocFile[]): DocFile[] {
   const schemaFiles = ['ask', 'availability', 'feedback', 'offer', 'profile', 'session', 'skill'];
-  
+
   return files.map((file) => {
     if (file.path === 'arkiv' && file.isDirectory && file.children) {
       // Find entity schema files and the entity-overview overview
       const schemaChildren: DocFile[] = [];
       const otherChildren: DocFile[] = [];
       let entitySchemasOverview: DocFile | null = null;
-      
+
       file.children.forEach((child) => {
         if (schemaFiles.includes(child.name)) {
           schemaChildren.push(child);
@@ -202,7 +202,7 @@ function groupEntitySchemas(files: DocFile[]): DocFile[] {
           otherChildren.push(child);
         }
       });
-      
+
       // Create virtual "entity-schemas" directory
       if (schemaChildren.length > 0) {
         const entitySchemasDir: DocFile = {
@@ -216,21 +216,19 @@ function groupEntitySchemas(files: DocFile[]): DocFile[] {
           }),
           order: FILE_ORDER['arkiv']?.['entity-overview'] || 3,
         };
-        
+
         // Keep entity-overview.md in the top level (it's the overview page)
         // The folder will link to it, but we also show it as a file
-        const finalChildren = [
-          ...otherChildren,
-        ];
-        
+        const finalChildren = [...otherChildren];
+
         // Insert entity-overview overview before the folder if it exists
         if (entitySchemasOverview) {
           finalChildren.push(entitySchemasOverview);
         }
-        
+
         // Add the folder after the overview
         finalChildren.push(entitySchemasDir);
-        
+
         return {
           ...file,
           children: finalChildren.sort((a, b) => {
@@ -249,10 +247,10 @@ export async function GET() {
   try {
     const docsPath = join(process.cwd(), 'docs', 'betadocs');
     const files = await listDocs(docsPath, '');
-    
+
     // Group entity schemas under virtual directory
     const processedFiles = groupEntitySchemas(files);
-    
+
     return NextResponse.json({ files: processedFiles });
   } catch (error: any) {
     console.error('[docs/list] Error:', error);
@@ -262,4 +260,3 @@ export async function GET() {
     );
   }
 }
-

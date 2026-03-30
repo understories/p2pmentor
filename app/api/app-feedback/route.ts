@@ -1,20 +1,26 @@
 /**
  * App Feedback API route
- * 
+ *
  * Handles app feedback creation and retrieval (separate from session feedback).
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 4.1
  */
 
 import { NextResponse } from 'next/server';
-import { createAppFeedback, listAppFeedback, resolveAppFeedback, getAppFeedbackByKey } from '@/lib/arkiv/appFeedback';
+import {
+  createAppFeedback,
+  listAppFeedback,
+  resolveAppFeedback,
+  getAppFeedbackByKey,
+} from '@/lib/arkiv/appFeedback';
 import { createAdminNotification } from '@/lib/arkiv/adminNotification';
 import { getPrivateKey, SPACE_ID, ADMIN_WALLET } from '@/lib/config';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, wallet, page, message, rating, feedbackType, feedbackKey, resolvedByWallet } = body;
+    const { action, wallet, page, message, rating, feedbackType, feedbackKey, resolvedByWallet } =
+      body;
 
     if (action === 'createFeedback') {
       if (!wallet || !page) {
@@ -70,8 +76,10 @@ export async function POST(request: Request) {
       if (ADMIN_WALLET) {
         // Get feedback to include message in notification
         const feedback = await getAppFeedbackByKey(feedbackKey);
-        const feedbackPreview = feedback?.message 
-          ? (feedback.message.length > 50 ? feedback.message.slice(0, 50) + '...' : feedback.message)
+        const feedbackPreview = feedback?.message
+          ? feedback.message.length > 50
+            ? feedback.message.slice(0, 50) + '...'
+            : feedback.message
           : 'Issue resolved';
 
         createAdminNotification({
@@ -85,7 +93,7 @@ export async function POST(request: Request) {
           sourceEntityKey: feedbackKey,
           privateKey: getPrivateKey(),
           spaceId: SPACE_ID,
-        }).catch(err => {
+        }).catch((err) => {
           console.warn('[app-feedback] Failed to create notification (non-critical):', err);
         });
       }
@@ -110,19 +118,16 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
-    
+
     // If key is provided, get single feedback by key
     if (key) {
       const feedback = await getAppFeedbackByKey(key);
       if (!feedback) {
-        return NextResponse.json(
-          { ok: false, error: 'Feedback not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ ok: false, error: 'Feedback not found' }, { status: 404 });
       }
       return NextResponse.json({ ok: true, feedback });
     }
-    
+
     // Otherwise, list feedback with filters
     const page = searchParams.get('page') || undefined;
     const wallet = searchParams.get('wallet') || undefined;
@@ -140,4 +145,3 @@ export async function GET(request: Request) {
     );
   }
 }
-

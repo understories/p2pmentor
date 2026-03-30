@@ -20,9 +20,9 @@ Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of
 
 ```typescript
 {
-  wallet: string;          // Wallet address (lowercase)
-  code: string;            // Beta code (lowercase, trimmed)
-  grantedAt: string;       // ISO timestamp when access was granted
+  wallet: string; // Wallet address (lowercase)
+  code: string; // Beta code (lowercase, trimmed)
+  grantedAt: string; // ISO timestamp when access was granted
 }
 ```
 
@@ -37,11 +37,12 @@ Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of
 ### Check if Wallet Has Access
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'beta_access'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -56,7 +57,8 @@ const hasAccess = result.entities.length > 0;
 
 ```typescript
 const normalizedCode = code.toLowerCase().trim();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'beta_access'))
   .where(eq('code', normalizedCode))
   .withAttributes(true)
@@ -64,9 +66,9 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const grants = result.entities.map(e => ({
+const grants = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
@@ -74,7 +76,8 @@ const grants = result.entities.map(e => ({
 
 ```typescript
 const normalizedCode = code.toLowerCase().trim();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'beta_access'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .where(eq('code', normalizedCode))
@@ -83,7 +86,7 @@ const result = await publicClient.buildQuery()
   .limit(1)
   .fetch();
 
-const grant = result.entities[0] 
+const grant = result.entities[0]
   ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
   : null;
 ```
@@ -91,12 +94,12 @@ const grant = result.entities[0]
 ## Creation
 
 ```typescript
-import { createBetaAccess } from "@/lib/arkiv/betaAccess";
-import { getPrivateKey } from "@/lib/config";
+import { createBetaAccess } from '@/lib/arkiv/betaAccess';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createBetaAccess({
-  wallet: "0x1234...",
-  code: "BETA2024",
+  wallet: '0x1234...',
+  code: 'BETA2024',
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -145,4 +148,3 @@ await trackBetaCodeUsage(code, betaCode.limit);
 - **Public Data**: Beta access grants are public on-chain
 - **Code Privacy**: Beta codes are stored on-chain (consider for production)
 - **Access Control**: Used in conjunction with `beta_code_usage` entity for usage limits
-

@@ -3,7 +3,7 @@ import { execSync } from 'child_process';
 
 /**
  * Get git history for a documentation file
- * 
+ *
  * Uses GitHub API in production (serverless-friendly) and falls back to git commands locally.
  * Returns last commit date, author, and commit message.
  */
@@ -16,10 +16,10 @@ export async function GET(request: NextRequest) {
   }
 
   const relativePath = filePath.replace(/^\/+/, ''); // Remove leading slashes
-  
+
   // Try GitHub API first (works in serverless environments)
   const useGitHubAPI = process.env.VERCEL || process.env.NODE_ENV === 'production';
-  
+
   if (useGitHubAPI) {
     try {
       return await getGitHistoryFromGitHubAPI(relativePath);
@@ -51,21 +51,21 @@ async function getGitHistoryFromGitHubAPI(filePath: string): Promise<NextRespons
   const owner = 'understories';
   const repo = 'p2pmentor';
   const branch = 'main';
-  
+
   // GitHub API endpoint to get commits for a specific file
   const apiUrl = `https://api.github.com/repos/${owner}/${repo}/commits?path=${encodeURIComponent(filePath)}&sha=${branch}&per_page=1`;
-  
+
   const headers: HeadersInit = {
-    'Accept': 'application/vnd.github.v3+json',
+    Accept: 'application/vnd.github.v3+json',
   };
-  
+
   // Add auth token if available (increases rate limit)
   if (process.env.GITHUB_TOKEN) {
     headers['Authorization'] = `token ${process.env.GITHUB_TOKEN}`;
   }
 
   const response = await fetch(apiUrl, { headers });
-  
+
   if (!response.ok) {
     if (response.status === 404) {
       // File not found or not tracked
@@ -81,7 +81,7 @@ async function getGitHistoryFromGitHubAPI(filePath: string): Promise<NextRespons
   }
 
   const commits = await response.json();
-  
+
   if (!commits || commits.length === 0) {
     return NextResponse.json({
       hash: null,
@@ -94,7 +94,7 @@ async function getGitHistoryFromGitHubAPI(filePath: string): Promise<NextRespons
 
   const commit = commits[0];
   const commitDate = commit.commit?.author?.date || commit.commit?.committer?.date;
-  
+
   return NextResponse.json({
     hash: commit.sha || null,
     author: commit.commit?.author?.name || commit.author?.login || null,
@@ -137,10 +137,12 @@ async function getGitHistoryFromLocalGit(relativePath: string): Promise<NextResp
   // Get file stats (optional)
   let gitStats: string | null = null;
   try {
-    gitStats = execSync(
-      `git log --format="" --stat -- "${relativePath}" | tail -1`,
-      { cwd: process.cwd(), encoding: 'utf-8', stdio: 'pipe' }
-    ).trim() || null;
+    gitStats =
+      execSync(`git log --format="" --stat -- "${relativePath}" | tail -1`, {
+        cwd: process.cwd(),
+        encoding: 'utf-8',
+        stdio: 'pipe',
+      }).trim() || null;
   } catch {
     // Stats are optional
   }

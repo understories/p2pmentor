@@ -29,4 +29,3 @@ This documentation serves three audiences. Choose your entry point:
 
 - [Arkiv Data Model](/docs/arkiv/entities/data-model) - Complete entity schemas
 - [Signals and Metrics](/docs/arkiv/entities/README) - Observability and metrics
-

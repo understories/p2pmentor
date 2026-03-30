@@ -46,7 +46,8 @@ export async function registerPasskey(
 
   // [PASSKEY][REGISTER][START] - Log registration start
   const env = typeof window !== 'undefined' ? window.location.hostname : 'server';
-  const rpId = typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
+  const rpId =
+    typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
   console.log('[PASSKEY][REGISTER][START]', {
     env,
@@ -86,10 +87,11 @@ export async function registerPasskey(
         id: base64URLToArrayBuffer(options.user.id),
       },
       // Transform allowCredentials if present (for login, not registration)
-      excludeCredentials: options.excludeCredentials?.map((cred: any) => ({
-        ...cred,
-        id: base64URLToArrayBuffer(cred.id),
-      })) || [],
+      excludeCredentials:
+        options.excludeCredentials?.map((cred: any) => ({
+          ...cred,
+          id: base64URLToArrayBuffer(cred.id),
+        })) || [],
     };
 
     // CRITICAL: Log final options before calling navigator.credentials.create()
@@ -97,36 +99,46 @@ export async function registerPasskey(
     const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
     const browserInfo = {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-      isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-      isChrome: typeof navigator !== 'undefined' && /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent),
+      isSafari:
+        typeof navigator !== 'undefined' &&
+        /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+      isChrome:
+        typeof navigator !== 'undefined' &&
+        /chrome/i.test(navigator.userAgent) &&
+        !/edge/i.test(navigator.userAgent),
       isFirefox: typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent),
       platform: typeof navigator !== 'undefined' ? navigator.platform : 'unknown',
     };
 
-    console.log('[PASSKEY][REGISTER][CLIENT] Final options before navigator.credentials.create():', {
-      platformOnly,
-      isPlatformAuthenticatorAvailable: platformAuthAvailable,
-      browserInfo,
-      authenticatorSelection: {
-        authenticatorAttachment: publicKeyOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
-        userVerification: publicKeyOptions.authenticatorSelection?.userVerification || 'not_set',
-        residentKey: (publicKeyOptions.authenticatorSelection as any)?.residentKey || 'not_set',
-        requireResidentKey: (publicKeyOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
-      },
-      challengeLength: publicKeyOptions.challenge.byteLength,
-      userIdLength: publicKeyOptions.user.id.byteLength,
-      rpId: publicKeyOptions.rp.id,
-      userName: publicKeyOptions.user.name,
-      excludeCredentialsCount: publicKeyOptions.excludeCredentials?.length || 0,
-      note: platformOnly
-        ? 'Platform-only mode: strict constraints should prevent QR dialog'
-        : 'Cross-device mode: QR dialog may appear if cross-device options are available',
-    });
+    console.log(
+      '[PASSKEY][REGISTER][CLIENT] Final options before navigator.credentials.create():',
+      {
+        platformOnly,
+        isPlatformAuthenticatorAvailable: platformAuthAvailable,
+        browserInfo,
+        authenticatorSelection: {
+          authenticatorAttachment:
+            publicKeyOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
+          userVerification: publicKeyOptions.authenticatorSelection?.userVerification || 'not_set',
+          residentKey: (publicKeyOptions.authenticatorSelection as any)?.residentKey || 'not_set',
+          requireResidentKey:
+            (publicKeyOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
+        },
+        challengeLength: publicKeyOptions.challenge.byteLength,
+        userIdLength: publicKeyOptions.user.id.byteLength,
+        rpId: publicKeyOptions.rp.id,
+        userName: publicKeyOptions.user.name,
+        excludeCredentialsCount: publicKeyOptions.excludeCredentials?.length || 0,
+        note: platformOnly
+          ? 'Platform-only mode: strict constraints should prevent QR dialog'
+          : 'Cross-device mode: QR dialog may appear if cross-device options are available',
+      }
+    );
 
     // Step 3: Call WebAuthn API to create credential
-    const credential = await navigator.credentials.create({
+    const credential = (await navigator.credentials.create({
       publicKey: publicKeyOptions,
-    }) as PublicKeyCredential;
+    })) as PublicKeyCredential;
 
     if (!credential) {
       throw new Error('Failed to create passkey credential');
@@ -180,7 +192,9 @@ export async function registerPasskey(
     return {
       credentialID: result.credentialID,
       challenge,
-      credentialPublicKey: result.credentialPublicKey ? new Uint8Array(result.credentialPublicKey) : undefined,
+      credentialPublicKey: result.credentialPublicKey
+        ? new Uint8Array(result.credentialPublicKey)
+        : undefined,
       counter: result.counter,
       transports: result.transports,
     };
@@ -193,7 +207,9 @@ export async function registerPasskey(
       isPlatformAuthenticatorAvailable: await isPlatformAuthenticatorAvailable().catch(() => false),
       browserInfo: {
         userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-        isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+        isSafari:
+          typeof navigator !== 'undefined' &&
+          /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
       },
     });
 
@@ -205,7 +221,9 @@ export async function registerPasskey(
     } else if (error.name === 'NotSupportedError') {
       throw new Error('Passkeys are not supported on this device');
     } else if (error.name === 'ConstraintError') {
-      throw new Error('Passkey registration constraint error - platform authenticator may not be available');
+      throw new Error(
+        'Passkey registration constraint error - platform authenticator may not be available'
+      );
     }
     throw error;
   }
@@ -235,7 +253,8 @@ export async function loginWithPasskey(
 
   // [PASSKEY][LOGIN][START] - Log login start
   const env = typeof window !== 'undefined' ? window.location.hostname : 'server';
-  const rpId = typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
+  const rpId =
+    typeof window !== 'undefined' ? window.location.hostname.replace(/^www\./, '') : 'unknown';
   const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
   console.log('[PASSKEY][LOGIN][START]', {
     env,
@@ -270,18 +289,24 @@ export async function loginWithPasskey(
       ...options,
       challenge: base64URLToArrayBuffer(options.challenge),
       // Transform allowCredentials if present
-      allowCredentials: options.allowCredentials?.map((cred: any) => ({
-        ...cred,
-        id: base64URLToArrayBuffer(cred.id),
-      })) || undefined,
+      allowCredentials:
+        options.allowCredentials?.map((cred: any) => ({
+          ...cred,
+          id: base64URLToArrayBuffer(cred.id),
+        })) || undefined,
     };
 
     // [PASSKEY][LOGIN][CLIENT] - Comprehensive logging before navigator.credentials.get()
     const platformAuthAvailable = await isPlatformAuthenticatorAvailable();
     const browserInfo = {
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
-      isSafari: typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
-      isChrome: typeof navigator !== 'undefined' && /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent),
+      isSafari:
+        typeof navigator !== 'undefined' &&
+        /^((?!chrome|android).)*safari/i.test(navigator.userAgent),
+      isChrome:
+        typeof navigator !== 'undefined' &&
+        /chrome/i.test(navigator.userAgent) &&
+        !/edge/i.test(navigator.userAgent),
       isFirefox: typeof navigator !== 'undefined' && /firefox/i.test(navigator.userAgent),
     };
 
@@ -290,7 +315,8 @@ export async function loginWithPasskey(
       allowCredentialsCount: publicKeyOptions.allowCredentials?.length || 0,
       rpId: publicKeyOptions.rpId,
       userVerification: publicKeyOptions.userVerification || 'preferred',
-      authenticatorAttachment: (publicKeyOptions as any).authenticatorSelection?.authenticatorAttachment || 'not_set',
+      authenticatorAttachment:
+        (publicKeyOptions as any).authenticatorSelection?.authenticatorAttachment || 'not_set',
       residentKey: (publicKeyOptions as any).extensions?.credProps?.rk || 'not_set',
       timeout: publicKeyOptions.timeout || 60000,
       isPlatformAuthenticatorAvailable: platformAuthAvailable,
@@ -308,9 +334,9 @@ export async function loginWithPasskey(
     });
 
     // Step 3: Call WebAuthn API to get credential
-    const credential = await navigator.credentials.get({
+    const credential = (await navigator.credentials.get({
       publicKey: publicKeyOptions,
-    }) as PublicKeyCredential;
+    })) as PublicKeyCredential;
 
     if (!credential) {
       throw new Error('Failed to authenticate with passkey');
@@ -338,15 +364,14 @@ export async function loginWithPasskey(
         clientDataJSON: arrayBufferToBase64URL(response.clientDataJSON),
         authenticatorData: arrayBufferToBase64URL(response.authenticatorData),
         signature: arrayBufferToBase64URL(response.signature),
-        userHandle: response.userHandle
-          ? arrayBufferToBase64URL(response.userHandle)
-          : null,
+        userHandle: response.userHandle ? arrayBufferToBase64URL(response.userHandle) : null,
       },
       type: credential.type,
     };
 
     // Extract walletAddress from localStorage if available (for recovery scenarios)
-    const storedWallet = typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
+    const storedWallet =
+      typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
 
     const completeResponse = await fetch('/api/passkey/login/complete', {
       method: 'POST',
@@ -366,7 +391,9 @@ export async function loginWithPasskey(
 
       // If credential was found on Arkiv but verification failed, include recovery info
       if (errorData.foundOnArkiv && errorData.credentialID && errorData.walletAddress) {
-        const recoveryError: any = new Error(errorData.error || 'Authentication verification failed');
+        const recoveryError: any = new Error(
+          errorData.error || 'Authentication verification failed'
+        );
         recoveryError.credentialID = errorData.credentialID;
         recoveryError.walletAddress = errorData.walletAddress;
         recoveryError.foundOnArkiv = true;
@@ -439,10 +466,7 @@ function arrayBufferToBase64URL(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   // Convert to base64, then replace URL-unsafe characters
-  return btoa(binary)
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
@@ -467,4 +491,3 @@ function base64URLToArrayBuffer(base64url: string): ArrayBuffer {
   }
   return bytes.buffer;
 }
-

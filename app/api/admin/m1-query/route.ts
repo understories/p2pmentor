@@ -1,6 +1,6 @@
 /**
  * M1 Exam Checklist - Arkiv Query API
- * 
+ *
  * Server-side proxy for running Arkiv queries from the admin dashboard.
  * This allows the admin dashboard to test real Arkiv queries without exposing
  * private keys or requiring client-side wallet connections.
@@ -37,12 +37,14 @@ export async function POST(request: NextRequest) {
             .withPayload(true)
             .limit(params.limit || 1)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -50,10 +52,8 @@ export async function POST(request: NextRequest) {
 
         case 'ask':
           // Query asks
-          let askQuery = query
-            .where(eq('type', 'ask'))
-            .where(eq('status', 'open'));
-          
+          let askQuery = query.where(eq('type', 'ask')).where(eq('status', 'open'));
+
           if (params.wallet) {
             askQuery = askQuery.where(eq('wallet', params.wallet.toLowerCase()));
           }
@@ -65,18 +65,20 @@ export async function POST(request: NextRequest) {
           } else {
             askQuery = askQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await askQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -84,10 +86,8 @@ export async function POST(request: NextRequest) {
 
         case 'offer':
           // Query offers
-          let offerQuery = query
-            .where(eq('type', 'offer'))
-            .where(eq('status', 'open'));
-          
+          let offerQuery = query.where(eq('type', 'offer')).where(eq('status', 'open'));
+
           if (params.wallet) {
             offerQuery = offerQuery.where(eq('wallet', params.wallet.toLowerCase()));
           }
@@ -99,18 +99,20 @@ export async function POST(request: NextRequest) {
           } else {
             offerQuery = offerQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await offerQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -119,12 +121,16 @@ export async function POST(request: NextRequest) {
         case 'session':
           // Query sessions
           let sessionQuery = query.where(eq('type', 'session'));
-          
+
           if (params.mentorWallet) {
-            sessionQuery = sessionQuery.where(eq('mentorWallet', params.mentorWallet.toLowerCase()));
+            sessionQuery = sessionQuery.where(
+              eq('mentorWallet', params.mentorWallet.toLowerCase())
+            );
           }
           if (params.learnerWallet) {
-            sessionQuery = sessionQuery.where(eq('learnerWallet', params.learnerWallet.toLowerCase()));
+            sessionQuery = sessionQuery.where(
+              eq('learnerWallet', params.learnerWallet.toLowerCase())
+            );
           }
           if (params.sessionKey) {
             // For session confirmations
@@ -141,18 +147,20 @@ export async function POST(request: NextRequest) {
           } else {
             sessionQuery = sessionQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await sessionQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -161,7 +169,7 @@ export async function POST(request: NextRequest) {
         case 'feedback':
           // Query feedback
           let feedbackQuery = query.where(eq('type', 'session_feedback'));
-          
+
           if (params.sessionKey) {
             feedbackQuery = feedbackQuery.where(eq('sessionKey', params.sessionKey));
           }
@@ -173,18 +181,20 @@ export async function POST(request: NextRequest) {
           } else {
             feedbackQuery = feedbackQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await feedbackQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -193,7 +203,7 @@ export async function POST(request: NextRequest) {
         case 'availability':
           // Query availability
           let availabilityQuery = query.where(eq('type', 'availability'));
-          
+
           if (params.wallet) {
             availabilityQuery = availabilityQuery.where(eq('wallet', params.wallet.toLowerCase()));
           }
@@ -202,18 +212,20 @@ export async function POST(request: NextRequest) {
           } else {
             availabilityQuery = availabilityQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await availabilityQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -222,7 +234,7 @@ export async function POST(request: NextRequest) {
         case 'skill':
           // Query skills
           let skillQuery = query.where(eq('type', 'skill'));
-          
+
           if (params.status) {
             skillQuery = skillQuery.where(eq('status', params.status));
           }
@@ -231,18 +243,20 @@ export async function POST(request: NextRequest) {
           } else {
             skillQuery = skillQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await skillQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 100)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -251,30 +265,34 @@ export async function POST(request: NextRequest) {
         case 'notification':
           // Query notifications
           let notificationQuery = query.where(eq('type', 'notification'));
-          
+
           if (params.wallet) {
             notificationQuery = notificationQuery.where(eq('wallet', params.wallet.toLowerCase()));
           }
           if (params.sourceEntityType) {
-            notificationQuery = notificationQuery.where(eq('sourceEntityType', params.sourceEntityType));
+            notificationQuery = notificationQuery.where(
+              eq('sourceEntityType', params.sourceEntityType)
+            );
           }
           if (params.spaceId) {
             notificationQuery = notificationQuery.where(eq('spaceId', params.spaceId));
           } else {
             notificationQuery = notificationQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await notificationQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -283,30 +301,34 @@ export async function POST(request: NextRequest) {
         case 'session_confirmation':
           // Query session confirmations
           let confirmationQuery = query.where(eq('type', 'session_confirmation'));
-          
+
           if (params.sessionKey) {
             confirmationQuery = confirmationQuery.where(eq('sessionKey', params.sessionKey));
           }
           if (params.confirmedBy) {
-            confirmationQuery = confirmationQuery.where(eq('confirmedBy', params.confirmedBy.toLowerCase()));
+            confirmationQuery = confirmationQuery.where(
+              eq('confirmedBy', params.confirmedBy.toLowerCase())
+            );
           }
           if (params.spaceId) {
             confirmationQuery = confirmationQuery.where(eq('spaceId', params.spaceId));
           } else {
             confirmationQuery = confirmationQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await confirmationQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -315,30 +337,34 @@ export async function POST(request: NextRequest) {
         case 'session_rejection':
           // Query session rejections
           let rejectionQuery = query.where(eq('type', 'session_rejection'));
-          
+
           if (params.sessionKey) {
             rejectionQuery = rejectionQuery.where(eq('sessionKey', params.sessionKey));
           }
           if (params.rejectedBy) {
-            rejectionQuery = rejectionQuery.where(eq('rejectedBy', params.rejectedBy.toLowerCase()));
+            rejectionQuery = rejectionQuery.where(
+              eq('rejectedBy', params.rejectedBy.toLowerCase())
+            );
           }
           if (params.spaceId) {
             rejectionQuery = rejectionQuery.where(eq('spaceId', params.spaceId));
           } else {
             rejectionQuery = rejectionQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await rejectionQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -347,7 +373,7 @@ export async function POST(request: NextRequest) {
         case 'beta-access':
           // Query beta access
           let betaAccessQuery = query.where(eq('type', 'beta_access'));
-          
+
           if (params.wallet) {
             betaAccessQuery = betaAccessQuery.where(eq('wallet', params.wallet.toLowerCase()));
           }
@@ -356,18 +382,20 @@ export async function POST(request: NextRequest) {
           } else {
             betaAccessQuery = betaAccessQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await betaAccessQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -376,7 +404,7 @@ export async function POST(request: NextRequest) {
         case 'beta-code':
           // Query beta codes
           let betaCodeQuery = query.where(eq('type', 'beta_code'));
-          
+
           if (params.code) {
             betaCodeQuery = betaCodeQuery.where(eq('code', params.code));
           }
@@ -385,18 +413,20 @@ export async function POST(request: NextRequest) {
           } else {
             betaCodeQuery = betaCodeQuery.where(eq('spaceId', SPACE_ID));
           }
-          
+
           result = await betaCodeQuery
             .withAttributes(true)
             .withPayload(true)
             .limit(params.limit || 10)
             .fetch();
-          
+
           // Sort by createdAt descending client-side
           if (result.entities && result.entities.length > 0) {
             result.entities.sort((a: any, b: any) => {
-              const aTime = a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
-              const bTime = b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const aTime =
+                a.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
+              const bTime =
+                b.attributes?.find((attr: any) => attr.key === 'createdAt')?.value || '';
               return bTime.localeCompare(aTime);
             });
           }
@@ -412,10 +442,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       ok: !error,
-      result: result ? {
-        entities: result.entities || [],
-        count: result.entities?.length || 0,
-      } : null,
+      result: result
+        ? {
+            entities: result.entities || [],
+            count: result.entities?.length || 0,
+          }
+        : null,
       error,
       queryType,
       params,
@@ -428,4 +460,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

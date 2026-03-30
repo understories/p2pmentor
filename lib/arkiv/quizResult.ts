@@ -120,20 +120,22 @@ export async function createQuizResult({
     });
 
     // Create txhash entity for observability (fire and forget)
-    walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({ txHash, resultKey: entityKey })),
-      contentType: 'application/json',
-      attributes: [
-        { key: 'type', value: 'learner_quest_assessment_result_txhash' },
-        { key: 'resultKey', value: entityKey },
-        { key: 'txHash', value: txHash },
-        { key: 'spaceId', value: finalSpaceId },
-        { key: 'createdAt', value: createdAt },
-      ],
-      expiresIn: ttlSeconds,
-    }).catch((err) => {
-      console.warn('[createQuizResult] Failed to create txhash entity:', err);
-    });
+    walletClient
+      .createEntity({
+        payload: enc.encode(JSON.stringify({ txHash, resultKey: entityKey })),
+        contentType: 'application/json',
+        attributes: [
+          { key: 'type', value: 'learner_quest_assessment_result_txhash' },
+          { key: 'resultKey', value: entityKey },
+          { key: 'txHash', value: txHash },
+          { key: 'spaceId', value: finalSpaceId },
+          { key: 'createdAt', value: createdAt },
+        ],
+        expiresIn: ttlSeconds,
+      })
+      .catch((err) => {
+        console.warn('[createQuizResult] Failed to create txhash entity:', err);
+      });
 
     return { key: entityKey, txHash };
   } catch (error: any) {
@@ -181,11 +183,7 @@ export async function getQuizResults({
       queryBuilder = queryBuilder.where(eq('rubricVersion', rubricVersion));
     }
 
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
-      .fetch();
+    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
 
     // Defensive check
     if (!result || !result.entities || !Array.isArray(result.entities)) {
@@ -198,9 +196,7 @@ export async function getQuizResults({
 
     for (const entity of result.entities) {
       try {
-        const payload = entity.payload
-          ? JSON.parse(new TextDecoder().decode(entity.payload))
-          : {};
+        const payload = entity.payload ? JSON.parse(new TextDecoder().decode(entity.payload)) : {};
 
         const walletAttr = entity.attributes.find((a) => a.key === 'wallet')?.value;
         const questIdAttr = entity.attributes.find((a) => a.key === 'questId')?.value;
@@ -222,7 +218,8 @@ export async function getQuizResults({
           percentage: payload.percentage || 0,
           passed: passedAttr === 'true' || passedAttr === '1' || passedAttr === 1,
           progressEntityKey: payload.progressEntityKey || '',
-          completedAt: payload.completedAt || (typeof createdAtAttr === 'string' ? createdAtAttr : '') || '',
+          completedAt:
+            payload.completedAt || (typeof createdAtAttr === 'string' ? createdAtAttr : '') || '',
           spaceId: finalSpaceId,
           txHash: undefined, // Would need to query txhash entity to get this
         };

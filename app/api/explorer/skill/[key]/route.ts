@@ -13,10 +13,7 @@ import { checkRateLimit } from '@/lib/explorer/rateLimit';
 import type { Provenance } from '@/lib/explorer/types';
 import { SPACE_ID } from '@/lib/config';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ key: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   // Rate limiting
   const rateLimit = checkRateLimit(request);
   if (!rateLimit.allowed) {
@@ -45,25 +42,38 @@ export async function GET(
       console.warn('[explorer/skill] Failed to decode key, using as-is:', key);
     }
 
-    console.log('[explorer/skill] Received key:', { original: key, decoded: decodedKey, length: decodedKey.length });
+    console.log('[explorer/skill] Received key:', {
+      original: key,
+      decoded: decodedKey,
+      length: decodedKey.length,
+    });
 
     // Get skill by key first
     let skill = await getSkillByKey(decodedKey);
-    console.log('[explorer/skill] getSkillByKey result:', skill ? { key: skill.key, name: skill.name_canonical } : 'null');
+    console.log(
+      '[explorer/skill] getSkillByKey result:',
+      skill ? { key: skill.key, name: skill.name_canonical } : 'null'
+    );
 
     // Fallback: if not found by key, try by slug (in case the URL uses slug instead of key)
     if (!skill) {
-      console.warn('[explorer/skill] Skill not found by key, trying slug:', { key: decodedKey, originalKey: key });
+      console.warn('[explorer/skill] Skill not found by key, trying slug:', {
+        key: decodedKey,
+        originalKey: key,
+      });
       skill = await getSkillBySlug(decodedKey, SPACE_ID);
-      console.log('[explorer/skill] getSkillBySlug result:', skill ? { key: skill.key, name: skill.name_canonical } : 'null');
+      console.log(
+        '[explorer/skill] getSkillBySlug result:',
+        skill ? { key: skill.key, name: skill.name_canonical } : 'null'
+      );
     }
 
     if (!skill) {
-      console.error('[explorer/skill] Skill not found by key or slug:', { key: decodedKey, originalKey: key });
-      return NextResponse.json(
-        { ok: false, error: 'Skill not found' },
-        { status: 404 }
-      );
+      console.error('[explorer/skill] Skill not found by key or slug:', {
+        key: decodedKey,
+        originalKey: key,
+      });
+      return NextResponse.json({ ok: false, error: 'Skill not found' }, { status: 404 });
     }
 
     // Serialize to public format
@@ -113,4 +123,3 @@ export async function GET(
     );
   }
 }
-

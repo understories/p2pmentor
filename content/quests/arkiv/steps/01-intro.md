@@ -14,6 +14,7 @@ In this track, you'll learn to build decentralized applications with Arkiv. By t
 Arkiv is a decentralized database for the web. Instead of storing your data in a company's database (where it can be lost, censored, or locked in), Arkiv stores data on-chain.
 
 **Key properties:**
+
 - **You own your data** - It's tied to your wallet, not a company account
 - **Data persists independently** - Even if an app shuts down, your data remains
 - **Verifiable** - Anyone can verify data exists without trusting servers
@@ -21,12 +22,12 @@ Arkiv is a decentralized database for the web. Instead of storing your data in a
 
 ## Traditional Apps vs Arkiv
 
-| Traditional Apps | Arkiv Apps |
-|-----------------|-----------|
-| Data in company database | Data on-chain |
-| Lost if company shuts down | Persists forever |
-| Trust the company | Verify on-chain |
-| Locked to one app | Composable across apps |
+| Traditional Apps           | Arkiv Apps             |
+| -------------------------- | ---------------------- |
+| Data in company database   | Data on-chain          |
+| Lost if company shuts down | Persists forever       |
+| Trust the company          | Verify on-chain        |
+| Locked to one app          | Composable across apps |
 
 ## Prerequisites
 

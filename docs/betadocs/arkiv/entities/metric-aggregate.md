@@ -60,11 +60,12 @@ Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, a
 ### Get Aggregates by Date
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'metric_aggregate'))
   .where(eq('date', '2024-01-15'))
   .where(eq('period', 'daily'))
@@ -73,16 +74,17 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const aggregates = result.entities.map(e => ({
+const aggregates = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get Aggregates by Operation
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'metric_aggregate'))
   .where(eq('operation', 'buildNetworkGraphData'))
   .where(eq('source', 'graphql'))
@@ -94,14 +96,15 @@ const result = await publicClient.buildQuery()
 
 // Sort by date
 const sorted = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => a.date.localeCompare(b.date));
 ```
 
 ### Get Recent Aggregates
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'metric_aggregate'))
   .where(eq('period', 'daily'))
   .withAttributes(true)
@@ -111,8 +114,8 @@ const result = await publicClient.buildQuery()
 
 // Filter and sort by date
 const recent = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(a => {
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((a) => {
     const date = new Date(a.date);
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
@@ -124,8 +127,8 @@ const recent = result.entities
 ## Creation
 
 ```typescript
-import { createMetricAggregate } from "@/lib/arkiv/metricAggregates";
-import { getPrivateKey } from "@/lib/config";
+import { createMetricAggregate } from '@/lib/arkiv/metricAggregates';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createMetricAggregate({
   date: '2024-01-15',
@@ -159,18 +162,18 @@ async function computeDailyAggregate(date: string, operation: string, source: st
   // Get all metrics for date
   const startOfDay = new Date(`${date}T00:00:00Z`);
   const endOfDay = new Date(`${date}T23:59:59Z`);
-  
+
   const metrics = await getDxMetrics({
     operation,
     source,
     since: startOfDay.toISOString(),
     until: endOfDay.toISOString(),
   });
-  
+
   if (metrics.length === 0) return null;
-  
+
   // Calculate percentiles
-  const durations = metrics.map(m => m.durationMs).sort((a, b) => a - b);
+  const durations = metrics.map((m) => m.durationMs).sort((a, b) => a - b);
   const percentiles = {
     p50: durations[Math.floor(durations.length * 0.5)],
     p90: durations[Math.floor(durations.length * 0.9)],
@@ -181,15 +184,15 @@ async function computeDailyAggregate(date: string, operation: string, source: st
     max: durations[durations.length - 1],
     sampleCount: durations.length,
   };
-  
+
   // Calculate error rate
-  const errors = metrics.filter(m => m.status === 'failure').length;
+  const errors = metrics.filter((m) => m.status === 'failure').length;
   const errorRate = errors / metrics.length;
-  
+
   // Calculate fallback rate
-  const fallbacks = metrics.filter(m => m.usedFallback).length;
+  const fallbacks = metrics.filter((m) => m.usedFallback).length;
   const fallbackRate = fallbacks / metrics.length;
-  
+
   // Create aggregate
   return await createMetricAggregate({
     date,
@@ -229,22 +232,21 @@ Admin dashboard performance trends:
 async function getPerformanceTrends(operation: string, days: number = 7) {
   const endDate = new Date();
   const aggregates = [];
-  
+
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
-    
+
     // Get aggregates for both sources
     const [arkiv, graphql] = await Promise.all([
       getMetricAggregate({ date: dateStr, operation, source: 'arkiv' }),
       getMetricAggregate({ date: dateStr, operation, source: 'graphql' }),
     ]);
-    
+
     aggregates.push({ date: dateStr, arkiv, graphql });
   }
-  
+
   return aggregates.reverse(); // Oldest first
 }
 ```
-

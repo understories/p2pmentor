@@ -1,6 +1,6 @@
 /**
  * Admin API: Retention Cohorts
- * 
+ *
  * Lists retention cohorts from Arkiv entities.
  */
 
@@ -9,7 +9,7 @@ import { listRetentionCohorts } from '@/lib/arkiv/retentionMetrics';
 
 /**
  * GET /api/admin/retention-cohorts
- * 
+ *
  * Query params:
  * - cohortDate: string (YYYY-MM-DD)
  * - period: 'daily' | 'weekly' | 'monthly'

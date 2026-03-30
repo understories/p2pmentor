@@ -12,8 +12,7 @@
   width: 100%;
   height: 100%;
   z-index: -9;
-  background: 
-    radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
+  background: radial-gradient(ellipse at 10% 30%, rgba(5, 20, 5, 0.15) 0%, transparent 60%),
     radial-gradient(ellipse at 90% 70%, rgba(8, 34, 8, 0.12) 0%, transparent 60%),
     radial-gradient(ellipse at 50% 50%, rgba(5, 20, 5, 0.1) 0%, transparent 70%),
     linear-gradient(180deg, rgba(5, 20, 5, 0.1) 0%, transparent 50%);
@@ -22,8 +21,13 @@
 }
 
 @keyframes forestPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.95; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
 }
 
 .trees-back {
@@ -107,13 +111,21 @@
 }
 
 @keyframes fogDrift1 {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 @keyframes fogDrift2 {
-  0% { transform: translateX(100%); }
-  100% { transform: translateX(-100%); }
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 .landing-container {
@@ -134,12 +146,13 @@
   text-align: center;
   margin-bottom: 2rem;
   color: #e8f5e9;
-  text-shadow: 
+  text-shadow:
     0 0 10px rgba(200, 255, 200, 0.3),
     0 0 20px rgba(150, 255, 150, 0.2),
     0 0 30px rgba(100, 255, 100, 0.1);
   animation: textGlow 3s ease-in-out infinite;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', serif;
 }
 
 .subtitle-text {
@@ -148,21 +161,23 @@
   letter-spacing: 0.2em;
   text-align: center;
   color: rgba(200, 255, 200, 0.7);
-  text-shadow: 
+  text-shadow:
     0 0 8px rgba(150, 255, 150, 0.3),
     0 0 15px rgba(100, 255, 100, 0.2);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', serif;
 }
 
 @keyframes textGlow {
-  0%, 100% { 
-    text-shadow: 
+  0%,
+  100% {
+    text-shadow:
       0 0 10px rgba(200, 255, 200, 0.3),
       0 0 20px rgba(150, 255, 150, 0.2),
       0 0 30px rgba(100, 255, 100, 0.1);
   }
-  50% { 
-    text-shadow: 
+  50% {
+    text-shadow:
       0 0 15px rgba(200, 255, 200, 0.5),
       0 0 30px rgba(150, 255, 150, 0.4),
       0 0 45px rgba(100, 255, 100, 0.3);
@@ -187,25 +202,25 @@
   background: rgba(5, 20, 5, 0.2);
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
-  text-shadow: 
+  text-shadow:
     0 0 8px rgba(150, 255, 150, 0.4),
     0 0 15px rgba(100, 255, 100, 0.2);
-  box-shadow: 
+  box-shadow:
     0 0 20px rgba(100, 255, 100, 0.1),
     inset 0 0 20px rgba(100, 255, 100, 0.05);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', serif;
 }
 
 .enter-beta-link:hover {
   color: rgba(255, 255, 255, 1);
   border-color: rgba(150, 255, 150, 0.6);
   background: rgba(5, 20, 5, 0.4);
-  text-shadow: 
+  text-shadow:
     0 0 12px rgba(150, 255, 150, 0.6),
     0 0 20px rgba(100, 255, 100, 0.4);
-  box-shadow: 
+  box-shadow:
     0 0 30px rgba(100, 255, 100, 0.2),
     inset 0 0 30px rgba(100, 255, 100, 0.1);
   transform: translateY(-2px);
 }
-

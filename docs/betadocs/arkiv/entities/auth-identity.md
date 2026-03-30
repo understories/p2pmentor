@@ -52,8 +52,8 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 
 ```typescript
 {
-  backupWalletAddress: string;     // Backup wallet address
-  createdAt: string;              // ISO timestamp
+  backupWalletAddress: string; // Backup wallet address
+  createdAt: string; // ISO timestamp
 }
 ```
 
@@ -78,11 +78,12 @@ Stores passkey credential metadata and backup wallet information on Arkiv. Repla
 ### Get All Passkeys for Wallet
 
 ```typescript
-import { eq, and } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq, and } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'auth_identity'))
   .where(eq('subtype', 'passkey'))
   .where(eq('wallet', walletAddress.toLowerCase()))
@@ -91,17 +92,18 @@ const result = await publicClient.buildQuery()
   .limit(10)
   .fetch();
 
-const passkeys = result.entities.map(e => ({
+const passkeys = result.entities.map((e) => ({
   ...e.attributes,
   ...JSON.parse(e.payload),
-  credential: JSON.parse(e.payload) // Full credential data
+  credential: JSON.parse(e.payload), // Full credential data
 }));
 ```
 
 ### Get Backup Wallet
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'auth_identity'))
   .where(eq('subtype', 'backup_wallet'))
   .where(eq('wallet', walletAddress.toLowerCase()))
@@ -110,7 +112,7 @@ const result = await publicClient.buildQuery()
   .limit(1)
   .fetch();
 
-const backupWallet = result.entities[0] 
+const backupWallet = result.entities[0]
   ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
   : null;
 ```
@@ -120,15 +122,15 @@ const backupWallet = result.entities[0]
 ### Create Passkey Identity
 
 ```typescript
-import { createPasskeyIdentity } from "@/lib/arkiv/authIdentity";
+import { createPasskeyIdentity } from '@/lib/arkiv/authIdentity';
 
 const { key, txHash } = await createPasskeyIdentity({
-  wallet: "0x1234...",
-  credentialID: "base64url-encoded-credential-id",
-  credentialPublicKey: "base64-encoded-public-key",
+  wallet: '0x1234...',
+  credentialID: 'base64url-encoded-credential-id',
+  credentialPublicKey: 'base64-encoded-public-key',
   counter: 0,
-  transports: ["usb", "nfc"],
-  deviceName: "iPhone 15 Pro",
+  transports: ['usb', 'nfc'],
+  deviceName: 'iPhone 15 Pro',
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -137,11 +139,11 @@ const { key, txHash } = await createPasskeyIdentity({
 ### Create Backup Wallet Identity
 
 ```typescript
-import { createBackupWalletIdentity } from "@/lib/arkiv/authIdentity";
+import { createBackupWalletIdentity } from '@/lib/arkiv/authIdentity';
 
 const { key, txHash } = await createBackupWalletIdentity({
-  wallet: "0x1234...", // Primary wallet
-  backupWalletAddress: "0x5678...", // Backup wallet
+  wallet: '0x1234...', // Primary wallet
+  backupWalletAddress: '0x5678...', // Backup wallet
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -173,10 +175,10 @@ const { key, txHash } = await createBackupWalletIdentity({
 const credential = await navigator.credentials.create({
   publicKey: {
     challenge: new Uint8Array(32),
-    rp: { name: "p2pmentor" },
+    rp: { name: 'p2pmentor' },
     user: { id: new Uint8Array(16), name: wallet },
-    pubKeyCredParams: [{ alg: -7, type: "public-key" }],
-  }
+    pubKeyCredParams: [{ alg: -7, type: 'public-key' }],
+  },
 });
 
 // Store on Arkiv
@@ -185,7 +187,7 @@ await createPasskeyIdentity({
   credentialID: base64urlEncode(credential.rawId),
   credentialPublicKey: base64Encode(credential.response.getPublicKey()),
   counter: 0,
-  deviceName: "MacBook Pro",
+  deviceName: 'MacBook Pro',
   privateKey: userPrivateKey,
 });
 ```
@@ -215,6 +217,7 @@ Passkey identities use Pattern B (update in place) with deterministic merge rule
 ### Counter Updates
 
 Counter updates use `updatePasskeyCounter()` function which:
+
 - Updates counter in-place (no duplicate entities)
 - Handles race conditions with `Math.max()` for monotonicity
 - Stores counter as attribute for quick reads
@@ -227,4 +230,3 @@ Counter updates use `updatePasskeyCounter()` function which:
 - **Pattern B**: Updates use `updateEntity()` with stable entity keys (no duplicates)
 - **TTL**: 10 years expiration (315360000 seconds, effectively permanent)
 - **Migration**: Legacy Pattern A duplicates are handled gracefully (choose highest counter)
-

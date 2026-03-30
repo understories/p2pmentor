@@ -58,11 +58,12 @@ Public Garden Bulletin - short, playful messages pinned to the shared "garden wa
 ### Get All Public Notes
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'garden_note'))
   .where(eq('channel', 'public_garden_board'))
   .where(eq('visibility', 'public'))
@@ -72,15 +73,16 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const notes = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(n => n.moderationState !== 'hidden_by_moderator')
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((n) => n.moderationState !== 'hidden_by_moderator')
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
 ### Get Notes by Author
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'garden_note'))
   .where(eq('authorWallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -92,7 +94,8 @@ const result = await publicClient.buildQuery()
 ### Get Notes by Tag
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'garden_note'))
   .withAttributes(true)
   .withPayload(true)
@@ -101,14 +104,15 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side by tag
 const notesWithTag = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(n => n.tags && n.tags.includes('#gratitude'));
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((n) => n.tags && n.tags.includes('#gratitude'));
 ```
 
 ### Get Threaded Replies
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'garden_note'))
   .withAttributes(true)
   .withPayload(true)
@@ -117,23 +121,23 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side for replies
 const replies = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(n => n.replyToNoteId === parentNoteId);
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((n) => n.replyToNoteId === parentNoteId);
 ```
 
 ## Creation
 
 ```typescript
-import { createGardenNote } from "@/lib/arkiv/gardenNote";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createGardenNote } from '@/lib/arkiv/gardenNote';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createGardenNote({
   authorWallet: walletAddress,
-  message: "Excited to start my mentorship journey! 🌱",
-  tags: ["#gratitude", "#new-member"],
-  channel: "public_garden_board",
-  visibility: "public",
+  message: 'Excited to start my mentorship journey! 🌱',
+  tags: ['#gratitude', '#new-member'],
+  channel: 'public_garden_board',
+  visibility: 'public',
   publishConsent: true,
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
@@ -150,7 +154,7 @@ Notes can be hidden by moderators:
 
 ```typescript
 // Hidden notes are filtered out in queries
-const activeNotes = notes.filter(n => n.moderationState !== 'hidden_by_moderator');
+const activeNotes = notes.filter((n) => n.moderationState !== 'hidden_by_moderator');
 ```
 
 ## Example Use Cases
@@ -160,8 +164,8 @@ const activeNotes = notes.filter(n => n.moderationState !== 'hidden_by_moderator
 ```typescript
 await createGardenNote({
   authorWallet: userWallet,
-  message: "Just completed my first mentorship session! So grateful for this community.",
-  tags: ["#gratitude", "#first-session"],
+  message: 'Just completed my first mentorship session! So grateful for this community.',
+  tags: ['#gratitude', '#first-session'],
   publishConsent: true,
   privateKey: userPrivateKey,
 });
@@ -172,8 +176,8 @@ await createGardenNote({
 ```typescript
 await createGardenNote({
   authorWallet: userWallet,
-  message: "Congratulations! Welcome to the community!",
-  tags: ["#welcome"],
+  message: 'Congratulations! Welcome to the community!',
+  tags: ['#welcome'],
   replyToNoteId: parentNote.key,
   publishConsent: true,
   privateKey: userPrivateKey,
@@ -186,8 +190,8 @@ await createGardenNote({
 await createGardenNote({
   authorWallet: userWallet,
   targetWallet: targetWallet,
-  message: "Thanks for the great session yesterday!",
-  tags: ["#gratitude"],
+  message: 'Thanks for the great session yesterday!',
+  tags: ['#gratitude'],
   publishConsent: true,
   privateKey: userPrivateKey,
 });
@@ -212,4 +216,3 @@ await createGardenNote({
 - **Wallet Visibility**: Author and target wallets are visible
 - **No Encryption**: Messages are stored in plain text
 - **Permanent**: Notes persist on-chain (1 year TTL or permanent)
-

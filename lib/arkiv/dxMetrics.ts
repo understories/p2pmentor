@@ -1,17 +1,17 @@
 /**
  * DX Metrics CRUD helpers
- * 
+ *
  * Stores performance metrics as Arkiv entities for verifiable, on-chain tracking.
  * This allows us to demonstrate real performance differences between JSON-RPC and GraphQL.
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 2.3
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import type { PerfSample } from "@/lib/metrics/perf";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import type { PerfSample } from '@/lib/metrics/perf';
+import { SPACE_ID } from '@/lib/config';
 
 export type DxMetric = {
   key: string;
@@ -26,11 +26,11 @@ export type DxMetric = {
   usedFallback?: boolean;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create a DX metric entity on Arkiv
- * 
+ *
  * Stores performance sample as a verifiable Arkiv entity.
  * This allows us to track and verify performance claims on-chain.
  */
@@ -72,8 +72,12 @@ export async function createDxMetric({
         { key: 'route', value: sample.route || '' },
         { key: 'durationMs', value: String(sample.durationMs) },
         { key: 'status', value: sample.status || 'success' },
-        ...(sample.payloadBytes ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }] : []),
-        ...(sample.httpRequests ? [{ key: 'httpRequests', value: String(sample.httpRequests) }] : []),
+        ...(sample.payloadBytes
+          ? [{ key: 'payloadBytes', value: String(sample.payloadBytes) }]
+          : []),
+        ...(sample.httpRequests
+          ? [{ key: 'httpRequests', value: String(sample.httpRequests) }]
+          : []),
         ...(sample.errorType ? [{ key: 'errorType', value: sample.errorType }] : []),
         { key: 'usedFallback', value: String(sample.usedFallback || false) },
         { key: 'spaceId', value: spaceId },
@@ -125,16 +129,18 @@ export async function listDxMetrics({
 } = {}): Promise<DxMetric[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Fetch metric entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'dx_metric'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'dx_metric_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -161,11 +167,12 @@ export async function listDxMetrics({
         const metricKey = getAttr('metricKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && metricKey) {
               txHashMap[metricKey] = payload.txHash;
@@ -181,11 +188,12 @@ export async function listDxMetrics({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -207,8 +215,12 @@ export async function listDxMetrics({
         operation: getAttr('operation'),
         route: getAttr('route') || undefined,
         durationMs: payload.durationMs || parseInt(getAttr('durationMs'), 10),
-        payloadBytes: payload.payloadBytes || (getAttr('payloadBytes') ? parseInt(getAttr('payloadBytes'), 10) : undefined),
-        httpRequests: payload.httpRequests || (getAttr('httpRequests') ? parseInt(getAttr('httpRequests'), 10) : undefined),
+        payloadBytes:
+          payload.payloadBytes ||
+          (getAttr('payloadBytes') ? parseInt(getAttr('payloadBytes'), 10) : undefined),
+        httpRequests:
+          payload.httpRequests ||
+          (getAttr('httpRequests') ? parseInt(getAttr('httpRequests'), 10) : undefined),
         status: (getAttr('status') || payload.status || 'success') as 'success' | 'failure',
         errorType: getAttr('errorType') || payload.errorType || undefined,
         usedFallback: getAttr('usedFallback') === 'true' || payload.usedFallback === true,
@@ -219,26 +231,25 @@ export async function listDxMetrics({
 
     // Apply filters
     if (source) {
-      metrics = metrics.filter(m => m.source === source);
+      metrics = metrics.filter((m) => m.source === source);
     }
     if (operation) {
-      metrics = metrics.filter(m => m.operation === operation);
+      metrics = metrics.filter((m) => m.operation === operation);
     }
     if (route) {
-      metrics = metrics.filter(m => m.route === route);
+      metrics = metrics.filter((m) => m.route === route);
     }
     if (since) {
       const sinceTime = new Date(since).getTime();
-      metrics = metrics.filter(m => new Date(m.createdAt).getTime() >= sinceTime);
+      metrics = metrics.filter((m) => new Date(m.createdAt).getTime() >= sinceTime);
     }
 
     // Sort by most recent first
-    return metrics.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return metrics.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('Error in listDxMetrics:', error);
     return [];
   }
 }
-

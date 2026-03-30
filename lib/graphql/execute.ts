@@ -1,6 +1,6 @@
 /**
  * Direct GraphQL execution (bypasses HTTP layer)
- * 
+ *
  * Use this for server-to-server calls within the same Next.js app.
  * This avoids Vercel deployment protection and is more efficient.
  */
@@ -15,7 +15,7 @@ const schema = buildSchema(graphQLSchema);
 
 /**
  * Execute a GraphQL query directly (server-side only)
- * 
+ *
  * @param query - GraphQL query string
  * @param variables - Optional query variables
  * @returns GraphQL execution result
@@ -32,4 +32,3 @@ export async function executeGraphQL<T = any>(
     variableValues: variables || {},
   }) as Promise<ExecutionResult<T>>;
 }
-

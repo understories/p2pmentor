@@ -1,6 +1,6 @@
 /**
  * Auto Theme Switcher
- * 
+ *
  * Automatically switches between dark and light mode every 30 seconds
  * with a soft fade transition. No visual indicators - completely subtle.
  * Only active on landing page.
@@ -49,9 +49,9 @@ export function SunriseSunsetTimer() {
         intervalRef.current = null;
       }
     };
-    
+
     window.addEventListener('theme-toggled', handleThemeToggle);
-    
+
     // Switch theme every 30 seconds with soft fade (only if user hasn't toggled)
     if (!userHasToggled) {
       intervalRef.current = setInterval(() => {

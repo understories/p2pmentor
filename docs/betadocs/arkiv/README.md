@@ -36,4 +36,3 @@ Navigation guide for Arkiv implementation in p2pmentor.
 - **`entities/`** - Product-specific schemas (what exists, not how it works)
 - **`operations/`** - How this runs in reality (operational docs)
 - **`toolkits/`** - Ways in, not architecture (optional accelerators)
-

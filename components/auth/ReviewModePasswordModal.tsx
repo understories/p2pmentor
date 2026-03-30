@@ -2,7 +2,7 @@
 
 /**
  * Review Mode Password Modal
- * 
+ *
  * Password prompt for activating Arkiv review mode.
  * Used after wallet connection to verify reviewer access.
  */
@@ -23,18 +23,19 @@ export function ReviewModePasswordModal({
   isActivating = false,
 }: ReviewModePasswordModalProps) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg max-w-md w-full mx-4">
-        <h2 className="text-xl font-bold mb-4">Arkiv Review Mode</h2>
-        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-          Enter password to request review mode grant. This will issue a grant entity on Arkiv signed by the app.
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="mx-4 w-full max-w-md rounded-lg bg-white p-6 dark:bg-gray-800">
+        <h2 className="mb-4 text-xl font-bold">Arkiv Review Mode</h2>
+        <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+          Enter password to request review mode grant. This will issue a grant entity on Arkiv
+          signed by the app.
         </p>
         <input
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Password"
-          className="w-full px-4 py-2 border rounded-lg mb-4 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+          className="mb-4 w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           autoFocus
           disabled={isActivating}
           onKeyDown={(e) => {
@@ -49,14 +50,14 @@ export function ReviewModePasswordModal({
           <button
             onClick={onConfirm}
             disabled={isActivating}
-            className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isActivating ? 'Activating...' : 'Activate'}
           </button>
           <button
             onClick={onCancel}
             disabled={isActivating}
-            className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-gray-200 px-4 py-2 text-gray-800 hover:bg-gray-300 disabled:opacity-50 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600"
           >
             Cancel
           </button>
@@ -65,4 +66,3 @@ export function ReviewModePasswordModal({
     </div>
   );
 }
-

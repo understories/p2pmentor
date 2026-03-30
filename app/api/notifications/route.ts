@@ -1,6 +1,6 @@
 /**
  * Notifications API route
- * 
+ *
  * Fetches notifications from Arkiv entities (Arkiv-native approach).
  * Notifications are created server-side when events occur.
  */
@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     const wallet = searchParams.get('wallet');
     const notificationType = searchParams.get('notificationType') || undefined;
     const status = searchParams.get('status') as 'active' | 'archived' | undefined;
-    
+
     if (!wallet) {
       return NextResponse.json(
         { ok: false, error: 'Wallet parameter is required' },
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
 
     if (builderMode && spaceIdsParam) {
       // Builder mode: query multiple spaceIds
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+      spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
     } else if (spaceIdParam) {
       // Override default spaceId
       spaceId = spaceIdParam;
@@ -46,7 +46,7 @@ export async function GET(request: Request) {
       // Use default from config
       spaceId = SPACE_ID;
     }
-    
+
     // Query notifications directly from Arkiv entities
     // Note: read/archived are now in notification payload, not separate preferences
     const notifications = await listNotifications({
@@ -73,10 +73,10 @@ export async function GET(request: Request) {
 
 /**
  * DELETE /api/notifications
- * 
+ *
  * Archives (soft deletes) all notifications for a wallet.
  * This allows users to "nuke" all their notifications.
- * 
+ *
  * Query params:
  * - wallet: User wallet address (required)
  * - spaceId: Override default spaceId (optional)
@@ -85,7 +85,7 @@ export async function DELETE(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');
-    
+
     if (!wallet) {
       return NextResponse.json(
         { ok: false, error: 'Wallet parameter is required' },
@@ -102,13 +102,12 @@ export async function DELETE(request: Request) {
 
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Private key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Private key not configured' }, { status: 500 });
     }
 
-    console.log(`[DELETE /api/notifications] Archiving all notifications for wallet ${normalizedWallet}`);
+    console.log(
+      `[DELETE /api/notifications] Archiving all notifications for wallet ${normalizedWallet}`
+    );
 
     const results = await archiveAllNotifications({
       wallet: normalizedWallet,
@@ -129,4 +128,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

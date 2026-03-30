@@ -13,11 +13,13 @@ If your data passes the walkaway test, it means it exists **independently** of y
 ## Why This Matters
 
 In traditional apps:
+
 - If the company's servers go down, your data is inaccessible
 - If the company shuts down, your data might be lost
 - You're locked into their infrastructure
 
 With Arkiv:
+
 - Your data lives on the blockchain
 - It exists even if your servers are down
 - It persists even if your company disappears
@@ -37,6 +39,7 @@ With Arkiv:
 If you can see your entity on the Explorer after stopping your server, **you've passed the walkaway test!**
 
 This proves:
+
 - Your data is **decentralized** (not stored on your servers)
 - Your data is **persistent** (survives server shutdowns)
 - Your data is **verifiable** (anyone can check it exists)
@@ -44,6 +47,7 @@ This proves:
 ## Real-World Implications
 
 This means:
+
 - Users can access their data even if your app is down
 - Users can switch to a different app and still access their data
 - Your data infrastructure is **composable** - multiple apps can read the same data

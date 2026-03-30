@@ -26,12 +26,15 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
   return (
     <>
       {/* Mini version with fullscreen button */}
-      <div className="relative my-4 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-900 group">
-        <div className="relative w-full flex items-center justify-center" style={{ height: '400px', overflow: 'hidden', backgroundColor: 'white' }}>
+      <div className="group relative my-4 overflow-hidden rounded-lg border border-gray-300 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div
+          className="relative flex w-full items-center justify-center"
+          style={{ height: '400px', overflow: 'hidden', backgroundColor: 'white' }}
+        >
           <iframe
             src={src}
             className="border-0"
-            style={{ 
+            style={{
               width: '100%',
               height: '100%',
               minHeight: '400px',
@@ -43,12 +46,12 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
         {/* Fullscreen button in corner */}
         <button
           onClick={openFullscreen}
-          className="absolute top-2 right-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-opacity opacity-0 group-hover:opacity-100 focus:opacity-100"
+          className="absolute right-2 top-2 rounded-md border border-gray-300 bg-white p-2 opacity-0 shadow-lg transition-opacity hover:bg-gray-100 focus:opacity-100 group-hover:opacity-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
           title="View fullscreen"
           aria-label="View diagram fullscreen"
         >
           <svg
-            className="w-5 h-5 text-gray-700 dark:text-gray-300"
+            className="h-5 w-5 text-gray-700 dark:text-gray-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -66,19 +69,19 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
       {/* Fullscreen modal */}
       {isFullscreen && (
         <div
-          className="fixed inset-0 z-50 bg-black bg-opacity-90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
           onClick={closeFullscreen}
         >
-          <div className="relative w-full h-full flex items-center justify-center">
+          <div className="relative flex h-full w-full items-center justify-center">
             {/* Close button */}
             <button
               onClick={closeFullscreen}
-              className="absolute top-4 right-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 z-10"
+              className="absolute right-4 top-4 z-10 rounded-md border border-gray-300 bg-white p-2 shadow-lg hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
               title="Close fullscreen"
               aria-label="Close fullscreen"
             >
               <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300"
+                className="h-6 w-6 text-gray-700 dark:text-gray-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -91,19 +94,19 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
                 />
               </svg>
             </button>
-            
+
             {/* Open in new tab button */}
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 openInNewTab();
               }}
-              className="absolute top-4 right-20 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md p-2 shadow-lg hover:bg-gray-100 dark:hover:bg-gray-700 z-10"
+              className="absolute right-20 top-4 z-10 rounded-md border border-gray-300 bg-white p-2 shadow-lg hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
               title="Open in new tab"
               aria-label="Open diagram in new tab"
             >
               <svg
-                className="w-6 h-6 text-gray-700 dark:text-gray-300"
+                className="h-6 w-6 text-gray-700 dark:text-gray-300"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -119,14 +122,14 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
 
             {/* Diagram */}
             <div
-              className="relative w-full h-full flex items-center justify-center overflow-auto"
+              className="relative flex h-full w-full items-center justify-center overflow-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-full h-full flex items-center justify-center p-4">
+              <div className="flex h-full w-full items-center justify-center p-4">
                 <iframe
                   src={src}
                   className="border-0 bg-white"
-                  style={{ 
+                  style={{
                     width: '100%',
                     height: '100%',
                     maxWidth: '95vw',
@@ -143,4 +146,3 @@ export function DiagramViewer({ src, alt, title }: DiagramViewerProps) {
     </>
   );
 }
-

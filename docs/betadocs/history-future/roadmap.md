@@ -15,4 +15,3 @@
 ## Contributing
 
 Start with issues labelled for DX, performance or Arkiv patterns. Propose improvements to entity schemas or builder packages. Use repository discussions or issues for technical questions. Share Arkiv-specific feedback in the DX runbook format where possible.
-

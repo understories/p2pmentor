@@ -16,7 +16,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 1988,
     url: 'https://nakamotoinstitute.org/library/crypto-anarchist-manifesto/',
     category: 'foundational',
-    description: 'The Manifesto envisions a future where individuals can communicate and conduct transactions anonymously, outside the control of governments and centralized institutions. It highlights the potential for cryptography to fundamentally alter the nature of government regulation and societal structures.',
+    description:
+      'The Manifesto envisions a future where individuals can communicate and conduct transactions anonymously, outside the control of governments and centralized institutions. It highlights the potential for cryptography to fundamentally alter the nature of government regulation and societal structures.',
   },
   {
     id: 'cypherpunk-manifesto',
@@ -25,7 +26,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 1993,
     url: 'https://www.activism.net/cypherpunk/manifesto.html',
     category: 'foundational',
-    description: 'The Manifesto advocates for privacy in the digital age, distinguishing it from secrecy. It emphasizes using cryptography and anonymous systems to protect privacy, arguing that individuals must defend themselves and safeguard personal information.',
+    description:
+      'The Manifesto advocates for privacy in the digital age, distinguishing it from secrecy. It emphasizes using cryptography and anonymous systems to protect privacy, arguing that individuals must defend themselves and safeguard personal information.',
   },
   {
     id: 'crypto-anarchy-virtual-communities',
@@ -34,7 +36,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 1994,
     url: 'https://nakamotoinstitute.org/library/virtual-communities/',
     category: 'foundational',
-    description: 'The essay argues that strong cryptography and virtual networks will transform economic and social systems, enabling untraceable communications, anonymous identities, and decentralized finance. This technological shift challenges government control and fosters a new era of personal freedom and privacy in cyberspace.',
+    description:
+      'The essay argues that strong cryptography and virtual networks will transform economic and social systems, enabling untraceable communications, anonymous identities, and decentralized finance. This technological shift challenges government control and fosters a new era of personal freedom and privacy in cyberspace.',
   },
   {
     id: 'cyphernomicon',
@@ -43,7 +46,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 1994,
     url: 'https://cdn.nakamotoinstitute.org/docs/cyphernomicon.txt',
     category: 'foundational',
-    description: 'An extensive FAQ and philosophical document by Tim May that outlines the principles, goals, and technological foundations of the Cypherpunk movement.',
+    description:
+      'An extensive FAQ and philosophical document by Tim May that outlines the principles, goals, and technological foundations of the Cypherpunk movement.',
   },
   {
     id: 'declaration-independence-cyberspace',
@@ -52,7 +56,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 1996,
     url: 'https://www.eff.org/cyberspace-independence',
     category: 'foundational',
-    description: 'The co-founder of the Electronic Frontier Foundation argues that governments have no authority in the digital realm. He advocates for a free, self-governing cyberspace, independent of traditional legal constraints, and calls for a more humane and fair digital world beyond government control.',
+    description:
+      'The co-founder of the Electronic Frontier Foundation argues that governments have no authority in the digital realm. He advocates for a free, self-governing cyberspace, independent of traditional legal constraints, and calls for a more humane and fair digital world beyond government control.',
   },
   {
     id: 'political-history-daos',
@@ -61,7 +66,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 2022,
     url: 'https://v1.fwb.help/editorial/cypherpunks-to-social-daos',
     category: 'recent',
-    description: 'The article explores the Cypherpunks Mailing List, a 1990s forum that influenced the development of cryptocurrencies and decentralized technologies. It highlights how their vision of cryptography as a tool for self-governance laid the foundation for today\'s blockchain and Web3 innovations.',
+    description:
+      "The article explores the Cypherpunks Mailing List, a 1990s forum that influenced the development of cryptocurrencies and decentralized technologies. It highlights how their vision of cryptography as a tool for self-governance laid the foundation for today's blockchain and Web3 innovations.",
   },
   {
     id: 'core-crypto-punks-principles',
@@ -70,7 +76,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 2023,
     url: 'https://paragraph.com/@yarak/the-core-of-crypto-is-punks-and-principles',
     category: 'recent',
-    description: 'The article examines how privacy-focused intellectuals, the Cypherpunks, pioneered the foundation for Web3. It highlights their concerns about centralization, privacy, and financial transparency, which led to innovations like Bitcoin and Ethereum. By understanding these ideological origins, the article underscores the significance of appreciating Web3\'s potential to create a decentralized and fair digital future.',
+    description:
+      "The article examines how privacy-focused intellectuals, the Cypherpunks, pioneered the foundation for Web3. It highlights their concerns about centralization, privacy, and financial transparency, which led to innovations like Bitcoin and Ethereum. By understanding these ideological origins, the article underscores the significance of appreciating Web3's potential to create a decentralized and fair digital future.",
   },
   {
     id: 'make-ethereum-cypherpunk-again',
@@ -79,7 +86,8 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 2023,
     url: 'https://vitalik.eth.limo/general/2023/12/28/cypherpunk.html',
     category: 'recent',
-    description: 'Ethereum co-founder calls for a return to the cypherpunk ideals of a decentralized and open crypto ecosystem. It critiques the shift towards financialization and highlights recent advancements like rollups and zero-knowledge proofs as opportunities to realign with these original values.',
+    description:
+      'Ethereum co-founder calls for a return to the cypherpunk ideals of a decentralized and open crypto ecosystem. It critiques the shift towards financialization and highlights recent advancements like rollups and zero-knowledge proofs as opportunities to realign with these original values.',
   },
   {
     id: 'make-public-policy-cypherpunk-again',
@@ -88,14 +96,16 @@ export const WEB3PRIVACY_FOUNDATIONS_MATERIALS: LearnerQuestMaterial[] = [
     year: 2024,
     url: 'https://www.coincenter.org/make-public-policy-cypherpunk-again/',
     category: 'recent',
-    description: 'Director of Research at Coin Center, reflecting on the state of the crypto and Cypherpunk movements. He critiques the shift from Cypherpunk ideals towards profit-driven activities, warns of increasing government scrutiny, and advocates for stronger privacy protections, decentralized governance, and adherence to the original principles of the movement.',
+    description:
+      'Director of Research at Coin Center, reflecting on the state of the crypto and Cypherpunk movements. He critiques the shift from Cypherpunk ideals towards profit-driven activities, warns of increasing government scrutiny, and advocates for stronger privacy protections, decentralized governance, and adherence to the original principles of the movement.',
   },
 ];
 
 export const WEB3PRIVACY_FOUNDATIONS_QUEST = {
   questId: 'web3privacy_foundations',
   title: 'Web3Privacy Foundations',
-  description: 'Explore the foundational documents and recent articles that form the bedrock of the Cypherpunk movement and Web3 privacy principles. These materials provide deep understanding of the ideals and motivations that inspired activists to leverage technology in the defense of individual rights and freedoms.',
+  description:
+    'Explore the foundational documents and recent articles that form the bedrock of the Cypherpunk movement and Web3 privacy principles. These materials provide deep understanding of the ideals and motivations that inspired activists to leverage technology in the defense of individual rights and freedoms.',
   source: 'https://academy.web3privacy.info/p/library',
   materials: WEB3PRIVACY_FOUNDATIONS_MATERIALS,
 };
@@ -108,7 +118,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/map-and-territory',
     category: 'foundational',
-    description: 'What is a belief, and what makes some beliefs work better than others? These sequences explain the Bayesian notions of rationality, belief, and evidence. A running theme: the things we call "explanations" or "theories" may not always function like maps for navigating the world.',
+    description:
+      'What is a belief, and what makes some beliefs work better than others? These sequences explain the Bayesian notions of rationality, belief, and evidence. A running theme: the things we call "explanations" or "theories" may not always function like maps for navigating the world.',
   },
   {
     id: 'how-to-actually-change-your-mind',
@@ -117,7 +128,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/how-to-actually-change-your-mind',
     category: 'foundational',
-    description: 'Why do we keep jumping to conclusions, digging our heels in, and recapitulating the same mistakes? Why are we so bad at acquiring accurate beliefs, and how can we do better? These sequences discuss motivated reasoning and confirmation bias, with a special focus on hard-to-spot species of self-deception.',
+    description:
+      'Why do we keep jumping to conclusions, digging our heels in, and recapitulating the same mistakes? Why are we so bad at acquiring accurate beliefs, and how can we do better? These sequences discuss motivated reasoning and confirmation bias, with a special focus on hard-to-spot species of self-deception.',
   },
   {
     id: 'the-machine-in-the-ghost',
@@ -126,7 +138,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/the-machine-in-the-ghost',
     category: 'foundational',
-    description: 'Why haven\'t we evolved to be more rational? Even taking into account resource constraints, it seems like we could be getting a lot more epistemic bang for our evidential buck. These sequences illustrate how even philosophers and scientists can be led astray when they rely on intuitive, non-technical evolutionary or psychological accounts.',
+    description:
+      "Why haven't we evolved to be more rational? Even taking into account resource constraints, it seems like we could be getting a lot more epistemic bang for our evidential buck. These sequences illustrate how even philosophers and scientists can be led astray when they rely on intuitive, non-technical evolutionary or psychological accounts.",
   },
   {
     id: 'mere-reality',
@@ -135,7 +148,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/mere-reality',
     category: 'foundational',
-    description: 'What kind of world do we live in? What is our place in that world? Building on previous sequences\' examples of how evolutionary and cognitive models work, these sequences explore the nature of mind and the character of physical law.',
+    description:
+      "What kind of world do we live in? What is our place in that world? Building on previous sequences' examples of how evolutionary and cognitive models work, these sequences explore the nature of mind and the character of physical law.",
   },
   {
     id: 'mere-goodness',
@@ -144,7 +158,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/mere-goodness',
     category: 'foundational',
-    description: 'What makes something valuable—morally, or aesthetically, or prudentially? These sequences ask how we can justify, revise, and naturalize our values and desires. The aim will be to find a way to understand our goals without compromising our efforts to actually achieve them.',
+    description:
+      'What makes something valuable—morally, or aesthetically, or prudentially? These sequences ask how we can justify, revise, and naturalize our values and desires. The aim will be to find a way to understand our goals without compromising our efforts to actually achieve them.',
   },
   {
     id: 'becoming-stronger',
@@ -153,7 +168,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2009,
     url: 'https://www.lesswrong.com/rationality/becoming-stronger',
     category: 'foundational',
-    description: 'How can individuals and communities put all this into practice? These sequences begin with an autobiographical account of Yudkowsky\'s own biggest philosophical blunders, with advice on how he thinks others might do better. The book closes with recommendations for developing evidence-based applied rationality curricula.',
+    description:
+      "How can individuals and communities put all this into practice? These sequences begin with an autobiographical account of Yudkowsky's own biggest philosophical blunders, with advice on how he thinks others might do better. The book closes with recommendations for developing evidence-based applied rationality curricula.",
   },
   {
     id: 'predictably-wrong',
@@ -162,7 +178,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/predictably-wrong',
     category: 'book',
-    description: 'This sequence begins with cognitive bias. Cognitive bias provides the clearest and most direct glimpse into the stuff of our psychology, into the shape of our heuristics and the logic of our limitations.',
+    description:
+      'This sequence begins with cognitive bias. Cognitive bias provides the clearest and most direct glimpse into the stuff of our psychology, into the shape of our heuristics and the logic of our limitations.',
   },
   {
     id: 'mysterious-answers',
@@ -171,7 +188,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/mysterious-answers',
     category: 'book',
-    description: 'This sequence asks whether science resolves the problems raised so far. Scientists base their models on repeatable experiments, not speculation or hearsay. Do we still need to worry about "fake" beliefs, confirmation bias, hindsight bias, and the like when we\'re working with a community of people who want to explain phenomena?',
+    description:
+      'This sequence asks whether science resolves the problems raised so far. Scientists base their models on repeatable experiments, not speculation or hearsay. Do we still need to worry about "fake" beliefs, confirmation bias, hindsight bias, and the like when we\'re working with a community of people who want to explain phenomena?',
   },
   {
     id: 'noticing-confusion',
@@ -180,7 +198,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/noticing-confusion',
     category: 'book',
-    description: 'Focus your uncertainty. What is evidence? How much evidence does it take? These sequences explore the Bayesian approach to evidence, uncertainty, and scientific reasoning.',
+    description:
+      'Focus your uncertainty. What is evidence? How much evidence does it take? These sequences explore the Bayesian approach to evidence, uncertainty, and scientific reasoning.',
   },
   {
     id: 'overly-convenient-excuses',
@@ -189,7 +208,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2006,
     url: 'https://www.lesswrong.com/rationality/overly-convenient-excuses',
     category: 'book',
-    description: 'This sequence focuses on questions that are as probabilistically clear-cut as questions get. The Bayes-optimal answer is often infeasible to compute, but errors like confirmation bias can take root even in cases where the available evidence is overwhelming.',
+    description:
+      'This sequence focuses on questions that are as probabilistically clear-cut as questions get. The Bayes-optimal answer is often infeasible to compute, but errors like confirmation bias can take root even in cases where the available evidence is overwhelming.',
   },
   {
     id: 'seeing-with-fresh-eyes',
@@ -198,7 +218,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/seeing-with-fresh-eyes',
     category: 'book',
-    description: 'On the challenge of recognizing evidence that doesn\'t fit our expectations and assumptions. These sequences explore anchoring, priming, cached thoughts, and the virtue of narrowness.',
+    description:
+      "On the challenge of recognizing evidence that doesn't fit our expectations and assumptions. These sequences explore anchoring, priming, cached thoughts, and the virtue of narrowness.",
   },
   {
     id: 'death-spirals',
@@ -207,7 +228,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/death-spirals',
     category: 'book',
-    description: 'Leveling up in rationality means encountering a lot of interesting and powerful new ideas. In many cases, it also means making friends who you can bounce ideas off of and finding communities that encourage you to better yourself. This sequence discusses some important hazards that can afflict groups united around common interests.',
+    description:
+      'Leveling up in rationality means encountering a lot of interesting and powerful new ideas. In many cases, it also means making friends who you can bounce ideas off of and finding communities that encourage you to better yourself. This sequence discusses some important hazards that can afflict groups united around common interests.',
   },
   {
     id: 'letting-go',
@@ -216,7 +238,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/letting-go',
     category: 'book',
-    description: 'Our natural state isn\'t to change our minds like a Bayesian would. Getting the people in opposing tribes to notice what they\'re really seeing won\'t be as easy as reciting the axioms of probability theory to them. Confirmation bias, status quo bias, and correspondence bias are not tacked on—they are how we work.',
+    description:
+      "Our natural state isn't to change our minds like a Bayesian would. Getting the people in opposing tribes to notice what they're really seeing won't be as easy as reciting the axioms of probability theory to them. Confirmation bias, status quo bias, and correspondence bias are not tacked on—they are how we work.",
   },
   {
     id: 'against-doublethink',
@@ -225,7 +248,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/against-doublethink',
     category: 'book',
-    description: 'This short sequence explores another cognitive pattern that hinders our ability to update on evidence: George Orwell\'s "doublethink" - the attempt to deceive oneself.',
+    description:
+      'This short sequence explores another cognitive pattern that hinders our ability to update on evidence: George Orwell\'s "doublethink" - the attempt to deceive oneself.',
   },
   {
     id: 'politics-and-rationality',
@@ -234,16 +258,18 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/politics-and-rationality',
     category: 'book',
-    description: 'Why do we take political disagreements so personally, even when the machinery and effects of national politics are so distant from us in space or in time? For that matter, why do we not become more careful and rigorous with the evidence when we\'re dealing with issues we deem important?',
+    description:
+      "Why do we take political disagreements so personally, even when the machinery and effects of national politics are so distant from us in space or in time? For that matter, why do we not become more careful and rigorous with the evidence when we're dealing with issues we deem important?",
   },
   {
     id: 'a-humans-guide-to-words',
-    title: 'A Human\'s Guide to Words',
+    title: "A Human's Guide to Words",
     author: 'Eliezer Yudkowsky',
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/a-humans-guide-to-words',
     category: 'book',
-    description: 'This sequence discusses the basic relationship between cognition and concept formation. Words as hidden inferences, extensions and intensions, similarity clusters, and how categorization has consequences.',
+    description:
+      'This sequence discusses the basic relationship between cognition and concept formation. Words as hidden inferences, extensions and intensions, similarity clusters, and how categorization has consequences.',
   },
   {
     id: 'reductionism-101',
@@ -252,7 +278,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2007,
     url: 'https://www.lesswrong.com/rationality/reductionism-101',
     category: 'book',
-    description: 'Dissolving the question, wrong questions, mind projection fallacy, probability is in the mind, the quotation is not the referent, think like reality, reductionism, explaining vs. explaining away.',
+    description:
+      'Dissolving the question, wrong questions, mind projection fallacy, probability is in the mind, the quotation is not the referent, think like reality, reductionism, explaining vs. explaining away.',
   },
   {
     id: 'quantum-physics-and-many-worlds',
@@ -261,7 +288,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/quantum-physics-and-many-worlds',
     category: 'book',
-    description: 'Quantum mechanics is our best mathematical model of the universe to date, powerfully confirmed by a century of tests. However, interpreting what the experimental results mean—how and when the Schrödinger equation and Born\'s rule interact—is a topic of much contention.',
+    description:
+      "Quantum mechanics is our best mathematical model of the universe to date, powerfully confirmed by a century of tests. However, interpreting what the experimental results mean—how and when the Schrödinger equation and Born's rule interact—is a topic of much contention.",
   },
   {
     id: 'science-and-rationality',
@@ -270,7 +298,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/science-and-rationality',
     category: 'book',
-    description: 'The final sequence in this book ties these ideas together, and draws some conclusions on the strength of our scientific institutions. The failures of eld science, science doesn\'t trust your rationality, when science can\'t help, faster than science.',
+    description:
+      "The final sequence in this book ties these ideas together, and draws some conclusions on the strength of our scientific institutions. The failures of eld science, science doesn't trust your rationality, when science can't help, faster than science.",
   },
   {
     id: 'fragile-purposes',
@@ -279,7 +308,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/fragile-purposes',
     category: 'book',
-    description: 'This sequence abstracts from human cognition and evolution to the idea of minds and goal-directed systems at their most general. These essays serve the secondary purpose of explaining the author\'s general approach to philosophy and the science of rationality, which is strongly informed by his work in AI.',
+    description:
+      "This sequence abstracts from human cognition and evolution to the idea of minds and goal-directed systems at their most general. These essays serve the secondary purpose of explaining the author's general approach to philosophy and the science of rationality, which is strongly informed by his work in AI.",
   },
   {
     id: 'fake-preferences',
@@ -288,7 +318,8 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/fake-preferences',
     category: 'book',
-    description: 'On failed attempts at theories of value. Not for the sake of happiness (alone), fake selfishness, fake morality, fake utility functions, detached lever fallacy.',
+    description:
+      'On failed attempts at theories of value. Not for the sake of happiness (alone), fake selfishness, fake morality, fake utility functions, detached lever fallacy.',
   },
   {
     id: 'value-theory',
@@ -297,24 +328,26 @@ export const LESSWRONG_SEQUENCES_MATERIALS: LearnerQuestMaterial[] = [
     year: 2008,
     url: 'https://www.lesswrong.com/rationality/value-theory',
     category: 'book',
-    description: 'On obstacles to developing a new theory, and some intuitively desirable features of such a theory. Where recursive justification hits bottom, my kind of reflection, no universally compelling arguments, created already in motion, sorting pebbles into correct heaps.',
+    description:
+      'On obstacles to developing a new theory, and some intuitively desirable features of such a theory. Where recursive justification hits bottom, my kind of reflection, no universally compelling arguments, created already in motion, sorting pebbles into correct heaps.',
   },
   {
     id: 'yudkowskys-coming-of-age',
-    title: 'Yudkowsky\'s Coming of Age',
+    title: "Yudkowsky's Coming of Age",
     author: 'Eliezer Yudkowsky',
     year: 2009,
     url: 'https://www.lesswrong.com/rationality/yudkowskys-coming-of-age',
     category: 'book',
-    description: 'This sequence provides a last in-depth illustration of the dynamics of irrational belief, this time spotlighting the author\'s own intellectual history. My childhood death spiral, my best and worst mistake, raised in technophilia, a prodigy of refutation, my Bayesian enlightenment.',
+    description:
+      "This sequence provides a last in-depth illustration of the dynamics of irrational belief, this time spotlighting the author's own intellectual history. My childhood death spiral, my best and worst mistake, raised in technophilia, a prodigy of refutation, my Bayesian enlightenment.",
   },
 ];
 
 export const LESSWRONG_SEQUENCES_QUEST = {
   questId: 'lesswrong_sequences',
   title: 'Rationality: A-Z (LessWrong Sequences)',
-  description: 'A series of blog posts by Eliezer Yudkowsky on human rationality and irrationality in cognitive science. This collection serves as a long-form introduction to formative ideas behind Less Wrong, the Machine Intelligence Research Institute, the Center for Applied Rationality, and substantial parts of the effective altruist community. Each sequence explores different aspects of rationality, from Bayesian reasoning and cognitive biases to the nature of mind and the character of physical law.',
+  description:
+    'A series of blog posts by Eliezer Yudkowsky on human rationality and irrationality in cognitive science. This collection serves as a long-form introduction to formative ideas behind Less Wrong, the Machine Intelligence Research Institute, the Center for Applied Rationality, and substantial parts of the effective altruist community. Each sequence explores different aspects of rationality, from Bayesian reasoning and cognitive biases to the nature of mind and the character of physical law.',
   source: 'https://www.lesswrong.com/rationality',
   materials: LESSWRONG_SEQUENCES_MATERIALS,
 };
-

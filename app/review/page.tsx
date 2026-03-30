@@ -1,9 +1,9 @@
 /**
  * Review Mode Onboarding Page
- * 
+ *
  * Clean one-page UI for reviewers to test all M1 acceptance criteria scenarios.
  * Gated with access grant entity check.
- * 
+ *
  * Steps:
  * 1. Create profile
  * 2. Add/remove/edit skills
@@ -25,7 +25,11 @@ import { SkillSelector } from '@/components/SkillSelector';
 import { listSkills } from '@/lib/arkiv/skill';
 import type { Skill } from '@/lib/arkiv/skill';
 import { WeeklyAvailabilityEditor } from '@/components/availability/WeeklyAvailabilityEditor';
-import { listAvailabilityForWallet, type Availability, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import {
+  listAvailabilityForWallet,
+  type Availability,
+  type WeeklyAvailability,
+} from '@/lib/arkiv/availability';
 import Link from 'next/link';
 
 type ReviewStep = 'profile' | 'skills' | 'availability' | 'asks' | 'offers' | 'complete';
@@ -44,9 +48,12 @@ export default function ReviewOnboardingPage() {
     if (typeof window !== 'undefined') {
       const storedWallet = localStorage.getItem('wallet_address');
       if (storedWallet) {
-        console.log('[Review Onboarding] Wallet from localStorage:', `${storedWallet.substring(0, 6)}...${storedWallet.substring(storedWallet.length - 4)}`);
+        console.log(
+          '[Review Onboarding] Wallet from localStorage:',
+          `${storedWallet.substring(0, 6)}...${storedWallet.substring(storedWallet.length - 4)}`
+        );
         setWallet(storedWallet);
-        
+
         // Set review mode bypass (reuse onboarding bypass pattern)
         import('@/lib/onboarding/access').then(({ setReviewModeBypass }) => {
           setReviewModeBypass(true);
@@ -64,9 +71,9 @@ export default function ReviewOnboardingPage() {
       if (!wallet) {
         return;
       }
-      
+
       setCheckingGuards(true);
-      
+
       try {
         // Load profile if it exists
         console.log('[Review Onboarding] Loading profile');
@@ -79,14 +86,14 @@ export default function ReviewOnboardingPage() {
           console.log('[Review Onboarding] No profile found, starting at profile step');
           setCurrentStep('profile');
         }
-        
+
         setCheckingGuards(false);
       } catch (err) {
         console.error('[Review Onboarding] Failed to load profile:', err);
         setCheckingGuards(false);
       }
     };
-    
+
     loadProfile();
   }, [wallet]);
 
@@ -94,7 +101,7 @@ export default function ReviewOnboardingPage() {
   useEffect(() => {
     const loadProfile = async () => {
       if (!wallet) return;
-      
+
       try {
         const existingProfile = await getProfileByWallet(wallet);
         if (existingProfile) {
@@ -104,13 +111,13 @@ export default function ReviewOnboardingPage() {
         console.error('[Review Onboarding] Failed to load profile:', err);
       }
     };
-    
+
     loadProfile();
   }, [wallet]);
 
   if (checkingGuards || !wallet) {
     return (
-      <main className="min-h-screen p-8 flex items-center justify-center">
+      <main className="flex min-h-screen items-center justify-center p-8">
         <div className="text-center">
           <p className="text-gray-600 dark:text-gray-400">Checking review mode access...</p>
         </div>
@@ -119,10 +126,10 @@ export default function ReviewOnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen p-8 bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-gray-50 p-8 dark:bg-gray-900">
+      <div className="mx-auto max-w-4xl">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold mb-2 text-gray-900 dark:text-gray-100">
+          <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
             Arkiv Review Mode
           </h1>
           <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -135,14 +142,14 @@ export default function ReviewOnboardingPage() {
           {profile ? (
             <button
               onClick={() => setCurrentStep('profile')}
-              className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium"
+              className="rounded-lg bg-purple-600 px-6 py-3 font-medium text-white transition-colors hover:bg-purple-700"
             >
               Edit Profile
             </button>
           ) : (
             <button
               onClick={() => setCurrentStep('profile')}
-              className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              className="rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700"
             >
               Create Profile
             </button>
@@ -155,10 +162,10 @@ export default function ReviewOnboardingPage() {
             <button
               key={step}
               onClick={() => setCurrentStep(step)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
                 currentStep === step
                   ? 'bg-purple-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  : 'bg-white text-gray-700 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
               }`}
             >
               {step.charAt(0).toUpperCase() + step.slice(1)}
@@ -166,20 +173,20 @@ export default function ReviewOnboardingPage() {
           ))}
           <Link
             href="/network"
-            className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors"
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
           >
             Explore Network →
           </Link>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
             {error}
           </div>
         )}
 
         {/* Step Content */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div className="rounded-lg bg-white p-6 shadow-lg dark:bg-gray-800">
           {currentStep === 'profile' && (
             <ProfileStep
               wallet={wallet}
@@ -204,26 +211,15 @@ export default function ReviewOnboardingPage() {
           )}
 
           {currentStep === 'availability' && (
-            <AvailabilityStep
-              wallet={wallet}
-              onError={setError}
-            />
+            <AvailabilityStep wallet={wallet} onError={setError} />
           )}
 
           {currentStep === 'asks' && (
-            <AsksStep
-              wallet={wallet}
-              profile={profile}
-              onError={setError}
-            />
+            <AsksStep wallet={wallet} profile={profile} onError={setError} />
           )}
 
           {currentStep === 'offers' && (
-            <OffersStep
-              wallet={wallet}
-              profile={profile}
-              onError={setError}
-            />
+            <OffersStep wallet={wallet} profile={profile} onError={setError} />
           )}
         </div>
       </div>
@@ -232,7 +228,12 @@ export default function ReviewOnboardingPage() {
 }
 
 // Profile Step Component
-function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
+function ProfileStep({
+  wallet,
+  profile,
+  onProfileCreated,
+  onError,
+}: {
   wallet: string;
   profile: any;
   onProfileCreated: (profile: any) => void;
@@ -245,7 +246,9 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
     timezone: profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdProfile, setCreatedProfile] = useState<{ key: string; txHash: string } | null>(null);
+  const [createdProfile, setCreatedProfile] = useState<{ key: string; txHash: string } | null>(
+    null
+  );
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const usernameCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -280,10 +283,10 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
       try {
         const existingProfiles = await checkUsernameExists(formData.username.trim());
         // Filter out profiles from the same wallet (user can reuse their own username)
-        const otherWalletProfiles = existingProfiles.filter(p => 
-          p.wallet.toLowerCase() !== wallet.toLowerCase()
+        const otherWalletProfiles = existingProfiles.filter(
+          (p) => p.wallet.toLowerCase() !== wallet.toLowerCase()
         );
-        
+
         if (otherWalletProfiles.length > 0) {
           setUsernameError('Username already taken');
         } else {
@@ -338,7 +341,7 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
       }
 
       setCreatedProfile({ key: data.key, txHash: data.txHash });
-      
+
       // Reload profile
       const updatedProfile = await getProfileByWallet(wallet);
       if (updatedProfile) {
@@ -354,23 +357,25 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
   if (createdProfile) {
     return (
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Profile Created</h2>
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg mb-4">
-          <p className="text-green-800 dark:text-green-300 font-medium mb-4">
+        <h2 className="mb-4 text-2xl font-semibold">Profile Created</h2>
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <p className="mb-4 font-medium text-green-800 dark:text-green-300">
             Profile created successfully!
           </p>
-          
+
           {/* Full Entity Information */}
-          <div className="space-y-2 mb-4 text-sm">
+          <div className="mb-4 space-y-2 text-sm">
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {createdProfile.key}
               </code>
             </div>
             <div>
-              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Transaction Hash:
+              </span>
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {createdProfile.txHash}
               </code>
             </div>
@@ -378,8 +383,8 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
 
           {/* View on Arkiv Link */}
           <div className="mt-4">
-            <ViewOnArkivLink 
-              entityKey={createdProfile.key} 
+            <ViewOnArkivLink
+              entityKey={createdProfile.key}
               txHash={createdProfile.txHash}
               label="View on Arkiv Explorer"
             />
@@ -395,7 +400,7 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
               timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             });
           }}
-          className="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
+          className="rounded-lg bg-gray-200 px-4 py-2 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           Create Another
         </button>
@@ -405,23 +410,23 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Create/Edit Profile</h2>
+      <h2 className="mb-4 text-2xl font-semibold">Create/Edit Profile</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Display Name <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={formData.displayName}
-            onChange={(e) => setFormData(prev => ({ ...prev, displayName: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, displayName: e.target.value }))}
             required
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Username <span className="text-red-500">*</span>
           </label>
           <div className="relative">
@@ -430,66 +435,66 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
               value={formData.username}
               onChange={(e) => {
                 const value = e.target.value.replace(/[^a-zA-Z0-9_-]/g, '');
-                setFormData(prev => ({ ...prev, username: value }));
+                setFormData((prev) => ({ ...prev, username: value }));
               }}
               required
               disabled={!!profile || isSubmitting}
               maxLength={20}
               minLength={3}
-              className={`w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 disabled:opacity-50 ${
+              className={`w-full rounded-lg border px-4 py-2 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 ${
                 usernameError
                   ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                   : formData.username.trim() && !usernameError && !isCheckingUsername
-                  ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
-                  : 'border-gray-300 dark:border-gray-600'
+                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-300 dark:border-gray-600'
               }`}
             />
             {isCheckingUsername && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
+              <div className="absolute right-3 top-1/2 -translate-y-1/2 transform">
+                <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-gray-600"></div>
               </div>
             )}
           </div>
           {usernameError && (
-            <p className="text-xs text-red-500 dark:text-red-400 mt-1">{usernameError}</p>
+            <p className="mt-1 text-xs text-red-500 dark:text-red-400">{usernameError}</p>
           )}
           {profile && (
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
               Username cannot be changed after creation
             </p>
           )}
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Bio <span className="text-red-500">*</span>
           </label>
           <textarea
             value={formData.bio}
-            onChange={(e) => setFormData(prev => ({ ...prev, bio: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, bio: e.target.value }))}
             required
             rows={4}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Timezone <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             value={formData.timezone}
-            onChange={(e) => setFormData(prev => ({ ...prev, timezone: e.target.value }))}
+            onChange={(e) => setFormData((prev) => ({ ...prev, timezone: e.target.value }))}
             required
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           />
         </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? 'Saving...' : profile ? 'Update Profile' : 'Create Profile'}
         </button>
@@ -499,7 +504,12 @@ function ProfileStep({ wallet, profile, onProfileCreated, onError }: {
 }
 
 // Skills Step Component
-function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
+function SkillsStep({
+  wallet,
+  profile,
+  onProfileUpdated,
+  onError,
+}: {
   wallet: string;
   profile: any;
   onProfileUpdated: (profile: any) => void;
@@ -534,7 +544,7 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
 
   const getUserSkills = (): Skill[] => {
     const skillIds = getUserSkillIds();
-    return allSkills.filter(skill => skillIds.includes(skill.key));
+    return allSkills.filter((skill) => skillIds.includes(skill.key));
   };
 
   const handleAddSkill = async () => {
@@ -604,7 +614,7 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
   const handleRemoveSkill = async (skillId: string) => {
     if (!profile) return;
 
-    const skill = allSkills.find(s => s.key === skillId);
+    const skill = allSkills.find((s) => s.key === skillId);
     if (!skill) return;
 
     if (!confirm(`Remove "${skill.name_canonical}" from your skills?`)) {
@@ -616,9 +626,11 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
 
     try {
       const currentSkillIds = getUserSkillIds();
-      const updatedSkillIds = currentSkillIds.filter(id => id !== skillId);
+      const updatedSkillIds = currentSkillIds.filter((id) => id !== skillId);
       const currentSkills = profile.skillsArray || [];
-      const updatedSkills = currentSkills.filter((s: string) => s.toLowerCase() !== skill.name_canonical.toLowerCase());
+      const updatedSkills = currentSkills.filter(
+        (s: string) => s.toLowerCase() !== skill.name_canonical.toLowerCase()
+      );
 
       const res = await fetch('/api/profile', {
         method: 'POST',
@@ -669,35 +681,44 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Manage Skills</h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        Add, remove, or edit skills on your profile. Skills are stored in the profile entity's skillsArray.
+      <h2 className="mb-4 text-2xl font-semibold">Manage Skills</h2>
+      <p className="mb-4 text-gray-600 dark:text-gray-400">
+        Add, remove, or edit skills on your profile. Skills are stored in the profile entity's
+        skillsArray.
       </p>
 
       {lastWriteInfo && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Profile updated successfully!</p>
-          <div className="space-y-1 text-sm mb-2">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <p className="mb-2 font-medium text-green-800 dark:text-green-300">
+            Profile updated successfully!
+          </p>
+          <div className="mb-2 space-y-1 text-sm">
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.key}
               </code>
             </div>
             <div>
-              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Transaction Hash:
+              </span>
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.txHash}
               </code>
             </div>
           </div>
-          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+          <ViewOnArkivLink
+            entityKey={lastWriteInfo.key}
+            txHash={lastWriteInfo.txHash}
+            label="View on Arkiv Explorer"
+          />
         </div>
       )}
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Add Skill</label>
+          <label className="mb-2 block text-sm font-medium">Add Skill</label>
           <SkillSelector
             value={selectedSkillId}
             onChange={(skillId, skillName) => {
@@ -711,25 +732,28 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
           <button
             onClick={handleAddSkill}
             disabled={!selectedSkillId || isSubmitting}
-            className="mt-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isSubmitting ? 'Adding...' : 'Add Skill'}
           </button>
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Your Skills</label>
+          <label className="mb-2 block text-sm font-medium">Your Skills</label>
           {userSkills.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400">No skills added yet.</p>
           ) : (
             <div className="space-y-2">
               {userSkills.map((skill) => (
-                <div key={skill.key} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                <div
+                  key={skill.key}
+                  className="flex items-center justify-between rounded bg-gray-50 p-2 dark:bg-gray-700"
+                >
                   <span>{skill.name_canonical}</span>
                   <button
                     onClick={() => handleRemoveSkill(skill.key)}
                     disabled={isSubmitting}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                    className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -744,13 +768,18 @@ function SkillsStep({ wallet, profile, onProfileUpdated, onError }: {
 }
 
 // Availability Step Component
-function AvailabilityStep({ wallet, onError }: {
+function AvailabilityStep({
+  wallet,
+  onError,
+}: {
   wallet: string;
   onError: (error: string) => void;
 }) {
   const [availabilities, setAvailabilities] = useState<Availability[]>([]);
   const [weeklyAvailability, setWeeklyAvailability] = useState<WeeklyAvailability | null>(null);
-  const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const [timezone, setTimezone] = useState<string>(
+    Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [lastWriteInfo, setLastWriteInfo] = useState<{ key: string; txHash: string } | null>(null);
@@ -849,35 +878,44 @@ function AvailabilityStep({ wallet, onError }: {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Manage Availability</h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        Add, remove, or edit availability blocks. Each availability block is a separate entity on Arkiv.
+      <h2 className="mb-4 text-2xl font-semibold">Manage Availability</h2>
+      <p className="mb-4 text-gray-600 dark:text-gray-400">
+        Add, remove, or edit availability blocks. Each availability block is a separate entity on
+        Arkiv.
       </p>
 
       {lastWriteInfo && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Availability created successfully!</p>
-          <div className="space-y-1 text-sm mb-2">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <p className="mb-2 font-medium text-green-800 dark:text-green-300">
+            Availability created successfully!
+          </p>
+          <div className="mb-2 space-y-1 text-sm">
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.key}
               </code>
             </div>
             <div>
-              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Transaction Hash:
+              </span>
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.txHash}
               </code>
             </div>
           </div>
-          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+          <ViewOnArkivLink
+            entityKey={lastWriteInfo.key}
+            txHash={lastWriteInfo.txHash}
+            label="View on Arkiv Explorer"
+          />
         </div>
       )}
 
       <div className="space-y-6">
         <div>
-          <h3 className="text-lg font-semibold mb-2">Add Availability Block</h3>
+          <h3 className="mb-2 text-lg font-semibold">Add Availability Block</h3>
           <form onSubmit={handleSubmit} className="space-y-4">
             <WeeklyAvailabilityEditor
               value={weeklyAvailability}
@@ -888,7 +926,7 @@ function AvailabilityStep({ wallet, onError }: {
             <button
               type="submit"
               disabled={!weeklyAvailability || isSubmitting}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {isSubmitting ? 'Creating...' : 'Create Availability'}
             </button>
@@ -896,21 +934,28 @@ function AvailabilityStep({ wallet, onError }: {
         </div>
 
         <div>
-          <h3 className="text-lg font-semibold mb-2">Your Availability Blocks</h3>
+          <h3 className="mb-2 text-lg font-semibold">Your Availability Blocks</h3>
           {availabilities.length === 0 ? (
             <p className="text-gray-500 dark:text-gray-400">No availability blocks yet.</p>
           ) : (
             <div className="space-y-2">
               {availabilities.map((availability) => (
-                <div key={availability.key} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded">
+                <div
+                  key={availability.key}
+                  className="flex items-center justify-between rounded bg-gray-50 p-3 dark:bg-gray-700"
+                >
                   <div className="flex-1">
                     <div className="text-sm font-medium">{availability.timezone}</div>
-                    <ViewOnArkivLink entityKey={availability.key} txHash={availability.txHash} label="View on Arkiv" />
+                    <ViewOnArkivLink
+                      entityKey={availability.key}
+                      txHash={availability.txHash}
+                      label="View on Arkiv"
+                    />
                   </div>
                   <button
                     onClick={() => handleDelete(availability.key)}
                     disabled={isDeleting === availability.key}
-                    className="px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
+                    className="rounded bg-red-600 px-3 py-1 text-sm text-white hover:bg-red-700 disabled:opacity-50"
                   >
                     {isDeleting === availability.key ? 'Deleting...' : 'Delete'}
                   </button>
@@ -925,7 +970,11 @@ function AvailabilityStep({ wallet, onError }: {
 }
 
 // Asks Step Component
-function AsksStep({ wallet, profile, onError }: {
+function AsksStep({
+  wallet,
+  profile,
+  onError,
+}: {
   wallet: string;
   profile: any;
   onError: (error: string) => void;
@@ -951,7 +1000,8 @@ function AsksStep({ wallet, profile, onError }: {
     try {
       const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
       const ttlHoursNum = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600);
+      const expiresIn =
+        isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600);
 
       const res = await fetch('/api/asks', {
         method: 'POST',
@@ -990,35 +1040,43 @@ function AsksStep({ wallet, profile, onError }: {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Create Asks</h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
+      <h2 className="mb-4 text-2xl font-semibold">Create Asks</h2>
+      <p className="mb-4 text-gray-600 dark:text-gray-400">
         Create learning requests (asks). Each ask is a separate entity on Arkiv with TTL.
       </p>
 
       {lastWriteInfo && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Ask created successfully!</p>
-          <div className="space-y-1 text-sm mb-2">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <p className="mb-2 font-medium text-green-800 dark:text-green-300">
+            Ask created successfully!
+          </p>
+          <div className="mb-2 space-y-1 text-sm">
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.key}
               </code>
             </div>
             <div>
-              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Transaction Hash:
+              </span>
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.txHash}
               </code>
             </div>
           </div>
-          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+          <ViewOnArkivLink
+            entityKey={lastWriteInfo.key}
+            txHash={lastWriteInfo.txHash}
+            label="View on Arkiv Explorer"
+          />
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Skill <span className="text-red-500">*</span>
           </label>
           <SkillSelector
@@ -1034,7 +1092,7 @@ function AsksStep({ wallet, profile, onError }: {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Message <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -1042,17 +1100,17 @@ function AsksStep({ wallet, profile, onError }: {
             onChange={(e) => setMessage(e.target.value)}
             required
             rows={4}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             placeholder="Describe what you want to learn..."
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">Expiration (TTL)</label>
+          <label className="mb-2 block text-sm font-medium">Expiration (TTL)</label>
           <select
             value={ttlHours}
             onChange={(e) => setTtlHours(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           >
             <option value="24">24 hours</option>
             <option value="168">1 week</option>
@@ -1066,7 +1124,7 @@ function AsksStep({ wallet, profile, onError }: {
               onChange={(e) => setCustomTtlHours(e.target.value)}
               placeholder="Hours"
               min="1"
-              className="mt-2 w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="mt-2 w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             />
           )}
         </div>
@@ -1074,7 +1132,7 @@ function AsksStep({ wallet, profile, onError }: {
         <button
           type="submit"
           disabled={!skillId || !message.trim() || isSubmitting}
-          className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? 'Creating...' : 'Create Ask'}
         </button>
@@ -1084,7 +1142,11 @@ function AsksStep({ wallet, profile, onError }: {
 }
 
 // Offers Step Component
-function OffersStep({ wallet, profile, onError }: {
+function OffersStep({
+  wallet,
+  profile,
+  onError,
+}: {
   wallet: string;
   profile: any;
   onError: (error: string) => void;
@@ -1124,7 +1186,8 @@ function OffersStep({ wallet, profile, onError }: {
     try {
       const ttlValue = ttlHours === 'custom' ? customTtlHours : ttlHours;
       const ttlHoursNum = parseFloat(ttlValue);
-      const expiresIn = isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600);
+      const expiresIn =
+        isNaN(ttlHoursNum) || ttlHoursNum <= 0 ? 604800 : Math.floor(ttlHoursNum * 3600);
 
       const res = await fetch('/api/offers', {
         method: 'POST',
@@ -1170,35 +1233,44 @@ function OffersStep({ wallet, profile, onError }: {
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4">Create Offers</h2>
-      <p className="text-gray-600 dark:text-gray-400 mb-4">
-        Create teaching offers. Each offer is a separate entity on Arkiv with TTL and optional payment details.
+      <h2 className="mb-4 text-2xl font-semibold">Create Offers</h2>
+      <p className="mb-4 text-gray-600 dark:text-gray-400">
+        Create teaching offers. Each offer is a separate entity on Arkiv with TTL and optional
+        payment details.
       </p>
 
       {lastWriteInfo && (
-        <div className="mb-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-          <p className="text-green-800 dark:text-green-300 font-medium mb-2">Offer created successfully!</p>
-          <div className="space-y-1 text-sm mb-2">
+        <div className="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+          <p className="mb-2 font-medium text-green-800 dark:text-green-300">
+            Offer created successfully!
+          </p>
+          <div className="mb-2 space-y-1 text-sm">
             <div>
               <span className="font-medium text-gray-700 dark:text-gray-300">Entity Key:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.key}
               </code>
             </div>
             <div>
-              <span className="font-medium text-gray-700 dark:text-gray-300">Transaction Hash:</span>
-              <code className="ml-2 font-mono text-xs text-gray-800 dark:text-gray-200 break-all">
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                Transaction Hash:
+              </span>
+              <code className="ml-2 break-all font-mono text-xs text-gray-800 dark:text-gray-200">
                 {lastWriteInfo.txHash}
               </code>
             </div>
           </div>
-          <ViewOnArkivLink entityKey={lastWriteInfo.key} txHash={lastWriteInfo.txHash} label="View on Arkiv Explorer" />
+          <ViewOnArkivLink
+            entityKey={lastWriteInfo.key}
+            txHash={lastWriteInfo.txHash}
+            label="View on Arkiv Explorer"
+          />
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Skill <span className="text-red-500">*</span>
           </label>
           <SkillSelector
@@ -1214,7 +1286,7 @@ function OffersStep({ wallet, profile, onError }: {
         </div>
 
         <div>
-          <label className="block text-sm font-medium mb-2">
+          <label className="mb-2 block text-sm font-medium">
             Message <span className="text-red-500">*</span>
           </label>
           <textarea
@@ -1222,7 +1294,7 @@ function OffersStep({ wallet, profile, onError }: {
             onChange={(e) => setMessage(e.target.value)}
             required
             rows={4}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             placeholder="Describe your teaching offer..."
           />
         </div>
@@ -1242,7 +1314,7 @@ function OffersStep({ wallet, profile, onError }: {
         {isPaid && (
           <>
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Cost <span className="text-red-500">*</span>
               </label>
               <input
@@ -1250,12 +1322,12 @@ function OffersStep({ wallet, profile, onError }: {
                 value={cost}
                 onChange={(e) => setCost(e.target.value)}
                 required={isPaid}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="e.g., 0.01 ETH per session"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-2">
+              <label className="mb-2 block text-sm font-medium">
                 Payment Address <span className="text-red-500">*</span>
               </label>
               <input
@@ -1263,7 +1335,7 @@ function OffersStep({ wallet, profile, onError }: {
                 value={paymentAddress}
                 onChange={(e) => setPaymentAddress(e.target.value)}
                 required={isPaid}
-                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+                className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                 placeholder="0x..."
               />
             </div>
@@ -1271,11 +1343,11 @@ function OffersStep({ wallet, profile, onError }: {
         )}
 
         <div>
-          <label className="block text-sm font-medium mb-2">Expiration (TTL)</label>
+          <label className="mb-2 block text-sm font-medium">Expiration (TTL)</label>
           <select
             value={ttlHours}
             onChange={(e) => setTtlHours(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+            className="w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           >
             <option value="24">24 hours</option>
             <option value="168">1 week</option>
@@ -1289,15 +1361,20 @@ function OffersStep({ wallet, profile, onError }: {
               onChange={(e) => setCustomTtlHours(e.target.value)}
               placeholder="Hours"
               min="1"
-              className="mt-2 w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"
+              className="mt-2 w-full rounded-lg border px-4 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             />
           )}
         </div>
 
         <button
           type="submit"
-          disabled={!skillId || !message.trim() || isSubmitting || (isPaid && (!cost.trim() || !paymentAddress.trim()))}
-          className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={
+            !skillId ||
+            !message.trim() ||
+            isSubmitting ||
+            (isPaid && (!cost.trim() || !paymentAddress.trim()))
+          }
+          className="w-full rounded-lg bg-green-600 px-6 py-3 text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSubmitting ? 'Creating...' : 'Create Offer'}
         </button>
@@ -1305,4 +1382,3 @@ function OffersStep({ wallet, profile, onError }: {
     </div>
   );
 }
-

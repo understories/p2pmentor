@@ -1,13 +1,13 @@
 /**
  * GraphQL API Route
- * 
+ *
  * Provides GraphQL interface over Arkiv's JSON-RPC indexer.
  * Reusable tool for any Arkiv-based application.
- * 
+ *
  * Usage:
  *   POST /api/graphql
  *   Body: { query: "...", variables: {...} }
- * 
+ *
  * Example query:
  *   {
  *     networkOverview(limitAsks: 25, limitOffers: 25) {
@@ -44,10 +44,10 @@ export async function POST(request: Request) {
     const method = request.method;
     const headers = Object.fromEntries(request.headers.entries());
     console.log('[GraphQL] Request received:', { url, method, headers: Object.keys(headers) });
-    
+
     // Clone the request to ensure it can be read multiple times
     const clonedRequest = request.clone();
-    
+
     return await handler(clonedRequest);
   } catch (error) {
     console.error('[GraphQL] Handler error:', error);
@@ -87,4 +87,3 @@ export async function GET(request: Request) {
     }
   );
 }
-

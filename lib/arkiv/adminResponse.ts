@@ -1,16 +1,16 @@
 /**
  * Admin Response CRUD helpers
- * 
+ *
  * Handles admin responses to user feedback.
  * Creates Arkiv entities that trigger notifications for users.
- * 
+ *
  * Reference: Admin feedback response system
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { SPACE_ID } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type AdminResponse = {
   key: string;
@@ -21,7 +21,7 @@ export type AdminResponse = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create an admin response to user feedback
@@ -76,20 +76,22 @@ export async function createAdminResponse({
   });
 
   // Store txHash in a separate entity for reliable querying (don't wait for this)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'admin_response_txhash' },
-      { key: 'responseKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((err: any) => {
-    console.warn('[createAdminResponse] Failed to create txHash entity:', err);
-    // Don't throw - txHash entity is optional metadata
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'admin_response_txhash' },
+        { key: 'responseKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((err: any) => {
+      console.warn('[createAdminResponse] Failed to create txHash entity:', err);
+      // Don't throw - txHash entity is optional metadata
+    });
 
   // Create notification for the user
   try {
@@ -100,7 +102,8 @@ export async function createAdminResponse({
       sourceEntityType: 'admin_response',
       sourceEntityKey: entityKey,
       title: 'Admin Response',
-      message: message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim(),
+      message:
+        message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim(),
       link: '/notifications',
       metadata: {
         feedbackKey,
@@ -136,16 +139,18 @@ export async function listAdminResponses({
 } = {}): Promise<AdminResponse[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Fetch response entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'admin_response'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'admin_response_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -172,11 +177,12 @@ export async function listAdminResponses({
         const responseKey = getAttr('responseKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && responseKey) {
               txHashMap[responseKey] = payload.txHash;
@@ -192,11 +198,12 @@ export async function listAdminResponses({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -226,24 +233,24 @@ export async function listAdminResponses({
 
     // Filter by feedbackKey if provided
     if (feedbackKey) {
-      responses = responses.filter(r => r.feedbackKey === feedbackKey);
+      responses = responses.filter((r) => r.feedbackKey === feedbackKey);
     }
 
     // Filter by wallet if provided
     if (wallet) {
       const normalizedWallet = wallet.toLowerCase();
-      responses = responses.filter(r => r.wallet.toLowerCase() === normalizedWallet);
+      responses = responses.filter((r) => r.wallet.toLowerCase() === normalizedWallet);
     }
 
     // Filter by since date if provided
     if (since) {
       const sinceTime = new Date(since).getTime();
-      responses = responses.filter(r => new Date(r.createdAt).getTime() >= sinceTime);
+      responses = responses.filter((r) => new Date(r.createdAt).getTime() >= sinceTime);
     }
 
     // Sort by most recent first
-    return responses.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return responses.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('Error in listAdminResponses:', error);
@@ -253,16 +260,17 @@ export async function listAdminResponses({
 
 /**
  * Get a single admin response by key
- * 
+ *
  * @param key - Admin response entity key
  * @returns AdminResponse or null if not found
  */
 export async function getAdminResponseByKey(key: string): Promise<AdminResponse | null> {
   const publicClient = getPublicClient();
-  
+
   try {
     // Query by key using where clause
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'admin_response'))
       .where(eq('key', key))
       .withAttributes(true)
@@ -275,9 +283,10 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
     }
 
     const entity = result.entities[0];
-    
+
     // Fetch txHash
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'admin_response_txhash'))
       .where(eq('responseKey', key))
       .withAttributes(true)
@@ -287,14 +296,19 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
 
     // Build txHash
     let txHash: string | undefined;
-    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+    if (
+      txHashResult?.entities &&
+      Array.isArray(txHashResult.entities) &&
+      txHashResult.entities.length > 0
+    ) {
       try {
         const txHashEntity = txHashResult.entities[0];
-        const txHashPayload = txHashEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(txHashEntity.payload)
-          : typeof txHashEntity.payload === 'string'
-          ? txHashEntity.payload
-          : JSON.stringify(txHashEntity.payload);
+        const txHashPayload =
+          txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+              ? txHashEntity.payload
+              : JSON.stringify(txHashEntity.payload);
         const decoded = JSON.parse(txHashPayload);
         txHash = decoded.txHash;
       } catch (e) {
@@ -306,11 +320,12 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -341,4 +356,3 @@ export async function getAdminResponseByKey(key: string): Promise<AdminResponse 
     return null;
   }
 }
-

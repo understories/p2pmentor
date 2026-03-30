@@ -1,11 +1,11 @@
 /**
  * Performance test for network page
- * 
+ *
  * Compares JSON-RPC vs GraphQL performance for network data.
- * 
+ *
  * Usage:
  *   pnpm run perf:network
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 2.2
  */
 
@@ -25,7 +25,7 @@ async function measureEndpoint(
   body?: any
 ): Promise<PerfResult> {
   const startTime = Date.now();
-  
+
   try {
     const response = await fetch(url, {
       method,
@@ -68,9 +68,7 @@ async function runPerfTest() {
 
   // Test 1: Network graph data via API (JSON-RPC path)
   console.log('1. Testing /api/network/graph (JSON-RPC path)...');
-  const jsonRpcResult = await measureEndpoint(
-    `${BASE_URL}/api/network/graph?includeExpired=false`
-  );
+  const jsonRpcResult = await measureEndpoint(`${BASE_URL}/api/network/graph?includeExpired=false`);
   results.push({ ...jsonRpcResult, endpoint: '/api/network/graph (JSON-RPC)' });
 
   // Test 2: GraphQL network overview query
@@ -98,11 +96,7 @@ async function runPerfTest() {
       }
     `,
   };
-  const graphqlResult = await measureEndpoint(
-    `${BASE_URL}/api/graphql`,
-    'POST',
-    graphqlQuery
-  );
+  const graphqlResult = await measureEndpoint(`${BASE_URL}/api/graphql`, 'POST', graphqlQuery);
   results.push({ ...graphqlResult, endpoint: '/api/graphql (GraphQL)' });
 
   // Test 3: Network page (full page load)
@@ -127,21 +121,31 @@ async function runPerfTest() {
   console.log('└─────────────────────────────────┴────────┴──────────────┴──────────────┘\n');
 
   // Comparison
-  const jsonRpc = results.find(r => r.endpoint.includes('JSON-RPC'));
-  const graphql = results.find(r => r.endpoint.includes('GraphQL'));
+  const jsonRpc = results.find((r) => r.endpoint.includes('JSON-RPC'));
+  const graphql = results.find((r) => r.endpoint.includes('GraphQL'));
 
   if (jsonRpc && graphql && jsonRpc.status === 200 && graphql.status === 200) {
     console.log('📈 Comparison:\n');
-    const speedup = ((jsonRpc.durationMs - graphql.durationMs) / jsonRpc.durationMs * 100).toFixed(1);
-    const payloadDiff = ((graphql.payloadBytes - jsonRpc.payloadBytes) / jsonRpc.payloadBytes * 100).toFixed(1);
-    
-    console.log(`  Duration: GraphQL is ${speedup}% ${graphql.durationMs < jsonRpc.durationMs ? 'faster' : 'slower'}`);
-    console.log(`  Payload:  GraphQL is ${Math.abs(parseFloat(payloadDiff))}% ${graphql.payloadBytes < jsonRpc.payloadBytes ? 'smaller' : 'larger'}`);
+    const speedup = (
+      ((jsonRpc.durationMs - graphql.durationMs) / jsonRpc.durationMs) *
+      100
+    ).toFixed(1);
+    const payloadDiff = (
+      ((graphql.payloadBytes - jsonRpc.payloadBytes) / jsonRpc.payloadBytes) *
+      100
+    ).toFixed(1);
+
+    console.log(
+      `  Duration: GraphQL is ${speedup}% ${graphql.durationMs < jsonRpc.durationMs ? 'faster' : 'slower'}`
+    );
+    console.log(
+      `  Payload:  GraphQL is ${Math.abs(parseFloat(payloadDiff))}% ${graphql.payloadBytes < jsonRpc.payloadBytes ? 'smaller' : 'larger'}`
+    );
     console.log(`  HTTP Requests: JSON-RPC (multiple), GraphQL (1)\n`);
   }
 
   // Exit with error if any test failed
-  const hasErrors = results.some(r => r.status !== 200 || r.error);
+  const hasErrors = results.some((r) => r.status !== 200 || r.error);
   if (hasErrors) {
     console.error('❌ Some tests failed. Check results above.');
     process.exit(1);
@@ -155,5 +159,3 @@ runPerfTest().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });
-
-

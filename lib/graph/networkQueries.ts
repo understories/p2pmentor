@@ -1,11 +1,11 @@
 /**
  * GraphQL queries for network data
- * 
+ *
  * Queries GraphQL endpoint (subgraph or Arkiv GraphQL API wrapper).
  * Works with:
  * - The Graph subgraph endpoints
  * - Arkiv GraphQL API wrapper (see /app/api/graphql)
- * 
+ *
  * Reference: docs/graph_indexing_plan.md Section 5.1
  */
 
@@ -59,7 +59,7 @@ export interface NetworkOverviewParams {
 
 /**
  * GraphQL query string for network overview
- * 
+ *
  * Works with our Arkiv GraphQL API wrapper (see /app/api/graphql)
  * Also compatible with The Graph subgraph syntax if needed
  */
@@ -109,11 +109,11 @@ const NETWORK_OVERVIEW_QUERY = `
 
 /**
  * Fetch network overview data from the subgraph
- * 
+ *
  * @param params - Query parameters
  * @returns Raw GraphQL response data
  * @throws GraphRequestError if the query fails
- * 
+ *
  * @example
  * ```ts
  * const data = await fetchNetworkOverview({
@@ -144,7 +144,7 @@ export async function fetchNetworkOverview(
   };
 
   // Remove undefined values
-  Object.keys(variables).forEach(key => {
+  Object.keys(variables).forEach((key) => {
     if (variables[key] === undefined) {
       delete variables[key];
     }
@@ -162,7 +162,6 @@ export async function fetchNetworkOverview(
     console.warn('[fetchNetworkOverview] networkOverview is null, returning empty structure');
     return { skillRefs: [] };
   }
-  
+
   return response.networkOverview;
 }
-

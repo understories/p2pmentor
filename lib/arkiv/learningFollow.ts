@@ -1,15 +1,15 @@
 /**
  * LearningFollow CRUD helpers
- * 
+ *
  * Tracks which skills (topics) a user is following for learning communities.
- * 
+ *
  * Reference: refs/doc/learner_communities.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export type LearningFollow = {
   key: string;
@@ -20,7 +20,7 @@ export type LearningFollow = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create a LearningFollow entity
@@ -48,11 +48,13 @@ export async function createLearningFollow({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        mode,
-        active,
-        createdAt,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          mode,
+          active,
+          createdAt,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'learning_follow' },
@@ -84,7 +86,10 @@ export async function createLearningFollow({
       expiresIn,
     });
   } catch (error: any) {
-    console.warn('[learningFollow] Failed to create learning_follow_txhash entity, but follow was created:', error);
+    console.warn(
+      '[learningFollow] Failed to create learning_follow_txhash entity, but follow was created:',
+      error
+    );
   }
 
   return { key: entityKey, txHash };
@@ -110,13 +115,14 @@ export async function listLearningFollows({
 } = {}): Promise<LearningFollow[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Build query with space ID filtering
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'learning_follow'))
       .withAttributes(true)
       .withPayload(true);
-    
+
     // Support multiple spaceIds (builder mode) or single spaceId
     if (spaceIds && spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
@@ -126,11 +132,12 @@ export async function listLearningFollows({
       const finalSpaceId = spaceId || SPACE_ID;
       queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId)).limit(limit || 100);
     }
-    
+
     // Fetch follow entities and txHash entities in parallel
     const [result, txHashResult] = await Promise.all([
       queryBuilder.fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'learning_follow_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -157,11 +164,12 @@ export async function listLearningFollows({
         const followKey = getAttr('followKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && followKey) {
               txHashMap[followKey] = payload.txHash;
@@ -177,11 +185,12 @@ export async function listLearningFollows({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -212,15 +221,15 @@ export async function listLearningFollows({
     // Apply wallet and skill filters first
     if (profile_wallet) {
       const normalizedWallet = profile_wallet.toLowerCase();
-      follows = follows.filter(f => f.profile_wallet.toLowerCase() === normalizedWallet);
+      follows = follows.filter((f) => f.profile_wallet.toLowerCase() === normalizedWallet);
     }
     if (skill_id) {
-      follows = follows.filter(f => f.skill_id === skill_id);
+      follows = follows.filter((f) => f.skill_id === skill_id);
     }
 
     // Sort by most recent first
-    follows = follows.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    follows = follows.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
     // Handle soft-delete pattern: Since Arkiv is immutable, unfollow creates a new entity with active=false
@@ -232,7 +241,10 @@ export async function listLearningFollows({
     for (const follow of follows) {
       const key = `${follow.profile_wallet.toLowerCase()}:${follow.skill_id}`;
       const existing = followMap.get(key);
-      if (!existing || new Date(follow.createdAt).getTime() > new Date(existing.createdAt).getTime()) {
+      if (
+        !existing ||
+        new Date(follow.createdAt).getTime() > new Date(existing.createdAt).getTime()
+      ) {
         followMap.set(key, follow);
       }
     }
@@ -242,16 +254,16 @@ export async function listLearningFollows({
 
     // Now apply active filter if specified
     if (active !== undefined) {
-      const filtered = currentFollows.filter(f => f.active === active);
+      const filtered = currentFollows.filter((f) => f.active === active);
       // Sort again after filtering
-      return filtered.sort((a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      return filtered.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
     }
 
     // Return sorted by most recent first
-    return currentFollows.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return currentFollows.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('[listLearningFollows] Error:', error);
@@ -261,7 +273,7 @@ export async function listLearningFollows({
 
 /**
  * Unfollow a skill (soft delete by setting active = false)
- * 
+ *
  * Note: For beta, we use soft delete. Future: could create an "unfollow" entity for audit trail.
  */
 export async function unfollowSkill({
@@ -286,12 +298,14 @@ export async function unfollowSkill({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        mode: 'learning', // Default mode
-        active,
-        createdAt,
-        unfollowed: true, // Flag to indicate this is an unfollow
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          mode: 'learning', // Default mode
+          active,
+          createdAt,
+          unfollowed: true, // Flag to indicate this is an unfollow
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'learning_follow' },

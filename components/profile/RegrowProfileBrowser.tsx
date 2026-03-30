@@ -1,6 +1,6 @@
 /**
  * Regrow Profile Browser Component
- * 
+ *
  * Day 2: Allows users to browse all historical profiles and select one to regrow.
  * Based on profile_stability.md - Day 2 requirements.
  */
@@ -42,7 +42,11 @@ interface RegrowProfileBrowserProps {
   onCancel: () => void;
 }
 
-export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: RegrowProfileBrowserProps) {
+export function RegrowProfileBrowser({
+  wallet,
+  onSelectProfile,
+  onCancel,
+}: RegrowProfileBrowserProps) {
   const [loading, setLoading] = useState(true);
   const [regrowing, setRegrowing] = useState(false);
   const [error, setError] = useState('');
@@ -66,10 +70,11 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
     // Filter by name
     if (nameFilter.trim()) {
       const searchTerm = nameFilter.toLowerCase();
-      filtered = filtered.filter(p => 
-        p.displayName?.toLowerCase().includes(searchTerm) ||
-        p.username?.toLowerCase().includes(searchTerm) ||
-        p.bioShort?.toLowerCase().includes(searchTerm)
+      filtered = filtered.filter(
+        (p) =>
+          p.displayName?.toLowerCase().includes(searchTerm) ||
+          p.username?.toLowerCase().includes(searchTerm) ||
+          p.bioShort?.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -89,7 +94,7 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
           // Last week = 7-14 days ago
           const weekEnd = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           const weekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(p => {
+          filtered = filtered.filter((p) => {
             if (!p.createdAt) return false;
             const profileDate = new Date(p.createdAt);
             return profileDate >= weekStart && profileDate < weekEnd;
@@ -100,7 +105,7 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
           // Last month = 30-60 days ago
           const monthEnd = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           const monthStart = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
-          filtered = filtered.filter(p => {
+          filtered = filtered.filter((p) => {
             if (!p.createdAt) return false;
             const profileDate = new Date(p.createdAt);
             return profileDate >= monthStart && profileDate < monthEnd;
@@ -114,8 +119,12 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
           break;
       }
 
-      if (dateFilter === 'this-week' || dateFilter === 'this-month' || dateFilter === 'last-3-months') {
-        filtered = filtered.filter(p => {
+      if (
+        dateFilter === 'this-week' ||
+        dateFilter === 'this-month' ||
+        dateFilter === 'last-3-months'
+      ) {
+        filtered = filtered.filter((p) => {
           if (!p.createdAt) return false;
           const profileDate = new Date(p.createdAt);
           return profileDate >= filterDate;
@@ -130,16 +139,16 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
     try {
       setLoading(true);
       setError('');
-      
+
       // Beta: Load ALL historical profiles from all wallets
       // Users can clone any historical profile into a new profile for their wallet
       const res = await fetch(`/api/profiles`);
       const data = await res.json();
-      
+
       if (!data.ok) {
         throw new Error(data.error || 'Failed to load historical profiles');
       }
-      
+
       // Get all profiles and convert to HistoricalProfile format
       const allProfiles = (data.profiles || []).map((p: any) => ({
         key: p.key,
@@ -162,14 +171,14 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
         learnerRoles: p.learnerRoles,
         availabilityWindow: p.availabilityWindow,
       }));
-      
+
       // Sort by createdAt descending (newest first)
       allProfiles.sort((a: HistoricalProfile, b: HistoricalProfile) => {
         const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return bTime - aTime;
       });
-      
+
       setAllProfiles(allProfiles);
       setFilteredProfiles(allProfiles);
     } catch (err: any) {
@@ -185,20 +194,20 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
       setError('Please select a profile to regrow');
       return;
     }
-    
-    const selectedProfile = filteredProfiles.find(p => p.key === selectedProfileId);
+
+    const selectedProfile = filteredProfiles.find((p) => p.key === selectedProfileId);
     if (!selectedProfile) {
       setError('Selected profile not found');
       return;
     }
-    
+
     // Show loading state
     setRegrowing(true);
     setError('');
-    
+
     // Longer delay to show the loading state clearly and ensure it doesn't look like a failure
-    await new Promise(resolve => setTimeout(resolve, 3500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 3500));
+
     // Call the parent handler which will create the profile
     onSelectProfile(selectedProfile);
   };
@@ -221,7 +230,7 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
 
   if (loading) {
     return (
-      <div className="p-6 rounded-lg bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
         <p className="text-sm text-gray-600 dark:text-gray-400">Loading historical profiles...</p>
       </div>
     );
@@ -229,13 +238,13 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
 
   if (regrowing) {
     return (
-      <div className="mb-6 p-6 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+      <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex flex-col items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 dark:border-green-400 mb-4"></div>
-          <h3 className="text-lg font-semibold text-green-900 dark:text-green-200 mb-2">
+          <div className="mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-green-600 dark:border-green-400"></div>
+          <h3 className="mb-2 text-lg font-semibold text-green-900 dark:text-green-200">
             Regrowing Profile...
           </h3>
-          <p className="text-sm text-green-800 dark:text-green-300 text-center">
+          <p className="text-center text-sm text-green-800 dark:text-green-300">
             Creating your new profile from historical data.
             <br />
             This may take a few moments.
@@ -247,17 +256,17 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
 
   if (error && allProfiles.length === 0) {
     return (
-      <div className="mb-6 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-        <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">
+      <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20">
+        <h3 className="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-200">
           Regrow Profile from History
         </h3>
-        <p className="text-sm text-blue-800 dark:text-blue-300 mb-4">
+        <p className="mb-4 text-sm text-blue-800 dark:text-blue-300">
           No historical profiles found for this wallet.
         </p>
-        <p className="text-sm text-red-700 dark:text-red-400 mb-4">{error}</p>
+        <p className="mb-4 text-sm text-red-700 dark:text-red-400">{error}</p>
         <button
           onClick={onCancel}
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+          className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
         >
           Create New Profile
         </button>
@@ -268,16 +277,16 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
   if (allProfiles.length === 0) {
     // No history found, but still show the option to create new
     return (
-      <div className="mb-6 p-6 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-      <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">
-        Regrow Profile from History
-      </h3>
-      <p className="text-sm text-blue-800 dark:text-blue-300 mb-4">
-        No historical profiles found. You can create a new profile below.
-      </p>
+      <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20">
+        <h3 className="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-200">
+          Regrow Profile from History
+        </h3>
+        <p className="mb-4 text-sm text-blue-800 dark:text-blue-300">
+          No historical profiles found. You can create a new profile below.
+        </p>
         <button
           onClick={onCancel}
-          className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+          className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
         >
           Create New Profile
         </button>
@@ -286,20 +295,27 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
   }
 
   return (
-    <div className="mb-6 w-full rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800" style={{
-      padding: 'clamp(1rem, 3vw, 2rem)',
-      maxWidth: '75%',
-      width: '75%',
-      marginLeft: 'auto',
-      marginRight: 'auto'
-    }}>
-      <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-200 mb-2">
+    <div
+      className="mb-6 w-full rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20"
+      style={{
+        padding: 'clamp(1rem, 3vw, 2rem)',
+        maxWidth: '75%',
+        width: '75%',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+      }}
+    >
+      <h3 className="mb-2 text-lg font-semibold text-blue-900 dark:text-blue-200">
         Regrow Profile from History
       </h3>
-      <p className="text-sm text-blue-800 dark:text-blue-300 mb-4">
-        Browse all historical profiles. Select any profile to clone its data into a new profile for your wallet.
+      <p className="mb-4 text-sm text-blue-800 dark:text-blue-300">
+        Browse all historical profiles. Select any profile to clone its data into a new profile for
+        your wallet.
         {allProfiles.length > 0 && (
-          <> Found {allProfiles.length} historical profile{allProfiles.length !== 1 ? 's' : ''}.</>
+          <>
+            {' '}
+            Found {allProfiles.length} historical profile{allProfiles.length !== 1 ? 's' : ''}.
+          </>
         )}
       </p>
 
@@ -308,13 +324,13 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
         <div className="mb-6 flex gap-3">
           <button
             onClick={handleRegrow}
-            className="px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors shadow-md"
+            className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white shadow-md transition-colors hover:bg-blue-700"
           >
             Regrow Selected Profile
           </button>
           <button
             onClick={() => setSelectedProfileId(null)}
-            className="px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-3 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
           >
             Clear Selection
           </button>
@@ -322,9 +338,12 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
       )}
 
       {/* Filters */}
-      <div className="mb-6 flex flex-col sm:flex-row gap-4">
+      <div className="mb-6 flex flex-col gap-4 sm:flex-row">
         <div className="flex-1">
-          <label htmlFor="nameFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="nameFilter"
+            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Filter by Name
           </label>
           <input
@@ -333,18 +352,21 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
             value={nameFilter}
             onChange={(e) => setNameFilter(e.target.value)}
             placeholder="Search by name, username, or bio..."
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
         <div className="sm:w-48">
-          <label htmlFor="dateFilter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label
+            htmlFor="dateFilter"
+            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
             Filter by Date
           </label>
           <select
             id="dateFilter"
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           >
             <option value="">All time</option>
             <option value="this-week">This week</option>
@@ -357,13 +379,13 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-700 dark:text-red-400 text-sm">
+        <div className="mb-4 rounded border border-red-300 bg-red-100 p-3 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/30 dark:text-red-400">
           {error}
         </div>
       )}
 
       {filteredProfiles.length === 0 && (nameFilter || dateFilter) && (
-        <div className="mb-4 p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+        <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-800 dark:bg-yellow-900/20">
           <p className="text-sm text-yellow-800 dark:text-yellow-200">
             No profiles match your filters. Try adjusting your search criteria.
           </p>
@@ -371,34 +393,37 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
       )}
 
       {/* Organic grid layout with dynamic spacing - garden-like, cards size to content */}
-      <div className="mb-4 w-full" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: 'clamp(0.75rem, 2vw, 1.5rem)',
-        maxWidth: '100%',
-        width: '100%',
-        gridAutoRows: 'min-content',
-        alignItems: 'start'
-      }}>
+      <div
+        className="mb-4 w-full"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+          gap: 'clamp(0.75rem, 2vw, 1.5rem)',
+          maxWidth: '100%',
+          width: '100%',
+          gridAutoRows: 'min-content',
+          alignItems: 'start',
+        }}
+      >
         {filteredProfiles.map((profile) => (
           <div
             key={profile.key}
-            className={`p-3 rounded-xl border-2 cursor-pointer transition-all shadow-sm hover:shadow-md ${
+            className={`cursor-pointer rounded-xl border-2 p-3 shadow-sm transition-all hover:shadow-md ${
               selectedProfileId === profile.key
-                ? 'border-green-500 dark:border-green-400 bg-green-50 dark:bg-green-900/20 shadow-md scale-[1.02]'
-                : 'border-gray-200 dark:border-gray-700 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:border-green-300 dark:hover:border-green-600 hover:bg-green-50/50 dark:hover:bg-green-900/10'
+                ? 'scale-[1.02] border-green-500 bg-green-50 shadow-md dark:border-green-400 dark:bg-green-900/20'
+                : 'border-gray-200 bg-white/90 backdrop-blur-sm hover:border-green-300 hover:bg-green-50/50 dark:border-gray-700 dark:bg-gray-800/90 dark:hover:border-green-600 dark:hover:bg-green-900/10'
             }`}
             onClick={() => setSelectedProfileId(profile.key)}
           >
-            <div className="flex flex-col w-full">
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h4 className="font-medium text-gray-900 dark:text-gray-100 truncate">
+            <div className="flex w-full flex-col">
+              <div className="mb-2 flex items-start justify-between">
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex flex-wrap items-center gap-2">
+                    <h4 className="truncate font-medium text-gray-900 dark:text-gray-100">
                       {profile.displayName}
                     </h4>
                     {profile.username && (
-                      <span className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                      <span className="truncate text-sm text-gray-500 dark:text-gray-400">
                         @{profile.username}
                       </span>
                     )}
@@ -410,40 +435,38 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
                     name="selectedProfile"
                     checked={selectedProfileId === profile.key}
                     onChange={() => setSelectedProfileId(profile.key)}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                 </div>
               </div>
-              
+
               {profile.bioShort && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                  {profile.bioShort}
-                </p>
+                <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">{profile.bioShort}</p>
               )}
-              
+
               {profile.skillsArray && profile.skillsArray.length > 0 && (
-                <div className="flex flex-wrap gap-1 mb-2">
+                <div className="mb-2 flex flex-wrap gap-1">
                   {profile.skillsArray.map((skill, idx) => (
                     <span
                       key={idx}
-                      className="text-xs px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                      className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
                     >
                       {skill}
                     </span>
                   ))}
                 </div>
               )}
-              
+
               <div className="mt-2 space-y-1">
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   Created: {formatDate(profile.createdAt)}
                 </p>
-                <div className="text-xs text-gray-400 dark:text-gray-500 space-y-0.5">
-                  <p className="font-mono truncate" title={profile.key}>
+                <div className="space-y-0.5 text-xs text-gray-400 dark:text-gray-500">
+                  <p className="truncate font-mono" title={profile.key}>
                     ID: {profile.key.substring(0, 12)}...
                   </p>
                   {profile.wallet && (
-                    <p className="font-mono truncate" title={profile.wallet}>
+                    <p className="truncate font-mono" title={profile.wallet}>
                       Wallet: {profile.wallet.substring(0, 10)}...
                     </p>
                   )}
@@ -454,21 +477,20 @@ export function RegrowProfileBrowser({ wallet, onSelectProfile, onCancel }: Regr
         ))}
       </div>
 
-      <div className="flex gap-3 mt-6">
+      <div className="mt-6 flex gap-3">
         <button
           onClick={onCancel}
-          className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
         >
           Create New Profile
         </button>
       </div>
-      
+
       {filteredProfiles.length > 0 && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
+        <p className="mt-4 text-center text-xs text-gray-500 dark:text-gray-400">
           Showing {filteredProfiles.length} of {allProfiles.length} profiles
         </p>
       )}
     </div>
   );
 }
-

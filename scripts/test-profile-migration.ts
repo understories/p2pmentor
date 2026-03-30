@@ -1,9 +1,9 @@
 /**
  * Test Profile Page Migration
- * 
+ *
  * Runs performance tests for profile page before and after GraphQL migration.
  * Creates snapshots and documents metrics.
- * 
+ *
  * Usage:
  *   pnpm dlx tsx scripts/test-profile-migration.ts
  */
@@ -24,9 +24,9 @@ interface TestResult {
 
 async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult> {
   console.log(`\n🧪 Testing profile page with ${method.toUpperCase()}...`);
-  
+
   const startTime = Date.now();
-  
+
   try {
     // Test profile page load
     // For Arkiv: 5 parallel API calls
@@ -40,7 +40,7 @@ async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult>
         fetch(`${BASE_URL}/api/sessions?wallet=${encodeURIComponent(TEST_WALLET)}`),
         fetch(`${BASE_URL}/api/feedback?wallet=${encodeURIComponent(TEST_WALLET)}`),
       ]);
-      
+
       const [profileData, asksData, offersData, sessionsData, feedbackData] = await Promise.all([
         profileRes.json(),
         asksRes.json(),
@@ -48,7 +48,7 @@ async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult>
         sessionsRes.json(),
         feedbackRes.json(),
       ]);
-      
+
       const durationMs = Date.now() - startTime;
       const payloadBytes = JSON.stringify({
         profile: profileData,
@@ -57,13 +57,16 @@ async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult>
         sessions: sessionsData,
         feedback: feedbackData,
       }).length;
-      
+
       // Create performance metric
-      const metricRes = await fetch(`${BASE_URL}/api/admin/perf-samples?seed=true&method=arkiv&operation=loadProfileData&route=/profiles/[wallet]`, {
-        method: 'GET',
-      });
+      const metricRes = await fetch(
+        `${BASE_URL}/api/admin/perf-samples?seed=true&method=arkiv&operation=loadProfileData&route=/profiles/[wallet]`,
+        {
+          method: 'GET',
+        }
+      );
       const metricData = await metricRes.json();
-      
+
       return {
         method: 'arkiv',
         success: true,
@@ -97,25 +100,28 @@ async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult>
         }),
         fetch(`${BASE_URL}/api/sessions?wallet=${encodeURIComponent(TEST_WALLET)}`),
       ]);
-      
+
       const [graphqlData, sessionsData] = await Promise.all([
         graphqlRes.json(),
         sessionsRes.json(),
       ]);
-      
+
       const durationMs = Date.now() - startTime;
       const payloadBytes = JSON.stringify({
         profile: graphqlData.data?.profile,
         feedback: graphqlData.data?.feedback,
         sessions: sessionsData,
       }).length;
-      
+
       // Create performance metric
-      const metricRes = await fetch(`${BASE_URL}/api/admin/perf-samples?seed=true&method=graphql&operation=loadProfileData&route=/profiles/[wallet]`, {
-        method: 'GET',
-      });
+      const metricRes = await fetch(
+        `${BASE_URL}/api/admin/perf-samples?seed=true&method=graphql&operation=loadProfileData&route=/profiles/[wallet]`,
+        {
+          method: 'GET',
+        }
+      );
       const metricData = await metricRes.json();
-      
+
       return {
         method: 'graphql',
         success: true,
@@ -140,16 +146,21 @@ async function testProfilePage(method: 'arkiv' | 'graphql'): Promise<TestResult>
   }
 }
 
-async function createSnapshot(operation: string = 'loadProfileData'): Promise<{ success: boolean; txHash?: string; error?: string }> {
+async function createSnapshot(
+  operation: string = 'loadProfileData'
+): Promise<{ success: boolean; txHash?: string; error?: string }> {
   console.log(`\n📸 Creating performance snapshot...`);
-  
+
   try {
-    const response = await fetch(`${BASE_URL}/api/admin/perf-snapshots?operation=${operation}&method=both&force=true`, {
-      method: 'POST',
-    });
+    const response = await fetch(
+      `${BASE_URL}/api/admin/perf-snapshots?operation=${operation}&method=both&force=true`,
+      {
+        method: 'POST',
+      }
+    );
 
     const data = await response.json();
-    
+
     if (!data.ok) {
       throw new Error(data.error || 'Snapshot creation failed');
     }
@@ -172,9 +183,9 @@ async function main() {
   console.log('🚀 Profile Page Migration Testing');
   console.log(`   Base URL: ${BASE_URL}`);
   console.log(`   Test Wallet: ${TEST_WALLET}`);
-  
+
   const results: TestResult[] = [];
-  
+
   // Step 1: Baseline - 10 Arkiv tests
   console.log('\n📊 Step 1: Running 10 Arkiv JSON-RPC baseline tests...');
   for (let i = 1; i <= 10; i++) {
@@ -184,12 +195,12 @@ async function main() {
     if (!result.success) {
       console.error(`   ⚠️  Test ${i} failed, continuing...`);
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  
+
   // Step 2: Create Arkiv baseline snapshot
   await createSnapshot();
-  
+
   // Step 3: 10 GraphQL tests
   console.log('\n📊 Step 2: Running 10 GraphQL tests...');
   for (let i = 1; i <= 10; i++) {
@@ -199,36 +210,40 @@ async function main() {
     if (!result.success) {
       console.error(`   ⚠️  Test ${i} failed, continuing...`);
     }
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
-  
+
   // Step 4: Create GraphQL snapshot
   await createSnapshot();
-  
+
   // Step 5: Summary
-  const arkivResults = results.filter(r => r.method === 'arkiv' && r.success);
-  const graphqlResults = results.filter(r => r.method === 'graphql' && r.success);
-  
+  const arkivResults = results.filter((r) => r.method === 'arkiv' && r.success);
+  const graphqlResults = results.filter((r) => r.method === 'graphql' && r.success);
+
   console.log('\n✅ Testing Complete!');
   console.log(`\n📊 Results Summary:`);
   console.log(`   Arkiv JSON-RPC: ${arkivResults.length} successful`);
   if (arkivResults.length > 0) {
-    const avgDuration = arkivResults.reduce((sum, r) => sum + r.durationMs, 0) / arkivResults.length;
-    const avgPayload = arkivResults.reduce((sum, r) => sum + r.payloadBytes, 0) / arkivResults.length;
+    const avgDuration =
+      arkivResults.reduce((sum, r) => sum + r.durationMs, 0) / arkivResults.length;
+    const avgPayload =
+      arkivResults.reduce((sum, r) => sum + r.payloadBytes, 0) / arkivResults.length;
     console.log(`     Avg Duration: ${avgDuration.toFixed(2)}ms`);
     console.log(`     Avg Payload: ${(avgPayload / 1024).toFixed(2)} KB`);
     console.log(`     HTTP Requests: 5 per query`);
   }
-  
+
   console.log(`   GraphQL: ${graphqlResults.length} successful`);
   if (graphqlResults.length > 0) {
-    const avgDuration = graphqlResults.reduce((sum, r) => sum + r.durationMs, 0) / graphqlResults.length;
-    const avgPayload = graphqlResults.reduce((sum, r) => sum + r.payloadBytes, 0) / graphqlResults.length;
+    const avgDuration =
+      graphqlResults.reduce((sum, r) => sum + r.durationMs, 0) / graphqlResults.length;
+    const avgPayload =
+      graphqlResults.reduce((sum, r) => sum + r.payloadBytes, 0) / graphqlResults.length;
     console.log(`     Avg Duration: ${avgDuration.toFixed(2)}ms`);
     console.log(`     Avg Payload: ${(avgPayload / 1024).toFixed(2)} KB`);
     console.log(`     HTTP Requests: 2 per query (60% reduction)`);
   }
-  
+
   return {
     arkivResults,
     graphqlResults,
@@ -241,4 +256,3 @@ if (import.meta.url === `file://${process.argv[1]}`) {
 }
 
 export { main as testProfileMigration };
-

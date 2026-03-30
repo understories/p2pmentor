@@ -7,6 +7,7 @@
 ## Summary
 
 Upgraded Next.js and React packages to patch critical security vulnerabilities in React Server Components that could allow:
+
 - **Remote Code Execution** (CVE-2025-55182) - CVSS 10.0
 - **Denial of Service** (CVE-2025-55184, CVE-2025-67779) - CVSS 7.5
 - **Source Code Exposure** (CVE-2025-55183) - CVSS 5.3
@@ -18,11 +19,9 @@ Upgraded Next.js and React packages to patch critical security vulnerabilities i
 - **Next.js**: `15.5.7` → `15.5.9`
   - Patches all React Server Components vulnerabilities
   - Includes fixes for DoS and source code exposure
-  
 - **React**: `19.2.0` → `19.2.3`
   - Patches RCE vulnerability in React Server Components
   - Includes security fixes for react-server-dom packages
-  
 - **React DOM**: `19.2.0` → `19.2.3`
   - Updated to match React version
 
@@ -36,6 +35,7 @@ Upgraded Next.js and React packages to patch critical security vulnerabilities i
 ## Impact
 
 **Before:** Application was vulnerable to:
+
 - Unauthenticated remote code execution via malicious Server Function requests
 - Denial of service attacks causing server hangs
 - Source code exposure revealing business logic
@@ -54,6 +54,7 @@ Upgraded Next.js and React packages to patch critical security vulnerabilities i
 ## Testing
 
 After upgrade:
+
 1. Build completed successfully
 2. No TypeScript errors
 3. No runtime errors detected
@@ -64,4 +65,3 @@ After upgrade:
 - react-server-dom packages are transitive dependencies of Next.js and are automatically updated
 - No code changes required - security fix is in dependencies only
 - Application uses App Router with React Server Components, so upgrade was required
-

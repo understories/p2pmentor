@@ -1,6 +1,6 @@
 /**
  * View on Arkiv Link Component
- * 
+ *
  * Reusable component for displaying "View on Arkiv" links for all entities.
  * Always visible (no dev mode) to teach users about blockchain.
  */
@@ -15,15 +15,15 @@ interface ViewOnArkivLinkProps {
   icon?: string;
 }
 
-export function ViewOnArkivLink({ 
-  txHash, 
-  entityKey, 
+export function ViewOnArkivLink({
+  txHash,
+  entityKey,
   label = 'View on Arkiv',
   className = '',
-  icon = '🔗'
+  icon = '🔗',
 }: ViewOnArkivLinkProps) {
   const url = getArkivExplorerUrl(txHash, entityKey);
-  
+
   if (!url) {
     return null;
   }
@@ -33,7 +33,7 @@ export function ViewOnArkivLink({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`inline-flex items-center gap-1 text-green-600 dark:text-green-400 hover:underline text-sm font-medium ${className}`}
+      className={`inline-flex items-center gap-1 text-sm font-medium text-green-600 hover:underline dark:text-green-400 ${className}`}
       title="View this entity on Arkiv Explorer"
     >
       <span>{icon}</span>

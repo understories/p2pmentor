@@ -1,8 +1,8 @@
 /**
  * Individual profile view page
- * 
+ *
  * Shows detailed profile information, skills, availability, and user's asks/offers.
- * 
+ *
  * Based on sprint spec: Show profile, skills, offers, availability
  * Reference: docs/beta_launch_sprint.md line 331-334
  */
@@ -40,7 +40,7 @@ export default function ProfileDetailPage() {
   const params = useParams();
   const router = useRouter();
   const walletParam = params.wallet as string;
-  
+
   // Normalize wallet from URL parameter
   // Decode URL parameter and normalize wallet to lowercase for Arkiv queries
   // Next.js params are already decoded, but we ensure proper normalization
@@ -55,7 +55,7 @@ export default function ProfileDetailPage() {
     // Normalize to lowercase and trim whitespace
     wallet = wallet.toLowerCase().trim();
   }
-  
+
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [asks, setAsks] = useState<Ask[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -63,7 +63,11 @@ export default function ProfileDetailPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [availability, setAvailability] = useState<Availability[]>([]);
   const [skillsLearningCount, setSkillsLearningCount] = useState(0);
-  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{ percent: number; readCount: number; totalMaterials: number } | null>(null);
+  const [learnerQuestCompletion, setLearnerQuestCompletion] = useState<{
+    percent: number;
+    readCount: number;
+    totalMaterials: number;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [userWallet, setUserWallet] = useState<string | null>(null);
@@ -85,7 +89,9 @@ export default function ProfileDetailPage() {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address.toLowerCase().trim()).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address.toLowerCase().trim())
+          .then(setUserProfile)
+          .catch(() => null);
       }
     }
   }, [walletParam]);
@@ -100,9 +106,17 @@ export default function ProfileDetailPage() {
 
       // Use arkiv-native queries directly (same pattern as dashboard)
       // This ensures we're using the same query logic and getting the same data
-        const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-        
-      const [profileData, asksData, offersData, sessionsData, feedbackData, availabilityData, learningFollowsData] = await Promise.all([
+      const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+      const [
+        profileData,
+        asksData,
+        offersData,
+        sessionsData,
+        feedbackData,
+        availabilityData,
+        learningFollowsData,
+      ] = await Promise.all([
         getProfileByWallet(normalizedWallet).catch(() => null),
         listAsksForWallet(normalizedWallet).catch(() => []),
         listOffersForWallet(normalizedWallet).catch(() => []),
@@ -113,43 +127,46 @@ export default function ProfileDetailPage() {
       ]);
 
       // Record performance metrics
-        const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
-        const payloadBytes = JSON.stringify({
-          profile: profileData,
+      const durationMs =
+        typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+      const payloadBytes = JSON.stringify({
+        profile: profileData,
         asks: asksData,
         offers: offersData,
         sessions: sessionsData,
         feedback: feedbackData,
         availability: availabilityData,
-        }).length;
-        
-        // Record performance sample (async, don't block)
-        import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
+      }).length;
+
+      // Record performance sample (async, don't block)
+      import('@/lib/metrics/perf')
+        .then(({ recordPerfSample }) => {
           recordPerfSample({
             source: 'arkiv',
             operation: 'loadProfileData',
             route: '/profiles/[wallet]',
             durationMs: Math.round(durationMs),
             payloadBytes,
-          httpRequests: 6, // 6 parallel arkiv queries
+            httpRequests: 6, // 6 parallel arkiv queries
             createdAt: new Date().toISOString(),
           });
-        }).catch(() => {
+        })
+        .catch(() => {
           // Silently fail if metrics module not available
         });
 
-        if (!profileData) {
+      if (!profileData) {
         setError(`Profile not found for wallet: ${normalizedWallet}`);
-        } else {
-          setProfile(profileData);
-        }
+      } else {
+        setProfile(profileData);
+      }
 
       setAsks(asksData);
       setOffers(offersData);
       setSessions(sessionsData);
       setFeedbacks(feedbackData);
       setSkillsLearningCount(learningFollowsData.length);
-      
+
       // Set availability - use the most recent one if available
       if (availabilityData.length > 0) {
         setAvailability(availabilityData);
@@ -190,7 +207,7 @@ export default function ProfileDetailPage() {
 
   const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     const now = Date.now();
     const remaining = expires - now;
 
@@ -228,7 +245,9 @@ export default function ProfileDetailPage() {
         try {
           if (quest.questType === 'meta_learning') {
             // Load meta-learning quest progress
-            const res = await fetch(`/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`);
+            const res = await fetch(
+              `/api/learner-quests/meta-learning/progress?questId=meta_learning&wallet=${walletAddress}`
+            );
             const data = await res.json();
 
             if (data.ok && data.progress) {
@@ -241,11 +260,15 @@ export default function ProfileDetailPage() {
             return { readCount: 0, totalMaterials: 6 };
           } else {
             // Reading list quests
-            const res = await fetch(`/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`);
+            const res = await fetch(
+              `/api/learner-quests/progress?questId=${quest.questId}&wallet=${walletAddress}`
+            );
             const data = await res.json();
 
             if (data.ok && data.progress) {
-              const readCount = Object.values(data.progress).filter((p: any) => p.status === 'read').length;
+              const readCount = Object.values(data.progress).filter(
+                (p: any) => p.status === 'read'
+              ).length;
               const totalMaterials = quest.materials?.length || 0;
               return { readCount, totalMaterials };
             }
@@ -271,7 +294,7 @@ export default function ProfileDetailPage() {
 
   const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     return Date.now() >= expires;
   };
 
@@ -281,8 +304,8 @@ export default function ProfileDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/profiles" />
           </div>
@@ -305,16 +328,16 @@ export default function ProfileDetailPage() {
                 `   → type='availability', wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...'`,
                 `7. listLearningFollows({ profile_wallet: "${wallet?.toLowerCase().slice(0, 8) || '...'}...", active: true })`,
                 `   → type='learning_follow', profile_wallet='${wallet?.toLowerCase().slice(0, 8) || '...'}...', active=true`,
-                `Returns: Profile data with asks, offers, sessions, feedback, availability, and learning follows`
+                `Returns: Profile data with asks, offers, sessions, feedback, availability, and learning follows`,
               ]}
               label="Loading Profile"
             >
-              <div className="text-center py-12">
+              <div className="py-12 text-center">
                 <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
               </div>
             </ArkivQueryTooltip>
           ) : (
-            <div className="text-center py-12">
+            <div className="py-12 text-center">
               <p className="text-gray-500 dark:text-gray-400">Loading profile...</p>
             </div>
           )}
@@ -325,15 +348,13 @@ export default function ProfileDetailPage() {
 
   if (error || !profile) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/profiles" />
           </div>
-          <div className="text-center py-12">
-            <p className="text-red-600 dark:text-red-400">
-              {error || 'Profile not found'}
-            </p>
+          <div className="py-12 text-center">
+            <p className="text-red-600 dark:text-red-400">{error || 'Profile not found'}</p>
           </div>
         </div>
       </div>
@@ -341,8 +362,8 @@ export default function ProfileDetailPage() {
   }
 
   return (
-    <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-4xl">
         <div className="mb-6">
           <BackButton href="/profiles" />
         </div>
@@ -350,183 +371,189 @@ export default function ProfileDetailPage() {
         {/* Profile Avatar with EIS - Matching Dashboard Format */}
         <div className="mb-6 flex flex-col items-center">
           <div className="relative mb-3">
-            <div className="w-24 h-24 rounded-full bg-white dark:bg-gray-800 border-2 border-emerald-300 dark:border-emerald-600 flex items-center justify-center shadow-lg">
-              <EmojiIdentitySeed 
-                profile={profile} 
-                size="xl" 
+            <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-emerald-300 bg-white shadow-lg dark:border-emerald-600 dark:bg-gray-800">
+              <EmojiIdentitySeed
+                profile={profile}
+                size="xl"
                 showGlow={true}
                 className="drop-shadow-[0_0_12px_rgba(34,197,94,0.6)]"
               />
             </div>
             {/* Subtle glow ring */}
-            <div 
-              className="absolute inset-0 rounded-full opacity-30 pointer-events-none"
+            <div
+              className="pointer-events-none absolute inset-0 rounded-full opacity-30"
               style={{
                 boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), inset 0 0 20px rgba(34, 197, 94, 0.1)',
               }}
             />
           </div>
-          <h1 className="text-2xl font-semibold mb-1 text-gray-900 dark:text-gray-100">
-                    {profile.displayName || 'Anonymous'}
-                  </h1>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-mono break-all">
+          <h1 className="mb-1 text-2xl font-semibold text-gray-900 dark:text-gray-100">
+            {profile.displayName || 'Anonymous'}
+          </h1>
+          <p className="mb-2 break-all font-mono text-xs text-gray-500 dark:text-gray-400">
             {wallet}
           </p>
-                  {profile.username && (
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">@{profile.username}</p>
-                  )}
+          {profile.username && (
+            <p className="mb-2 text-sm text-gray-600 dark:text-gray-400">@{profile.username}</p>
+          )}
           {/* Arkiv Builder Mode: Profile Entity Link */}
           {arkivBuilderMode && profile?.key && (
             <div className="mt-2">
-                      <ViewOnArkivLink
-                        entityKey={profile.key}
-                        txHash={profile.txHash}
-                        label="View Profile Entity"
-                        className="text-xs"
-                      />
+              <ViewOnArkivLink
+                entityKey={profile.key}
+                txHash={profile.txHash}
+                label="View Profile Entity"
+                className="text-xs"
+              />
               {profile.key && (
-                <div className="mt-1 text-xs text-gray-400 dark:text-gray-500 font-mono">
-                        Key: {profile.key.slice(0, 16)}...
-                    </div>
-                  )}
-                    </div>
-                  )}
+                <div className="mt-1 font-mono text-xs text-gray-400 dark:text-gray-500">
+                  Key: {profile.key.slice(0, 16)}...
                 </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Action Buttons - only show if viewing someone else's profile and profile is loaded */}
-        {userWallet && profile && userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
-          <div className="mb-6 flex justify-center gap-2">
-                      {/* General "Request Meeting" button - hidden for now, preserved for future implementation */}
-                      {false && arkivBuilderMode ? (
-                        <ArkivQueryTooltip
-                          query={[
-                            `Opens RequestMeetingModal to create session`,
-                            `POST /api/sessions { action: 'createSession', ... }`,
-                            `Creates: type='session' entity`,
-                            `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
-                            `Payload: Full session data`,
-                            `TTL: sessionDate + duration + 1 hour buffer`
-                          ]}
-                          label="Request Meeting"
-                        >
-                          <button
-                            onClick={() => {
-                              setSelectedOffer(null);
-                              setMeetingMode('request');
-                              // Use setTimeout to ensure state is updated before opening modal
-                              setTimeout(() => setShowMeetingModal(true), 0);
-                            }}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                          >
-                            Request Meeting
-                          </button>
-                        </ArkivQueryTooltip>
-                      ) : false && (
-                        <button
-                          onClick={() => {
-                            setSelectedOffer(null);
-                            setMeetingMode('request');
-                            // Use setTimeout to ensure state is updated before opening modal
-                            setTimeout(() => setShowMeetingModal(true), 0);
-                          }}
-                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Request Meeting
-                        </button>
-                      )}
-                      {arkivBuilderMode ? (
-                        <ArkivQueryTooltip
-                          query={[
-                            `Opens RequestMeetingModal for peer learning session`,
-                            `POST /api/sessions { action: 'createSession', ... }`,
-                            `Creates: type='session' entity`,
-                            `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
-                            `Mode: 'peer' (both users are learners)`,
-                            `Payload: Full session data`,
-                            `TTL: sessionDate + duration + 1 hour buffer`
-                          ]}
-                          label="Peer Learning"
-                        >
-                          <button
-                            onClick={() => {
-                              setSelectedOffer(null);
-                              setShowMeetingModal(true);
-                              setMeetingMode('peer');
-                            }}
-                            className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                          >
-                            Peer Learning
-                          </button>
-                        </ArkivQueryTooltip>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setSelectedOffer(null);
-                            setShowMeetingModal(true);
-                            setMeetingMode('peer');
-                          }}
-                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Peer Learning
-                        </button>
-                      )}
-                      {arkivBuilderMode ? (
-                        <ArkivQueryTooltip
-                          query={[
-                            `Opens GardenNoteComposeModal to create garden note`,
-                            `POST /api/garden-notes { action: 'createNote', ... }`,
-                            `Creates: type='garden_note' entity`,
-                            `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', targetWallet='${wallet.toLowerCase().slice(0, 8)}...', channel='public_garden_board'`,
-                            `Payload: Full garden note data (message, tags, etc.)`,
-                            `TTL: 1 year (31536000 seconds)`
-                          ]}
-                          label="Leave a Note"
-                        >
-                          <button
-                            onClick={() => {
-                              setShowGardenNoteModal(true);
-                            }}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                          >
-                            Leave a Note
-                          </button>
-                        </ArkivQueryTooltip>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            setShowGardenNoteModal(true);
-                          }}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
-                        >
-                          Leave a Note
-                        </button>
-                      )}
-                    </div>
-                  )}
+        {userWallet &&
+          profile &&
+          userWallet.toLowerCase().trim() !== wallet.toLowerCase().trim() && (
+            <div className="mb-6 flex justify-center gap-2">
+              {/* General "Request Meeting" button - hidden for now, preserved for future implementation */}
+              {false && arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens RequestMeetingModal to create session`,
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`,
+                  ]}
+                  label="Request Meeting"
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedOffer(null);
+                      setMeetingMode('request');
+                      // Use setTimeout to ensure state is updated before opening modal
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    }}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    Request Meeting
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                false && (
+                  <button
+                    onClick={() => {
+                      setSelectedOffer(null);
+                      setMeetingMode('request');
+                      // Use setTimeout to ensure state is updated before opening modal
+                      setTimeout(() => setShowMeetingModal(true), 0);
+                    }}
+                    className="rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700"
+                  >
+                    Request Meeting
+                  </button>
+                )
+              )}
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens RequestMeetingModal for peer learning session`,
+                    `POST /api/sessions { action: 'createSession', ... }`,
+                    `Creates: type='session' entity`,
+                    `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', skill`,
+                    `Mode: 'peer' (both users are learners)`,
+                    `Payload: Full session data`,
+                    `TTL: sessionDate + duration + 1 hour buffer`,
+                  ]}
+                  label="Peer Learning"
+                >
+                  <button
+                    onClick={() => {
+                      setSelectedOffer(null);
+                      setShowMeetingModal(true);
+                      setMeetingMode('peer');
+                    }}
+                    className="rounded-lg bg-gray-600 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-700"
+                  >
+                    Peer Learning
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={() => {
+                    setSelectedOffer(null);
+                    setShowMeetingModal(true);
+                    setMeetingMode('peer');
+                  }}
+                  className="rounded-lg bg-gray-600 px-4 py-2 font-medium text-white transition-colors hover:bg-gray-700"
+                >
+                  Peer Learning
+                </button>
+              )}
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Opens GardenNoteComposeModal to create garden note`,
+                    `POST /api/garden-notes { action: 'createNote', ... }`,
+                    `Creates: type='garden_note' entity`,
+                    `Attributes: authorWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', targetWallet='${wallet.toLowerCase().slice(0, 8)}...', channel='public_garden_board'`,
+                    `Payload: Full garden note data (message, tags, etc.)`,
+                    `TTL: 1 year (31536000 seconds)`,
+                  ]}
+                  label="Leave a Note"
+                >
+                  <button
+                    onClick={() => {
+                      setShowGardenNoteModal(true);
+                    }}
+                    className="rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+                  >
+                    Leave a Note
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  onClick={() => {
+                    setShowGardenNoteModal(true);
+                  }}
+                  className="rounded-lg bg-green-600 px-4 py-2 font-medium text-white transition-colors hover:bg-green-700"
+                >
+                  Leave a Note
+                </button>
+              )}
+            </div>
+          )}
 
         {/* Bio Display */}
         {profile.bioShort && (
           <div className="mb-6 text-center">
             <p className="text-gray-700 dark:text-gray-300">{profile.bioShort}</p>
-                </div>
+          </div>
         )}
 
         {/* Profile Information Display - Above Stats (matching dashboard) */}
-        <div className="mb-8 p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm space-y-3">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Profile Information</h3>
+        <div className="mb-8 space-y-3 rounded-lg border border-gray-200 bg-white/80 p-4 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-800/80">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Profile Information
+            </h3>
             {/* Arkiv Builder Mode: Profile Query Tooltip */}
             {arkivBuilderMode && (
               <div className="group/query relative">
-                <div className="text-xs text-gray-500 dark:text-gray-400 font-mono cursor-help border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-gray-50 dark:bg-gray-800">
+                <div className="cursor-help rounded border border-gray-300 bg-gray-50 px-2 py-1 font-mono text-xs text-gray-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400">
                   Query
                 </div>
-                <div className="absolute bottom-full right-0 mb-2 px-3 py-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg opacity-0 group-hover/query:opacity-100 transition-opacity duration-200 pointer-events-none z-10 font-mono text-left max-w-md">
-                  <div className="font-semibold mb-1">Profile Query:</div>
+                <div className="pointer-events-none absolute bottom-full right-0 z-10 mb-2 max-w-md rounded-lg bg-gray-900 px-3 py-2 text-left font-mono text-xs text-white opacity-0 shadow-lg transition-opacity duration-200 group-hover/query:opacity-100 dark:bg-gray-800">
+                  <div className="mb-1 font-semibold">Profile Query:</div>
                   <div>getProfileByWallet('{wallet.slice(0, 8)}...')</div>
                   <div>Query: type='user_profile',</div>
                   <div>wallet='{wallet.slice(0, 8)}...'</div>
-                  <div className="absolute top-full right-4 border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                  <div className="absolute right-4 top-full border-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
                 </div>
               </div>
             )}
@@ -534,102 +561,150 @@ export default function ProfileDetailPage() {
 
           {profile.username && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Username</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">@{profile.username}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Username</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                @{profile.username}
+              </p>
             </div>
           )}
 
           {profile.bio && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Bio</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Bio</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{profile.bio}</p>
-              </div>
-        )}
+            </div>
+          )}
 
           {profile.bioLong && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">About</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{profile.bioLong}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">About</p>
+              <p className="whitespace-pre-wrap text-sm text-gray-700 dark:text-gray-300">
+                {profile.bioLong}
+              </p>
             </div>
           )}
 
           {(profile as any).exploringStatement && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Exploring</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{(profile as any).exploringStatement}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Exploring</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {(profile as any).exploringStatement}
+              </p>
             </div>
           )}
 
           {profile.timezone && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Timezone</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Timezone</p>
               <p className="text-sm text-gray-700 dark:text-gray-300">{profile.timezone}</p>
-          </div>
+            </div>
           )}
 
           {profile.seniority && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Seniority</p>
-              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">{profile.seniority}</p>
-        </div>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Seniority</p>
+              <p className="text-sm font-medium capitalize text-gray-900 dark:text-gray-100">
+                {profile.seniority}
+              </p>
+            </div>
           )}
 
           {profile.languages && profile.languages.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Languages</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.languages.join(', ')}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Languages</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {profile.languages.join(', ')}
+              </p>
             </div>
           )}
 
           {profile.domainsOfInterest && profile.domainsOfInterest.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Domains of Interest</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.domainsOfInterest.join(', ')}</p>
-          </div>
-        )}
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Domains of Interest</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {profile.domainsOfInterest.join(', ')}
+              </p>
+            </div>
+          )}
 
           {profile.mentorRoles && profile.mentorRoles.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Mentor Roles</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.mentorRoles.join(', ')}</p>
-          </div>
-        )}
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Mentor Roles</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {profile.mentorRoles.join(', ')}
+              </p>
+            </div>
+          )}
 
           {profile.learnerRoles && profile.learnerRoles.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Learner Roles</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.learnerRoles.join(', ')}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Learner Roles</p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {profile.learnerRoles.join(', ')}
+              </p>
             </div>
           )}
 
           {profile.communityAffiliations && profile.communityAffiliations.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Community Affiliations</p>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{profile.communityAffiliations.join(', ')}</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">
+                Community Affiliations
+              </p>
+              <p className="text-sm text-gray-700 dark:text-gray-300">
+                {profile.communityAffiliations.join(', ')}
+              </p>
             </div>
           )}
 
-        {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
+          {profile.contactLinks && Object.keys(profile.contactLinks).length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Contact Links</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Contact Links</p>
               <div className="flex flex-wrap gap-2">
-              {profile.contactLinks.twitter && (
-                  <a href={profile.contactLinks.twitter.startsWith('http') ? profile.contactLinks.twitter : `https://x.com/${profile.contactLinks.twitter.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                {profile.contactLinks.twitter && (
+                  <a
+                    href={
+                      profile.contactLinks.twitter.startsWith('http')
+                        ? profile.contactLinks.twitter
+                        : `https://x.com/${profile.contactLinks.twitter.replace(/^@/, '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                  >
                     Twitter
-                </a>
-              )}
-              {profile.contactLinks.github && (
-                  <a href={profile.contactLinks.github.startsWith('http') ? profile.contactLinks.github : `https://github.com/${profile.contactLinks.github.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  </a>
+                )}
+                {profile.contactLinks.github && (
+                  <a
+                    href={
+                      profile.contactLinks.github.startsWith('http')
+                        ? profile.contactLinks.github
+                        : `https://github.com/${profile.contactLinks.github.replace(/^@/, '')}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                  >
                     GitHub
-                </a>
-              )}
-              {profile.contactLinks.telegram && (
-                  <a href={profile.contactLinks.telegram} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  </a>
+                )}
+                {profile.contactLinks.telegram && (
+                  <a
+                    href={profile.contactLinks.telegram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                  >
                     Telegram
-                </a>
-              )}
-              {profile.contactLinks.discord && (
-                  <a href={profile.contactLinks.discord} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                  </a>
+                )}
+                {profile.contactLinks.discord && (
+                  <a
+                    href={profile.contactLinks.discord}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:underline dark:text-blue-400"
+                  >
                     Discord
                   </a>
                 )}
@@ -639,36 +714,44 @@ export default function ProfileDetailPage() {
 
           {profile.skillsArray && profile.skillsArray.length > 0 && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skills</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Skills</p>
               <div className="flex flex-wrap gap-2">
                 {profile.skillsArray.map((skill, idx) => {
                   const skillIds = (profile as any).skill_ids || [];
                   const skillId = skillIds[idx];
-                  const level = skillId && profile.skillExpertise?.[skillId] !== undefined
-                    ? profile.skillExpertise[skillId]
-                    : undefined;
+                  const level =
+                    skillId && profile.skillExpertise?.[skillId] !== undefined
+                      ? profile.skillExpertise[skillId]
+                      : undefined;
                   return (
-                    <span key={idx} className="text-xs px-2 py-1 rounded bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200">
-                      {skill}{level !== undefined && ` (${level}/5)`}
+                    <span
+                      key={idx}
+                      className="rounded bg-green-100 px-2 py-1 text-xs text-green-800 dark:bg-green-900/30 dark:text-green-200"
+                    >
+                      {skill}
+                      {level !== undefined && ` (${level}/5)`}
                     </span>
                   );
                 })}
               </div>
             </div>
-              )}
+          )}
 
           {learnerQuestCompletion && (
             <div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Learning Quests</p>
+              <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Learning Quests</p>
               <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                {learnerQuestCompletion.percent}% complete ({learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials)
+                {learnerQuestCompletion.percent}% complete ({learnerQuestCompletion.readCount} /{' '}
+                {learnerQuestCompletion.totalMaterials} materials)
               </p>
             </div>
           )}
 
           <div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Wallet</p>
-            <p className="text-sm font-mono text-gray-700 dark:text-gray-300">{shortenWallet(profile.wallet)}</p>
+            <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Wallet</p>
+            <p className="font-mono text-sm text-gray-700 dark:text-gray-300">
+              {shortenWallet(profile.wallet)}
+            </p>
           </div>
 
           {/* Arkiv Builder Mode: Metadata Fields */}
@@ -676,24 +759,29 @@ export default function ProfileDetailPage() {
             <>
               {profile.npsScore !== undefined && profile.npsScore !== null && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">NPS Score</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">NPS Score</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">{profile.npsScore}</p>
                 </div>
               )}
 
               {profile.reputationScore !== undefined && profile.reputationScore !== null && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Reputation Score</p>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{profile.reputationScore}</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Reputation Score</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    {profile.reputationScore}
+                  </p>
                 </div>
               )}
 
               {profile.topSkillsUsage && profile.topSkillsUsage.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Top Skills Usage</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Top Skills Usage</p>
                   <div className="flex flex-wrap gap-2">
                     {profile.topSkillsUsage.map((usage, idx) => (
-                      <span key={idx} className="text-xs px-2 py-1 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200">
+                      <span
+                        key={idx}
+                        className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 dark:bg-blue-900/30 dark:text-blue-200"
+                      >
                         {usage.skill} ({usage.count})
                       </span>
                     ))}
@@ -703,13 +791,17 @@ export default function ProfileDetailPage() {
 
               {profile.peerTestimonials && profile.peerTestimonials.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Peer Testimonials</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Peer Testimonials</p>
                   <div className="space-y-2">
                     {profile.peerTestimonials.map((testimonial, idx) => (
-                      <div key={idx} className="text-xs p-2 rounded bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+                      <div
+                        key={idx}
+                        className="rounded border border-gray-200 bg-gray-100 p-2 text-xs dark:border-gray-600 dark:bg-gray-700"
+                      >
                         <p className="text-gray-700 dark:text-gray-300">{testimonial.text}</p>
-                        <p className="text-gray-500 dark:text-gray-400 mt-1">
-                          From {shortenWallet(testimonial.fromWallet)} • {new Date(testimonial.timestamp).toLocaleDateString()}
+                        <p className="mt-1 text-gray-500 dark:text-gray-400">
+                          From {shortenWallet(testimonial.fromWallet)} •{' '}
+                          {new Date(testimonial.timestamp).toLocaleDateString()}
                         </p>
                       </div>
                     ))}
@@ -719,10 +811,13 @@ export default function ProfileDetailPage() {
 
               {profile.trustEdges && profile.trustEdges.length > 0 && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Trust Edges</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Trust Edges</p>
                   <div className="flex flex-wrap gap-2">
                     {profile.trustEdges.map((edge, idx) => (
-                      <span key={idx} className="text-xs px-2 py-1 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-200">
+                      <span
+                        key={idx}
+                        className="rounded bg-purple-100 px-2 py-1 text-xs text-purple-800 dark:bg-purple-900/30 dark:text-purple-200"
+                      >
                         {shortenWallet(edge.toWallet)} (strength: {edge.strength})
                       </span>
                     ))}
@@ -732,7 +827,7 @@ export default function ProfileDetailPage() {
 
               {profile.lastActiveTimestamp && (
                 <div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Active</p>
+                  <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Last Active</p>
                   <p className="text-sm text-gray-700 dark:text-gray-300">
                     {new Date(profile.lastActiveTimestamp).toLocaleString()}
                   </p>
@@ -740,13 +835,13 @@ export default function ProfileDetailPage() {
               )}
             </>
           )}
-          </div>
+        </div>
 
         {/* Profile Stats - Matching Dashboard Format Exactly */}
         {(() => {
           // Calculate session stats (same logic as dashboard)
           const now = Date.now();
-          const completedSessions = sessions.filter(s => {
+          const completedSessions = sessions.filter((s) => {
             if (s.status === 'completed') return true;
             // Also count past scheduled sessions as completed
             if (s.status === 'scheduled') {
@@ -756,23 +851,22 @@ export default function ProfileDetailPage() {
             }
             return false;
           }).length;
-          
-          const upcomingSessions = sessions.filter(s => {
+
+          const upcomingSessions = sessions.filter((s) => {
             if (s.status !== 'scheduled') return false;
             const sessionTime = new Date(s.sessionDate).getTime();
             return sessionTime > now;
           }).length;
 
           // Calculate average rating (same logic as dashboard)
-          const receivedFeedback = feedbacks.filter(f => 
-            f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+          const receivedFeedback = feedbacks.filter(
+            (f) => f.feedbackTo.toLowerCase() === wallet.toLowerCase()
           );
           const ratings = receivedFeedback
-            .map(f => f.rating)
+            .map((f) => f.rating)
             .filter((r): r is number => r !== undefined && r > 0);
-          const avgRating = ratings.length > 0
-            ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length)
-            : 0;
+          const avgRating =
+            ratings.length > 0 ? ratings.reduce((sum, r) => sum + r, 0) / ratings.length : 0;
 
           return (
             <div className="mb-6 space-y-4">
@@ -785,11 +879,11 @@ export default function ProfileDetailPage() {
                       `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
                       `Filtered: status='completed' OR (status='scheduled' AND sessionEnd < now)`,
                       `Returns: ${completedSessions} completed sessions`,
-                      `Each session is a type='session' entity on Arkiv`
+                      `Each session is a type='session' entity on Arkiv`,
                     ]}
                     label="Sessions Completed"
                   >
-                    <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-center backdrop-blur-sm dark:border-emerald-700 dark:bg-emerald-900/30">
                       <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                         {completedSessions}
                       </p>
@@ -797,14 +891,14 @@ export default function ProfileDetailPage() {
                     </div>
                   </ArkivQueryTooltip>
                 ) : (
-                  <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-center backdrop-blur-sm dark:border-emerald-700 dark:bg-emerald-900/30">
                     <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                       {completedSessions}
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Sessions Completed</p>
                   </div>
                 )}
-                
+
                 {/* Upcoming Sessions */}
                 {arkivBuilderMode ? (
                   <ArkivQueryTooltip
@@ -813,11 +907,11 @@ export default function ProfileDetailPage() {
                       `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
                       `Filtered: status='scheduled' AND sessionDate > now`,
                       `Returns: ${upcomingSessions} upcoming sessions`,
-                      `Each session is a type='session' entity on Arkiv`
+                      `Each session is a type='session' entity on Arkiv`,
                     ]}
                     label="Upcoming Sessions"
                   >
-                    <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-center backdrop-blur-sm dark:border-blue-700 dark:bg-blue-900/30">
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                         {upcomingSessions}
                       </p>
@@ -825,7 +919,7 @@ export default function ProfileDetailPage() {
                     </div>
                   </ArkivQueryTooltip>
                 ) : (
-                  <div className="p-3 rounded-lg border border-blue-200 dark:border-blue-700 bg-blue-50/80 dark:bg-blue-900/30 backdrop-blur-sm text-center">
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-3 text-center backdrop-blur-sm dark:border-blue-700 dark:bg-blue-900/30">
                     <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
                       {upcomingSessions}
                     </p>
@@ -837,11 +931,11 @@ export default function ProfileDetailPage() {
                 {(() => {
                   // Filter out expired asks (same logic as /me page)
                   const now = Date.now();
-                  const activeAsks = asks.filter(ask => {
+                  const activeAsks = asks.filter((ask) => {
                     if (ask.status !== 'open') return false;
                     if (ask.createdAt && ask.ttlSeconds) {
                       const createdAt = new Date(ask.createdAt).getTime();
-                      const expiresAt = createdAt + (ask.ttlSeconds * 1000);
+                      const expiresAt = createdAt + ask.ttlSeconds * 1000;
                       return expiresAt > now;
                     }
                     return true;
@@ -855,11 +949,11 @@ export default function ProfileDetailPage() {
                         `Query: type='ask', wallet='${wallet.slice(0, 8)}...', status='open'`,
                         `Filtered: active (not expired)`,
                         `Returns: ${asksCount} active asks`,
-                        `Each ask is a type='ask' entity on Arkiv`
+                        `Each ask is a type='ask' entity on Arkiv`,
                       ]}
                       label="Asks"
                     >
-                      <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                      <div className="rounded-lg border border-purple-200 bg-purple-50/80 p-3 text-center backdrop-blur-sm dark:border-purple-700 dark:bg-purple-900/30">
                         <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                           🎓 {asksCount}
                         </p>
@@ -867,7 +961,7 @@ export default function ProfileDetailPage() {
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-purple-200 bg-purple-50/80 p-3 text-center backdrop-blur-sm dark:border-purple-700 dark:bg-purple-900/30">
                       <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         🎓 {asksCount}
                       </p>
@@ -880,11 +974,11 @@ export default function ProfileDetailPage() {
                 {(() => {
                   // Filter out expired offers (same logic as /me page)
                   const now = Date.now();
-                  const activeOffers = offers.filter(offer => {
+                  const activeOffers = offers.filter((offer) => {
                     if (offer.status !== 'active') return false;
                     if (offer.createdAt && offer.ttlSeconds) {
                       const createdAt = new Date(offer.createdAt).getTime();
-                      const expiresAt = createdAt + (offer.ttlSeconds * 1000);
+                      const expiresAt = createdAt + offer.ttlSeconds * 1000;
                       return expiresAt > now;
                     }
                     return true;
@@ -898,11 +992,11 @@ export default function ProfileDetailPage() {
                         `Query: type='offer', wallet='${wallet.slice(0, 8)}...', status='active'`,
                         `Filtered: active (not expired)`,
                         `Returns: ${offersCount} active offers`,
-                        `Each offer is a type='offer' entity on Arkiv`
+                        `Each offer is a type='offer' entity on Arkiv`,
                       ]}
                       label="Offers"
                     >
-                      <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm text-center">
+                      <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-center backdrop-blur-sm dark:border-amber-700 dark:bg-amber-900/30">
                         <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                           💎 {offersCount}
                         </p>
@@ -910,7 +1004,7 @@ export default function ProfileDetailPage() {
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-3 rounded-lg border border-amber-200 dark:border-amber-700 bg-amber-50/80 dark:bg-amber-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50/80 p-3 text-center backdrop-blur-sm dark:border-amber-700 dark:bg-amber-900/30">
                       <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
                         💎 {offersCount}
                       </p>
@@ -918,7 +1012,7 @@ export default function ProfileDetailPage() {
                     </div>
                   );
                 })()}
-                
+
                 {/* Average Rating */}
                 {arkivBuilderMode ? (
                   <ArkivQueryTooltip
@@ -928,11 +1022,11 @@ export default function ProfileDetailPage() {
                       `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
                       `Calculated: average of ${ratings.length} ratings`,
                       `Returns: ${avgRating.toFixed(1)} average rating`,
-                      `Each feedback is a type='session_feedback' entity on Arkiv`
+                      `Each feedback is a type='session_feedback' entity on Arkiv`,
                     ]}
                     label="Average Rating"
                   >
-                    <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-yellow-200 bg-yellow-50/80 p-3 text-center backdrop-blur-sm dark:border-yellow-700 dark:bg-yellow-900/30">
                       <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                         {avgRating.toFixed(1)} ⭐
                       </p>
@@ -940,14 +1034,14 @@ export default function ProfileDetailPage() {
                     </div>
                   </ArkivQueryTooltip>
                 ) : (
-                  <div className="p-3 rounded-lg border border-yellow-200 dark:border-yellow-700 bg-yellow-50/80 dark:bg-yellow-900/30 backdrop-blur-sm text-center">
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50/80 p-3 text-center backdrop-blur-sm dark:border-yellow-700 dark:bg-yellow-900/30">
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                       {avgRating.toFixed(1)} ⭐
                     </p>
                     <p className="text-xs text-gray-600 dark:text-gray-400">Average Rating</p>
                   </div>
                 )}
-                
+
                 {/* Skills Learning */}
                 {arkivBuilderMode ? (
                   <ArkivQueryTooltip
@@ -956,11 +1050,11 @@ export default function ProfileDetailPage() {
                       `Query: type='learning_follow', profile_wallet='${wallet.toLowerCase()}'`,
                       `Filters out: active=false (soft-delete pattern)`,
                       `Returns: ${skillsLearningCount} active learning follows`,
-                      `Each follow is a type='learning_follow' entity on Arkiv`
+                      `Each follow is a type='learning_follow' entity on Arkiv`,
                     ]}
                     label="Skills Learning"
                   >
-                    <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-purple-200 bg-purple-50/80 p-3 text-center backdrop-blur-sm dark:border-purple-700 dark:bg-purple-900/30">
                       <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                         {skillsLearningCount}
                       </p>
@@ -968,7 +1062,7 @@ export default function ProfileDetailPage() {
                     </div>
                   </ArkivQueryTooltip>
                 ) : (
-                  <div className="p-3 rounded-lg border border-purple-200 dark:border-purple-700 bg-purple-50/80 dark:bg-purple-900/30 backdrop-blur-sm text-center">
+                  <div className="rounded-lg border border-purple-200 bg-purple-50/80 p-3 text-center backdrop-blur-sm dark:border-purple-700 dark:bg-purple-900/30">
                     <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
                       {skillsLearningCount}
                     </p>
@@ -987,28 +1081,30 @@ export default function ProfileDetailPage() {
                         `GET /api/learner-quests/progress?questId=...&wallet=${wallet.toLowerCase()}`,
                         `Query: type='learner_quest_progress', wallet='${wallet.toLowerCase()}', status='read'`,
                         `Calculated across all reading_list quests`,
-                        `Returns: ${learnerQuestCompletion.percent}% complete (${learnerQuestCompletion.readCount} / ${learnerQuestCompletion.totalMaterials} materials)`
+                        `Returns: ${learnerQuestCompletion.percent}% complete (${learnerQuestCompletion.readCount} / ${learnerQuestCompletion.totalMaterials} materials)`,
                       ]}
                       label="Learning Quests"
                     >
-                      <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-center backdrop-blur-sm dark:border-emerald-700 dark:bg-emerald-900/30">
                         <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                           {learnerQuestCompletion.percent}%
                         </p>
                         <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
-                        <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
-                          {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
+                        <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-500">
+                          {learnerQuestCompletion.readCount} /{' '}
+                          {learnerQuestCompletion.totalMaterials} materials
                         </p>
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-3 rounded-lg border border-emerald-200 dark:border-emerald-700 bg-emerald-50/80 dark:bg-emerald-900/30 backdrop-blur-sm text-center">
+                    <div className="rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-center backdrop-blur-sm dark:border-emerald-700 dark:bg-emerald-900/30">
                       <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                         {learnerQuestCompletion.percent}%
                       </p>
                       <p className="text-xs text-gray-600 dark:text-gray-400">Learning Quests</p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-500 mt-1">
-                        {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials} materials
+                      <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-500">
+                        {learnerQuestCompletion.readCount} / {learnerQuestCompletion.totalMaterials}{' '}
+                        materials
                       </p>
                     </div>
                   )}
@@ -1021,14 +1117,13 @@ export default function ProfileDetailPage() {
         {/* Availability */}
         {(() => {
           // Use availability entity if available, otherwise fall back to profile.availabilityWindow
-          const availabilityDisplay = availability.length > 0
-            ? availability[0].timeBlocks
-            : profile.availabilityWindow;
+          const availabilityDisplay =
+            availability.length > 0 ? availability[0].timeBlocks : profile.availabilityWindow;
 
           if (!availabilityDisplay) return null;
 
           return (
-            <div className="mb-8 p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="mb-8 rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20">
               {arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
@@ -1036,14 +1131,14 @@ export default function ProfileDetailPage() {
                     `Query: type='availability', wallet='${wallet.toLowerCase()}'`,
                     `Filters out: availability_deletion markers`,
                     `Returns: Availability[] (${availability.length} availability entities)`,
-                    `Each availability is a type='availability' entity on Arkiv`
+                    `Each availability is a type='availability' entity on Arkiv`,
                   ]}
                   label="Availability"
                 >
-                  <h2 className="text-2xl font-semibold mb-3">Availability</h2>
+                  <h2 className="mb-3 text-2xl font-semibold">Availability</h2>
                 </ArkivQueryTooltip>
               ) : (
-                <h2 className="text-2xl font-semibold mb-3">Availability</h2>
+                <h2 className="mb-3 text-2xl font-semibold">Availability</h2>
               )}
               <p className="text-gray-700 dark:text-gray-300">
                 {formatAvailabilityForDisplay(availabilityDisplay, profile.timezone)}
@@ -1051,7 +1146,6 @@ export default function ProfileDetailPage() {
             </div>
           );
         })()}
-
 
         {/* Offers (Teaching) */}
         {offers.length > 0 && (
@@ -1062,38 +1156,38 @@ export default function ProfileDetailPage() {
                   `listOffersForWallet('${wallet.toLowerCase()}')`,
                   `Query: type='offer', wallet='${wallet.toLowerCase()}'`,
                   `Returns: Offer[] (${offers.length} offers)`,
-                  `Each offer is a type='offer' entity on Arkiv`
+                  `Each offer is a type='offer' entity on Arkiv`,
                 ]}
                 label={`Teaching Offers (${offers.length})`}
               >
-                <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+                <h2 className="mb-4 text-2xl font-semibold">Teaching Offers ({offers.length})</h2>
               </ArkivQueryTooltip>
             ) : (
-              <h2 className="text-2xl font-semibold mb-4">Teaching Offers ({offers.length})</h2>
+              <h2 className="mb-4 text-2xl font-semibold">Teaching Offers ({offers.length})</h2>
             )}
             <div className="space-y-4">
               {offers.map((offer) => (
                 <div
                   key={offer.key}
-                  className="p-6 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg"
+                  className="rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20"
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-green-600 dark:text-green-400">
                         {offer.skill}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(offer.createdAt)}
                       </p>
                     </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                    <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
                       {getDisplayStatus(offer.status, offer.createdAt, offer.ttlSeconds)}
                     </span>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 mb-3">{offer.message}</p>
+                  <p className="mb-3 text-gray-700 dark:text-gray-300">{offer.message}</p>
                   {offer.availabilityWindow && (
-                    <div className="mb-3 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    <div className="mb-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                      <p className="mb-1 text-sm font-medium text-gray-900 dark:text-gray-100">
                         Availability:
                       </p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -1102,12 +1196,14 @@ export default function ProfileDetailPage() {
                     </div>
                   )}
                   {offer.isPaid && (
-                    <div className="mb-3 p-3 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded">
-                      <p className="text-sm font-medium text-purple-900 dark:text-purple-200 mb-1">
+                    <div className="mb-3 rounded border border-purple-200 bg-purple-50 p-3 dark:border-purple-800 dark:bg-purple-900/20">
+                      <p className="mb-1 text-sm font-medium text-purple-900 dark:text-purple-200">
                         Payment:
                       </p>
                       <p className="text-sm text-purple-800 dark:text-purple-300">
-                        <span className="text-green-600 dark:text-green-400 font-medium">💰 Requires payment</span>
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          💰 Requires payment
+                        </span>
                         {offer.cost && (
                           <span className="ml-2 text-purple-700 dark:text-purple-300">
                             ({offer.cost})
@@ -1118,14 +1214,26 @@ export default function ProfileDetailPage() {
                   )}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span>⏰ {(() => {
-                        const timeRemaining = formatTimeRemaining(offer.createdAt, offer.ttlSeconds);
-                        return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
-                      })()}</span>
+                      <span>
+                        ⏰{' '}
+                        {(() => {
+                          const timeRemaining = formatTimeRemaining(
+                            offer.createdAt,
+                            offer.ttlSeconds
+                          );
+                          return timeRemaining === 'Expired'
+                            ? timeRemaining
+                            : `${timeRemaining} left`;
+                        })()}
+                      </span>
                       {arkivBuilderMode && offer.key && (
                         <div className="flex items-center gap-2">
-                          <ViewOnArkivLink txHash={offer.txHash} entityKey={offer.key} className="text-xs" />
-                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          <ViewOnArkivLink
+                            txHash={offer.txHash}
+                            entityKey={offer.key}
+                            className="text-xs"
+                          />
+                          <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                             {offer.key.slice(0, 12)}...
                           </span>
                         </div>
@@ -1135,8 +1243,9 @@ export default function ProfileDetailPage() {
                       )}
                     </div>
                     {/* Request Meeting Button for this specific offer */}
-                    {userWallet && userWallet.toLowerCase() !== wallet.toLowerCase() && (
-                      arkivBuilderMode ? (
+                    {userWallet &&
+                      userWallet.toLowerCase() !== wallet.toLowerCase() &&
+                      (arkivBuilderMode ? (
                         <ArkivQueryTooltip
                           query={[
                             `Opens RequestMeetingModal to create session`,
@@ -1144,14 +1253,16 @@ export default function ProfileDetailPage() {
                             `Creates: type='session' entity`,
                             `Attributes: mentorWallet='${wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${userWallet.toLowerCase().slice(0, 8)}...', skill='${offer.skill}'`,
                             `Payload: Full session data`,
-                            `TTL: sessionDate + duration + 1 hour buffer`
+                            `TTL: sessionDate + duration + 1 hour buffer`,
                           ]}
                           label="Request Meeting"
                         >
                           <button
                             onClick={async () => {
                               // Load profile for the offer's wallet
-                              const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                              const offerProfile = await getProfileByWallet(offer.wallet).catch(
+                                () => null
+                              );
                               if (offerProfile) {
                                 setSelectedOffer(offer);
                                 setMeetingMode('request');
@@ -1161,7 +1272,7 @@ export default function ProfileDetailPage() {
                                 setError('Could not load profile for this offer');
                               }
                             }}
-                            className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                            className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
                           >
                             Request Meeting
                           </button>
@@ -1170,7 +1281,9 @@ export default function ProfileDetailPage() {
                         <button
                           onClick={async () => {
                             // Load profile for the offer's wallet
-                            const offerProfile = await getProfileByWallet(offer.wallet).catch(() => null);
+                            const offerProfile = await getProfileByWallet(offer.wallet).catch(
+                              () => null
+                            );
                             if (offerProfile) {
                               setSelectedOffer(offer);
                               setMeetingMode('request');
@@ -1180,12 +1293,11 @@ export default function ProfileDetailPage() {
                               setError('Could not load profile for this offer');
                             }
                           }}
-                          className="px-3 py-1.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                          className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
                         >
                           Request Meeting
                         </button>
-                      )
-                    )}
+                      ))}
                   </div>
                 </div>
               ))}
@@ -1202,51 +1314,58 @@ export default function ProfileDetailPage() {
                   `listAsksForWallet('${wallet.toLowerCase()}')`,
                   `Query: type='ask', wallet='${wallet.toLowerCase()}'`,
                   `Returns: Ask[] (${asks.length} asks)`,
-                  `Each ask is a type='ask' entity on Arkiv`
+                  `Each ask is a type='ask' entity on Arkiv`,
                 ]}
                 label={`Learning Requests (${asks.length})`}
               >
-                <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+                <h2 className="mb-4 text-2xl font-semibold">Learning Requests ({asks.length})</h2>
               </ArkivQueryTooltip>
             ) : (
-              <h2 className="text-2xl font-semibold mb-4">Learning Requests ({asks.length})</h2>
+              <h2 className="mb-4 text-2xl font-semibold">Learning Requests ({asks.length})</h2>
             )}
             <div className="space-y-4">
               {asks.map((ask) => (
                 <div
                   key={ask.key}
-                  className="p-6 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg"
+                  className="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-800 dark:bg-blue-900/20"
                 >
-                  <div className="flex justify-between items-start mb-3">
+                  <div className="mb-3 flex items-start justify-between">
                     <div>
                       <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-400">
                         {ask.skill}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {formatDate(ask.createdAt)}
                       </p>
                     </div>
-                    <span className="px-2 py-1 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+                    <span className="rounded bg-green-100 px-2 py-1 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
                       {getDisplayStatus(ask.status, ask.createdAt, ask.ttlSeconds)}
                     </span>
                   </div>
-                  <p className="text-gray-700 dark:text-gray-300 mb-3">{ask.message}</p>
+                  <p className="mb-3 text-gray-700 dark:text-gray-300">{ask.message}</p>
                   <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                    <span>⏰ {(() => {
-                      const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
-                      return timeRemaining === 'Expired' ? timeRemaining : `${timeRemaining} left`;
-                    })()}</span>
+                    <span>
+                      ⏰{' '}
+                      {(() => {
+                        const timeRemaining = formatTimeRemaining(ask.createdAt, ask.ttlSeconds);
+                        return timeRemaining === 'Expired'
+                          ? timeRemaining
+                          : `${timeRemaining} left`;
+                      })()}
+                    </span>
                     {arkivBuilderMode && ask.key && (
                       <div className="flex items-center gap-2">
-                        <ViewOnArkivLink entityKey={ask.key} txHash={ask.txHash} className="text-xs" />
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        <ViewOnArkivLink
+                          entityKey={ask.key}
+                          txHash={ask.txHash}
+                          className="text-xs"
+                        />
+                        <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                           {ask.key.slice(0, 12)}...
                         </span>
                       </div>
                     )}
-                    {!arkivBuilderMode && (
-                      <ViewOnArkivLink entityKey={ask.key} />
-                    )}
+                    {!arkivBuilderMode && <ViewOnArkivLink entityKey={ask.key} />}
                   </div>
                 </div>
               ))}
@@ -1256,10 +1375,8 @@ export default function ProfileDetailPage() {
 
         {/* Empty State for Asks/Offers */}
         {asks.length === 0 && offers.length === 0 && (
-          <div className="mb-8 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 text-center">
-            <p className="text-gray-500 dark:text-gray-400">
-              No asks or offers yet.
-            </p>
+          <div className="mb-8 rounded-lg border border-gray-200 bg-gray-50 p-6 text-center dark:border-gray-700 dark:bg-gray-800">
+            <p className="text-gray-500 dark:text-gray-400">No asks or offers yet.</p>
           </div>
         )}
 
@@ -1267,30 +1384,38 @@ export default function ProfileDetailPage() {
         {(() => {
           // Helper to identify reconstructed/archived sessions
           const isReconstructedSession = (session: Session): boolean => {
-            return session.skill === 'Session (expired)' ||
-                   session.notes === 'Session expired - reconstructed from feedback';
+            return (
+              session.skill === 'Session (expired)' ||
+              session.notes === 'Session expired - reconstructed from feedback'
+            );
           };
 
-          const completedSessions = sessions.filter(s => s.status === 'completed');
-          const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
+          const completedSessions = sessions.filter((s) => s.status === 'completed');
+          const scheduledSessions = sessions.filter((s) => s.status === 'scheduled');
           const allHistorySessions = [...completedSessions, ...scheduledSessions].sort(
             (a, b) => new Date(b.sessionDate).getTime() - new Date(a.sessionDate).getTime()
           );
 
           // Separate archived (reconstructed) sessions from regular sessions
-          const regularSessions = allHistorySessions.filter(s => !isReconstructedSession(s));
-          const archivedSessions = allHistorySessions.filter(s => isReconstructedSession(s));
-          
+          const regularSessions = allHistorySessions.filter((s) => !isReconstructedSession(s));
+          const archivedSessions = allHistorySessions.filter((s) => isReconstructedSession(s));
+
           // Calculate stats
           const sessionsCompleted = completedSessions.length;
-          const sessionsGiven = sessions.filter(s => 
-            s.mentorWallet.toLowerCase() === wallet.toLowerCase()
+          const sessionsGiven = sessions.filter(
+            (s) => s.mentorWallet.toLowerCase() === wallet.toLowerCase()
           ).length;
-          const sessionsReceived = sessions.filter(s => 
-            s.learnerWallet.toLowerCase() === wallet.toLowerCase()
+          const sessionsReceived = sessions.filter(
+            (s) => s.learnerWallet.toLowerCase() === wallet.toLowerCase()
           ).length;
 
-          if (regularSessions.length === 0 && archivedSessions.length === 0 && sessionsCompleted === 0 && sessionsGiven === 0 && sessionsReceived === 0) {
+          if (
+            regularSessions.length === 0 &&
+            archivedSessions.length === 0 &&
+            sessionsCompleted === 0 &&
+            sessionsGiven === 0 &&
+            sessionsReceived === 0
+          ) {
             return null; // Don't show section if no sessions
           }
 
@@ -1305,63 +1430,74 @@ export default function ProfileDetailPage() {
             return (
               <div
                 key={session.key}
-                className={`p-6 border rounded-lg ${
+                className={`rounded-lg border p-6 ${
                   session.status === 'completed'
-                    ? 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
-                    : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                    ? 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
+                    : 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
                 } ${isReconstructed ? 'opacity-75' : ''}`}
               >
-                <div className="flex justify-between items-start mb-3">
+                <div className="mb-3 flex items-start justify-between">
                   <div>
                     <h3 className="text-lg font-semibold">{session.skill}</h3>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                      {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with {shortenWallet(otherWallet)}
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {isMentor ? '👨‍🏫 As Mentor' : '👨‍🎓 As Learner'} with{' '}
+                      {shortenWallet(otherWallet)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {isReconstructed && (
-                      <span className="px-2 py-1 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+                      <span className="rounded bg-yellow-100 px-2 py-1 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
                         Archived
                       </span>
                     )}
-                    <span className={`px-2 py-1 text-xs font-medium rounded ${
-                      session.status === 'completed'
-                        ? 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200'
-                        : 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200'
-                    }`}>
+                    <span
+                      className={`rounded px-2 py-1 text-xs font-medium ${
+                        session.status === 'completed'
+                          ? 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+                          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200'
+                      }`}
+                    >
                       {session.status === 'completed' ? '✓ Completed' : '📅 Scheduled'}
                     </span>
                     {arkivBuilderMode && session.key && (
-                      <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} className="text-xs" />
+                      <ViewOnArkivLink
+                        entityKey={session.key}
+                        txHash={session.txHash}
+                        className="text-xs"
+                      />
                     )}
                     {!arkivBuilderMode && session.key && (
                       <ViewOnArkivLink entityKey={session.key} txHash={session.txHash} />
                     )}
                   </div>
                 </div>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  <strong>Date:</strong> {sessionDate.toLocaleDateString('en-US', {
+                <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
+                  <strong>Date:</strong>{' '}
+                  {sessionDate.toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric',
                   })}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
-                  <strong>Time:</strong> {sessionDate.toLocaleTimeString('en-US', {
+                <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
+                  <strong>Time:</strong>{' '}
+                  {sessionDate.toLocaleTimeString('en-US', {
                     hour: 'numeric',
                     minute: '2-digit',
                     hour12: true,
                   })}
                 </p>
                 {session.duration && (
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  <p className="mb-2 text-sm text-gray-700 dark:text-gray-300">
                     <strong>Duration:</strong> {session.duration} minutes
                   </p>
                 )}
                 {session.notes && (
-                  <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                    <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Notes:</p>
+                  <div className="mt-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                    <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+                      Notes:
+                    </p>
                     <p className="text-sm text-gray-700 dark:text-gray-300">{session.notes}</p>
                   </div>
                 )}
@@ -1373,7 +1509,7 @@ export default function ProfileDetailPage() {
                       label="View Session Entity"
                       className="text-xs"
                     />
-                    <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                    <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                       {session.key.slice(0, 12)}...
                     </span>
                   </div>
@@ -1390,16 +1526,16 @@ export default function ProfileDetailPage() {
                     `listSessionsForWallet('${wallet.toLowerCase()}')`,
                     `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
                     `Returns: Session[] (${sessions.length} sessions)`,
-                    `Each session is a type='session' entity on Arkiv`
+                    `Each session is a type='session' entity on Arkiv`,
                   ]}
                   label="Session History"
                 >
-                  <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+                  <h2 className="mb-4 text-2xl font-semibold">Session History</h2>
                 </ArkivQueryTooltip>
               ) : (
-                <h2 className="text-2xl font-semibold mb-4">Session History</h2>
+                <h2 className="mb-4 text-2xl font-semibold">Session History</h2>
               )}
-              
+
               {/* Stats */}
               {(sessionsCompleted > 0 || sessionsGiven > 0 || sessionsReceived > 0) && (
                 <div className="mb-6 grid grid-cols-3 gap-4">
@@ -1409,18 +1545,22 @@ export default function ProfileDetailPage() {
                         `listSessionsForWallet('${wallet.toLowerCase()}')`,
                         `Query: type='session', (mentorWallet='${wallet.toLowerCase()}' OR learnerWallet='${wallet.toLowerCase()}')`,
                         `Filtered: status='completed'`,
-                        `Returns: ${sessionsCompleted} completed sessions`
+                        `Returns: ${sessionsCompleted} completed sessions`,
                       ]}
                       label="Completed Sessions"
                     >
-                      <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
-                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
+                      <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center dark:border-blue-800 dark:bg-blue-900/20">
+                        <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                          {sessionsCompleted}
+                        </p>
                         <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{sessionsCompleted}</p>
+                    <div className="rounded-lg border border-blue-200 bg-blue-50 p-4 text-center dark:border-blue-800 dark:bg-blue-900/20">
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                        {sessionsCompleted}
+                      </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Completed</p>
                     </div>
                   )}
@@ -1429,18 +1569,24 @@ export default function ProfileDetailPage() {
                       query={[
                         `listSessionsForWallet('${wallet.toLowerCase()}')`,
                         `Query: type='session', mentorWallet='${wallet.toLowerCase()}'`,
-                        `Returns: ${sessionsGiven} sessions given as mentor`
+                        `Returns: ${sessionsGiven} sessions given as mentor`,
                       ]}
                       label="Sessions Given"
                     >
-                      <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
-                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
+                      <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-900/20">
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                          {sessionsGiven}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Given (as Mentor)
+                        </p>
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{sessionsGiven}</p>
+                    <div className="rounded-lg border border-green-200 bg-green-50 p-4 text-center dark:border-green-800 dark:bg-green-900/20">
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                        {sessionsGiven}
+                      </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Given (as Mentor)</p>
                     </div>
                   )}
@@ -1449,19 +1595,27 @@ export default function ProfileDetailPage() {
                       query={[
                         `listSessionsForWallet('${wallet.toLowerCase()}')`,
                         `Query: type='session', learnerWallet='${wallet.toLowerCase()}'`,
-                        `Returns: ${sessionsReceived} sessions received as learner`
+                        `Returns: ${sessionsReceived} sessions received as learner`,
                       ]}
                       label="Sessions Received"
                     >
-                      <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
-                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
+                      <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-center dark:border-purple-800 dark:bg-purple-900/20">
+                        <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                          {sessionsReceived}
+                        </p>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          Received (as Learner)
+                        </p>
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{sessionsReceived}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">Received (as Learner)</p>
+                    <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 text-center dark:border-purple-800 dark:bg-purple-900/20">
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                        {sessionsReceived}
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Received (as Learner)
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1469,9 +1623,7 @@ export default function ProfileDetailPage() {
 
               {/* Regular Session List */}
               {regularSessions.length > 0 && (
-                <div className="space-y-4 mb-6">
-                  {regularSessions.map(renderSessionCard)}
-                </div>
+                <div className="mb-6 space-y-4">{regularSessions.map(renderSessionCard)}</div>
               )}
 
               {/* Archived Sessions (Reconstructed) - Collapsed by default */}
@@ -1479,7 +1631,7 @@ export default function ProfileDetailPage() {
                 <div className="mt-6">
                   <button
                     onClick={() => setArchivedSessionsExpanded(!archivedSessionsExpanded)}
-                    className="w-full flex items-center justify-between p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                    className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-gray-50 p-3 text-left transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
                   >
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                       Archived Sessions ({archivedSessions.length})
@@ -1490,8 +1642,9 @@ export default function ProfileDetailPage() {
                   </button>
                   {archivedSessionsExpanded && (
                     <div className="mt-3 space-y-4">
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                        These sessions were reconstructed from feedback after the original session entities expired. Some details may be incomplete.
+                      <p className="mb-2 text-xs text-gray-500 dark:text-gray-400">
+                        These sessions were reconstructed from feedback after the original session
+                        entities expired. Some details may be incomplete.
                       </p>
                       {archivedSessions.map(renderSessionCard)}
                     </div>
@@ -1505,21 +1658,22 @@ export default function ProfileDetailPage() {
         {/* Feedback Section */}
         {(() => {
           // Filter feedback received (feedbackTo matches wallet)
-          const receivedFeedback = feedbacks.filter(f => 
-            f.feedbackTo.toLowerCase() === wallet.toLowerCase()
+          const receivedFeedback = feedbacks.filter(
+            (f) => f.feedbackTo.toLowerCase() === wallet.toLowerCase()
           );
-          
+
           if (receivedFeedback.length === 0) {
             return null;
           }
 
           // Calculate average rating
           const ratings = receivedFeedback
-            .map(f => f.rating)
+            .map((f) => f.rating)
             .filter((r): r is number => r !== undefined && r > 0);
-          const avgRating = ratings.length > 0
-            ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
-            : null;
+          const avgRating =
+            ratings.length > 0
+              ? (ratings.reduce((sum, r) => sum + r, 0) / ratings.length).toFixed(1)
+              : null;
 
           return (
             <div className="mb-8">
@@ -1530,16 +1684,16 @@ export default function ProfileDetailPage() {
                     `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
                     `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
                     `Returns: Feedback[] (${receivedFeedback.length} feedbacks)`,
-                    `Each feedback is a type='session_feedback' entity on Arkiv`
+                    `Each feedback is a type='session_feedback' entity on Arkiv`,
                   ]}
                   label="Feedback & Ratings"
                 >
-                  <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+                  <h2 className="mb-4 text-2xl font-semibold">Feedback & Ratings</h2>
                 </ArkivQueryTooltip>
               ) : (
-                <h2 className="text-2xl font-semibold mb-4">Feedback & Ratings</h2>
+                <h2 className="mb-4 text-2xl font-semibold">Feedback & Ratings</h2>
               )}
-              
+
               {/* Stats */}
               <div className="mb-6 grid grid-cols-2 gap-4">
                 {arkivBuilderMode ? (
@@ -1548,11 +1702,11 @@ export default function ProfileDetailPage() {
                       `listFeedbackForWallet('${wallet.toLowerCase()}')`,
                       `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
                       `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
-                      `Returns: ${receivedFeedback.length} feedback entities`
+                      `Returns: ${receivedFeedback.length} feedback entities`,
                     ]}
                     label="Total Reviews"
                   >
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
                       <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                         {receivedFeedback.length}
                       </p>
@@ -1560,26 +1714,26 @@ export default function ProfileDetailPage() {
                     </div>
                   </ArkivQueryTooltip>
                 ) : (
-                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
                     <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                       {receivedFeedback.length}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</p>
                   </div>
                 )}
-                {avgRating && (
-                  arkivBuilderMode ? (
+                {avgRating &&
+                  (arkivBuilderMode ? (
                     <ArkivQueryTooltip
                       query={[
                         `listFeedbackForWallet('${wallet.toLowerCase()}')`,
                         `Query: type='session_feedback', (feedbackFrom='${wallet.toLowerCase()}' OR feedbackTo='${wallet.toLowerCase()}')`,
                         `Filtered: feedbackTo='${wallet.toLowerCase()}' (received feedback)`,
                         `Calculated: average of ${ratings.length} ratings`,
-                        `Returns: ${avgRating} average rating`
+                        `Returns: ${avgRating} average rating`,
                       ]}
                       label="Average Rating"
                     >
-                      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                      <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
                         <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                           {avgRating} ⭐
                         </p>
@@ -1587,14 +1741,13 @@ export default function ProfileDetailPage() {
                       </div>
                     </ArkivQueryTooltip>
                   ) : (
-                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-center">
+                    <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-center dark:border-yellow-800 dark:bg-yellow-900/20">
                       <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                         {avgRating} ⭐
                       </p>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Average Rating</p>
                     </div>
-                  )
-                )}
+                  ))}
               </div>
 
               {/* Feedback List */}
@@ -1602,9 +1755,9 @@ export default function ProfileDetailPage() {
                 {receivedFeedback.map((feedback) => (
                   <div
                     key={feedback.key}
-                    className="p-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg"
+                    className="rounded-lg border border-yellow-200 bg-yellow-50 p-6 dark:border-yellow-800 dark:bg-yellow-900/20"
                   >
-                    <div className="flex justify-between items-start mb-3">
+                    <div className="mb-3 flex items-start justify-between">
                       <div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
                           From {shortenWallet(feedback.feedbackFrom)}
@@ -1616,18 +1769,18 @@ export default function ProfileDetailPage() {
                       {feedback.rating && (
                         <div className="text-lg">
                           {'⭐'.repeat(feedback.rating)}
-                          <span className="text-sm text-gray-600 dark:text-gray-400 ml-1">
+                          <span className="ml-1 text-sm text-gray-600 dark:text-gray-400">
                             ({feedback.rating}/5)
                           </span>
                         </div>
                       )}
                     </div>
                     {feedback.notes && (
-                      <p className="text-gray-700 dark:text-gray-300 mb-2">{feedback.notes}</p>
+                      <p className="mb-2 text-gray-700 dark:text-gray-300">{feedback.notes}</p>
                     )}
                     {feedback.technicalDxFeedback && (
-                      <div className="mt-3 p-3 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
-                        <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                      <div className="mt-3 rounded border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800">
+                        <p className="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
                           Technical DX Feedback:
                         </p>
                         <p className="text-sm text-gray-700 dark:text-gray-300">
@@ -1643,7 +1796,7 @@ export default function ProfileDetailPage() {
                         className="text-xs"
                       />
                       {arkivBuilderMode && feedback.key && (
-                        <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                        <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                           {feedback.key.slice(0, 12)}...
                         </span>
                       )}
@@ -1701,4 +1854,3 @@ export default function ProfileDetailPage() {
     </div>
   );
 }
-

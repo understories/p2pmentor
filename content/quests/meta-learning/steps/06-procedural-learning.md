@@ -3,6 +3,7 @@
 ## What is Procedural Learning?
 
 Procedural learning is learning "how to do" something - skills that become automatic through practice. Examples:
+
 - Typing
 - Riding a bike
 - Playing an instrument
@@ -12,16 +13,19 @@ Procedural learning is learning "how to do" something - skills that become autom
 ## Characteristics
 
 ### 1. Becomes Automatic
+
 - You don't think about each step
 - Your body/mind "knows" what to do
 - Can do it while thinking about other things
 
 ### 2. Hard to Explain
+
 - "How do you ride a bike?" → Hard to describe
 - "How do you type?" → Hard to explain finger positions
 - You just "know" how to do it
 
 ### 3. Resistant to Forgetting
+
 - Once learned, hard to forget
 - "Like riding a bike" - you never forget
 - Even after years, comes back quickly
@@ -29,18 +33,21 @@ Procedural learning is learning "how to do" something - skills that become autom
 ## How Procedural Learning Works
 
 ### Stage 1: Cognitive
+
 - Think through each step
 - Slow and deliberate
 - Make many mistakes
 - Need instructions
 
 ### Stage 2: Associative
+
 - Steps become smoother
 - Fewer mistakes
 - Less thinking required
 - Still need some attention
 
 ### Stage 3: Automatic
+
 - Flows naturally
 - Minimal thinking
 - Can multitask
@@ -49,11 +56,13 @@ Procedural learning is learning "how to do" something - skills that become autom
 ## Examples
 
 ### Learning to Type
+
 - **Stage 1:** Look at keyboard, find each letter, type slowly
 - **Stage 2:** Type without looking, occasional mistakes
 - **Stage 3:** Type automatically, think about content not keys
 
 ### Learning to Code
+
 - **Stage 1:** Look up syntax, think about each line
 - **Stage 2:** Remember common patterns, write faster
 - **Stage 3:** Syntax is automatic, focus on logic
@@ -69,6 +78,7 @@ Procedural learning is learning "how to do" something - skills that become autom
 ## The Power of Sleep
 
 Sleep is crucial for procedural learning:
+
 - Practice during the day
 - Sleep consolidates the skill
 - Wake up better than when you went to sleep

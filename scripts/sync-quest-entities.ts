@@ -64,10 +64,7 @@ async function inlineStepContent(
  *
  * TODO: Implement more sophisticated diffing (e.g., content hash comparison)
  */
-function questChanged(
-  fileQuest: QuestDefinition,
-  entityQuest: QuestDefinition
-): boolean {
+function questChanged(fileQuest: QuestDefinition, entityQuest: QuestDefinition): boolean {
   // Check metadata
   if (
     fileQuest.title !== entityQuest.title ||
@@ -118,10 +115,12 @@ async function syncQuest(trackId: string, privateKey: `0x${string}`): Promise<bo
     // Inline markdown content
     console.log(`[sync-quest-entities]   Inlining markdown content...`);
     const questWithContent = await inlineStepContent(fileQuest, trackId);
-    
+
     // Count steps with content
     const stepsWithContent = questWithContent.steps.filter((s: any) => s.content).length;
-    console.log(`[sync-quest-entities]   Steps with content: ${stepsWithContent}/${questWithContent.steps.length}`);
+    console.log(
+      `[sync-quest-entities]   Steps with content: ${stepsWithContent}/${questWithContent.steps.length}`
+    );
 
     // Check if entity exists
     console.log(`[sync-quest-entities]   Checking for existing entity...`);
@@ -130,8 +129,10 @@ async function syncQuest(trackId: string, privateKey: `0x${string}`): Promise<bo
     });
 
     if (existingEntity) {
-      console.log(`[sync-quest-entities]   Found existing entity: ${existingEntity.key} (v${existingEntity.version})`);
-      
+      console.log(
+        `[sync-quest-entities]   Found existing entity: ${existingEntity.key} (v${existingEntity.version})`
+      );
+
       // Check if quest changed
       const changed = questChanged(questWithContent, existingEntity.quest);
       if (!changed) {
@@ -142,11 +143,15 @@ async function syncQuest(trackId: string, privateKey: `0x${string}`): Promise<bo
       console.log(`[sync-quest-entities] ⚠️  Quest ${trackId} changed, creating new version`);
       console.log(`[sync-quest-entities]   File version: ${questWithContent.version}`);
       console.log(`[sync-quest-entities]   Entity version: ${existingEntity.version}`);
-      
+
       // Warn if version not incremented
       if (questWithContent.version === existingEntity.version) {
-        console.warn(`[sync-quest-entities] ⚠️  WARNING: Version not incremented! This will create duplicate entity.`);
-        console.warn(`[sync-quest-entities]   Consider incrementing version in quest.json before syncing.`);
+        console.warn(
+          `[sync-quest-entities] ⚠️  WARNING: Version not incremented! This will create duplicate entity.`
+        );
+        console.warn(
+          `[sync-quest-entities]   Consider incrementing version in quest.json before syncing.`
+        );
       }
     } else {
       console.log(`[sync-quest-entities]   No existing entity found, creating new one`);
@@ -191,7 +196,7 @@ async function main() {
     console.log('='.repeat(60));
     console.log('[sync-quest-entities] 🚀 Quest Entity Sync Script');
     console.log('='.repeat(60));
-    
+
     // Get private key for signing
     const privateKey = getPrivateKey();
     console.log(`[sync-quest-entities] Using wallet: ${privateKey.slice(0, 10)}...`);
@@ -220,7 +225,9 @@ async function main() {
       for (const quest of quests) {
         const trackId = quest.trackId || quest.track; // Use trackId if available, fallback to track
         if (!trackId) {
-          console.warn(`[sync-quest-entities] ⚠️  Skipping quest without trackId: ${quest.questId}`);
+          console.warn(
+            `[sync-quest-entities] ⚠️  Skipping quest without trackId: ${quest.questId}`
+          );
           failCount++;
           failedQuests.push(quest.questId || 'unknown');
           continue;
@@ -245,11 +252,11 @@ async function main() {
       console.log('='.repeat(60));
       console.log(`[sync-quest-entities] ✅ Succeeded: ${successCount}`);
       console.log(`[sync-quest-entities] ❌ Failed: ${failCount}`);
-      
+
       if (failedQuests.length > 0) {
         console.log(`[sync-quest-entities] Failed quests: ${failedQuests.join(', ')}`);
       }
-      
+
       console.log('='.repeat(60));
       process.exit(failCount > 0 ? 1 : 0);
     }

@@ -11,6 +11,7 @@
 We've been migrating from direct Arkiv JSON-RPC calls to a GraphQL API layer. The migration is **partially complete** with significant progress on infrastructure, but a critical blocker remains: the `asks` and `offers` GraphQL resolvers are failing with "Cannot return null for non-nullable field" errors, despite comprehensive error handling.
 
 **What Works:**
+
 - ✅ GraphQL API infrastructure (`/api/graphql` endpoint)
 - ✅ `networkOverview` resolver (uses `listAsks()` and `listOffers()` successfully)
 - ✅ GraphQL schema definition
@@ -19,6 +20,7 @@ We've been migrating from direct Arkiv JSON-RPC calls to a GraphQL API layer. Th
 - ✅ Feature flags system
 
 **What Doesn't Work:**
+
 - ❌ Direct `asks` query resolver (fails with null error)
 - ❌ Direct `offers` query resolver (fails with null error)
 - ❌ Client-side pages (`/asks`, `/offers`) cannot use GraphQL yet
@@ -80,11 +82,13 @@ Arkiv JSON-RPC
 **Status:** Complete and working
 
 - **GraphQL API Endpoint:** `/app/api/graphql/route.ts`
+
   - Uses `graphql-http` library
   - Properly configured with schema and resolvers
   - Handles errors gracefully
 
 - **GraphQL Schema:** `lib/graphql/schema.ts`
+
   - Defines `Query.asks: [Ask!]!` (non-nullable array)
   - Defines `Query.offers: [Offer!]!` (non-nullable array)
   - Defines `Query.networkOverview` (works correctly)
@@ -99,11 +103,13 @@ Arkiv JSON-RPC
 **Status:** Complete and working
 
 **Files:**
+
 - `lib/graph/featureFlags.ts`
 - `app/api/graphql-flags/route.ts` (server-side)
 - `app/api/admin/graphql-flags/route.ts` (admin dashboard)
 
 **Flags:**
+
 - `USE_GRAPHQL_FOR_NETWORK` ✅ (working)
 - `USE_GRAPHQL_FOR_ASKS` ⚠️ (enabled but resolver fails)
 - `USE_GRAPHQL_FOR_OFFERS` ⚠️ (enabled but resolver fails)
@@ -111,6 +117,7 @@ Arkiv JSON-RPC
 - `USE_GRAPHQL_FOR_ME` ⚠️ (not fully tested)
 
 **Client-Side Issue Resolved:**
+
 - Client-side pages cannot read `process.env` directly
 - Solution: Created `/api/graphql-flags` endpoint
 - Client-side flag functions now fetch from API
@@ -120,18 +127,21 @@ Arkiv JSON-RPC
 **Status:** Complete and working
 
 **Infrastructure:**
+
 - `lib/metrics/perf.ts` - Performance sample recording
 - `app/api/admin/perf-samples/route.ts` - API for fetching samples
 - `app/api/admin/perf-snapshots/route.ts` - Historical snapshots
 - Admin dashboard shows GraphQL vs JSON-RPC usage
 
 **What's Tracked:**
+
 - Operation name (e.g., `listAsks`, `buildNetworkGraphData`)
 - Route (e.g., `/asks`, `/network`)
 - Duration, payload size, HTTP requests
 - Source (`graphql` vs `arkiv`)
 
 **Current Data:**
+
 - `/network` shows GraphQL usage ✅
 - `/asks`, `/offers`, `/profiles` show no GraphQL samples (because queries fail)
 
@@ -142,6 +152,7 @@ Arkiv JSON-RPC
 **Location:** `/app/admin/page.tsx`
 
 **Features:**
+
 - GraphQL Migration Status section
 - Performance metrics (collapsible sections)
 - Query performance comparison
@@ -149,6 +160,7 @@ Arkiv JSON-RPC
 - Historical snapshots
 
 **UI:**
+
 - All sections are collapsible (default hidden)
 - GraphQL migration status shows which pages use GraphQL
 - Performance data aggregated by route
@@ -158,11 +170,13 @@ Arkiv JSON-RPC
 **Status:** Blocking issue - root cause unknown
 
 **Error:**
+
 ```
 Cannot return null for non-nullable field Query.asks.
 ```
 
 **What We Know:**
+
 1. ✅ `listAsks()` function works (proven by `networkOverview` resolver)
 2. ✅ `listAsks()` is wrapped to never throw (returns `[]` on error)
 3. ✅ Resolver has comprehensive try-catch blocks
@@ -170,6 +184,7 @@ Cannot return null for non-nullable field Query.asks.
 5. ❌ GraphQL still sees `null` somehow
 
 **Resolver Code Structure:**
+
 ```typescript
 asks: async (_: any, args: any) => {
   try {
@@ -179,13 +194,13 @@ asks: async (_: any, args: any) => {
     } catch (fetchError) {
       return []; // Return immediately on error
     }
-    
+
     if (!asks || !Array.isArray(asks)) {
       return []; // Return if invalid
     }
-    
+
     try {
-      const transformed = asks.map(transformAsk).filter(x => x !== null);
+      const transformed = asks.map(transformAsk).filter((x) => x !== null);
       return transformed;
     } catch (transformError) {
       return []; // Return if transformation fails
@@ -193,10 +208,11 @@ asks: async (_: any, args: any) => {
   } catch (error) {
     return []; // Outer catch - should never reach here
   }
-}
+};
 ```
 
 **Hypotheses Tested:**
+
 1. ❌ `listAsks()` throwing - No, it's wrapped to return `[]`
 2. ❌ Resolver not being called - No, logs would show
 3. ❌ Transformation failing - No, we catch and return `[]`
@@ -204,11 +220,13 @@ asks: async (_: any, args: any) => {
 5. ❌ Resolver structure/syntax - TypeScript compiles, but runtime issue?
 
 **Key Observation:**
+
 - `networkOverview` resolver calls `listAsks()` inside `buildNetworkOverview()` and it works
 - Direct `asks` resolver calls `listAsks()` and it fails
 - Same function, different execution context
 
 **Possible Root Causes:**
+
 1. GraphQL execution order/context issue
 2. Resolver function not properly attached to schema
 3. `graphql-http` library behavior with async resolvers
@@ -222,38 +240,47 @@ asks: async (_: any, args: any) => {
 ### Files Modified
 
 1. **`lib/graphql/resolvers.ts`**
+
    - Added comprehensive error handling to `asks` and `offers` resolvers
    - Added logging throughout
    - Ensured all paths return arrays, never null
 
 2. **`lib/arkiv/asks.ts`**
+
    - Wrapped `listAsks()` and `listAsksForWallet()` in try-catch
    - Always returns `[]` on error, never throws
 
 3. **`lib/arkiv/offers.ts`**
+
    - Wrapped `listOffers()` and `listOffersForWallet()` in try-catch
    - Always returns `[]` on error, never throws
 
 4. **`lib/graph/featureFlags.ts`**
+
    - Updated client-side flags to fetch from `/api/graphql-flags`
    - Fixed `readBoolEnv()` to check `NEXT_PUBLIC_` prefix
 
 5. **`app/asks/page.tsx`**
+
    - Added GraphQL fallback to JSON-RPC
    - Updated to await feature flag check
 
 6. **`app/offers/page.tsx`**
+
    - Added GraphQL fallback to JSON-RPC
    - Updated to await feature flag check
 
 7. **`app/profiles/[wallet]/page.tsx`**
+
    - Updated to await feature flag check
 
 8. **`app/api/admin/perf-samples/route.ts`**
+
    - Added aggregation across all operations
    - Added seed function for testing
 
 9. **`app/api/admin/perf-snapshots/route.ts`**
+
    - Updated to query all operations (not just `buildNetworkGraphData`)
    - Added transaction timeout handling
 
@@ -303,21 +330,25 @@ curl -X POST 'https://p2pmentor.com/api/graphql' \
 ### Immediate Next Steps
 
 1. **Debug the Resolver Execution**
+
    - Add a minimal test resolver that just returns `[]` to verify GraphQL execution
    - Check if the resolver function is actually being called (add console.log at very start)
    - Verify resolver is properly attached to schema
 
 2. **Compare Working vs Failing Resolvers**
+
    - `networkOverview` works - study its exact execution path
    - `asks` fails - compare structure, context, execution
    - Look for differences in how GraphQL executes them
 
 3. **Test GraphQL Library Behavior**
+
    - Check `graphql-http` documentation for async resolver requirements
    - Test if returning `Promise.resolve([])` vs `[]` makes a difference
    - Verify schema-to-resolver mapping
 
 4. **Add More Logging**
+
    - Log at the very start of resolver (before any code)
    - Log resolver function existence/type
    - Log GraphQL execution context
@@ -327,7 +358,7 @@ curl -X POST 'https://p2pmentor.com/api/graphql' \
    asks: async () => {
      console.log('RESOLVER CALLED');
      return [];
-   }
+   };
    ```
    - If this works, the issue is in `listAsks()` or transformation
    - If this fails, the issue is in resolver structure/schema mapping
@@ -397,4 +428,3 @@ curl -X POST 'https://p2pmentor.com/api/graphql' \
 ---
 
 **Note:** This migration is paused but the infrastructure is solid. The remaining issue appears to be a GraphQL execution/runtime problem rather than an architectural issue. When resuming, focus on debugging the resolver execution context and comparing the working `networkOverview` resolver with the failing `asks` resolver.
-

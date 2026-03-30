@@ -1,9 +1,9 @@
 /**
  * Passkey Reset Button Component
- * 
+ *
  * Allows users to clear all passkey data (for testing/reset purposes).
  * This ensures users are never locked in during beta testing.
- * 
+ *
  * Reference: Arkiv Passkey Wallet Beta Implementation Plan
  */
 
@@ -23,7 +23,11 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
   const [success, setSuccess] = useState(false);
 
   const handleReset = async () => {
-    if (!confirm('Are you sure you want to reset your passkey wallet? This will clear all passkey data and you will need to register again.')) {
+    if (
+      !confirm(
+        'Are you sure you want to reset your passkey wallet? This will clear all passkey data and you will need to register again.'
+      )
+    ) {
       return;
     }
 
@@ -33,8 +37,9 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
 
     try {
       // Get userId from localStorage if not provided
-      const userIdToUse = userId || (typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null);
-      
+      const userIdToUse =
+        userId || (typeof window !== 'undefined' ? localStorage.getItem('passkey_user_id') : null);
+
       if (!userIdToUse) {
         throw new Error('No passkey wallet found to reset');
       }
@@ -51,7 +56,7 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
       }
 
       setSuccess(true);
-      
+
       if (onReset) {
         onReset();
       }
@@ -67,7 +72,11 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
   };
 
   const handleClearAll = async () => {
-    if (!confirm('Clear ALL passkey wallets on this device? This will remove both localhost and production passkeys from client storage AND server. You will need to re-register everywhere. Browser WebAuthn credentials will remain but will not work.')) {
+    if (
+      !confirm(
+        'Clear ALL passkey wallets on this device? This will remove both localhost and production passkeys from client storage AND server. You will need to re-register everywhere. Browser WebAuthn credentials will remain but will not work.'
+      )
+    ) {
       return;
     }
 
@@ -95,32 +104,31 @@ export function PasskeyResetButton({ userId, onReset }: PasskeyResetButtonProps)
       <button
         onClick={handleReset}
         disabled={isResetting}
-        className="w-full px-4 py-2 text-sm font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-medium text-red-600 transition-all duration-200 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400 dark:hover:bg-red-900/30"
       >
         {isResetting ? 'Resetting...' : 'Reset Current Passkey Wallet'}
       </button>
-      
+
       <button
         onClick={handleClearAll}
         disabled={isResetting}
-        className="w-full px-4 py-2 text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-lg transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-xs font-medium text-orange-600 transition-all duration-200 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-70 dark:border-orange-800 dark:bg-orange-900/20 dark:text-orange-400 dark:hover:bg-orange-900/30"
         title="Clear all passkey wallets (localhost + production) from this device"
       >
         {isResetting ? 'Clearing...' : 'Clear ALL Passkey Wallets (Localhost + Production)'}
       </button>
 
       {error && (
-        <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-lg text-sm">
+        <div className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-900/20 dark:text-red-400">
           {error}
         </div>
       )}
 
       {success && (
-        <div className="mt-2 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-700 dark:text-green-400 rounded-lg text-sm">
+        <div className="mt-2 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700 dark:border-green-800 dark:bg-green-900/20 dark:text-green-400">
           Passkey wallet reset successfully. You can register again.
         </div>
       )}
     </div>
   );
 }
-

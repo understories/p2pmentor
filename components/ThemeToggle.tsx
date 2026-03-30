@@ -1,6 +1,6 @@
 /**
  * Theme toggle button
- * 
+ *
  * Toggle between light and dark mode with forest aesthetic styling.
  */
 
@@ -14,7 +14,7 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const pathname = usePathname();
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -40,34 +40,32 @@ export function ThemeToggle() {
   return (
     <button
       onClick={handleToggle}
-      className={`${mobileClass} fixed top-4 z-50 p-3 rounded-lg border transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2`}
+      className={`${mobileClass} fixed top-4 z-50 rounded-lg border p-3 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2`}
       style={{
         right: 'clamp(2rem, calc(50% - 32rem), 4rem)', // Responsive: more space on right, stays near center on large screens
-        backgroundColor: theme === 'dark' 
-          ? 'rgba(5, 20, 5, 0.3)' 
-          : 'rgba(240, 240, 240, 0.9)',
-        borderColor: theme === 'dark'
-          ? 'rgba(150, 255, 150, 0.3)'
-          : 'rgba(0, 0, 0, 0.1)',
-        color: theme === 'dark'
-          ? 'rgba(200, 255, 200, 0.9)'
-          : '#495057',
-        boxShadow: theme === 'dark'
-          ? '0 0 20px rgba(100, 255, 100, 0.1), inset 0 0 20px rgba(100, 255, 100, 0.05)'
-          : '0 1px 3px rgba(0, 0, 0, 0.1)',
+        backgroundColor: theme === 'dark' ? 'rgba(5, 20, 5, 0.3)' : 'rgba(240, 240, 240, 0.9)',
+        borderColor: theme === 'dark' ? 'rgba(150, 255, 150, 0.3)' : 'rgba(0, 0, 0, 0.1)',
+        color: theme === 'dark' ? 'rgba(200, 255, 200, 0.9)' : '#495057',
+        boxShadow:
+          theme === 'dark'
+            ? '0 0 20px rgba(100, 255, 100, 0.1), inset 0 0 20px rgba(100, 255, 100, 0.05)'
+            : '0 1px 3px rgba(0, 0, 0, 0.1)',
         backdropFilter: 'blur(10px)',
       }}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      <span className="text-xl" style={{ 
-        textShadow: theme === 'dark' 
-          ? '0 0 8px rgba(150, 255, 150, 0.4), 0 0 15px rgba(100, 255, 100, 0.2)'
-          : 'none'
-      }}>
+      <span
+        className="text-xl"
+        style={{
+          textShadow:
+            theme === 'dark'
+              ? '0 0 8px rgba(150, 255, 150, 0.4), 0 0 15px rgba(100, 255, 100, 0.2)'
+              : 'none',
+        }}
+      >
         {theme === 'dark' ? '☀️' : '🌙'}
       </span>
     </button>
   );
 }
-

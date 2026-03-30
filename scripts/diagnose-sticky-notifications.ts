@@ -1,6 +1,6 @@
 /**
  * Diagnostic script to identify why notifications are stuck as read/unread
- * 
+ *
  * This script:
  * 1. Lists all notifications for a wallet
  * 2. Checks if read/archived state is in payload
@@ -42,7 +42,8 @@ async function diagnoseNotifications(wallet: string) {
 
     // Query the raw entity to see what's actually stored
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'notification'))
       .where(eq('key', notif.key))
       .withAttributes(true)
@@ -55,11 +56,12 @@ async function diagnoseNotifications(wallet: string) {
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -103,7 +105,7 @@ async function diagnoseNotifications(wallet: string) {
 
       // Wait a bit for indexing
       console.log('\nWaiting 3 seconds for Arkiv to index...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 3000));
 
       // Verify the update
       const updatedNotifications = await listNotifications({
@@ -112,7 +114,9 @@ async function diagnoseNotifications(wallet: string) {
         limit: 100,
       });
 
-      const updatedNotif = updatedNotifications.find(n => n.notificationId === testNotif.notificationId);
+      const updatedNotif = updatedNotifications.find(
+        (n) => n.notificationId === testNotif.notificationId
+      );
       if (updatedNotif) {
         console.log(`\nVerification:`);
         console.log(`  Expected read: ${newRead}`);
@@ -136,7 +140,6 @@ async function diagnoseNotifications(wallet: string) {
         spaceId: SPACE_ID,
       });
       console.log(`✅ Restored`);
-
     } catch (error: any) {
       console.error(`❌ Update failed:`, error.message);
       console.error(error);
@@ -154,4 +157,3 @@ if (!wallet) {
 }
 
 diagnoseNotifications(wallet).catch(console.error);
-

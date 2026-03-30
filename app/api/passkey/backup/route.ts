@@ -1,9 +1,9 @@
 /**
  * Passkey Backup Signer API
- * 
+ *
  * Lists backup wallets for passkey recovery.
  * Registration is done client-side (requires MetaMask wallet client).
- * 
+ *
  * GET /api/passkey/backup?wallet=0x...
  */
 
@@ -12,7 +12,7 @@ import { listBackupWalletIdentities } from '@/lib/arkiv/authIdentity';
 
 /**
  * GET /api/passkey/backup?wallet=0x...
- * 
+ *
  * List backup wallets for a passkey wallet.
  */
 export async function GET(request: Request) {

@@ -1,31 +1,38 @@
 /**
  * Availability CRUD helpers
- * 
+ *
  * Handles availability entities for user time blocks.
- * 
+ *
  * Based on mentor-graph implementation.
- * 
+ *
  * Reference: refs/mentor-graph/examples/basic/create-profile.ts
- * 
+ *
  * Supports both legacy text format and new structured WeeklyAvailability format.
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 /**
  * Day of week (lowercase for consistency)
  */
-export type DayOfWeek = 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+export type DayOfWeek =
+  | 'sunday'
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday';
 
 /**
  * Time slot (HH:mm format, 24-hour)
  */
 export type TimeSlot = {
   start: string; // HH:mm format (e.g., "09:00")
-  end: string;   // HH:mm format (e.g., "17:00")
+  end: string; // HH:mm format (e.g., "17:00")
 };
 
 /**
@@ -38,10 +45,10 @@ export type DayAvailability = {
 
 /**
  * Structured weekly availability (Calendly-style)
- * 
+ *
  * Version 1.0 schema for standardized availability data.
  * Stored as JSON string in Arkiv entity payload.
- * 
+ *
  * Note: Time slots are stored in UTC. The timezone field indicates
  * the original timezone the user set their availability in.
  */
@@ -76,11 +83,11 @@ export type Availability = {
   timezone: string;
   availabilityVersion?: '1.0' | 'legacy'; // Distinguish structured vs legacy
   txHash?: string;
-}
+};
 
 /**
  * Validate time slot format (HH:mm)
- * 
+ *
  * @param time - Time string to validate
  * @returns true if valid HH:mm format
  */
@@ -91,7 +98,7 @@ export function isValidTimeFormat(time: string): boolean {
 
 /**
  * Validate time slot (start < end)
- * 
+ *
  * @param slot - Time slot to validate
  * @returns true if valid (start < end)
  */
@@ -104,13 +111,14 @@ export function isValidTimeSlot(slot: TimeSlot): boolean {
 
 /**
  * Validate weekly availability structure
- * 
+ *
  * @param availability - WeeklyAvailability to validate
  * @returns Validation result with error message if invalid
  */
-export function validateWeeklyAvailability(
-  availability: WeeklyAvailability
-): { valid: boolean; error?: string } {
+export function validateWeeklyAvailability(availability: WeeklyAvailability): {
+  valid: boolean;
+  error?: string;
+} {
   // Check version
   if (availability.version !== '1.0') {
     return { valid: false, error: 'Invalid version. Expected "1.0"' };
@@ -122,14 +130,22 @@ export function validateWeeklyAvailability(
   }
 
   // Check all days are present
-  const requiredDays: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const requiredDays: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
   for (const day of requiredDays) {
     if (!availability.days[day]) {
       return { valid: false, error: `Missing day: ${day}` };
     }
 
     const dayAvail = availability.days[day];
-    
+
     // If available, must have at least one time slot
     if (dayAvail.available && (!dayAvail.timeSlots || dayAvail.timeSlots.length === 0)) {
       return { valid: false, error: `${day} is marked available but has no time slots` };
@@ -145,7 +161,10 @@ export function validateWeeklyAvailability(
       for (let i = 0; i < dayAvail.timeSlots.length; i++) {
         const slot = dayAvail.timeSlots[i];
         if (!isValidTimeSlot(slot)) {
-          return { valid: false, error: `${day} time slot ${i + 1} is invalid (start must be before end, format: HH:mm)` };
+          return {
+            valid: false,
+            error: `${day} time slot ${i + 1} is invalid (start must be before end, format: HH:mm)`,
+          };
         }
       }
     }
@@ -156,9 +175,9 @@ export function validateWeeklyAvailability(
 
 /**
  * Convert a time slot from one timezone to another
- * 
+ *
  * Uses a reference date (next Monday) to handle DST correctly.
- * 
+ *
  * @param timeSlot - Time slot in HH:mm format
  * @param fromTimezone - Source IANA timezone
  * @param toTimezone - Target IANA timezone (default: UTC)
@@ -178,19 +197,19 @@ export function convertTimeSlot(
 
   const convertTime = (time: string): string => {
     const [hours, minutes] = time.split(':').map(Number);
-    
+
     // Create date components for next Monday
     const year = nextMonday.getUTCFullYear();
     const month = nextMonday.getUTCMonth() + 1;
     const day = nextMonday.getUTCDate();
-    
+
     // Create a date string and parse it as if it's in the source timezone
     // We'll use a binary search-like approach to find the correct UTC time
     // that, when formatted in source timezone, gives us the desired time
-    
+
     // Start with a guess (assuming source timezone is close to UTC)
     let guessDate = new Date(Date.UTC(year, month - 1, day, hours, minutes, 0));
-    
+
     // Format in source timezone to see what time it represents there
     const sourceFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: fromTimezone,
@@ -198,19 +217,19 @@ export function convertTimeSlot(
       minute: '2-digit',
       hour12: false,
     });
-    
+
     // Adjust until we get the right time in source timezone
     let attempts = 0;
     const maxAttempts = 50; // Prevent infinite loop
     while (attempts < maxAttempts) {
       const parts = sourceFormatter.formatToParts(guessDate);
-      const sourceHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
-      const sourceMinute = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
-      
+      const sourceHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+      const sourceMinute = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
+
       if (sourceHour === hours && sourceMinute === minutes) {
         break; // Found the correct UTC time
       }
-      
+
       // Adjust by the difference
       const hourDiff = hours - sourceHour;
       const minuteDiff = minutes - sourceMinute;
@@ -218,7 +237,7 @@ export function convertTimeSlot(
       guessDate = new Date(guessDate.getTime() + totalMinutesDiff * 60000);
       attempts++;
     }
-    
+
     // Now format in target timezone
     const targetFormatter = new Intl.DateTimeFormat('en-US', {
       timeZone: toTimezone,
@@ -226,11 +245,12 @@ export function convertTimeSlot(
       minute: '2-digit',
       hour12: false,
     });
-    
+
     const targetParts = targetFormatter.formatToParts(guessDate);
-    const targetHour = targetParts.find(p => p.type === 'hour')?.value?.padStart(2, '0') || '00';
-    const targetMinute = targetParts.find(p => p.type === 'minute')?.value?.padStart(2, '0') || '00';
-    
+    const targetHour = targetParts.find((p) => p.type === 'hour')?.value?.padStart(2, '0') || '00';
+    const targetMinute =
+      targetParts.find((p) => p.type === 'minute')?.value?.padStart(2, '0') || '00';
+
     return `${targetHour}:${targetMinute}`;
   };
 
@@ -242,20 +262,28 @@ export function convertTimeSlot(
 
 /**
  * Convert WeeklyAvailability time slots from user timezone to UTC
- * 
+ *
  * @param availability - WeeklyAvailability with time slots in user timezone
  * @returns WeeklyAvailability with time slots converted to UTC
  */
 export function convertAvailabilityToUTC(availability: WeeklyAvailability): WeeklyAvailability {
   const convertedDays: { [K in DayOfWeek]: DayAvailability } = {} as any;
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
 
   for (const day of days) {
     const dayAvail = availability.days[day];
     if (dayAvail.available && dayAvail.timeSlots.length > 0) {
       convertedDays[day] = {
         available: true,
-        timeSlots: dayAvail.timeSlots.map(slot => 
+        timeSlots: dayAvail.timeSlots.map((slot) =>
           convertTimeSlot(slot, availability.timezone, 'UTC')
         ),
       };
@@ -276,7 +304,7 @@ export function convertAvailabilityToUTC(availability: WeeklyAvailability): Week
 
 /**
  * Convert WeeklyAvailability time slots from UTC to viewer timezone
- * 
+ *
  * @param availability - WeeklyAvailability with time slots in UTC
  * @param viewerTimezone - Target IANA timezone for display
  * @returns WeeklyAvailability with time slots converted to viewer timezone
@@ -286,16 +314,22 @@ export function convertAvailabilityFromUTC(
   viewerTimezone: string
 ): WeeklyAvailability {
   const convertedDays: { [K in DayOfWeek]: DayAvailability } = {} as any;
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
 
   for (const day of days) {
     const dayAvail = availability.days[day];
     if (dayAvail.available && dayAvail.timeSlots.length > 0) {
       convertedDays[day] = {
         available: true,
-        timeSlots: dayAvail.timeSlots.map(slot => 
-          convertTimeSlot(slot, 'UTC', viewerTimezone)
-        ),
+        timeSlots: dayAvail.timeSlots.map((slot) => convertTimeSlot(slot, 'UTC', viewerTimezone)),
       };
     } else {
       convertedDays[day] = {
@@ -314,9 +348,9 @@ export function convertAvailabilityFromUTC(
 
 /**
  * Serialize WeeklyAvailability to JSON string for Arkiv storage
- * 
+ *
  * Note: Time slots should already be in UTC before serialization.
- * 
+ *
  * @param availability - WeeklyAvailability to serialize
  * @returns JSON string
  */
@@ -326,7 +360,7 @@ export function serializeWeeklyAvailability(availability: WeeklyAvailability): s
 
 /**
  * Deserialize JSON string to WeeklyAvailability
- * 
+ *
  * @param jsonString - JSON string from Arkiv entity
  * @returns WeeklyAvailability or null if invalid
  */
@@ -347,7 +381,7 @@ export function deserializeWeeklyAvailability(jsonString: string): WeeklyAvailab
 
 /**
  * Check if timeBlocks string is structured format or legacy text
- * 
+ *
  * @param timeBlocks - Time blocks string from Arkiv entity
  * @returns true if structured format, false if legacy text
  */
@@ -362,14 +396,22 @@ export function isStructuredAvailability(timeBlocks: string): boolean {
 
 /**
  * Create default weekly availability (all days unavailable)
- * 
+ *
  * @param timezone - IANA timezone
  * @returns Default WeeklyAvailability
  */
 export function createDefaultWeeklyAvailability(timezone: string): WeeklyAvailability {
-  const days: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const days: DayOfWeek[] = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
   const defaultDays: { [K in DayOfWeek]: DayAvailability } = {} as any;
-  
+
   for (const day of days) {
     defaultDays[day] = {
       available: false,
@@ -386,16 +428,16 @@ export function createDefaultWeeklyAvailability(timezone: string): WeeklyAvailab
 
 /**
  * Format weekly availability for human-readable display
- * 
+ *
  * Examples:
  * - "Mon-Fri 9am-5pm EST" (if uniform weekdays)
  * - "Mon, Wed, Fri 10am-2pm EST" (if specific days)
  * - "Mon-Fri 9am-12pm, 2pm-5pm EST" (if multiple slots)
  * - "No availability set" (if no days available)
- * 
+ *
  * Note: Availability stored in UTC will be converted to the original timezone
  * (stored in the timezone field) or viewer timezone for display.
- * 
+ *
  * @param availability - WeeklyAvailability to format (may be in UTC)
  * @param viewerTimezone - Optional viewer timezone (if different from original)
  * @param isStoredInUTC - Whether the availability is stored in UTC (default: true for new data)
@@ -412,12 +454,12 @@ export function formatWeeklyAvailabilityForDisplay(
     const targetTimezone = viewerTimezone || availability.timezone;
     displayAvailability = convertAvailabilityFromUTC(availability, targetTimezone);
   }
-  
+
   const { days, timezone } = displayAvailability;
-  
+
   // Check if all weekdays have the same slots
   const weekdaySlots = days.monday.timeSlots;
-  const isUniformWeekdays = 
+  const isUniformWeekdays =
     days.monday.available === days.tuesday.available &&
     days.tuesday.available === days.wednesday.available &&
     days.wednesday.available === days.thursday.available &&
@@ -459,7 +501,15 @@ export function formatWeeklyAvailabilityForDisplay(
     sunday: 'Sun',
   };
 
-  for (const day of ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as DayOfWeek[]) {
+  for (const day of [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+    'sunday',
+  ] as DayOfWeek[]) {
     if (days[day].available && days[day].timeSlots.length > 0) {
       const slotsStr = days[day].timeSlots.map(formatSlot).join(', ');
       availableDays.push(`${dayLabels[day]} ${slotsStr}`);
@@ -476,14 +526,14 @@ export function formatWeeklyAvailabilityForDisplay(
 
 /**
  * Format any availability (structured or legacy) for display
- * 
+ *
  * This is a convenience function that handles both structured WeeklyAvailability
  * and legacy text format, automatically detecting and formatting appropriately.
  * Use this when displaying availability from offers, profiles, or availability entities.
- * 
+ *
  * Note: Structured availability stored in UTC will be converted to the original
  * timezone (or viewer timezone if provided) for display.
- * 
+ *
  * @param availabilityString - Availability string (JSON or plain text)
  * @param viewerTimezone - Optional viewer timezone for conversion
  * @returns Human-readable formatted string
@@ -508,9 +558,9 @@ export function formatAvailabilityForDisplay(
 
 /**
  * Check if a date and time matches availability
- * 
+ *
  * Validates if a requested meeting time falls within the mentor's availability.
- * 
+ *
  * @param dateTime - ISO date-time string (e.g., "2025-12-18T13:07:00")
  * @param availabilityString - Availability string (JSON or text)
  * @returns Validation result with error message if invalid
@@ -522,47 +572,55 @@ export function validateDateTimeAgainstAvailability(
   try {
     const requestedDate = new Date(dateTime);
     const dayOfWeek = requestedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
-    const dayNames: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayNames: DayOfWeek[] = [
+      'sunday',
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+    ];
     const dayName = dayNames[dayOfWeek];
-    
+
     // Extract time in HH:mm format
     const timeStr = dateTime.split('T')[1]?.split('.')[0]?.substring(0, 5) || '';
     const [hours, minutes] = timeStr.split(':').map(Number);
     const timeMinutes = hours * 60 + minutes;
-    
+
     // Try to parse as structured format
     const structured = deserializeWeeklyAvailability(availabilityString);
     if (structured) {
       const dayAvailability = structured.days[dayName];
-      
+
       // Check if day is available
       if (!dayAvailability.available) {
-        return { 
-          valid: false, 
-          error: `The selected date (${dayName}) is not available. ${formatAvailabilityForDisplay(availabilityString)}` 
+        return {
+          valid: false,
+          error: `The selected date (${dayName}) is not available. ${formatAvailabilityForDisplay(availabilityString)}`,
         };
       }
-      
+
       // Check if time falls within any time slot
-      const timeInSlot = dayAvailability.timeSlots.some(slot => {
+      const timeInSlot = dayAvailability.timeSlots.some((slot) => {
         const [startHours, startMinutes] = slot.start.split(':').map(Number);
         const [endHours, endMinutes] = slot.end.split(':').map(Number);
         const startTimeMinutes = startHours * 60 + startMinutes;
         const endTimeMinutes = endHours * 60 + endMinutes;
-        
+
         return timeMinutes >= startTimeMinutes && timeMinutes < endTimeMinutes;
       });
-      
+
       if (!timeInSlot) {
-        return { 
-          valid: false, 
-          error: `The selected time (${timeStr}) is not within available time slots. ${formatAvailabilityForDisplay(availabilityString)}` 
+        return {
+          valid: false,
+          error: `The selected time (${timeStr}) is not within available time slots. ${formatAvailabilityForDisplay(availabilityString)}`,
         };
       }
-      
+
       return { valid: true };
     }
-    
+
     // For legacy text format, we can't validate precisely, so allow it
     // (This is a limitation of text-based availability)
     return { valid: true };
@@ -573,9 +631,9 @@ export function validateDateTimeAgainstAvailability(
 
 /**
  * Create an availability entity
- * 
+ *
  * Supports both legacy text format and new structured WeeklyAvailability format.
- * 
+ *
  * @param data - Availability data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -602,14 +660,14 @@ export async function createAvailability({
   // Determine if structured or legacy format
   let timeBlocksString: string;
   let availabilityVersion: '1.0' | 'legacy';
-  
+
   if (typeof timeBlocks === 'object' && timeBlocks.version === '1.0') {
     // Structured format: validate first
     const validation = validateWeeklyAvailability(timeBlocks);
     if (!validation.valid) {
       throw new Error(`Invalid weekly availability: ${validation.error}`);
     }
-    
+
     // Convert time slots from user timezone to UTC before storing
     const utcAvailability = convertAvailabilityToUTC(timeBlocks);
     timeBlocksString = serializeWeeklyAvailability(utcAvailability);
@@ -636,11 +694,13 @@ export async function createAvailability({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        timeBlocks: timeBlocksString,
-        timezone,
-        createdAt,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          timeBlocks: timeBlocksString,
+          timezone,
+          createdAt,
+        })
+      ),
       contentType: 'application/json',
       attributes: attributesWithSigner,
       expiresIn: expiresIn,
@@ -664,9 +724,11 @@ export async function createAvailability({
   // Create separate txhash entity (like mentor-graph pattern)
   // Don't wait for this one - it's optional metadata
   walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      txHash,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        txHash,
+      })
+    ),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'availability_txhash' },
@@ -682,10 +744,10 @@ export async function createAvailability({
 
 /**
  * Mark an availability entity as deleted (arkiv-native)
- * 
+ *
  * Since Arkiv entities are immutable, we create a deletion marker entity
  * that references the original availability. The list function will filter these out.
- * 
+ *
  * @param availabilityKey - Key of the availability entity to delete
  * @param wallet - Wallet address of the owner
  * @param privateKey - Private key for signing
@@ -711,10 +773,12 @@ export async function deleteAvailability({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        deletedAt: createdAt,
-        availabilityKey,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          deletedAt: createdAt,
+          availabilityKey,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'availability_deletion' },
@@ -732,7 +796,7 @@ export async function deleteAvailability({
 
 /**
  * List all availability entities for a wallet
- * 
+ *
  * @param wallet - Wallet address
  * @param spaceId - Optional space ID filter
  * @returns Array of availability entities
@@ -743,10 +807,10 @@ export async function listAvailabilityForWallet(
 ): Promise<Availability[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  
+
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
-  
+
   let queryBuilder = query
     .where(eq('type', 'availability'))
     .where(eq('wallet', wallet.toLowerCase()))
@@ -754,13 +818,15 @@ export async function listAvailabilityForWallet(
 
   const [result, txHashResult, deletionResult] = await Promise.all([
     queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'availability_txhash'))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
       .fetch(),
-    publicClient.buildQuery()
+    publicClient
+      .buildQuery()
       .where(eq('type', 'availability_deletion'))
       .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
@@ -785,11 +851,12 @@ export async function listAvailabilityForWallet(
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -829,11 +896,12 @@ export async function listAvailabilityForWallet(
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -850,7 +918,7 @@ export async function listAvailabilityForWallet(
       };
 
       const availabilityVersion = getAttr('availabilityVersion') || 'legacy';
-      
+
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
@@ -862,9 +930,7 @@ export async function listAvailabilityForWallet(
         txHash: txHashMap[entity.key],
       };
     })
-    .sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 }
 
 /**
@@ -890,11 +956,12 @@ export async function getAvailabilityByKey(key: string): Promise<Availability | 
   let payload: any = {};
   try {
     if (entity.payload) {
-      const decoded = entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-        ? entity.payload
-        : JSON.stringify(entity.payload);
+      const decoded =
+        entity.payload instanceof Uint8Array
+          ? new TextDecoder().decode(entity.payload)
+          : typeof entity.payload === 'string'
+            ? entity.payload
+            : JSON.stringify(entity.payload);
       payload = JSON.parse(decoded);
     }
   } catch (e) {

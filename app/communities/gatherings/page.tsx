@@ -1,10 +1,10 @@
 /**
  * Virtual Gatherings Page
- * 
+ *
  * Public view of community virtual gatherings.
  * Anyone can suggest a meeting, anyone can RSVP.
  * Jitsi is generated immediately (no confirmation needed).
- * 
+ *
  * Reference: Learner community feature
  */
 
@@ -69,7 +69,9 @@ function VirtualGatheringsContent() {
       const address = localStorage.getItem('wallet_address');
       if (address) {
         setUserWallet(address);
-        getProfileByWallet(address).then(setUserProfile).catch(() => null);
+        getProfileByWallet(address)
+          .then(setUserProfile)
+          .catch(() => null);
       }
     }
   }, []);
@@ -93,7 +95,9 @@ function VirtualGatheringsContent() {
 
       const wallet = userWallet || '';
       const gatheringsParams = `?community=${encodeURIComponent(community)}${wallet ? `&wallet=${encodeURIComponent(wallet)}` : ''}`;
-      const res = await fetch(`/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`);
+      const res = await fetch(
+        `/api/virtual-gatherings${appendBuilderModeParams(arkivBuilderMode, gatheringsParams)}`
+      );
       const data = await res.json();
 
       if (!data.ok) {
@@ -193,7 +197,7 @@ function VirtualGatheringsContent() {
     }
 
     if (rsvpStatus[gatheringKey]) {
-      alert('You have already RSVP\'d to this gathering');
+      alert("You have already RSVP'd to this gathering");
       return;
     }
 
@@ -215,11 +219,11 @@ function VirtualGatheringsContent() {
       }
 
       // Optimistically update RSVP status immediately
-      setRsvpStatus(prev => ({ ...prev, [gatheringKey]: true }));
-      
+      setRsvpStatus((prev) => ({ ...prev, [gatheringKey]: true }));
+
       // Wait for Arkiv to index the new RSVP entity before reloading
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       // Reload gatherings to get updated RSVP count and ensure consistency
       loadGatherings();
     } catch (err: any) {
@@ -248,39 +252,42 @@ function VirtualGatheringsContent() {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="relative min-h-screen">
       <BackgroundImage />
-      <div className="container mx-auto px-4 py-8 max-w-4xl relative z-10">
+      <div className="container relative z-10 mx-auto max-w-4xl px-4 py-8">
         <BackButton />
         <div className="mb-6">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="mb-2 flex items-center gap-3">
             <h1 className="text-3xl font-semibold text-gray-900 dark:text-gray-100">
               Virtual Gatherings
             </h1>
-            <div className="relative group">
-              <span className="text-sm text-gray-500 dark:text-gray-400 cursor-help">🔗</span>
-              <div className="absolute left-0 bottom-full mb-2 hidden group-hover:block w-48 p-2 bg-gray-900 dark:bg-gray-800 text-white text-xs rounded-lg shadow-lg z-50">
+            <div className="group relative">
+              <span className="cursor-help text-sm text-gray-500 dark:text-gray-400">🔗</span>
+              <div className="absolute bottom-full left-0 z-50 mb-2 hidden w-48 rounded-lg bg-gray-900 p-2 text-xs text-white shadow-lg group-hover:block dark:bg-gray-800">
                 On-chain feature · stored as Arkiv entities
-                <div className="absolute top-full left-4 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
+                <div className="absolute left-4 top-full h-0 w-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900 dark:border-t-gray-800"></div>
               </div>
             </div>
           </div>
-          <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-            Community virtual meetings. Anyone can suggest, anyone can RSVP. Jitsi room ready immediately.
+          <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+            Community virtual meetings. Anyone can suggest, anyone can RSVP. Jitsi room ready
+            immediately.
           </p>
-          
+
           {/* Community Filter */}
-          <div className="flex items-center gap-3 mb-4">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Community:</label>
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Community:
+            </label>
             <select
               value={community}
               onChange={(e) => setCommunity(e.target.value)}
-              className="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1 text-sm text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
             >
               <option value="beta_users">Beta Users</option>
             </select>
-            {userWallet && (
-              arkivBuilderMode ? (
+            {userWallet &&
+              (arkivBuilderMode ? (
                 <ArkivQueryTooltip
                   query={[
                     `Opens modal to create virtual gathering`,
@@ -288,13 +295,13 @@ function VirtualGatheringsContent() {
                     `Creates: type='virtual_gathering' entity`,
                     `Attributes: organizerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', community='${community}', title, sessionDate, duration`,
                     `Payload: Full gathering data (description, videoJoinUrl, videoRoomName)`,
-                    `TTL: sessionDate + duration + 1 hour buffer`
+                    `TTL: sessionDate + duration + 1 hour buffer`,
                   ]}
                   label="Suggest Gathering"
                 >
                   <button
                     onClick={() => setShowCreateModal(true)}
-                    className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                    className="ml-auto rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                   >
                     + Suggest Gathering
                   </button>
@@ -302,18 +309,17 @@ function VirtualGatheringsContent() {
               ) : (
                 <button
                   onClick={() => setShowCreateModal(true)}
-                  className="ml-auto px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                  className="ml-auto rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                 >
                   + Suggest Gathering
                 </button>
-              )
-            )}
+              ))}
           </div>
         </div>
 
         {/* Error State */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
           </div>
         )}
@@ -331,7 +337,7 @@ function VirtualGatheringsContent() {
                   `   → type='virtual_gathering_rsvp', wallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...' (for RSVP status)`,
                   `2. getProfileByWallet(...) for each organizer wallet`,
                   `   → type='user_profile', wallet='...'`,
-                  `Returns: VirtualGathering[] (all gatherings for community)`
+                  `Returns: VirtualGathering[] (all gatherings for community)`,
                 ]}
                 label="Loading Virtual Gatherings"
               >
@@ -345,27 +351,27 @@ function VirtualGatheringsContent() {
 
         {/* Empty State */}
         {!loading && gatherings.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+          <div className="flex flex-col items-center justify-center px-4 py-16 text-center">
             <div className="relative mb-6">
-              <div 
-                className="absolute inset-0 blur-2xl opacity-30"
+              <div
+                className="absolute inset-0 opacity-30 blur-2xl"
                 style={{
                   background: 'radial-gradient(circle, rgba(34, 197, 94, 0.4) 0%, transparent 70%)',
                   transform: 'translateY(20px)',
                 }}
               />
-              <div className="relative text-6xl animate-pulse">🌳</div>
+              <div className="relative animate-pulse text-6xl">🌳</div>
             </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+            <h3 className="mb-2 text-xl font-semibold text-gray-900 dark:text-gray-100">
               No gatherings scheduled yet
             </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-md">
+            <p className="mb-6 max-w-md text-sm text-gray-600 dark:text-gray-400">
               Be the first to suggest a community gathering.
             </p>
             {userWallet && (
               <button
                 onClick={() => setShowCreateModal(true)}
-                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors"
+                className="rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700"
               >
                 Suggest First Gathering
               </button>
@@ -378,47 +384,53 @@ function VirtualGatheringsContent() {
           <div className="space-y-4">
             {gatherings.map((gathering) => {
               const organizerProfile = getOrganizerProfile(gathering.organizerWallet);
-              const organizerName = organizerProfile?.displayName || organizerProfile?.username || gathering.organizerWallet.slice(0, 8) + '...';
+              const organizerName =
+                organizerProfile?.displayName ||
+                organizerProfile?.username ||
+                gathering.organizerWallet.slice(0, 8) + '...';
               const hasRsvpd = rsvpStatus[gathering.key] || false;
               const isPast = new Date(gathering.sessionDate).getTime() < Date.now();
 
               return (
                 <div
                   key={gathering.key}
-                  className="backdrop-blur-sm rounded-xl shadow-lg p-6 border border-gray-200/50 dark:border-gray-700/50 hover:shadow-xl hover:border-green-300/50 dark:hover:border-green-500/30 transition-all duration-300 relative overflow-hidden"
+                  className="relative overflow-hidden rounded-xl border border-gray-200/50 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-green-300/50 hover:shadow-xl dark:border-gray-700/50 dark:hover:border-green-500/30"
                 >
                   {/* Background gradients */}
-                  <div 
-                    className="dark:hidden absolute inset-0 -z-10"
+                  <div
+                    className="absolute inset-0 -z-10 dark:hidden"
                     style={{
-                      background: 'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98))',
+                      background:
+                        'linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.98))',
                     }}
                   />
-                  <div 
-                    className="hidden dark:block absolute inset-0 -z-10"
+                  <div
+                    className="absolute inset-0 -z-10 hidden dark:block"
                     style={{
-                      background: 'linear-gradient(to bottom, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.98))',
+                      background:
+                        'linear-gradient(to bottom, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.98))',
                     }}
                   />
-                  <div 
+                  <div
                     className="absolute inset-0 -z-10 opacity-30"
                     style={{
-                      background: 'radial-gradient(ellipse at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
+                      background:
+                        'radial-gradient(ellipse at center, rgba(34, 197, 94, 0.1) 0%, transparent 70%)',
                     }}
                   />
-                  
+
                   <div className="relative z-10">
                     {/* Header */}
-                    <div className="flex items-start justify-between mb-3">
+                    <div className="mb-3 flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                        <h3 className="mb-1 text-xl font-semibold text-gray-900 dark:text-gray-100">
                           {gathering.title}
                         </h3>
                         <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                           <span>Organized by</span>
                           <Link
                             href={`/profiles/${gathering.organizerWallet}`}
-                            className="font-medium hover:underline flex items-center gap-1"
+                            className="flex items-center gap-1 font-medium hover:underline"
                           >
                             <EmojiIdentitySeed profile={organizerProfile} size="sm" />
                             {organizerName}
@@ -437,21 +449,22 @@ function VirtualGatheringsContent() {
 
                     {/* Description */}
                     {gathering.description && (
-                      <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                      <p className="mb-4 text-sm text-gray-700 dark:text-gray-300">
                         {gathering.description}
                       </p>
                     )}
 
                     {/* Community Badge */}
                     <div className="mb-4">
-                      <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+                      <span className="inline-flex items-center rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
                         {gathering.community.replace('_', ' ')}
                       </span>
                     </div>
 
                     {/* RSVP Count */}
                     <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                      {gathering.rsvpCount || 0} {gathering.rsvpCount === 1 ? 'person' : 'people'} RSVP'd
+                      {gathering.rsvpCount || 0} {gathering.rsvpCount === 1 ? 'person' : 'people'}{' '}
+                      RSVP'd
                     </div>
 
                     {/* Actions */}
@@ -461,27 +474,29 @@ function VirtualGatheringsContent() {
                           href={gathering.videoJoinUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                          className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700"
                         >
                           Join Jitsi Room
                         </a>
                       )}
-                      {userWallet && !hasRsvpd && !isPast && (
-                        arkivBuilderMode ? (
+                      {userWallet &&
+                        !hasRsvpd &&
+                        !isPast &&
+                        (arkivBuilderMode ? (
                           <ArkivQueryTooltip
                             query={[
                               `POST /api/virtual-gatherings { action: 'rsvp', ... }`,
                               `Creates: type='virtual_gathering_rsvp' entity`,
                               `Attributes: gatheringKey='${gathering.key.slice(0, 12)}...', wallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...'`,
                               `Payload: Full RSVP data`,
-                              `TTL: sessionDate + duration + 1 hour buffer`
+                              `TTL: sessionDate + duration + 1 hour buffer`,
                             ]}
                             label="RSVP"
                           >
                             <button
                               onClick={() => handleRSVP(gathering.key)}
                               disabled={rsvping === gathering.key}
-                              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                              className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
                             >
                               {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
                             </button>
@@ -490,21 +505,24 @@ function VirtualGatheringsContent() {
                           <button
                             onClick={() => handleRSVP(gathering.key)}
                             disabled={rsvping === gathering.key}
-                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                            className="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
                           >
                             {rsvping === gathering.key ? 'RSVPing...' : 'RSVP'}
                           </button>
-                        )
-                      )}
+                        ))}
                       {hasRsvpd && (
-                        <span className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium">
+                        <span className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                           ✓ RSVP'd
                         </span>
                       )}
                       {arkivBuilderMode && gathering.key && (
                         <div className="flex items-center gap-2">
-                          <ViewOnArkivLink entityKey={gathering.key} txHash={gathering.txHash} className="text-xs" />
-                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                          <ViewOnArkivLink
+                            entityKey={gathering.key}
+                            txHash={gathering.txHash}
+                            className="text-xs"
+                          />
+                          <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                             {gathering.key.slice(0, 12)}...
                           </span>
                         </div>
@@ -522,66 +540,66 @@ function VirtualGatheringsContent() {
 
         {/* Create Modal */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
-              <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="mx-4 max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-white p-6 dark:bg-gray-800">
+              <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Suggest a Gathering
               </h3>
               <form onSubmit={handleCreateGathering}>
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Title <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       value={formTitle}
                       onChange={(e) => setFormTitle(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       placeholder="e.g., Beta Feedback Session"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Description
                     </label>
                     <textarea
                       value={formDescription}
                       onChange={(e) => setFormDescription(e.target.value)}
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                       placeholder="What's this gathering about?"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Date <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="date"
                         value={formDate}
                         onChange={(e) => setFormDate(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                      <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Time (UTC) <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="time"
                         value={formTime}
                         onChange={(e) => setFormTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                         required
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
+                    <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Duration (minutes)
                     </label>
                     <input
@@ -590,11 +608,11 @@ function VirtualGatheringsContent() {
                       onChange={(e) => setFormDuration(e.target.value)}
                       min="15"
                       max="240"
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
                     />
                   </div>
                 </div>
-                <div className="flex gap-3 justify-end mt-6">
+                <div className="mt-6 flex justify-end gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -605,7 +623,7 @@ function VirtualGatheringsContent() {
                       setFormTime('');
                       setFormDuration('60');
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
+                    className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Cancel
                   </button>
@@ -616,14 +634,14 @@ function VirtualGatheringsContent() {
                         `Creates: type='virtual_gathering' entity`,
                         `Attributes: organizerWallet='${userWallet?.toLowerCase().slice(0, 8) || '...'}...', community='${community}', title, sessionDate, duration`,
                         `Payload: Full gathering data (description, videoJoinUrl, videoRoomName)`,
-                        `TTL: sessionDate + duration + 1 hour buffer`
+                        `TTL: sessionDate + duration + 1 hour buffer`,
                       ]}
                       label="Create Gathering"
                     >
                       <button
                         type="submit"
                         disabled={submitting}
-                        className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                       >
                         {submitting ? 'Creating...' : 'Create Gathering'}
                       </button>
@@ -632,7 +650,7 @@ function VirtualGatheringsContent() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-50"
+                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
                     >
                       {submitting ? 'Creating...' : 'Create Gathering'}
                     </button>
@@ -649,11 +667,13 @@ function VirtualGatheringsContent() {
 
 export default function VirtualGatheringsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <LoadingSpinner />
+        </div>
+      }
+    >
       <VirtualGatheringsContent />
     </Suspense>
   );

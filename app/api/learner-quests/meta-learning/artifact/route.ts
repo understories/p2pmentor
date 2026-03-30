@@ -25,28 +25,36 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
 
   try {
     const body = await request.json();
-    const {
-      wallet,
-      questId,
-      stepId,
-      artifactType,
-      targetKey,
-      ttlSeconds,
-      idempotencyKey,
-      data,
-    } = body;
+    const { wallet, questId, stepId, artifactType, targetKey, ttlSeconds, idempotencyKey, data } =
+      body;
 
     // Validate required fields
-    if (!wallet || !questId || !stepId || !artifactType || !targetKey || !ttlSeconds || !idempotencyKey || !data) {
+    if (
+      !wallet ||
+      !questId ||
+      !stepId ||
+      !artifactType ||
+      !targetKey ||
+      !ttlSeconds ||
+      !idempotencyKey ||
+      !data
+    ) {
       return NextResponse.json(
-        { ok: false, error: 'Missing required fields: wallet, questId, stepId, artifactType, targetKey, ttlSeconds, idempotencyKey, data' },
+        {
+          ok: false,
+          error:
+            'Missing required fields: wallet, questId, stepId, artifactType, targetKey, ttlSeconds, idempotencyKey, data',
+        },
         { status: 400 }
       );
     }
@@ -62,10 +70,7 @@ export async function POST(request: NextRequest) {
     // Use server-side private key for entity creation
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Server configuration error' }, { status: 500 });
     }
 
     const result = await createMetaLearningArtifact({
@@ -81,10 +86,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result) {
-      return NextResponse.json(
-        { ok: false, error: 'Failed to create artifact' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Failed to create artifact' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -104,4 +106,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

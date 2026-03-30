@@ -13,6 +13,7 @@ Each card shows a food item or action. Practice saying what you like to eat and 
 ## Food Categories
 
 You'll learn:
+
 - **Drinks**: water, tea
 - **Staples**: rice, noodles
 - **Food types**: vegetables, meat, fruit

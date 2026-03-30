@@ -1,8 +1,8 @@
 /**
  * Passkey Feature Flag API
- * 
+ *
  * Exposes passkey login feature flag status for client-side pages.
- * 
+ *
  * GET /api/passkey/feature-flag
  */
 
@@ -14,4 +14,3 @@ export async function GET() {
     enabled: isPasskeyLoginEnabled(),
   });
 }
-

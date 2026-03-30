@@ -11,12 +11,14 @@ Wallet addresses must be normalized to lowercase for storage and query operation
 ## When to Use
 
 **Always apply this pattern when:**
+
 - Storing wallet addresses in entity attributes
 - Querying entities by wallet address
 - Comparing wallet addresses for equality
 - Using wallet addresses as keys or identifiers
 
 **Display formatting:**
+
 - Display can use checksum formatting (EIP-55) for user-facing UI
 - Never use display formatting as key material or in queries
 
@@ -53,22 +55,25 @@ Wallet addresses must be normalized to lowercase for storage and query operation
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/profile.ts` - `getProfileByWallet()` normalizes: `wallet.trim().toLowerCase()`
 - `lib/identity/rootIdentity.ts` - `normalizeIdentity()` helper function
 - All entity creation functions normalize wallet in attributes
 - All query functions normalize wallet before querying
 
 **Code examples:**
+
 ```typescript
 // Entity creation
 attributes: [
   { key: 'wallet', value: wallet.toLowerCase() },
   // ...
-]
+];
 
 // Querying
 const normalizedWallet = wallet.toLowerCase();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', normalizedWallet))
   .fetch();
@@ -107,4 +112,3 @@ export function normalizeIdentity(identity: string): string {
 - [Query Optimization](./query-optimization.md) - Wallet normalization is required for indexed queries
 - [PAT-SPACE-001: Space ID as Environment Boundary](../arkiv-patterns-catalog.md#pat-space-001-space-id-as-environment-boundary) - Both use normalized attributes
 - [PAT-REF-001: Relationship References](../arkiv-patterns-catalog.md#pat-ref-001-relationship-references-that-survive-updates) - Normalized wallets ensure stable references
-

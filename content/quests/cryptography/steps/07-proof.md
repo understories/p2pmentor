@@ -15,6 +15,7 @@ Choose one to create:
 ## Proof Requirements
 
 Your proof must include:
+
 - **Type:** Hash, Signature, or Keypair
 - **Artifact:** The cryptographic output
 - **Context:** What it proves (e.g., "Hash of my learning commitment")
@@ -24,16 +25,19 @@ Your proof must include:
 **Type:** Signature Proof
 
 **Message:**
+
 ```
 "I completed the cryptography quest on [date]"
 ```
 
 **Public Key:**
+
 ```
 [Your public key]
 ```
 
 **Signature:**
+
 ```
 [Your signature]
 ```
@@ -45,6 +49,7 @@ Your proof must include:
 [Submission form]
 
 Enter:
+
 - Proof type
 - Artifact (hash/signature/public key)
 - Context/description
@@ -52,6 +57,7 @@ Enter:
 ## Why This Matters
 
 Creating proofs demonstrates:
+
 - You understand the concepts
 - You can use the tools
 - You can create verifiable evidence

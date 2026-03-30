@@ -13,11 +13,13 @@ Now you'll use your private key to sign a message, then verify it with your publ
 [Interactive signing component]
 
 **Your Message:**
+
 ```
 [User-entered message]
 ```
 
 **Your Signature:**
+
 ```
 [Generated signature]
 ```
@@ -32,6 +34,7 @@ Now you'll use your private key to sign a message, then verify it with your publ
 [Interactive verification component]
 
 **Verification Result:**
+
 - ✅ Valid signature (message matches, signature is authentic)
 - ❌ Invalid signature (message was modified or signature is fake)
 
@@ -45,6 +48,7 @@ Now you'll use your private key to sign a message, then verify it with your publ
 ## Real-World Example
 
 **Blockchain Transaction:**
+
 ```
 Message: "Send 0.1 ETH to 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
 Signature: [cryptographic signature]

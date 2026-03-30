@@ -5,11 +5,13 @@
 ### user_profile
 
 **Attributes:**
+
 - `type`: 'user_profile'
 - `wallet`: Wallet address (lowercase)
 - `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 
 **Payload:**
+
 - `displayName`: Display name
 - `username`: Unique username (optional)
 - `profileImage`: Profile image URL
@@ -43,6 +45,7 @@
 - `lastActiveTimestamp`: ISO timestamp of last activity
 
 **Notes:**
+
 - Updates use Pattern B (updateEntity with stable entity_key)
 - Same entity_key is reused for all updates, preserving identity
 - Full transaction history is preserved on-chain
@@ -51,6 +54,7 @@
 ### ask
 
 **Attributes:**
+
 - `type`: 'ask'
 - `wallet`: Wallet address (lowercase)
 - `skill`: Skill name
@@ -60,18 +64,22 @@
 - `ttlSeconds`: TTL in seconds (default: 3600)
 
 **Payload:**
+
 - `message`: Ask description
 
 **Additional fields (beta):**
+
 - `skill_id`: Skill entity key (preferred over `skill` attribute)
 - `skill_label`: Skill display name (derived, readonly)
 
 **Supporting entity:**
+
 - `ask_txhash`: Transaction hash tracking, linked via `askKey` attribute
 
 ### offer
 
 **Attributes:**
+
 - `type`: 'offer'
 - `wallet`: Wallet address (lowercase)
 - `skill`: Skill name
@@ -81,10 +89,12 @@
 - `ttlSeconds`: TTL in seconds (default: 7200)
 
 **Payload:**
+
 - `message`: Offer description
 - `availabilityWindow`: Availability description
 
 **Additional fields (beta):**
+
 - `skill_id`: Skill entity key (preferred over `skill` attribute)
 - `skill_label`: Skill display name (derived, readonly)
 - `availabilityKey`: Reference to Availability entity key (optional)
@@ -93,11 +103,13 @@
 - `paymentAddress`: Payment receiving address (required if paid)
 
 **Supporting entity:**
+
 - `offer_txhash`: Transaction hash tracking, linked via `offerKey` attribute
 
 ### session
 
 **Attributes:**
+
 - `type`: 'session'
 - `mentorWallet`: Mentor wallet address (lowercase)
 - `learnerWallet`: Learner wallet address (lowercase)
@@ -106,6 +118,7 @@
 - `createdAt`: ISO timestamp
 
 **Payload:**
+
 - `sessionDate`: ISO timestamp when session is/was scheduled
 - `duration`: Duration in minutes (default: 60)
 - `notes`: Optional notes
@@ -114,6 +127,7 @@
 - `cost`: Cost amount (if paid)
 
 **Supporting entities:**
+
 - `session_txhash`: Transaction hash tracking, linked via `sessionKey`
 - `session_confirmation`: Confirmation from mentor or learner, linked via `sessionKey`
 - `session_rejection`: Rejection/cancellation, linked via `sessionKey`
@@ -122,12 +136,14 @@
 - `session_payment_validation`: Payment validation from mentor, linked via `sessionKey`
 
 **Additional fields (beta):**
+
 - `skill_id`: Skill entity key (preferred over `skill` attribute)
 - `gatheringKey`: Virtual gathering entity key (for community sessions)
 - `gatheringTitle`: Virtual gathering title
 - `community`: Skill slug/community name (for virtual gatherings)
 
 **Status computation:**
+
 - `pending`: Created but not confirmed by both parties
 - `scheduled`: Both parties confirmed
 - `in-progress`: Session time has started
@@ -135,6 +151,7 @@
 - `cancelled`: Rejected by either party
 
 **Expiration:**
+
 - `sessionDate + duration + 1 hour buffer`
 
 ## Supporting entities
@@ -142,6 +159,7 @@
 ### skill
 
 **Attributes:**
+
 - `type`: 'skill'
 - `name_canonical`: Display name (e.g., "Spanish")
 - `slug`: Normalized key (e.g., "spanish")
@@ -151,9 +169,11 @@
 - `created_by_profile`: Wallet address of creator (optional)
 
 **Payload:**
+
 - `description`: Skill description (optional)
 
 **Notes:**
+
 - First-class entity for beta
 - Profiles reference skills via `skill_ids` array (entity keys)
 - Expires after 1 year (31536000 seconds)
@@ -161,6 +181,7 @@
 ### availability
 
 **Attributes:**
+
 - `type`: 'availability'
 - `wallet`: Wallet address (lowercase)
 - `timezone`: IANA timezone (e.g., "America/New_York")
@@ -169,11 +190,13 @@
 - `createdAt`: ISO timestamp
 
 **Payload:**
+
 - `timeBlocks`: JSON string (WeeklyAvailability) or legacy text
 - `timezone`: IANA timezone
 - `createdAt`: ISO timestamp
 
 **Notes:**
+
 - Supports structured (v1.0) and legacy text formats
 - Expires after 30 days (2592000 seconds)
 - Deletion via `availability_deletion` marker entity
@@ -181,6 +204,7 @@
 ### session_feedback
 
 **Attributes:**
+
 - `type`: 'session_feedback'
 - `sessionKey`: Session entity key
 - `mentorWallet`: Mentor wallet address
@@ -192,18 +216,21 @@
 - `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
+
 - `rating`: Rating 1-5 (optional)
 - `notes`: Qualitative feedback text
 - `technicalDxFeedback`: Technical developer experience feedback
 - `createdAt`: ISO timestamp
 
 **Notes:**
+
 - Expires after 1 year (31536000 seconds)
 - Validation: Only session participants can give feedback
 
 ### app_feedback
 
 **Attributes:**
+
 - `type`: 'app_feedback'
 - `wallet`: Feedback author wallet
 - `page`: Page where feedback was given
@@ -213,16 +240,19 @@
 - `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
+
 - `message`: Feedback message
 - `rating`: Rating 1-5 (optional)
 - `createdAt`: ISO timestamp
 
 **Notes:**
+
 - Expires after 1 year (31536000 seconds)
 
 ### virtual_gathering
 
 **Attributes:**
+
 - `type`: 'virtual_gathering'
 - `organizerWallet`: Organizer wallet address
 - `community`: Community identifier (e.g., skill slug)
@@ -230,6 +260,7 @@
 - `createdAt`: ISO timestamp
 
 **Payload:**
+
 - `title`: Gathering title
 - `description`: Gathering description
 - `sessionDate`: ISO timestamp when gathering is scheduled
@@ -237,12 +268,14 @@
 - `videoJoinUrl`: Jitsi join URL (generated immediately)
 
 **Notes:**
+
 - Jitsi URL generated immediately (no confirmation needed)
 - RSVP via session entities with special handling
 
 ### dx_metric
 
 **Attributes:**
+
 - `type`: 'dx_metric'
 - `source`: 'arkiv' | 'graphql'
 - `operation`: Operation name
@@ -251,6 +284,7 @@
 - `createdAt`: ISO timestamp
 
 **Payload:**
+
 - `durationMs`: Duration in milliseconds
 - `payloadBytes`: Payload size in bytes (optional)
 - `httpRequests`: Number of HTTP requests (optional)
@@ -259,6 +293,7 @@
 - `usedFallback`: Whether fallback was used (optional)
 
 **Notes:**
+
 - Performance metrics stored on-chain for verifiability
 - Expires after 1 year (31536000 seconds)
 

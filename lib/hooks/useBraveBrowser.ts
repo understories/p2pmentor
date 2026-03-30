@@ -1,12 +1,12 @@
 /**
  * Hook to detect Brave browser
- * 
+ *
  * PRESERVED FOR FUTURE USE: This hook is currently disabled due to issues.
  * It can be re-enabled when needed by uncommenting the import and usage in AppShell.tsx
- * 
+ *
  * Brave browser has a unique user agent and navigator.brave property.
  * This hook detects Brave and returns a boolean.
- * 
+ *
  * Reference: https://brave.com/privacy/browser/
  */
 
@@ -44,4 +44,3 @@ export function useBraveBrowser(): boolean {
 
   return isBrave;
 }
-

@@ -1,6 +1,6 @@
 /**
  * Matches page
- * 
+ *
  * Browse skill matches between asks and offers.
  * Design matches asks/offers pages.
  */
@@ -68,17 +68,19 @@ export default function MatchesPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      
+
       // Load asks, offers, and skills in parallel
       const builderParams = buildBuilderModeParams(arkivBuilderMode);
       const [asksRes, offersRes, skillsRes] = await Promise.all([
-        fetch(`/api/asks${builderParams}`).then(r => r.json()),
-        fetch(`/api/offers${builderParams}`).then(r => r.json()),
-        fetch(`/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`).then(r => r.json()),
+        fetch(`/api/asks${builderParams}`).then((r) => r.json()),
+        fetch(`/api/offers${builderParams}`).then((r) => r.json()),
+        fetch(
+          `/api/skills${builderParams ? builderParams.replace('?', '&') : '?'}status=active&limit=200`
+        ).then((r) => r.json()),
       ]);
 
-      const asks: Ask[] = asksRes.ok ? (asksRes.asks || []) : [];
-      const offers: Offer[] = offersRes.ok ? (offersRes.offers || []) : [];
+      const asks: Ask[] = asksRes.ok ? asksRes.asks || [] : [];
+      const offers: Offer[] = offersRes.ok ? offersRes.offers || [] : [];
 
       // Build skills map
       if (skillsRes.ok && skillsRes.skills) {
@@ -136,13 +138,20 @@ export default function MatchesPage() {
             if (ask.skill_id === offer.skill_id) {
               isMatch = true;
               skillId = ask.skill_id;
-              skillMatchLabel = skills[ask.skill_id]?.name_canonical || ask.skill_label || ask.skill;
+              skillMatchLabel =
+                skills[ask.skill_id]?.name_canonical || ask.skill_label || ask.skill;
             }
           } else if (ask.skill_id || offer.skill_id) {
             // One has skill_id, one doesn't: try to match by skill string
             const askSkill = (ask.skill || '').toLowerCase();
             const offerSkill = (offer.skill || '').toLowerCase();
-            if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+            if (
+              askSkill &&
+              offerSkill &&
+              (askSkill === offerSkill ||
+                askSkill.includes(offerSkill) ||
+                offerSkill.includes(askSkill))
+            ) {
               isMatch = true;
               skillId = ask.skill_id || offer.skill_id;
               skillMatchLabel = ask.skill || offer.skill;
@@ -151,7 +160,13 @@ export default function MatchesPage() {
             // Both use legacy skill string: case-insensitive, partial match
             const askSkill = (ask.skill || '').toLowerCase();
             const offerSkill = (offer.skill || '').toLowerCase();
-            if (askSkill && offerSkill && (askSkill === offerSkill || askSkill.includes(offerSkill) || offerSkill.includes(askSkill))) {
+            if (
+              askSkill &&
+              offerSkill &&
+              (askSkill === offerSkill ||
+                askSkill.includes(offerSkill) ||
+                offerSkill.includes(askSkill))
+            ) {
               isMatch = true;
               skillMatchLabel = ask.skill;
             }
@@ -181,7 +196,7 @@ export default function MatchesPage() {
 
       // Compute user matches (matches involving user's asks or offers)
       if (walletAddress) {
-        const userMatchesList = matchesList.filter(match => {
+        const userMatchesList = matchesList.filter((match) => {
           const isUserAsk = match.ask.wallet.toLowerCase() === walletAddress.toLowerCase();
           const isUserOffer = match.offer.wallet.toLowerCase() === walletAddress.toLowerCase();
           return isUserAsk || isUserOffer;
@@ -211,7 +226,7 @@ export default function MatchesPage() {
 
   const formatTimeRemaining = (createdAt: string, ttlSeconds: number) => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     const now = Date.now();
     const remaining = expires - now;
 
@@ -236,7 +251,7 @@ export default function MatchesPage() {
 
   const isExpired = (createdAt: string, ttlSeconds: number): boolean => {
     const created = new Date(createdAt).getTime();
-    const expires = created + (ttlSeconds * 1000);
+    const expires = created + ttlSeconds * 1000;
     return Date.now() >= expires;
   };
 
@@ -267,8 +282,8 @@ export default function MatchesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
@@ -285,7 +300,7 @@ export default function MatchesPage() {
                 `   → type='skill', status='active'`,
                 `4. getProfileByWallet(...) for each unique wallet`,
                 `   → type='user_profile', wallet='...'`,
-                `Returns: Match[] (computed from matching asks and offers by skill)`
+                `Returns: Match[] (computed from matching asks and offers by skill)`,
               ]}
               label="Loading Matches"
             >
@@ -304,25 +319,23 @@ export default function MatchesPage() {
 
   return (
     <BetaGate>
-      <div className="min-h-screen text-gray-900 dark:text-gray-100 p-4">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen p-4 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <div className="mb-6">
             <BackButton href="/network" />
           </div>
 
-          <div className="flex items-center justify-between mb-6">
+          <div className="mb-6 flex items-center justify-between">
             <div className="flex-1">
               <PageHeader
-                title={userMatches.length > 0 ? "Your Matches" : "Matches"}
+                title={userMatches.length > 0 ? 'Your Matches' : 'Matches'}
                 description="Skill matches between learning requests and teaching offers."
               />
               {displayMatches.length > 0 && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
                   {displayMatches.length} {displayMatches.length === 1 ? 'match' : 'matches'}
                   {userMatches.length > 0 && matches.length > userMatches.length && (
-                    <span className="ml-2 text-gray-500">
-                      ({matches.length} total)
-                    </span>
+                    <span className="ml-2 text-gray-500">({matches.length} total)</span>
                   )}
                 </p>
               )}
@@ -349,24 +362,29 @@ export default function MatchesPage() {
               description={
                 userMatches.length === 0 && walletAddress
                   ? "You don't have any matches yet. Create an ask or offer to find matches!"
-                  : "No matches found between asks and offers yet."
+                  : 'No matches found between asks and offers yet.'
               }
             />
           ) : (
             <div className="space-y-6">
               {displayMatches.map((match, index) => {
                 const askExpired = isExpired(match.ask.createdAt, match.ask.ttlSeconds || 86400);
-                const offerExpired = isExpired(match.offer.createdAt, match.offer.ttlSeconds || 86400);
-                const isUserAsk = walletAddress && match.ask.wallet.toLowerCase() === walletAddress.toLowerCase();
-                const isUserOffer = walletAddress && match.offer.wallet.toLowerCase() === walletAddress.toLowerCase();
+                const offerExpired = isExpired(
+                  match.offer.createdAt,
+                  match.offer.ttlSeconds || 86400
+                );
+                const isUserAsk =
+                  walletAddress && match.ask.wallet.toLowerCase() === walletAddress.toLowerCase();
+                const isUserOffer =
+                  walletAddress && match.offer.wallet.toLowerCase() === walletAddress.toLowerCase();
 
                 return (
                   <div
                     key={`${match.ask.key}-${match.offer.key}-${index}`}
-                    className="p-6 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:shadow-lg transition-shadow"
+                    className="rounded-lg border border-gray-200 bg-white p-6 transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-800"
                   >
                     {/* Match Header */}
-                    <div className="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+                    <div className="mb-4 border-b border-gray-200 pb-4 dark:border-gray-700">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <span className="text-2xl">✨</span>
@@ -377,7 +395,7 @@ export default function MatchesPage() {
                         {arkivBuilderMode && match.skillId && (
                           <div className="flex items-center gap-2">
                             <ViewOnArkivLink entityKey={match.skillId} className="text-xs" />
-                            <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                            <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                               {match.skillId.slice(0, 12)}...
                             </span>
                           </div>
@@ -389,39 +407,50 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Ask and Offer Side by Side */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                       {/* Ask Card */}
-                      <div className={`p-4 rounded-lg border ${askExpired ? 'border-gray-300 dark:border-gray-600 opacity-60' : askColors.border} ${askColors.card}`}>
-                        <div className="flex items-start justify-between mb-2">
+                      <div
+                        className={`rounded-lg border p-4 ${askExpired ? 'border-gray-300 opacity-60 dark:border-gray-600' : askColors.border} ${askColors.card}`}
+                      >
+                        <div className="mb-2 flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             <span>{askEmojis.default}</span>
                             <h4 className="font-semibold text-gray-900 dark:text-gray-100">Ask</h4>
                             {isUserAsk && (
-                              <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                              <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                 You
                               </span>
                             )}
                           </div>
                           {askExpired && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Expired</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Expired
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                        <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
                           {match.ask.message}
                         </p>
-                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        <div className="mb-2 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                           <span>
                             {match.askProfile?.displayName || shortenWallet(match.ask.wallet)}
                           </span>
                           <span>
-                            {formatTimeRemaining(match.ask.createdAt, match.ask.ttlSeconds || 86400)}
+                            {formatTimeRemaining(
+                              match.ask.createdAt,
+                              match.ask.ttlSeconds || 86400
+                            )}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           {arkivBuilderMode && match.ask.key && (
                             <div className="flex items-center gap-2">
-                              <ViewOnArkivLink entityKey={match.ask.key} txHash={match.ask.txHash} className="text-xs" />
-                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              <ViewOnArkivLink
+                                entityKey={match.ask.key}
+                                txHash={match.ask.txHash}
+                                className="text-xs"
+                              />
+                              <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                                 {match.ask.key.slice(0, 12)}...
                               </span>
                             </div>
@@ -429,8 +458,10 @@ export default function MatchesPage() {
                           {!arkivBuilderMode && (
                             <ViewOnArkivLink entityKey={match.ask.key} className="text-xs" />
                           )}
-                          {!isUserAsk && !askExpired && walletAddress && (
-                            arkivBuilderMode ? (
+                          {!isUserAsk &&
+                            !askExpired &&
+                            walletAddress &&
+                            (arkivBuilderMode ? (
                               <ArkivQueryTooltip
                                 query={[
                                   `Opens RequestMeetingModal to create session`,
@@ -438,13 +469,13 @@ export default function MatchesPage() {
                                   `Creates: type='session' entity`,
                                   `Attributes: mentorWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', learnerWallet='${match.ask.wallet.toLowerCase().slice(0, 8)}...', skill`,
                                   `Payload: Full session data`,
-                                  `TTL: sessionDate + duration + 1 hour buffer`
+                                  `TTL: sessionDate + duration + 1 hour buffer`,
                                 ]}
                                 label="Request Meeting"
                               >
                                 <button
                                   onClick={() => handleRequestMeeting(match, 'ask')}
-                                  className={`text-xs px-3 py-1 rounded ${askColors.button} transition-colors`}
+                                  className={`rounded px-3 py-1 text-xs ${askColors.button} transition-colors`}
                                 >
                                   Request Meeting
                                 </button>
@@ -452,47 +483,59 @@ export default function MatchesPage() {
                             ) : (
                               <button
                                 onClick={() => handleRequestMeeting(match, 'ask')}
-                                className={`text-xs px-3 py-1 rounded ${askColors.button} transition-colors`}
+                                className={`rounded px-3 py-1 text-xs ${askColors.button} transition-colors`}
                               >
                                 Request Meeting
                               </button>
-                            )
-                          )}
+                            ))}
                         </div>
                       </div>
 
                       {/* Offer Card */}
-                      <div className={`p-4 rounded-lg border ${offerExpired ? 'border-gray-300 dark:border-gray-600 opacity-60' : offerColors.border} ${offerColors.card}`}>
-                        <div className="flex items-start justify-between mb-2">
+                      <div
+                        className={`rounded-lg border p-4 ${offerExpired ? 'border-gray-300 opacity-60 dark:border-gray-600' : offerColors.border} ${offerColors.card}`}
+                      >
+                        <div className="mb-2 flex items-start justify-between">
                           <div className="flex items-center gap-2">
                             <span>{offerEmojis.default}</span>
-                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">Offer</h4>
+                            <h4 className="font-semibold text-gray-900 dark:text-gray-100">
+                              Offer
+                            </h4>
                             {isUserOffer && (
-                              <span className="text-xs px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                              <span className="rounded bg-blue-100 px-2 py-0.5 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
                                 You
                               </span>
                             )}
                           </div>
                           {offerExpired && (
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Expired</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              Expired
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                        <p className="mb-3 text-sm text-gray-700 dark:text-gray-300">
                           {match.offer.message}
                         </p>
-                        <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-2">
+                        <div className="mb-2 flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                           <span>
                             {match.offerProfile?.displayName || shortenWallet(match.offer.wallet)}
                           </span>
                           <span>
-                            {formatTimeRemaining(match.offer.createdAt, match.offer.ttlSeconds || 86400)}
+                            {formatTimeRemaining(
+                              match.offer.createdAt,
+                              match.offer.ttlSeconds || 86400
+                            )}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           {arkivBuilderMode && match.offer.key && (
                             <div className="flex items-center gap-2">
-                              <ViewOnArkivLink entityKey={match.offer.key} txHash={match.offer.txHash} className="text-xs" />
-                              <span className="text-xs text-gray-400 dark:text-gray-500 font-mono">
+                              <ViewOnArkivLink
+                                entityKey={match.offer.key}
+                                txHash={match.offer.txHash}
+                                className="text-xs"
+                              />
+                              <span className="font-mono text-xs text-gray-400 dark:text-gray-500">
                                 {match.offer.key.slice(0, 12)}...
                               </span>
                             </div>
@@ -500,8 +543,10 @@ export default function MatchesPage() {
                           {!arkivBuilderMode && (
                             <ViewOnArkivLink entityKey={match.offer.key} className="text-xs" />
                           )}
-                          {!isUserOffer && !offerExpired && walletAddress && (
-                            arkivBuilderMode ? (
+                          {!isUserOffer &&
+                            !offerExpired &&
+                            walletAddress &&
+                            (arkivBuilderMode ? (
                               <ArkivQueryTooltip
                                 query={[
                                   `Opens RequestMeetingModal to create session`,
@@ -509,13 +554,13 @@ export default function MatchesPage() {
                                   `Creates: type='session' entity`,
                                   `Attributes: mentorWallet='${match.offer.wallet.toLowerCase().slice(0, 8)}...', learnerWallet='${walletAddress?.toLowerCase().slice(0, 8) || '...'}...', skill`,
                                   `Payload: Full session data`,
-                                  `TTL: sessionDate + duration + 1 hour buffer`
+                                  `TTL: sessionDate + duration + 1 hour buffer`,
                                 ]}
                                 label="Request Meeting"
                               >
                                 <button
                                   onClick={() => handleRequestMeeting(match, 'offer')}
-                                  className={`text-xs px-3 py-1 rounded ${offerColors.button} transition-colors`}
+                                  className={`rounded px-3 py-1 text-xs ${offerColors.button} transition-colors`}
                                 >
                                   Request Meeting
                                 </button>
@@ -523,12 +568,11 @@ export default function MatchesPage() {
                             ) : (
                               <button
                                 onClick={() => handleRequestMeeting(match, 'offer')}
-                                className={`text-xs px-3 py-1 rounded ${offerColors.button} transition-colors`}
+                                className={`rounded px-3 py-1 text-xs ${offerColors.button} transition-colors`}
                               >
                                 Request Meeting
                               </button>
-                            )
-                          )}
+                            ))}
                         </div>
                       </div>
                     </div>
@@ -570,4 +614,3 @@ export default function MatchesPage() {
     </BetaGate>
   );
 }
-

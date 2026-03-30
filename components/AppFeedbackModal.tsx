@@ -1,9 +1,9 @@
 /**
  * App Feedback Modal
- * 
+ *
  * User-facing feedback form for app feedback (to builders/admin).
  * Separate from session feedback (peer-to-peer).
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 4.1
  */
 
@@ -17,11 +17,7 @@ interface AppFeedbackModalProps {
   userWallet: string | null;
 }
 
-export function AppFeedbackModal({
-  isOpen,
-  onClose,
-  userWallet,
-}: AppFeedbackModalProps) {
+export function AppFeedbackModal({ isOpen, onClose, userWallet }: AppFeedbackModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -113,58 +109,73 @@ export function AppFeedbackModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full p-6">
-        <div className="flex justify-between items-center mb-4">
+      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+        <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
             {formData.feedbackType === 'issue' ? 'Report an Issue' : 'Share Your Feedback'}
           </h2>
           <button
             onClick={handleClose}
             disabled={submitting}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 disabled:opacity-50"
+            className="text-gray-400 hover:text-gray-600 disabled:opacity-50 dark:hover:text-gray-300"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
 
         {success ? (
-          <div className="text-center py-8">
-            <div className="text-green-600 dark:text-green-400 text-5xl mb-4">✓</div>
-            <p className="text-gray-900 dark:text-gray-100 font-medium">
+          <div className="py-8 text-center">
+            <div className="mb-4 text-5xl text-green-600 dark:text-green-400">✓</div>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
               Thank you for your feedback!
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
               Your feedback helps us improve p2pmentor.
             </p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 Type
               </label>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
                     name="feedbackType"
                     value="feedback"
                     checked={formData.feedbackType === 'feedback'}
-                    onChange={(e) => setFormData({ ...formData, feedbackType: e.target.value as 'feedback' | 'issue' })}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        feedbackType: e.target.value as 'feedback' | 'issue',
+                      })
+                    }
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Feedback</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex cursor-pointer items-center gap-2">
                   <input
                     type="radio"
                     name="feedbackType"
                     value="issue"
                     checked={formData.feedbackType === 'issue'}
-                    onChange={(e) => setFormData({ ...formData, feedbackType: e.target.value as 'feedback' | 'issue' })}
-                    className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        feedbackType: e.target.value as 'feedback' | 'issue',
+                      })
+                    }
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500"
                   />
                   <span className="text-sm text-gray-700 dark:text-gray-300">Report Issue</span>
                 </label>
@@ -172,7 +183,7 @@ export function AppFeedbackModal({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
                 How would you rate your experience? (Optional)
               </label>
               <div className="flex gap-2">
@@ -181,10 +192,10 @@ export function AppFeedbackModal({
                     key={rating}
                     type="button"
                     onClick={() => setFormData({ ...formData, rating })}
-                    className={`w-10 h-10 rounded-lg border-2 transition-colors ${
+                    className={`h-10 w-10 rounded-lg border-2 transition-colors ${
                       formData.rating >= rating
-                        ? 'bg-yellow-400 border-yellow-500 dark:bg-yellow-500 dark:border-yellow-400'
-                        : 'bg-gray-100 border-gray-300 dark:bg-gray-700 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        ? 'border-yellow-500 bg-yellow-400 dark:border-yellow-400 dark:bg-yellow-500'
+                        : 'border-gray-300 bg-gray-100 hover:bg-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600'
                     }`}
                   >
                     ⭐
@@ -194,43 +205,50 @@ export function AppFeedbackModal({
             </div>
 
             <div>
-              <label htmlFor="message" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              <label
+                htmlFor="message"
+                className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
                 Your Feedback {formData.rating === 0 && <span className="text-red-500">*</span>}
-                {formData.rating > 0 && <span className="text-gray-500 text-xs font-normal">(optional)</span>}
+                {formData.rating > 0 && (
+                  <span className="text-xs font-normal text-gray-500">(optional)</span>
+                )}
               </label>
               <textarea
                 id="message"
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 rows={4}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                placeholder={formData.feedbackType === 'issue' 
-                  ? "Describe the issue you encountered, steps to reproduce, and any error messages... (optional if you provided a rating)"
-                  : "Tell us what you think about p2pmentor, what works well, what could be improved... (optional if you provided a rating)"}
+                className="w-full resize-none rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+                placeholder={
+                  formData.feedbackType === 'issue'
+                    ? 'Describe the issue you encountered, steps to reproduce, and any error messages... (optional if you provided a rating)'
+                    : 'Tell us what you think about p2pmentor, what works well, what could be improved... (optional if you provided a rating)'
+                }
               />
             </div>
 
-            {error && (
-              <div className="text-red-600 dark:text-red-400 text-sm">
-                {error}
-              </div>
-            )}
+            {error && <div className="text-sm text-red-600 dark:text-red-400">{error}</div>}
 
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={handleClose}
                 disabled={submitting}
-                className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting || (!formData.message.trim() && formData.rating === 0)}
-                className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {submitting ? 'Submitting...' : formData.feedbackType === 'issue' ? 'Report Issue' : 'Submit Feedback'}
+                {submitting
+                  ? 'Submitting...'
+                  : formData.feedbackType === 'issue'
+                    ? 'Report Issue'
+                    : 'Submit Feedback'}
               </button>
             </div>
           </form>
@@ -239,4 +257,3 @@ export function AppFeedbackModal({
     </div>
   );
 }
-

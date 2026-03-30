@@ -1,13 +1,13 @@
 /**
  * Notification Preferences API route
- * 
+ *
  * Handles CRUD operations for notification preferences (read/unread state).
  * Stores preferences as Arkiv entities for persistence.
  */
 
 import { NextResponse } from 'next/server';
-import { 
-  upsertNotificationPreference, 
+import {
+  upsertNotificationPreference,
   listNotificationPreferences,
   getNotificationPreference,
 } from '@/lib/arkiv/notificationPreferences';
@@ -15,7 +15,7 @@ import { getPrivateKey, CURRENT_WALLET, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/notifications/preferences
- * 
+ *
  * Query params:
  * - wallet: User wallet address
  * - notificationId: Specific notification ID (optional)
@@ -29,11 +29,21 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const wallet = searchParams.get('wallet');
     const notificationId = searchParams.get('notificationId') || undefined;
-    const notificationType = searchParams.get('notificationType') as any || undefined;
-    const read = searchParams.get('read') === 'true' ? true : searchParams.get('read') === 'false' ? false : undefined;
-    const archived = searchParams.get('archived') === 'true' ? true : searchParams.get('archived') === 'false' ? false : undefined;
+    const notificationType = (searchParams.get('notificationType') as any) || undefined;
+    const read =
+      searchParams.get('read') === 'true'
+        ? true
+        : searchParams.get('read') === 'false'
+          ? false
+          : undefined;
+    const archived =
+      searchParams.get('archived') === 'true'
+        ? true
+        : searchParams.get('archived') === 'false'
+          ? false
+          : undefined;
     const spaceIdParam = searchParams.get('spaceId');
-    
+
     // Use provided spaceId or default to SPACE_ID from config
     const spaceId = spaceIdParam || SPACE_ID;
 
@@ -68,7 +78,7 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/notifications/preferences
- * 
+ *
  * Body:
  * - wallet: User wallet address
  * - notificationId: Notification ID
@@ -79,7 +89,15 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { wallet, notificationId, notificationType, read, archived, preferenceKey, spaceId: spaceIdParam } = body;
+    const {
+      wallet,
+      notificationId,
+      notificationType,
+      read,
+      archived,
+      preferenceKey,
+      spaceId: spaceIdParam,
+    } = body;
 
     // Normalize wallet once at API boundary
     const walletLower = wallet ? wallet.toLowerCase().trim() : null;
@@ -99,7 +117,10 @@ export async function POST(request: Request) {
     if (!walletLower || !notificationId || !notificationType || read === undefined) {
       console.error('[POST /api/notifications/preferences] Missing required fields');
       return NextResponse.json(
-        { ok: false, error: 'Missing required fields: wallet, notificationId, notificationType, read' },
+        {
+          ok: false,
+          error: 'Missing required fields: wallet, notificationId, notificationType, read',
+        },
         { status: 400 }
       );
     }
@@ -108,12 +129,9 @@ export async function POST(request: Request) {
     const privateKey = getPrivateKey();
     if (!privateKey) {
       console.error('[POST /api/notifications/preferences] Private key not configured');
-      return NextResponse.json(
-        { ok: false, error: 'Private key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Private key not configured' }, { status: 500 });
     }
-    
+
     console.log('[POST /api/notifications/preferences] Calling upsertNotificationPreference:', {
       wallet: walletLower,
       notificationId,
@@ -164,7 +182,7 @@ export async function POST(request: Request) {
 
 /**
  * POST /api/notifications/preferences/bulk
- * 
+ *
  * Body:
  * - wallet: User wallet address
  * - preferences: Array of { notificationId, notificationType, read, archived? }
@@ -183,15 +201,12 @@ export async function PUT(request: Request) {
 
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Private key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Private key not configured' }, { status: 500 });
     }
 
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const spaceId = SPACE_ID;
-    
+
     // Update preferences sequentially with delays to allow Arkiv indexing
     // CRITICAL: Each entity needs time to be indexed before the next one
     // Using 200ms delay to ensure proper indexing (Arkiv-native pattern)
@@ -210,40 +225,47 @@ export async function PUT(request: Request) {
           spaceId,
         });
         results.push(result);
-        
+
         // Delay between updates to allow Arkiv indexing (200ms per entity)
         // This ensures each entity is indexed before the next update
         // Longer delay helps prevent rate limits and ensures reliable indexing
         if (i < preferences.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       } catch (err: any) {
-        console.error(`[bulk preferences] Failed to update preference ${pref.notificationId}:`, err);
+        console.error(
+          `[bulk preferences] Failed to update preference ${pref.notificationId}:`,
+          err
+        );
         results.push(null);
         // Continue processing other preferences even if one fails
         // Add delay even on error to avoid rate limits
         if (i < preferences.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
     }
 
-    const successful = results.filter(r => r !== null);
-    
+    const successful = results.filter((r) => r !== null);
+
     // Log if some updates failed
     if (successful.length < preferences.length) {
-      console.warn(`[bulk preferences] Only ${successful.length}/${preferences.length} preferences updated successfully`);
+      console.warn(
+        `[bulk preferences] Only ${successful.length}/${preferences.length} preferences updated successfully`
+      );
     }
-    
+
     return NextResponse.json({
       ok: true,
       updated: successful.length,
       total: preferences.length,
       results: successful,
       // Include failure info for debugging
-      ...(successful.length < preferences.length ? {
-        warning: `${preferences.length - successful.length} preferences failed to update`,
-      } : {}),
+      ...(successful.length < preferences.length
+        ? {
+            warning: `${preferences.length - successful.length} preferences failed to update`,
+          }
+        : {}),
     });
   } catch (error: any) {
     console.error('Bulk notification preferences API error:', error);
@@ -253,4 +275,3 @@ export async function PUT(request: Request) {
     );
   }
 }
-

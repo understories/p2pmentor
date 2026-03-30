@@ -1,6 +1,6 @@
 /**
  * Code Comparison Component
- * 
+ *
  * Shows side-by-side code comparison for Arkiv JSON-RPC vs GraphQL API
  * Appeals to engineering teams by showing the actual implementation
  */
@@ -92,108 +92,108 @@ export const resolvers = {
 };`;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+    <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
       {/* Arkiv Path */}
-      <div className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="bg-blue-50 dark:bg-blue-900/20 px-4 py-2 border-b border-gray-300 dark:border-gray-700">
+      <div className="overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+        <div className="border-b border-gray-300 bg-blue-50 px-4 py-2 dark:border-gray-700 dark:bg-blue-900/20">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-blue-400" />
+            <div className="h-2 w-2 rounded-full bg-blue-400" />
             <span className="text-sm font-semibold text-blue-800 dark:text-blue-200">
               Arkiv JSON-RPC Path
             </span>
           </div>
-          <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+          <div className="mt-1 text-xs text-blue-600 dark:text-blue-400">
             Direct query to Arkiv indexer
           </div>
         </div>
-        <div className="bg-gray-900 p-4 overflow-x-auto relative group">
+        <div className="group relative overflow-x-auto bg-gray-900 p-4">
           <button
             onClick={() => {
               navigator.clipboard.writeText(arkivCode);
             }}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
             title="Copy code"
           >
             Copy
           </button>
-          <pre className="text-xs text-gray-300 font-mono">
+          <pre className="font-mono text-xs text-gray-300">
             <code>{arkivCode}</code>
           </pre>
         </div>
       </div>
 
       {/* GraphQL Path */}
-      <div className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden">
-        <div className="bg-emerald-50 dark:bg-emerald-900/20 px-4 py-2 border-b border-gray-300 dark:border-gray-700">
+      <div className="overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700">
+        <div className="border-b border-gray-300 bg-emerald-50 px-4 py-2 dark:border-gray-700 dark:bg-emerald-900/20">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="h-2 w-2 rounded-full bg-emerald-400" />
             <span className="text-sm font-semibold text-emerald-800 dark:text-emerald-200">
               GraphQL API Path
             </span>
           </div>
-          <div className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+          <div className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
             GraphQL wrapper over Arkiv indexer
           </div>
         </div>
-        <div className="bg-gray-900 p-4 overflow-x-auto relative group">
+        <div className="group relative overflow-x-auto bg-gray-900 p-4">
           <button
             onClick={() => {
               navigator.clipboard.writeText(graphqlCode);
             }}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
             title="Copy code"
           >
             Copy
           </button>
-          <pre className="text-xs text-gray-300 font-mono">
+          <pre className="font-mono text-xs text-gray-300">
             <code>{graphqlCode}</code>
           </pre>
         </div>
       </div>
 
       {/* Resolver Code (Full Width) */}
-      <div className="lg:col-span-2 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden mt-2">
-        <div className="bg-purple-50 dark:bg-purple-900/20 px-4 py-2 border-b border-gray-300 dark:border-gray-700">
+      <div className="mt-2 overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700 lg:col-span-2">
+        <div className="border-b border-gray-300 bg-purple-50 px-4 py-2 dark:border-gray-700 dark:bg-purple-900/20">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-purple-400" />
+            <div className="h-2 w-2 rounded-full bg-purple-400" />
             <span className="text-sm font-semibold text-purple-800 dark:text-purple-200">
               GraphQL Resolver Implementation
             </span>
           </div>
-          <div className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+          <div className="mt-1 text-xs text-purple-600 dark:text-purple-400">
             Shows how GraphQL queries translate to Arkiv calls - Reuses existing Arkiv helpers
           </div>
         </div>
-        <div className="bg-gray-900 p-4 overflow-x-auto relative group">
+        <div className="group relative overflow-x-auto bg-gray-900 p-4">
           <button
             onClick={() => {
               navigator.clipboard.writeText(resolverCode);
             }}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
             title="Copy code"
           >
             Copy
           </button>
-          <pre className="text-xs text-gray-300 font-mono">
+          <pre className="font-mono text-xs text-gray-300">
             <code>{resolverCode}</code>
           </pre>
         </div>
       </div>
 
       {/* GraphQL Schema */}
-      <div className="lg:col-span-2 border border-gray-300 dark:border-gray-700 rounded-lg overflow-hidden mt-2">
-        <div className="bg-amber-50 dark:bg-amber-900/20 px-4 py-2 border-b border-gray-300 dark:border-gray-700">
+      <div className="mt-2 overflow-hidden rounded-lg border border-gray-300 dark:border-gray-700 lg:col-span-2">
+        <div className="border-b border-gray-300 bg-amber-50 px-4 py-2 dark:border-gray-700 dark:bg-amber-900/20">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-amber-400" />
+            <div className="h-2 w-2 rounded-full bg-amber-400" />
             <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
               GraphQL Schema (lib/graphql/schema.ts)
             </span>
           </div>
-          <div className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+          <div className="mt-1 text-xs text-amber-600 dark:text-amber-400">
             Type-safe GraphQL schema matching Arkiv entity structure
           </div>
         </div>
-        <div className="bg-gray-900 p-4 overflow-x-auto relative group">
+        <div className="group relative overflow-x-auto bg-gray-900 p-4">
           <button
             onClick={() => {
               const schemaCode = `type Query {
@@ -236,12 +236,12 @@ type Offer {
 }`;
               navigator.clipboard.writeText(schemaCode);
             }}
-            className="absolute top-2 right-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 text-gray-300 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute right-2 top-2 rounded bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
             title="Copy code"
           >
             Copy
           </button>
-          <pre className="text-xs text-gray-300 font-mono">
+          <pre className="font-mono text-xs text-gray-300">
             <code>{`type Query {
   networkOverview(
     skill: String
@@ -286,4 +286,3 @@ type Offer {
     </div>
   );
 }
-

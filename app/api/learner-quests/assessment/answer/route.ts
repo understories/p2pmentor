@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -34,9 +37,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { wallet, questId, sectionId, questionId, answer, timeSpent } = body;
 
-    if (!wallet || !questId || !sectionId || !questionId || answer === undefined || timeSpent === undefined) {
+    if (
+      !wallet ||
+      !questId ||
+      !sectionId ||
+      !questionId ||
+      answer === undefined ||
+      timeSpent === undefined
+    ) {
       return NextResponse.json(
-        { ok: false, error: 'Missing required fields: wallet, questId, sectionId, questionId, answer, timeSpent' },
+        {
+          ok: false,
+          error:
+            'Missing required fields: wallet, questId, sectionId, questionId, answer, timeSpent',
+        },
         { status: 400 }
       );
     }
@@ -44,10 +58,7 @@ export async function POST(request: NextRequest) {
     // Use server-side private key for entity creation
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Server configuration error' }, { status: 500 });
     }
 
     const result = await submitAssessmentAnswer({
@@ -62,10 +73,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!result) {
-      return NextResponse.json(
-        { ok: false, error: 'Failed to submit answer' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Failed to submit answer' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -85,4 +93,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

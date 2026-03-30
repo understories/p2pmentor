@@ -1,17 +1,17 @@
 /**
  * Notification Preferences CRUD helpers
- * 
+ *
  * Stores user notification preferences and read/unread state as Arkiv entities.
  * This allows users to customize their notification experience while staying Arkiv-native.
  */
 
-import { eq, and } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID, ENTITY_UPDATE_MODE } from "@/lib/config";
-import { arkivUpsertEntity } from "./entity-utils";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq, and } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { SPACE_ID, ENTITY_UPDATE_MODE } from '@/lib/config';
+import { arkivUpsertEntity } from './entity-utils';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
-export type NotificationPreferenceType = 
+export type NotificationPreferenceType =
   | 'meeting_request'
   | 'profile_match'
   | 'ask_offer_match'
@@ -35,7 +35,7 @@ export type NotificationPreference = {
  *
  * Deterministic key derivation: (wallet, notification_id) is unique identity.
  * This ensures we can find the canonical preference entity.
- * 
+ *
  * Uses direct query filtering for efficiency instead of client-side filtering.
  */
 async function getNotificationPreferenceByKey(
@@ -46,8 +46,9 @@ async function getNotificationPreferenceByKey(
   const normalizedWallet = wallet.toLowerCase();
   try {
     const publicClient = getPublicClient();
-    
-    let query = publicClient.buildQuery()
+
+    let query = publicClient
+      .buildQuery()
       .where(eq('type', 'notification_preference'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('notificationId', notificationId))
@@ -55,29 +56,35 @@ async function getNotificationPreferenceByKey(
       .withAttributes(true)
       .withPayload(true)
       .limit(100); // Get multiple to find latest by updatedAt
-    
+
     const result = await query.fetch();
-    
-    if (!result || !result.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
+
+    if (
+      !result ||
+      !result.entities ||
+      !Array.isArray(result.entities) ||
+      result.entities.length === 0
+    ) {
       return null;
     }
-    
+
     // Parse entities and get the latest one (by updatedAt)
     const preferences = result.entities.map((entity: any) => {
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
         console.error('Error decoding notification preference payload:', e);
       }
-      
+
       const attrs = entity.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
@@ -86,7 +93,7 @@ async function getNotificationPreferenceByKey(
         }
         return String(attrs[key] || '');
       };
-      
+
       return {
         key: entity.key,
         wallet: getAttr('wallet'),
@@ -99,12 +106,14 @@ async function getNotificationPreferenceByKey(
         txHash: entity.txHash || payload.txHash,
       };
     });
-    
+
     // Sort by updatedAt descending and return the latest
-    preferences.sort((a, b) => 
-      new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    preferences.sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt).getTime() -
+        new Date(a.updatedAt || a.createdAt).getTime()
     );
-    
+
     return preferences.length > 0 ? preferences[0] : null;
   } catch (error: any) {
     console.error('Error in getNotificationPreferenceByKey:', error);
@@ -161,13 +170,20 @@ export async function upsertNotificationPreference({
     // Try to preserve createdAt if we can fetch it, but not required for correctness
     let createdAt = now;
     try {
-      const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
+      const existing = await getNotificationPreferenceByKey(
+        normalizedWallet,
+        notificationId,
+        finalSpaceId
+      );
       if (existing && existing.createdAt) {
         createdAt = existing.createdAt;
       }
     } catch (error) {
       // If fetch fails, use current time - not critical
-      console.warn('[upsertNotificationPreference] Could not fetch existing createdAt, using current time:', error);
+      console.warn(
+        '[upsertNotificationPreference] Could not fetch existing createdAt, using current time:',
+        error
+      );
     }
 
     const payload = {
@@ -220,13 +236,22 @@ export async function upsertNotificationPreference({
   }
 
   // (B) Legacy fallback: Query-first path (for older clients without preferenceKey)
-  const existing = await getNotificationPreferenceByKey(normalizedWallet, notificationId, finalSpaceId);
+  const existing = await getNotificationPreferenceByKey(
+    normalizedWallet,
+    notificationId,
+    finalSpaceId
+  );
 
-  console.log('[upsertNotificationPreference] Existing preference found:', existing ? {
-    key: existing.key,
-    read: existing.read,
-    updatedAt: existing.updatedAt,
-  } : null);
+  console.log(
+    '[upsertNotificationPreference] Existing preference found:',
+    existing
+      ? {
+          key: existing.key,
+          read: existing.read,
+          updatedAt: existing.updatedAt,
+        }
+      : null
+  );
 
   // Check for duplicates: reject if another preference exists for same (wallet, notification_id)
   // This prevents creating multiple preference entities for the same identity
@@ -234,7 +259,13 @@ export async function upsertNotificationPreference({
     // Deterministic check: If entity exists, use Pattern B
     const shouldUpdate = ENTITY_UPDATE_MODE === 'on' || ENTITY_UPDATE_MODE === 'shadow';
 
-    console.log('[upsertNotificationPreference] Should update?', shouldUpdate, '(ENTITY_UPDATE_MODE:', ENTITY_UPDATE_MODE, ')');
+    console.log(
+      '[upsertNotificationPreference] Should update?',
+      shouldUpdate,
+      '(ENTITY_UPDATE_MODE:',
+      ENTITY_UPDATE_MODE,
+      ')'
+    );
 
     if (shouldUpdate) {
       // Use canonical helper to update existing entity (Pattern B)
@@ -319,7 +350,7 @@ export async function upsertNotificationPreference({
     { key: 'updatedAt', value: now },
   ];
   const attributesWithSigner = addSignerMetadata(baseAttributes, privateKey);
-  
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
@@ -359,17 +390,18 @@ export async function listNotificationPreferences({
 } = {}): Promise<NotificationPreference[]> {
   try {
     const publicClient = getPublicClient();
-    
-    let query = publicClient.buildQuery()
+
+    let query = publicClient
+      .buildQuery()
       .where(eq('type', 'notification_preference'))
       .withAttributes(true)
       .withPayload(true);
-    
+
     // Filter by spaceId if provided (important for cross-environment isolation)
     if (spaceId) {
       query = query.where(eq('spaceId', spaceId));
     }
-    
+
     query = query.limit(limit);
 
     const result = await query.fetch();
@@ -382,11 +414,12 @@ export async function listNotificationPreferences({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -418,11 +451,11 @@ export async function listNotificationPreferences({
     // Apply filters
     let filtered = preferences;
     if (wallet) {
-      filtered = filtered.filter(p => p.wallet.toLowerCase() === wallet.toLowerCase());
+      filtered = filtered.filter((p) => p.wallet.toLowerCase() === wallet.toLowerCase());
     }
     if (spaceId) {
       // Filter by spaceId (client-side if not filtered in query)
-      filtered = filtered.filter(p => {
+      filtered = filtered.filter((p) => {
         const attrs = (p as any).attributes || {};
         const getAttr = (key: string): string => {
           if (Array.isArray(attrs)) {
@@ -436,38 +469,45 @@ export async function listNotificationPreferences({
       });
     }
     if (notificationType) {
-      filtered = filtered.filter(p => p.notificationType === notificationType);
+      filtered = filtered.filter((p) => p.notificationType === notificationType);
     }
     if (read !== undefined) {
-      filtered = filtered.filter(p => p.read === read);
+      filtered = filtered.filter((p) => p.read === read);
     }
     if (archived !== undefined) {
-      filtered = filtered.filter(p => p.archived === archived);
+      filtered = filtered.filter((p) => p.archived === archived);
     }
 
     // If filtering by specific notificationId, get the most recent preference for that notification
     if (notificationId) {
-      filtered = filtered.filter(p => p.notificationId === notificationId);
+      filtered = filtered.filter((p) => p.notificationId === notificationId);
       // Sort by most recent and return the latest one
-      filtered.sort((a, b) => 
-        new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+      filtered.sort(
+        (a, b) =>
+          new Date(b.updatedAt || b.createdAt).getTime() -
+          new Date(a.updatedAt || a.createdAt).getTime()
       );
       return filtered.length > 0 ? [filtered[0]] : [];
     }
 
     // For general queries, deduplicate by notificationId (keep most recent)
     const preferenceMap = new Map<string, NotificationPreference>();
-    filtered.forEach(pref => {
+    filtered.forEach((pref) => {
       const existing = preferenceMap.get(pref.notificationId);
-      if (!existing || new Date(pref.updatedAt || pref.createdAt).getTime() > 
-          new Date(existing.updatedAt || existing.createdAt).getTime()) {
+      if (
+        !existing ||
+        new Date(pref.updatedAt || pref.createdAt).getTime() >
+          new Date(existing.updatedAt || existing.createdAt).getTime()
+      ) {
         preferenceMap.set(pref.notificationId, pref);
       }
     });
 
     // Sort by most recent first
-    return Array.from(preferenceMap.values()).sort((a, b) => 
-      new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()
+    return Array.from(preferenceMap.values()).sort(
+      (a, b) =>
+        new Date(b.updatedAt || b.createdAt).getTime() -
+        new Date(a.updatedAt || a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('Error in listNotificationPreferences:', error);
@@ -485,4 +525,3 @@ export async function getNotificationPreference(
   const preferences = await listNotificationPreferences({ wallet, notificationId, limit: 1 });
   return preferences.length > 0 ? preferences[0] : null;
 }
-

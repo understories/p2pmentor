@@ -7,11 +7,11 @@
  * Reference: refs/doc/passkey_levelup.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { keccak256 } from "viem";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { keccak256 } from 'viem';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export type AuthIdentityType = 'passkey' | 'backup_wallet';
 
@@ -101,10 +101,13 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
 
     // Telemetry: log if we might be truncating
     if (result?.entities && Array.isArray(result.entities) && result.entities.length === 100) {
-      console.warn('[findPasskeyEntityKeyByCredentialID] Query hit limit (100 entities), may be truncating duplicates', {
-        credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
-        entityCount: result.entities.length,
-      });
+      console.warn(
+        '[findPasskeyEntityKeyByCredentialID] Query hit limit (100 entities), may be truncating duplicates',
+        {
+          credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
+          entityCount: result.entities.length,
+        }
+      );
     }
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
@@ -121,11 +124,12 @@ async function findPasskeyEntityKeyByCredentialID(credentialID: string): Promise
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -218,11 +222,12 @@ export async function createPasskeyIdentity({
 
       // Parse existing payload
       if (existingEntity.payload) {
-        const decoded = existingEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(existingEntity.payload)
-          : typeof existingEntity.payload === 'string'
-          ? existingEntity.payload
-          : JSON.stringify(existingEntity.payload);
+        const decoded =
+          existingEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(existingEntity.payload)
+            : typeof existingEntity.payload === 'string'
+              ? existingEntity.payload
+              : JSON.stringify(existingEntity.payload);
         existingPayload = JSON.parse(decoded);
         existingPublicKey = existingPayload.credentialPublicKey || null;
       }
@@ -265,13 +270,12 @@ export async function createPasskeyIdentity({
     credentialID: normalizedCredentialID,
     credentialPublicKey: existingPublicKey || publicKeyBase64, // Keep original if exists
     // Counter: monotonic max (never decrease)
-    counter: existingPayload
-      ? Math.max(existingPayload.counter || 0, counter)
-      : counter,
+    counter: existingPayload ? Math.max(existingPayload.counter || 0, counter) : counter,
     // Transports: merge set union (avoid accidental loss)
-    transports: existingPayload && existingPayload.transports
-      ? [...new Set([...existingPayload.transports, ...(transports || [])])]
-      : transports || [],
+    transports:
+      existingPayload && existingPayload.transports
+        ? [...new Set([...existingPayload.transports, ...(transports || [])])]
+        : transports || [],
     // DeviceName: last-write-wins
     deviceName: deviceName || existingPayload?.deviceName,
     // createdAt: preserve earliest
@@ -280,8 +284,14 @@ export async function createPasskeyIdentity({
     updatedAt: now,
     // Store rpId and origin for "same credentialId but wrong RP" detection
     rpId: process.env.PASSKEY_RP_ID || 'p2pmentor',
-    origin: typeof window !== 'undefined' ? window.location.origin : process.env.PASSKEY_ORIGIN || 'unknown',
-    originHost: typeof window !== 'undefined' ? window.location.hostname : process.env.PASSKEY_ORIGIN?.replace(/^https?:\/\//, '') || 'unknown',
+    origin:
+      typeof window !== 'undefined'
+        ? window.location.origin
+        : process.env.PASSKEY_ORIGIN || 'unknown',
+    originHost:
+      typeof window !== 'undefined'
+        ? window.location.hostname
+        : process.env.PASSKEY_ORIGIN?.replace(/^https?:\/\//, '') || 'unknown',
   };
 
   // Rebuild attributes deterministically (never "preserve all")
@@ -306,13 +316,13 @@ export async function createPasskeyIdentity({
   try {
     // Attempt create first
     const result = await handleTransactionWithTimeout(async () => {
-    return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(payload)),
-      contentType: 'application/json',
+      return await walletClient.createEntity({
+        payload: enc.encode(JSON.stringify(payload)),
+        contentType: 'application/json',
         attributes,
-      expiresIn,
+        expiresIn,
+      });
     });
-  });
 
     entityKey = result.entityKey;
     txHash = result.txHash;
@@ -343,19 +353,21 @@ export async function createPasskeyIdentity({
   }
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'auth_identity_passkey_txhash' },
-      { key: 'identityKey', value: entityKey },
-      { key: 'wallet', value: normalizedWallet },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createPasskeyIdentity] Failed to create txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'auth_identity_passkey_txhash' },
+        { key: 'identityKey', value: entityKey },
+        { key: 'wallet', value: normalizedWallet },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createPasskeyIdentity] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
@@ -397,11 +409,12 @@ export async function updatePasskeyCounter(
   // Parse existing payload
   let existingPayload: any = {};
   try {
-    const decoded = existingEntity.payload instanceof Uint8Array
-      ? new TextDecoder().decode(existingEntity.payload)
-      : typeof existingEntity.payload === 'string'
-      ? existingEntity.payload
-      : JSON.stringify(existingEntity.payload);
+    const decoded =
+      existingEntity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(existingEntity.payload)
+        : typeof existingEntity.payload === 'string'
+          ? existingEntity.payload
+          : JSON.stringify(existingEntity.payload);
     existingPayload = JSON.parse(decoded);
   } catch (e) {
     throw new Error('Failed to parse existing passkey identity payload');
@@ -426,7 +439,9 @@ export async function updatePasskeyCounter(
     // Fallback to payload if attribute missing (legacy entity)
     const walletFromPayload = existingPayload.wallet || '';
     if (!walletFromPayload || walletFromPayload.trim() === '') {
-      throw new Error(`Legacy entity missing wallet attribute and payload wallet for credentialID: ${normalizedCredentialID}`);
+      throw new Error(
+        `Legacy entity missing wallet attribute and payload wallet for credentialID: ${normalizedCredentialID}`
+      );
     }
   }
 
@@ -434,7 +449,9 @@ export async function updatePasskeyCounter(
     // Fallback to SPACE_ID from config if missing
     const spaceIdFromPayload = existingPayload.spaceId || SPACE_ID;
     if (!spaceIdFromPayload || spaceIdFromPayload.trim() === '') {
-      throw new Error(`Legacy entity missing spaceId attribute for credentialID: ${normalizedCredentialID}`);
+      throw new Error(
+        `Legacy entity missing spaceId attribute for credentialID: ${normalizedCredentialID}`
+      );
     }
   }
 
@@ -453,9 +470,12 @@ export async function updatePasskeyCounter(
 
   // Rebuild attributes deterministically (never "preserve all")
   // Use validated/fallback values to prevent undefined/empty writes
-  const finalWallet = walletAttr && walletAttr.trim() !== '' ? walletAttr : (existingPayload.wallet || '');
-  const finalSpaceId = spaceIdAttr && spaceIdAttr.trim() !== '' ? spaceIdAttr : (existingPayload.spaceId || SPACE_ID);
-  const finalCreatedAt = createdAtAttr && createdAtAttr.trim() !== '' ? createdAtAttr : (existingPayload.createdAt || now);
+  const finalWallet =
+    walletAttr && walletAttr.trim() !== '' ? walletAttr : existingPayload.wallet || '';
+  const finalSpaceId =
+    spaceIdAttr && spaceIdAttr.trim() !== '' ? spaceIdAttr : existingPayload.spaceId || SPACE_ID;
+  const finalCreatedAt =
+    createdAtAttr && createdAtAttr.trim() !== '' ? createdAtAttr : existingPayload.createdAt || now;
 
   const attributes = [
     { key: 'type', value: 'auth_identity' },
@@ -491,7 +511,7 @@ export async function updatePasskeyCounter(
       lastError = error;
       // Retry once on transient chain/RPC issues
       if (attempt === 0 && (error.message?.includes('RPC') || error.message?.includes('network'))) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Small delay
         continue;
       }
       throw error;
@@ -548,19 +568,21 @@ export async function createBackupWalletIdentity({
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
-      { key: 'identityKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createBackupWalletIdentity] Failed to create txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
+        { key: 'identityKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createBackupWalletIdentity] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
@@ -591,63 +613,66 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
       .fetch();
 
     if (!result?.entities || !Array.isArray(result.entities)) {
-      console.warn('[listPasskeyIdentities] Invalid result structure, returning empty array', { result });
+      console.warn('[listPasskeyIdentities] Invalid result structure, returning empty array', {
+        result,
+      });
       return [];
     }
 
     // Map entities to AuthIdentity format
     const identities = result.entities.map((entity: any) => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
-      }
-    } catch (e) {
-      console.error('[listPasskeyIdentities] Error decoding payload:', e);
-    }
-
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-
-    // Convert base64 public key back to Uint8Array for credential object
-    let credential: PasskeyCredential | undefined;
-    if (payload.credentialID && payload.credentialPublicKey) {
+      let payload: any = {};
       try {
-        const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
-        credential = {
-          credentialID: payload.credentialID,
-          credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
-          counter: payload.counter || 0,
-          transports: payload.transports || [],
-          deviceName: payload.deviceName,
-          lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
-        };
+        if (entity.payload) {
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
       } catch (e) {
-        console.error('[listPasskeyIdentities] Error parsing credential:', e);
+        console.error('[listPasskeyIdentities] Error decoding payload:', e);
       }
-    }
 
-    return {
-      key: entity.key,
-      wallet: getAttr('wallet'),
-      subtype: 'passkey' as AuthIdentityType,
-      credentialID: getAttr('credentialId'),
-      createdAt: getAttr('createdAt'),
-      updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
-      spaceId: getAttr('spaceId'),
-      credential,
-    };
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      // Convert base64 public key back to Uint8Array for credential object
+      let credential: PasskeyCredential | undefined;
+      if (payload.credentialID && payload.credentialPublicKey) {
+        try {
+          const publicKeyBytes = Buffer.from(payload.credentialPublicKey, 'base64');
+          credential = {
+            credentialID: payload.credentialID,
+            credentialPublicKey: Buffer.from(publicKeyBytes).toString('base64'), // Keep as base64 for storage
+            counter: payload.counter || 0,
+            transports: payload.transports || [],
+            deviceName: payload.deviceName,
+            lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
+          };
+        } catch (e) {
+          console.error('[listPasskeyIdentities] Error parsing credential:', e);
+        }
+      }
+
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet'),
+        subtype: 'passkey' as AuthIdentityType,
+        credentialID: getAttr('credentialId'),
+        createdAt: getAttr('createdAt'),
+        updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
+        spaceId: getAttr('spaceId'),
+        credential,
+      };
     });
 
     // Pattern B migration: Deduplicate by credentialID (keep highest counter, latest timestamp)
@@ -669,10 +694,14 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
           // Use updatedAt from AuthIdentity if available (stored as attribute), fallback to createdAt
           const existingUpdatedAt = (existing as any).updatedAt || existing.createdAt || '';
           const newUpdatedAt = (identity as any).updatedAt || identity.createdAt || '';
-          const existingTimestamp = existingLastUsedAt || existingUpdatedAt || existing.createdAt || '';
+          const existingTimestamp =
+            existingLastUsedAt || existingUpdatedAt || existing.createdAt || '';
           const newTimestamp = newLastUsedAt || newUpdatedAt || identity.createdAt || '';
 
-          if (newCounter > existingCounter || (newCounter === existingCounter && newTimestamp > existingTimestamp)) {
+          if (
+            newCounter > existingCounter ||
+            (newCounter === existingCounter && newTimestamp > existingTimestamp)
+          ) {
             identityMap.set(identity.credentialID, identity);
           }
         }
@@ -684,7 +713,7 @@ export async function listPasskeyIdentities(wallet: string): Promise<AuthIdentit
     console.error('[listPasskeyIdentities] Arkiv query failed:', {
       message: fetchError?.message,
       stack: fetchError?.stack,
-      error: fetchError
+      error: fetchError,
     });
     return []; // Return empty array on query failure
   }
@@ -711,52 +740,55 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
       .fetch();
 
     if (!result?.entities || !Array.isArray(result.entities)) {
-      console.warn('[listBackupWalletIdentities] Invalid result structure, returning empty array', { result });
+      console.warn('[listBackupWalletIdentities] Invalid result structure, returning empty array', {
+        result,
+      });
       return [];
     }
 
     return result.entities.map((entity: any) => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('[listBackupWalletIdentities] Error decoding payload:', e);
       }
-    } catch (e) {
-      console.error('[listBackupWalletIdentities] Error decoding payload:', e);
-    }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
 
-    return {
-      key: entity.key,
-      wallet: getAttr('wallet'),
-      subtype: 'backup_wallet' as AuthIdentityType,
-      backupWalletAddress: payload.walletAddress,
-      createdAt: getAttr('createdAt'),
-      spaceId: getAttr('spaceId'),
-      backupMetadata: {
-        walletAddress: payload.walletAddress,
-        createdAt: payload.createdAt || getAttr('createdAt'),
-      },
-    };
-  });
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet'),
+        subtype: 'backup_wallet' as AuthIdentityType,
+        backupWalletAddress: payload.walletAddress,
+        createdAt: getAttr('createdAt'),
+        spaceId: getAttr('spaceId'),
+        backupMetadata: {
+          walletAddress: payload.walletAddress,
+          createdAt: payload.createdAt || getAttr('createdAt'),
+        },
+      };
+    });
   } catch (fetchError: any) {
     console.error('[listBackupWalletIdentities] Arkiv query failed:', {
       message: fetchError?.message,
       stack: fetchError?.stack,
-      error: fetchError
+      error: fetchError,
     });
     return []; // Return empty array on query failure
   }
@@ -782,7 +814,9 @@ export async function listBackupWalletIdentities(wallet: string): Promise<AuthId
  * @param credentialID - Base64url-encoded credential ID
  * @returns AuthIdentity or null if not found
  */
-export async function findPasskeyIdentityByCredentialID(credentialID: string): Promise<AuthIdentity | null> {
+export async function findPasskeyIdentityByCredentialID(
+  credentialID: string
+): Promise<AuthIdentity | null> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
 
@@ -803,10 +837,13 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
 
     // Telemetry: log if we might be truncating (indicates problematic duplicate generation)
     if (result?.entities && Array.isArray(result.entities) && result.entities.length === 100) {
-      console.warn('[findPasskeyIdentityByCredentialID] Query hit limit (100 entities), may be truncating duplicates', {
-        credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
-        entityCount: result.entities.length,
-      });
+      console.warn(
+        '[findPasskeyIdentityByCredentialID] Query hit limit (100 entities), may be truncating duplicates',
+        {
+          credentialIDPrefix: normalizedCredentialID.substring(0, 16) + '...',
+          entityCount: result.entities.length,
+        }
+      );
     }
 
     if (!result?.entities || !Array.isArray(result.entities) || result.entities.length === 0) {
@@ -820,23 +857,27 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
 
     for (const entity of result.entities) {
       // Parse payload to get counter
-  let payload: any = {};
-  try {
-    if (entity.payload) {
-      const decoded = entity.payload instanceof Uint8Array
-        ? new TextDecoder().decode(entity.payload)
-        : typeof entity.payload === 'string'
-        ? entity.payload
-        : JSON.stringify(entity.payload);
-      payload = JSON.parse(decoded);
-    }
-  } catch (e) {
-        console.warn('[findPasskeyIdentityByCredentialID] Error decoding payload for entity, skipping:', e);
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.warn(
+          '[findPasskeyIdentityByCredentialID] Error decoding payload for entity, skipping:',
+          e
+        );
         continue;
-  }
+      }
 
       const counter = payload.counter || 0;
-  const attrs = entity.attributes || {};
+      const attrs = entity.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
           const attr = attrs.find((a: any) => a.key === key);
@@ -865,58 +906,59 @@ export async function findPasskeyIdentityByCredentialID(credentialID: string): P
     let payload: any = {};
     try {
       if (bestEntity.payload) {
-        const decoded = bestEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(bestEntity.payload)
-          : typeof bestEntity.payload === 'string'
-          ? bestEntity.payload
-          : JSON.stringify(bestEntity.payload);
-      payload = JSON.parse(decoded);
+        const decoded =
+          bestEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(bestEntity.payload)
+            : typeof bestEntity.payload === 'string'
+              ? bestEntity.payload
+              : JSON.stringify(bestEntity.payload);
+        payload = JSON.parse(decoded);
+      }
+    } catch (e) {
+      console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
+      return null;
     }
-  } catch (e) {
-    console.error('[findPasskeyIdentityByCredentialID] Error decoding payload:', e);
-    return null;
-  }
 
     const attrs = bestEntity.attributes || {};
-  const getAttr = (key: string): string => {
-    if (Array.isArray(attrs)) {
-      const attr = attrs.find((a: any) => a.key === key);
-      return String(attr?.value || '');
-    }
-    return String(attrs[key] || '');
-  };
+    const getAttr = (key: string): string => {
+      if (Array.isArray(attrs)) {
+        const attr = attrs.find((a: any) => a.key === key);
+        return String(attr?.value || '');
+      }
+      return String(attrs[key] || '');
+    };
 
-  let credential: PasskeyCredential | undefined;
-  if (payload.credentialID && payload.credentialPublicKey) {
-    try {
-      credential = {
-        credentialID: payload.credentialID,
-        credentialPublicKey: payload.credentialPublicKey, // Keep as base64
-        counter: payload.counter || 0,
-        transports: payload.transports || [],
-        deviceName: payload.deviceName,
-        lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
-      };
-    } catch (e) {
-      console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
+    let credential: PasskeyCredential | undefined;
+    if (payload.credentialID && payload.credentialPublicKey) {
+      try {
+        credential = {
+          credentialID: payload.credentialID,
+          credentialPublicKey: payload.credentialPublicKey, // Keep as base64
+          counter: payload.counter || 0,
+          transports: payload.transports || [],
+          deviceName: payload.deviceName,
+          lastUsedAt: payload.lastUsedAt, // Track usage for tie-breaking
+        };
+      } catch (e) {
+        console.error('[findPasskeyIdentityByCredentialID] Error parsing credential:', e);
+      }
     }
-  }
 
-  return {
-    key: bestEntity.key,
-    wallet: getAttr('wallet'),
-    subtype: 'passkey' as AuthIdentityType,
-    credentialID: getAttr('credentialId'),
-    createdAt: getAttr('createdAt'),
-    updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
-    spaceId: getAttr('spaceId'),
-    credential,
-  };
+    return {
+      key: bestEntity.key,
+      wallet: getAttr('wallet'),
+      subtype: 'passkey' as AuthIdentityType,
+      credentialID: getAttr('credentialId'),
+      createdAt: getAttr('createdAt'),
+      updatedAt: getAttr('updatedAt') || payload.updatedAt || getAttr('createdAt'),
+      spaceId: getAttr('spaceId'),
+      credential,
+    };
   } catch (fetchError: any) {
     console.error('[findPasskeyIdentityByCredentialID] Arkiv query failed:', {
       message: fetchError?.message,
       stack: fetchError?.stack,
-      error: fetchError
+      error: fetchError,
     });
     return null; // Return null on query failure
   }

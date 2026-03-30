@@ -16,12 +16,14 @@ The entity update pattern allows profiles and notifications to use stable entity
 **Environment Variable:** `ENTITY_UPDATE_MODE=shadow`
 
 **Behavior:**
+
 - New users are automatically marked as migrated when they create their first profile
 - Migrated wallets attempt to use entity updates (will fallback to create-new-entity until SDK API is verified)
 - Non-migrated wallets continue using create-new-entity pattern (backward compatible)
 - Query paths check migration status and use canonical entity when available
 
 **Safety:**
+
 - Falls back gracefully if SDK update API is not yet verified
 - No data loss - old pattern still works
 - Can be disabled by setting `ENTITY_UPDATE_MODE=off`
@@ -33,6 +35,7 @@ The entity update pattern allows profiles and notifications to use stable entity
 **SDK Version:** `@arkiv-network/sdk@0.4.4`
 
 **Verification Results:**
+
 - ✅ `updateEntity` method confirmed in SDK
 - ✅ API signature verified: `updateEntity({ entityKey, payload, attributes, contentType, expiresIn })`
 - ✅ Return type: `{ entityKey, txHash }`
@@ -93,4 +96,3 @@ To disable entity updates:
 - [Entity Update Implementation Plan](/refs/entity-update-implementation-plan.md) - Technical details
 - [Editable Entities](/docs/arkiv/overview/editable-entities) - Mental model explanation
 - [Wallet Architecture](/docs/arkiv/operations/wallet-architecture) - Profile wallet vs signing wallet
-

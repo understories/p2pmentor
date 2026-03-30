@@ -13,12 +13,14 @@ This document explains how we implement user profiles with blockchain data in a 
 ### Core Components
 
 1. **Profile Entities** (`user_profile`)
+
    - Created when users create their profile
    - Updated when users modify their profile (stable entity key)
    - Contains: wallet, displayName, username, bio, skills, timezone, contactLinks, etc.
    - TTL: 1 year (31536000 seconds)
 
 2. **Profile Query Pattern**
+
    - For migrated wallets: Query canonical profile entity using stable entity key
    - For non-migrated wallets: Query all profiles for a wallet, sort by `createdAt` descending, return most recent
    - All transaction history is preserved on-chain (immutable ledger)
@@ -34,26 +36,27 @@ This document explains how we implement user profiles with blockchain data in a 
 
 ```typescript
 type UserProfile = {
-  key: string;                    // Entity key
-  wallet: string;                 // User wallet (normalized to lowercase)
-  displayName: string;            // Display name
-  username?: string;              // Optional username
-  profileImage?: string;          // Profile image URL
-  identity_seed?: string;        // Emoji Identity Seed (EIS)
-  bio?: string;                   // Bio (legacy)
-  bioShort?: string;             // Short bio
-  bioLong?: string;              // Long bio
-  timezone: string;              // User timezone
-  languages?: string[];           // Languages spoken
-  contactLinks?: {                // Social links
+  key: string; // Entity key
+  wallet: string; // User wallet (normalized to lowercase)
+  displayName: string; // Display name
+  username?: string; // Optional username
+  profileImage?: string; // Profile image URL
+  identity_seed?: string; // Emoji Identity Seed (EIS)
+  bio?: string; // Bio (legacy)
+  bioShort?: string; // Short bio
+  bioLong?: string; // Long bio
+  timezone: string; // User timezone
+  languages?: string[]; // Languages spoken
+  contactLinks?: {
+    // Social links
     twitter?: string;
     github?: string;
     telegram?: string;
     discord?: string;
   };
-  skills: string;                 // Skills (legacy comma-separated)
-  skillsArray?: string[];        // Skills array
-  skill_ids?: string[];          // Skill entity keys (Arkiv-native)
+  skills: string; // Skills (legacy comma-separated)
+  skillsArray?: string[]; // Skills array
+  skill_ids?: string[]; // Skill entity keys (Arkiv-native)
   skillExpertise?: Record<string, number>; // Skill expertise levels
   seniority?: 'beginner' | 'intermediate' | 'advanced' | 'expert';
   domainsOfInterest?: string[];
@@ -83,9 +86,11 @@ type UserProfile = {
 ### The Challenge
 
 In a centralized system, profile updates are simple:
+
 - User edits profile → Update database row → Done
 
 In a decentralized system:
+
 - No centralized database
 - Transactions are immutable (cannot be modified)
 - Application data is mutable at the state level
@@ -97,6 +102,7 @@ In a decentralized system:
 **1. Stable Entity Key Pattern**
 
 When a user updates their profile:
+
 - Fetch existing profile entity using stable entity key
 - Update the entity using `updateEntity()` with the same entity key
 - All transaction history is preserved on-chain (immutable ledger)
@@ -104,6 +110,7 @@ When a user updates their profile:
 **2. Query Pattern**
 
 To get current profile:
+
 ```typescript
 // Query all profiles for wallet
 const profiles = await listUserProfilesForWallet(wallet);
@@ -157,19 +164,20 @@ const { key, txHash } = await createUserProfile({
 **Why:** Ethereum addresses are case-insensitive, but string comparisons are case-sensitive. Normalizing ensures consistent querying and prevents case-sensitivity bugs.
 
 **Implementation:**
+
 ```typescript
 // ✅ Correct: Normalize when storing
 attributes: [
   { key: 'wallet', value: wallet.toLowerCase() },
   // ...
-]
+];
 
 // ✅ Correct: Normalize when querying
 queryBuilder = queryBuilder.where(eq('wallet', wallet.toLowerCase()));
 
 // ❌ Wrong: Mixed case storage/querying
-attributes: [{ key: 'wallet', value: wallet }]  // May be mixed case
-queryBuilder.where(eq('wallet', wallet))  // May not match!
+attributes: [{ key: 'wallet', value: wallet }]; // May be mixed case
+queryBuilder.where(eq('wallet', wallet)); // May not match!
 ```
 
 ## Query Patterns
@@ -180,18 +188,18 @@ queryBuilder.where(eq('wallet', wallet))  // May not match!
 export async function getProfileByWallet(wallet: string): Promise<UserProfile | null> {
   // Normalize wallet: trim and convert to lowercase
   const normalizedWallet = wallet.trim().toLowerCase();
-  
+
   // Query all profiles for wallet
   const profiles = await listUserProfilesForWallet(normalizedWallet);
   if (profiles.length === 0) return null;
-  
+
   // Return the most recent profile (sorted by createdAt descending)
   profiles.sort((a, b) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
     const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
     return bTime - aTime;
   });
-  
+
   return profiles[0];
 }
 ```
@@ -199,40 +207,36 @@ export async function getProfileByWallet(wallet: string): Promise<UserProfile | 
 ### List All Profiles
 
 ```typescript
-export async function listUserProfiles(params?: { 
-  skill?: string; 
+export async function listUserProfiles(params?: {
+  skill?: string;
   seniority?: string;
   spaceId?: string;
 }): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
   let queryBuilder = query.where(eq('type', 'user_profile'));
-  
+
   if (params?.seniority) {
     queryBuilder = queryBuilder.where(eq('seniority', params.seniority));
   }
-  
+
   if (params?.spaceId) {
     queryBuilder = queryBuilder.where(eq('spaceId', params.spaceId));
   }
-  
-  const result = await queryBuilder
-    .withAttributes(true)
-    .withPayload(true)
-    .limit(100)
-    .fetch();
-  
+
+  const result = await queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch();
+
   // Parse entities and filter by skill client-side
   // (Skills stored in payload, not queryable via attributes)
   let profiles = result.entities.map(parseProfileEntity);
-  
+
   if (params?.skill) {
-    profiles = profiles.filter(profile => {
+    profiles = profiles.filter((profile) => {
       // Check skillsArray, skills string, or skill_ids
       return profileMatchesSkill(profile, params.skill);
     });
   }
-  
+
   return profiles;
 }
 ```
@@ -250,7 +254,7 @@ export async function listUserProfilesForWallet(wallet: string): Promise<UserPro
     .withPayload(true)
     .limit(100)
     .fetch();
-  
+
   return result.entities.map(parseProfileEntity);
 }
 ```
@@ -282,7 +286,7 @@ export async function createUserProfile({
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
-  
+
   // Check for existing profile to preserve identity_seed and calculate avgRating
   let existingProfile: UserProfile | null = null;
   let avgRating = 0;
@@ -294,10 +298,10 @@ export async function createUserProfile({
   } catch (e) {
     // New profile or calculation failed
   }
-  
+
   // Preserve identity_seed for updates, auto-assign for new profiles
   const identity_seed = existingProfile?.identity_seed || selectRandomEmoji();
-  
+
   const payload = {
     displayName,
     username,
@@ -331,7 +335,7 @@ export async function createUserProfile({
     communityAffiliations: [],
     reputationScore: 0,
   };
-  
+
   const attributes: Array<{ key: string; value: string }> = [
     { key: 'type', value: 'user_profile' },
     { key: 'wallet', value: wallet.toLowerCase() }, // Normalize!
@@ -340,20 +344,20 @@ export async function createUserProfile({
     { key: 'spaceId', value: spaceId },
     { key: 'createdAt', value: createdAt },
   ];
-  
+
   if (username) attributes.push({ key: 'username', value: username });
   if (identity_seed) attributes.push({ key: 'identity_seed', value: identity_seed });
   if (bio) attributes.push({ key: 'bio', value: bio });
   if (skills) attributes.push({ key: 'skills', value: skills });
   if (seniority) attributes.push({ key: 'seniority', value: seniority });
-  
+
   // Store skills as skill_0, skill_1, etc. attributes for querying
   if (skillsArray.length > 0) {
     skillsArray.forEach((skill, idx) => {
       attributes.push({ key: `skill_${idx}`, value: skill });
     });
   }
-  
+
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
       payload: enc.encode(JSON.stringify(payload)),
@@ -362,7 +366,7 @@ export async function createUserProfile({
       expiresIn: 31536000, // 1 year
     });
   });
-  
+
   return { key: result.entityKey, txHash: result.txHash };
 }
 ```
@@ -372,6 +376,7 @@ export async function createUserProfile({
 ### Attributes (Queryable)
 
 Use for fields that need to be queried:
+
 - `type`: 'user_profile'
 - `wallet`: User wallet (normalized to lowercase)
 - `displayName`: Display name
@@ -386,6 +391,7 @@ Use for fields that need to be queried:
 ### Payload (Content)
 
 Use for complex or large data:
+
 - `bioShort`, `bioLong`: Bio content
 - `skillsArray`: Skills array (preferred over attributes)
 - `skill_ids`: Skill entity keys (Arkiv-native)
@@ -460,7 +466,8 @@ const result = await regrowProfileFromArkiv(identity, privateKey);
 
 **Problem:** Skills stored in payload are not directly queryable via Arkiv attributes.
 
-**Solution:** 
+**Solution:**
+
 - Store skills in both attributes (`skill_0`, `skill_1`, etc.) and payload (`skillsArray`)
 - For filtering, fetch all profiles and filter client-side
 - Use `skill_ids` (Arkiv-native skill entity keys) for proper entity references
@@ -520,9 +527,11 @@ Always validate result structure before processing. Return empty arrays or null 
 Get profile by wallet.
 
 **Query Params:**
+
 - `wallet`: User wallet address (required)
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -546,6 +555,7 @@ Get profile by wallet.
 Create or update profile.
 
 **Body:**
+
 ```json
 {
   "action": "createProfile",
@@ -612,6 +622,7 @@ const { key, txHash } = await createUserProfile({
 ### 1. Profile Versioning
 
 Currently, we query the most recent profile. Consider:
+
 - Explicit versioning system
 - Profile history viewer
 - Rollback capability
@@ -619,6 +630,7 @@ Currently, we query the most recent profile. Consider:
 ### 2. Profile Merging
 
 If a user has multiple profiles, consider:
+
 - Merge utility to combine profile data
 - Conflict resolution strategy
 - Data deduplication
@@ -626,6 +638,7 @@ If a user has multiple profiles, consider:
 ### 3. Profile Expiration
 
 Profiles have 1 year TTL. Consider:
+
 - Auto-renewal for active users
 - Profile archival for inactive users
 - Graceful degradation for expired profiles
@@ -633,6 +646,7 @@ Profiles have 1 year TTL. Consider:
 ### 4. Skill Entity Integration
 
 Currently transitioning from skill name strings to skill entity keys. Consider:
+
 - Migration utility for legacy profiles
 - Validation that skill_ids reference valid skill entities
 - Fallback to skill names if skill entity not found
@@ -671,4 +685,3 @@ The Arkiv-native profile system uses stable entity keys to track profile data in
 6. **Skill Entity Keys:** Use `skill_ids` for proper Arkiv-native skill entity references
 
 This approach provides a robust, decentralized profile system that works without a centralized database, preserving full history for audit while maintaining stable relationships.
-

@@ -103,12 +103,12 @@ export interface QuestStep {
  * Evidence types that can be stored for step completion
  */
 export type QuestEvidenceType =
-  | 'completion'           // Simple completion (READ steps)
-  | 'entity_created'       // Entity was created on Arkiv (DO steps)
-  | 'quiz_result'          // Quiz was completed with score (QUIZ steps)
-  | 'submission'           // User submitted an artifact (SUBMIT steps)
-  | 'session_completed'    // Mentorship session completed (SESSION steps)
-  | 'query_proof';         // Query was verified (VERIFY steps)
+  | 'completion' // Simple completion (READ steps)
+  | 'entity_created' // Entity was created on Arkiv (DO steps)
+  | 'quiz_result' // Quiz was completed with score (QUIZ steps)
+  | 'submission' // User submitted an artifact (SUBMIT steps)
+  | 'session_completed' // Mentorship session completed (SESSION steps)
+  | 'query_proof'; // Query was verified (VERIFY steps)
 
 /**
  * Evidence record for a completed quest step
@@ -122,19 +122,19 @@ export interface QuestStepEvidence {
   questVersion?: string; // Track which quest version was completed
 
   // Evidence pointers (populated based on evidenceType)
-  entityKey?: string;        // For entity_created
-  txHash?: string;           // Transaction hash for verification
+  entityKey?: string; // For entity_created
+  txHash?: string; // Transaction hash for verification
   queryFingerprint?: string; // Hash of normalized query params (for query_proof)
-  resultKeys?: string[];     // Entity keys returned by query (for query_proof)
+  resultKeys?: string[]; // Entity keys returned by query (for query_proof)
 
   // Quiz-specific evidence
-  score?: number;            // Points earned (for quiz_result)
-  maxScore?: number;         // Max possible points (for quiz_result)
-  rubricVersion?: string;    // Which rubric was used (for quiz_result)
-  questionIds?: string[];    // Which questions were answered (for quiz_result)
+  score?: number; // Points earned (for quiz_result)
+  maxScore?: number; // Max possible points (for quiz_result)
+  rubricVersion?: string; // Which rubric was used (for quiz_result)
+  questionIds?: string[]; // Which questions were answered (for quiz_result)
 
   // Submission-specific evidence
-  submittedValue?: string;   // The submitted URL/hash/text (for submission)
+  submittedValue?: string; // The submitted URL/hash/text (for submission)
   submittedType?: 'url' | 'hash' | 'text' | 'file_reference';
 
   // Session-specific evidence
@@ -148,11 +148,14 @@ export interface QuestStepEvidence {
  * Defines what evidence is expected for each step type.
  * This is used for validation when recording progress.
  */
-export const EVIDENCE_BY_STEP_TYPE: Record<QuestStepType, {
-  evidenceType: QuestEvidenceType;
-  requiredFields: (keyof QuestStepEvidence)[];
-  optionalFields: (keyof QuestStepEvidence)[];
-}> = {
+export const EVIDENCE_BY_STEP_TYPE: Record<
+  QuestStepType,
+  {
+    evidenceType: QuestEvidenceType;
+    requiredFields: (keyof QuestStepEvidence)[];
+    optionalFields: (keyof QuestStepEvidence)[];
+  }
+> = {
   READ: {
     evidenceType: 'completion',
     requiredFields: ['stepId', 'completedAt', 'evidenceType'],

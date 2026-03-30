@@ -1,6 +1,6 @@
 /**
  * Simple rate limiter for explorer API routes
- * 
+ *
  * In-memory rate limiting: 60 requests per minute per IP.
  * Ephemeral (resets on server restart).
  */
@@ -37,7 +37,7 @@ function getClientIP(request: Request): string {
 
 /**
  * Check if request should be rate limited
- * 
+ *
  * @returns { allowed: boolean, remaining: number, resetAt: number }
  */
 export function checkRateLimit(request: Request): {
@@ -83,4 +83,3 @@ export function checkRateLimit(request: Request): {
     resetAt: entry.resetAt,
   };
 }
-

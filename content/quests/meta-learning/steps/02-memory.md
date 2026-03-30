@@ -7,16 +7,19 @@ Memory isn't like a filing cabinet where you store information. It's a **process
 ## The Three Stages of Memory
 
 ### 1. Encoding
+
 - Information enters your brain
 - Attention and focus matter
 - Meaningful connections help
 
 ### 2. Storage
+
 - Information is stored in neural networks
 - Connections between neurons strengthen
 - Sleep is crucial for consolidation
 
 ### 3. Retrieval
+
 - Accessing stored information
 - Each retrieval strengthens the memory
 - Context matters (where/how you learned)
@@ -24,6 +27,7 @@ Memory isn't like a filing cabinet where you store information. It's a **process
 ## The Forgetting Curve
 
 Hermann Ebbinghaus discovered that we forget information rapidly:
+
 - **1 hour:** Forget ~50%
 - **1 day:** Forget ~70%
 - **1 week:** Forget ~90%
@@ -33,16 +37,19 @@ Hermann Ebbinghaus discovered that we forget information rapidly:
 ## Types of Memory
 
 ### Working Memory
+
 - Holds ~7 items for ~20 seconds
 - Limited capacity
 - Used for active thinking
 
 ### Long-Term Memory
+
 - Unlimited capacity
 - Permanent storage
 - Requires encoding and retrieval practice
 
 ### Procedural Memory
+
 - "How to" knowledge (riding a bike, typing)
 - Becomes automatic through practice
 - Hard to forget once learned
@@ -50,6 +57,7 @@ Hermann Ebbinghaus discovered that we forget information rapidly:
 ## Memory Strengthening
 
 Memory gets stronger through:
+
 1. **Retrieval practice** (testing yourself)
 2. **Spacing** (review over time)
 3. **Interleaving** (mixing topics)

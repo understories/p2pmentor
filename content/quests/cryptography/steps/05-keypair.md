@@ -3,6 +3,7 @@
 ## Public and Private Keys
 
 A keypair consists of:
+
 - **Private Key:** Secret, never share (like a password)
 - **Public Key:** Public, share freely (like your address)
 
@@ -18,6 +19,7 @@ A keypair consists of:
 [Interactive component to generate keypair client-side]
 
 **Important Security Notes:**
+
 - Private key is generated in your browser (never sent to server)
 - Private key is shown once (copy it if you want to save it)
 - Public key can be shared safely
@@ -26,11 +28,13 @@ A keypair consists of:
 ## Your Keypair
 
 **Public Key:**
+
 ```
 [Generated public key displayed here]
 ```
 
 **Private Key:**
+
 ```
 [Generated private key displayed here - with warning]
 ```

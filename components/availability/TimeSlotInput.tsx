@@ -1,8 +1,8 @@
 /**
  * Time Slot Input Component
- * 
+ *
  * Input for time slot (start/end times in HH:mm format).
- * 
+ *
  * Reference: Availability UX Upgrade Plan
  */
 
@@ -26,7 +26,7 @@ interface TimeSlotInputProps {
 function formatTimeInput(value: string): string {
   // Remove non-digits
   const digits = value.replace(/\D/g, '');
-  
+
   // Format as HH:mm
   if (digits.length <= 2) {
     return digits;
@@ -45,13 +45,13 @@ function isValidTime(time: string): boolean {
   return timeRegex.test(time);
 }
 
-export function TimeSlotInput({ 
-  slot, 
-  onChange, 
-  onRemove, 
+export function TimeSlotInput({
+  slot,
+  onChange,
+  onRemove,
   onDuplicate,
   index,
-  className = '' 
+  className = '',
 }: TimeSlotInputProps) {
   const [startTime, setStartTime] = useState(slot.start);
   const [endTime, setEndTime] = useState(slot.end);
@@ -66,7 +66,7 @@ export function TimeSlotInput({
   const handleStartChange = (value: string) => {
     const formatted = formatTimeInput(value);
     setStartTime(formatted);
-    
+
     if (formatted.length === 5) {
       if (!isValidTime(formatted)) {
         setStartError('Invalid time format (use HH:mm)');
@@ -85,7 +85,7 @@ export function TimeSlotInput({
   const handleEndChange = (value: string) => {
     const formatted = formatTimeInput(value);
     setEndTime(formatted);
-    
+
     if (formatted.length === 5) {
       if (!isValidTime(formatted)) {
         setEndError('Invalid time format (use HH:mm)');
@@ -103,7 +103,7 @@ export function TimeSlotInput({
 
   return (
     <div className={`flex items-start gap-2 ${className}`}>
-      <div className="flex-1 flex items-center gap-2">
+      <div className="flex flex-1 items-center gap-2">
         <div className="flex-1">
           <input
             type="text"
@@ -111,11 +111,11 @@ export function TimeSlotInput({
             onChange={(e) => handleStartChange(e.target.value)}
             placeholder="09:00"
             maxLength={5}
-            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-sm ${
+            className={`w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-700 ${
               startError
                 ? 'border-red-300 dark:border-red-700'
                 : 'border-gray-300 dark:border-gray-600'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+            } focus:border-transparent focus:ring-2 focus:ring-blue-500`}
           />
           {startError && (
             <p className="mt-1 text-xs text-red-600 dark:text-red-400">{startError}</p>
@@ -129,15 +129,13 @@ export function TimeSlotInput({
             onChange={(e) => handleEndChange(e.target.value)}
             placeholder="17:00"
             maxLength={5}
-            className={`w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-700 text-sm ${
+            className={`w-full rounded-lg border bg-white px-3 py-2 text-sm dark:bg-gray-700 ${
               endError
                 ? 'border-red-300 dark:border-red-700'
                 : 'border-gray-300 dark:border-gray-600'
-            } focus:ring-2 focus:ring-blue-500 focus:border-transparent`}
+            } focus:border-transparent focus:ring-2 focus:ring-blue-500`}
           />
-          {endError && (
-            <p className="mt-1 text-xs text-red-600 dark:text-red-400">{endError}</p>
-          )}
+          {endError && <p className="mt-1 text-xs text-red-600 dark:text-red-400">{endError}</p>}
         </div>
       </div>
       <div className="flex items-center gap-1">
@@ -145,11 +143,16 @@ export function TimeSlotInput({
           <button
             type="button"
             onClick={onDuplicate}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            className="rounded p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
             title="Duplicate time slot"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+              />
             </svg>
           </button>
         )}
@@ -157,11 +160,16 @@ export function TimeSlotInput({
           <button
             type="button"
             onClick={onRemove}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+            className="rounded p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-red-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-red-400"
             title="Remove time slot"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         )}
@@ -169,4 +177,3 @@ export function TimeSlotInput({
     </div>
   );
 }
-

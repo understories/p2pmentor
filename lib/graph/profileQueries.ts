@@ -1,15 +1,20 @@
 /**
  * GraphQL queries for profile pages
- * 
+ *
  * Queries GraphQL endpoint for profile data with related entities.
- * 
+ *
  * Reference: refs/docs/sprint2.md
  */
 
 import { graphRequest } from './client';
 
 // Record performance metrics for profile queries
-async function recordProfilePerf(source: 'arkiv' | 'graphql', durationMs: number, payloadBytes: number, httpRequests: number) {
+async function recordProfilePerf(
+  source: 'arkiv' | 'graphql',
+  durationMs: number,
+  payloadBytes: number,
+  httpRequests: number
+) {
   try {
     // Dynamic import to avoid circular dependencies
     const { recordPerfSample } = await import('@/lib/metrics/perf');
@@ -172,7 +177,7 @@ export interface ProfileDetailParams {
 
 /**
  * Fetch profile detail data via GraphQL
- * 
+ *
  * @param params - Query parameters
  * @param options - Optional endpoint override (for server-side calls)
  * @returns Profile detail data
@@ -181,12 +186,7 @@ export async function fetchProfileDetail(
   params: ProfileDetailParams,
   options?: { endpoint?: string }
 ): Promise<ProfileDetailResponse> {
-  const {
-    wallet,
-    limitAsks = 50,
-    limitOffers = 50,
-    limitFeedback = 50,
-  } = params;
+  const { wallet, limitAsks = 50, limitOffers = 50, limitFeedback = 50 } = params;
 
   const variables: Record<string, any> = {
     wallet,
@@ -196,19 +196,18 @@ export async function fetchProfileDetail(
   };
 
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  
-  const response = await graphRequest<ProfileDetailResponse>(
-    PROFILE_DETAIL_QUERY,
-    variables,
-    { operationName: 'ProfileDetail', endpoint: options?.endpoint }
-  );
-  
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+
+  const response = await graphRequest<ProfileDetailResponse>(PROFILE_DETAIL_QUERY, variables, {
+    operationName: 'ProfileDetail',
+    endpoint: options?.endpoint,
+  });
+
+  const durationMs =
+    typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
   const payloadBytes = JSON.stringify(response).length;
-  
+
   // Record performance metrics
   await recordProfilePerf('graphql', durationMs, payloadBytes, 2); // 1 GraphQL + 1 API (sessions)
-  
+
   return response;
 }
-

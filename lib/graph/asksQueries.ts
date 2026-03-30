@@ -1,8 +1,8 @@
 /**
  * GraphQL queries for asks pages
- * 
+ *
  * Queries GraphQL endpoint for asks data.
- * 
+ *
  * Reference: refs/docs/sprint2.md
  */
 
@@ -68,7 +68,7 @@ export interface AsksParams {
 
 /**
  * Fetch asks via GraphQL
- * 
+ *
  * @param params - Query parameters
  * @param options - Optional endpoint override (for server-side calls)
  * @returns Array of asks
@@ -77,12 +77,7 @@ export async function fetchAsks(
   params: AsksParams = {},
   options?: { endpoint?: string }
 ): Promise<AsksResponse['asks']> {
-  const {
-    skill,
-    wallet,
-    includeExpired = false,
-    limit = 100,
-  } = params;
+  const { skill, wallet, includeExpired = false, limit = 100 } = params;
 
   const variables: Record<string, any> = {
     skill,
@@ -92,16 +87,16 @@ export async function fetchAsks(
   };
 
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  
-  const response = await graphRequest<AsksResponse>(
-    ASKS_QUERY,
-    variables,
-    { operationName: 'Asks', endpoint: options?.endpoint }
-  );
-  
-  const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+
+  const response = await graphRequest<AsksResponse>(ASKS_QUERY, variables, {
+    operationName: 'Asks',
+    endpoint: options?.endpoint,
+  });
+
+  const durationMs =
+    typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
   const payloadBytes = JSON.stringify(response).length;
-  
+
   // Record performance metrics
   try {
     const { recordPerfSample } = await import('@/lib/metrics/perf');
@@ -117,7 +112,6 @@ export async function fetchAsks(
   } catch (err) {
     // Silently fail if metrics module not available
   }
-  
+
   return response.asks;
 }
-

@@ -1,12 +1,12 @@
 /**
  * Profile Version History Page
- * 
+ *
  * Displays all versions/edits of a profile entity, showing:
  * - Entity key and transaction hash for each version
  * - Timestamp of when each version was created/updated
  * - Entity data (displayName, username, bio, skills, etc.)
  * - Links to Arkiv Explorer for each version
- * 
+ *
  * Follows engineering guidelines: Arkiv-native queries, proper error handling,
  * wallet normalization, real data only.
  */
@@ -85,8 +85,8 @@ export default function ProfileVersionsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton />
           <div className="mt-8 flex items-center justify-center">
             <LoadingSpinner />
@@ -98,10 +98,10 @@ export default function ProfileVersionsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-        <div className="max-w-4xl mx-auto">
+      <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+        <div className="mx-auto max-w-4xl">
           <BackButton />
-          <div className="mt-8 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="mt-8 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-900/20">
             <p className="text-red-800 dark:text-red-200">{error}</p>
           </div>
         </div>
@@ -110,27 +110,28 @@ export default function ProfileVersionsPage() {
   }
 
   return (
-    <main className="min-h-screen text-gray-900 dark:text-gray-100 p-8">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen p-8 text-gray-900 dark:text-gray-100">
+      <div className="mx-auto max-w-4xl">
         <BackButton />
-        
-        <div className="mt-8 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-50 mb-2">
+
+        <div className="mb-6 mt-8">
+          <h1 className="mb-2 text-3xl font-bold text-gray-900 dark:text-gray-50">
             Profile Version History
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            All versions of profile for wallet: <span className="font-mono text-sm">{shortenWallet(wallet)}</span>
+            All versions of profile for wallet:{' '}
+            <span className="font-mono text-sm">{shortenWallet(wallet)}</span>
           </p>
           <Link
             href={`/profiles/${wallet}`}
-            className="text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block"
+            className="mt-2 inline-block text-blue-600 hover:underline dark:text-blue-400"
           >
             ← Back to profile
           </Link>
         </div>
 
         {versions.length === 0 ? (
-          <div className="p-8 bg-gray-50 dark:bg-gray-800 rounded-lg text-center">
+          <div className="rounded-lg bg-gray-50 p-8 text-center dark:bg-gray-800">
             <p className="text-gray-600 dark:text-gray-400">No version history found</p>
           </div>
         ) : (
@@ -138,20 +139,20 @@ export default function ProfileVersionsPage() {
             {versions.map((version) => (
               <div
                 key={version.entityKey}
-                className={`p-6 rounded-lg border ${
+                className={`rounded-lg border p-6 ${
                   version.isCurrent
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
-                    : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700'
+                    ? 'border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-900/20'
+                    : 'border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800'
                 }`}
               >
-                <div className="flex items-start justify-between mb-4">
+                <div className="mb-4 flex items-start justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                         Version {version.version}
                       </h3>
                       {version.isCurrent && (
-                        <span className="px-2 py-1 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                        <span className="rounded bg-blue-100 px-2 py-1 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
                           Current
                         </span>
                       )}
@@ -166,7 +167,7 @@ export default function ProfileVersionsPage() {
                         href={version.txExplorerUrl || '#'}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        className="text-xs text-blue-600 hover:underline dark:text-blue-400"
                         title="View transaction on Arkiv Explorer"
                       >
                         TX: {version.txHash.slice(0, 10)}...
@@ -183,7 +184,7 @@ export default function ProfileVersionsPage() {
 
                 <div className="space-y-3">
                   <div>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Display Name</p>
+                    <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Display Name</p>
                     <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {version.displayName || '(not set)'}
                     </p>
@@ -191,26 +192,28 @@ export default function ProfileVersionsPage() {
 
                   {version.username && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Username</p>
-                      <p className="text-sm text-gray-700 dark:text-gray-300">@{version.username}</p>
+                      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Username</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        @{version.username}
+                      </p>
                     </div>
                   )}
 
                   {version.bioShort && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Bio</p>
+                      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Bio</p>
                       <p className="text-sm text-gray-700 dark:text-gray-300">{version.bioShort}</p>
                     </div>
                   )}
 
                   {version.skills.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Skills</p>
+                      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Skills</p>
                       <div className="flex flex-wrap gap-2">
                         {version.skills.map((skill, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded"
+                            className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200"
                           >
                             {skill}
                           </span>
@@ -221,12 +224,12 @@ export default function ProfileVersionsPage() {
 
                   {version.languages.length > 0 && (
                     <div>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Languages</p>
+                      <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Languages</p>
                       <div className="flex flex-wrap gap-2">
                         {version.languages.map((lang, idx) => (
                           <span
                             key={idx}
-                            className="px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded"
+                            className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-800 dark:bg-gray-700 dark:text-gray-200"
                           >
                             {lang}
                           </span>
@@ -235,9 +238,9 @@ export default function ProfileVersionsPage() {
                     </div>
                   )}
 
-                  <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Entity Key</p>
-                    <p className="text-xs font-mono text-gray-600 dark:text-gray-400 break-all">
+                  <div className="border-t border-gray-200 pt-2 dark:border-gray-700">
+                    <p className="mb-1 text-xs text-gray-500 dark:text-gray-400">Entity Key</p>
+                    <p className="break-all font-mono text-xs text-gray-600 dark:text-gray-400">
                       {version.entityKey}
                     </p>
                   </div>
@@ -247,15 +250,14 @@ export default function ProfileVersionsPage() {
           </div>
         )}
 
-        <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
+        <div className="mt-8 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            <strong>Note:</strong> All profile versions are preserved on-chain. Each version represents
-            a transaction that created or updated the profile entity. The current version is the most
-            recent update to the canonical profile entity.
+            <strong>Note:</strong> All profile versions are preserved on-chain. Each version
+            represents a transaction that created or updated the profile entity. The current version
+            is the most recent update to the canonical profile entity.
           </p>
         </div>
       </div>
     </main>
   );
 }
-

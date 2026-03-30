@@ -7,6 +7,7 @@ GraphQL interface over Arkiv's JSON-RPC indexer. Reusable tool for any Arkiv-bas
 This GraphQL API provides a clean, type-safe interface to query Arkiv entities (profiles, asks, offers, skills) using GraphQL instead of direct JSON-RPC calls.
 
 **Benefits:**
+
 - ✅ GraphQL query language (familiar, powerful)
 - ✅ Type-safe queries and responses
 - ✅ Ecosystem tooling (Apollo, Relay, etc.)
@@ -75,6 +76,7 @@ const data = await graphRequest(`
 See `lib/graphql/schema.ts` for full schema definition.
 
 **Main Types:**
+
 - `Query` - Root query type
 - `NetworkOverview` - Network graph data
 - `SkillRef` - Skill with related asks/offers
@@ -152,5 +154,3 @@ To use this GraphQL API in p2pmentor:
 3. Update `lib/arkiv/networkGraph.ts` to use GraphQL path (see TODO there)
 
 The existing GraphQL client (`lib/graph/client.ts`) and adapter (`lib/graph/networkAdapter.ts`) are ready to use!
-
-

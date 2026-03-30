@@ -11,6 +11,7 @@ GraphQL interface over Arkiv's JSON-RPC indexer. Provides a query layer for Arki
 GraphQL API is a thin wrapper over Arkiv JSON-RPC. All resolvers use the same Arkiv functions as direct JSON-RPC calls. No custom indexing or filtering.
 
 Components:
+
 - API Route: `app/api/graphql/route.ts`
 - Schema: `lib/graphql/schema.ts`
 - Resolvers: `lib/graphql/resolvers.ts` (calls `lib/arkiv/*` helpers)
@@ -45,4 +46,3 @@ const data = await graphRequest(`
 GraphQL is used as an index and query layer. Arkiv remains the canonical store. All resolvers use the same Arkiv functions as direct JSON-RPC calls. This makes the GraphQL API a reusable tool for any Arkiv-based application.
 
 See [GraphQL Tool Documentation](/docs/ARKIV_GRAPHQL_TOOL.md) for complete API documentation.
-

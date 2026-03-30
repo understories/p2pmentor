@@ -1,9 +1,9 @@
 /**
  * Data Correctness Validation Script
- * 
+ *
  * Compares GraphQL adapter output with JSON-RPC data builder to ensure
  * data shape and consistency match.
- * 
+ *
  * Usage:
  *   pnpm dlx tsx scripts/validate-data-correctness.ts
  */
@@ -29,9 +29,9 @@ interface ValidationResult {
 
 async function validateDataCorrectness(): Promise<ValidationResult> {
   console.log('🔍 Validating data correctness: GraphQL vs JSON-RPC\n');
-  
+
   const issues: string[] = [];
-  
+
   try {
     // Fetch JSON-RPC data
     console.log('📡 Fetching JSON-RPC data...');
@@ -75,12 +75,12 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
         `,
       }),
     });
-    
+
     if (!graphqlRes.ok) {
       throw new Error(`GraphQL fetch failed: ${graphqlRes.status}`);
     }
     const graphqlResponse = await graphqlRes.json();
-    
+
     if (graphqlResponse.errors) {
       throw new Error(`GraphQL errors: ${JSON.stringify(graphqlResponse.errors)}`);
     }
@@ -111,7 +111,7 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
     const skillRefs = graphqlData?.skillRefs || [];
     let totalAsks = 0;
     let totalOffers = 0;
-    
+
     skillRefs.forEach((skillRef: any) => {
       totalAsks += skillRef.asks?.length || 0;
       totalOffers += skillRef.offers?.length || 0;
@@ -119,12 +119,16 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
 
     // Validation checks
     console.log('\n📊 Data Comparison:');
-    console.log(`   JSON-RPC: ${jsonRpcNodes.length} nodes (${skillNodes} skills, ${askNodes} asks, ${offerNodes} offers), ${jsonRpcLinkCount} links`);
+    console.log(
+      `   JSON-RPC: ${jsonRpcNodes.length} nodes (${skillNodes} skills, ${askNodes} asks, ${offerNodes} offers), ${jsonRpcLinkCount} links`
+    );
     console.log(`   GraphQL: ${skillRefs.length} skills, ${totalAsks} asks, ${totalOffers} offers`);
 
     // Check node ID formats
-    const invalidNodeIds = jsonRpcNodes.filter((n: any) => 
-      !n.id || (!n.id.startsWith('skill:') && !n.id.startsWith('ask:') && !n.id.startsWith('offer:'))
+    const invalidNodeIds = jsonRpcNodes.filter(
+      (n: any) =>
+        !n.id ||
+        (!n.id.startsWith('skill:') && !n.id.startsWith('ask:') && !n.id.startsWith('offer:'))
     );
     if (invalidNodeIds.length > 0) {
       issues.push(`Invalid node ID format: ${invalidNodeIds.length} nodes`);
@@ -132,24 +136,23 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
     }
 
     // Check link format
-    const invalidLinks = jsonRpcData.links?.filter((l: any) => 
-      !l.source || !l.target
-    ) || [];
+    const invalidLinks = jsonRpcData.links?.filter((l: any) => !l.source || !l.target) || [];
     if (invalidLinks.length > 0) {
       issues.push(`Invalid link format: ${invalidLinks.length} links`);
     }
 
     // Check skill name normalization (case-insensitive)
-    const jsonRpcSkills = new Set(jsonRpcNodes
-      .filter((n: any) => n.id?.startsWith('skill:'))
-      .map((n: any) => n.id?.replace('skill:', '').toLowerCase())
+    const jsonRpcSkills = new Set(
+      jsonRpcNodes
+        .filter((n: any) => n.id?.startsWith('skill:'))
+        .map((n: any) => n.id?.replace('skill:', '').toLowerCase())
     );
     const graphqlSkills = new Set(skillRefs.map((sr: any) => sr.name?.toLowerCase()));
-    
+
     // Compare skill sets (should match)
-    const missingInGraphQL = Array.from(jsonRpcSkills).filter(s => !graphqlSkills.has(s));
-    const missingInJsonRPC = Array.from(graphqlSkills).filter(s => !jsonRpcSkills.has(s));
-    
+    const missingInGraphQL = Array.from(jsonRpcSkills).filter((s) => !graphqlSkills.has(s));
+    const missingInJsonRPC = Array.from(graphqlSkills).filter((s) => !jsonRpcSkills.has(s));
+
     if (missingInGraphQL.length > 0) {
       issues.push(`Skills in JSON-RPC but not in GraphQL: ${missingInGraphQL.join(', ')}`);
     }
@@ -158,9 +161,11 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
     }
 
     // Check that ask/offer counts are reasonable (may differ slightly due to limits)
-    const nodeCountDiff = Math.abs((askNodes + offerNodes) - (totalAsks + totalOffers));
+    const nodeCountDiff = Math.abs(askNodes + offerNodes - (totalAsks + totalOffers));
     if (nodeCountDiff > 5) {
-      issues.push(`Significant node count difference: JSON-RPC=${askNodes + offerNodes}, GraphQL=${totalAsks + totalOffers}`);
+      issues.push(
+        `Significant node count difference: JSON-RPC=${askNodes + offerNodes}, GraphQL=${totalAsks + totalOffers}`
+      );
     }
 
     // Check expiration filtering
@@ -176,7 +181,7 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
       console.log('   ✅ All checks passed!');
     } else {
       console.log(`   ⚠️  Found ${issues.length} issue(s):`);
-      issues.forEach(issue => console.log(`      - ${issue}`));
+      issues.forEach((issue) => console.log(`      - ${issue}`));
     }
 
     return {
@@ -208,10 +213,11 @@ async function validateDataCorrectness(): Promise<ValidationResult> {
 
 // Run if executed directly
 if (import.meta.url === `file://${process.argv[1]}`) {
-  validateDataCorrectness().then(result => {
-    process.exit(result.valid ? 0 : 1);
-  }).catch(console.error);
+  validateDataCorrectness()
+    .then((result) => {
+      process.exit(result.valid ? 0 : 1);
+    })
+    .catch(console.error);
 }
 
 export { validateDataCorrectness };
-

@@ -1,9 +1,9 @@
 /**
  * Client Performance Metrics API route
- * 
+ *
  * Handles client-side performance metrics collection.
  * Privacy-preserving: no PII, only performance data.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 5
  */
 
@@ -14,7 +14,7 @@ import type { ClientPerfMetric } from '@/lib/metrics/clientPerf';
 
 /**
  * POST /api/client-perf
- * 
+ *
  * Submit client-side performance metrics
  * Body: ClientPerfMetric
  */
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/client-perf
- * 
+ *
  * List client performance metrics
  * Query params: page, limit, since
  */

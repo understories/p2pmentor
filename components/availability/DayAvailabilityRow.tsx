@@ -1,9 +1,9 @@
 /**
  * Day Availability Row Component
- * 
+ *
  * Single day row in weekly availability editor.
  * Shows day name, availability toggle, and time slots.
- * 
+ *
  * Reference: Availability UX Upgrade Plan
  */
 
@@ -36,7 +36,11 @@ export function DayAvailabilityRow({
     const newAvailable = !availability.available;
     onChange({
       available: newAvailable,
-      timeSlots: newAvailable ? (availability.timeSlots.length > 0 ? availability.timeSlots : [{ start: '09:00', end: '17:00' }]) : [],
+      timeSlots: newAvailable
+        ? availability.timeSlots.length > 0
+          ? availability.timeSlots
+          : [{ start: '09:00', end: '17:00' }]
+        : [],
     });
     setIsExpanded(newAvailable);
   };
@@ -77,10 +81,10 @@ export function DayAvailabilityRow({
   };
 
   return (
-    <div className={`p-4 border border-gray-200 dark:border-gray-700 rounded-lg ${className}`}>
-      <div className="flex items-center justify-between mb-3">
+    <div className={`rounded-lg border border-gray-200 p-4 dark:border-gray-700 ${className}`}>
+      <div className="mb-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-500 dark:bg-blue-600 text-white flex items-center justify-center text-sm font-medium">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-500 text-sm font-medium text-white dark:bg-blue-600">
             {dayAbbr}
           </div>
           <span className="font-medium text-gray-900 dark:text-gray-100">{dayLabel}</span>
@@ -90,10 +94,15 @@ export function DayAvailabilityRow({
             <button
               type="button"
               onClick={handleToggleAvailable}
-              className="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors flex items-center gap-1"
+              className="flex items-center gap-1 rounded px-3 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-blue-400"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               Add
             </button>
@@ -102,7 +111,7 @@ export function DayAvailabilityRow({
             <button
               type="button"
               onClick={handleToggleAvailable}
-              className="px-3 py-1 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+              className="rounded px-3 py-1 text-sm text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
             >
               Unavailable
             </button>
@@ -113,7 +122,7 @@ export function DayAvailabilityRow({
       {availability.available && (
         <div className="space-y-3">
           {availability.timeSlots.length === 0 ? (
-            <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
+            <div className="py-2 text-center text-sm text-gray-500 dark:text-gray-400">
               No time slots. Click "Add time slot" to set availability.
             </div>
           ) : (
@@ -128,14 +137,19 @@ export function DayAvailabilityRow({
               />
             ))
           )}
-          
+
           <button
             type="button"
             onClick={handleAddTimeSlot}
-            className="w-full px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg transition-colors flex items-center justify-center gap-2"
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 px-3 py-2 text-sm text-blue-600 transition-colors hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/20"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 4v16m8-8H4"
+              />
             </svg>
             Add time slot
           </button>
@@ -143,11 +157,8 @@ export function DayAvailabilityRow({
       )}
 
       {!availability.available && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 text-center py-2">
-          Unavailable
-        </div>
+        <div className="py-2 text-center text-sm text-gray-500 dark:text-gray-400">Unavailable</div>
       )}
     </div>
   );
 }
-

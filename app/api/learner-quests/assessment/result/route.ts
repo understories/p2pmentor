@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -47,10 +50,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!result) {
-      return NextResponse.json(
-        { ok: false, error: 'No assessment result found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'No assessment result found' }, { status: 404 });
     }
 
     return NextResponse.json({ ok: true, result });
@@ -62,4 +62,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

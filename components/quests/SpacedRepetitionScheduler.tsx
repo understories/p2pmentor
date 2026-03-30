@@ -10,14 +10,22 @@
 import { useState } from 'react';
 
 interface SpacedRepetitionSchedulerProps {
-  onScheduleCreated?: (schedule: { concept: string; reviews: Array<{ review: number; date: string }> }) => void;
+  onScheduleCreated?: (schedule: {
+    concept: string;
+    reviews: Array<{ review: number; date: string }>;
+  }) => void;
   requireSchedule?: boolean;
 }
 
-export function SpacedRepetitionScheduler({ onScheduleCreated, requireSchedule = true }: SpacedRepetitionSchedulerProps) {
+export function SpacedRepetitionScheduler({
+  onScheduleCreated,
+  requireSchedule = true,
+}: SpacedRepetitionSchedulerProps) {
   const [concept, setConcept] = useState('');
   const [learningDate, setLearningDate] = useState(new Date().toISOString().split('T')[0]);
-  const [schedule, setSchedule] = useState<Array<{ review: number; date: string; label: string }>>([]);
+  const [schedule, setSchedule] = useState<Array<{ review: number; date: string; label: string }>>(
+    []
+  );
   const [created, setCreated] = useState(false);
 
   const calculateSchedule = () => {
@@ -48,20 +56,20 @@ export function SpacedRepetitionScheduler({ onScheduleCreated, requireSchedule =
     if (onScheduleCreated) {
       onScheduleCreated({
         concept: concept.trim(),
-        reviews: calculatedSchedule.map(r => ({ review: r.review, date: r.date })),
+        reviews: calculatedSchedule.map((r) => ({ review: r.review, date: r.date })),
       });
     }
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20">
-      <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+    <div className="mx-auto w-full max-w-2xl rounded-lg border border-green-200 bg-green-50 p-6 dark:border-green-800 dark:bg-green-900/20">
+      <h3 className="mb-4 text-lg font-semibold text-gray-900 dark:text-gray-100">
         Spaced Repetition Scheduler
       </h3>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Concept to learn:
           </label>
           <input
@@ -69,40 +77,40 @@ export function SpacedRepetitionScheduler({ onScheduleCreated, requireSchedule =
             value={concept}
             onChange={(e) => setConcept(e.target.value)}
             placeholder="e.g., 'How blockchain works', 'Spanish vocabulary', 'React hooks'"
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
             Learning date:
           </label>
           <input
             type="date"
             value={learningDate}
             onChange={(e) => setLearningDate(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
           />
         </div>
 
         <button
           onClick={calculateSchedule}
           disabled={!concept.trim() || !learningDate || created}
-          className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full rounded-lg bg-green-600 px-6 py-3 font-medium text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {created ? 'Schedule Created' : 'Create Schedule'}
         </button>
 
         {schedule.length > 0 && (
-          <div className="mt-6 p-4 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20">
-            <div className="text-sm font-semibold text-emerald-800 dark:text-emerald-200 mb-3">
+          <div className="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-800 dark:bg-emerald-900/20">
+            <div className="mb-3 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
               Your Review Schedule for "{concept}":
             </div>
             <div className="space-y-2">
               {schedule.map((item) => (
                 <div
                   key={item.review}
-                  className="flex items-center justify-between p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800"
+                  className="flex items-center justify-between rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
                 >
                   <div>
                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
@@ -117,14 +125,14 @@ export function SpacedRepetitionScheduler({ onScheduleCreated, requireSchedule =
                       })}
                     </div>
                   </div>
-                  <div className="text-sm font-mono text-gray-600 dark:text-gray-400">
+                  <div className="font-mono text-sm text-gray-600 dark:text-gray-400">
                     Review {item.review}
                   </div>
                 </div>
               ))}
             </div>
             {created && (
-              <div className="mt-4 text-sm text-emerald-600 dark:text-emerald-400 font-medium">
+              <div className="mt-4 text-sm font-medium text-emerald-600 dark:text-emerald-400">
                 ✓ Schedule created! Add these dates to your calendar.
               </div>
             )}

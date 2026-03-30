@@ -11,6 +11,7 @@ This document provides complete schema documentation for all Arkiv entities used
 All entities are stored on Arkiv (blockchain-native storage). Transactions are immutable, but entities can be updated in place using stable entity keys (Pattern B). For versioning scenarios, updates can create new entities (Pattern A). See [Editable Entities](/docs/arkiv/overview/editable-entities) for details on update patterns.
 
 **Common Patterns:**
+
 - All entities have `type` attribute for filtering
 - All entities have `spaceId` attribute (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 - All entities have `createdAt` attribute (ISO timestamp)
@@ -26,6 +27,7 @@ All entities are stored on Arkiv (blockchain-native storage). Transactions are i
 Stores user profile information including identity, skills, availability, and reputation metadata.
 
 **Key Fields:**
+
 - `wallet`: Wallet address (primary identifier)
 - `displayName`: User's display name (required)
 - `username`: Unique username (optional)
@@ -46,6 +48,7 @@ Stores user profile information including identity, skills, availability, and re
 First-class entity for skills/topics. All user-facing flows reference `Skill.id`, not free-text strings.
 
 **Key Fields:**
+
 - `name_canonical`: Display name (e.g., "Spanish")
 - `slug`: Normalized key (e.g., "spanish")
 - `status`: `'active' | 'archived'`
@@ -60,6 +63,7 @@ First-class entity for skills/topics. All user-facing flows reference `Skill.id`
 Learning requests - users post what they want to learn.
 
 **Key Fields:**
+
 - `wallet`: Wallet address of asker
 - `skill_id`: Reference to Skill entity (preferred)
 - `message`: Ask description
@@ -77,6 +81,7 @@ Learning requests - users post what they want to learn.
 Teaching offers - users post what they can teach.
 
 **Key Fields:**
+
 - `wallet`: Wallet address of offerer
 - `skill_id`: Reference to Skill entity (preferred)
 - `message`: Offer description
@@ -100,6 +105,7 @@ Teaching offers - users post what they can teach.
 Mentorship sessions between mentor and learner.
 
 **Key Fields:**
+
 - `mentorWallet`: Mentor wallet address
 - `learnerWallet`: Learner wallet address
 - `skill`: Skill/topic name
@@ -112,6 +118,7 @@ Mentorship sessions between mentor and learner.
 - `cost`: Cost amount (if paid)
 
 **State Transitions:**
+
 - `pending → scheduled`: Both mentor and learner confirm
 - `pending → cancelled`: Either party rejects
 - `scheduled → in-progress`: Automatic when `sessionDate` arrives
@@ -126,6 +133,7 @@ Mentorship sessions between mentor and learner.
 Post-session feedback (ratings, notes, technical DX feedback).
 
 **Key Fields:**
+
 - `sessionKey`: Reference to Session entity
 - `mentorWallet`: Mentor wallet address
 - `learnerWallet`: Learner wallet address
@@ -148,6 +156,7 @@ Post-session feedback (ratings, notes, technical DX feedback).
 User availability time blocks for scheduling sessions.
 
 **Key Fields:**
+
 - `wallet`: Wallet address
 - `timezone`: IANA timezone (e.g., "America/New_York")
 - `availabilityWindow`: Legacy text description
@@ -164,6 +173,7 @@ User availability time blocks for scheduling sessions.
 Community virtual gatherings (public meetings). Anyone can suggest, anyone can RSVP.
 
 **Key Fields:**
+
 - `organizerWallet`: Organizer wallet address
 - `community`: Community identifier (e.g., skill slug)
 - `title`: Gathering title
@@ -187,6 +197,7 @@ Community virtual gatherings (public meetings). Anyone can suggest, anyone can R
 Quest definitions stored on Arkiv for network-wide discovery. Quest content is stored inline in the entity payload.
 
 **Key Fields:**
+
 - `questId`: Unique quest identifier (e.g., "arkiv_builder")
 - `track`: Quest track (e.g., "arkiv", "mandarin")
 - `version`: Quest version (e.g., "1", "2")
@@ -207,6 +218,7 @@ Quest definitions stored on Arkiv for network-wide discovery. Quest content is s
 Tracks user progress through quest steps with verifiable evidence.
 
 **Key Fields:**
+
 - `wallet`: Wallet address (primary identifier)
 - `questId`: Quest identifier
 - `stepId`: Step identifier
@@ -214,6 +226,7 @@ Tracks user progress through quest steps with verifiable evidence.
 - `evidence`: Evidence record (varies by step type)
 
 **Evidence Types:**
+
 - `completion`: Simple completion (READ steps)
 - `entity_created`: Entity creation proof (DO steps)
 - `quiz_result`: Quiz score and rubric (QUIZ steps)
@@ -234,6 +247,7 @@ Tracks user progress through quest steps with verifiable evidence.
 Verifiable badges earned for completing quest tracks.
 
 **Key Fields:**
+
 - `wallet`: Wallet address (primary identifier)
 - `badgeType`: Badge type (e.g., "arkiv_builder", "mandarin_starter")
 - `questId`: Quest identifier this badge was earned for
@@ -253,6 +267,7 @@ Verifiable badges earned for completing quest tracks.
 ### Transaction Hash Tracking
 
 All entities have corresponding `*_txhash` entities for reliable querying:
+
 - `user_profile_txhash`
 - `ask_txhash`
 - `offer_txhash`
@@ -282,7 +297,8 @@ All entities have corresponding `*_txhash` entities for reliable querying:
 ### Fetch Latest Entity for Wallet
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'entity_type'))
   .where(eq('wallet', wallet.toLowerCase()))
   .withAttributes(true)
@@ -294,7 +310,8 @@ const result = await publicClient.buildQuery()
 ### Fetch Entities by Skill
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'ask'))
   .where(eq('skill_id', skillId))
   .withAttributes(true)
@@ -305,7 +322,8 @@ const result = await publicClient.buildQuery()
 ### Fetch Transaction Hash
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'entity_type_txhash'))
   .where(eq('entityKey', entityKey))
   .withAttributes(true)
@@ -327,6 +345,7 @@ const result = await publicClient.buildQuery()
 ---
 
 **See Also:**
+
 - [Arkiv Data Model Overview](/docs/arkiv/entities/data-model)
 - [Additional Entities](/docs/arkiv/entities/README) - Supporting entity types
 - [Implementation FAQ](/docs/arkiv/operations/implementation-faq) - Common patterns and Q&A

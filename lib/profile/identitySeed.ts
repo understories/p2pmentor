@@ -1,6 +1,6 @@
 /**
  * Emoji Identity Seeds (EIS) Utilities
- * 
+ *
  * Every user's identity is represented by a seed-emoji avatar from a curated
  * set of plant/nature emojis. This creates a cohesive forest aesthetic with
  * zero PII and minimal UI complexity.
@@ -10,7 +10,7 @@
  * Curated emoji pool for plant/nature/celestial category
  * Phase 0: Random selection from this pool
  * Phase 1: User customization + deterministic hash option
- * 
+ *
  * Includes: plants, nature, fruits, vegetables, celestial bodies, natural elements
  */
 export const PLANT_EMOJI_POOL = [
@@ -102,7 +102,7 @@ export const PLANT_EMOJI_POOL = [
   '🧠', // brain
 ] as const;
 
-export type PlantEmoji = typeof PLANT_EMOJI_POOL[number];
+export type PlantEmoji = (typeof PLANT_EMOJI_POOL)[number];
 
 /**
  * Select a random emoji from the plant pool
@@ -131,7 +131,7 @@ export function getDeterministicEmoji(wallet: string): PlantEmoji {
   let hash = 0;
   for (let i = 0; i < wallet.length; i++) {
     const char = wallet.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32-bit integer
   }
   const index = Math.abs(hash) % PLANT_EMOJI_POOL.length;
@@ -142,7 +142,9 @@ export function getDeterministicEmoji(wallet: string): PlantEmoji {
  * Get emoji for a user profile
  * Falls back to random if not set (for existing profiles)
  */
-export function getProfileEmoji(profile: { identity_seed?: string | null } | null | undefined): PlantEmoji {
+export function getProfileEmoji(
+  profile: { identity_seed?: string | null } | null | undefined
+): PlantEmoji {
   if (profile?.identity_seed && isValidPlantEmoji(profile.identity_seed)) {
     return profile.identity_seed;
   }

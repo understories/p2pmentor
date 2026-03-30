@@ -1,12 +1,16 @@
 /**
  * Passkey Recovery Helpers
- * 
+ *
  * Handles recovery flows for passkey wallets using backup signers.
- * 
+ *
  * Reference: refs/doc/passkey_levelup.md Phase 2
  */
 
-import { createBackupWalletIdentity, listBackupWalletIdentities, listPasskeyIdentities } from '@/lib/arkiv/authIdentity';
+import {
+  createBackupWalletIdentity,
+  listBackupWalletIdentities,
+  listPasskeyIdentities,
+} from '@/lib/arkiv/authIdentity';
 import { createPasskeyWallet } from '@/lib/auth/passkey-wallet';
 import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 import { verifyMessage } from 'viem';
@@ -14,14 +18,14 @@ import { SPACE_ID } from '@/lib/config';
 
 /**
  * Register a backup wallet for passkey recovery (client-side)
- * 
+ *
  * Flow:
  * 1. User connects MetaMask (backup wallet)
  * 2. Create auth_identity::backup_wallet entity on Arkiv using backup wallet
- * 
+ *
  * Note: This must be called client-side with a MetaMask wallet client.
  * The backup wallet signs the entity creation transaction.
- * 
+ *
  * @param wallet - Passkey wallet address
  * @param backupWalletAddress - Backup wallet address (from MetaMask)
  * @param backupWalletClient - Wallet client for backup wallet (from MetaMask)
@@ -38,7 +42,7 @@ export async function registerBackupWallet({
 }): Promise<{ key: string; txHash: string }> {
   // Create backup wallet identity entity using backup wallet client
   // MetaMask wallet client can sign entity creation transactions directly
-  
+
   const { handleTransactionWithTimeout } = await import('@/lib/arkiv/transaction-utils');
   const enc = new TextEncoder();
   const createdAt = new Date().toISOString();
@@ -67,26 +71,28 @@ export async function registerBackupWallet({
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  backupWalletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
-      { key: 'identityKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: SPACE_ID },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[registerBackupWallet] Failed to create txhash entity:', error);
-  });
+  backupWalletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'auth_identity_backup_wallet_txhash' },
+        { key: 'identityKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: SPACE_ID },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[registerBackupWallet] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
 
 /**
  * Check if local passkey wallet exists
- * 
+ *
  * @param userId - User identifier
  * @returns True if wallet exists in IndexedDB
  */
@@ -102,7 +108,7 @@ export async function hasLocalPasskeyWallet(userId: string): Promise<boolean> {
 
 /**
  * Check if Arkiv has passkey identity for wallet
- * 
+ *
  * @param wallet - Wallet address
  * @returns True if passkey identity exists on Arkiv
  */
@@ -117,7 +123,7 @@ export async function hasArkivPasskeyIdentity(wallet: string): Promise<boolean> 
 
 /**
  * Check if backup wallet is registered
- * 
+ *
  * @param wallet - Wallet address
  * @returns True if backup wallet exists on Arkiv
  */
@@ -132,12 +138,12 @@ export async function hasBackupWallet(wallet: string): Promise<boolean> {
 
 /**
  * Recover passkey wallet using backup signer
- * 
+ *
  * Flow:
  * 1. User proves control of backup wallet (sign challenge)
  * 2. Create new local passkey wallet
  * 3. Link new wallet to same identity (or create new identity)
- * 
+ *
  * @param wallet - Original wallet address (from Arkiv profile)
  * @param backupWalletAddress - Backup wallet address
  * @param backupWalletClient - Wallet client for backup wallet
@@ -160,8 +166,8 @@ export async function recoverPasskeyWallet({
 }): Promise<{ address: `0x${string}` }> {
   // Verify backup wallet is registered
   const backupWallets = await listBackupWalletIdentities(wallet);
-  const isRegistered = backupWallets.some(bw => 
-    bw.backupWalletAddress?.toLowerCase() === backupWalletAddress.toLowerCase()
+  const isRegistered = backupWallets.some(
+    (bw) => bw.backupWalletAddress?.toLowerCase() === backupWalletAddress.toLowerCase()
   );
 
   if (!isRegistered) {
@@ -174,10 +180,10 @@ export async function recoverPasskeyWallet({
 
   // Create new local passkey wallet
   const walletResult = await createPasskeyWallet(userId, credentialID);
-  
+
   // Note: The new wallet will have a different address
   // The user's identity (profile) is linked to the original wallet address
   // We'll need to handle this in the recovery UI (prompt to regrow profile or link to new wallet)
-  
+
   return { address: walletResult.address };
 }

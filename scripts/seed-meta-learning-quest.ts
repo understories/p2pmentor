@@ -18,14 +18,16 @@ import { getPrivateKey, SPACE_ID } from '../lib/config';
 const META_LEARNING_QUEST = {
   questId: 'meta_learning',
   title: 'Meta-Learning: Learn How to Learn',
-  description: 'A foundational quest that teaches effective learning behaviors and mental models. Apply to any learning goal you already have on the platform.',
+  description:
+    'A foundational quest that teaches effective learning behaviors and mental models. Apply to any learning goal you already have on the platform.',
   source: 'refs/meta-learning-quest-implementation-plan.md',
   questType: 'meta_learning' as const,
   steps: [
     {
       stepId: 'choose_target',
       title: 'Choose a Learning Target',
-      description: 'Select any active or upcoming learning goal from your quests, skills, or create a new one.',
+      description:
+        'Select any active or upcoming learning goal from your quests, skills, or create a new one.',
       estimatedDuration: '5 minutes',
       conceptCard: {
         title: 'Learning is skill-agnostic',
@@ -35,7 +37,8 @@ const META_LEARNING_QUEST = {
     {
       stepId: 'focused_session',
       title: 'Focused Session',
-      description: 'Complete a single focused learning session (20-30 minutes, distraction minimized, one clear objective).',
+      description:
+        'Complete a single focused learning session (20-30 minutes, distraction minimized, one clear objective).',
       estimatedDuration: '20-30 minutes',
       conceptCard: {
         title: 'Focused mode builds structure',
@@ -45,7 +48,8 @@ const META_LEARNING_QUEST = {
     {
       stepId: 'diffuse_break',
       title: 'Diffuse Break',
-      description: 'Intentionally disengage: walk, shower, light physical task, rest. No content consumption required.',
+      description:
+        'Intentionally disengage: walk, shower, light physical task, rest. No content consumption required.',
       estimatedDuration: '10-30 minutes',
       conceptCard: {
         title: 'Insight comes from letting go',
@@ -55,7 +59,8 @@ const META_LEARNING_QUEST = {
     {
       stepId: 'retrieval_attempt',
       title: 'Retrieval Attempt',
-      description: 'Without notes, write or record what you remember, what feels unclear, what you got wrong. Accuracy is not scored.',
+      description:
+        'Without notes, write or record what you remember, what feels unclear, what you got wrong. Accuracy is not scored.',
       estimatedDuration: '10-15 minutes',
       conceptCard: {
         title: 'Trying to remember is what strengthens memory',
@@ -65,7 +70,8 @@ const META_LEARNING_QUEST = {
     {
       stepId: 'reflection',
       title: 'Reflection',
-      description: 'Answer short prompts about what surprised you, what felt easy but wasn\'t, what felt hard but improved, and whether insight occurred after the break.',
+      description:
+        "Answer short prompts about what surprised you, what felt easy but wasn't, what felt hard but improved, and whether insight occurred after the break.",
       estimatedDuration: '5-10 minutes',
       conceptCard: {
         title: 'Awareness prevents false confidence',
@@ -75,7 +81,8 @@ const META_LEARNING_QUEST = {
     {
       stepId: 'spacing_check',
       title: 'Spacing Check',
-      description: 'After ≥24 hours, revisit the topic briefly and note what persisted, what decayed, what re-clicked quickly.',
+      description:
+        'After ≥24 hours, revisit the topic briefly and note what persisted, what decayed, what re-clicked quickly.',
       estimatedDuration: '10-15 minutes',
       conceptCard: {
         title: 'Forgetting is part of learning',
@@ -101,7 +108,9 @@ async function seedQuest(force: boolean = false) {
   const targetSpaceId = SPACE_ID || 'beta-launch';
   console.log(`\n📦 Target Space ID: ${targetSpaceId}`);
   if (force) {
-    console.log(`⚠️  Force mode: Will re-seed even if quest already exists (creates new version)\n`);
+    console.log(
+      `⚠️  Force mode: Will re-seed even if quest already exists (creates new version)\n`
+    );
   } else {
     console.log(`\n`);
   }
@@ -116,7 +125,7 @@ async function seedQuest(force: boolean = false) {
       questType: 'meta_learning',
       spaceId: targetSpaceId,
     });
-    const existingQuest = existingQuests.find(q => q.questId === quest.questId);
+    const existingQuest = existingQuests.find((q) => q.questId === quest.questId);
 
     if (existingQuest) {
       console.log(`⏭️  Skipping "${quest.title}" (already exists in ${targetSpaceId})`);
@@ -129,7 +138,7 @@ async function seedQuest(force: boolean = false) {
       questType: 'meta_learning',
       spaceId: targetSpaceId,
     });
-    const existingQuest = existingQuests.find(q => q.questId === quest.questId);
+    const existingQuest = existingQuests.find((q) => q.questId === quest.questId);
     if (existingQuest) {
       console.log(`⚠️  Quest already exists, but force mode enabled - creating new version`);
       console.log(`   Old quest key: ${existingQuest.key}`);
@@ -174,4 +183,3 @@ seedQuest(force).catch((error) => {
   console.error('Error seeding quest:', error);
   process.exit(1);
 });
-

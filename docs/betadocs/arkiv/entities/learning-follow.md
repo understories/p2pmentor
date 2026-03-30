@@ -21,11 +21,11 @@ Tracks which skills (topics) a user is following for learning communities. Enabl
 
 ```typescript
 {
-  profile_wallet: string;    // Wallet address
-  skill_id: string;          // Skill entity key
-  mode: 'learning' | 'teaching' | 'both';  // Follow mode
-  active: boolean;          // Active flag (soft delete)
-  createdAt: string;         // ISO timestamp
+  profile_wallet: string; // Wallet address
+  skill_id: string; // Skill entity key
+  mode: 'learning' | 'teaching' | 'both'; // Follow mode
+  active: boolean; // Active flag (soft delete)
+  createdAt: string; // ISO timestamp
 }
 ```
 
@@ -41,11 +41,12 @@ Tracks which skills (topics) a user is following for learning communities. Enabl
 ### Get All Follows for Profile
 
 ```typescript
-import { eq, and } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq, and } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'learning_follow'))
   .where(eq('profile_wallet', walletAddress.toLowerCase()))
   .where(eq('active', 'true'))
@@ -54,16 +55,17 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const follows = result.entities.map(e => ({
+const follows = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get All Followers for Skill
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'learning_follow'))
   .where(eq('skill_id', skillId))
   .where(eq('active', 'true'))
@@ -72,16 +74,17 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const followers = result.entities.map(e => ({
+const followers = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get Follows by Mode
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'learning_follow'))
   .where(eq('profile_wallet', walletAddress.toLowerCase()))
   .where(eq('active', 'true'))
@@ -92,19 +95,19 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side by mode
 const learningFollows = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(f => f.mode === 'learning' || f.mode === 'both');
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((f) => f.mode === 'learning' || f.mode === 'both');
 
 const teachingFollows = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(f => f.mode === 'teaching' || f.mode === 'both');
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((f) => f.mode === 'teaching' || f.mode === 'both');
 ```
 
 ## Creation
 
 ```typescript
-import { createLearningFollow } from "@/lib/arkiv/learningFollow";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createLearningFollow } from '@/lib/arkiv/learningFollow';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createLearningFollow({
@@ -191,8 +194,8 @@ await createLearningFollow({
 ## Use in Learning Communities
 
 Learning follows enable:
+
 - Skill-based community discovery
 - Virtual gathering organization by skill
 - Personalized content recommendations
 - Skill interest tracking
-

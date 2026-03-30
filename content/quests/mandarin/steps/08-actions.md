@@ -13,6 +13,7 @@ Each card shows an action verb. Practice forming sentences like "I [verb]" (我[
 ## Action Categories
 
 You'll learn:
+
 - **Movement**: go, come
 - **Senses**: look, listen, speak
 - **Learning**: read, write, study

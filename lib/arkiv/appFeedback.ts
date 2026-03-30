@@ -1,17 +1,17 @@
 /**
  * App Feedback CRUD helpers
- * 
+ *
  * Handles user feedback about the app itself (for builders/admin).
  * Separate from session feedback (peer-to-peer).
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 4.1
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { listAdminResponses } from "./adminResponse";
-import { SPACE_ID } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { listAdminResponses } from './adminResponse';
+import { SPACE_ID } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type AppFeedback = {
   key: string;
@@ -30,7 +30,7 @@ export type AppFeedback = {
   // Response tracking (arkiv-native: query admin_response entities)
   hasResponse?: boolean; // Whether admin has responded to this feedback/issue
   responseAt?: string; // When the response was created (ISO timestamp)
-}
+};
 
 /**
  * Create app feedback
@@ -72,11 +72,13 @@ export async function createAppFeedback({
   const expiresIn = 31536000; // 1 year in seconds
 
   const { entityKey, txHash } = await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
-      rating: hasRating ? rating : undefined,
-      createdAt,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        message: hasMessage ? message.trim() : undefined, // Allow empty if rating provided
+        rating: hasRating ? rating : undefined,
+        createdAt,
+      })
+    ),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'app_feedback' },
@@ -107,16 +109,16 @@ export async function createAppFeedback({
   // This confirms their feedback/issue was successfully submitted
   try {
     const { createNotification } = await import('./notifications');
-    
+
     // Build notification message from feedback data
-    const feedbackPreview = hasMessage 
-      ? (message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim())
+    const feedbackPreview = hasMessage
+      ? message.trim().length > 100
+        ? message.trim().substring(0, 100) + '...'
+        : message.trim()
       : `Rating: ${rating}/5`;
-    
-    const notificationTitle = feedbackType === 'issue' 
-      ? 'Issue Reported' 
-      : 'Feedback Submitted';
-    
+
+    const notificationTitle = feedbackType === 'issue' ? 'Issue Reported' : 'Feedback Submitted';
+
     await createNotification({
       wallet: wallet.toLowerCase(), // Use profile wallet (user who submitted feedback)
       notificationType: 'app_feedback_submitted',
@@ -150,10 +152,10 @@ export async function createAppFeedback({
 
 /**
  * Mark feedback/issue as resolved (arkiv-native)
- * 
+ *
  * Creates a resolution entity to track that an issue has been resolved.
  * This follows the immutability principle - we don't modify the original entity.
- * 
+ *
  * @param data - Resolution data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -179,9 +181,11 @@ export async function resolveAppFeedback({
   // Wrap in handleTransactionWithTimeout for graceful timeout handling
   const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        resolvedAt,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          resolvedAt,
+        })
+      ),
       contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'app_feedback_resolution' },
@@ -197,13 +201,14 @@ export async function resolveAppFeedback({
   // Get feedback to find the user wallet
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback'))
       .withAttributes(true)
       .withPayload(true)
       .limit(1000)
       .fetch();
-    
+
     if (result?.entities && Array.isArray(result.entities)) {
       const feedbackEntity = result.entities.find((e: any) => e.key === feedbackKey);
       if (feedbackEntity) {
@@ -216,7 +221,7 @@ export async function resolveAppFeedback({
           return String(attrs[key] || '');
         };
         const userWallet = getAttr('wallet');
-        
+
         if (userWallet) {
           const { createNotification } = await import('./notifications');
           await createNotification({
@@ -269,22 +274,25 @@ export async function listAppFeedback({
 
     // For small limits, fetch more entities to ensure we get the most recent ones
     // Arkiv doesn't guarantee order, so we need to fetch more and sort client-side
-    const fetchLimit = limit && limit < 50 ? Math.max(limit * 10, 100) : (limit || 100);
+    const fetchLimit = limit && limit < 50 ? Math.max(limit * 10, 100) : limit || 100;
 
     // Fetch feedback entities, txHash entities, and resolution entities in parallel
     const [result, txHashResult, resolutionResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'app_feedback'))
         .withAttributes(true)
         .withPayload(true)
         .limit(fetchLimit)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'app_feedback_txhash'))
         .withAttributes(true)
         .withPayload(true)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'app_feedback_resolution'))
         .withAttributes(true)
         .withPayload(true)
@@ -311,11 +319,12 @@ export async function listAppFeedback({
         const feedbackKey = getAttr('feedbackKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && feedbackKey) {
               txHashMap[feedbackKey] = payload.txHash;
@@ -343,11 +352,12 @@ export async function listAppFeedback({
         try {
           let payload: any = {};
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             payload = JSON.parse(decoded);
           }
           if (feedbackKey) {
@@ -380,86 +390,87 @@ export async function listAppFeedback({
     }
 
     let feedbacks = result.entities.map((entity: any) => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
+      let payload: any = {};
+      try {
+        if (entity.payload) {
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
+          payload = JSON.parse(decoded);
+        }
+      } catch (e) {
+        console.error('Error decoding app feedback payload:', e);
       }
-    } catch (e) {
-      console.error('Error decoding app feedback payload:', e);
+
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+
+      const feedbackKey = entity.key;
+      const resolution = resolutionMap[feedbackKey];
+      const response = responseMap[feedbackKey];
+
+      return {
+        key: feedbackKey,
+        wallet: getAttr('wallet'),
+        page: getAttr('page'),
+        message: payload.message || '',
+        rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
+        feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
+        spaceId: getAttr('spaceId') || SPACE_ID,
+        createdAt: getAttr('createdAt'),
+        txHash: txHashMap[feedbackKey] || payload.txHash || entity.txHash || undefined,
+        resolved: !!resolution,
+        resolvedAt: resolution?.resolvedAt,
+        resolvedBy: resolution?.resolvedBy,
+        hasResponse: !!response,
+        responseAt: response?.responseAt,
+      };
+    });
+
+    // Filter by page if provided
+    if (page) {
+      feedbacks = feedbacks.filter((f) => f.page === page);
     }
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
+    // Filter by wallet if provided
+    if (wallet) {
+      const normalizedWallet = wallet.toLowerCase();
+      feedbacks = feedbacks.filter((f) => f.wallet.toLowerCase() === normalizedWallet);
+    }
 
-    const feedbackKey = entity.key;
-    const resolution = resolutionMap[feedbackKey];
-    const response = responseMap[feedbackKey];
+    // Filter by feedbackType if provided
+    if (feedbackType) {
+      feedbacks = feedbacks.filter((f) => f.feedbackType === feedbackType);
+    }
 
-    return {
-      key: feedbackKey,
-      wallet: getAttr('wallet'),
-      page: getAttr('page'),
-      message: payload.message || '',
-      rating: payload.rating || (getAttr('rating') ? parseInt(getAttr('rating'), 10) : undefined),
-      feedbackType: (getAttr('feedbackType') || 'feedback') as 'feedback' | 'issue',
-      spaceId: getAttr('spaceId') || SPACE_ID,
-      createdAt: getAttr('createdAt'),
-      txHash: txHashMap[feedbackKey] || payload.txHash || entity.txHash || undefined,
-      resolved: !!resolution,
-      resolvedAt: resolution?.resolvedAt,
-      resolvedBy: resolution?.resolvedBy,
-      hasResponse: !!response,
-      responseAt: response?.responseAt,
-    };
-  });
+    // Filter by since date if provided
+    if (since) {
+      const sinceTime = new Date(since).getTime();
+      feedbacks = feedbacks.filter((f) => new Date(f.createdAt).getTime() >= sinceTime);
+    }
 
-  // Filter by page if provided
-  if (page) {
-    feedbacks = feedbacks.filter(f => f.page === page);
-  }
+    // Sort by most recent first (by createdAt descending)
+    feedbacks.sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      return bTime - aTime; // Most recent first
+    });
 
-  // Filter by wallet if provided
-  if (wallet) {
-    const normalizedWallet = wallet.toLowerCase();
-    feedbacks = feedbacks.filter(f => f.wallet.toLowerCase() === normalizedWallet);
-  }
+    // Apply limit after sorting to ensure we get the most recent N items
+    if (limit && limit > 0) {
+      feedbacks = feedbacks.slice(0, limit);
+    }
 
-  // Filter by feedbackType if provided
-  if (feedbackType) {
-    feedbacks = feedbacks.filter(f => f.feedbackType === feedbackType);
-  }
-
-  // Filter by since date if provided
-  if (since) {
-    const sinceTime = new Date(since).getTime();
-    feedbacks = feedbacks.filter(f => new Date(f.createdAt).getTime() >= sinceTime);
-  }
-
-  // Sort by most recent first (by createdAt descending)
-  feedbacks.sort((a, b) => {
-    const aTime = new Date(a.createdAt).getTime();
-    const bTime = new Date(b.createdAt).getTime();
-    return bTime - aTime; // Most recent first
-  });
-
-  // Apply limit after sorting to ensure we get the most recent N items
-  if (limit && limit > 0) {
-    feedbacks = feedbacks.slice(0, limit);
-  }
-
-  return feedbacks;
+    return feedbacks;
   } catch (error: any) {
     console.error('Error in listAppFeedback:', error);
     console.error('Error message:', error?.message);
@@ -471,16 +482,17 @@ export async function listAppFeedback({
 
 /**
  * Get a single app feedback by key
- * 
+ *
  * @param key - App feedback entity key
  * @returns AppFeedback or null if not found
  */
 export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | null> {
   const publicClient = getPublicClient();
-  
+
   try {
     // Query by key using where clause
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'app_feedback'))
       .where(eq('key', key))
       .withAttributes(true)
@@ -493,17 +505,19 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
     }
 
     const entity = result.entities[0];
-    
+
     // Fetch txHash, resolution, and response in parallel
     const [txHashResult, resolutionResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'app_feedback_txhash'))
         .where(eq('feedbackKey', key))
         .withAttributes(true)
         .withPayload(true)
         .limit(1)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'app_feedback_resolution'))
         .where(eq('feedbackKey', key))
         .withAttributes(true)
@@ -514,14 +528,19 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
 
     // Build txHash
     let txHash: string | undefined;
-    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+    if (
+      txHashResult?.entities &&
+      Array.isArray(txHashResult.entities) &&
+      txHashResult.entities.length > 0
+    ) {
       try {
         const txHashEntity = txHashResult.entities[0];
-        const txHashPayload = txHashEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(txHashEntity.payload)
-          : typeof txHashEntity.payload === 'string'
-          ? txHashEntity.payload
-          : JSON.stringify(txHashEntity.payload);
+        const txHashPayload =
+          txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+              ? txHashEntity.payload
+              : JSON.stringify(txHashEntity.payload);
         const decoded = JSON.parse(txHashPayload);
         txHash = decoded.txHash;
       } catch (e) {
@@ -531,7 +550,11 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
 
     // Build resolution
     let resolution: { resolvedAt: string; resolvedBy: string } | undefined;
-    if (resolutionResult?.entities && Array.isArray(resolutionResult.entities) && resolutionResult.entities.length > 0) {
+    if (
+      resolutionResult?.entities &&
+      Array.isArray(resolutionResult.entities) &&
+      resolutionResult.entities.length > 0
+    ) {
       try {
         const resolutionEntity = resolutionResult.entities[0];
         const resolutionAttrs = resolutionEntity.attributes || {};
@@ -570,11 +593,12 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -611,4 +635,3 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
     return null;
   }
 }
-

@@ -1,6 +1,6 @@
 /**
  * Transaction List Component
- * 
+ *
  * Displays a list of transactions in human-legible format.
  */
 
@@ -106,19 +106,19 @@ export function TransactionList({ type, id }: TransactionListProps) {
     switch (status) {
       case 'success':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 rounded">
+          <span className="rounded bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800 dark:bg-green-900/30 dark:text-green-200">
             Success
           </span>
         );
       case 'failed':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded">
+          <span className="rounded bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800 dark:bg-red-900/30 dark:text-red-200">
             Failed
           </span>
         );
       case 'pending':
         return (
-          <span className="px-2 py-0.5 text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 rounded">
+          <span className="rounded bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200">
             Pending
           </span>
         );
@@ -138,11 +138,7 @@ export function TransactionList({ type, id }: TransactionListProps) {
   if (error) {
     return (
       <div className="py-8">
-        <EmptyState
-          icon="⚠️"
-          title="Failed to load transactions"
-          description={error}
-        />
+        <EmptyState icon="⚠️" title="Failed to load transactions" description={error} />
       </div>
     );
   }
@@ -164,33 +160,27 @@ export function TransactionList({ type, id }: TransactionListProps) {
       {transactions.map((tx, index) => (
         <div
           key={tx.txHash}
-          className="p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg"
+          className="rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-900/50"
         >
           <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="min-w-0 flex-1">
+              <div className="mb-2 flex items-center gap-2">
                 {getStatusBadge(tx.status)}
                 {tx.operation && (
-                  <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded">
+                  <span className="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-200">
                     {tx.operation === 'create' ? 'Created' : 'Updated'}
                   </span>
                 )}
               </div>
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              <div className="mb-2 text-sm text-gray-600 dark:text-gray-400">
                 {formatDate(tx.blockTimestamp, tx.createdAt)}
-                {tx.blockNumber && (
-                  <span className="ml-2">· Block {tx.blockNumber}</span>
-                )}
+                {tx.blockNumber && <span className="ml-2">· Block {tx.blockNumber}</span>}
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono text-gray-500 dark:text-gray-500">
+                <span className="font-mono text-xs text-gray-500 dark:text-gray-500">
                   {formatTxHash(tx.txHash)}
                 </span>
-                <ViewOnArkivLink
-                  txHash={tx.txHash}
-                  label="View on Arkiv"
-                  className="text-xs"
-                />
+                <ViewOnArkivLink txHash={tx.txHash} label="View on Arkiv" className="text-xs" />
               </div>
             </div>
           </div>
@@ -199,4 +189,3 @@ export function TransactionList({ type, id }: TransactionListProps) {
     </div>
   );
 }
-

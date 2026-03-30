@@ -23,11 +23,13 @@ async function verifySDKUpdateAPI() {
     console.log('1. Checking walletClient methods...');
     const walletClientMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(walletClient));
     const hasUpdateEntity = 'updateEntity' in walletClient;
-    const hasUpdateMethod = walletClientMethods.some(m => m.toLowerCase().includes('update'));
+    const hasUpdateMethod = walletClientMethods.some((m) => m.toLowerCase().includes('update'));
 
     console.log(`   - Has 'updateEntity' method: ${hasUpdateEntity}`);
     console.log(`   - Has any 'update' method: ${hasUpdateMethod}`);
-    console.log(`   - Available methods: ${walletClientMethods.filter(m => !m.startsWith('_')).join(', ')}`);
+    console.log(
+      `   - Available methods: ${walletClientMethods.filter((m) => !m.startsWith('_')).join(', ')}`
+    );
 
     // Check TypeScript types (if available)
     console.log('\n2. Checking TypeScript types...');
@@ -35,7 +37,7 @@ async function verifySDKUpdateAPI() {
       // Try to access the type definition
       const walletClientType = typeof walletClient;
       console.log(`   - walletClient type: ${walletClientType}`);
-      
+
       // Check if we can see method signatures
       if (hasUpdateEntity) {
         const updateEntityType = typeof (walletClient as any).updateEntity;
@@ -47,10 +49,12 @@ async function verifySDKUpdateAPI() {
 
     // Try to create a test entity first (required for update)
     console.log('\n3. Creating test entity for update verification...');
-    const testPayload = new TextEncoder().encode(JSON.stringify({
-      test: 'initial',
-      createdAt: new Date().toISOString(),
-    }));
+    const testPayload = new TextEncoder().encode(
+      JSON.stringify({
+        test: 'initial',
+        createdAt: new Date().toISOString(),
+      })
+    );
 
     const createResult = await handleTransactionWithTimeout(async () => {
       return await walletClient.createEntity({
@@ -73,10 +77,12 @@ async function verifySDKUpdateAPI() {
     if (hasUpdateEntity) {
       console.log('\n4. Attempting to call updateEntity...');
       try {
-        const updatedPayload = new TextEncoder().encode(JSON.stringify({
-          test: 'updated',
-          createdAt: new Date().toISOString(),
-        }));
+        const updatedPayload = new TextEncoder().encode(
+          JSON.stringify({
+            test: 'updated',
+            createdAt: new Date().toISOString(),
+          })
+        );
 
         const updateResult = await handleTransactionWithTimeout(async () => {
           return await (walletClient as any).updateEntity({
@@ -94,7 +100,9 @@ async function verifySDKUpdateAPI() {
         });
 
         console.log('   ✅ updateEntity call succeeded!');
-        console.log(`   ✅ Updated entity key: ${updateResult.entityKey?.slice(0, 16) || 'N/A'}...`);
+        console.log(
+          `   ✅ Updated entity key: ${updateResult.entityKey?.slice(0, 16) || 'N/A'}...`
+        );
         console.log(`   ✅ Transaction hash: ${updateResult.txHash?.slice(0, 16) || 'N/A'}...`);
         console.log('\n📋 Update API Signature:');
         console.log('   walletClient.updateEntity({');
@@ -148,4 +156,3 @@ verifySDKUpdateAPI()
     console.error('\n❌ Verification error:', error);
     process.exit(1);
   });
-

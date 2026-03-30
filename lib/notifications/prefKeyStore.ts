@@ -1,9 +1,9 @@
 /**
  * Preference Key Store
- * 
+ *
  * Stores notification preference entity keys in localStorage for direct updates.
  * This bypasses the need to query for existing preferences, eliminating race conditions.
- * 
+ *
  * Storage format: JSON object keyed by composite key (spaceId:walletLower:notificationId)
  */
 
@@ -14,14 +14,22 @@ export type PrefKeyStore = Record<string, string>;
 /**
  * Create composite key for preference key storage
  */
-export function makeCompositeKey(spaceId: string, walletLower: string, notificationId: string): string {
+export function makeCompositeKey(
+  spaceId: string,
+  walletLower: string,
+  notificationId: string
+): string {
   return `${spaceId}:${walletLower}:${notificationId}`;
 }
 
 /**
  * Get stored preference key for a notification
  */
-export function getPrefKey(spaceId: string, walletLower: string, notificationId: string): string | null {
+export function getPrefKey(
+  spaceId: string,
+  walletLower: string,
+  notificationId: string
+): string | null {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     if (!raw) return null;
@@ -37,7 +45,12 @@ export function getPrefKey(spaceId: string, walletLower: string, notificationId:
 /**
  * Store preference key for a notification
  */
-export function setPrefKey(spaceId: string, walletLower: string, notificationId: string, prefKey: string): void {
+export function setPrefKey(
+  spaceId: string,
+  walletLower: string,
+  notificationId: string,
+  prefKey: string
+): void {
   try {
     const raw = localStorage.getItem(STORE_KEY);
     const obj = raw ? (JSON.parse(raw) as PrefKeyStore) : {};
@@ -75,4 +88,3 @@ export function clearAllPrefKeys(): void {
     console.error('[clearAllPrefKeys] Error clearing localStorage:', error);
   }
 }
-

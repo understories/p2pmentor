@@ -36,6 +36,7 @@ When Arkiv Builder Mode is enabled, hover over loading states, buttons, and inte
 ### Entity Links
 
 All displayed entities show:
+
 - **View on Arkiv** links that open the entity in the Arkiv Explorer
 - **Entity keys** (truncated for readability)
 - **Transaction hashes** (when available)
@@ -43,6 +44,7 @@ All displayed entities show:
 ### Action Tooltips
 
 Buttons that create or update entities show tooltips explaining:
+
 - **What entity type** will be created
 - **What attributes** will be set
 - **What payload data** will be stored
@@ -55,6 +57,7 @@ Buttons that create or update entities show tooltips explaining:
 All major pages and flows have Arkiv Builder Mode implemented:
 
 #### Core Pages
+
 - **`/me`** - Dashboard with profile, stats cards, skills section
 - **`/me/profile`** - Profile creation and updates
 - **`/me/skills`** - Skills management, join/leave communities
@@ -62,43 +65,51 @@ All major pages and flows have Arkiv Builder Mode implemented:
 - **`/me/availability`** - Availability management (create, edit, delete)
 
 #### Discovery Pages
+
 - **`/profiles`** - Profile listing
 - **`/profiles/[wallet]`** - Profile detail view
 - **`/skills/explore`** - Skills exploration
 - **`/topic/[slug]`** - Topic/skill detail pages
 
 #### Interaction Pages
+
 - **`/asks`** - Asks listing and creation
 - **`/offers`** - Offers listing and creation
 - **`/matches`** - Skill matching page
 - **`/network`** - Network graph view
 
 #### Social Pages
+
 - **`/garden/public-board`** - Public garden board
 - **`/profiles/[wallet]/garden-notes`** - Profile garden notes
 - **`/communities/gatherings`** - Virtual gatherings
 
 #### System Pages
+
 - **`/notifications`** - Notification center
 - **`/onboarding`** - Onboarding flow (all steps)
 
 #### Components
+
 - **Sidebar Navigation** - Dashboard, Network, Sessions buttons, upcoming sessions
 - **RequestMeetingModal** - Session creation flows
 
 ### Components
 
 #### `ArkivBuilderModeToggle`
+
 Reusable toggle component for enabling/disabling Arkiv Builder Mode.
 
 **Location:** `components/ArkivBuilderModeToggle.tsx`
 
 #### `ArkivQueryTooltip`
+
 Tooltip component that displays query information on hover.
 
 **Location:** `components/ArkivQueryTooltip.tsx`
 
 **Usage:**
+
 ```typescript
 <ArkivQueryTooltip
   query={[
@@ -113,11 +124,13 @@ Tooltip component that displays query information on hover.
 ```
 
 #### `ViewOnArkivLink`
+
 Link component that opens entities in the Arkiv Explorer.
 
 **Location:** `components/ViewOnArkivLink.tsx`
 
 **Usage:**
+
 ```typescript
 {arkivBuilderMode && (
   <ViewOnArkivLink
@@ -129,16 +142,19 @@ Link component that opens entities in the Arkiv Explorer.
 ```
 
 #### `GlobalToggles`
+
 Global component combining ThemeToggle and ArkivBuilderModeToggle, positioned in top-right corner.
 
 **Location:** `components/GlobalToggles.tsx`
 
 #### `useArkivBuilderMode`
+
 Global hook for accessing Arkiv Builder Mode state across all components.
 
 **Location:** `lib/hooks/useArkivBuilderMode.ts`
 
 **Usage:**
+
 ```typescript
 const arkivBuilderMode = useArkivBuilderMode();
 ```
@@ -150,6 +166,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Profile Queries
 
 1. **`getProfileByWallet(wallet: string)`**
+
    - **Query:** `type='user_profile', wallet='{wallet}'`
    - **Used in:** Dashboard, profile pages, sidebar, onboarding
    - **Returns:** `UserProfile | null`
@@ -157,11 +174,13 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
    - **Payload:** skillsArray, skillExpertise, contactLinks, etc.
 
 2. **`listUserProfiles({ skill?, seniority?, spaceId? })`**
+
    - **Query:** `type='user_profile'` + optional filters
    - **Used in:** Network page, profile discovery
    - **Returns:** `UserProfile[]`
 
 3. **`listUserProfilesForWallet(wallet: string)`**
+
    - **Query:** `type='user_profile', wallet='{wallet}'`
    - **Used in:** Profile history, audit trails
    - **Returns:** `UserProfile[]`
@@ -174,6 +193,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Skill Queries
 
 5. **`listSkills({ status?, slug?, limit? })`**
+
    - **Query:** `type='skill'` + optional filters
    - **Used in:** Skills pages, topic pages, sidebar, onboarding
    - **Returns:** `Skill[]`
@@ -182,11 +202,13 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
    - **Payload:** description, metadata
 
 6. **`getSkillBySlug(slug: string)`**
+
    - **Query:** `type='skill'` (filters by slug client-side)
    - **Used in:** Topic pages, skill helpers
    - **Returns:** `Skill | null`
 
 7. **`getSkillByKey(key: string)`**
+
    - **Query:** `type='skill'` (filters by key client-side)
    - **Used in:** Skill helpers, validation
    - **Returns:** `Skill | null`
@@ -208,6 +230,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Session Queries
 
 10. **`listSessions({ mentorWallet?, learnerWallet?, skill?, status?, spaceId?, limit? })`**
+
     - **Query:** `type='session'` + optional filters
     - **Used in:** Session listing, matching system
     - **Returns:** `Session[]`
@@ -216,6 +239,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
     - **Payload:** notes, metadata, meetingLink, videoProvider, videoRoomName, videoJoinUrl
 
 11. **`listSessionsForWallet(wallet: string)`**
+
     - **Queries:** `listSessions({ mentorWallet })` and `listSessions({ learnerWallet })` in parallel
     - **Used in:** Dashboard (sessions completed count), sessions page, sidebar (upcoming sessions)
     - **Returns:** `Session[]`
@@ -229,6 +253,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Feedback Queries
 
 13. **`listFeedbackForSession(sessionKey: string)`**
+
     - **Query:** `type='session_feedback', sessionKey='{sessionKey}'`
     - **Used in:** Session details, feedback validation
     - **Returns:** `Feedback[]`
@@ -236,6 +261,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
     - **Payload:** notes, technicalDxFeedback
 
 14. **`listFeedbackForWallet(wallet: string)`**
+
     - **Query:** `type='session_feedback'` (filters client-side for feedbackFrom or feedbackTo)
     - **Used in:** Dashboard (average rating calculation), profile pages
     - **Returns:** `Feedback[]`
@@ -248,6 +274,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### App Feedback Queries
 
 16. **`listAppFeedback({ page?, wallet?, limit?, since?, feedbackType? })`**
+
     - **Query:** `type='app_feedback'` + optional filters
     - **Used in:** Admin dashboard, feedback management
     - **Returns:** `AppFeedback[]`
@@ -264,6 +291,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Admin Response Queries
 
 18. **`listAdminResponses({ feedbackKey?, wallet?, limit?, since? })`**
+
     - **Query:** `type='admin_response'` + optional filters
     - **Used in:** App feedback details, admin dashboard
     - **Returns:** `AdminResponse[]`
@@ -290,6 +318,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Notification Preference Queries
 
 21. **`listNotificationPreferences({ wallet?, notificationId?, notificationType?, read?, archived?, limit? })`**
+
     - **Query:** `type='notification_preference'` + optional filters
     - **Used in:** Notification management, read state tracking
     - **Returns:** `NotificationPreference[]`
@@ -303,6 +332,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Ask Queries
 
 23. **`listAsks({ skill?, spaceId?, limit?, includeExpired? })`**
+
     - **Query:** `type='ask', status='open'` + optional filters
     - **Used in:** Asks page, matching system, topic pages
     - **Returns:** `Ask[]`
@@ -318,6 +348,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Offer Queries
 
 25. **`listOffers({ skill?, spaceId?, limit?, includeExpired? })`**
+
     - **Query:** `type='offer', status='active'` + optional filters
     - **Used in:** Offers page, matching system, topic pages
     - **Returns:** `Offer[]`
@@ -333,6 +364,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Availability Queries
 
 27. **`listAvailabilityForWallet(wallet: string, spaceId?: string)`**
+
     - **Query:** `type='availability', wallet='{wallet}'` + filters out deletions
     - **Used in:** Availability page, offer creation
     - **Returns:** `Availability[]`
@@ -348,6 +380,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Virtual Gathering Queries
 
 29. **`listVirtualGatherings({ skill?, spaceId?, limit? })`**
+
     - **Query:** `type='virtual_gathering'` + optional filters
     - **Used in:** Communities/gatherings page, session creation
     - **Returns:** `VirtualGathering[]`
@@ -356,6 +389,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
     - **Payload:** description, metadata
 
 30. **`getVirtualGatheringByKey(key: string)`**
+
     - **Query:** `type='virtual_gathering', key='{key}'` (uses getEntity)
     - **Used in:** Gathering details, RSVP flows
     - **Returns:** `VirtualGathering | null`
@@ -368,6 +402,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Garden Note Queries
 
 32. **`listGardenNotes({ channel?, targetWallet?, authorWallet?, tags?, limit? })`**
+
     - **Query:** `type='garden_note', channel='{channel}', moderationState='active'` + optional filters
     - **Used in:** Profile garden notes, public garden board
     - **Returns:** `GardenNote[]`
@@ -375,6 +410,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
     - **Payload:** message, tags array
 
 33. **`getGardenNoteByKey(key: string)`**
+
     - **Query:** Uses `publicClient.getEntity(key)` directly
     - **Used in:** Garden note details, reply threads
     - **Returns:** `GardenNote | null`
@@ -387,6 +423,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Beta Code Queries
 
 35. **`getBetaCodeUsage(code: string)`**
+
     - **Query:** `type='beta_code_usage', code='{code}'`
     - **Used in:** Beta access validation, usage tracking
     - **Returns:** `BetaCodeUsage | null`
@@ -401,6 +438,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Beta Access Queries
 
 37. **`getBetaAccessByWallet(wallet: string)`**
+
     - **Query:** `type='beta_access', wallet='{wallet}'`
     - **Used in:** Beta gate component, authentication
     - **Returns:** `BetaAccess | null`
@@ -415,6 +453,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Auth Identity Queries
 
 39. **`listPasskeyIdentities(wallet: string)`**
+
     - **Query:** `type='auth_identity', subtype='passkey', wallet='{wallet}'`
     - **Used in:** Authentication, multi-device support
     - **Returns:** `AuthIdentity[]`
@@ -422,6 +461,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
     - **Payload:** credential (PasskeyCredential object)
 
 40. **`listBackupWalletIdentities(wallet: string)`**
+
     - **Query:** `type='auth_identity', subtype='backup_wallet', wallet='{wallet}'`
     - **Used in:** Account recovery flows
     - **Returns:** `AuthIdentity[]`
@@ -454,6 +494,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Performance Snapshot Queries
 
 44. **`listPerfSnapshots({ limit? })`**
+
     - **Query:** `type='perf_snapshot'`
     - **Used in:** Performance monitoring, admin dashboard
     - **Returns:** `PerfSnapshot[]`
@@ -477,6 +518,7 @@ This section documents all Arkiv queries used in p2pmentor, as revealed by Arkiv
 ### Retention Metrics Queries
 
 47. **`getActiveWalletsForDateRange(startDate: string, endDate: string)`**
+
     - **Query:** `type='user_profile'` (filters by createdAt in date range client-side)
     - **Used in:** Retention analysis, cohort tracking
     - **Returns:** `string[]` (array of wallet addresses)
@@ -513,6 +555,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### Profile Creation
 
 1. **`createUserProfileClient({ wallet, displayName, ... })`**
+
    - **Creates:** `type='user_profile'`
    - **Used in:** Profile pages, onboarding
    - **TTL:** 1 year (31536000 seconds)
@@ -547,6 +590,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### Session Creation
 
 5. **`createSession({ mentorWallet, learnerWallet, skill_id, ... })`**
+
    - **Creates:** `type='session'`
    - **Used in:** Session creation flow, matching system, virtual gathering RSVPs
    - **TTL:** Calculated based on sessionDate + duration + 1 hour buffer
@@ -555,6 +599,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
    - **Also Creates:** `type='session_txhash'`
 
 6. **`confirmSession({ sessionKey, confirmedByWallet, ... })`**
+
    - **Creates:** `type='session_confirmation'`
    - **Used in:** Session confirmation flow
    - **TTL:** 1 year
@@ -562,6 +607,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
    - **Payload:** confirmation data
 
 7. **`rejectSession({ sessionKey, rejectedByWallet, ... })`**
+
    - **Creates:** `type='session_rejection'`
    - **Used in:** Session rejection flow
    - **TTL:** 1 year
@@ -569,6 +615,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
    - **Payload:** Rejection reason
 
 8. **`submitPayment({ sessionKey, learnerWallet, paymentTxHash, ... })`**
+
    - **Creates:** `type='session_payment_submission'`
    - **Used in:** Payment flow
    - **TTL:** 1 year
@@ -594,6 +641,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### App Feedback Creation
 
 11. **`createAppFeedback({ wallet, page, message, rating, ... })`**
+
     - **Creates:** `type='app_feedback'`
     - **Used in:** Feedback modal, issue reporting
     - **TTL:** 1 year
@@ -670,6 +718,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### Virtual Gathering Creation
 
 19. **`createVirtualGathering({ organizerWallet, community, title, ... })`**
+
     - **Creates:** `type='virtual_gathering'`
     - **Used in:** Communities/gatherings page
     - **TTL:** Calculated based on sessionDate + duration + 1 hour buffer
@@ -717,6 +766,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### Auth Identity Creation
 
 24. **`createPasskeyIdentity({ wallet, credentialID, credentialPublicKey, ... })`**
+
     - **Creates:** `type='auth_identity'` with `subtype='passkey'`
     - **Used in:** Passkey registration flow
     - **TTL:** 1 year (31536000 seconds)
@@ -735,6 +785,7 @@ This section documents all entity creation operations used in p2pmentor, as reve
 ### Onboarding Event Creation
 
 26. **`createOnboardingEvent({ wallet, eventType, ... })`**
+
     - **Creates:** `type='onboarding_event'`
     - **Used in:** Onboarding flow, access control
     - **TTL:** 1 year (31536000 seconds)
@@ -850,8 +901,9 @@ Many entities store transaction hashes in separate entities for reliable queryin
 ### 2. Wallet Normalization
 
 All wallet addresses are normalized to lowercase:
+
 ```typescript
-wallet.toLowerCase()
+wallet.toLowerCase();
 ```
 
 This is critical for consistent querying and storage.
@@ -859,6 +911,7 @@ This is critical for consistent querying and storage.
 ### 3. Immutable Update Pattern
 
 Since Arkiv entities are immutable, updates create new entities:
+
 - Profile updates: Create new `user_profile` entity
 - Learning follow unfollow: Create new `learning_follow` with `active=false`
 - Availability deletion: Create `availability_deletion` marker
@@ -867,28 +920,32 @@ Since Arkiv entities are immutable, updates create new entities:
 ### 4. Filtering Deleted Entities
 
 For entities that support deletion:
+
 - Query both the entity type and deletion marker type
 - Filter out entities that have corresponding deletion markers
 
 ### 5. Payload Encoding/Decoding
 
 All payloads are JSON-encoded:
+
 ```typescript
 // Encoding
 const payload = enc.encode(JSON.stringify(data));
 
 // Decoding
-const decoded = entity.payload instanceof Uint8Array
-  ? new TextDecoder().decode(entity.payload)
-  : typeof entity.payload === 'string'
-  ? entity.payload
-  : JSON.stringify(entity.payload);
+const decoded =
+  entity.payload instanceof Uint8Array
+    ? new TextDecoder().decode(entity.payload)
+    : typeof entity.payload === 'string'
+      ? entity.payload
+      : JSON.stringify(entity.payload);
 const data = JSON.parse(decoded);
 ```
 
 ### 6. TTL (Time To Live)
 
 Common TTL values:
+
 - **Permanent (no expiration):** Skills
 - **1 year (31536000s):** Profiles, sessions, feedback, learning follows, garden notes, beta codes, beta access, auth identities, onboarding events, performance metrics
 - **30 days (2592000s):** Notifications, asks, offers, availability
@@ -896,6 +953,7 @@ Common TTL values:
 ### 7. Client-Side vs Server-Side Filtering
 
 Some queries fetch all entities then filter client-side:
+
 - **Client-side filtering:** Skills (by status/slug), profiles (by skill), feedback (by wallet), asks/offers (by skill)
 - **Arkiv-level filtering:** Notifications (by wallet), sessions (by mentorWallet/learnerWallet), availability (by wallet)
 
@@ -916,6 +974,7 @@ Reason: Some attributes may be stored in payload or in multiple formats, making 
 ### State Management
 
 Arkiv Builder Mode state is managed globally via:
+
 - **localStorage:** Persists mode across page navigations
 - **Custom Events:** Syncs state across components in same tab
 - **Storage Events:** Syncs state across browser tabs
@@ -923,6 +982,7 @@ Arkiv Builder Mode state is managed globally via:
 ### Component Architecture
 
 All Arkiv Builder Mode features are implemented using:
+
 - **Conditional Rendering:** Only shows when `arkivBuilderMode === true`
 - **Reusable Components:** `ArkivQueryTooltip`, `ViewOnArkivLink`
 - **Global Hook:** `useArkivBuilderMode()` for consistent state access
@@ -978,6 +1038,7 @@ Clicking the link opens the entity in the Arkiv Explorer.
 ## Future Enhancements
 
 Potential improvements:
+
 - Query performance metrics in tooltips
 - Query result counts
 - Entity relationship visualization
@@ -989,4 +1050,3 @@ Potential improvements:
 **Last Updated:** December 13, 2025  
 **Status:** ✅ Fully Implemented  
 **Maintained By:** Engineering Team
-

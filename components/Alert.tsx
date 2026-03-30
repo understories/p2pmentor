@@ -1,6 +1,6 @@
 /**
  * Alert component for success/error/warning messages
- * 
+ *
  * Consistent alert display across the app.
  */
 
@@ -43,25 +43,17 @@ export function Alert({ type, title, message, onClose, className = '' }: AlertPr
   const style = styles[type];
 
   return (
-    <div className={`p-4 rounded-lg border ${style.container} ${className}`}>
+    <div className={`rounded-lg border p-4 ${style.container} ${className}`}>
       <div className="flex items-start gap-3">
-        <div className={`flex-shrink-0 text-lg ${style.text}`}>
-          {style.icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          {title && (
-            <h4 className={`text-sm font-semibold mb-1 ${style.title}`}>
-              {title}
-            </h4>
-          )}
-          <p className={`text-sm ${style.text}`}>
-            {message}
-          </p>
+        <div className={`flex-shrink-0 text-lg ${style.text}`}>{style.icon}</div>
+        <div className="min-w-0 flex-1">
+          {title && <h4 className={`mb-1 text-sm font-semibold ${style.title}`}>{title}</h4>}
+          <p className={`text-sm ${style.text}`}>{message}</p>
         </div>
         {onClose && (
           <button
             onClick={onClose}
-            className={`flex-shrink-0 text-lg ${style.text} hover:opacity-70 transition-opacity`}
+            className={`flex-shrink-0 text-lg ${style.text} transition-opacity hover:opacity-70`}
             aria-label="Close"
           >
             ×
@@ -71,5 +63,3 @@ export function Alert({ type, title, message, onClose, className = '' }: AlertPr
     </div>
   );
 }
-
-

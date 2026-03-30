@@ -19,11 +19,11 @@ Links app feedback entities to GitHub issues. Stores GitHub issue number and URL
 
 ```typescript
 {
-  feedbackKey: string;      // Reference to app_feedback entity
-  issueNumber: number;      // GitHub issue number
-  issueUrl: string;         // Full GitHub issue URL
-  repository: string;        // Repository identifier (e.g., "understories/p2pmentor")
-  createdAt: string;        // ISO timestamp
+  feedbackKey: string; // Reference to app_feedback entity
+  issueNumber: number; // GitHub issue number
+  issueUrl: string; // Full GitHub issue URL
+  repository: string; // Repository identifier (e.g., "understories/p2pmentor")
+  createdAt: string; // ISO timestamp
 }
 ```
 
@@ -39,11 +39,12 @@ Links app feedback entities to GitHub issues. Stores GitHub issue number and URL
 ### Get Issue Link for Feedback
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'github_issue_link'))
   .where(eq('feedbackKey', feedbackKey))
   .withAttributes(true)
@@ -51,7 +52,7 @@ const result = await publicClient.buildQuery()
   .limit(1)
   .fetch();
 
-const link = result.entities[0] 
+const link = result.entities[0]
   ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
   : null;
 ```
@@ -59,23 +60,25 @@ const link = result.entities[0]
 ### Get All Issue Links
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'github_issue_link'))
   .withAttributes(true)
   .withPayload(true)
   .limit(100)
   .fetch();
 
-const links = result.entities.map(e => ({
+const links = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get Links by Repository
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'github_issue_link'))
   .withAttributes(true)
   .withPayload(true)
@@ -84,21 +87,21 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side by repository
 const repoLinks = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(l => l.repository === 'understories/p2pmentor');
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((l) => l.repository === 'understories/p2pmentor');
 ```
 
 ## Creation
 
 ```typescript
-import { createGitHubIssueLink } from "@/lib/arkiv/githubIssueLink";
-import { getPrivateKey } from "@/lib/config";
+import { createGitHubIssueLink } from '@/lib/arkiv/githubIssueLink';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createGitHubIssueLink({
-  feedbackKey: "app_feedback:abc123",
+  feedbackKey: 'app_feedback:abc123',
   issueNumber: 123,
-  issueUrl: "https://github.com/understories/p2pmentor/issues/123",
-  repository: "understories/p2pmentor",
+  issueUrl: 'https://github.com/understories/p2pmentor/issues/123',
+  repository: 'understories/p2pmentor',
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
@@ -116,9 +119,9 @@ Typical workflow for linking feedback to GitHub issues:
 // 1. User submits feedback
 const feedback = await createAppFeedback({
   wallet: userWallet,
-  page: "/network",
-  message: "Network graph is slow",
-  feedbackType: "issue",
+  page: '/network',
+  message: 'Network graph is slow',
+  feedbackType: 'issue',
   privateKey: userPrivateKey,
 });
 
@@ -134,7 +137,7 @@ await createGitHubIssueLink({
   feedbackKey: feedback.key,
   issueNumber: githubIssue.number,
   issueUrl: githubIssue.html_url,
-  repository: "understories/p2pmentor",
+  repository: 'understories/p2pmentor',
   privateKey: adminPrivateKey,
 });
 ```
@@ -152,23 +155,23 @@ Admin dashboard workflow:
 async function linkFeedbackToGitHub(feedbackKey: string) {
   // 1. Get feedback
   const feedback = await getAppFeedback(feedbackKey);
-  
+
   // 2. Create GitHub issue
   const issue = await createGitHubIssue({
     title: `[${feedback.feedbackType}] ${feedback.page}`,
     body: `**Feedback:**\n${feedback.message}\n\n**Page:** ${feedback.page}\n**Wallet:** ${feedback.wallet}`,
     labels: [feedback.feedbackType],
   });
-  
+
   // 3. Create link
   await createGitHubIssueLink({
     feedbackKey: feedback.key,
     issueNumber: issue.number,
     issueUrl: issue.html_url,
-    repository: "understories/p2pmentor",
+    repository: 'understories/p2pmentor',
     privateKey: getPrivateKey(),
   });
-  
+
   return issue;
 }
 ```
@@ -183,7 +186,7 @@ async function linkFeedbackToGitHub(feedbackKey: string) {
 ## Integration
 
 Used in admin dashboard for:
+
 - Creating GitHub issues from user feedback
 - Tracking which feedback has been converted to issues
 - Linking resolved issues back to feedback
-

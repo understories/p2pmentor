@@ -1,18 +1,25 @@
 /**
  * Onboarding Event CRUD helpers
- * 
+ *
  * Tracks onboarding progress events (e.g., network_explored).
  * Used to determine onboarding level without creating a dedicated onboarding entity.
- * 
+ *
  * Reference: refs/doc/onboarding_levelup_TECHNICAL_QUESTIONS.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey, getWalletClientFromMetaMask } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import {
+  getPublicClient,
+  getWalletClientFromPrivateKey,
+  getWalletClientFromMetaMask,
+} from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
-export type OnboardingEventType = 'network_explored' | 'onboarding_started' | 'onboarding_completed';
+export type OnboardingEventType =
+  | 'network_explored'
+  | 'onboarding_started'
+  | 'onboarding_completed';
 
 export type OnboardingEvent = {
   key: string;
@@ -21,11 +28,11 @@ export type OnboardingEvent = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create an onboarding event
- * 
+ *
  * @param data - Event data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -69,26 +76,28 @@ export async function createOnboardingEvent({
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'onboarding_event_txhash' },
-      { key: 'eventKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createOnboardingEvent] Failed to create txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'onboarding_event_txhash' },
+        { key: 'eventKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createOnboardingEvent] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
 
 /**
  * Create onboarding event (client-side with MetaMask)
- * 
+ *
  * @param data - Event data
  * @param account - MetaMask account address
  * @returns Entity key and transaction hash
@@ -133,26 +142,28 @@ export async function createOnboardingEventClient({
   });
 
   // Create separate txhash entity (optional metadata, don't wait)
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({ txHash })),
-    contentType: 'application/json',
-    attributes: [
-      { key: 'type', value: 'onboarding_event_txhash' },
-      { key: 'eventKey', value: entityKey },
-      { key: 'wallet', value: wallet.toLowerCase() },
-      { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn,
-  }).catch((error: any) => {
-    console.warn('[createOnboardingEventClient] Failed to create txhash entity:', error);
-  });
+  walletClient
+    .createEntity({
+      payload: enc.encode(JSON.stringify({ txHash })),
+      contentType: 'application/json',
+      attributes: [
+        { key: 'type', value: 'onboarding_event_txhash' },
+        { key: 'eventKey', value: entityKey },
+        { key: 'wallet', value: wallet.toLowerCase() },
+        { key: 'spaceId', value: spaceId },
+      ],
+      expiresIn,
+    })
+    .catch((error: any) => {
+      console.warn('[createOnboardingEventClient] Failed to create txhash entity:', error);
+    });
 
   return { key: entityKey, txHash };
 }
 
 /**
  * List onboarding events for a wallet
- * 
+ *
  * @param params - Query parameters
  * @returns Array of onboarding events
  */
@@ -186,7 +197,9 @@ export async function listOnboardingEvents({
     const result = await queryBuilder.fetch();
 
     if (!result?.entities || !Array.isArray(result.entities)) {
-      console.warn('[listOnboardingEvents] Invalid result structure, returning empty array', { result });
+      console.warn('[listOnboardingEvents] Invalid result structure, returning empty array', {
+        result,
+      });
       return [];
     }
 
@@ -194,11 +207,12 @@ export async function listOnboardingEvents({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {

@@ -35,4 +35,3 @@ export function useSkillProfileCounts(): Record<string, number> {
 
   return skillProfileCounts;
 }
-

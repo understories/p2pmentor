@@ -226,12 +226,7 @@
           "id": "q1",
           "type": "multiple_choice",
           "question": "What does 'hola' mean?",
-          "options": [
-            "Hello",
-            "Goodbye",
-            "Thank you",
-            "Sorry"
-          ],
+          "options": ["Hello", "Goodbye", "Thank you", "Sorry"],
           "correctAnswer": "Hello",
           "points": 1,
           "explanation": "'Hola' is the standard greeting meaning 'hello'."
@@ -240,12 +235,7 @@
           "id": "q2",
           "type": "multiple_choice",
           "question": "How do you say 'five' in Spanish?",
-          "options": [
-            "tres",
-            "cuatro",
-            "cinco",
-            "seis"
-          ],
+          "options": ["tres", "cuatro", "cinco", "seis"],
           "correctAnswer": "cinco",
           "points": 1,
           "explanation": "'Cinco' means five."
@@ -254,12 +244,7 @@
           "id": "q3",
           "type": "multiple_choice",
           "question": "What is the Spanish word for 'mother'?",
-          "options": [
-            "padre",
-            "madre",
-            "hermano",
-            "hermana"
-          ],
+          "options": ["padre", "madre", "hermano", "hermana"],
           "correctAnswer": "madre",
           "points": 1,
           "explanation": "'Madre' means mother."
@@ -268,12 +253,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What does 'agua' mean?",
-          "options": [
-            "Tea",
-            "Water",
-            "Bread",
-            "Fruit"
-          ],
+          "options": ["Tea", "Water", "Bread", "Fruit"],
           "correctAnswer": "Water",
           "points": 1,
           "explanation": "'Agua' means water."
@@ -296,12 +276,7 @@
           "id": "q1",
           "type": "multiple_choice",
           "question": "What does 'hoy' mean?",
-          "options": [
-            "Tomorrow",
-            "Today",
-            "Yesterday",
-            "Now"
-          ],
+          "options": ["Tomorrow", "Today", "Yesterday", "Now"],
           "correctAnswer": "Today",
           "points": 1,
           "explanation": "'Hoy' means today."
@@ -310,12 +285,7 @@
           "id": "q2",
           "type": "multiple_choice",
           "question": "How do you say 'to go' in Spanish?",
-          "options": [
-            "venir",
-            "ir",
-            "ver",
-            "escuchar"
-          ],
+          "options": ["venir", "ir", "ver", "escuchar"],
           "correctAnswer": "ir",
           "points": 1,
           "explanation": "'Ir' means to go."
@@ -324,12 +294,7 @@
           "id": "q3",
           "type": "multiple_choice",
           "question": "What is the Spanish word for 'school'?",
-          "options": [
-            "casa",
-            "tienda",
-            "escuela",
-            "hospital"
-          ],
+          "options": ["casa", "tienda", "escuela", "hospital"],
           "correctAnswer": "escuela",
           "points": 1,
           "explanation": "'Escuela' means school."
@@ -338,12 +303,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What does 'bueno' mean?",
-          "options": [
-            "Bad",
-            "Good",
-            "Big",
-            "Small"
-          ],
+          "options": ["Bad", "Good", "Big", "Small"],
           "correctAnswer": "Good",
           "points": 1,
           "explanation": "'Bueno' means good."
@@ -360,12 +320,7 @@
           "id": "q6",
           "type": "multiple_choice",
           "question": "What is the Spanish word for 'to study'?",
-          "options": [
-            "trabajar",
-            "estudiar",
-            "descansar",
-            "hablar"
-          ],
+          "options": ["trabajar", "estudiar", "descansar", "hablar"],
           "correctAnswer": "estudiar",
           "points": 1,
           "explanation": "'Estudiar' means to study."
@@ -374,12 +329,7 @@
           "id": "q7",
           "type": "multiple_choice",
           "question": "How do you say 'new' in Spanish?",
-          "options": [
-            "viejo",
-            "nuevo",
-            "grande",
-            "pequeño"
-          ],
+          "options": ["viejo", "nuevo", "grande", "pequeño"],
           "correctAnswer": "nuevo",
           "points": 1,
           "explanation": "'Nuevo' means new."

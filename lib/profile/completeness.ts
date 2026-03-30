@@ -1,6 +1,6 @@
 /**
  * Profile completeness utilities
- * 
+ *
  * Calculate profile completeness percentage and provide completion guidance.
  */
 
@@ -14,21 +14,24 @@ export interface ProfileCompleteness {
 
 /**
  * Calculate profile completeness
- * 
+ *
  * Required fields:
  * - displayName (required)
  * - timezone (required)
- * 
+ *
  * Recommended fields:
  * - bio or bioShort (at least one)
  * - skillsArray (at least one skill)
  * - availability (availabilityWindow OR availability entities)
- * 
+ *
  * @param profile - User profile to check
  * @param hasAvailability - Optional: whether user has availability entities (modern format)
  * @returns Completeness object with percentage and checklist
  */
-export function calculateProfileCompleteness(profile: UserProfile | null, hasAvailability?: boolean): ProfileCompleteness {
+export function calculateProfileCompleteness(
+  profile: UserProfile | null,
+  hasAvailability?: boolean
+): ProfileCompleteness {
   if (!profile) {
     return {
       percentage: 0,
@@ -76,8 +79,8 @@ export function calculateProfileCompleteness(profile: UserProfile | null, hasAva
   }
 
   // Calculate percentage (required fields = 50%, recommended = 50%)
-  const requiredCount = completed.filter(f => f === 'Display Name' || f === 'Timezone').length;
-  const recommendedCount = completed.filter(f => f !== 'Display Name' && f !== 'Timezone').length;
+  const requiredCount = completed.filter((f) => f === 'Display Name' || f === 'Timezone').length;
+  const recommendedCount = completed.filter((f) => f !== 'Display Name' && f !== 'Timezone').length;
   const requiredTotal = 2; // displayName, timezone
   const recommendedTotal = 3; // bio, skills, availability
 
@@ -91,4 +94,3 @@ export function calculateProfileCompleteness(profile: UserProfile | null, hasAva
     missing,
   };
 }
-

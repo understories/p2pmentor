@@ -1,6 +1,6 @@
 /**
  * Public GraphQL Feature Flags API
- * 
+ *
  * Exposes GraphQL feature flag status for client-side pages.
  * This allows client components to check if GraphQL is enabled
  * without needing NEXT_PUBLIC_ environment variables.
@@ -46,4 +46,3 @@ export async function GET() {
     );
   }
 }
-

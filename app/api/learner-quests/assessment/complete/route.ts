@@ -25,7 +25,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -44,10 +47,7 @@ export async function POST(request: NextRequest) {
     // Use server-side private key for entity creation
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Server configuration error' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Server configuration error' }, { status: 500 });
     }
 
     const result = await completeAssessment({
@@ -81,4 +81,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

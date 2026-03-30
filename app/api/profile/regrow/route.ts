@@ -1,8 +1,8 @@
 /**
  * Profile Regrowth API
- * 
+ *
  * Beta: Regrow profiles from historical Arkiv data.
- * 
+ *
  * Based on profile_stability.md - Beta Launch Plan
  */
 
@@ -11,7 +11,7 @@ import { fetchHistoricalProfileData } from '@/lib/arkiv/profileRegrowth';
 
 /**
  * GET /api/profile/regrow?wallet=0x...
- * 
+ *
  * Check if historical profile data exists for a wallet.
  * Returns preview data for regrowth.
  */
@@ -21,10 +21,7 @@ export async function GET(request: NextRequest) {
     const wallet = searchParams.get('wallet');
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet address required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet address required' }, { status: 400 });
     }
 
     // Fetch historical profile data
@@ -55,7 +52,7 @@ export async function GET(request: NextRequest) {
           createdAt: history.latestProfile.createdAt,
         },
         // Day 2: Return all profiles for browsing
-        allProfiles: history.allProfiles.map(p => ({
+        allProfiles: history.allProfiles.map((p) => ({
           key: p.key,
           displayName: p.displayName,
           username: p.username,
@@ -84,12 +81,12 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/profile/regrow
- * 
+ *
  * Day 2: Returns candidate profile data for a specific historical profile.
- * 
+ *
  * NOTE: For beta, regrowth happens client-side.
  * This endpoint returns the candidate profile data for client-side creation.
- * 
+ *
  * Body: { wallet: string, profileId?: string }
  *   - profileId: Optional. If provided, regrow from that specific profile.
  *                If not provided, uses the latest profile.
@@ -100,10 +97,7 @@ export async function POST(request: NextRequest) {
     const { wallet, profileId } = body;
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet address required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet address required' }, { status: 400 });
     }
 
     // Fetch historical profile data
@@ -120,7 +114,7 @@ export async function POST(request: NextRequest) {
     // Day 2: Select specific profile if provided, otherwise use latest
     let selectedProfile: typeof history.latestProfile;
     if (profileId) {
-      const foundProfile = history.allProfiles.find(p => p.key === profileId);
+      const foundProfile = history.allProfiles.find((p) => p.key === profileId);
       if (!foundProfile) {
         return NextResponse.json({
           ok: false,
@@ -171,4 +165,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

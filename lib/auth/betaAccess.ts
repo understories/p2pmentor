@@ -1,9 +1,9 @@
 /**
  * Beta Access Verification Utility
- * 
+ *
  * Server-side utility to verify beta access from requests.
  * Used by API routes and middleware to check beta code access.
- * 
+ *
  * Reference: refs/docs/beta_code_gating_plan.md Phase 3
  */
 
@@ -21,9 +21,9 @@ export type BetaAccessCheck = {
 
 /**
  * Verify beta access from request
- * 
+ *
  * Checks cookies for beta access and optionally validates on Arkiv.
- * 
+ *
  * @param request - Next.js request object
  * @param options - Verification options
  * @returns Beta access check result
@@ -76,10 +76,10 @@ export async function verifyBetaAccess(
     }
   }
 
-  return { 
-    hasAccess: true, 
-    code: betaCode, 
-    accessKey: betaAccessKey 
+  return {
+    hasAccess: true,
+    code: betaCode,
+    accessKey: betaAccessKey,
   };
 }
 
@@ -96,15 +96,18 @@ export function hasBetaAccessFromCookieString(cookieString: string): boolean {
   if (!cookieString) return false;
 
   // Parse cookies - handle values containing '='
-  const cookies = cookieString.split(';').reduce((acc, cookie) => {
-    const trimmed = cookie.trim();
-    const eqIndex = trimmed.indexOf('=');
-    if (eqIndex === -1) return acc;
-    const key = trimmed.slice(0, eqIndex);
-    const value = trimmed.slice(eqIndex + 1);
-    acc[key] = value; // Values are already decoded by browser
-    return acc;
-  }, {} as Record<string, string>);
+  const cookies = cookieString.split(';').reduce(
+    (acc, cookie) => {
+      const trimmed = cookie.trim();
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) return acc;
+      const key = trimmed.slice(0, eqIndex);
+      const value = trimmed.slice(eqIndex + 1);
+      acc[key] = value; // Values are already decoded by browser
+      return acc;
+    },
+    {} as Record<string, string>
+  );
 
   // Check for either beta access cookie type
   return !!(cookies['beta_access_code'] || cookies['beta_access_key']);

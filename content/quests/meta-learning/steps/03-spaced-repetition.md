@@ -3,6 +3,7 @@
 ## What is Spaced Repetition?
 
 Spaced repetition is reviewing information at increasing intervals. Instead of cramming, you review:
+
 - Soon after learning (1 day)
 - Then later (3 days)
 - Then even later (1 week)
@@ -12,6 +13,7 @@ Spaced repetition is reviewing information at increasing intervals. Instead of c
 ## Why It Works
 
 Each time you retrieve information, you reset the forgetting curve. Spacing reviews out:
+
 - Makes retrieval harder (which strengthens memory)
 - Prevents over-learning (waste of time)
 - Maximizes long-term retention
@@ -19,6 +21,7 @@ Each time you retrieve information, you reset the forgetting curve. Spacing revi
 ## The Spacing Effect
 
 Research shows spaced practice beats massed practice (cramming):
+
 - **Massed practice:** 10 hours in one day = weak memory
 - **Spaced practice:** 10 hours over 10 days = strong memory
 

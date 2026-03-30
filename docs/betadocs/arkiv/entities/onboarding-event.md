@@ -20,19 +20,19 @@ Tracks onboarding progress events (e.g., `network_explored`, `onboarding_started
 
 ```typescript
 {
-  wallet: string;          // Wallet address
+  wallet: string; // Wallet address
   eventType: OnboardingEventType;
-  createdAt: string;      // ISO timestamp
+  createdAt: string; // ISO timestamp
 }
 ```
 
 ## Event Types
 
 ```typescript
-type OnboardingEventType = 
-  | 'network_explored'        // User explored network view
-  | 'onboarding_started'       // User started onboarding
-  | 'onboarding_completed';    // User completed onboarding
+type OnboardingEventType =
+  | 'network_explored' // User explored network view
+  | 'onboarding_started' // User started onboarding
+  | 'onboarding_completed'; // User completed onboarding
 ```
 
 ## Key Fields
@@ -46,11 +46,12 @@ type OnboardingEventType =
 ### Get All Events for Wallet
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'onboarding_event'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -59,7 +60,7 @@ const result = await publicClient.buildQuery()
   .fetch();
 
 const events = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 ```
 
@@ -67,14 +68,15 @@ const events = result.entities
 
 ```typescript
 async function hasEventOccurred(wallet: string, eventType: OnboardingEventType): Promise<boolean> {
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'onboarding_event'))
     .where(eq('wallet', wallet.toLowerCase()))
     .where(eq('eventType', eventType))
     .withAttributes(true)
     .limit(1)
     .fetch();
-  
+
   return result.entities.length > 0;
 }
 ```
@@ -84,19 +86,19 @@ async function hasEventOccurred(wallet: string, eventType: OnboardingEventType):
 ```typescript
 async function getOnboardingLevel(wallet: string): Promise<number> {
   const events = await getOnboardingEvents(wallet);
-  
-  if (events.some(e => e.eventType === 'onboarding_completed')) {
+
+  if (events.some((e) => e.eventType === 'onboarding_completed')) {
     return 3; // Completed
   }
-  
-  if (events.some(e => e.eventType === 'onboarding_started')) {
+
+  if (events.some((e) => e.eventType === 'onboarding_started')) {
     return 2; // In progress
   }
-  
-  if (events.some(e => e.eventType === 'network_explored')) {
+
+  if (events.some((e) => e.eventType === 'network_explored')) {
     return 1; // Explored
   }
-  
+
   return 0; // Not started
 }
 ```
@@ -104,8 +106,8 @@ async function getOnboardingLevel(wallet: string): Promise<number> {
 ## Creation
 
 ```typescript
-import { createOnboardingEvent } from "@/lib/arkiv/onboardingEvent";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createOnboardingEvent } from '@/lib/arkiv/onboardingEvent';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createOnboardingEvent({
@@ -126,7 +128,7 @@ const { key, txHash } = await createOnboardingEvent({
 
 ```typescript
 // When user visits network page for first time
-if (!await hasEventOccurred(wallet, 'network_explored')) {
+if (!(await hasEventOccurred(wallet, 'network_explored'))) {
   await createOnboardingEvent({
     wallet,
     eventType: 'network_explored',
@@ -180,12 +182,11 @@ Typical onboarding flow:
 
 ```typescript
 function determineOnboardingLevel(events: OnboardingEvent[]): number {
-  const eventTypes = new Set(events.map(e => e.eventType));
-  
+  const eventTypes = new Set(events.map((e) => e.eventType));
+
   if (eventTypes.has('onboarding_completed')) return 3;
   if (eventTypes.has('onboarding_started')) return 2;
   if (eventTypes.has('network_explored')) return 1;
   return 0;
 }
 ```
-

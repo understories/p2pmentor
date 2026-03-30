@@ -4,7 +4,7 @@
  * Creates learner quest definitions.
  * Run once to bootstrap each quest.
  *
- * Usage: 
+ * Usage:
  *   npx tsx scripts/seed-learner-quest.ts [questId] [--force]
  *   npx tsx scripts/seed-learner-quest.ts web3privacy_foundations
  *   npx tsx scripts/seed-learner-quest.ts lesswrong_sequences
@@ -16,7 +16,10 @@
 
 import 'dotenv/config';
 import { createLearnerQuest, listLearnerQuests } from '../lib/arkiv/learnerQuest';
-import { WEB3PRIVACY_FOUNDATIONS_QUEST, LESSWRONG_SEQUENCES_QUEST } from '../lib/arkiv/learnerQuestData';
+import {
+  WEB3PRIVACY_FOUNDATIONS_QUEST,
+  LESSWRONG_SEQUENCES_QUEST,
+} from '../lib/arkiv/learnerQuestData';
 import { getPrivateKey, SPACE_ID } from '../lib/config';
 
 async function seedQuest(questId?: string, force: boolean = false) {
@@ -26,25 +29,22 @@ async function seedQuest(questId?: string, force: boolean = false) {
     process.exit(1);
   }
 
-  const quests = [
-    WEB3PRIVACY_FOUNDATIONS_QUEST,
-    LESSWRONG_SEQUENCES_QUEST,
-  ];
+  const quests = [WEB3PRIVACY_FOUNDATIONS_QUEST, LESSWRONG_SEQUENCES_QUEST];
 
-  const questsToSeed = questId
-    ? quests.filter(q => q.questId === questId)
-    : quests;
+  const questsToSeed = questId ? quests.filter((q) => q.questId === questId) : quests;
 
   if (questsToSeed.length === 0) {
     console.error(`Quest not found: ${questId}`);
-    console.error(`Available quests: ${quests.map(q => q.questId).join(', ')}`);
+    console.error(`Available quests: ${quests.map((q) => q.questId).join(', ')}`);
     process.exit(1);
   }
 
   const targetSpaceId = SPACE_ID || 'beta-launch';
   console.log(`\n📦 Target Space ID: ${targetSpaceId}`);
   if (force) {
-    console.log(`⚠️  Force mode: Will re-seed even if quest already exists (creates new version)\n`);
+    console.log(
+      `⚠️  Force mode: Will re-seed even if quest already exists (creates new version)\n`
+    );
   } else {
     console.log(`\n`);
   }
@@ -56,10 +56,10 @@ async function seedQuest(questId?: string, force: boolean = false) {
 
     // Check if quest already exists in the target spaceId (unless force mode)
     if (!force) {
-      const existingQuests = await listLearnerQuests({ 
-        spaceId: targetSpaceId 
+      const existingQuests = await listLearnerQuests({
+        spaceId: targetSpaceId,
       });
-      const existingQuest = existingQuests.find(q => q.questId === quest.questId);
+      const existingQuest = existingQuests.find((q) => q.questId === quest.questId);
 
       if (existingQuest) {
         console.log(`⏭️  Skipping "${quest.title}" (already exists in ${targetSpaceId})`);
@@ -68,10 +68,10 @@ async function seedQuest(questId?: string, force: boolean = false) {
         continue;
       }
     } else {
-      const existingQuests = await listLearnerQuests({ 
-        spaceId: targetSpaceId 
+      const existingQuests = await listLearnerQuests({
+        spaceId: targetSpaceId,
       });
-      const existingQuest = existingQuests.find(q => q.questId === quest.questId);
+      const existingQuest = existingQuests.find((q) => q.questId === quest.questId);
       if (existingQuest) {
         console.log(`⚠️  Quest already exists, but force mode enabled - creating new version`);
         console.log(`   Old quest key: ${existingQuest.key}`);
@@ -110,4 +110,3 @@ seedQuest(questId, force).catch((error) => {
   console.error('Error seeding quest:', error);
   process.exit(1);
 });
-

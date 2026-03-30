@@ -1,6 +1,6 @@
 /**
  * Quick Actions Component
- * 
+ *
  * Two small luminous sprout-buttons for creating asks/offers.
  * Part of Network page "Canopy Map" transformation.
  */
@@ -19,7 +19,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
   const askLink = (
     <Link
       href="/asks?create=true"
-      className="flex-1 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium text-sm transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-emerald-600 hover:to-emerald-700 hover:shadow-xl"
       style={{
         boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 12px rgba(34, 197, 94, 0.2)',
       }}
@@ -32,7 +32,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
   const offerLink = (
     <Link
       href="/offers?create=true"
-      className="flex-1 px-4 py-3 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white font-medium text-sm transition-all duration-200 hover:scale-105 shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
+      className="flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:scale-105 hover:from-emerald-600 hover:to-emerald-700 hover:shadow-xl"
       style={{
         boxShadow: '0 0 20px rgba(34, 197, 94, 0.4), 0 4px 12px rgba(34, 197, 94, 0.2)',
       }}
@@ -43,7 +43,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
   );
 
   return (
-    <div className="flex gap-3 mb-6 overflow-visible">
+    <div className="mb-6 flex gap-3 overflow-visible">
       {arkivBuilderMode ? (
         <ArkivQueryTooltip
           query={[
@@ -51,7 +51,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
             `Creates: type='ask' entity`,
             `Attributes: wallet, skill_id (or skill), status='active'`,
             `Payload: message, expiresIn`,
-            `TTL: expiresIn seconds (default: 30 days)`
+            `TTL: expiresIn seconds (default: 30 days)`,
           ]}
           label="Plant an Ask"
         >
@@ -67,7 +67,7 @@ export function QuickActions({ arkivBuilderMode = false }: QuickActionsProps) {
             `Creates: type='offer' entity`,
             `Attributes: wallet, skill_id (or skill), status='active'`,
             `Payload: message, availabilityWindow, isPaid, cost`,
-            `TTL: expiresIn seconds (default: 30 days)`
+            `TTL: expiresIn seconds (default: 30 days)`,
           ]}
           label="Grow an Offer"
         >

@@ -1,16 +1,16 @@
 /**
  * GitHub Issue Link CRUD helpers
- * 
+ *
  * Links app feedback entities to GitHub issues.
  * Stores GitHub issue number and URL for tracking.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 9
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export type GitHubIssueLink = {
   key: string;
@@ -104,15 +104,17 @@ export async function listGitHubIssueLinks({
 } = {}): Promise<GitHubIssueLink[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'github_issue_link'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'github_issue_link_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -138,11 +140,12 @@ export async function listGitHubIssueLinks({
         const linkKey = getAttr('linkKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && linkKey) {
               txHashMap[linkKey] = payload.txHash;
@@ -158,11 +161,12 @@ export async function listGitHubIssueLinks({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -191,12 +195,10 @@ export async function listGitHubIssueLinks({
 
     // Apply filters
     if (feedbackKey) {
-      links = links.filter(l => l.feedbackKey === feedbackKey);
+      links = links.filter((l) => l.feedbackKey === feedbackKey);
     }
 
-    return links.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return links.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error: any) {
     console.error('[listGitHubIssueLinks] Error:', error);
     return [];

@@ -3,6 +3,7 @@
 This document describes how we stack behavioral and UX frameworks when designing p2pmentor.
 
 The goal is to:
+
 - Make it **easy** and **safe** for people to ask for help and offer help
 - Align with **ethical, white-hat motivation** (Octalysis)
 - Produce a UI that feels **elegant, calm, and empowering**, not manipulative
@@ -13,15 +14,15 @@ The goal is to:
 
 We use these frameworks together:
 
-1. **COM-B** – Capability, Opportunity, Motivation  
-2. **Fogg Behavior Model (FBM)** – Behavior = Motivation × Ability × Prompt  
-3. **EAST** – Easy, Attractive, Social, Timely  
-4. **Hook Model** – Trigger → Action → Variable Reward → Investment  
-5. **Octalysis (White Hat emphasis)** – 8 core drives, prioritizing:  
-   - Epic Meaning & Calling  
-   - Development & Accomplishment  
-   - Empowerment of Creativity & Feedback  
-   - Social Influence & Relatedness  
+1. **COM-B** – Capability, Opportunity, Motivation
+2. **Fogg Behavior Model (FBM)** – Behavior = Motivation × Ability × Prompt
+3. **EAST** – Easy, Attractive, Social, Timely
+4. **Hook Model** – Trigger → Action → Variable Reward → Investment
+5. **Octalysis (White Hat emphasis)** – 8 core drives, prioritizing:
+   - Epic Meaning & Calling
+   - Development & Accomplishment
+   - Empowerment of Creativity & Feedback
+   - Social Influence & Relatedness
 6. **Classic UX Heuristics** (Nielsen, etc.) – Visibility, feedback, error prevention, etc.
 
 ---
@@ -33,13 +34,13 @@ We use these frameworks together:
 We first ask for each key behavior (e.g., “Create Ask”, “Claim Offer”, “Leave Feedback”):
 
 - **Capability (C / Ability (A))**
-  - Can the user *understand* what this does?
-  - Can they *physically/technically* perform the action on their device/network?
+  - Can the user _understand_ what this does?
+  - Can they _physically/technically_ perform the action on their device/network?
 - **Opportunity (O)**
   - Is the option visible in the right context?
   - Is the environment (time, place, UI state) supportive?
 - **Motivation (M)**
-  - Why would this be meaningful or beneficial for them *right now*?
+  - Why would this be meaningful or beneficial for them _right now_?
 - **Prompt (FBM)**
   - Is there a clear, timely cue to act (button, banner, notification)?
 
@@ -84,6 +85,7 @@ For behaviors that should repeat (e.g., mentoring regularly):
     - Tag a skill, rate the session, refine availability
 
 We avoid black-hat patterns:
+
 - No artificial scarcity timers for learning
 - No infinite scroll or engineered FOMO
 
@@ -109,18 +111,21 @@ Black-hat core drives (scarcity, loss & avoidance, unpredictability) are used, i
 For each flow (“Create Ask”, “Create Offer”, “Browse”, “Match”, “Schedule Session”, “Feedback”):
 
 1. **COM-B / FBM**
+
    - [ ] Is the user capable? Is the flow understandable?
    - [ ] Is the opportunity present (visible entry point, right timing)?
    - [ ] Is there intrinsic motivation? Are we articulating the “why”?
    - [ ] Is there a clear, well-timed prompt?
 
 2. **EAST + UX**
+
    - [ ] Is this the easiest reasonable path to the goal?
    - [ ] Is the main call-to-action visually dominant but calm?
    - [ ] Is there light social context (e.g., “X recent sessions completed”)?
    - [ ] Is the prompt timely (not spammy)?
 
 3. **Hook (White Hat)**
+
    - [ ] What is the trigger?
    - [ ] What is the smallest possible action?
    - [ ] What is the meaningful reward?

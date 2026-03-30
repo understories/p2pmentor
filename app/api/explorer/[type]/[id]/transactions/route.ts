@@ -1,12 +1,15 @@
 /**
  * API Route: Get transaction history for an entity
- * 
+ *
  * Returns all transactions for a given entity in human-legible format.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
-import { getProfileTransactionHistory, getEntityTransactionHistory } from '@/lib/explorer/transactions';
+import {
+  getProfileTransactionHistory,
+  getEntityTransactionHistory,
+} from '@/lib/explorer/transactions';
 import { SPACE_ID } from '@/lib/config';
 
 export async function GET(
@@ -31,12 +34,9 @@ export async function GET(
 
   try {
     const { type, id } = await params;
-    
+
     if (!type || !id) {
-      return NextResponse.json(
-        { ok: false, error: 'Type and ID are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Type and ID are required' }, { status: 400 });
     }
 
     // Decode URL-encoded ID
@@ -51,10 +51,7 @@ export async function GET(
       // For other entity types, use entity key
       transactions = await getEntityTransactionHistory(decodedId, type);
     } else {
-      return NextResponse.json(
-        { ok: false, error: 'Invalid entity type' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Invalid entity type' }, { status: 400 });
     }
 
     return NextResponse.json(
@@ -84,4 +81,3 @@ export async function GET(
     );
   }
 }
-

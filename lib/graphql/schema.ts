@@ -1,9 +1,9 @@
 /**
  * GraphQL Schema for Arkiv Mentorship Data
- * 
+ *
  * Provides GraphQL interface over Arkiv's JSON-RPC indexer.
  * Reusable tool for any Arkiv-based application.
- * 
+ *
  * Reference: docs/graph_indexing_plan.md
  */
 
@@ -181,4 +181,3 @@ export const graphQLSchema = `
     txHash: String
   }
 `;
-

@@ -15,6 +15,7 @@ GitHub integration creates GitHub issues from app feedback and stores the link a
 `github_issue_link`
 
 Entity fields:
+
 - `feedbackKey` (reference to `app_feedback` entity)
 - `issueNumber` (GitHub issue number)
 - `issueUrl` (GitHub issue URL)
@@ -32,9 +33,9 @@ Entities are queryable via `feedbackKey` attribute.
 ## Usage
 
 GitHub issues are created from app feedback with:
+
 - Title: `[feedbackType] page: message preview`
 - Body: Includes page, type, rating, wallet, message, and Arkiv explorer link
 - Labels: `['bug', 'feedback']` for issues, `['feedback']` for general feedback
 
 The link between feedback and GitHub issue is stored as an Arkiv entity for transparency and auditability.
-

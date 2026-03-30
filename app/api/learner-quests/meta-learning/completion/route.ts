@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -36,10 +39,7 @@ export async function GET(request: NextRequest) {
     const targetKey = searchParams.get('targetKey') || undefined;
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet required' }, { status: 400 });
     }
 
     const completion = await checkMetaLearningCompletion({
@@ -49,10 +49,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!completion) {
-      return NextResponse.json(
-        { ok: false, error: 'Failed to check completion' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Failed to check completion' }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, completion });
@@ -64,4 +61,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -13,6 +13,7 @@ Master these core concepts. They're building blocks for more complex sentences.
 ## Concept Categories
 
 You'll learn:
+
 - **Adjectives**: good, big, small, many, few, new, old
 - **Essential verbs**: to be, to have, to be at/in
 - **Fundamental concepts**: used in almost every sentence

@@ -38,10 +38,7 @@ export async function GET(
     // Get profile
     const profile = await getProfileByWallet(wallet);
     if (!profile) {
-      return NextResponse.json(
-        { ok: false, error: 'Profile not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'Profile not found' }, { status: 404 });
     }
 
     // Serialize to public format
@@ -91,4 +88,3 @@ export async function GET(
     );
   }
 }
-

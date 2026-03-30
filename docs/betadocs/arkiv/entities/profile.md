@@ -1,11 +1,13 @@
 # Profile Entity Schema
 
 ## Status
+
 - Canonical for p2pmentor: Yes
 - Mutability: Pattern B
 - Pattern dependencies: PAT-UPDATE-001, PAT-QUERY-001, PAT-IDENTITY-001, PAT-SPACE-001
 
 ## Entity Type
+
 `user_profile`
 
 ## Patterns Used
@@ -17,53 +19,53 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "user_profile" |
-| wallet | string | Yes | Attribute | Wallet address (lowercase, primary identifier) |
-| displayName | string | Yes | Attribute | User's display name |
-| username | string | No | Attribute | Unique username (optional, client-side uniqueness check only) |
-| timezone | string | Yes | Attribute | IANA timezone (e.g., "America/New_York") |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| identity_seed | string | No | Attribute | Emoji Identity Seed (EIS) for UI |
-| bio | string | No | Attribute | Legacy bio field |
-| skills | string | No | Attribute | Legacy comma-separated skills string |
-| seniority | string | No | Attribute | "beginner" | "intermediate" | "advanced" | "expert" |
-| skill_0, skill_1, ... | string | No | Attribute | Individual skill attributes (for querying) |
-| displayName | string | Yes | Payload | User's display name |
-| username | string | No | Payload | Unique username |
-| profileImage | string | No | Payload | Profile image URL |
-| identity_seed | string | No | Payload | Emoji Identity Seed |
-| exploringStatement | string | No | Payload | "What are you exploring?" one-liner |
-| bio | string | No | Payload | Legacy bio |
-| bioShort | string | No | Payload | Short bio |
-| bioLong | string | No | Payload | Long bio |
-| skills | string | No | Payload | Comma-separated skills (legacy) |
-| skillsArray | string[] | No | Payload | Array of skill names |
-| skill_ids | string[] | No | Payload | Array of Skill entity keys |
-| skillExpertise | Record<string, number> | No | Payload | Map of skillId to expertise level (0-5) |
-| timezone | string | Yes | Payload | IANA timezone |
-| languages | string[] | No | Payload | Array of language codes |
-| contactLinks | object | No | Payload | { twitter?, github?, telegram?, discord? } |
-| seniority | string | No | Payload | "beginner" | "intermediate" | "advanced" | "expert" |
-| domainsOfInterest | string[] | No | Payload | Array of domain strings |
-| mentorRoles | string[] | No | Payload | Array of mentor role strings |
-| learnerRoles | string[] | No | Payload | Array of learner role strings |
-| availabilityWindow | string | No | Payload | Text description of availability |
-| sessionsCompleted | number | No | Payload | Total sessions completed (default: 0) |
-| sessionsGiven | number | No | Payload | Sessions given as mentor (default: 0) |
-| sessionsReceived | number | No | Payload | Sessions received as learner (default: 0) |
-| avgRating | number | No | Payload | Average rating (default: 0, calculated on-demand) |
-| npsScore | number | No | Payload | Net Promoter Score (default: 0) |
-| topSkillsUsage | Array<{skill: string, count: number}> | No | Payload | Top skills usage stats |
-| peerTestimonials | Array<{text: string, timestamp: string, fromWallet: string}> | No | Payload | Peer testimonials |
-| trustEdges | Array<{toWallet: string, strength: number, createdAt: string}> | No | Payload | Trust network edges |
-| communityAffiliations | string[] | No | Payload | Array of community identifiers |
-| reputationScore | number | No | Payload | Reputation score (default: 0) |
-| lastActiveTimestamp | string | No | Payload | ISO timestamp of last activity |
-| spaceId | string | Yes | Payload | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Payload | ISO timestamp |
+| Field Name            | Type                                                           | Required | Location  | Description                                                                                                |
+| --------------------- | -------------------------------------------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | -------------- | ---------- | -------- |
+| type                  | string                                                         | Yes      | Attribute | Always "user_profile"                                                                                      |
+| wallet                | string                                                         | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
+| displayName           | string                                                         | Yes      | Attribute | User's display name                                                                                        |
+| username              | string                                                         | No       | Attribute | Unique username (optional, client-side uniqueness check only)                                              |
+| timezone              | string                                                         | Yes      | Attribute | IANA timezone (e.g., "America/New_York")                                                                   |
+| spaceId               | string                                                         | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt             | string                                                         | Yes      | Attribute | ISO timestamp                                                                                              |
+| identity_seed         | string                                                         | No       | Attribute | Emoji Identity Seed (EIS) for UI                                                                           |
+| bio                   | string                                                         | No       | Attribute | Legacy bio field                                                                                           |
+| skills                | string                                                         | No       | Attribute | Legacy comma-separated skills string                                                                       |
+| seniority             | string                                                         | No       | Attribute | "beginner"                                                                                                 | "intermediate" | "advanced" | "expert" |
+| skill_0, skill_1, ... | string                                                         | No       | Attribute | Individual skill attributes (for querying)                                                                 |
+| displayName           | string                                                         | Yes      | Payload   | User's display name                                                                                        |
+| username              | string                                                         | No       | Payload   | Unique username                                                                                            |
+| profileImage          | string                                                         | No       | Payload   | Profile image URL                                                                                          |
+| identity_seed         | string                                                         | No       | Payload   | Emoji Identity Seed                                                                                        |
+| exploringStatement    | string                                                         | No       | Payload   | "What are you exploring?" one-liner                                                                        |
+| bio                   | string                                                         | No       | Payload   | Legacy bio                                                                                                 |
+| bioShort              | string                                                         | No       | Payload   | Short bio                                                                                                  |
+| bioLong               | string                                                         | No       | Payload   | Long bio                                                                                                   |
+| skills                | string                                                         | No       | Payload   | Comma-separated skills (legacy)                                                                            |
+| skillsArray           | string[]                                                       | No       | Payload   | Array of skill names                                                                                       |
+| skill_ids             | string[]                                                       | No       | Payload   | Array of Skill entity keys                                                                                 |
+| skillExpertise        | Record<string, number>                                         | No       | Payload   | Map of skillId to expertise level (0-5)                                                                    |
+| timezone              | string                                                         | Yes      | Payload   | IANA timezone                                                                                              |
+| languages             | string[]                                                       | No       | Payload   | Array of language codes                                                                                    |
+| contactLinks          | object                                                         | No       | Payload   | { twitter?, github?, telegram?, discord? }                                                                 |
+| seniority             | string                                                         | No       | Payload   | "beginner"                                                                                                 | "intermediate" | "advanced" | "expert" |
+| domainsOfInterest     | string[]                                                       | No       | Payload   | Array of domain strings                                                                                    |
+| mentorRoles           | string[]                                                       | No       | Payload   | Array of mentor role strings                                                                               |
+| learnerRoles          | string[]                                                       | No       | Payload   | Array of learner role strings                                                                              |
+| availabilityWindow    | string                                                         | No       | Payload   | Text description of availability                                                                           |
+| sessionsCompleted     | number                                                         | No       | Payload   | Total sessions completed (default: 0)                                                                      |
+| sessionsGiven         | number                                                         | No       | Payload   | Sessions given as mentor (default: 0)                                                                      |
+| sessionsReceived      | number                                                         | No       | Payload   | Sessions received as learner (default: 0)                                                                  |
+| avgRating             | number                                                         | No       | Payload   | Average rating (default: 0, calculated on-demand)                                                          |
+| npsScore              | number                                                         | No       | Payload   | Net Promoter Score (default: 0)                                                                            |
+| topSkillsUsage        | Array<{skill: string, count: number}>                          | No       | Payload   | Top skills usage stats                                                                                     |
+| peerTestimonials      | Array<{text: string, timestamp: string, fromWallet: string}>   | No       | Payload   | Peer testimonials                                                                                          |
+| trustEdges            | Array<{toWallet: string, strength: number, createdAt: string}> | No       | Payload   | Trust network edges                                                                                        |
+| communityAffiliations | string[]                                                       | No       | Payload   | Array of community identifiers                                                                             |
+| reputationScore       | number                                                         | No       | Payload   | Reputation score (default: 0)                                                                              |
+| lastActiveTimestamp   | string                                                         | No       | Payload   | ISO timestamp of last activity                                                                             |
+| spaceId               | string                                                         | Yes      | Payload   | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt             | string                                                         | Yes      | Payload   | ISO timestamp                                                                                              |
 
 ## Update Handling
 
@@ -90,9 +92,7 @@ const result = await query
   .fetch();
 
 // Select most recent
-profiles.sort((a, b) => 
-  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-);
+profiles.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 const latestProfile = profiles[0];
 ```
 
@@ -134,8 +134,8 @@ Profile entities expire after 1 year (31536000 seconds). This is effectively per
 ## Transaction Hash Tracking
 
 Separate `user_profile_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "user_profile_txhash"
 - `profileKey`: Entity key of profile
 - `wallet`: Wallet address
 - `spaceId`: "local-dev"
-

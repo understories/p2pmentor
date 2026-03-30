@@ -19,7 +19,12 @@ interface BackButtonProps {
   forceHref?: boolean; // Force use of href instead of browser history (use sparingly)
 }
 
-export function BackButton({ href, label = 'Back', className = '', forceHref = false }: BackButtonProps) {
+export function BackButton({
+  href,
+  label = 'Back',
+  className = '',
+  forceHref = false,
+}: BackButtonProps) {
   const router = useRouter();
 
   const handleClick = () => {
@@ -43,25 +48,18 @@ export function BackButton({ href, label = 'Back', className = '', forceHref = f
   return (
     <button
       onClick={handleClick}
-      className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${className}`}
+      className={`inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700 ${className}`}
     >
       <svg
-        className="w-4 h-4"
+        className="h-4 w-4"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M15 19l-7-7 7-7"
-        />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
       </svg>
       {label}
     </button>
   );
 }
-
-

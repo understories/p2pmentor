@@ -1,6 +1,6 @@
 /**
  * Onboarding Constants
- * 
+ *
  * Step definitions, copy, and configuration.
  */
 
@@ -85,10 +85,13 @@ export const NAV_UNLOCK_LEVELS: Record<string, OnboardingLevel> = {
 /**
  * Level calculation rules
  */
-export const LEVEL_REQUIREMENTS: Record<OnboardingLevel, {
-  description: string;
-  check: (progress: OnboardingProgress) => boolean;
-}> = {
+export const LEVEL_REQUIREMENTS: Record<
+  OnboardingLevel,
+  {
+    description: string;
+    check: (progress: OnboardingProgress) => boolean;
+  }
+> = {
   0: {
     description: 'No profile created',
     check: (progress) => progress.level === 0,

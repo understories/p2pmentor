@@ -13,6 +13,7 @@ Each flashcard shows a Chinese number character. Practice recognizing and pronou
 ## Number System
 
 Chinese numbers are straightforward:
+
 - Each number has a single character
 - Numbers combine logically (e.g., 十一 = 10 + 1 = 11)
 - Once you learn 1-10, you can build larger numbers
@@ -27,6 +28,7 @@ Chinese numbers are straightforward:
 ## Ready to Practice?
 
 Start with the flashcards below. These numbers will be useful for:
+
 - Telling time
 - Counting items
 - Expressing quantities

@@ -1,6 +1,6 @@
 /**
  * Navigation Design Tokens
- * 
+ *
  * Design tokens for navigation system following forest/garden aesthetic.
  * Phase 0: Subtle glows and node-style enhancements.
  * Phase 1: Full constellation lines and pulse animations.

@@ -1,15 +1,15 @@
 /**
  * Performance metrics tracking
- * 
+ *
  * Tracks performance of Arkiv JSON-RPC vs GraphQL for key flows.
  * Used for DX documentation and admin panel insights.
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 2
  */
 
 /**
  * Performance sample for a single operation
- * 
+ *
  * Extended for beta metrics: includes status, errorType, and fallback tracking.
  */
 export type PerfSample = {
@@ -49,10 +49,10 @@ function isPerfLoggingEnabled(): boolean {
 
 /**
  * Record a performance sample
- * 
+ *
  * Stores sample in-memory (capped at MAX_SAMPLES).
  * Future: Can extend to persist to Arkiv entities for long-term storage.
- * 
+ *
  * @param sample - Performance sample to record
  */
 export function recordPerfSample(sample: PerfSample): void {
@@ -81,7 +81,7 @@ export function recordPerfSample(sample: PerfSample): void {
 
 /**
  * Get all stored performance samples
- * 
+ *
  * @returns Array of performance samples (most recent first)
  */
 export function getPerfSamples(): PerfSample[] {
@@ -90,7 +90,7 @@ export function getPerfSamples(): PerfSample[] {
 
 /**
  * Get performance samples filtered by criteria
- * 
+ *
  * @param filters - Optional filters
  * @returns Filtered performance samples
  */
@@ -103,20 +103,20 @@ export function getPerfSamplesFiltered(filters?: {
   let filtered = getPerfSamples();
 
   if (filters?.source) {
-    filtered = filtered.filter(s => s.source === filters.source);
+    filtered = filtered.filter((s) => s.source === filters.source);
   }
 
   if (filters?.operation) {
-    filtered = filtered.filter(s => s.operation === filters.operation);
+    filtered = filtered.filter((s) => s.operation === filters.operation);
   }
 
   if (filters?.route) {
-    filtered = filtered.filter(s => s.route === filters.route);
+    filtered = filtered.filter((s) => s.route === filters.route);
   }
 
   if (filters?.since) {
     const sinceTime = new Date(filters.since).getTime();
-    filtered = filtered.filter(s => new Date(s.createdAt).getTime() >= sinceTime);
+    filtered = filtered.filter((s) => new Date(s.createdAt).getTime() >= sinceTime);
   }
 
   return filtered;
@@ -131,10 +131,13 @@ export function clearPerfSamples(): void {
 
 /**
  * Get performance summary for an operation
- * 
+ *
  * Aggregates samples by source and operation to show comparisons.
  */
-export function getPerfSummary(operation: string, route?: string): {
+export function getPerfSummary(
+  operation: string,
+  route?: string
+): {
   graphql?: {
     avgDurationMs: number;
     minDurationMs: number;
@@ -161,13 +164,17 @@ export function getPerfSummary(operation: string, route?: string): {
   const summarize = (samples: PerfSample[]) => {
     if (samples.length === 0) return undefined;
 
-    const durations = samples.map(s => s.durationMs);
-    const payloadSizes = samples.filter(s => s.payloadBytes !== undefined).map(s => s.payloadBytes!);
-    const httpCounts = samples.filter(s => s.httpRequests !== undefined).map(s => s.httpRequests!);
+    const durations = samples.map((s) => s.durationMs);
+    const payloadSizes = samples
+      .filter((s) => s.payloadBytes !== undefined)
+      .map((s) => s.payloadBytes!);
+    const httpCounts = samples
+      .filter((s) => s.httpRequests !== undefined)
+      .map((s) => s.httpRequests!);
 
     // Count queries per page/route
     const pageCounts: Record<string, number> = {};
-    samples.forEach(s => {
+    samples.forEach((s) => {
       const page = s.route || '(no route)';
       pageCounts[page] = (pageCounts[page] || 0) + 1;
     });
@@ -176,12 +183,14 @@ export function getPerfSummary(operation: string, route?: string): {
       avgDurationMs: durations.reduce((a, b) => a + b, 0) / durations.length,
       minDurationMs: Math.min(...durations),
       maxDurationMs: Math.max(...durations),
-      avgPayloadBytes: payloadSizes.length > 0
-        ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
-        : undefined,
-      avgHttpRequests: httpCounts.length > 0
-        ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
-        : undefined,
+      avgPayloadBytes:
+        payloadSizes.length > 0
+          ? payloadSizes.reduce((a, b) => a + b, 0) / payloadSizes.length
+          : undefined,
+      avgHttpRequests:
+        httpCounts.length > 0
+          ? httpCounts.reduce((a, b) => a + b, 0) / httpCounts.length
+          : undefined,
       samples: samples.length,
       pages: pageCounts,
     };
@@ -192,5 +201,3 @@ export function getPerfSummary(operation: string, route?: string): {
     arkiv: summarize(arkivSamples),
   };
 }
-
-

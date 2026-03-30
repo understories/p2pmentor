@@ -11,12 +11,14 @@ Arkiv has no built-in revocation. To revoke grants, consent, invites, or any cap
 ## When to Use
 
 **Always apply this pattern when:**
+
 - Revoking access grants (review mode grants, beta access)
 - Revoking privacy consent
 - Revoking invites or capability-like entities
 - Any entity that needs revocation semantics
 
 **Revocation marker schema:**
+
 - Entity type: `{original_type}_revocation` (e.g., `review_mode_grant_revocation`)
 - References original entity via `entity_key` or logical ID
 - Includes revocation timestamp and reason
@@ -55,12 +57,14 @@ Arkiv has no built-in revocation. To revoke grants, consent, invites, or any cap
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/revocation.ts` - Generic revocation marker creation and checking
 - `lib/arkiv/grant-revocation.ts` - Grant-specific revocation helpers
 - `lib/arkiv/reviewModeGrant.ts` - `getLatestValidReviewModeGrant()` checks for revocation markers
 - Applies to: grants (PAT-ACCESS-001), consent (PAT-CONSENT-001), invites
 
 **Code examples:**
+
 ```typescript
 // Revocation marker schema
 interface RevocationMarker {
@@ -82,7 +86,7 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
     reason: 'Manual revocation',
     spaceId: SPACE_ID,
   };
-  
+
   const { key, txHash } = await createEntity({
     type: 'review_mode_grant_revocation',
     attributes: [
@@ -96,20 +100,21 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
     expiresIn: 15768000, // 6 months (same as grant)
     privateKey,
   });
-  
+
   return { key, txHash };
 }
 
 // Query pattern: Check for revocation before granting access
 async function isGrantRevoked(grantKey: string): Promise<boolean> {
-  const result = await publicClient.buildQuery()
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'review_mode_grant_revocation'))
     .where(eq('entityKey', grantKey))
     .where(eq('spaceId', SPACE_ID))
     .withAttributes(true)
     .limit(1)
     .fetch();
-  
+
   return result.entities.length > 0;
 }
 
@@ -118,18 +123,18 @@ async function checkGrantAccess(wallet: string): Promise<boolean> {
   // 1. Query for grant
   const grants = await queryGrants(wallet);
   if (grants.length === 0) return false;
-  
+
   const grant = grants[0];
-  
+
   // 2. Check for revocation marker
   const isRevoked = await isGrantRevoked(grant.key);
   if (isRevoked) return false;
-  
+
   // 3. Check expiration
   if (grant.expiresAt && new Date(grant.expiresAt) < new Date()) {
     return false;
   }
-  
+
   return true;
 }
 ```
@@ -163,4 +168,3 @@ async function checkGrantAccess(wallet: string): Promise<boolean> {
 - [Privacy Consent](../privacy-consent.md) - Consent uses revocation markers
 - [Read-Your-Writes Under Indexer Lag](./indexer-lag-handling.md) - Polling for revocation visibility
 - [PAT-ACCESS-001: Arkiv-Native Access Grants](../arkiv-patterns-catalog.md#pat-access-001-arkiv-native-access-grants) - Grants are revocable
-

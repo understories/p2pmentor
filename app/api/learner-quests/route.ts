@@ -25,7 +25,11 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const questId = searchParams.get('questId');
-    const questType = searchParams.get('questType') as 'reading_list' | 'language_assessment' | 'meta_learning' | null;
+    const questType = searchParams.get('questType') as
+      | 'reading_list'
+      | 'language_assessment'
+      | 'meta_learning'
+      | null;
 
     // Check if builder mode is enabled (from query param)
     const builderMode = searchParams.get('builderMode') === 'true';
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     if (builderMode && spaceIdsParam) {
       // Builder mode: query multiple spaceIds
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim());
+      spaceIds = spaceIdsParam.split(',').map((s) => s.trim());
     } else if (spaceIdParam) {
       // Override default spaceId
       spaceId = spaceIdParam;
@@ -89,7 +93,8 @@ export async function GET(request: NextRequest) {
       // (which contains sections and questions)
       if (quest.questType === 'language_assessment') {
         const publicClient = (await import('@/lib/arkiv/client')).getPublicClient();
-        const result = await publicClient.buildQuery()
+        const result = await publicClient
+          .buildQuery()
           .where((await import('@arkiv-network/sdk/query')).eq('type', 'learner_quest'))
           .where((await import('@arkiv-network/sdk/query')).eq('questId', questId))
           .where((await import('@arkiv-network/sdk/query')).eq('status', 'active'))
@@ -100,11 +105,12 @@ export async function GET(request: NextRequest) {
 
         if (result?.entities && result.entities.length > 0) {
           const entity = result.entities[0];
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           return NextResponse.json({
@@ -140,7 +146,7 @@ export async function GET(request: NextRequest) {
           if (fs.existsSync(questPath)) {
             const questData = JSON.parse(fs.readFileSync(questPath, 'utf-8'));
             // Check if meta_learning quest already exists in quests
-            const existingQuest = quests.find(q => q.questId === 'meta_learning');
+            const existingQuest = quests.find((q) => q.questId === 'meta_learning');
             if (!existingQuest) {
               quests.push({
                 key: 'meta_learning_json', // Synthetic key for JSON-based quests
@@ -166,8 +172,8 @@ export async function GET(request: NextRequest) {
 
       console.log('[learner-quests] Found quests:', {
         count: quests.length,
-        questIds: quests.map(q => q.questId),
-        spaceIds: quests.map(q => q.spaceId),
+        questIds: quests.map((q) => q.questId),
+        spaceIds: quests.map((q) => q.spaceId),
       });
       return NextResponse.json({ ok: true, quests, count: quests.length });
     }
@@ -191,7 +197,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -244,4 +253,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

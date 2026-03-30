@@ -190,12 +190,7 @@
           "id": "q4",
           "type": "multiple_choice",
           "question": "What happens to information in the first hour after learning (according to the forgetting curve)?",
-          "options": [
-            "You remember 100%",
-            "You forget ~50%",
-            "You forget ~90%",
-            "Nothing happens"
-          ],
+          "options": ["You remember 100%", "You forget ~50%", "You forget ~90%", "Nothing happens"],
           "correctAnswer": "You forget ~50%",
           "points": 1,
           "explanation": "The forgetting curve shows rapid initial forgetting - about 50% in the first hour."

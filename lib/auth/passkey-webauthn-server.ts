@@ -1,9 +1,9 @@
 /**
  * WebAuthn API route helpers for passkey authentication
- * 
+ *
  * Wraps @simplewebauthn/server for registration and authentication flows.
  * Runs in serverless API routes (Next.js). Credentials stored on Arkiv, NOT in memory.
- * 
+ *
  * Reference: Arkiv Passkey Wallet Beta Implementation Plan
  */
 
@@ -45,13 +45,13 @@ const rpName = process.env.PASSKEY_RP_NAME || 'p2pmentor';
 
 /**
  * Get expected origin for WebAuthn verification
- * 
+ *
  * Priority:
  * 1. PASSKEY_ORIGIN env var (explicit override)
  * 2. Request origin (from headers, in API routes)
  * 3. window.location.origin (client-side)
  * 4. Default to localhost for development
- * 
+ *
  * @param requestOrigin - Origin from request headers (optional)
  * @returns Expected origin string
  */
@@ -66,14 +66,12 @@ function getExpectedOrigin(requestOrigin?: string): string {
     return window.location.origin;
   }
   // Default for API routes when no request origin provided
-  return process.env.NODE_ENV === 'production' 
-    ? 'https://p2pmentor.com' 
-    : 'http://localhost:3000';
+  return process.env.NODE_ENV === 'production' ? 'https://p2pmentor.com' : 'http://localhost:3000';
 }
 
 /**
  * In-memory storage for WebAuthn credentials (backward compatibility only)
- * 
+ *
  * NOTE: This is ephemeral and lost on serverless function restart.
  * New credentials are stored on Arkiv. This Map is only for migration/fallback.
  * Structure: Map<userId, Array<Credential>>
@@ -89,11 +87,11 @@ const credentialStore = new Map<string, StoredCredential[]>();
 
 /**
  * Get registration options for a new passkey
- * 
+ *
  * CRITICAL: Queries Arkiv for existing credentials and populates excludeCredentials
  * to prevent duplicate passkey registrations. This is called BEFORE navigator.credentials.create()
  * to ensure the WebAuthn API itself prevents duplicates.
- * 
+ *
  * @param userId - User identifier (wallet address or profile ID)
  * @param userName - Human-readable username (for display in browser)
  * @param walletAddress - Wallet address (optional, for Arkiv query to find existing credentials)
@@ -109,16 +107,16 @@ export async function getRegistrationOptions(
   // CRITICAL: Query Arkiv for existing passkey identities BEFORE generating options
   // This prevents duplicate registrations at the WebAuthn API level
   let excludeCredentials: any[] = [];
-  
+
   if (walletAddress) {
     try {
       const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
       const identities = await listPasskeyIdentities(walletAddress);
-      
+
       if (identities.length > 0) {
         // Populate excludeCredentials with existing credential IDs from Arkiv
         excludeCredentials = identities
-          .filter(identity => identity.credentialID)
+          .filter((identity) => identity.credentialID)
           .map((identity) => {
             // Convert base64url credentialID to ArrayBuffer for WebAuthn
             try {
@@ -129,16 +127,26 @@ export async function getRegistrationOptions(
                 transports: identity.credential?.transports || [],
               };
             } catch (error) {
-              console.warn('[getRegistrationOptions] Failed to convert credentialID to ArrayBuffer:', error);
+              console.warn(
+                '[getRegistrationOptions] Failed to convert credentialID to ArrayBuffer:',
+                error
+              );
               return null;
             }
           })
           .filter((cred): cred is NonNullable<typeof cred> => cred !== null);
-        
-        console.log('[getRegistrationOptions] Found', excludeCredentials.length, 'existing credentials on Arkiv to exclude');
+
+        console.log(
+          '[getRegistrationOptions] Found',
+          excludeCredentials.length,
+          'existing credentials on Arkiv to exclude'
+        );
       }
     } catch (error) {
-      console.warn('[getRegistrationOptions] Failed to query Arkiv for existing credentials:', error);
+      console.warn(
+        '[getRegistrationOptions] Failed to query Arkiv for existing credentials:',
+        error
+      );
       // Continue with empty excludeCredentials - better to allow registration than block it
     }
   }
@@ -189,10 +197,12 @@ export async function getRegistrationOptions(
   console.log('[PASSKEY][REGISTER][SERVER] SimpleWebAuthn generated options:', {
     platformOnly,
     authenticatorSelection: {
-      authenticatorAttachment: generatedOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
+      authenticatorAttachment:
+        generatedOptions.authenticatorSelection?.authenticatorAttachment || 'not_set',
       userVerification: generatedOptions.authenticatorSelection?.userVerification || 'not_set',
       residentKey: (generatedOptions.authenticatorSelection as any)?.residentKey || 'not_set',
-      requireResidentKey: (generatedOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
+      requireResidentKey:
+        (generatedOptions.authenticatorSelection as any)?.requireResidentKey || 'not_set',
     },
     note: 'Verify browser receives intended constraints',
   });
@@ -202,7 +212,7 @@ export async function getRegistrationOptions(
 
 /**
  * Verify registration response and store credential
- * 
+ *
  * @param userId - User identifier
  * @param response - WebAuthn registration response from client
  * @param expectedChallenge - Challenge that was sent in registration options
@@ -213,9 +223,9 @@ export async function verifyRegistration(
   response: any,
   expectedChallenge: string,
   requestOrigin?: string
-): Promise<{ 
-  verified: boolean; 
-  credentialID?: string; 
+): Promise<{
+  verified: boolean;
+  credentialID?: string;
   credentialPublicKey?: Uint8Array;
   counter?: number;
   transports?: string[];
@@ -223,7 +233,7 @@ export async function verifyRegistration(
 }> {
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
-    
+
     // Registration options reconstructed from response (stateless serverless function)
     const opts = {
       response,
@@ -235,14 +245,14 @@ export async function verifyRegistration(
 
     const verification = await verifyRegistrationResponse(opts);
 
-      if (verification.verified && verification.registrationInfo) {
-        // Store credential metadata
-        const credential: StoredCredential = {
-          credentialID: verification.registrationInfo.credentialID,
-          credentialPublicKey: verification.registrationInfo.credentialPublicKey,
-          counter: verification.registrationInfo.counter,
-          transports: (verification.registrationInfo as any).transports,
-        };
+    if (verification.verified && verification.registrationInfo) {
+      // Store credential metadata
+      const credential: StoredCredential = {
+        credentialID: verification.registrationInfo.credentialID,
+        credentialPublicKey: verification.registrationInfo.credentialPublicKey,
+        counter: verification.registrationInfo.counter,
+        transports: (verification.registrationInfo as any).transports,
+      };
 
       // Add to user's credentials
       const userCredentials = credentialStore.get(userId) || [];
@@ -267,10 +277,10 @@ export async function verifyRegistration(
 
 /**
  * Get authentication options for passkey login
- * 
+ *
  * Queries Arkiv for credentials (replaces in-memory Map lookup).
  * Falls back to in-memory Map for backward compatibility during migration.
- * 
+ *
  * @param userId - User identifier (optional, for allowCredentials filtering)
  * @param walletAddress - Wallet address (optional, for Arkiv query)
  * @param requestOrigin - Origin from request headers (optional, for consistency checks)
@@ -300,30 +310,30 @@ export async function getAuthenticationOptions(
   // If empty, WebAuthn will show all passkeys for this RP (discoverable credentials)
   // Server will query Arkiv by credentialID after WebAuthn response (in verifyAuthentication)
   // This enables login even when localStorage is empty
-  
+
   // Optional: Try to populate allowCredentials if wallet address provided (optimization only)
   // This is NOT required - login will work without it
   if (walletAddress) {
     try {
       const { listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
       const identities = await listPasskeyIdentities(walletAddress);
-      
+
       // [PASSKEY][LOGIN][START] - Log Arkiv query results
       const arkivCredentialIds = identities
-        .filter(id => id.credentialID)
-        .map(id => id.credentialID!);
-      
+        .filter((id) => id.credentialID)
+        .map((id) => id.credentialID!);
+
       console.log('[PASSKEY][LOGIN][START]', {
         arkivQueryResult: {
           found: identities.length,
-          credentialIds: arkivCredentialIds.map(id => id.substring(0, 16) + '...'), // First 16 chars for readability
+          credentialIds: arkivCredentialIds.map((id) => id.substring(0, 16) + '...'), // First 16 chars for readability
         },
         note: 'allowCredentials populated for optimization, but not required for login',
       });
-      
+
       if (identities.length > 0) {
         allowCredentials = identities
-          .filter(identity => identity.credentialID)
+          .filter((identity) => identity.credentialID)
           .map((identity) => ({
             id: identity.credentialID!,
             type: 'public-key' as const,
@@ -357,7 +367,8 @@ export async function getAuthenticationOptions(
     rpID,
     timeout: 60000, // 60 seconds
     userVerification: 'preferred' as const,
-    allowCredentials: allowCredentials && allowCredentials.length > 0 ? allowCredentials : undefined,
+    allowCredentials:
+      allowCredentials && allowCredentials.length > 0 ? allowCredentials : undefined,
   };
 
   const generatedOptions = await generateAuthenticationOptions(opts as any);
@@ -372,13 +383,15 @@ export async function getAuthenticationOptions(
     challengeLength: generatedOptions.challenge?.length || 0,
     intendedBehavior: {
       allowCredentialsProvided: (generatedOptions.allowCredentials?.length || 0) > 0,
-      note: allowCredentials && allowCredentials.length > 0
-        ? 'allowCredentials populated - should narrow to known credentials (prefers platform authenticator)'
-        : 'allowCredentials empty - will show all passkeys for this RP (may include phone QR)',
+      note:
+        allowCredentials && allowCredentials.length > 0
+          ? 'allowCredentials populated - should narrow to known credentials (prefers platform authenticator)'
+          : 'allowCredentials empty - will show all passkeys for this RP (may include phone QR)',
     },
-    warning: allowCredentials && allowCredentials.length === 0
-      ? 'allowCredentials is empty - Safari may route to phone QR even if platform authenticator exists'
-      : undefined,
+    warning:
+      allowCredentials && allowCredentials.length === 0
+        ? 'allowCredentials is empty - Safari may route to phone QR even if platform authenticator exists'
+        : undefined,
   });
 
   return generatedOptions;
@@ -386,10 +399,10 @@ export async function getAuthenticationOptions(
 
 /**
  * Verify authentication response
- * 
+ *
  * Queries Arkiv for credentials (replaces in-memory Map lookup).
  * Falls back to in-memory Map for backward compatibility during migration.
- * 
+ *
  * @param userId - User identifier (optional, for credential lookup)
  * @param walletAddress - Wallet address (optional, for Arkiv query)
  * @param response - WebAuthn authentication response from client
@@ -402,11 +415,17 @@ export async function verifyAuthentication(
   expectedChallenge: string,
   requestOrigin?: string,
   walletAddress?: string
-): Promise<{ verified: boolean; userId?: string; walletAddress?: string; newCounter?: number; error?: string }> {
+): Promise<{
+  verified: boolean;
+  userId?: string;
+  walletAddress?: string;
+  newCounter?: number;
+  error?: string;
+}> {
   try {
     const expectedOrigin = getExpectedOrigin(requestOrigin);
     const credentialID = response.id; // base64url-encoded from client
-    
+
     // [PASSKEY][LOGIN][CREDENTIAL_LOOKUP] - Log lookup start
     console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
       credentialId_base64url: credentialID,
@@ -414,18 +433,20 @@ export async function verifyAuthentication(
       walletAddress: walletAddress || 'none',
       attempting: 'arkiv_first',
     });
-    
+
     // Try Arkiv first (by credentialID or wallet address)
     let arkivIdentity: any = null;
     let foundWallet: string | undefined = undefined;
     let arkivQueryError: any = null;
-    
+
     try {
-      const { findPasskeyIdentityByCredentialID, listPasskeyIdentities } = await import('@/lib/arkiv/authIdentity');
-      
+      const { findPasskeyIdentityByCredentialID, listPasskeyIdentities } = await import(
+        '@/lib/arkiv/authIdentity'
+      );
+
       // Try finding by credentialID first (most direct)
       arkivIdentity = await findPasskeyIdentityByCredentialID(credentialID);
-      
+
       if (arkivIdentity) {
         foundWallet = arkivIdentity.wallet;
         console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
@@ -438,22 +459,22 @@ export async function verifyAuthentication(
       } else if (walletAddress) {
         // Fallback: query by wallet address
         const identities = await listPasskeyIdentities(walletAddress);
-        const matchingIdentity = identities.find(id => id.credentialID === credentialID);
-        
+        const matchingIdentity = identities.find((id) => id.credentialID === credentialID);
+
         console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
           found: !!matchingIdentity,
           source: 'listPasskeyIdentities',
           wallet: walletAddress,
           totalIdentities: identities.length,
           knownCredentialIds: identities
-            .filter(id => id.credentialID)
-            .map(id => ({
+            .filter((id) => id.credentialID)
+            .map((id) => ({
               stored: id.credentialID!.substring(0, 16) + '...',
               received: credentialID.substring(0, 16) + '...',
               match: id.credentialID === credentialID,
             })),
         });
-        
+
         if (matchingIdentity) {
           arkivIdentity = matchingIdentity;
           foundWallet = walletAddress;
@@ -477,7 +498,7 @@ export async function verifyAuthentication(
       const cred = arkivIdentity.credential;
       const credentialIDBuffer = Buffer.from(credentialID, 'base64url');
       const publicKeyBuffer = Buffer.from(cred.credentialPublicKey, 'base64');
-      
+
       // [PASSKEY][LOGIN][CREDENTIAL_LOOKUP] - Log encoding comparison
       console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
         found: true,
@@ -488,7 +509,7 @@ export async function verifyAuthentication(
           match: cred.credentialID === credentialID,
         },
       });
-      
+
       storedCredential = {
         credentialID: credentialIDBuffer,
         credentialPublicKey: publicKeyBuffer,
@@ -504,15 +525,15 @@ export async function verifyAuthentication(
         fallingBackTo: 'in_memory_map',
         checkingUserId: userId || 'none',
       });
-      
+
       if (userId) {
         const userCredentials = credentialStore.get(userId) || [];
         const credentialIDBuffer = base64urlToBuffer(credentialID);
-        storedCredential = userCredentials.find(
-          (cred) => Buffer.from(cred.credentialID).equals(credentialIDBuffer)
+        storedCredential = userCredentials.find((cred) =>
+          Buffer.from(cred.credentialID).equals(credentialIDBuffer)
         );
         foundUserId = userId;
-        
+
         console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
           found: !!storedCredential,
           source: 'in_memory_map',
@@ -525,14 +546,16 @@ export async function verifyAuthentication(
         for (const entry of entries) {
           const [uid, credentials] = entry;
           const credentialIDBuffer = base64urlToBuffer(credentialID); // Use custom utility for compatibility
-          const cred = credentials.find((c) => Buffer.from(c.credentialID).equals(credentialIDBuffer));
+          const cred = credentials.find((c) =>
+            Buffer.from(c.credentialID).equals(credentialIDBuffer)
+          );
           if (cred) {
             storedCredential = cred;
             foundUserId = uid;
             break;
           }
         }
-        
+
         console.log('[PASSKEY][LOGIN][CREDENTIAL_LOOKUP]', {
           found: !!storedCredential,
           source: 'in_memory_map_discoverable',
@@ -544,14 +567,22 @@ export async function verifyAuthentication(
     if (!storedCredential || !foundUserId) {
       // [PASSKEY][LOGIN][NOT_REGISTERED] - Log before returning error
       console.error('[PASSKEY][LOGIN][NOT_REGISTERED]', {
-        reason: !arkivIdentity ? 'not_in_arkiv' : !storedCredential ? 'credential_mismatch' : 'no_user_id',
+        reason: !arkivIdentity
+          ? 'not_in_arkiv'
+          : !storedCredential
+            ? 'credential_mismatch'
+            : 'no_user_id',
         credentialId_base64url: credentialID,
         arkivQueryAttempted: !arkivQueryError,
-        arkivQueryError: arkivQueryError ? (arkivQueryError instanceof Error ? arkivQueryError.message : String(arkivQueryError)) : null,
+        arkivQueryError: arkivQueryError
+          ? arkivQueryError instanceof Error
+            ? arkivQueryError.message
+            : String(arkivQueryError)
+          : null,
         userId: userId || 'none',
         walletAddress: walletAddress || 'none',
       });
-      
+
       return { verified: false, error: 'Credential not found' };
     }
 
@@ -597,8 +628,8 @@ export async function verifyAuthentication(
       } else {
         // Update in-memory Map (backward compatibility)
         const userCredentials = credentialStore.get(foundUserId) || [];
-        const credIndex = userCredentials.findIndex(
-          (c) => Buffer.from(c.credentialID).equals(storedCredential!.credentialID)
+        const credIndex = userCredentials.findIndex((c) =>
+          Buffer.from(c.credentialID).equals(storedCredential!.credentialID)
         );
         if (credIndex >= 0) {
           userCredentials[credIndex].counter = verification.authenticationInfo.newCounter;
@@ -606,8 +637,8 @@ export async function verifyAuthentication(
         }
       }
 
-      return { 
-        verified: true, 
+      return {
+        verified: true,
         userId: foundUserId,
         walletAddress: foundWallet,
         newCounter: verification.authenticationInfo.newCounter,
@@ -623,7 +654,7 @@ export async function verifyAuthentication(
 
 /**
  * Remove a passkey credential (for reset/revocation)
- * 
+ *
  * @param userId - User identifier
  * @param credentialID - Base64url-encoded credential ID
  * @returns Success status
@@ -631,7 +662,7 @@ export async function verifyAuthentication(
 export function removeCredential(userId: string, credentialID: string): boolean {
   const userCredentials = credentialStore.get(userId) || [];
   const credentialIDBuffer = base64urlToBuffer(credentialID);
-  
+
   const filtered = userCredentials.filter(
     (cred) => !Buffer.from(cred.credentialID).equals(credentialIDBuffer)
   );
@@ -646,7 +677,7 @@ export function removeCredential(userId: string, credentialID: string): boolean 
 
 /**
  * Get all credentials for a user (for management UI)
- * 
+ *
  * @param userId - User identifier
  * @returns Array of credential IDs (base64url-encoded)
  */
@@ -657,7 +688,7 @@ export function getUserCredentials(userId: string): string[] {
 
 /**
  * Clear all credentials for a user
- * 
+ *
  * @param userId - User identifier
  * @returns True if credentials were cleared, false if none existed
  */
@@ -669,7 +700,7 @@ export function clearUserCredentials(userId: string): boolean {
 
 /**
  * Clear ALL credentials from in-memory Map (for reset/testing)
- * 
+ *
  * WARNING: This clears all passkey credentials from the ephemeral in-memory store.
  * Arkiv entities are NOT affected. Use with caution - users with only in-memory
  * credentials will need to re-register.
@@ -677,4 +708,3 @@ export function clearUserCredentials(userId: string): boolean {
 export function clearAllCredentials(): void {
   credentialStore.clear();
 }
-

@@ -1,6 +1,6 @@
 /**
  * Skills API route
- * 
+ *
  * Handles Skill entity listing and creation.
  * Arkiv-native: all skills are Arkiv entities.
  */
@@ -11,7 +11,7 @@ import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * GET /api/skills
- * 
+ *
  * List all active skills (or filter by slug)
  */
 export async function GET(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/skills
- * 
+ *
  * Create a new Skill entity
  * Body: { name_canonical: string, description?: string }
  */
@@ -52,7 +52,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -62,10 +65,7 @@ export async function POST(request: NextRequest) {
     const { name_canonical, description, created_by_profile } = body;
 
     if (!name_canonical || !name_canonical.trim()) {
-      return NextResponse.json(
-        { ok: false, error: 'name_canonical is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'name_canonical is required' }, { status: 400 });
     }
 
     // Check onboarding level (require level 1 - at least profile created)
@@ -73,10 +73,16 @@ export async function POST(request: NextRequest) {
     // Allow skill creation if user has a profile (level >= 1)
     if (created_by_profile) {
       const { verifyOnboardingAccess } = await import('@/lib/onboarding/access');
-      const accessCheck = await verifyOnboardingAccess(created_by_profile, 1, { allowBypass: true });
+      const accessCheck = await verifyOnboardingAccess(created_by_profile, 1, {
+        allowBypass: true,
+      });
       if (!accessCheck.hasAccess) {
         return NextResponse.json(
-          { ok: false, error: 'Please create a profile first before creating skills. Go to /me/profile to create your profile.' },
+          {
+            ok: false,
+            error:
+              'Please create a profile first before creating skills. Go to /me/profile to create your profile.',
+          },
           { status: 403 }
         );
       }
@@ -87,14 +93,17 @@ export async function POST(request: NextRequest) {
     const normalizedSlug = normalizeSkillSlug(name_canonical);
     if (!normalizedSlug || normalizedSlug.trim() === '') {
       return NextResponse.json(
-        { ok: false, error: `Cannot create skill "${name_canonical}": slug normalization resulted in empty string` },
+        {
+          ok: false,
+          error: `Cannot create skill "${name_canonical}": slug normalization resulted in empty string`,
+        },
         { status: 400 }
       );
     }
-    
+
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const targetSpaceId = SPACE_ID;
-    
+
     // Check if skill already exists in the target spaceId
     const existing = await getSkillBySlug(normalizedSlug, targetSpaceId);
     if (existing) {
@@ -147,21 +156,23 @@ export async function POST(request: NextRequest) {
     let newSkill: Awaited<ReturnType<typeof getSkillBySlug>> | null = null;
     const maxRetries = 5;
     const retryDelay = 1000; // Start with 1 second
-    
+
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       newSkill = await getSkillBySlug(normalizedSlug, targetSpaceId);
       if (newSkill) {
         break;
       }
-      
+
       // Wait before retrying (exponential backoff)
       if (attempt < maxRetries - 1) {
         const delay = retryDelay * Math.pow(2, attempt);
-        console.log(`[api/skills] Skill not yet indexed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(
+          `[api/skills] Skill not yet indexed, retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
-    
+
     if (!newSkill) {
       // Transaction was successful (we have key and txHash), but entity not yet queryable
       // Return success with pending status, similar to transaction timeout pattern

@@ -1,8 +1,8 @@
 /**
  * Passkey Login Complete API
- * 
+ *
  * Verifies WebAuthn authentication response and returns success.
- * 
+ *
  * POST /api/passkey/login/complete
  * Body: { userId?: string, response: PublicKeyCredential, challenge: string }
  */
@@ -23,17 +23,18 @@ export async function POST(request: Request) {
     }
 
     // Extract origin from request headers for production compatibility
-    const origin = request.headers.get('origin') || 
-                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
-                   undefined;
+    const origin =
+      request.headers.get('origin') ||
+      request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+      undefined;
 
     // Extract walletAddress from request body if provided (for recovery scenarios)
     const { walletAddress: requestWalletAddress } = body;
-    
+
     const verification = await verifyAuthentication(
-      userId, 
-      response, 
-      challenge, 
+      userId,
+      response,
+      challenge,
       origin,
       requestWalletAddress // Pass walletAddress to help with credential lookup
     );
@@ -42,28 +43,36 @@ export async function POST(request: Request) {
       // CRITICAL: If verification fails, try to find the credential on Arkiv by credentialID
       // This enables recovery when localStorage is out of sync
       const credentialID = response.id; // base64url-encoded credentialID from WebAuthn response
-      
+
       try {
         const { findPasskeyIdentityByCredentialID } = await import('@/lib/arkiv/authIdentity');
         const arkivIdentity = await findPasskeyIdentityByCredentialID(credentialID);
-        
+
         if (arkivIdentity) {
           // Found the credential on Arkiv! Return it so client can recover
-          return NextResponse.json({
-            ok: false,
-            error: 'Credential found on Arkiv but verification failed. This may be a counter mismatch or local state issue.',
-            credentialID,
-            walletAddress: arkivIdentity.wallet,
-            foundOnArkiv: true,
-            recoveryPossible: true,
-          }, { status: 401 });
+          return NextResponse.json(
+            {
+              ok: false,
+              error:
+                'Credential found on Arkiv but verification failed. This may be a counter mismatch or local state issue.',
+              credentialID,
+              walletAddress: arkivIdentity.wallet,
+              foundOnArkiv: true,
+              recoveryPossible: true,
+            },
+            { status: 401 }
+          );
         }
       } catch (error) {
         console.warn('[api/passkey/login/complete] Failed to query Arkiv for recovery:', error);
       }
-      
+
       return NextResponse.json(
-        { ok: false, error: verification.error || 'Authentication verification failed', credentialID: response.id },
+        {
+          ok: false,
+          error: verification.error || 'Authentication verification failed',
+          credentialID: response.id,
+        },
         { status: 401 }
       );
     }
@@ -86,4 +95,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

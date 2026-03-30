@@ -189,41 +189,48 @@ flowchart TD
 
 2. **Beta Access Check**: First step in API route is to verify beta access via `verifyBetaAccess()`.
 
-3. **Profile Existence Check**: 
+3. **Profile Existence Check**:
+
    - For `updateProfile`: Checks if profile exists first, returns 404 if not found
    - For `createProfile`: No existence check (allows creating new profile)
 
-4. **Username Uniqueness**: 
+4. **Username Uniqueness**:
+
    - Only checked if username is provided
    - Uses `checkUsernameExists()` which queries all profiles with that username
    - Filters out profiles from the same wallet (user can reuse their own username)
    - Returns 409 Conflict with `canRegrow: true` if duplicate found
 
-5. **Update Flow**: 
+5. **Update Flow**:
+
    - Uses [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Updates use stable entity keys, preserving transaction history
    - Merges new data with existing profile data
    - Preserves fields not provided in update
 
-6. **Average Rating Calculation**: 
+6. **Average Rating Calculation**:
+
    - For updates: Fetches existing profile and recalculates `avgRating` from all feedback
    - For new profiles: Sets `avgRating` to 0
 
-7. **Identity Seed**: 
+7. **Identity Seed**:
+
    - Uses provided `identity_seed` if given
    - For updates: Preserves existing `identity_seed` if not provided
    - For new profiles: Auto-generates random emoji if not provided
 
-8. **Transaction Handling**: 
+8. **Transaction Handling**:
+
    - Uses [PAT-TIMEOUT-001: Transaction Timeouts](../patterns/transaction-timeouts.md) - Wrapped in `handleTransactionWithTimeout()` for timeout handling
    - Uses [PAT-ERROR-001: Error Handling](../patterns/error-handling.md) - Handles rate limit errors (429 status), transaction timeout (returns `pending: true`), and other errors (500 status)
 
-9. **Notification Creation**: 
+9. **Notification Creation**:
+
    - Always creates notification entity after successful profile creation
    - Notification type: `entity_created`
    - Source entity type: `user_profile`
    - Links to `/me/profile`
 
-10. **Frontend Handling**: 
+10. **Frontend Handling**:
     - Checks for `pending: true` in response
     - Shows appropriate message for pending transactions
     - Reloads profile after success
@@ -236,4 +243,3 @@ flowchart TD
 - `lib/arkiv/profile.ts` - Profile creation functions (`createUserProfile`, `checkUsernameExists`, `getProfileByWallet`)
 - `lib/arkiv/transaction-utils.ts` - `handleTransactionWithTimeout` wrapper
 - `lib/arkiv/notifications.ts` - Notification creation
-

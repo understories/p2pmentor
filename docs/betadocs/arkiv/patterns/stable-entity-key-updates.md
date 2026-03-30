@@ -11,12 +11,14 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 ## When to Use
 
 **Use Pattern B when:**
+
 - Entities are frequently updated
 - Relationships depend on stable identity
 - Simpler queries are preferred
 - Current state is more important than explicit version history
 
 **Use Pattern A (versioning) when:**
+
 - Version history is a feature
 - Entities are rarely updated
 - Relationships don't depend on stable `entity_key`
@@ -51,6 +53,7 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 ## Implementation Hooks
 
 **Primary implementation:**
+
 - `lib/arkiv/entity-utils.ts` - `arkivUpsertEntity()` with `key` parameter
 - `lib/arkiv/profile.ts` - `createUserProfile()` checks for existing profile
 - `lib/arkiv/notifications.ts` - Notification preference updates
@@ -82,4 +85,3 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 - [Entity Versioning (Pattern A)](./entity-versioning.md) - Alternative pattern for versioning scenarios
 - [Designing with Immutable Data](./designing-with-immutable-data.md) - Core principles
 - [PAT-UPSERT-001: Canonical Upsert Helper](../arkiv-patterns-catalog.md#pat-upsert-001-canonical-upsert-helper-create-or-update) - Implementation helper
-

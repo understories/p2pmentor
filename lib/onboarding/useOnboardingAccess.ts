@@ -1,6 +1,6 @@
 /**
  * React Hook for Onboarding Access
- * 
+ *
  * Provides onboarding access check with bypass mechanism.
  * Similar to beta gate pattern - consistent app-wide onboarding checks.
  */
@@ -9,10 +9,7 @@ import { useState, useEffect } from 'react';
 import { verifyOnboardingAccess, hasOnboardingBypass, setOnboardingBypass } from './access';
 import type { OnboardingAccessCheck } from './access';
 
-export function useOnboardingAccess(
-  wallet: string | null | undefined,
-  requiredLevel: number = 0
-) {
+export function useOnboardingAccess(wallet: string | null | undefined, requiredLevel: number = 0) {
   const [check, setCheck] = useState<OnboardingAccessCheck | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -65,4 +62,3 @@ export function useOnboardingAccess(
     setBypass: setOnboardingBypass,
   };
 }
-

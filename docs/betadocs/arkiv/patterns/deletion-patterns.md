@@ -28,13 +28,15 @@ async function deleteEntity(entityKey: string, wallet: string) {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
   const deletedAt = new Date().toISOString();
-  
+
   await walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      entityKey,
-      deletedBy: wallet,
-      deletedAt,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        entityKey,
+        deletedBy: wallet,
+        deletedAt,
+      })
+    ),
     attributes: {
       type: 'entity_type_deletion',
       entityKey,
@@ -51,25 +53,25 @@ async function deleteEntity(entityKey: string, wallet: string) {
 ```typescript
 async function getActiveEntities() {
   // 1. Get all entities
-  const entities = await publicClient.buildQuery()
+  const entities = await publicClient
+    .buildQuery()
     .where(eq('type', 'entity_type'))
     .withAttributes(true)
     .withPayload(true)
     .fetch();
-  
+
   // 2. Get all deletion markers
-  const deletions = await publicClient.buildQuery()
+  const deletions = await publicClient
+    .buildQuery()
     .where(eq('type', 'entity_type_deletion'))
     .withAttributes(true)
     .withPayload(true)
     .fetch();
-  
+
   // 3. Filter out deleted entities
-  const deletedKeys = new Set(
-    deletions.entities.map(e => e.attributes.entityKey)
-  );
-  
-  return entities.entities.filter(e => !deletedKeys.has(e.key));
+  const deletedKeys = new Set(deletions.entities.map((e) => e.attributes.entityKey));
+
+  return entities.entities.filter((e) => !deletedKeys.has(e.key));
 }
 ```
 
@@ -117,11 +119,13 @@ const follows = await getLearningFollows(wallet);
 ## Trade-offs
 
 **Pros:**
+
 - Maintains complete audit trail
 - Enables "undelete" functionality
 - Immutable history
 
 **Cons:**
+
 - Requires additional query for deletion markers
 - More complex query logic
 - Storage overhead
@@ -140,7 +144,7 @@ For entities that support it, use a boolean flag instead:
 ```
 
 **When to use:**
+
 - Simple boolean state
 - No need for deletion metadata
 - Frequent delete/undelete operations
-

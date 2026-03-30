@@ -1,6 +1,6 @@
 # Review UI: Developer Testing Interface
 
-**Note:** This document describes *UI behavior*, not a schema. For the feedback entity schema, see [Feedback Entity](./feedback.md).
+**Note:** This document describes _UI behavior_, not a schema. For the feedback entity schema, see [Feedback Entity](./feedback.md).
 
 The Review UI (also called "Developer UI") is a simplified, barebones interface for testing Arkiv functionality. It provides a streamlined way to audit and verify that all core Arkiv operations work correctly, without the complexity of the full user-facing product.
 
@@ -55,6 +55,7 @@ For detailed information about the access grant pattern, see [Access Grants: Rev
 The Review UI follows the same [two-wallet architecture](../operations/wallet-architecture.md) as the main application:
 
 - **Profile Wallet**: User's MetaMask or WalletConnect wallet (no funds needed)
+
   - Used as the `wallet` attribute on entities
   - Identifies the entity owner
   - Stored in `localStorage` as `wallet_address`
@@ -84,6 +85,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: `/review` page, Profile step
 
 **Functionality**:
+
 - Create new profile with required fields (displayName, username, bio, timezone)
 - Edit existing profile
 - Real-time username verification (prevents duplicates)
@@ -92,11 +94,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Entity Created**: `user_profile` entity on Arkiv
 
 **Entity Information Displayed**:
+
 - Entity key
 - Transaction hash
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
+
 - [Profile Creation Flow](../operations/profile-creation-flow.md)
 - [Profile Entity](./profile.md)
 - [Stable Entity Key Updates](../patterns/stable-entity-key-updates.md)
@@ -106,6 +110,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: `/review` page, Skills step
 
 **Functionality**:
+
 - Add skills to profile (using `SkillSelector` component)
 - Remove skills from profile
 - Skills stored in profile entity's `skillsArray` attribute
@@ -114,11 +119,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Entity Updated**: `user_profile` entity (stable entity key)
 
 **Entity Information Displayed**:
+
 - Entity key
 - Transaction hash
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
+
 - [Skill Entity](./skill.md)
 - [Stable Entity Key Updates](../patterns/stable-entity-key-updates.md)
 
@@ -127,6 +134,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: `/review` page, Availability step
 
 **Functionality**:
+
 - Create availability blocks (using `WeeklyAvailabilityEditor` component)
 - Delete availability blocks
 - Each availability block is a separate entity on Arkiv
@@ -135,11 +143,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Entity Created**: `availability` entity on Arkiv
 
 **Entity Information Displayed**:
+
 - Entity key
 - Transaction hash
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
+
 - [Availability Entity](./availability.md)
 - [Deletion Patterns](../patterns/deletion-patterns.md)
 
@@ -148,6 +158,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: `/review` page, Asks step
 
 **Functionality**:
+
 - Create learning requests (asks)
 - Skill selection (using `SkillSelector` component)
 - TTL/expiration support (24h, 1 week, 1 month, custom)
@@ -156,11 +167,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Entity Created**: `ask` entity on Arkiv
 
 **Entity Information Displayed**:
+
 - Entity key
 - Transaction hash
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
+
 - [Ask Entity](./ask.md)
 - [TTL/Expiration Handling](./ask.md#ttlexpiration-handling)
 
@@ -169,6 +182,7 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: `/review` page, Offers step
 
 **Functionality**:
+
 - Create teaching offers
 - Support for free and paid offers
 - Payment details (cost, payment address) for paid offers
@@ -179,11 +193,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Entity Created**: `offer` entity on Arkiv
 
 **Entity Information Displayed**:
+
 - Entity key
 - Transaction hash
 - "View on Arkiv Explorer" link
 
 **Related Documentation**:
+
 - [Offer Entity](./offer.md)
 - [Free vs Paid Offer Handling](./offer.md#free-vs-paid-offer-handling)
 - [TTL/Expiration Handling](./offer.md#ttlexpiration-handling)
@@ -193,11 +209,13 @@ This ensures that testing the Review UI verifies the same code paths used by the
 **Location**: Link to `/network` page
 
 **Functionality**:
+
 - Browse all asks and offers in the network
 - Filter by skill or type
 - View entity details
 
 **Related Documentation**:
+
 - [Network Feed & Discovery](./ask.md#network-feed--discovery)
 
 ## Entity Information Display
@@ -210,6 +228,7 @@ After each entity creation or update, the Review UI displays:
 4. **View on Arkiv Explorer Link**: Direct link to view the entity on Arkiv Explorer
 
 This immediate feedback allows reviewers to:
+
 - Verify that entities were created correctly
 - Check entity data on Arkiv Explorer
 - Debug any issues with entity creation
@@ -224,6 +243,7 @@ The Review UI is accessible at `/review` after authentication.
 ### Authentication
 
 Authentication is handled on the `/auth` page:
+
 - Review mode toggle enables password verification
 - Password verification must complete before wallet connection
 - Wallet connection triggers grant issuance
@@ -232,6 +252,7 @@ Authentication is handled on the `/auth` page:
 ### Session Management
 
 The Review UI uses `sessionStorage` to maintain access during the session:
+
 - `review_mode_bypass`: Flag indicating review mode access is granted
 - Cleared on page refresh or session end
 - Allows access to `/review` page without re-verifying grant
@@ -239,6 +260,7 @@ The Review UI uses `sessionStorage` to maintain access during the session:
 ### Error Handling
 
 All steps include error handling:
+
 - Form validation before submission
 - API error messages displayed to user
 - Network errors handled gracefully
@@ -298,4 +320,3 @@ Potential future enhancements to the Review UI:
 - [Offer Entity](./offer.md) - Offer entity structure and operations
 - [Top 8 Arkiv Patterns](../overview/top-8-patterns.md) - Essential Arkiv patterns
 - [Arkiv Patterns Catalog](../arkiv-patterns-catalog.md) - Complete catalog of Arkiv patterns
-

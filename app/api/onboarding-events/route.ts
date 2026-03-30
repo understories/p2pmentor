@@ -1,9 +1,9 @@
 /**
  * Onboarding Events API route
- * 
+ *
  * Handles onboarding event creation using server-side signing wallet.
  * Follows Arkiv-native patterns and engineering guidelines.
- * 
+ *
  * All entity creation uses server-side signing wallet (ARKIV_PRIVATE_KEY),
  * not the user's MetaMask wallet, to avoid unexpected transaction popups.
  */
@@ -22,7 +22,10 @@ export async function POST(request: NextRequest) {
 
     if (!betaCheck.hasAccess) {
       return NextResponse.json(
-        { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+        {
+          ok: false,
+          error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+        },
         { status: 403 }
       );
     }
@@ -38,7 +41,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate eventType
-    const validEventTypes = ['profile_created', 'skill_added', 'ask_created', 'offer_created', 'network_explored', 'community_joined'];
+    const validEventTypes = [
+      'profile_created',
+      'skill_added',
+      'ask_created',
+      'offer_created',
+      'network_explored',
+      'community_joined',
+    ];
     if (!validEventTypes.includes(eventType)) {
       return NextResponse.json(
         { ok: false, error: `Invalid eventType. Must be one of: ${validEventTypes.join(', ')}` },
@@ -64,4 +74,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

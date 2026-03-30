@@ -1,10 +1,10 @@
 /**
  * Onboarding Types
- * 
+ *
  * Type definitions for the onboarding flow.
  */
 
-export type OnboardingStep = 
+export type OnboardingStep =
   | 'welcome'
   | 'identity'
   | 'skills'

@@ -1,6 +1,6 @@
 /**
  * Ensure All Skills Have Slugs
- * 
+ *
  * Script to verify and fix skills that are missing slugs.
  * Since topics = skills, every skill should have a slug for topic page access.
  */
@@ -54,9 +54,13 @@ async function ensureSkillSlugs() {
       const expectedSlug = normalizeSkillSlug(skill.name_canonical);
       const foundBySlug = await getSkillBySlug(expectedSlug);
       if (foundBySlug) {
-        console.log(`✅ Skill "${skill.name_canonical}" can be found by expected slug "${expectedSlug}"`);
+        console.log(
+          `✅ Skill "${skill.name_canonical}" can be found by expected slug "${expectedSlug}"`
+        );
       } else {
-        console.log(`❌ Skill "${skill.name_canonical}" cannot be found by expected slug "${expectedSlug}"`);
+        console.log(
+          `❌ Skill "${skill.name_canonical}" cannot be found by expected slug "${expectedSlug}"`
+        );
         console.log(`   This skill will show "Topic not found" on /topic/${expectedSlug}`);
       }
     }
@@ -65,7 +69,6 @@ async function ensureSkillSlugs() {
     console.log(`   - All new skills created via createSkill() will have slugs`);
     console.log(`   - Skills without slugs may need manual review`);
     console.log(`   - Topic pages use slug lookup, so skills without slugs won't be accessible`);
-
   } catch (error: any) {
     console.error('❌ Error:', error);
     process.exit(1);
@@ -82,4 +85,3 @@ ensureSkillSlugs()
     console.error('❌ Script failed:', error);
     process.exit(1);
   });
-

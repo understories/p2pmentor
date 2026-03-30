@@ -7,6 +7,7 @@ Meta-learning is "learning how to learn" - understanding the science and techniq
 ## Why Meta-Learning Matters
 
 Most people never learn how to learn. They use the same study methods from high school:
+
 - Re-reading notes
 - Highlighting textbooks
 - Cramming before exams

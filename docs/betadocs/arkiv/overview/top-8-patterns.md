@@ -12,6 +12,7 @@ Some details depend on current SDK/indexer behavior. See the full pattern docs f
 Arkiv transactions are immutable, but application data can be mutable at the state level. This fundamental constraint shapes how we design features and user experiences.
 
 **Key points:**
+
 - Transactions cannot be modified after creation
 - Entity **state** can be updated by writing new transactions that target a stable `entity_key`, preserving identity while keeping history immutable
 - Deletion changes interpretation, not history (use marker entities or status flags)
@@ -31,6 +32,7 @@ Arkiv transactions are immutable, but application data can be mutable at the sta
 Frequently updated entities (profiles, preferences, notifications) need stable identity for relationships and simpler queries. This pattern reuses the same `entity_key` for all updates.
 
 **Key points:**
+
 - Same `entity_key` is reused for all updates to an entity
 - Entity identity never changes (relationships don't break)
 - Query by `entity_key` always returns current state
@@ -52,6 +54,7 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 Sessions have complex state transitions (pending → scheduled → completed). Status is computed from supporting entities, not stored directly, ensuring consistency.
 
 **Key points:**
+
 - Canonical session state is derived from supporting entities
 - Any stored `status` field is non-authoritative (treat as cache/hint)
 - Both parties must confirm for `pending → scheduled` transition
@@ -71,6 +74,7 @@ Sessions have complex state transitions (pending → scheduled → completed). S
 Access control is modeled as Arkiv entities, not server-side permissions. Capabilities are expressed as signed data entities, enabling portable, verifiable access.
 
 **Key points:**
+
 - Access state lives on Arkiv (not in localStorage or server sessions)
 - Grants are signed by issuer (app signer or user wallet)
 - Clients verify `issuer_wallet` to prevent user-issued grants
@@ -90,6 +94,7 @@ Access control is modeled as Arkiv entities, not server-side permissions. Capabi
 Arkiv queries must be optimized for indexer performance. This pattern ensures queries use indexed attributes, limits, and client-side filtering.
 
 **Key points:**
+
 - In p2pmentor, queries **must** include `type` and `spaceId` filters to stay indexer-friendly and avoid cross-space data mixing
 - Always use `limit()` to bound result sets
 - Client-side filtering for complex conditions (indexer doesn't support all operators)
@@ -109,6 +114,7 @@ Arkiv queries must be optimized for indexer performance. This pattern ensures qu
 Robust error handling is essential for reliable Arkiv integration. Errors must be categorized, user-friendly, and recoverable.
 
 **Key points:**
+
 - All errors are categorized (network, timeout, validation, etc.)
 - User-facing errors are friendly and actionable
 - Errors are retryable when appropriate (with backoff)
@@ -128,6 +134,7 @@ Robust error handling is essential for reliable Arkiv integration. Errors must b
 Arkiv transactions can take time to confirm. Timeout handling ensures UI doesn't hang indefinitely and provides graceful degradation.
 
 **Key points:**
+
 - All transaction flows enforce timeouts so the UI never waits forever
 - Receipt/indexer waiting is best-effort and must degrade gracefully
 - Timeout errors are retryable (with backoff)
@@ -147,6 +154,7 @@ Arkiv transactions can take time to confirm. Timeout handling ensures UI doesn't
 Users authenticate via MetaMask wallet connection. The flow handles mobile/desktop, SDK fallbacks, chain switching, and onboarding redirects.
 
 **Key points:**
+
 - An authenticated user is represented by a wallet address proven via wallet provider
 - Auth state can be restored after refresh
 - Disconnect clears persisted auth state
@@ -170,4 +178,3 @@ For the complete list of all patterns, see the [Arkiv Patterns Catalog](../patte
 - [Entity Overview](./entity-overview.md) - Understanding Arkiv entities
 - [Implementation FAQ](../operations/implementation-faq.md) - Common questions and answers
 - [Server-Signed Writes (Phase 0)](../operations/central-signer-phase0.md) - Write authorization pattern (separate from authentication)
-

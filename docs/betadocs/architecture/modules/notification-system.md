@@ -13,11 +13,13 @@ This document explains how we implement notifications with blockchain data for r
 ### Core Components
 
 1. **Notification Entities** (`notification`)
+
    - Created by the system when events occur (meeting requests, feedback, etc.)
    - Immutable - each notification is a separate entity
    - Contains: type, wallet, source entity reference, message, metadata
 
 2. **Notification Preference Entities** (`notification_preference`)
+
    - Created/updated by users to track read/unread state
    - Immutable updates - each state change creates a new entity
    - Contains: wallet, notificationId, read status, archived status
@@ -34,17 +36,17 @@ This document explains how we implement notifications with blockchain data for r
 
 ```typescript
 type Notification = {
-  key: string;                    // Entity key
-  wallet: string;                 // Recipient wallet
-  type: NotificationType;         // Type of notification
-  title: string;                  // Display title
-  message: string;                // Display message
-  sourceEntityType: string;       // e.g., 'session', 'app_feedback'
-  sourceEntityKey: string;        // Reference to source entity
-  link?: string;                  // Optional link to related page
+  key: string; // Entity key
+  wallet: string; // Recipient wallet
+  type: NotificationType; // Type of notification
+  title: string; // Display title
+  message: string; // Display message
+  sourceEntityType: string; // e.g., 'session', 'app_feedback'
+  sourceEntityKey: string; // Reference to source entity
+  link?: string; // Optional link to related page
   metadata?: Record<string, any>; // Additional context
-  createdAt: string;              // ISO timestamp
-  txHash?: string;               // Transaction hash
+  createdAt: string; // ISO timestamp
+  txHash?: string; // Transaction hash
 };
 ```
 
@@ -52,15 +54,15 @@ type Notification = {
 
 ```typescript
 type NotificationPreference = {
-  key: string;                    // Entity key
-  wallet: string;                 // User wallet
-  notificationId: string;         // Notification ID (e.g., "meeting_request_sessionKey123")
+  key: string; // Entity key
+  wallet: string; // User wallet
+  notificationId: string; // Notification ID (e.g., "meeting_request_sessionKey123")
   notificationType: NotificationPreferenceType;
-  read: boolean;                  // true = read, false = unread
-  archived: boolean;             // true = deleted/hidden
-  createdAt: string;             // ISO timestamp
-  updatedAt: string;             // ISO timestamp
-  txHash?: string;               // Transaction hash
+  read: boolean; // true = read, false = unread
+  archived: boolean; // true = deleted/hidden
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
+  txHash?: string; // Transaction hash
 };
 ```
 
@@ -69,9 +71,11 @@ type NotificationPreference = {
 ### The Challenge
 
 In a centralized system, read/unread state is simple:
+
 - User clicks notification → Update database row → Done
 
 In a decentralized system:
+
 - No centralized database
 - State must be stored on-chain (Arkiv)
 - Each state change creates a new entity (immutability)
@@ -83,6 +87,7 @@ In a decentralized system:
 **1. Immutable Update Pattern**
 
 When a user marks a notification as read/unread:
+
 - Query existing preference entities for that notificationId
 - Find the most recent one (by `updatedAt`)
 - Create a NEW entity with updated state
@@ -91,17 +96,16 @@ When a user marks a notification as read/unread:
 **2. Query Pattern**
 
 To get current state:
+
 ```typescript
 // Query all preferences for wallet
 const preferences = await listNotificationPreferences({ wallet });
 
 // Deduplicate by notificationId, keeping most recent
 const preferenceMap = new Map<string, NotificationPreference>();
-preferences.forEach(pref => {
+preferences.forEach((pref) => {
   const existing = preferenceMap.get(pref.notificationId);
-  if (!existing || 
-      new Date(pref.updatedAt).getTime() > 
-      new Date(existing.updatedAt).getTime()) {
+  if (!existing || new Date(pref.updatedAt).getTime() > new Date(existing.updatedAt).getTime()) {
     preferenceMap.set(pref.notificationId, pref);
   }
 });
@@ -111,7 +115,9 @@ preferences.forEach(pref => {
 
 ```typescript
 // Use ref to store preferences (source of truth)
-const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(new Map());
+const notificationPreferences = useRef<Map<string, { read: boolean; archived: boolean }>>(
+  new Map()
+);
 
 // Flag to prevent reloads during save operations
 const isSavingPreferences = useRef<boolean>(false);
@@ -120,34 +126,34 @@ const isSavingPreferences = useRef<boolean>(false);
 const markAsRead = async (notificationId: string) => {
   // 1. Set save flag (prevents reloads)
   isSavingPreferences.current = true;
-  
+
   // 2. Optimistic UI update
-  setNotifications(prev => prev.map(n => 
-    n.id === notificationId ? { ...n, read: true } : n
-  ));
-  
+  setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+
   // 3. Update ref immediately (source of truth)
   notificationPreferences.current.set(notificationId, { read: true, archived: false });
-  
+
   // 4. Persist to Arkiv
   try {
     await fetch('/api/notifications/preferences', {
       method: 'POST',
-      body: JSON.stringify({ wallet, notificationId, read: true })
+      body: JSON.stringify({ wallet, notificationId, read: true }),
     });
-    
+
     // 5. Wait for Arkiv to index the preference update
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
     // 6. Dispatch event to sync other components
-    window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-      detail: { wallet, delay: 500 }
-    }));
+    window.dispatchEvent(
+      new CustomEvent('notification-preferences-updated', {
+        detail: { wallet, delay: 500 },
+      })
+    );
   } catch (err) {
     // Revert on error
-    setNotifications(prev => prev.map(n => 
-      n.id === notificationId ? { ...n, read: false } : n
-    ));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: false } : n))
+    );
     notificationPreferences.current.set(notificationId, { read: false, archived: false });
   } finally {
     isSavingPreferences.current = false;
@@ -168,29 +174,35 @@ const markAsRead = async (notificationId: string) => {
 **Event-Driven Synchronization:**
 
 1. **Notifications Page** dispatches events when preferences change:
+
 ```typescript
 // Wait for Arkiv to index preference updates before dispatching event
-const indexingDelay = Math.max(1500, 500 + (unreadNotifications.length * 200));
-await new Promise(resolve => setTimeout(resolve, indexingDelay));
+const indexingDelay = Math.max(1500, 500 + unreadNotifications.length * 200);
+await new Promise((resolve) => setTimeout(resolve, indexingDelay));
 
-window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-  detail: { 
-    wallet: userWallet,
-    delay: indexingDelay, // Pass delay so sidebar knows to wait before querying
-  }
-}));
+window.dispatchEvent(
+  new CustomEvent('notification-preferences-updated', {
+    detail: {
+      wallet: userWallet,
+      delay: indexingDelay, // Pass delay so sidebar knows to wait before querying
+    },
+  })
+);
 ```
 
 2. **Navbar Hook** listens for events and refreshes:
+
 ```typescript
 useEffect(() => {
   const handlePreferenceUpdate = (event: Event) => {
     const customEvent = event as CustomEvent<{ wallet?: string; delay?: number }>;
     const currentWallet = localStorage.getItem('wallet_address')?.toLowerCase().trim();
-    
+
     // Only refresh if update is for current wallet
-    if (!customEvent.detail.wallet || 
-        customEvent.detail.wallet.toLowerCase().trim() === currentWallet) {
+    if (
+      !customEvent.detail.wallet ||
+      customEvent.detail.wallet.toLowerCase().trim() === currentWallet
+    ) {
       // Add delay to ensure Arkiv has indexed the preference updates
       // Use delay from event detail if provided, otherwise default to 500ms
       const delay = customEvent.detail.delay || 500;
@@ -199,13 +211,15 @@ useEffect(() => {
       }, delay);
     }
   };
-  
+
   window.addEventListener('notification-preferences-updated', handlePreferenceUpdate);
-  return () => window.removeEventListener('notification-preferences-updated', handlePreferenceUpdate);
+  return () =>
+    window.removeEventListener('notification-preferences-updated', handlePreferenceUpdate);
 }, []);
 ```
 
 3. **Polling as Fallback:**
+
 - Still poll every 30 seconds for external changes
 - Event-driven updates provide immediate synchronization
 
@@ -244,7 +258,8 @@ const loadNotificationPreferences = async (wallet: string) => {
 
 **Root Cause:** The preferences were being saved to Arkiv, but the count was being recalculated from stale cached data or the save hadn't completed yet.
 
-**Solution:** 
+**Solution:**
+
 - Ensure optimistic updates persist in ref (source of truth)
 - Dispatch events to sync immediately
 - Polling ensures eventual consistency
@@ -298,6 +313,7 @@ Always filter out archived notifications when counting unread.
 Query notification preferences.
 
 **Query Params:**
+
 - `wallet`: User wallet address (required)
 - `notificationId`: Specific notification ID (optional)
 - `notificationType`: Filter by type (optional)
@@ -305,6 +321,7 @@ Query notification preferences.
 - `archived`: Filter by archived status (optional)
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -328,6 +345,7 @@ Query notification preferences.
 Create or update a single notification preference.
 
 **Body:**
+
 ```json
 {
   "wallet": "0x...",
@@ -343,6 +361,7 @@ Create or update a single notification preference.
 Bulk update notification preferences.
 
 **Body:**
+
 ```json
 {
   "wallet": "0x...",
@@ -376,7 +395,7 @@ const preferences = await listNotificationPreferences({ wallet });
 
 // 3. Build preference map (deduplicate by notificationId, keep most recent)
 const prefMap = new Map<string, NotificationPreference>();
-preferences.forEach(pref => {
+preferences.forEach((pref) => {
   const existing = prefMap.get(pref.notificationId);
   if (!existing || new Date(pref.updatedAt) > new Date(existing.updatedAt)) {
     prefMap.set(pref.notificationId, pref);
@@ -385,10 +404,11 @@ preferences.forEach(pref => {
 
 // 4. Count unread (filter archived, default to unread if no preference)
 let unreadCount = 0;
-notifications.forEach(n => {
+notifications.forEach((n) => {
   const pref = prefMap.get(n.key);
   if (pref?.archived) return; // Skip archived
-  if (!pref?.read) { // Default to unread if no preference
+  if (!pref?.read) {
+    // Default to unread if no preference
     unreadCount++;
   }
 });
@@ -398,34 +418,36 @@ notifications.forEach(n => {
 
 ```typescript
 // 1. Get all unread notifications
-const unreadNotifications = notifications.filter(n => !n.read);
+const unreadNotifications = notifications.filter((n) => !n.read);
 
 // 2. Bulk update preferences
 await fetch('/api/notifications/preferences', {
   method: 'PUT',
   body: JSON.stringify({
     wallet: userWallet,
-    preferences: unreadNotifications.map(n => ({
+    preferences: unreadNotifications.map((n) => ({
       notificationId: n.id,
       notificationType: n.type,
       read: true,
-      archived: false
-    }))
-  })
+      archived: false,
+    })),
+  }),
 });
 
 // 3. Wait for Arkiv to index all preference updates
-const indexingDelay = Math.max(1500, 500 + (unreadNotifications.length * 200));
-await new Promise(resolve => setTimeout(resolve, indexingDelay));
+const indexingDelay = Math.max(1500, 500 + unreadNotifications.length * 200);
+await new Promise((resolve) => setTimeout(resolve, indexingDelay));
 
 // 4. Dispatch event to sync other components
 // Include delay in event detail so components know to wait before querying Arkiv
-window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
-  detail: { 
-    wallet: userWallet,
-    delay: indexingDelay,
-  }
-}));
+window.dispatchEvent(
+  new CustomEvent('notification-preferences-updated', {
+    detail: {
+      wallet: userWallet,
+      delay: indexingDelay,
+    },
+  })
+);
 ```
 
 ## Future Considerations
@@ -433,6 +455,7 @@ window.dispatchEvent(new CustomEvent('notification-preferences-updated', {
 ### 1. Cross-Device Synchronization
 
 Currently, preferences are wallet-based. If a user accesses from multiple devices, they'll see the same state (eventually consistent via polling). Consider:
+
 - Real-time sync via WebSocket (if available)
 - More frequent polling for active sessions
 - Push notifications for new notifications
@@ -452,6 +475,7 @@ Currently, preferences are wallet-based. If a user accesses from multiple device
 ### 4. Archive vs Delete
 
 Currently using "archived" flag for soft delete. Consider:
+
 - Hard delete option (remove entity)
 - Archive expiration (auto-archive old read notifications)
 
@@ -472,4 +496,3 @@ The Arkiv-native notification system uses immutable entities to track read/unrea
 5. **Polling Fallback:** Poll periodically for external changes
 
 This approach provides a robust, decentralized notification system that works without a centralized database.
-

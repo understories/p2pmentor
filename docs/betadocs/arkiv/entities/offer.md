@@ -1,6 +1,7 @@
 # Offer Entity Schema
 
 ## Entity Type
+
 `offer`
 
 ## Patterns Used
@@ -11,38 +12,40 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "offer" |
-| wallet | string | Yes | Attribute | Wallet address of offerer (lowercase) |
-| skill | string | No | Attribute | Skill name (legacy, kept for backward compatibility) |
-| skill_id | string | No | Attribute | Skill entity key (preferred for beta) |
-| skill_label | string | No | Attribute | Skill display name (derived from Skill entity) |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| status | string | Yes | Attribute | Always "active" |
-| ttlSeconds | string | Yes | Attribute | TTL in seconds (default: 7200) |
-| isPaid | string | Yes | Attribute | "true" | "false" |
-| cost | string | No | Attribute | Cost amount (required if isPaid is "true") |
-| paymentAddress | string | No | Attribute | Payment receiving address (required if isPaid is "true") |
-| availabilityKey | string | No | Attribute | Reference to Availability entity key |
-| message | string | Yes | Payload | Offer description |
-| availabilityWindow | string | No | Payload | Availability description (text or WeeklyAvailability JSON) |
-| isPaid | boolean | Yes | Payload | Free/paid flag |
-| cost | string | No | Payload | Cost amount (required if isPaid is true) |
-| paymentAddress | string | No | Payload | Payment receiving address (required if isPaid is true) |
+| Field Name         | Type    | Required | Location  | Description                                                                                                |
+| ------------------ | ------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------- |
+| type               | string  | Yes      | Attribute | Always "offer"                                                                                             |
+| wallet             | string  | Yes      | Attribute | Wallet address of offerer (lowercase)                                                                      |
+| skill              | string  | No       | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
+| skill_id           | string  | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
+| skill_label        | string  | No       | Attribute | Skill display name (derived from Skill entity)                                                             |
+| spaceId            | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt          | string  | Yes      | Attribute | ISO timestamp                                                                                              |
+| status             | string  | Yes      | Attribute | Always "active"                                                                                            |
+| ttlSeconds         | string  | Yes      | Attribute | TTL in seconds (default: 7200)                                                                             |
+| isPaid             | string  | Yes      | Attribute | "true"                                                                                                     | "false" |
+| cost               | string  | No       | Attribute | Cost amount (required if isPaid is "true")                                                                 |
+| paymentAddress     | string  | No       | Attribute | Payment receiving address (required if isPaid is "true")                                                   |
+| availabilityKey    | string  | No       | Attribute | Reference to Availability entity key                                                                       |
+| message            | string  | Yes      | Payload   | Offer description                                                                                          |
+| availabilityWindow | string  | No       | Payload   | Availability description (text or WeeklyAvailability JSON)                                                 |
+| isPaid             | boolean | Yes      | Payload   | Free/paid flag                                                                                             |
+| cost               | string  | No       | Payload   | Cost amount (required if isPaid is true)                                                                   |
+| paymentAddress     | string  | No       | Payload   | Payment receiving address (required if isPaid is true)                                                     |
 
 Note: Either `skill` (legacy) or `skill_id` (beta) must be provided.
 
 ## Free vs Paid Offer Handling
 
 ### Free Offers
+
 - `isPaid`: false (attribute and payload)
 - `cost`: not set
 - `paymentAddress`: not set
 - No payment flow required
 
 ### Paid Offers
+
 - `isPaid`: true (attribute and payload)
 - `cost`: Required, string (e.g., "0.01 ETH per session")
 - `paymentAddress`: Required, wallet address to receive payment
@@ -109,9 +112,8 @@ Default: 7200 seconds (2 hours). Can be customized via `expiresIn` parameter.
 ## Transaction Hash Tracking
 
 Separate `offer_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "offer_txhash"
 - `offerKey`: Entity key of offer
 - `wallet`: Wallet address
 - `spaceId`: "local-dev"
-
-

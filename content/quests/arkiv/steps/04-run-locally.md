@@ -9,6 +9,7 @@ npm run dev
 ```
 
 You should see output like:
+
 ```
   ▲ Next.js 15.x.x
   - Local:        http://localhost:3000
@@ -35,6 +36,7 @@ You should see output like:
 ## Understanding What's Happening
 
 When you create an entity:
+
 1. Your app sends a transaction to Arkiv
 2. The transaction is confirmed on-chain
 3. Indexers process the transaction (takes a few seconds)
@@ -43,16 +45,19 @@ When you create an entity:
 ## Common Issues
 
 **"Missing environment variables"**
+
 - Check your `.env.local` file exists
 - Verify variable names match exactly
 - Restart the dev server after changing `.env.local`
 
 **"Connection error"**
+
 - Verify your `ARKIV_SPACE_ID` is correct
 - Check your internet connection
 - Try using `beta-launch` space ID
 
 **"Transaction failed"**
+
 - Check your private key is valid
 - Ensure you have test funds (if required)
 - Verify the space ID exists
@@ -60,6 +65,7 @@ When you create an entity:
 ## The Development Experience
 
 Notice how:
+
 - **Hot reload** works - changes appear instantly
 - **Console logs** show transaction details
 - **No database** - everything goes to Arkiv

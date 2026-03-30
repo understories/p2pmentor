@@ -11,12 +11,14 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 ## When to Use
 
 **Always apply this pattern when:**
+
 - User actions can be retried (double-clicks, network retries)
 - Race conditions are possible (concurrent writes)
 - Operations should be safe to retry
 - Duplicate entities would cause problems
 
 **Strategies:**
+
 1. **Deterministic key derivation:** Derive `entity_key` from stable identifiers (wallet, notificationId, etc.)
 2. **Idempotency keys:** Use unique `idempotencyKey` in payload to detect duplicates
 3. **Query-before-create:** Check for existing entity before creating
@@ -54,6 +56,7 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 5. **Handle race conditions:** If create fails with "already exists", query and return existing
 
 **Alternative (idempotency key):**
+
 1. **Generate idempotency key:** Unique per operation (e.g., UUID)
 2. **Query by attributes:** Check for existing entity with same idempotency key in payload
 3. **If found:** Return existing entity
@@ -62,6 +65,7 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 ## Implementation Hooks
 
 **Primary implementation:** ✅ Verified in repo
+
 - `lib/arkiv/metaLearningQuest.ts` - `createMetaLearningArtifact()` uses `idempotencyKey` in payload
 - `lib/arkiv/authIdentity.ts` - `createPasskeyIdentity()` handles race conditions with query-before-create
 - `lib/arkiv/profile.ts` - `createUserProfile()` checks for existing profile before creating
@@ -69,6 +73,7 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 - `lib/arkiv/entity-utils.ts` - `arkivUpsertEntity()` provides canonical upsert pattern
 
 **Code examples:**
+
 ```typescript
 // Strategy 1: Deterministic key derivation
 const deriveProfileKey = (wallet: string): string => {
@@ -162,4 +167,3 @@ try {
 - [Stable Entity Key Updates](./stable-entity-key-updates.md) - Deterministic key derivation enables idempotency
 - [Canonical Upsert Helper](./canonical-upsert.md) - Single canonical path for create-or-update
 - [PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation](../arkiv-patterns-catalog.md#pat-optimistic-001-optimistic-ui--reconciliation) - Retries require idempotency
-

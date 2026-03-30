@@ -5,17 +5,20 @@
 p2pmentor is a serverless application with no central database. All user data lives on Arkiv, a decentralized blockchain network. When you create a profile, it's stored as an entity on Arkiv. When you view your profile, we read it from Arkiv. We're just a client that helps you interact with the blockchain. The data lives on Arkiv, not on our servers.
 
 **What this means:**
+
 - Users own their data. It's stored on the blockchain with their wallet address.
 - No trust required. The blockchain provides cryptographic proof that data exists and hasn't been tampered with.
 - No single point of failure. Even if we disappear, your data remains accessible on Arkiv.
 - Verifiable. Anyone can verify data independently using the Arkiv explorer.
 
 **What we still need servers for:**
+
 - Serving the web app (Next.js frontend)
 - API routes that help format data (GraphQL wrapper)
 - Video calls (Jitsi integration)
 
 **What we don't need servers for:**
+
 - Storing user data (Arkiv does this)
 - Storing profiles, sessions, asks, offers (all on Arkiv)
 - Data backups (Arkiv network handles this)

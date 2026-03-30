@@ -1,6 +1,6 @@
 /**
  * Skills Step Component
- * 
+ *
  * Step 2: Plant your first skill with expertise level (0-5)
  */
 
@@ -29,7 +29,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
   const [existingSkills, setExistingSkills] = useState<Skill[]>([]);
   const [isLoadingSkills, setIsLoadingSkills] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [createdSkills, setCreatedSkills] = useState<Array<{ skillId: string; skillName: string; expertise: number }>>([]);
+  const [createdSkills, setCreatedSkills] = useState<
+    Array<{ skillId: string; skillName: string; expertise: number }>
+  >([]);
   const arkivBuilderMode = useArkivBuilderMode();
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [confirmationMessage, setConfirmationMessage] = useState('');
@@ -77,18 +79,18 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       // This ensures the count matches exactly what's shown in the garden
       const res = await fetch('/api/skills/explore');
       const data = await res.json();
-      
+
       if (!data.ok || !data.skills) {
         console.error('Failed to fetch skill profile counts:', data.error);
         return 0;
       }
-      
+
       // Find the skill by name (case-insensitive match)
       const normalizedName = skillName.toLowerCase().trim();
-      const skill = data.skills.find((s: any) => 
-        s.name_canonical.toLowerCase().trim() === normalizedName
+      const skill = data.skills.find(
+        (s: any) => s.name_canonical.toLowerCase().trim() === normalizedName
       );
-      
+
       return skill?.profileCount ?? 0;
     } catch (error) {
       console.error('Error getting skill profile count:', error);
@@ -130,17 +132,17 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       }
 
       // Find the skill in our list (may need to reload if it was just created)
-      let skill = existingSkills.find(s => s.key === skillEntity.key);
+      let skill = existingSkills.find((s) => s.key === skillEntity.key);
       if (!skill) {
         // Skill was just created, reload skills list
         const updatedSkills = await listSkills({ status: 'active', limit: 50 });
         setExistingSkills(updatedSkills);
-        skill = updatedSkills.find(s => s.key === skillEntity.key);
+        skill = updatedSkills.find((s) => s.key === skillEntity.key);
         if (!skill) {
           // Use the entity data we have
           // Note: skillEntity from ensureSkillEntity doesn't include spaceId, so we use SPACE_ID from config
           // The skill should be in updatedSkills after reload, but if not, use SPACE_ID as fallback
-          const foundSkill = updatedSkills.find(s => s.key === skillEntity.key);
+          const foundSkill = updatedSkills.find((s) => s.key === skillEntity.key);
           skill = {
             key: skillEntity.key,
             name_canonical: skillEntity.name_canonical,
@@ -153,7 +155,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       }
 
       // Check if this is a new skill (was just created) or existing
-      const wasNewSkill = !existingSkills.find(s => s.key === skillEntity.key);
+      const wasNewSkill = !existingSkills.find((s) => s.key === skillEntity.key);
 
       // Get current profile - validate wallet is profile wallet (normalized)
       const normalizedWallet = wallet.toLowerCase().trim();
@@ -203,7 +205,9 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           bioShort: profile.bioShort,
           skills: newSkills.join(', '),
           skillsArray: newSkills,
-          skill_ids: [...(profile as any).skill_ids || [], skill.key].filter((id, idx, arr) => arr.indexOf(id) === idx), // Add skill_id, deduplicate
+          skill_ids: [...((profile as any).skill_ids || []), skill.key].filter(
+            (id, idx, arr) => arr.indexOf(id) === idx
+          ), // Add skill_id, deduplicate
           skillExpertise: newExpertise, // Store in payload
           timezone: profile.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
@@ -217,27 +221,34 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       // Small delay to allow Arkiv to index the new profile entity
       // This ensures the profile count includes the newly added profile
       // Also allows level calculation to see the updated profile
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Show confirmation based on whether skill was new or existing
       if (wasNewSkill) {
         setConfirmationType('new');
-        setConfirmationMessage(`You added a new skill to the network! "${skill.name_canonical}" has been planted in the Arkiv garden.`);
+        setConfirmationMessage(
+          `You added a new skill to the network! "${skill.name_canonical}" has been planted in the Arkiv garden.`
+        );
       } else {
         // Get profile count for existing skill
         // Uses same API endpoint as skill garden to ensure identical counts
         // The count should now include the newly added profile after the delay
         const profileCount = await getSkillProfileCount(skill.name_canonical);
         setConfirmationType('existing');
-        setConfirmationMessage(`You are joining ${profileCount} other${profileCount === 1 ? '' : 's'} in the network learning "${skill.name_canonical}".`);
+        setConfirmationMessage(
+          `You are joining ${profileCount} other${profileCount === 1 ? '' : 's'} in the network learning "${skill.name_canonical}".`
+        );
       }
       setShowConfirmation(true);
 
-      setCreatedSkills([...createdSkills, {
-        skillId: skill.key,
-        skillName: skill.name_canonical,
-        expertise,
-      }]);
+      setCreatedSkills([
+        ...createdSkills,
+        {
+          skillId: skill.key,
+          skillName: skill.name_canonical,
+          expertise,
+        },
+      ]);
 
       // Trigger garden animation callback if provided
       onSkillAdded?.(skill.key);
@@ -270,7 +281,14 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
     onComplete();
   };
 
-  const expertiseLabels = ['Beginner', 'Beginner', 'Intermediate', 'Advanced', 'Advanced', 'Expert'];
+  const expertiseLabels = [
+    'Beginner',
+    'Beginner',
+    'Intermediate',
+    'Advanced',
+    'Advanced',
+    'Expert',
+  ];
   const expertiseEmojis = ['🌱', '🌿', '🌳', '🌲', '🌴', '🌴✨'];
 
   // Step 1: Input skill name (floating style - minimal, focused)
@@ -279,21 +297,19 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
       <>
         {/* Confirmation Modal */}
         {showConfirmation && (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700">
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-2xl dark:border-gray-700 dark:bg-gray-800">
               <div className="text-center">
-                <div className="text-6xl mb-4 animate-pulse">
+                <div className="mb-4 animate-pulse text-6xl">
                   {confirmationType === 'new' ? '🌱' : '👥'}
                 </div>
-                <h3 className="text-2xl font-semibold mb-3 text-gray-900 dark:text-gray-100">
+                <h3 className="mb-3 text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   {confirmationType === 'new' ? 'Skill Planted!' : 'Welcome to the Community!'}
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">
-                  {confirmationMessage}
-                </p>
+                <p className="mb-6 text-gray-600 dark:text-gray-400">{confirmationMessage}</p>
                 <button
                   onClick={() => setShowConfirmation(false)}
-                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
+                  className="w-full rounded-lg bg-green-600 px-6 py-3 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl"
                 >
                   Continue
                 </button>
@@ -302,136 +318,140 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           </div>
         )}
 
-        <div className="space-y-8 animate-fade-in">
-        <div className="text-center">
-          <h2 
-            className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
-            style={{
-              textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
-            }}
-          >
-            {createdSkills.length > 0 ? 'Anything else?' : 'What skill are you growing?'}
-          </h2>
-          <p 
-            className="text-gray-200 dark:text-gray-300 text-lg drop-shadow-md"
-            style={{
-              textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
-            }}
-          >
-            {createdSkills.length > 0 ? 'Plant skill to continue or add another skill.' : 'Add one skill to start'}
-          </p>
-        </div>
-
-        <form onSubmit={handleSkillNameSubmit} className="space-y-6">
-          <div>
-            <input
-              id="skillName"
-              type="text"
-              value={currentSkillName}
-              onChange={(e) => {
-                // Prevent commas - only allow one skill at a time
-                const value = e.target.value.replace(/,/g, '');
-                setCurrentSkillName(value);
+        <div className="animate-fade-in space-y-8">
+          <div className="text-center">
+            <h2
+              className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
+              style={{
+                textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
               }}
-              placeholder="e.g., Spanish"
-              list="skillSuggestions"
-              required
-              autoFocus
-              className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
-              disabled={isSubmitting}
-            />
-            <datalist id="skillSuggestions">
-              {existingSkills.slice(0, 20).map((skill) => (
-                <option key={skill.key} value={skill.name_canonical} />
-              ))}
-            </datalist>
-          </div>
-
-          <div className="flex gap-3">
-            {createdSkills.length > 0 && (
-              <button
-                type="button"
-                onClick={handleContinue}
-                className="flex-1 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all duration-200 font-medium text-lg shadow-lg hover:shadow-xl"
-              >
-                Continue →
-              </button>
-            )}
-            {arkivBuilderMode ? (
-              <ArkivQueryTooltip
-                query={[
-                  `Clicking opens expertise level selector`,
-                  `Next step: ensureSkillEntity() + POST /api/profile { action: 'updateProfile', ... }`,
-                  `Creates: type='skill' entity (if new)`,
-                  `Updates: type='user_profile' entity (stable entity key)`,
-                  `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
-                  `Payload: Full profile data with updated skills`
-                ]}
-                label={createdSkills.length > 0 ? 'Add Skill' : 'Continue'}
-              >
-                <button
-                  type="submit"
-                  disabled={!currentSkillName.trim() || isSubmitting}
-                  className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
-                >
-                  {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
-                </button>
-              </ArkivQueryTooltip>
-            ) : (
-              <button
-                type="submit"
-                disabled={!currentSkillName.trim() || isSubmitting}
-                className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl`}
-              >
-                {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
-              </button>
-            )}
-          </div>
-        </form>
-
-        {/* Show created skills if any */}
-        {createdSkills.length > 0 && (
-          <div className="pt-6">
-            <p 
-              className="text-sm text-gray-200 dark:text-gray-300 mb-3 drop-shadow-md text-center"
+            >
+              {createdSkills.length > 0 ? 'Anything else?' : 'What skill are you growing?'}
+            </h2>
+            <p
+              className="text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
               style={{
                 textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
               }}
             >
-              Your skills:
+              {createdSkills.length > 0
+                ? 'Plant skill to continue or add another skill.'
+                : 'Add one skill to start'}
             </p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {createdSkills.map((skill, idx) => (
-                <div 
-                  key={idx} 
-                  className="flex items-center gap-2 px-3 py-2 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md rounded-lg shadow-lg border border-white/20"
-                >
-                  <span className="text-lg">{expertiseEmojis[skill.expertise]}</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{skill.skillName}</span>
-                </div>
-              ))}
-            </div>
           </div>
-        )}
-      </div>
+
+          <form onSubmit={handleSkillNameSubmit} className="space-y-6">
+            <div>
+              <input
+                id="skillName"
+                type="text"
+                value={currentSkillName}
+                onChange={(e) => {
+                  // Prevent commas - only allow one skill at a time
+                  const value = e.target.value.replace(/,/g, '');
+                  setCurrentSkillName(value);
+                }}
+                placeholder="e.g., Spanish"
+                list="skillSuggestions"
+                required
+                autoFocus
+                className="w-full rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
+                disabled={isSubmitting}
+              />
+              <datalist id="skillSuggestions">
+                {existingSkills.slice(0, 20).map((skill) => (
+                  <option key={skill.key} value={skill.name_canonical} />
+                ))}
+              </datalist>
+            </div>
+
+            <div className="flex gap-3">
+              {createdSkills.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleContinue}
+                  className="flex-1 rounded-xl bg-blue-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-blue-700 hover:shadow-xl"
+                >
+                  Continue →
+                </button>
+              )}
+              {arkivBuilderMode ? (
+                <ArkivQueryTooltip
+                  query={[
+                    `Clicking opens expertise level selector`,
+                    `Next step: ensureSkillEntity() + POST /api/profile { action: 'updateProfile', ... }`,
+                    `Creates: type='skill' entity (if new)`,
+                    `Updates: type='user_profile' entity (stable entity key)`,
+                    `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
+                    `Payload: Full profile data with updated skills`,
+                  ]}
+                  label={createdSkills.length > 0 ? 'Add Skill' : 'Continue'}
+                >
+                  <button
+                    type="submit"
+                    disabled={!currentSkillName.trim() || isSubmitting}
+                    className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50`}
+                  >
+                    {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
+                  </button>
+                </ArkivQueryTooltip>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!currentSkillName.trim() || isSubmitting}
+                  className={`${createdSkills.length > 0 ? 'flex-1' : 'w-full'} rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50`}
+                >
+                  {createdSkills.length > 0 ? 'Add Skill' : 'Continue →'}
+                </button>
+              )}
+            </div>
+          </form>
+
+          {/* Show created skills if any */}
+          {createdSkills.length > 0 && (
+            <div className="pt-6">
+              <p
+                className="mb-3 text-center text-sm text-gray-200 drop-shadow-md dark:text-gray-300"
+                style={{
+                  textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
+                }}
+              >
+                Your skills:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {createdSkills.map((skill, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-2 rounded-lg border border-white/20 bg-white/90 px-3 py-2 shadow-lg backdrop-blur-md dark:bg-gray-900/90"
+                  >
+                    <span className="text-lg">{expertiseEmojis[skill.expertise]}</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {skill.skillName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </>
     );
   }
 
   // Step 2: Set expertise level with sprout in center
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8">
       <div className="text-center">
-        <h2 
-          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        <h2
+          className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
           style={{
             textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
           }}
         >
           {currentSkillName}
         </h2>
-        <p 
-          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+        <p
+          className="mb-8 text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
@@ -442,10 +462,10 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
 
       {/* Large sprout in center */}
       <div className="flex justify-center">
-        <div 
-          className="text-8xl hg-anim-plant-idle transition-all duration-300"
+        <div
+          className="hg-anim-plant-idle text-8xl transition-all duration-300"
           style={{
-            transform: `scale(${1 + (expertise * 0.05)})`,
+            transform: `scale(${1 + expertise * 0.05})`,
             filter: expertise >= 3 ? 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.4))' : 'none',
           }}
         >
@@ -463,10 +483,10 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
             max="5"
             value={expertise}
             onChange={(e) => setExpertise(Number(e.target.value))}
-            className="w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-green-600"
+            className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-gray-200 accent-green-600 dark:bg-gray-700"
             disabled={isSubmitting}
           />
-          <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-2">
+          <div className="mt-2 flex justify-between text-xs text-gray-500 dark:text-gray-400">
             <span>Beginner</span>
             <span className="font-medium">{expertiseLabels[expertise]}</span>
             <span>Expert</span>
@@ -480,7 +500,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               setStep('input');
               setCurrentSkillName('');
             }}
-            className="flex-1 px-6 py-4 border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-gray-800 transition-all font-medium shadow-lg"
+            className="flex-1 rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 font-medium text-gray-700 shadow-lg backdrop-blur-md transition-all hover:bg-white dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-300 dark:hover:bg-gray-800"
             disabled={isSubmitting}
           >
             Back
@@ -496,7 +516,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
                 `   → Updates: type='user_profile' entity`,
                 `   → Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skills, skillExpertise`,
                 `   → Payload: Full profile data with updated skills`,
-                `TTL: 1 year (31536000 seconds)`
+                `TTL: 1 year (31536000 seconds)`,
               ]}
               label="Plant Skill"
             >
@@ -504,7 +524,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
                 type="button"
                 onClick={handlePlantSkill}
                 disabled={isSubmitting}
-                className="flex-1 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+                className="flex-1 rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
               >
                 {isSubmitting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -521,7 +541,7 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
               type="button"
               onClick={handlePlantSkill}
               disabled={isSubmitting}
-              className="flex-1 px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+              className="flex-1 rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -535,7 +555,6 @@ export function SkillsStep({ wallet, onComplete, onError, onSkillAdded }: Skills
           )}
         </div>
       </div>
-
     </div>
   );
 }

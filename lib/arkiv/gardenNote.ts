@@ -1,20 +1,20 @@
 /**
  * Garden Note CRUD helpers
- * 
+ *
  * Public Garden Bulletin - short, playful messages pinned to the shared "garden wall"
- * 
+ *
  * Features:
  * - Public by design (anyone can read)
  * - On-chain / on-Arkiv (stored as Arkiv entity, immutable-ish, auditable)
  * - Educational (every step shows this is data you're publishing, not a DM)
- * 
+ *
  * Based on existing Arkiv entity patterns.
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '@/lib/config';
 
 export const GARDEN_NOTE_MAX_LENGTH = 500; // Max message length
 export const GARDEN_NOTE_DAILY_LIMIT = 10; // Max notes per profile per day
@@ -34,11 +34,11 @@ export type GardenNote = {
   spaceId: string;
   createdAt: string;
   txHash?: string;
-}
+};
 
 /**
  * Create a garden note (public bulletin)
- * 
+ *
  * @param data - Garden note data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -77,8 +77,8 @@ export async function createGardenNote({
 
   // Normalize tags (remove # if present, lowercase)
   const normalizedTags = tags
-    .map(tag => tag.replace(/^#/, '').trim().toLowerCase())
-    .filter(tag => tag.length > 0);
+    .map((tag) => tag.replace(/^#/, '').trim().toLowerCase())
+    .filter((tag) => tag.length > 0);
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
@@ -108,11 +108,13 @@ export async function createGardenNote({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        message: message.trim(),
-        tags: normalizedTags,
-        createdAt,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          message: message.trim(),
+          tags: normalizedTags,
+          createdAt,
+        })
+      ),
       contentType: 'application/json',
       attributes: attributesWithSigner,
       expiresIn: GARDEN_NOTE_TTL_SECONDS, // 1 year TTL (or could be undefined for permanent)
@@ -135,9 +137,11 @@ export async function createGardenNote({
 
   // Create separate txhash entity (following existing pattern)
   walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      txHash,
-    })),
+    payload: enc.encode(
+      JSON.stringify({
+        txHash,
+      })
+    ),
     contentType: 'application/json',
     attributes: [
       { key: 'type', value: 'garden_note_txhash' },
@@ -153,11 +157,11 @@ export async function createGardenNote({
   try {
     const { createNotification } = await import('./notifications');
     const { listUserProfiles } = await import('./profile');
-    
+
     // Get all profiles to notify
     const allProfiles = await listUserProfiles();
     const uniqueWallets = new Set<string>();
-    allProfiles.forEach(profile => {
+    allProfiles.forEach((profile) => {
       // Ensure wallet is normalized and not empty
       const wallet = profile.wallet?.trim();
       if (wallet && wallet.length > 0) {
@@ -168,17 +172,16 @@ export async function createGardenNote({
     // Create notification for each profile (excluding the author for 'new_garden_note' type)
     const authorWalletLower = authorWallet.toLowerCase();
     const notificationPromises = Array.from(uniqueWallets)
-      .filter(wallet => wallet !== authorWalletLower)
-      .map(wallet => 
+      .filter((wallet) => wallet !== authorWalletLower)
+      .map((wallet) =>
         createNotification({
           wallet,
           notificationType: 'new_garden_note',
           sourceEntityType: 'garden_note',
           sourceEntityKey: entityKey,
           title: 'New Message on Public Board',
-          message: message.trim().length > 100 
-            ? message.trim().substring(0, 100) + '...' 
-            : message.trim(),
+          message:
+            message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim(),
           link: '/garden/public-board',
           metadata: {
             gardenNoteKey: entityKey,
@@ -216,7 +219,10 @@ export async function createGardenNote({
       privateKey,
       spaceId,
     }).catch((err: any) => {
-      console.warn(`[createGardenNote] Failed to create notification for author ${authorWalletLower}:`, err);
+      console.warn(
+        `[createGardenNote] Failed to create notification for author ${authorWalletLower}:`,
+        err
+      );
     });
 
     // Add author notification to the promises array
@@ -236,7 +242,7 @@ export async function createGardenNote({
 
 /**
  * List garden notes
- * 
+ *
  * @param params - Optional filters (channel, targetWallet, authorWallet, tags, spaceId, spaceIds)
  * @returns Array of garden notes
  */
@@ -262,7 +268,8 @@ export async function listGardenNotes({
 
   try {
     // Query by type and channel
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'garden_note'))
       .where(eq('channel', channel))
       .where(eq('moderationState', 'active')) // Only show active notes
@@ -301,12 +308,18 @@ export async function listGardenNotes({
         const attributes = entity.attributes || [];
 
         // Extract attributes (convert to string if needed)
-        const authorWalletAttr = String(attributes.find((a: any) => a.key === 'authorWallet')?.value || '');
+        const authorWalletAttr = String(
+          attributes.find((a: any) => a.key === 'authorWallet')?.value || ''
+        );
         const targetWalletAttr = attributes.find((a: any) => a.key === 'targetWallet')?.value;
         const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
         const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
-        const createdAtAttr = String(attributes.find((a: any) => a.key === 'createdAt')?.value || '');
-        const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
+        const createdAtAttr = String(
+          attributes.find((a: any) => a.key === 'createdAt')?.value || ''
+        );
+        const spaceIdAttr = String(
+          attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID
+        );
 
         // Apply filters
         if (targetWallet) {
@@ -325,7 +338,7 @@ export async function listGardenNotes({
         }
         if (tags && tags.length > 0) {
           const noteTags = tagsAttr.split(',').map((t: string) => t.trim().toLowerCase());
-          const hasMatchingTag = tags.some(tag => 
+          const hasMatchingTag = tags.some((tag) =>
             noteTags.includes(tag.replace(/^#/, '').trim().toLowerCase())
           );
           if (!hasMatchingTag) {
@@ -334,7 +347,12 @@ export async function listGardenNotes({
         }
 
         // Parse tags array
-        const noteTags = tagsAttr ? tagsAttr.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [];
+        const noteTags = tagsAttr
+          ? tagsAttr
+              .split(',')
+              .map((t: string) => t.trim())
+              .filter((t: string) => t.length > 0)
+          : [];
 
         notes.push({
           key: entity.key,
@@ -381,15 +399,24 @@ export async function getGardenNoteByKey(key: string): Promise<GardenNote | null
     const payload = JSON.parse(new TextDecoder().decode(entity.payload));
     const attributes = entity.attributes || [];
 
-    const authorWalletAttr = String(attributes.find((a: any) => a.key === 'authorWallet')?.value || '');
+    const authorWalletAttr = String(
+      attributes.find((a: any) => a.key === 'authorWallet')?.value || ''
+    );
     const targetWalletAttr = attributes.find((a: any) => a.key === 'targetWallet')?.value;
     const tagsAttr = String(attributes.find((a: any) => a.key === 'tags')?.value || '');
     const replyToNoteIdAttr = attributes.find((a: any) => a.key === 'replyToNoteId')?.value;
     const createdAtAttr = String(attributes.find((a: any) => a.key === 'createdAt')?.value || '');
     const spaceIdAttr = String(attributes.find((a: any) => a.key === 'spaceId')?.value || SPACE_ID);
-    const channelAttr = String(attributes.find((a: any) => a.key === 'channel')?.value || 'public_garden_board');
+    const channelAttr = String(
+      attributes.find((a: any) => a.key === 'channel')?.value || 'public_garden_board'
+    );
 
-    const noteTags = tagsAttr ? tagsAttr.split(',').map((t: string) => t.trim()).filter((t: string) => t.length > 0) : [];
+    const noteTags = tagsAttr
+      ? tagsAttr
+          .split(',')
+          .map((t: string) => t.trim())
+          .filter((t: string) => t.length > 0)
+      : [];
 
     return {
       key: entity.key,
@@ -413,7 +440,7 @@ export async function getGardenNoteByKey(key: string): Promise<GardenNote | null
 
 /**
  * Check if user has exceeded daily limit
- * 
+ *
  * @param authorWallet - Wallet address to check
  * @returns True if user has exceeded daily limit
  */
@@ -428,11 +455,10 @@ export async function hasExceededDailyLimit(authorWallet: string): Promise<boole
   });
 
   // Count notes created today
-  const todayNotes = notes.filter(note => {
+  const todayNotes = notes.filter((note) => {
     const noteDate = new Date(note.createdAt);
     return noteDate >= today;
   });
 
   return todayNotes.length >= GARDEN_NOTE_DAILY_LIMIT;
 }
-

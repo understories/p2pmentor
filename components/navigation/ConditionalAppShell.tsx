@@ -10,12 +10,12 @@ import { AppShell } from './AppShell';
  */
 export function ConditionalAppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  
+
   // Pages that should NOT use AppShell at all (no wrapper, no nav, nothing)
   const skipAppShellPaths = ['/', '/auth', '/beta', '/explorer', '/lite'];
   const isAdminPage = pathname?.startsWith('/admin');
   const isDocsPage = pathname?.startsWith('/docs');
-  
+
   if (skipAppShellPaths.includes(pathname || '') || isAdminPage || isDocsPage) {
     // Landing, auth, beta, admin, docs, and explorer pages - NO AppShell wrapper at all
     // Explorer has its own adaptive sidebar

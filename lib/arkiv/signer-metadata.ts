@@ -19,18 +19,15 @@ export function addSignerMetadata(
   privateKey: `0x${string}`
 ): Array<{ key: string; value: string }> {
   const signerWallet = privateKeyToAccount(privateKey).address;
-  
+
   // Check if signer_wallet already exists (avoid duplicates)
-  const hasSignerMetadata = attributes.some(attr => attr.key === 'signer_wallet');
-  
+  const hasSignerMetadata = attributes.some((attr) => attr.key === 'signer_wallet');
+
   if (hasSignerMetadata) {
     return attributes; // Already has signer metadata
   }
-  
-  return [
-    ...attributes,
-    { key: 'signer_wallet', value: signerWallet.toLowerCase() },
-  ];
+
+  return [...attributes, { key: 'signer_wallet', value: signerWallet.toLowerCase() }];
 }
 
 /**
@@ -42,4 +39,3 @@ export function addSignerMetadata(
 export function getSignerWallet(privateKey: `0x${string}`): string {
   return privateKeyToAccount(privateKey).address.toLowerCase();
 }
-

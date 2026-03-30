@@ -2,7 +2,7 @@
  * Quests API
  *
  * Phase 2: Entity-first quest serving with configurable fallback.
- * 
+ *
  * Modes (controlled by QUEST_ENTITY_MODE env var):
  * - 'entity': Entity-based quests only (Phase 2 - production)
  * - 'dual': Try entity first, fallback to file (Phase 1 - transition)
@@ -16,10 +16,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { QUEST_ENTITY_MODE } from '@/lib/config';
 import { listQuests, loadQuest } from '@/lib/quests';
-import { 
-  getLatestQuestDefinition, 
-  getQuestDefinition, 
-  listQuestDefinitions 
+import {
+  getLatestQuestDefinition,
+  getQuestDefinition,
+  listQuestDefinitions,
 } from '@/lib/arkiv/questDefinition';
 
 /**
@@ -97,13 +97,15 @@ async function getQuestById(
 /**
  * Get quest by trackId (entity-first)
  */
-async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source: string; entityKey?: string; txHash?: string } | null> {
+async function getQuestByTrackId(
+  trackId: string
+): Promise<{ quest: any; source: string; entityKey?: string; txHash?: string } | null> {
   // Entity mode: only try entities
   if (QUEST_ENTITY_MODE === 'entity') {
     const questEntities = await listQuestDefinitions({ track: trackId });
     if (questEntities.length > 0) {
-      const latest = questEntities.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      const latest = questEntities.sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       )[0];
       if (latest && latest.quest) {
         return {
@@ -122,8 +124,8 @@ async function getQuestByTrackId(trackId: string): Promise<{ quest: any; source:
     try {
       const questEntities = await listQuestDefinitions({ track: trackId });
       if (questEntities.length > 0) {
-        const latest = questEntities.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        const latest = questEntities.sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
         )[0];
         if (latest && latest.quest) {
           return {
@@ -198,7 +200,7 @@ async function listAllQuests(): Promise<{ quests: any[]; source: string }> {
     // Fallback to file
     const fileQuests = await listQuests();
     return {
-      quests: fileQuests.map(q => ({ ...q, source: 'file' as const })),
+      quests: fileQuests.map((q) => ({ ...q, source: 'file' as const })),
       source: 'file',
     };
   }
@@ -206,7 +208,7 @@ async function listAllQuests(): Promise<{ quests: any[]; source: string }> {
   // File mode: only files
   const fileQuests = await listQuests();
   return {
-    quests: fileQuests.map(q => ({ ...q, source: 'file' as const })),
+    quests: fileQuests.map((q) => ({ ...q, source: 'file' as const })),
     source: 'file',
   };
 }

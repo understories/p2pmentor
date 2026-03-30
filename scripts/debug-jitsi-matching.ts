@@ -15,7 +15,8 @@ async function debugJitsiMatching() {
 
   // Get all Jitsi entities
   const publicClient = getPublicClient();
-  const jitsiQuery = await publicClient.buildQuery()
+  const jitsiQuery = await publicClient
+    .buildQuery()
     .where(eq('type', 'session_jitsi'))
     .withAttributes(true)
     .withPayload(true)
@@ -35,15 +36,16 @@ async function debugJitsiMatching() {
       }
       return String(attrs[key] || '');
     };
-    
+
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -68,7 +70,7 @@ async function debugJitsiMatching() {
     console.log(`  Skill: ${session.skill}`);
     console.log(`  Mentor confirmed: ${session.mentorConfirmed}`);
     console.log(`  Learner confirmed: ${session.learnerConfirmed}`);
-    
+
     const jitsiInfo = jitsiMap[session.key];
     if (jitsiInfo) {
       console.log(`  ✅ Jitsi entity FOUND:`);
@@ -78,22 +80,24 @@ async function debugJitsiMatching() {
     } else {
       console.log(`  ❌ No Jitsi entity found for this session key`);
       console.log(`     Looking for sessionKey: ${session.key}`);
-      console.log(`     Available Jitsi sessionKeys: ${Object.keys(jitsiMap).slice(0, 5).join(', ')}...`);
+      console.log(
+        `     Available Jitsi sessionKeys: ${Object.keys(jitsiMap).slice(0, 5).join(', ')}...`
+      );
     }
     console.log('');
   }
 
   // Also check if there are Jitsi entities without matching sessions
-  const sessionKeys = new Set(scheduledSessions.map(s => s.key));
-  const orphanedJitsi = Object.keys(jitsiMap).filter(sk => !sessionKeys.has(sk));
+  const sessionKeys = new Set(scheduledSessions.map((s) => s.key));
+  const orphanedJitsi = Object.keys(jitsiMap).filter((sk) => !sessionKeys.has(sk));
   if (orphanedJitsi.length > 0) {
-    console.log(`\n⚠️  Found ${orphanedJitsi.length} Jitsi entities without matching scheduled sessions:`);
-    orphanedJitsi.slice(0, 5).forEach(sk => {
+    console.log(
+      `\n⚠️  Found ${orphanedJitsi.length} Jitsi entities without matching scheduled sessions:`
+    );
+    orphanedJitsi.slice(0, 5).forEach((sk) => {
       console.log(`  - ${sk}`);
     });
   }
 }
 
 debugJitsiMatching().catch(console.error);
-
-

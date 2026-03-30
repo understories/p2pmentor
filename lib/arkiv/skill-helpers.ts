@@ -1,21 +1,29 @@
 /**
  * Skill helper functions
- * 
+ *
  * Utilities for ensuring skill entities exist and handling skill-to-community mapping.
  */
 
-import { listSkills, getSkillBySlug, getSkillByKey, normalizeSkillSlug, createSkill } from './skill';
+import {
+  listSkills,
+  getSkillBySlug,
+  getSkillByKey,
+  normalizeSkillSlug,
+  createSkill,
+} from './skill';
 import { SPACE_ID } from '@/lib/config';
 import { getPrivateKey } from '@/lib/config';
 
 /**
  * Ensure a skill entity exists for a given skill name.
  * If it doesn't exist, creates it automatically.
- * 
+ *
  * @param skillName - The canonical name of the skill
  * @returns The skill entity (existing or newly created)
  */
-export async function ensureSkillEntity(skillName: string): Promise<{ key: string; slug: string; name_canonical: string } | null> {
+export async function ensureSkillEntity(
+  skillName: string
+): Promise<{ key: string; slug: string; name_canonical: string } | null> {
   if (!skillName || !skillName.trim()) {
     return null;
   }
@@ -23,7 +31,7 @@ export async function ensureSkillEntity(skillName: string): Promise<{ key: strin
   try {
     // Normalize the skill name to slug
     const normalizedSlug = normalizeSkillSlug(skillName.trim());
-    
+
     // Check if skill already exists by slug in the current spaceId
     // getSkillBySlug will use SPACE_ID from config automatically
     const existing = await getSkillBySlug(normalizedSlug);
@@ -37,9 +45,8 @@ export async function ensureSkillEntity(skillName: string): Promise<{ key: strin
 
     // Skill doesn't exist - create it
     // Get wallet address from localStorage if available (for auto-adding creator as member)
-    const walletAddress = typeof window !== 'undefined'
-      ? localStorage.getItem('wallet_address')
-      : null;
+    const walletAddress =
+      typeof window !== 'undefined' ? localStorage.getItem('wallet_address') : null;
 
     const res = await fetch('/api/skills', {
       method: 'POST',
@@ -77,7 +84,7 @@ export async function ensureSkillEntity(skillName: string): Promise<{ key: strin
 
 /**
  * Get or create a skill entity and return the topic page link.
- * 
+ *
  * @param skillName - The canonical name of the skill
  * @returns The topic page link, or null if skill cannot be created
  */
@@ -92,10 +99,10 @@ export async function getSkillTopicLink(skillName: string): Promise<string | nul
 /**
  * Ensure a skill entity exists (server-side version)
  * If skill_id is provided, verify it exists. If skill name is provided, find or create by slug.
- * 
+ *
  * This function is designed for use in API routes (server-side) where we have direct access
  * to createSkill() and don't need to make HTTP requests.
- * 
+ *
  * @param skill_id - Optional skill entity key
  * @param skill_name - Optional skill name (canonical)
  * @param wallet - Wallet address of creator (for created_by_profile)
@@ -133,7 +140,9 @@ export async function ensureSkillEntityServer({
           };
         } else {
           // Skill exists but in different spaceId - this is an error
-          console.error(`[ensureSkillEntityServer] Skill ${skill_id} exists but in different spaceId (${existingByKey.spaceId} vs ${spaceId})`);
+          console.error(
+            `[ensureSkillEntityServer] Skill ${skill_id} exists but in different spaceId (${existingByKey.spaceId} vs ${spaceId})`
+          );
           // Fall through to skill_name lookup/creation if provided
         }
       } else {
@@ -147,7 +156,9 @@ export async function ensureSkillEntityServer({
     if (skill_name) {
       const normalizedSlug = normalizeSkillSlug(skill_name.trim());
       if (!normalizedSlug || normalizedSlug.trim() === '') {
-        console.error(`[ensureSkillEntityServer] Cannot create skill "${skill_name}": slug normalization resulted in empty string`);
+        console.error(
+          `[ensureSkillEntityServer] Cannot create skill "${skill_name}": slug normalization resulted in empty string`
+        );
         return null;
       }
 
@@ -176,16 +187,16 @@ export async function ensureSkillEntityServer({
       let newSkill: Awaited<ReturnType<typeof getSkillBySlug>> | null = null;
       const maxRetries = 5;
       const retryDelay = 1000;
-      
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         newSkill = await getSkillBySlug(normalizedSlug, spaceId);
         if (newSkill) {
           break;
         }
-        
+
         if (attempt < maxRetries - 1) {
           const delay = retryDelay * Math.pow(2, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
 
@@ -214,4 +225,3 @@ export async function ensureSkillEntityServer({
     return null;
   }
 }
-

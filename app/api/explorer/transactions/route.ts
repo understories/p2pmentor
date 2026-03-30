@@ -1,8 +1,8 @@
 /**
  * Explorer All Transactions Endpoint
- * 
+ *
  * Returns paginated list of all app-recorded transaction events.
- * 
+ *
  * NOTE: This shows "app-recorded transaction events" (txhash log),
  * NOT all chain transactions. See scope definition in plan.
  */
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Parse query parameters
     const spaceId = searchParams.get('spaceId') || undefined;
     const entityType = searchParams.get('type') as 'profile' | 'ask' | 'offer' | 'skill' | null;
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     let parsedWallet = wallet;
     let parsedEntityKey = entityKey;
     let parsedBlock = block;
-    
+
     if (q) {
       // Try to parse q into specific fields
       if (q.startsWith('0x') && q.length >= 10) {
@@ -76,7 +76,9 @@ export async function GET(request: NextRequest) {
     // For now, we'll query without spaceId filter when 'all' is selected
     const finalSpaceId = spaceId && spaceId !== 'all' ? spaceId : undefined;
 
-    console.log(`[GET /api/explorer/transactions] spaceId=${spaceId}, finalSpaceId=${finalSpaceId}, SPACE_ID=${SPACE_ID}`);
+    console.log(
+      `[GET /api/explorer/transactions] spaceId=${spaceId}, finalSpaceId=${finalSpaceId}, SPACE_ID=${SPACE_ID}`
+    );
 
     // Call getAllTransactions with proper spaceId filtering
     const result = await getAllTransactions({
@@ -123,4 +125,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

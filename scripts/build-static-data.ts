@@ -1,9 +1,9 @@
 /**
  * Build static data for decentralized static client
- * 
+ *
  * Fetches all core entities from Arkiv at build time and outputs JSON files
  * for consumption by static site generator.
- * 
+ *
  * Follows Arkiv-native patterns:
  * - Wallet normalization (toLowerCase)
  * - Defensive error handling
@@ -32,17 +32,17 @@ interface BuildConfig {
  */
 function processProfiles(entities: any[]): any[] {
   const byWallet = new Map<string, any>();
-  
+
   for (const entity of entities) {
     const wallet = entity.wallet?.toLowerCase();
     if (!wallet) continue;
-    
+
     const existing = byWallet.get(wallet);
     if (!existing || new Date(entity.createdAt || 0) > new Date(existing.createdAt || 0)) {
       byWallet.set(wallet, entity);
     }
   }
-  
+
   return Array.from(byWallet.values());
 }
 
@@ -51,13 +51,13 @@ function processProfiles(entities: any[]): any[] {
  */
 function processAsks(entities: any[], config: BuildConfig): any[] {
   const now = Date.now();
-  
-  return entities.filter(ask => {
+
+  return entities.filter((ask) => {
     if (config.includeExpired) return true;
-    
+
     const createdAt = new Date(ask.createdAt || 0).getTime();
     const ttlSeconds = parseInt(String(ask.ttlSeconds || '3600'), 10);
-    return (createdAt + ttlSeconds * 1000) > now;
+    return createdAt + ttlSeconds * 1000 > now;
   });
 }
 
@@ -66,25 +66,20 @@ function processAsks(entities: any[], config: BuildConfig): any[] {
  */
 function processOffers(entities: any[], config: BuildConfig): any[] {
   const now = Date.now();
-  
-  return entities.filter(offer => {
+
+  return entities.filter((offer) => {
     if (config.includeExpired) return true;
-    
+
     const createdAt = new Date(offer.createdAt || 0).getTime();
     const ttlSeconds = parseInt(String(offer.ttlSeconds || '7200'), 10);
-    return (createdAt + ttlSeconds * 1000) > now;
+    return createdAt + ttlSeconds * 1000 > now;
   });
 }
 
 /**
  * Build indexes for fast lookups
  */
-function buildIndexes(data: {
-  profiles: any[];
-  skills: any[];
-  asks: any[];
-  offers: any[];
-}) {
+function buildIndexes(data: { profiles: any[]; skills: any[]; asks: any[]; offers: any[] }) {
   // Profiles by wallet
   const profilesByWallet: Record<string, any> = {};
   for (const profile of data.profiles) {
@@ -93,7 +88,7 @@ function buildIndexes(data: {
       profilesByWallet[wallet] = profile;
     }
   }
-  
+
   // Asks by wallet
   const asksByWallet: Record<string, any[]> = {};
   for (const ask of data.asks) {
@@ -103,7 +98,7 @@ function buildIndexes(data: {
       asksByWallet[wallet].push(ask);
     }
   }
-  
+
   // Asks by skill_id
   const asksBySkill: Record<string, any[]> = {};
   for (const ask of data.asks) {
@@ -120,7 +115,7 @@ function buildIndexes(data: {
       asksBySkill[key].push(ask);
     }
   }
-  
+
   // Offers by wallet
   const offersByWallet: Record<string, any[]> = {};
   for (const offer of data.offers) {
@@ -130,7 +125,7 @@ function buildIndexes(data: {
       offersByWallet[wallet].push(offer);
     }
   }
-  
+
   // Offers by skill_id
   const offersBySkill: Record<string, any[]> = {};
   for (const offer of data.offers) {
@@ -147,7 +142,7 @@ function buildIndexes(data: {
       offersBySkill[key].push(offer);
     }
   }
-  
+
   // Skills by slug
   const skillsBySlug: Record<string, any> = {};
   for (const skill of data.skills) {
@@ -156,7 +151,7 @@ function buildIndexes(data: {
       skillsBySlug[slug] = skill;
     }
   }
-  
+
   return {
     profilesByWallet,
     asksByWallet,
@@ -182,14 +177,14 @@ async function buildStaticData(config: BuildConfig): Promise<void> {
   const entitiesDir = path.join(outputDir, 'entities');
   const indexesDir = path.join(outputDir, 'indexes');
   const metadataDir = path.join(outputDir, 'metadata');
-  
+
   // Ensure directories exist
   await fs.mkdir(entitiesDir, { recursive: true });
   await fs.mkdir(indexesDir, { recursive: true });
   await fs.mkdir(metadataDir, { recursive: true });
-  
+
   console.log('🔍 Fetching entities from Arkiv...');
-  
+
   try {
     // Fetch all entity types in parallel
     const [profiles, skills, asks, offers] = await Promise.all([
@@ -201,18 +196,28 @@ async function buildStaticData(config: BuildConfig): Promise<void> {
         console.error('[build-static-data] Error fetching skills:', err);
         return [];
       }),
-      listAsks({ spaceId: config.spaceId, limit: config.limit || 1000, includeExpired: config.includeExpired }).catch((err) => {
+      listAsks({
+        spaceId: config.spaceId,
+        limit: config.limit || 1000,
+        includeExpired: config.includeExpired,
+      }).catch((err) => {
         console.error('[build-static-data] Error fetching asks:', err);
         return [];
       }),
-      listOffers({ spaceId: config.spaceId, limit: config.limit || 1000, includeExpired: config.includeExpired }).catch((err) => {
+      listOffers({
+        spaceId: config.spaceId,
+        limit: config.limit || 1000,
+        includeExpired: config.includeExpired,
+      }).catch((err) => {
         console.error('[build-static-data] Error fetching offers:', err);
         return [];
       }),
     ]);
-    
-    console.log(`✅ Fetched ${profiles.length} profiles, ${skills.length} skills, ${asks.length} asks, ${offers.length} offers`);
-    
+
+    console.log(
+      `✅ Fetched ${profiles.length} profiles, ${skills.length} skills, ${asks.length} asks, ${offers.length} offers`
+    );
+
     // Process data
     console.log('🔄 Processing data...');
     const processedData = {
@@ -221,13 +226,15 @@ async function buildStaticData(config: BuildConfig): Promise<void> {
       asks: processAsks(asks, config),
       offers: processOffers(offers, config),
     };
-    
-    console.log(`✅ Processed: ${processedData.profiles.length} profiles, ${processedData.skills.length} skills, ${processedData.asks.length} active asks, ${processedData.offers.length} active offers`);
-    
+
+    console.log(
+      `✅ Processed: ${processedData.profiles.length} profiles, ${processedData.skills.length} skills, ${processedData.asks.length} active asks, ${processedData.offers.length} active offers`
+    );
+
     // Build indexes
     console.log('📇 Building indexes...');
     const indexes = buildIndexes(processedData);
-    
+
     // Write JSON files
     console.log('💾 Writing JSON files...');
     await Promise.all([
@@ -256,7 +263,7 @@ async function buildStaticData(config: BuildConfig): Promise<void> {
         },
       }),
     ]);
-    
+
     console.log('✅ Static data build complete!');
     console.log(`📁 Output directory: ${outputDir}`);
   } catch (error: any) {
@@ -277,4 +284,3 @@ buildStaticData(config).catch((error) => {
   console.error('[build-static-data] Unhandled error:', error);
   process.exit(1);
 });
-

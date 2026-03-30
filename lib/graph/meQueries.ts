@@ -1,8 +1,8 @@
 /**
  * GraphQL queries for /me dashboard
- * 
+ *
  * Queries GraphQL endpoint for user dashboard data.
- * 
+ *
  * Reference: refs/docs/sprint2.md Section 3.2
  */
 
@@ -159,10 +159,10 @@ export interface MeOverviewParams {
 
 /**
  * Fetch meOverview data via GraphQL
- * 
+ *
  * @param params - Query parameters
  * @returns MeOverview data
- * 
+ *
  * @example
  * ```ts
  * const data = await fetchMeOverview({
@@ -176,12 +176,7 @@ export interface MeOverviewParams {
 export async function fetchMeOverview(
   params: MeOverviewParams
 ): Promise<MeOverviewResponse['meOverview']> {
-  const {
-    wallet,
-    limitAsks = 50,
-    limitOffers = 50,
-    limitSessions = 50,
-  } = params;
+  const { wallet, limitAsks = 50, limitOffers = 50, limitSessions = 50 } = params;
 
   const variables: Record<string, any> = {
     wallet,
@@ -190,13 +185,9 @@ export async function fetchMeOverview(
     limitSessions,
   };
 
-  const response = await graphRequest<MeOverviewResponse>(
-    ME_OVERVIEW_QUERY,
-    variables,
-    { operationName: 'MeOverview' }
-  );
+  const response = await graphRequest<MeOverviewResponse>(ME_OVERVIEW_QUERY, variables, {
+    operationName: 'MeOverview',
+  });
 
   return response.meOverview;
 }
-
-

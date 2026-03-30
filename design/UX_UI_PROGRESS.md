@@ -21,6 +21,7 @@ This document tracks UX/UI improvements made by the engineering team and identif
 **Status:** ✅ Complete
 
 - **Icons on Action Buttons**
+
   - Added emoji icons (🎓 for Asks, 💎 for Offers) to "Create Ask" and "Create Offer" buttons
   - Uses semantic color system (`askColors`, `offerColors`)
   - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
@@ -41,11 +42,13 @@ This document tracks UX/UI improvements made by the engineering team and identif
   - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
 
 **Before:**
+
 ```
 No asks yet. Be the first to create one!
 ```
 
 **After:**
+
 - Title: "No asks yet"
 - Description: "Be the first to share what you're learning! Create an ask to connect with mentors who can help."
 - Action: Button with emoji "🎓 Create Your First Ask"
@@ -246,11 +249,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 1. Multi-Step Forms (Enhanced Progressive Disclosure)
 
 **Current State:**
+
 - ✅ Basic progressive disclosure implemented (Advanced Options section)
 - Forms still show main fields (skill, message) inline
 - Availability selection for offers has 3 radio options (custom/saved/structured)
 
 **UX Team Opportunity:**
+
 - Implement true multi-step forms (Step 1: Essentials → Step 2: Advanced)
 - Step 1: Skill + Message (required)
 - Step 2: Availability + Payment (for offers) + TTL (optional)
@@ -262,10 +267,12 @@ The following areas have been identified as needing UX team expertise for optima
 #### 2. Template Libraries
 
 **Current State:**
+
 - No templates or examples for creating asks/offers
 - Users start from scratch each time
 
 **UX Team Opportunity:**
+
 - Create template library for asks ("Learning React hooks", "Need help with Solidity debugging")
 - Create template library for offers ("Teaching React", "Mentoring Solidity developers")
 - Allow one-click copy with edit capability
@@ -276,10 +283,12 @@ The following areas have been identified as needing UX team expertise for optima
 #### 3. Smart Date/Time Picker for Sessions
 
 **Current State:**
+
 - Basic date/time input with 15-minute increment validation
 - Availability validation happens on submit (late feedback)
 
 **UX Team Opportunity:**
+
 - Show only available slots if structured availability exists
 - Visual calendar with available times highlighted
 - Availability preview before date selection
@@ -290,11 +299,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 4. Dashboard Organization & Activity Feed
 
 **Current State:**
+
 - Dashboard shows all links equally (no hierarchy)
 - No dynamic content or activity feed
 - No personalized recommendations
 
 **UX Team Opportunity:**
+
 - Group related features (Profile section, Activity section, Community section)
 - Add activity feed showing recent matches, session requests, etc.
 - Personalized recommendations based on user profile
@@ -307,11 +318,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 5. Profile Completeness Indicator (Enhanced)
 
 **Current State:**
+
 - ✅ Basic profile completeness indicator implemented (progress bar, missing fields list)
 - Shows on dashboard when < 100% complete
 - **File:** `app/me/page.tsx`, `lib/profile/completeness.ts`
 
 **UX Team Opportunity:**
+
 - Enhance visual design of completeness indicator
 - Add checklist with checkmarks: Name ✓, Bio ✓, Skills ⏳, Availability ⏳
 - Improve "Complete your profile" CTA design
@@ -323,11 +336,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 6. Match Explanation & Quality Indicators (Enhanced)
 
 **Current State:**
+
 - ✅ Basic match badges implemented ("Matches your ask" / "Matches your offer")
 - Matches are computed client-side (same skill = match)
 - No indication of match quality (exact vs. partial)
 
 **UX Team Opportunity:**
+
 - Enhance match badges with more context
 - Highlight exact matches vs. partial matches
 - Visual indicator (e.g., stronger border for exact matches)
@@ -339,11 +354,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 7. Payment Flow Clarity (Enhanced)
 
 **Current State:**
+
 - ✅ Basic 3-step progress indicators implemented ("Step 2 of 3", "Step 3 of 3")
 - Status messages show current step clearly
 - **File:** `app/me/sessions/page.tsx`
 
 **UX Team Opportunity:**
+
 - Enhance visual design of progress indicators (progress bar, icons)
 - Add visual flow diagram: "Mentor confirms" → "Submit payment" → "Mentor validates payment"
 - Improve status clarity with better visual hierarchy
@@ -354,10 +371,12 @@ The following areas have been identified as needing UX team expertise for optima
 #### 8. Feedback Form Simplification
 
 **Current State:**
+
 - Feedback form shows rating, notes, and technical DX feedback all at once
 - "Technical DX feedback" may be unclear to users
 
 **UX Team Opportunity:**
+
 - Progressive disclosure: Rating (required) → Notes (optional) → Technical DX (optional, advanced)
 - One-click rating (allow submitting with just rating)
 - Template suggestions for notes
@@ -370,10 +389,12 @@ The following areas have been identified as needing UX team expertise for optima
 #### 9. Social Proof Counters (Enhanced)
 
 **Current State:**
+
 - ✅ Basic counters implemented ("X active asks" / "X active offers")
 - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
 
 **UX Team Opportunity:**
+
 - Add "X mentors teaching" / "X people learning" counters to dashboard
 - Update in real-time (poll every 30s) instead of on page load
 - Add counters to network page
@@ -384,11 +405,13 @@ The following areas have been identified as needing UX team expertise for optima
 #### 10. Similar Asks/Offers Sections (Enhanced)
 
 **Current State:**
+
 - ✅ Basic similar items sections implemented
 - Shows "Others learning [skill]" / "Others teaching [skill]"
 - **Files:** `app/asks/page.tsx`, `app/offers/page.tsx`
 
 **UX Team Opportunity:**
+
 - Enhance visual design of similar items sections
 - Add "View all similar" link if more than 3 items
 - Show match quality or relevance score
@@ -403,10 +426,12 @@ The following areas have been identified as needing UX team expertise for optima
 All improvements should follow:
 
 1. **Color System:** Use `askColors` and `offerColors` from `lib/colors.ts`
+
    - Asks: Blue theme (🎓)
    - Offers: Green theme (💎)
 
 2. **Design Principles:** See [DESIGN_PRINCIPLES_WHITE_HAT.md](./DESIGN_PRINCIPLES_WHITE_HAT.md)
+
    - Dignity First
    - Clarity Over Cleverness
    - White-Hat Motivation
@@ -416,6 +441,7 @@ All improvements should follow:
    - Accessibility and Inclusivity
 
 3. **Behavioral Framework:** See [BEHAVIORAL_DESIGN_STACK.md](./BEHAVIORAL_DESIGN_STACK.md)
+
    - COM-B + Fogg for diagnosis
    - EAST for surface design
    - Hook Model (white-hat only) for engagement
@@ -454,15 +480,18 @@ Based on white-hat principles, **avoid these patterns:**
 ## 📝 Next Steps for UX Team
 
 1. **Review Design Docs:**
+
    - [BEHAVIORAL_DESIGN_STACK.md](./BEHAVIORAL_DESIGN_STACK.md)
    - [DESIGN_PRINCIPLES_WHITE_HAT.md](./DESIGN_PRINCIPLES_WHITE_HAT.md)
    - [P2PMENTOR_UX_UI_IMPROVEMENTS.md](./P2PMENTOR_UX_UI_IMPROVEMENTS.md)
 
 2. **Prioritize Improvements:**
+
    - Start with High Priority items (Progressive Disclosure, Smart Date/Time Picker, Dashboard Organization)
    - Consider user research/testing to validate assumptions
 
 3. **Create Design Specs:**
+
    - Detailed mockups for multi-step forms
    - Template library designs
    - Dashboard activity feed layout
@@ -493,18 +522,22 @@ Based on the improvements document and current state, here are the recommended n
 ### High Impact, Low Effort (Quick Wins)
 
 #### 1. Feedback Form Simplification ⭐ **RECOMMENDED NEXT**
+
 **Impact:** High | **Effort:** Low
 
 **Current State:**
+
 - Feedback form shows rating, notes, and technical DX feedback all at once
 - "Technical DX feedback" may be unclear to users
 
 **Implementation:**
+
 - Progressive disclosure: Rating (required) → Notes (optional) → Technical DX (optional, advanced)
 - One-click rating (allow submitting with just rating)
 - Template suggestions for notes (already implemented for meeting notes, extend to feedback)
 
 **Files to modify:**
+
 - `components/FeedbackModal.tsx`
 
 **Why now:** Low effort, high user satisfaction. Reduces friction in closing the feedback loop.
@@ -512,19 +545,23 @@ Based on the improvements document and current state, here are the recommended n
 ---
 
 #### 2. Template Libraries for Asks/Offers
+
 **Impact:** Medium | **Effort:** Medium
 
 **Current State:**
+
 - No templates or examples for creating asks/offers
 - Users start from scratch each time
 
 **Implementation:**
+
 - Create template library for asks ("Learning React hooks", "Need help with Solidity debugging")
 - Create template library for offers ("Teaching React", "Mentoring Solidity developers")
 - Allow one-click copy with edit capability
 - Store templates in `lib/templates/` or as constants
 
 **Files to modify:**
+
 - `app/asks/page.tsx`
 - `app/offers/page.tsx`
 - Create `lib/templates/asks.ts` and `lib/templates/offers.ts`
@@ -536,19 +573,23 @@ Based on the improvements document and current state, here are the recommended n
 ### High Impact, Medium Effort (Strategic)
 
 #### 3. Smart Date/Time Picker for Sessions
+
 **Impact:** High | **Effort:** High
 
 **Current State:**
+
 - Basic date/time input with 15-minute increment validation
 - Availability validation happens on submit (late feedback)
 
 **Implementation:**
+
 - Show only available slots if structured availability exists
 - Visual calendar with available times highlighted
 - Availability preview before date selection
 - Requires parsing `WeeklyAvailability` and filtering available slots
 
 **Files to modify:**
+
 - `components/RequestMeetingModal.tsx`
 - May need new component: `components/AvailabilityCalendar.tsx`
 
@@ -557,18 +598,22 @@ Based on the improvements document and current state, here are the recommended n
 ---
 
 #### 4. Dashboard Organization & Activity Feed
+
 **Impact:** High | **Effort:** High
 
 **Current State:**
+
 - Dashboard shows all links equally (no hierarchy)
 - No dynamic content or activity feed
 
 **Implementation:**
+
 - Group related features (Profile section, Activity section, Community section)
 - Add activity feed showing recent matches, session requests, etc.
 - Personalized recommendations based on user profile
 
 **Files to modify:**
+
 - `app/me/page.tsx`
 - May need new components: `components/ActivityFeed.tsx`, `components/DashboardSection.tsx`
 
@@ -579,18 +624,22 @@ Based on the improvements document and current state, here are the recommended n
 ### Medium Priority Enhancements
 
 #### 5. Real-time Social Proof Counters
+
 **Impact:** Medium | **Effort:** Low
 
 **Current State:**
+
 - ✅ Basic counters implemented (on page load)
 - Counters update only on page load
 
 **Implementation:**
+
 - Add polling every 30s to update counters
 - Add counters to dashboard and network page
 - "X mentors teaching" / "X people learning" counters
 
 **Files to modify:**
+
 - `app/asks/page.tsx`
 - `app/offers/page.tsx`
 - `app/me/page.tsx`
@@ -602,15 +651,14 @@ Based on the improvements document and current state, here are the recommended n
 
 ## 📊 Implementation Priority Matrix
 
-| Priority | Task | Impact | Effort | Status |
-|----------|------|--------|--------|--------|
-| 1 | Feedback Form Simplification | High | Low | ⭐ **NEXT** |
-| 2 | Template Libraries | Medium | Medium | Ready |
-| 3 | Real-time Counters | Medium | Low | Ready |
-| 4 | Smart Date/Time Picker | High | High | Needs UX Design |
-| 5 | Dashboard Organization | High | High | Needs UX Design |
+| Priority | Task                         | Impact | Effort | Status          |
+| -------- | ---------------------------- | ------ | ------ | --------------- |
+| 1        | Feedback Form Simplification | High   | Low    | ⭐ **NEXT**     |
+| 2        | Template Libraries           | Medium | Medium | Ready           |
+| 3        | Real-time Counters           | Medium | Low    | Ready           |
+| 4        | Smart Date/Time Picker       | High   | High   | Needs UX Design |
+| 5        | Dashboard Organization       | High   | High   | Needs UX Design |
 
 ---
 
 **Note:** This document is a living guide. Update as improvements are made and new opportunities are identified.
-

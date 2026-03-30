@@ -18,6 +18,7 @@ Enter some text below and generate its hash:
 [Interactive hash generator component will appear here]
 
 **Example:**
+
 - Input: "Hello, World!"
 - Hash (SHA-256): `dffd6021bb2bd5b0af676290809ec3a53191dd81c7f70a4b28688a362182986f`
 
@@ -37,6 +38,7 @@ Enter some text below and generate its hash:
 ## Practice
 
 Generate hashes for:
+
 1. Your name
 2. "Cryptography is cool"
 3. The same text twice (should get same hash!)

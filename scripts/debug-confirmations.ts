@@ -24,7 +24,8 @@ async function debugConfirmations() {
     console.log(`Learner confirmed (from session): ${session.learnerConfirmed}`);
 
     // Query confirmations directly
-    const confirmationsQuery = await publicClient.buildQuery()
+    const confirmationsQuery = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_confirmation'))
       .where(eq('sessionKey', session.key))
       .withAttributes(true)
@@ -56,19 +57,24 @@ async function debugConfirmations() {
         console.log(`    Confirmed by: ${confirmedBy}`);
         console.log(`    Mentor wallet: ${mentorWallet}`);
         console.log(`    Learner wallet: ${learnerWallet}`);
-        console.log(`    Matches mentor: ${confirmedBy?.toLowerCase() === session.mentorWallet?.toLowerCase()}`);
-        console.log(`    Matches learner: ${confirmedBy?.toLowerCase() === session.learnerWallet?.toLowerCase()}`);
+        console.log(
+          `    Matches mentor: ${confirmedBy?.toLowerCase() === session.mentorWallet?.toLowerCase()}`
+        );
+        console.log(
+          `    Matches learner: ${confirmedBy?.toLowerCase() === session.learnerWallet?.toLowerCase()}`
+        );
       });
     } else {
       console.log(`  No confirmations found!`);
-      
+
       // Check if there are any confirmations at all
-      const allConfirmations = await publicClient.buildQuery()
+      const allConfirmations = await publicClient
+        .buildQuery()
         .where(eq('type', 'session_confirmation'))
         .withAttributes(true)
         .limit(20)
         .fetch();
-      
+
       console.log(`\n  Total confirmations in system: ${allConfirmations.entities.length}`);
       if (allConfirmations.entities.length > 0) {
         console.log(`  Sample confirmation sessionKeys:`);
@@ -89,5 +95,3 @@ async function debugConfirmations() {
 }
 
 debugConfirmations().catch(console.error);
-
-

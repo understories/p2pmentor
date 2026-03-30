@@ -1,9 +1,9 @@
 /**
  * Passkey Registration Arkiv Write API
- * 
+ *
  * Creates auth_identity::passkey entity on Arkiv using the global Arkiv signing wallet.
  * This ensures Arkiv transactions are signed by the funded env wallet, not the passkey wallet.
- * 
+ *
  * POST /api/passkey/register/arkiv
  * Body: { wallet, credentialID, credentialPublicKey, counter, transports, deviceName }
  */
@@ -15,14 +15,7 @@ import { getPrivateKey, SPACE_ID } from '@/lib/config';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { 
-      wallet, 
-      credentialID, 
-      credentialPublicKey, 
-      counter, 
-      transports, 
-      deviceName 
-    } = body;
+    const { wallet, credentialID, credentialPublicKey, counter, transports, deviceName } = body;
 
     if (!wallet || !credentialID || !credentialPublicKey) {
       return NextResponse.json(
@@ -39,11 +32,12 @@ export async function POST(request: NextRequest) {
     const normalizedCredentialID = credentialID.trim();
 
     // Convert credentialPublicKey from array to Uint8Array if needed
-    const publicKeyBytes = credentialPublicKey instanceof Array
-      ? new Uint8Array(credentialPublicKey)
-      : credentialPublicKey instanceof Uint8Array
-      ? credentialPublicKey
-      : new Uint8Array(Object.values(credentialPublicKey));
+    const publicKeyBytes =
+      credentialPublicKey instanceof Array
+        ? new Uint8Array(credentialPublicKey)
+        : credentialPublicKey instanceof Uint8Array
+          ? credentialPublicKey
+          : new Uint8Array(Object.values(credentialPublicKey));
 
     // [PASSKEY][REGISTER][ARKIV_WRITE] - Log before Arkiv write
     console.log('[PASSKEY][REGISTER][ARKIV_WRITE]', {
@@ -89,7 +83,7 @@ export async function POST(request: NextRequest) {
       error: error?.message || String(error),
       stack: error?.stack,
     });
-    
+
     return NextResponse.json(
       { ok: false, error: error.message || 'Failed to create Arkiv passkey identity' },
       { status: 500 }

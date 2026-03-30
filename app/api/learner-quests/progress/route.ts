@@ -24,7 +24,10 @@ export async function GET(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -35,10 +38,7 @@ export async function GET(request: NextRequest) {
     const wallet = searchParams.get('wallet');
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'Wallet required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'Wallet required' }, { status: 400 });
     }
 
     const progress = await getLearnerQuestProgress({
@@ -55,4 +55,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

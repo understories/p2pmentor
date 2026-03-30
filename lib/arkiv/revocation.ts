@@ -1,17 +1,17 @@
 /**
  * Revocation Pattern Implementation
- * 
+ *
  * Implements PAT-REVOKE-001: Revocation via Marker Entities
- * 
+ *
  * Arkiv has no built-in revocation. To revoke grants, consent, invites, or any
  * capability-like entity, create a revocation marker entity that indicates the
  * original entity is revoked.
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { SPACE_ID, getPrivateKey } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { SPACE_ID, getPrivateKey } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type RevocationMarker = {
   key: string;
@@ -25,10 +25,10 @@ export type RevocationMarker = {
 
 /**
  * Create revocation marker entity
- * 
+ *
  * Creates a marker entity that indicates the original entity is revoked.
  * The marker references the original entity via entityKey.
- * 
+ *
  * @param originalType - Type of original entity (e.g., 'review_mode_grant')
  * @param entityKey - Key of entity to revoke
  * @param revokedBy - Wallet address that is revoking (normalized to lowercase)
@@ -104,9 +104,9 @@ export async function createRevocationMarker({
 
 /**
  * Check if an entity is revoked
- * 
+ *
  * Queries for a revocation marker for the given entity key.
- * 
+ *
  * @param originalType - Type of original entity (e.g., 'review_mode_grant')
  * @param entityKey - Key of entity to check
  * @param spaceId - Optional space ID (defaults to SPACE_ID)
@@ -126,7 +126,8 @@ export async function isEntityRevoked({
   const revocationType = `${originalType}_revocation`;
 
   try {
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', revocationType))
       .where(eq('entityKey', entityKey))
       .where(eq('spaceId', finalSpaceId))
@@ -151,4 +152,3 @@ export async function isEntityRevoked({
     return false;
   }
 }
-

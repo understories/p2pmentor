@@ -1,18 +1,23 @@
 /**
  * Offers CRUD helpers
- * 
+ *
  * "I am teaching" - users post what they can teach
- * 
+ *
  * Based on mentor-graph implementation.
- * 
+ *
  * Reference: refs/mentor-graph/src/arkiv/offers.ts
  */
 
-import { eq } from "@arkiv-network/sdk/query"
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client"
-import { handleTransactionWithTimeout } from "./transaction-utils"
-import { getAvailabilityByKey, type WeeklyAvailability, serializeWeeklyAvailability, validateWeeklyAvailability } from "./availability"
-import { SPACE_ID } from "@/lib/config"
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import {
+  getAvailabilityByKey,
+  type WeeklyAvailability,
+  serializeWeeklyAvailability,
+  validateWeeklyAvailability,
+} from './availability';
+import { SPACE_ID } from '@/lib/config';
 
 export const OFFER_TTL_SECONDS = 604800; // 1 week default
 
@@ -33,11 +38,11 @@ export type Offer = {
   paymentAddress?: string; // Payment receiving address (if paid)
   ttlSeconds: number;
   txHash?: string;
-}
+};
 
 /**
  * Create an offer (I am teaching)
- * 
+ *
  * @param data - Offer data
  * @param privateKey - Private key for signing
  * @returns Entity key and transaction hash
@@ -80,7 +85,10 @@ export async function createOffer({
   const createdAt = new Date().toISOString();
   // Use expiresIn if provided and valid, otherwise use default
   // Ensure ttl is always an integer (BigInt requirement)
-  const ttlRaw = (expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0) ? expiresIn : OFFER_TTL_SECONDS;
+  const ttlRaw =
+    expiresIn !== undefined && expiresIn !== null && typeof expiresIn === 'number' && expiresIn > 0
+      ? expiresIn
+      : OFFER_TTL_SECONDS;
   const ttl = Math.floor(ttlRaw);
 
   // Handle availabilityWindow: serialize WeeklyAvailability to JSON, or use string as-is
@@ -94,7 +102,8 @@ export async function createOffer({
     availabilityWindowString = serializeWeeklyAvailability(availabilityWindow);
   } else {
     // Legacy text format
-    availabilityWindowString = typeof availabilityWindow === 'string' ? availabilityWindow : String(availabilityWindow);
+    availabilityWindowString =
+      typeof availabilityWindow === 'string' ? availabilityWindow : String(availabilityWindow);
   }
 
   // Build attributes array
@@ -121,13 +130,15 @@ export async function createOffer({
 
   const result = await handleTransactionWithTimeout(async () => {
     return await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify({
-        message,
-        availabilityWindow: availabilityWindowString,
-        isPaid,
-        cost: cost || undefined,
-        paymentAddress: paymentAddress || undefined,
-      })),
+      payload: enc.encode(
+        JSON.stringify({
+          message,
+          availabilityWindow: availabilityWindowString,
+          isPaid,
+          cost: cost || undefined,
+          paymentAddress: paymentAddress || undefined,
+        })
+      ),
       contentType: 'application/json',
       attributes: attributesWithSigner,
       expiresIn: ttl,
@@ -150,21 +161,25 @@ export async function createOffer({
 
   // Create separate txhash entity (like mentor-graph)
   // Don't wait for this one - it's optional metadata
-  walletClient.createEntity({
-    payload: enc.encode(JSON.stringify({
-      txHash,
-    })),
-    contentType: 'application/json',
+  walletClient
+    .createEntity({
+      payload: enc.encode(
+        JSON.stringify({
+          txHash,
+        })
+      ),
+      contentType: 'application/json',
       attributes: [
         { key: 'type', value: 'offer_txhash' },
         { key: 'offerKey', value: entityKey },
         { key: 'wallet', value: wallet.toLowerCase() },
         { key: 'spaceId', value: spaceId },
-    ],
-    expiresIn: ttl,
-  }).catch((error: any) => {
-    console.warn('[createOffer] Failed to create offer_txhash entity:', error);
-  });
+      ],
+      expiresIn: ttl,
+    })
+    .catch((error: any) => {
+      console.warn('[createOffer] Failed to create offer_txhash entity:', error);
+    });
 
   // Create tx_event entity (non-blocking, best-effort)
   const { createTxEvent } = await import('./txEvent');
@@ -187,19 +202,25 @@ export async function createOffer({
 
 /**
  * List all active offers
- * 
+ *
  * @param params - Optional filters (skill, spaceId, spaceIds)
  * @returns Array of offers
  */
-export async function listOffers(params?: { skill?: string; spaceId?: string; spaceIds?: string[]; limit?: number; includeExpired?: boolean }): Promise<Offer[]> {
+export async function listOffers(params?: {
+  skill?: string;
+  spaceId?: string;
+  spaceIds?: string[];
+  limit?: number;
+  includeExpired?: boolean;
+}): Promise<Offer[]> {
   const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
-  
+
   try {
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500; // raise limit so expired/historical entries can be fetched
     let queryBuilder = query.where(eq('type', 'offer')).where(eq('status', 'active'));
-    
+
     // Support multiple spaceIds (builder mode) or single spaceId
     if (params?.spaceIds && params.spaceIds.length > 0) {
       // Query all, filter client-side (Arkiv doesn't support OR queries)
@@ -209,118 +230,132 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
       const spaceId = params?.spaceId || SPACE_ID;
       queryBuilder = queryBuilder.where(eq('spaceId', spaceId));
     }
-    
+
     let result: any = null;
     let txHashResult: any = null;
-    
+
     try {
       [result, txHashResult] = await Promise.all([
         queryBuilder.withAttributes(true).withPayload(true).limit(limit).fetch(),
-        publicClient.buildQuery()
+        publicClient
+          .buildQuery()
           .where(eq('type', 'offer_txhash'))
-        .withAttributes(true)
-        .withPayload(true)
-        .limit(limit)
+          .withAttributes(true)
+          .withPayload(true)
+          .limit(limit)
           .fetch(),
       ]);
     } catch (fetchError: any) {
       console.error('[listOffers] Arkiv query failed:', {
         message: fetchError?.message,
         stack: fetchError?.stack,
-        error: fetchError
+        error: fetchError,
       });
       return []; // Return empty array on query failure
     }
 
     // Defensive check: ensure result and entities exist
     if (!result || !result.entities || !Array.isArray(result.entities)) {
-      console.warn('[listOffers] Invalid result structure, returning empty array', { 
-        result: result ? { hasEntities: !!result.entities, entitiesType: typeof result.entities, entitiesIsArray: Array.isArray(result.entities) } : 'null/undefined'
+      console.warn('[listOffers] Invalid result structure, returning empty array', {
+        result: result
+          ? {
+              hasEntities: !!result.entities,
+              entitiesType: typeof result.entities,
+              entitiesIsArray: Array.isArray(result.entities),
+            }
+          : 'null/undefined',
       });
       return [];
     }
 
-  const txHashMap: Record<string, string> = {};
-  const txHashEntities = txHashResult?.entities || [];
-  txHashEntities.forEach((entity: any) => {
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
+    const txHashMap: Record<string, string> = {};
+    const txHashEntities = txHashResult?.entities || [];
+    txHashEntities.forEach((entity: any) => {
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
+      const offerKey = getAttr('offerKey');
+      if (offerKey) {
+        let payload: any = {};
+        try {
+          if (entity.payload) {
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
+            payload = JSON.parse(decoded);
+          }
+        } catch (e) {
+          console.error('Error decoding txHash payload:', e);
+        }
+        if (payload.txHash) {
+          txHashMap[offerKey] = payload.txHash;
+        }
       }
-      return String(attrs[key] || '');
-    };
-    const offerKey = getAttr('offerKey');
-    if (offerKey) {
+    });
+
+    let offers: Offer[] = (result.entities || []).map((entity: any): Offer => {
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
-        console.error('Error decoding txHash payload:', e);
+        console.error('Error decoding payload:', e);
       }
-      if (payload.txHash) {
-        txHashMap[offerKey] = payload.txHash;
-      }
-    }
-  });
 
-  let offers: Offer[] = (result.entities || []).map((entity: any): Offer => {
-    let payload: any = {};
-    try {
-      if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
-        payload = JSON.parse(decoded);
-      }
-    } catch (e) {
-      console.error('Error decoding payload:', e);
-    }
+      const attrs = entity.attributes || {};
+      const getAttr = (key: string): string => {
+        if (Array.isArray(attrs)) {
+          const attr = attrs.find((a: any) => a.key === key);
+          return String(attr?.value || '');
+        }
+        return String(attrs[key] || '');
+      };
 
-    const attrs = entity.attributes || {};
-    const getAttr = (key: string): string => {
-      if (Array.isArray(attrs)) {
-        const attr = attrs.find((a: any) => a.key === key);
-        return String(attr?.value || '');
-      }
-      return String(attrs[key] || '');
-    };
-    
-    // Get TTL from attributes (stored when created), fallback to default for backward compatibility
-    const ttlSecondsAttr = getAttr('ttlSeconds');
-    const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
-    
-    // Get skill_id if available (arkiv-native)
-    const skill_id = getAttr('skill_id') || undefined;
+      // Get TTL from attributes (stored when created), fallback to default for backward compatibility
+      const ttlSecondsAttr = getAttr('ttlSeconds');
+      const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
 
-    return {
-      key: entity.key,
-      wallet: getAttr('wallet') || payload.wallet || '',
-      skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
-      skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
-      spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
-      createdAt: getAttr('createdAt') || payload.createdAt || '',
-      status: getAttr('status') || payload.status || 'active',
-      message: payload.message || '',
-      availabilityWindow: payload.availabilityWindow || '',
-      availabilityKey: getAttr('availabilityKey') || undefined,
-      isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
-      cost: payload.cost || getAttr('cost') || undefined,
-      paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
-      ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
-      txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
-    };
-  });
+      // Get skill_id if available (arkiv-native)
+      const skill_id = getAttr('skill_id') || undefined;
+
+      return {
+        key: entity.key,
+        wallet: getAttr('wallet') || payload.wallet || '',
+        skill: getAttr('skill') || payload.skill || '', // Legacy: may be empty if only skill_id exists
+        skill_id: skill_id, // Arkiv-native: skill entity key (preferred)
+        spaceId: getAttr('spaceId') || payload.spaceId || SPACE_ID, // Use SPACE_ID from config as fallback (entities should always have spaceId)
+        createdAt: getAttr('createdAt') || payload.createdAt || '',
+        status: getAttr('status') || payload.status || 'active',
+        message: payload.message || '',
+        availabilityWindow: payload.availabilityWindow || '',
+        availabilityKey: getAttr('availabilityKey') || undefined,
+        isPaid: payload.isPaid === true || getAttr('isPaid') === 'true',
+        cost: payload.cost || getAttr('cost') || undefined,
+        paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
+        ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
+        txHash:
+          txHashMap[entity.key] ||
+          getAttr('txHash') ||
+          payload.txHash ||
+          (entity as any).txHash ||
+          undefined,
+      };
+    });
 
     // Filter by spaceIds client-side if multiple requested
     if (params?.spaceIds && params.spaceIds.length > 0) {
@@ -369,22 +404,25 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
     }
 
     // Record performance metrics
-    const durationMs = typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
+    const durationMs =
+      typeof performance !== 'undefined' ? performance.now() - startTime : Date.now() - startTime;
     const payloadBytes = JSON.stringify(offers).length;
-    
+
     // Record performance sample (async, don't block)
-    import('@/lib/metrics/perf').then(({ recordPerfSample }) => {
-      recordPerfSample({
-        source: 'arkiv',
-        operation: 'listOffers',
-        durationMs: Math.round(durationMs),
-        payloadBytes,
-        httpRequests: 2, // Two parallel queries: offers + txhashes
-        createdAt: new Date().toISOString(),
+    import('@/lib/metrics/perf')
+      .then(({ recordPerfSample }) => {
+        recordPerfSample({
+          source: 'arkiv',
+          operation: 'listOffers',
+          durationMs: Math.round(durationMs),
+          payloadBytes,
+          httpRequests: 2, // Two parallel queries: offers + txhashes
+          createdAt: new Date().toISOString(),
+        });
+      })
+      .catch(() => {
+        // Silently fail if metrics module not available
       });
-    }).catch(() => {
-      // Silently fail if metrics module not available
-    });
 
     return offers;
   } catch (error: any) {
@@ -393,7 +431,7 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
     console.error('[listOffers] Unexpected error, returning empty array:', {
       message: error?.message,
       stack: error?.stack,
-      error: error?.toString()
+      error: error?.toString(),
     });
     return [];
   }
@@ -401,30 +439,25 @@ export async function listOffers(params?: { skill?: string; spaceId?: string; sp
 
 /**
  * List offers for a specific wallet
- * 
+ *
  * @param wallet - Wallet address
  * @returns Array of offers for that wallet
  */
 export async function listOffersForWallet(wallet: string, spaceId?: string): Promise<Offer[]> {
   const publicClient = getPublicClient();
   const query = publicClient.buildQuery();
-  let queryBuilder = query
-    .where(eq('type', 'offer'))
-    .where(eq('wallet', wallet.toLowerCase()));
-  
+  let queryBuilder = query.where(eq('type', 'offer')).where(eq('wallet', wallet.toLowerCase()));
+
   // Use provided spaceId or default to SPACE_ID from config
   const finalSpaceId = spaceId || SPACE_ID;
   queryBuilder = queryBuilder.where(eq('spaceId', finalSpaceId));
-  
+
   const [result, txHashResult] = await Promise.all([
-    queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(100)
-      .fetch(),
-        publicClient.buildQuery()
-          .where(eq('type', 'offer_txhash'))
-          .where(eq('wallet', wallet.toLowerCase()))
+    queryBuilder.withAttributes(true).withPayload(true).limit(100).fetch(),
+    publicClient
+      .buildQuery()
+      .where(eq('type', 'offer_txhash'))
+      .where(eq('wallet', wallet.toLowerCase()))
       .withAttributes(true)
       .withPayload(true)
       .limit(100)
@@ -433,7 +466,9 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
 
   // Defensive check: ensure result and entities exist
   if (!result || !result.entities || !Array.isArray(result.entities)) {
-    console.warn('[listOffersForWallet] Invalid result structure, returning empty array', { result });
+    console.warn('[listOffersForWallet] Invalid result structure, returning empty array', {
+      result,
+    });
     return [];
   }
 
@@ -453,11 +488,12 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -473,11 +509,12 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -492,11 +529,11 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
       }
       return String(attrs[key] || '');
     };
-    
+
     // Get TTL from attributes (stored when created), fallback to default for backward compatibility
     const ttlSecondsAttr = getAttr('ttlSeconds');
     const ttlSeconds = ttlSecondsAttr ? parseInt(ttlSecondsAttr, 10) : OFFER_TTL_SECONDS;
-    
+
     // Get skill_id if available (arkiv-native)
     const skill_id = getAttr('skill_id') || undefined;
 
@@ -515,7 +552,12 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
       cost: payload.cost || getAttr('cost') || undefined,
       paymentAddress: payload.paymentAddress || getAttr('paymentAddress') || undefined,
       ttlSeconds: isNaN(ttlSeconds) ? OFFER_TTL_SECONDS : ttlSeconds, // Ensure valid number
-      txHash: txHashMap[entity.key] || getAttr('txHash') || payload.txHash || (entity as any).txHash || undefined,
+      txHash:
+        txHashMap[entity.key] ||
+        getAttr('txHash') ||
+        payload.txHash ||
+        (entity as any).txHash ||
+        undefined,
     };
   });
 
@@ -564,7 +606,8 @@ export async function listOffersForWallet(wallet: string, spaceId?: string): Pro
 export async function getOfferByKey(key: string): Promise<Offer | null> {
   try {
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'offer'))
       .where(eq('key', key))
       .withAttributes(true)
@@ -579,7 +622,8 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
     const entity = result.entities[0];
 
     // Fetch txHash
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'offer_txhash'))
       .where(eq('offerKey', key))
       .withAttributes(true)
@@ -588,15 +632,20 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
       .fetch();
 
     let txHash: string | undefined;
-    if (txHashResult?.entities && Array.isArray(txHashResult.entities) && txHashResult.entities.length > 0) {
+    if (
+      txHashResult?.entities &&
+      Array.isArray(txHashResult.entities) &&
+      txHashResult.entities.length > 0
+    ) {
       try {
         const txHashEntity = txHashResult.entities[0];
         if (txHashEntity.payload) {
-          const decoded = txHashEntity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(txHashEntity.payload)
-            : typeof txHashEntity.payload === 'string'
-            ? txHashEntity.payload
-            : JSON.stringify(txHashEntity.payload);
+          const decoded =
+            txHashEntity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(txHashEntity.payload)
+              : typeof txHashEntity.payload === 'string'
+                ? txHashEntity.payload
+                : JSON.stringify(txHashEntity.payload);
           const payload = JSON.parse(decoded);
           txHash = payload.txHash;
         }
@@ -617,11 +666,12 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -653,4 +703,3 @@ export async function getOfferByKey(key: string): Promise<Offer | null> {
     return null;
   }
 }
-

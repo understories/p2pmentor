@@ -1,6 +1,6 @@
 /**
  * Route Protection Component
- * 
+ *
  * Redirects to onboarding if user hasn't completed it.
  * Use this as a wrapper for protected routes.
  */
@@ -18,10 +18,10 @@ interface RouteProtectionProps {
   redirectTo?: string;
 }
 
-export function RouteProtection({ 
-  children, 
+export function RouteProtection({
+  children,
   requiredLevel = 0,
-  redirectTo = '/onboarding'
+  redirectTo = '/onboarding',
 }: RouteProtectionProps) {
   const router = useRouter();
   const [wallet, setWallet] = useState<string | null>(null);
@@ -50,9 +50,9 @@ export function RouteProtection({
 
   if (loading || !wallet) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-pulse text-2xl mb-4">🌱</div>
+          <div className="mb-4 animate-pulse text-2xl">🌱</div>
           <p className="text-gray-600 dark:text-gray-400">Loading...</p>
         </div>
       </div>

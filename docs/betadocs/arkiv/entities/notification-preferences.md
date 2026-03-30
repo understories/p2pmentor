@@ -23,25 +23,25 @@ Stores user notification preferences and read/unread state as Arkiv entities. Al
 
 ```typescript
 {
-  wallet: string;                  // Wallet address
-  notificationId: string;         // Notification ID
+  wallet: string; // Wallet address
+  notificationId: string; // Notification ID
   notificationType: NotificationPreferenceType;
-  read: boolean;                   // true = read, false = unread
-  archived: boolean;              // true = deleted/hidden
-  createdAt: string;               // ISO timestamp
-  updatedAt: string;              // ISO timestamp
+  read: boolean; // true = read, false = unread
+  archived: boolean; // true = deleted/hidden
+  createdAt: string; // ISO timestamp
+  updatedAt: string; // ISO timestamp
 }
 ```
 
 ## Notification Types
 
 ```typescript
-type NotificationPreferenceType = 
-  | 'meeting_request'      // Meeting/session request
-  | 'profile_match'        // Profile match notification
-  | 'ask_offer_match'      // Ask/offer match
-  | 'new_offer'            // New offer available
-  | 'admin_response';       // Admin response to feedback
+type NotificationPreferenceType =
+  | 'meeting_request' // Meeting/session request
+  | 'profile_match' // Profile match notification
+  | 'ask_offer_match' // Ask/offer match
+  | 'new_offer' // New offer available
+  | 'admin_response'; // Admin response to feedback
 ```
 
 ## Key Fields
@@ -59,11 +59,12 @@ type NotificationPreferenceType =
 ### Get Preferences for Wallet
 
 ```typescript
-import { eq, and } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq, and } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'notification_preference'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -71,16 +72,17 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const preferences = result.entities.map(e => ({
+const preferences = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
 ### Get Unread Notifications
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'notification_preference'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .withAttributes(true)
@@ -90,14 +92,15 @@ const result = await publicClient.buildQuery()
 
 // Filter client-side
 const unread = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(p => !p.read && !p.archived);
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((p) => !p.read && !p.archived);
 ```
 
 ### Get Preference for Notification
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'notification_preference'))
   .where(eq('wallet', walletAddress.toLowerCase()))
   .where(eq('notificationId', notificationId))
@@ -108,7 +111,7 @@ const result = await publicClient.buildQuery()
 
 // Get latest version
 const preference = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
   .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 ```
 
@@ -117,8 +120,8 @@ const preference = result.entities
 **Direct Key Updates (Recommended):** For optimal performance and to avoid race conditions, store the preference entity key client-side and pass it for direct updates:
 
 ```typescript
-import { upsertNotificationPreference } from "@/lib/arkiv/notificationPreferences";
-import { getPrefKey, setPrefKey } from "@/lib/notifications/prefKeyStore";
+import { upsertNotificationPreference } from '@/lib/arkiv/notificationPreferences';
+import { getPrefKey, setPrefKey } from '@/lib/notifications/prefKeyStore';
 
 // Get stored preference key (if exists)
 const preferenceKey = getPrefKey(spaceId, walletAddress.toLowerCase(), notificationId);
@@ -126,8 +129,8 @@ const preferenceKey = getPrefKey(spaceId, walletAddress.toLowerCase(), notificat
 // Update preference
 const { key, txHash } = await upsertNotificationPreference({
   wallet: walletAddress,
-  notificationId: "meeting_request_sessionKey123",
-  notificationType: "meeting_request",
+  notificationId: 'meeting_request_sessionKey123',
+  notificationType: 'meeting_request',
   read: false,
   archived: false,
   preferenceKey, // Direct update key (bypasses query-first pattern)
@@ -184,11 +187,11 @@ No separate `notification_preference_txhash` entity - transaction hash stored di
 ```typescript
 async function markAsRead(wallet: string, notificationId: string) {
   const current = await getNotificationPreference(wallet, notificationId);
-  
+
   if (!current || current.read) {
     return; // Already read or doesn't exist
   }
-  
+
   await upsertNotificationPreference({
     wallet,
     notificationId,
@@ -205,7 +208,7 @@ async function markAsRead(wallet: string, notificationId: string) {
 ```typescript
 async function getUnreadCount(wallet: string) {
   const preferences = await getNotificationPreferences(wallet);
-  return preferences.filter(p => !p.read && !p.archived).length;
+  return preferences.filter((p) => !p.read && !p.archived).length;
 }
 ```
 
@@ -225,4 +228,3 @@ async function getUnreadCount(wallet: string) {
 - **Read State**: Tracks read/unread state per notification
 - **Transaction History**: All updates create new immutable transactions, preserving full audit trail
 - **Race Condition Prevention**: Direct key updates eliminate read-modify-write race conditions that can occur with query-first patterns
-

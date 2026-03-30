@@ -9,16 +9,16 @@ Complete CRUD (Create, Read, Update, Delete) examples for common entity types.
 ### Create Profile
 
 ```typescript
-import { createProfile } from "@/lib/arkiv/profile";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createProfile } from '@/lib/arkiv/profile';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createProfile({
   wallet: walletAddress,
-  displayName: "Alice",
-  username: "alice",
-  bioShort: "Software engineer passionate about mentorship",
-  timezone: "America/New_York",
+  displayName: 'Alice',
+  username: 'alice',
+  bioShort: 'Software engineer passionate about mentorship',
+  timezone: 'America/New_York',
   skill_ids: [skill1.key, skill2.key],
   skillExpertise: {
     [skill1.key]: 4,
@@ -32,7 +32,7 @@ const { key, txHash } = await createProfile({
 ### Read Profile
 
 ```typescript
-import { getProfileByWallet } from "@/lib/arkiv/profile";
+import { getProfileByWallet } from '@/lib/arkiv/profile';
 
 const profile = await getProfileByWallet(walletAddress);
 if (profile) {
@@ -43,12 +43,12 @@ if (profile) {
 ### Update Profile
 
 ```typescript
-import { updateProfile } from "@/lib/arkiv/profile";
+import { updateProfile } from '@/lib/arkiv/profile';
 
 // Updates create new entity
 const updated = await updateProfile(walletAddress, {
-  displayName: "Alice Updated",
-  bioShort: "Updated bio",
+  displayName: 'Alice Updated',
+  bioShort: 'Updated bio',
   privateKey: userPrivateKey,
 });
 ```
@@ -56,7 +56,7 @@ const updated = await updateProfile(walletAddress, {
 ### List All Profiles
 
 ```typescript
-import { listUserProfiles } from "@/lib/arkiv/profile";
+import { listUserProfiles } from '@/lib/arkiv/profile';
 
 const profiles = await listUserProfiles({ limit: 100 });
 ```
@@ -66,14 +66,14 @@ const profiles = await listUserProfiles({ limit: 100 });
 ### Create Ask
 
 ```typescript
-import { createAsk } from "@/lib/arkiv/asks";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createAsk } from '@/lib/arkiv/asks';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createAsk({
   wallet: walletAddress,
   skill_id: spanishSkill.key,
-  message: "Looking for a Spanish conversation partner",
+  message: 'Looking for a Spanish conversation partner',
   expiresIn: 3600, // 1 hour
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
@@ -83,7 +83,7 @@ const { key, txHash } = await createAsk({
 ### Read Ask
 
 ```typescript
-import { getAskByKey } from "@/lib/arkiv/asks";
+import { getAskByKey } from '@/lib/arkiv/asks';
 
 const ask = await getAskByKey(askKey);
 ```
@@ -91,12 +91,12 @@ const ask = await getAskByKey(askKey);
 ### List Asks
 
 ```typescript
-import { listAsks } from "@/lib/arkiv/asks";
+import { listAsks } from '@/lib/arkiv/asks';
 
 // Get all active asks
-const asks = await listAsks({ 
+const asks = await listAsks({
   limit: 50,
-  includeExpired: false 
+  includeExpired: false,
 });
 
 // Get asks for specific skill
@@ -115,14 +115,14 @@ Asks expire automatically via TTL. To "delete" before expiration, create a new a
 ### Create Offer
 
 ```typescript
-import { createOffer } from "@/lib/arkiv/offers";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createOffer } from '@/lib/arkiv/offers';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createOffer({
   wallet: walletAddress,
   skill_id: javascriptSkill.key,
-  message: "I can help with JavaScript fundamentals",
+  message: 'I can help with JavaScript fundamentals',
   availabilityWindow: {
     version: '1.0',
     timeBlocks: [
@@ -140,7 +140,7 @@ const { key, txHash } = await createOffer({
 ### Read Offer
 
 ```typescript
-import { getOfferByKey } from "@/lib/arkiv/offers";
+import { getOfferByKey } from '@/lib/arkiv/offers';
 
 const offer = await getOfferByKey(offerKey);
 ```
@@ -148,12 +148,12 @@ const offer = await getOfferByKey(offerKey);
 ### List Offers
 
 ```typescript
-import { listOffers } from "@/lib/arkiv/offers";
+import { listOffers } from '@/lib/arkiv/offers';
 
 // Get all active offers
-const offers = await listOffers({ 
+const offers = await listOffers({
   limit: 50,
-  includeExpired: false 
+  includeExpired: false,
 });
 
 // Get offers for specific skill
@@ -168,17 +168,17 @@ const jsOffers = await listOffers({
 ### Create Session
 
 ```typescript
-import { createSession } from "@/lib/arkiv/sessions";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createSession } from '@/lib/arkiv/sessions';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createSession({
   mentorWallet: mentorWallet,
   learnerWallet: learnerWallet,
   skill_id: spanishSkill.key,
-  sessionDate: "2024-01-20T18:00:00Z",
+  sessionDate: '2024-01-20T18:00:00Z',
   duration: 60, // 60 minutes
-  notes: "First Spanish conversation session",
+  notes: 'First Spanish conversation session',
   requiresPayment: false,
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
@@ -188,7 +188,7 @@ const { key, txHash } = await createSession({
 ### Read Session
 
 ```typescript
-import { getSessionByKey } from "@/lib/arkiv/sessions";
+import { getSessionByKey } from '@/lib/arkiv/sessions';
 
 const session = await getSessionByKey(sessionKey);
 ```
@@ -196,7 +196,7 @@ const session = await getSessionByKey(sessionKey);
 ### List Sessions
 
 ```typescript
-import { listSessions } from "@/lib/arkiv/sessions";
+import { listSessions } from '@/lib/arkiv/sessions';
 
 // Get sessions for wallet
 const sessions = await listSessions({
@@ -205,13 +205,13 @@ const sessions = await listSessions({
 });
 
 // Get sessions by status
-const scheduledSessions = sessions.filter(s => s.status === 'scheduled');
+const scheduledSessions = sessions.filter((s) => s.status === 'scheduled');
 ```
 
 ### Update Session Status
 
 ```typescript
-import { confirmSession, rejectSession } from "@/lib/arkiv/sessions";
+import { confirmSession, rejectSession } from '@/lib/arkiv/sessions';
 
 // Confirm session
 await confirmSession({
@@ -233,8 +233,8 @@ await rejectSession({
 ### Create Feedback
 
 ```typescript
-import { createFeedback } from "@/lib/arkiv/feedback";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createFeedback } from '@/lib/arkiv/feedback';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createFeedback({
@@ -244,8 +244,8 @@ const { key, txHash } = await createFeedback({
   feedbackFrom: learnerWallet,
   feedbackTo: mentorWallet,
   rating: 5,
-  notes: "Great session! Very helpful.",
-  technicalDxFeedback: "The video quality was excellent",
+  notes: 'Great session! Very helpful.',
+  technicalDxFeedback: 'The video quality was excellent',
   privateKey: walletClient.account.privateKey,
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
 });
@@ -254,7 +254,7 @@ const { key, txHash } = await createFeedback({
 ### Read Feedback
 
 ```typescript
-import { getFeedbackByKey } from "@/lib/arkiv/feedback";
+import { getFeedbackByKey } from '@/lib/arkiv/feedback';
 
 const feedback = await getFeedbackByKey(feedbackKey);
 ```
@@ -262,13 +262,13 @@ const feedback = await getFeedbackByKey(feedbackKey);
 ### List Feedback
 
 ```typescript
-import { listFeedbackForWallet } from "@/lib/arkiv/feedback";
+import { listFeedbackForWallet } from '@/lib/arkiv/feedback';
 
 // Get feedback for wallet
 const feedbacks = await listFeedbackForWallet(walletAddress);
 
 // Get feedback for session
-import { listFeedbackForSession } from "@/lib/arkiv/feedback";
+import { listFeedbackForSession } from '@/lib/arkiv/feedback';
 const sessionFeedbacks = await listFeedbackForSession(sessionKey);
 ```
 
@@ -277,13 +277,13 @@ const sessionFeedbacks = await listFeedbackForSession(sessionKey);
 ### Create Availability
 
 ```typescript
-import { createAvailability } from "@/lib/arkiv/availability";
-import { getWalletClientFromMetaMask } from "@/lib/arkiv/client";
+import { createAvailability } from '@/lib/arkiv/availability';
+import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 
 const walletClient = await getWalletClientFromMetaMask();
 const { key, txHash } = await createAvailability({
   wallet: walletAddress,
-  timezone: "America/New_York",
+  timezone: 'America/New_York',
   timeBlocks: {
     version: '1.0',
     timeBlocks: [
@@ -300,7 +300,7 @@ const { key, txHash } = await createAvailability({
 ### Read Availability
 
 ```typescript
-import { getAvailabilityByWallet } from "@/lib/arkiv/availability";
+import { getAvailabilityByWallet } from '@/lib/arkiv/availability';
 
 const availability = await getAvailabilityByWallet(walletAddress);
 ```
@@ -308,7 +308,7 @@ const availability = await getAvailabilityByWallet(walletAddress);
 ### Delete Availability
 
 ```typescript
-import { deleteAvailability } from "@/lib/arkiv/availability";
+import { deleteAvailability } from '@/lib/arkiv/availability';
 
 await deleteAvailability({
   availabilityKey: availability.key,
@@ -322,13 +322,13 @@ await deleteAvailability({
 ### Create Skill
 
 ```typescript
-import { createSkill } from "@/lib/arkiv/skill";
-import { getPrivateKey } from "@/lib/config";
+import { createSkill } from '@/lib/arkiv/skill';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createSkill({
-  name_canonical: "TypeScript",
-  slug: "typescript",
-  status: "active",
+  name_canonical: 'TypeScript',
+  slug: 'typescript',
+  status: 'active',
   created_by_profile: walletAddress,
   privateKey: getPrivateKey(),
   spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
@@ -338,7 +338,7 @@ const { key, txHash } = await createSkill({
 ### Read Skill
 
 ```typescript
-import { getSkillByKey } from "@/lib/arkiv/skill";
+import { getSkillByKey } from '@/lib/arkiv/skill';
 
 const skill = await getSkillByKey(skillKey);
 ```
@@ -346,9 +346,8 @@ const skill = await getSkillByKey(skillKey);
 ### List Skills
 
 ```typescript
-import { listSkills } from "@/lib/arkiv/skill";
+import { listSkills } from '@/lib/arkiv/skill';
 
 // Get all active skills
 const skills = await listSkills({ status: 'active', limit: 100 });
 ```
-

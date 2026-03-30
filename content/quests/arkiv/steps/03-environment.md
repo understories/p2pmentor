@@ -3,6 +3,7 @@
 ## What Are Environment Variables?
 
 Environment variables store configuration that shouldn't be committed to version control. For Arkiv apps, you need:
+
 - **Space ID** - Which Arkiv space to use
 - **Private Key** - For signing transactions (server-side)
 
@@ -26,6 +27,7 @@ ARKIV_PRIVATE_KEY=your_private_key_here
 ### Getting Your Space ID
 
 For testing, you can use:
+
 - `beta-launch` - Public testnet space
 - `local-dev` - Local development space (if running local node)
 
@@ -34,6 +36,7 @@ For testing, you can use:
 **Important:** Never commit your private key to git!
 
 1. Generate a new private key for testing:
+
    ```bash
    node -e "console.log('0x' + require('crypto').randomBytes(32).toString('hex'))"
    ```

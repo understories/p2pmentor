@@ -11,10 +11,7 @@ import { getTransactionMetadata, getExplorerTxUrl } from '@/lib/explorer/txMeta'
 import { checkRateLimit } from '@/lib/explorer/rateLimit';
 import type { Provenance } from '@/lib/explorer/types';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ key: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ key: string }> }) {
   // Rate limiting
   const rateLimit = checkRateLimit(request);
   if (!rateLimit.allowed) {
@@ -47,10 +44,7 @@ export async function GET(
     const ask = await getAskByKey(decodedKey);
     if (!ask) {
       console.error('[explorer/ask] Ask not found:', { key: decodedKey, originalKey: key });
-      return NextResponse.json(
-        { ok: false, error: 'Ask not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ ok: false, error: 'Ask not found' }, { status: 404 });
     }
 
     // Serialize to public format
@@ -100,4 +94,3 @@ export async function GET(
     );
   }
 }
-

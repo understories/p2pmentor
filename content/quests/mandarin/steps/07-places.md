@@ -13,6 +13,7 @@ Each card shows a place name. Practice saying where you go and what you do at ea
 ## Common Places
 
 You'll learn:
+
 - **Education**: school, library
 - **Services**: store, hospital, bank, restaurant
 - **Recreation**: park

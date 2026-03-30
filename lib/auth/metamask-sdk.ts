@@ -23,14 +23,20 @@ export function getMetaMaskSDK(): MetaMaskSDK {
   }
 
   if (!sdkInstance) {
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.p2pmentor.com';
+    const origin =
+      typeof window !== 'undefined' ? window.location.origin : 'https://www.p2pmentor.com';
     const currentUrl = typeof window !== 'undefined' ? window.location.href : `${origin}/auth`;
 
     console.log('[MetaMask SDK] Initializing SDK', {
       origin,
       currentUrl,
       userAgent: typeof window !== 'undefined' ? window.navigator.userAgent : 'N/A',
-      isMobile: typeof window !== 'undefined' ? /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(window.navigator.userAgent.toLowerCase()) : false,
+      isMobile:
+        typeof window !== 'undefined'
+          ? /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+              window.navigator.userAgent.toLowerCase()
+            )
+          : false,
     });
 
     sdkInstance = new MetaMaskSDK({
@@ -73,14 +79,16 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
 
     console.log('[MetaMask SDK] Provider check', {
       hasProvider: !!provider,
-      providerType: provider ? (provider as any).isMetaMask ? 'MetaMask' : 'Other' : 'None',
+      providerType: provider ? ((provider as any).isMetaMask ? 'MetaMask' : 'Other') : 'None',
       hasWindowEthereum: typeof window !== 'undefined' && !!window.ethereum,
     });
 
     // If SDK provider is not available but window.ethereum exists, use window.ethereum directly
     // This handles cases where SDK is initialized but provider is not properly connected
     if (!provider && typeof window !== 'undefined' && window.ethereum) {
-      console.warn('[MetaMask SDK] SDK provider not available, but window.ethereum exists - SDK may not be needed');
+      console.warn(
+        '[MetaMask SDK] SDK provider not available, but window.ethereum exists - SDK may not be needed'
+      );
       throw new Error('MetaMask SDK provider not available, will fallback to window.ethereum');
     }
 
@@ -102,13 +110,15 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
     // 3. MetaMask redirects back to the browser with the connection
     // 4. SDK handles the redirect and completes the connection
     console.log('[MetaMask SDK] Requesting accounts via provider.request');
-    const accounts = await provider.request({
+    const accounts = (await provider.request({
       method: 'eth_requestAccounts',
-    }) as string[];
+    })) as string[];
 
     console.log('[MetaMask SDK] Accounts received', {
       count: accounts?.length || 0,
-      firstAccount: accounts?.[0] ? `${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}` : 'None',
+      firstAccount: accounts?.[0]
+        ? `${accounts[0].substring(0, 6)}...${accounts[0].substring(accounts[0].length - 4)}`
+        : 'None',
     });
 
     if (!accounts || accounts.length === 0) {
@@ -127,11 +137,19 @@ export async function connectWithSDK(): Promise<`0x${string}`> {
     });
 
     // Re-throw with more context
-    if (error?.code === 4001 || error?.message?.includes('User rejected') || error?.message?.includes('user rejected')) {
+    if (
+      error?.code === 4001 ||
+      error?.message?.includes('User rejected') ||
+      error?.message?.includes('user rejected')
+    ) {
       throw new Error('Connection cancelled by user');
     }
     // If SDK provider issue but window.ethereum exists, throw a specific error that triggers fallback
-    if (error?.message?.includes('SDK provider not available') && typeof window !== 'undefined' && window.ethereum) {
+    if (
+      error?.message?.includes('SDK provider not available') &&
+      typeof window !== 'undefined' &&
+      window.ethereum
+    ) {
       throw error; // Re-throw to trigger fallback in connectWallet
     }
     if (error?.message) {
@@ -155,4 +173,3 @@ export function isSDKAvailable(): boolean {
     return false;
   }
 }
-

@@ -3,6 +3,7 @@
 ## What is a Digital Signature?
 
 A digital signature proves:
+
 1. **Authenticity:** The message came from the signer
 2. **Integrity:** The message wasn't modified
 3. **Non-repudiation:** The signer can't deny signing it
@@ -18,6 +19,7 @@ A digital signature proves:
 ## Analogy
 
 Think of it like a wax seal on a letter:
+
 - **Private key** = Your unique seal stamp
 - **Public key** = Everyone can verify the seal is yours
 - **Signature** = The seal impression

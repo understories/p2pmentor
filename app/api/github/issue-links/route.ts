@@ -1,6 +1,6 @@
 /**
  * GitHub Issue Links API route
- * 
+ *
  * Lists GitHub issue links for feedback entities.
  */
 
@@ -9,7 +9,7 @@ import { listGitHubIssueLinks } from '@/lib/arkiv/githubIssueLink';
 
 /**
  * GET /api/github/issue-links
- * 
+ *
  * List GitHub issue links
  * Query params: feedbackKey
  */

@@ -6,7 +6,7 @@
  * Reference: refs/mentor-graph/src/config.ts
  */
 
-import { privateKeyToAccount } from "@arkiv-network/sdk/accounts"
+import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
 
 export const ARKIV_PRIVATE_KEY = process.env.ARKIV_PRIVATE_KEY as `0x${string}` | undefined;
 
@@ -29,7 +29,8 @@ export const CURRENT_WALLET = ARKIV_PRIVATE_KEY
  * Can be overridden via BETA_SPACE_ID environment variable.
  * Defaults to 'beta-launch' in production, 'local-dev' in development.
  */
-export const SPACE_ID = process.env.BETA_SPACE_ID ||
+export const SPACE_ID =
+  process.env.BETA_SPACE_ID ||
   (process.env.NODE_ENV === 'production' ? 'beta-launch' : 'local-dev');
 
 // Jitsi configuration
@@ -127,12 +128,16 @@ export function markWalletMigrated(wallet: string): void {
  */
 export function getPrivateKey(): `0x${string}` {
   if (!ARKIV_PRIVATE_KEY) {
-    throw new Error("ARKIV_PRIVATE_KEY missing in environment. Required for server-side entity creation.");
+    throw new Error(
+      'ARKIV_PRIVATE_KEY missing in environment. Required for server-side entity creation.'
+    );
   }
 
   // Safety check: Ensure this looks like a private key (64 hex chars after 0x)
   if (!ARKIV_PRIVATE_KEY.startsWith('0x') || ARKIV_PRIVATE_KEY.length !== 66) {
-    throw new Error("ARKIV_PRIVATE_KEY appears to be invalid. Expected 0x followed by 64 hex characters.");
+    throw new Error(
+      'ARKIV_PRIVATE_KEY appears to be invalid. Expected 0x followed by 64 hex characters.'
+    );
   }
 
   return ARKIV_PRIVATE_KEY;
@@ -140,13 +145,12 @@ export function getPrivateKey(): `0x${string}` {
 
 /**
  * Admin wallet address for admin notifications and identity
- * 
+ *
  * Defaults to the address derived from ARKIV_PRIVATE_KEY (signing wallet).
  * Can be overridden via ADMIN_WALLET_ADDRESS environment variable.
- * 
+ *
  * This ensures all admins see the same notifications regardless of
  * which admin is logged into the dashboard.
  */
 export const ADMIN_WALLET_ADDRESS = process.env.ADMIN_WALLET_ADDRESS as `0x${string}` | undefined;
 export const ADMIN_WALLET = ADMIN_WALLET_ADDRESS || CURRENT_WALLET;
-

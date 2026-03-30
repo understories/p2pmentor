@@ -12,16 +12,16 @@ type: 'notification'
 
 ## Attributes
 
-| Attribute | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `type` | string | Yes | Always `'notification'` |
-| `wallet` | string | Yes | Recipient wallet address (lowercase) |
-| `notificationType` | string | Yes | Type of notification: `'meeting_request'`, `'profile_match'`, `'ask_offer_match'`, `'new_offer'`, `'admin_response'`, `'issue_resolved'`, `'app_feedback_submitted'` |
-| `sourceEntityType` | string | Yes | Type of source entity: `'session'`, `'ask'`, `'offer'`, `'user_profile'`, `'admin_response'`, `'app_feedback'` |
-| `sourceEntityKey` | string | Yes | Key of the source entity that triggered this notification |
-| `status` | string | Yes | `'active'` or `'archived'` (for soft delete) |
-| `spaceId` | string | Yes | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| `createdAt` | string | Yes | ISO timestamp when notification was created |
+| Attribute          | Type   | Required | Description                                                                                                                                                          |
+| ------------------ | ------ | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`             | string | Yes      | Always `'notification'`                                                                                                                                              |
+| `wallet`           | string | Yes      | Recipient wallet address (lowercase)                                                                                                                                 |
+| `notificationType` | string | Yes      | Type of notification: `'meeting_request'`, `'profile_match'`, `'ask_offer_match'`, `'new_offer'`, `'admin_response'`, `'issue_resolved'`, `'app_feedback_submitted'` |
+| `sourceEntityType` | string | Yes      | Type of source entity: `'session'`, `'ask'`, `'offer'`, `'user_profile'`, `'admin_response'`, `'app_feedback'`                                                       |
+| `sourceEntityKey`  | string | Yes      | Key of the source entity that triggered this notification                                                                                                            |
+| `status`           | string | Yes      | `'active'` or `'archived'` (for soft delete)                                                                                                                         |
+| `spaceId`          | string | Yes      | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)                                                           |
+| `createdAt`        | string | Yes      | ISO timestamp when notification was created                                                                                                                          |
 
 ## Payload
 
@@ -41,6 +41,7 @@ The payload is a JSON object with the following structure:
 ## Related Entities
 
 - **`notification_txhash`**: Stores transaction hash for reliable querying
+
   - Attributes: `type: 'notification_txhash'`, `notificationKey`, `wallet`, `spaceId`
   - Payload: `{ txHash: string }`
 
@@ -120,9 +121,7 @@ await createNotification({
   sourceEntityType: 'admin_response',
   sourceEntityKey: responseKey,
   title: 'Admin Response',
-  message: message.trim().length > 100 
-    ? message.trim().substring(0, 100) + '...' 
-    : message.trim(),
+  message: message.trim().length > 100 ? message.trim().substring(0, 100) + '...' : message.trim(),
   link: '/notifications',
   metadata: {
     feedbackKey,
@@ -149,9 +148,10 @@ await createNotification({
   sourceEntityType: 'app_feedback',
   sourceEntityKey: feedbackKey,
   title: feedbackType === 'issue' ? 'New Issue Reported' : 'New Feedback Submitted',
-  message: message.trim().length > 100 
-    ? message.trim().substring(0, 100) + '...' 
-    : message.trim() || `Rating: ${rating}/5`,
+  message:
+    message.trim().length > 100
+      ? message.trim().substring(0, 100) + '...'
+      : message.trim() || `Rating: ${rating}/5`,
   link: '/admin/feedback',
   metadata: {
     feedbackKey,
@@ -193,15 +193,15 @@ await createNotification({
 
 ## Notification Types
 
-| Type | Description | Source Entity | When Created |
-|------|-------------|--------------|--------------|
-| `meeting_request` | New session/meeting request | `session` | When session is created with status='pending' |
-| `profile_match` | Profile match found | `user_profile` | When new profile matches user's interests (future) |
-| `ask_offer_match` | Ask/offer match found | `ask` or `offer` | When ask/offer matches user's asks/offers (future) |
-| `new_offer` | New offer available | `offer` | When new offer is created (future) |
-| `admin_response` | Admin responded to feedback | `admin_response` | When admin_response entity is created |
-| `app_feedback_submitted` | User submitted feedback/issue | `app_feedback` | When app_feedback entity is created |
-| `issue_resolved` | Reported issue resolved | `app_feedback` | When app_feedback is marked as resolved |
+| Type                     | Description                   | Source Entity    | When Created                                       |
+| ------------------------ | ----------------------------- | ---------------- | -------------------------------------------------- |
+| `meeting_request`        | New session/meeting request   | `session`        | When session is created with status='pending'      |
+| `profile_match`          | Profile match found           | `user_profile`   | When new profile matches user's interests (future) |
+| `ask_offer_match`        | Ask/offer match found         | `ask` or `offer` | When ask/offer matches user's asks/offers (future) |
+| `new_offer`              | New offer available           | `offer`          | When new offer is created (future)                 |
+| `admin_response`         | Admin responded to feedback   | `admin_response` | When admin_response entity is created              |
+| `app_feedback_submitted` | User submitted feedback/issue | `app_feedback`   | When app_feedback entity is created                |
+| `issue_resolved`         | Reported issue resolved       | `app_feedback`   | When app_feedback is marked as resolved            |
 
 ## Archiving (Soft Delete)
 
@@ -242,12 +242,14 @@ Notifications use a 1-year TTL (31536000 seconds) for beta. This effectively mak
 The Arkiv-native notification system replaces the previous client-side detection approach:
 
 **Before (Client-Side Detection)**:
+
 - Notifications detected client-side from raw data (sessions, asks, offers)
 - Detection logic runs on every poll
 - Refs stored in memory (lost on remount)
 - Read state stored in `notification_preference` entities
 
 **After (Arkiv-Native)**:
+
 - Notifications created server-side when events occur
 - Notifications queried directly from Arkiv entities
 - No client-side detection logic needed
@@ -264,4 +266,3 @@ The Arkiv-native notification system replaces the previous client-side detection
   - `lib/arkiv/sessions.ts` (meeting requests)
   - `lib/arkiv/adminResponse.ts` (admin responses)
   - `lib/arkiv/appFeedback.ts` (feedback submissions and issue resolutions)
-

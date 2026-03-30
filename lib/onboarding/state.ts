@@ -1,6 +1,6 @@
 /**
  * Onboarding State Calculation
- * 
+ *
  * Derives onboarding progress from Arkiv entities (no new entity type).
  * Follows Arkiv-native patterns and immutability principles.
  */
@@ -14,19 +14,19 @@ import { listOnboardingEvents } from '@/lib/arkiv/onboardingEvent';
 
 /**
  * Calculate onboarding level from Arkiv entities
- * 
+ *
  * Levels:
  * 0: No profile created
  * 1: Profile created (with or without skills) - allows dashboard access
  * 2: ≥1 Ask OR Offer created
  * 3: Network explored once
  * 4: Joined ≥1 community
- * 
+ *
  * Note: Level 1 is granted if profile exists, regardless of skills.
  * This ensures users with profiles can access the dashboard even if
  * they haven't added skills yet. Skills are encouraged but not required
  * for basic dashboard access.
- * 
+ *
  * @param wallet - Profile wallet address (from localStorage 'wallet_address')
  *                 This is the wallet address used as the 'wallet' attribute on entities.
  *                 The global Arkiv signing wallet (from ARKIV_PRIVATE_KEY) signs transactions,
@@ -55,8 +55,8 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
       listOffers({ limit: 100 }).catch(() => []),
     ]);
     // Filter by wallet (listAsks/listOffers don't have wallet filter in params)
-    const asks = allAsks.filter(a => a.wallet.toLowerCase() === wallet.toLowerCase());
-    const offers = allOffers.filter(o => o.wallet.toLowerCase() === wallet.toLowerCase());
+    const asks = allAsks.filter((a) => a.wallet.toLowerCase() === wallet.toLowerCase());
+    const offers = allOffers.filter((o) => o.wallet.toLowerCase() === wallet.toLowerCase());
     const hasAskOrOffer = (asks && asks.length > 0) || (offers && offers.length > 0);
     if (!hasAskOrOffer) {
       return 1; // Has skills but no asks/offers - still level 1
@@ -104,7 +104,7 @@ export async function calculateOnboardingLevel(wallet: string): Promise<Onboardi
 
 /**
  * Check if onboarding is complete
- * 
+ *
  * @param wallet - Wallet address
  * @returns True if onboarding is complete (level 2 = ask or offer created)
  * Note: Network and community steps are optional, not required for completion
@@ -118,7 +118,7 @@ export async function isOnboardingComplete(wallet: string): Promise<boolean> {
 
 /**
  * Get detailed onboarding progress
- * 
+ *
  * @param wallet - Wallet address
  * @returns Onboarding progress details
  */
@@ -150,8 +150,8 @@ export async function getOnboardingProgress(wallet: string): Promise<OnboardingP
     listOffers({ limit: 100 }).catch(() => []),
   ]);
   // Filter by wallet
-  const asks = allAsks.filter(a => a.wallet.toLowerCase() === wallet.toLowerCase());
-  const offers = allOffers.filter(o => o.wallet.toLowerCase() === wallet.toLowerCase());
+  const asks = allAsks.filter((a) => a.wallet.toLowerCase() === wallet.toLowerCase());
+  const offers = allOffers.filter((o) => o.wallet.toLowerCase() === wallet.toLowerCase());
   if ((asks && asks.length > 0) || (offers && offers.length > 0)) {
     completedSteps.push('ask_or_offer');
   } else {

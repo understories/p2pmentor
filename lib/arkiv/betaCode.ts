@@ -5,10 +5,10 @@
  * Each beta code has a usage limit (e.g., 50 uses).
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { getPrivateKey, SPACE_ID } from "@/lib/config";
-import { handleTransactionWithTimeout } from "./transaction-utils";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { getPrivateKey, SPACE_ID } from '@/lib/config';
+import { handleTransactionWithTimeout } from './transaction-utils';
 
 export type BetaCodeUsage = {
   key: string;
@@ -43,13 +43,19 @@ export async function trackBetaCodeUsage(
   if (existing) {
     // CRITICAL: Enforce limit before incrementing (Arkiv-native, prevents race conditions)
     if (existing.usageCount >= existing.limit) {
-      console.error(`[trackBetaCodeUsage] Beta code "${normalizedCode}" limit exceeded: ${existing.usageCount}/${existing.limit}`);
-      throw new Error(`Beta code "${normalizedCode}" has reached its usage limit (${existing.usageCount}/${existing.limit}). Cannot track additional usage.`);
+      console.error(
+        `[trackBetaCodeUsage] Beta code "${normalizedCode}" limit exceeded: ${existing.usageCount}/${existing.limit}`
+      );
+      throw new Error(
+        `Beta code "${normalizedCode}" has reached its usage limit (${existing.usageCount}/${existing.limit}). Cannot track additional usage.`
+      );
     }
 
     // Update usage count
     const newUsageCount = existing.usageCount + 1;
-    console.log(`[trackBetaCodeUsage] Incrementing beta code "${normalizedCode}": ${existing.usageCount} -> ${newUsageCount} (limit: ${existing.limit})`);
+    console.log(
+      `[trackBetaCodeUsage] Incrementing beta code "${normalizedCode}": ${existing.usageCount} -> ${newUsageCount} (limit: ${existing.limit})`
+    );
     const payload = {
       code: normalizedCode,
       usageCount: newUsageCount,
@@ -145,22 +151,22 @@ export async function trackBetaCodeUsage(
  * @param code - Beta code string
  * @returns Beta code usage entity or null
  */
-export async function getBetaCodeUsage(code: string, spaceId?: string): Promise<BetaCodeUsage | null> {
+export async function getBetaCodeUsage(
+  code: string,
+  spaceId?: string
+): Promise<BetaCodeUsage | null> {
   const publicClient = getPublicClient();
   const normalizedCode = code.toLowerCase().trim();
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'beta_code_usage'))
       .where(eq('code', normalizedCode))
       .where(eq('spaceId', finalSpaceId));
 
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .limit(1)
-      .fetch();
+    const result = await queryBuilder.withAttributes(true).withPayload(true).limit(1).fetch();
 
     if (!result?.entities || result.entities.length === 0) {
       return null;
@@ -170,11 +176,12 @@ export async function getBetaCodeUsage(code: string, spaceId?: string): Promise<
     let payload: any = {};
     try {
       if (entity.payload) {
-        const decoded = entity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(entity.payload)
-          : typeof entity.payload === 'string'
-          ? entity.payload
-          : JSON.stringify(entity.payload);
+        const decoded =
+          entity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(entity.payload)
+            : typeof entity.payload === 'string'
+              ? entity.payload
+              : JSON.stringify(entity.payload);
         payload = JSON.parse(decoded);
       }
     } catch (e) {
@@ -191,7 +198,8 @@ export async function getBetaCodeUsage(code: string, spaceId?: string): Promise<
     };
 
     // Get txHash
-    const txHashResult = await publicClient.buildQuery()
+    const txHashResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'beta_code_usage_txhash'))
       .where(eq('betaCodeKey', entity.key))
       .where(eq('spaceId', finalSpaceId))
@@ -204,11 +212,12 @@ export async function getBetaCodeUsage(code: string, spaceId?: string): Promise<
     if (txHashResult.entities.length > 0) {
       try {
         const txHashEntity = txHashResult.entities[0];
-        const txHashPayload = txHashEntity.payload instanceof Uint8Array
-          ? new TextDecoder().decode(txHashEntity.payload)
-          : typeof txHashEntity.payload === 'string'
-          ? txHashEntity.payload
-          : JSON.stringify(txHashEntity.payload);
+        const txHashPayload =
+          txHashEntity.payload instanceof Uint8Array
+            ? new TextDecoder().decode(txHashEntity.payload)
+            : typeof txHashEntity.payload === 'string'
+              ? txHashEntity.payload
+              : JSON.stringify(txHashEntity.payload);
         const decoded = JSON.parse(txHashPayload);
         txHash = decoded.txHash;
       } catch (e) {
@@ -246,7 +255,7 @@ export async function canUseBetaCode(code: string, spaceId?: string): Promise<bo
   // Check actual unique wallet count (source of truth)
   const { listBetaAccessByCode } = await import('./betaAccess');
   const accessRecords = await listBetaAccessByCode(code, spaceId);
-  const uniqueWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+  const uniqueWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
   return uniqueWalletCount < limit;
 }
@@ -268,7 +277,7 @@ export async function syncBetaCodeUsageCount(code: string, spaceId?: string): Pr
   // Get actual unique wallet count from beta_access entities (source of truth)
   const { listBetaAccessByCode } = await import('./betaAccess');
   const accessRecords = await listBetaAccessByCode(normalizedCode, finalSpaceId);
-  const actualWalletCount = new Set(accessRecords.map(a => a.wallet.toLowerCase())).size;
+  const actualWalletCount = new Set(accessRecords.map((a) => a.wallet.toLowerCase())).size;
 
   // Get current usage entity
   const existing = await getBetaCodeUsage(normalizedCode, finalSpaceId);
@@ -276,7 +285,9 @@ export async function syncBetaCodeUsageCount(code: string, spaceId?: string): Pr
 
   // If usageCount doesn't match actual wallet count, update it
   if (!existing || existing.usageCount !== actualWalletCount) {
-    console.log(`[syncBetaCodeUsageCount] Syncing "${normalizedCode}": usageCount ${existing?.usageCount || 0} -> ${actualWalletCount} (actual wallets)`);
+    console.log(
+      `[syncBetaCodeUsageCount] Syncing "${normalizedCode}": usageCount ${existing?.usageCount || 0} -> ${actualWalletCount} (actual wallets)`
+    );
 
     // Create new entity with correct usageCount
     const privateKey = getPrivateKey();
@@ -343,7 +354,8 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
   const finalSpaceId = spaceId || SPACE_ID;
 
   try {
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'beta_code_usage'))
       .where(eq('spaceId', finalSpaceId))
       .withAttributes(true)
@@ -360,11 +372,12 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -414,11 +427,12 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
     }
 
     // Get txHashes for all entities
-    const allKeys = Array.from(codeMap.values()).map(u => u.key);
+    const allKeys = Array.from(codeMap.values()).map((u) => u.key);
     const txHashResults = await Promise.all(
       allKeys.map(async (key) => {
         try {
-          const txHashResult = await publicClient.buildQuery()
+          const txHashResult = await publicClient
+            .buildQuery()
             .where(eq('type', 'beta_code_usage_txhash'))
             .where(eq('betaCodeKey', key))
             .where(eq('spaceId', finalSpaceId))
@@ -430,11 +444,12 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
           if (txHashResult.entities.length > 0) {
             try {
               const txHashEntity = txHashResult.entities[0];
-              const txHashPayload = txHashEntity.payload instanceof Uint8Array
-                ? new TextDecoder().decode(txHashEntity.payload)
-                : typeof txHashEntity.payload === 'string'
-                ? txHashEntity.payload
-                : JSON.stringify(txHashEntity.payload);
+              const txHashPayload =
+                txHashEntity.payload instanceof Uint8Array
+                  ? new TextDecoder().decode(txHashEntity.payload)
+                  : typeof txHashEntity.payload === 'string'
+                    ? txHashEntity.payload
+                    : JSON.stringify(txHashEntity.payload);
               const decoded = JSON.parse(txHashPayload);
               return { key, txHash: decoded.txHash };
             } catch (e) {
@@ -449,8 +464,8 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
     );
 
     // Add txHashes to results
-    const txHashMap = new Map(txHashResults.map(r => [r.key, r.txHash]));
-    return Array.from(codeMap.values()).map(usage => ({
+    const txHashMap = new Map(txHashResults.map((r) => [r.key, r.txHash]));
+    return Array.from(codeMap.values()).map((usage) => ({
       ...usage,
       txHash: txHashMap.get(usage.key),
     }));
@@ -458,7 +473,7 @@ export async function listAllBetaCodeUsage(spaceId?: string): Promise<BetaCodeUs
     console.error('[listAllBetaCodeUsage] Arkiv query failed:', {
       message: error?.message,
       stack: error?.stack,
-      error
+      error,
     });
     return [];
   }

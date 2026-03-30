@@ -1,13 +1,17 @@
 /**
  * Admin Response API route
- * 
+ *
  * Handles creation and retrieval of admin responses to user feedback.
- * 
+ *
  * Reference: Admin feedback response system
  */
 
 import { NextResponse } from 'next/server';
-import { createAdminResponse, listAdminResponses, getAdminResponseByKey } from '@/lib/arkiv/adminResponse';
+import {
+  createAdminResponse,
+  listAdminResponses,
+  getAdminResponseByKey,
+} from '@/lib/arkiv/adminResponse';
 import { createAdminNotification } from '@/lib/arkiv/adminNotification';
 import { getPrivateKey, SPACE_ID, ADMIN_WALLET } from '@/lib/config';
 
@@ -15,19 +19,16 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const key = searchParams.get('key');
-    
+
     // If key is provided, get single response by key
     if (key) {
       const response = await getAdminResponseByKey(key);
       if (!response) {
-        return NextResponse.json(
-          { ok: false, error: 'Admin response not found' },
-          { status: 404 }
-        );
+        return NextResponse.json({ ok: false, error: 'Admin response not found' }, { status: 404 });
       }
       return NextResponse.json({ ok: true, response });
     }
-    
+
     // Otherwise, list responses by feedbackKey
     const feedbackKey = searchParams.get('feedbackKey') || undefined;
 
@@ -93,7 +94,7 @@ export async function POST(request: Request) {
         sourceEntityKey: feedbackKey,
         privateKey: getPrivateKey(),
         spaceId: SPACE_ID,
-      }).catch(err => {
+      }).catch((err) => {
         console.warn('[admin/response] Failed to create notification (non-critical):', err);
       });
     }
@@ -107,4 +108,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

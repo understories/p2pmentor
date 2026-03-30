@@ -32,13 +32,14 @@ Once something is written to the chain, it stays there forever.
 
 ---
 
-## What *Is* Mutable?
+## What _Is_ Mutable?
 
-What *can* change is the **latest state derived from those transactions**.
+What _can_ change is the **latest state derived from those transactions**.
 
 Arkiv exposes this through **entities**.
 
 An Arkiv entity has:
+
 - a stable **entity_key** (identity)
 - a payload and attributes (state)
 - a full transaction history behind it
@@ -58,11 +59,13 @@ Both of the following are blockchain-valid, but they behave very differently for
 ### Pattern A: New Entity per Change (Append-Only Versions)
 
 **How it works:**
+
 - Every change creates a **new entity** with a new `entity_key`
 - Old entities remain on-chain (immutable history)
 - To get the "current" version, query all entities and select the latest by `createdAt`
 
 **Example:**
+
 ```typescript
 // First profile creation
 const profile1 = await createEntity({
@@ -82,12 +85,11 @@ const profile2 = await createEntity({
 
 // To get current profile:
 const profiles = await query({ type: 'user_profile', wallet: '0x123...' });
-const current = profiles.sort((a, b) => 
-  new Date(b.createdAt) - new Date(a.createdAt)
-)[0]; // profile2
+const current = profiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0]; // profile2
 ```
 
 **Characteristics:**
+
 - ✅ Full version history preserved
 - ✅ Simple to implement (just create)
 - ❌ Queries must select "latest" version
@@ -95,6 +97,7 @@ const current = profiles.sort((a, b) =>
 - ❌ More storage over time
 
 **When to use:**
+
 - Audit trails are critical
 - Version history is a feature
 - Entities are rarely updated
@@ -103,12 +106,14 @@ const current = profiles.sort((a, b) =>
 ### Pattern B: Update in Place (Stable Entity Key)
 
 **How it works:**
+
 - Reuse the same `entity_key` for updates
 - New transaction updates the entity's state
 - Query by `entity_key` always returns current state
 - Transaction history remains queryable
 
 **Example:**
+
 ```typescript
 // First profile creation
 const profile = await createEntity({
@@ -129,6 +134,7 @@ const current = await query({ entity_key: 'abc123' }); // Always current
 ```
 
 **Characteristics:**
+
 - ✅ Simple queries (no "latest" selection needed)
 - ✅ Stable relationships (entity_key never changes)
 - ✅ Less storage over time
@@ -136,6 +142,7 @@ const current = await query({ entity_key: 'abc123' }); // Always current
 - ❌ No explicit version chain (but history exists)
 
 **When to use:**
+
 - Entities are frequently updated
 - Relationships depend on stable identity
 - Simpler queries are preferred
@@ -151,6 +158,7 @@ Arkiv supports **both patterns**:
 2. **Update existing entity**: `walletClient.updateEntity()` - reuses existing `entity_key`
 
 Both operations:
+
 - Create immutable transactions
 - Preserve full transaction history
 - Are queryable via Arkiv's indexer
@@ -169,6 +177,7 @@ p2pmentor uses **Pattern B (Update in Place)** for mutable entities:
 - **Sessions**: Stable `entity_key` (once created, never changes)
 
 This ensures:
+
 - Relationships don't break (feedback always points to same session)
 - Queries are simpler (no "latest version" selection)
 - State persists correctly (notification read/unread state)
@@ -187,6 +196,7 @@ Even with Pattern B (update in place), **all transaction history is preserved**:
 - Explorer links show all transactions for an entity
 
 The difference is:
+
 - **Pattern A**: Explicit version chain (each version is a separate entity)
 - **Pattern B**: Implicit version history (all transactions for one entity_key)
 
@@ -224,15 +234,15 @@ Per-wallet migration markers ensure deterministic behavior per user.
 ### Query Paths
 
 **Pattern A queries:**
+
 ```typescript
 // Must select latest version
 const profiles = await query({ type: 'user_profile', wallet });
-const current = profiles.sort((a, b) => 
-  new Date(b.createdAt) - new Date(a.createdAt)
-)[0];
+const current = profiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
 ```
 
 **Pattern B queries:**
+
 ```typescript
 // Direct query by entity_key (always current)
 const profile = await query({ entity_key: profileKey });
@@ -287,6 +297,6 @@ const current = profiles[0]; // Only one canonical entity
 5. **Entity keys provide stable identity** for relationships and queries
 
 The choice between patterns depends on your application's needs:
+
 - **Pattern A**: When version history is a feature
 - **Pattern B**: When stable relationships and simpler queries are priorities
-

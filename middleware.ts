@@ -1,9 +1,9 @@
 /**
  * Next.js Middleware for Beta Code Gating
- * 
+ *
  * Protects all routes (except public ones) by checking for beta access.
  * Server-side enforcement of beta code requirement.
- * 
+ *
  * Reference: refs/docs/beta_code_gating_plan.md Phase 2
  */
 
@@ -37,13 +37,15 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Allow public routes
-  if (PUBLIC_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (PUBLIC_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))) {
     return NextResponse.next();
   }
 
   // Allow public API routes
-  if (pathname.startsWith('/api/') && 
-      PUBLIC_API_ROUTES.some(route => pathname === route || pathname.startsWith(route + '/'))) {
+  if (
+    pathname.startsWith('/api/') &&
+    PUBLIC_API_ROUTES.some((route) => pathname === route || pathname.startsWith(route + '/'))
+  ) {
     return NextResponse.next();
   }
 
@@ -66,7 +68,7 @@ export async function middleware(request: NextRequest) {
         { status: 403 }
       );
     }
-    
+
     // For pages, redirect to /beta with return URL
     const url = request.nextUrl.clone();
     url.pathname = '/beta';

@@ -7,10 +7,10 @@
  * Reference: refs/learner-quests-implementation-plan.md
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { SPACE_ID } from "../config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { SPACE_ID } from '../config';
 
 export type LearnerQuestMaterial = {
   id: string;
@@ -148,19 +148,20 @@ export async function createLearnerQuest({
     const createdAt = new Date().toISOString();
 
     // For meta_learning quests, store steps in payload instead of materials
-    const payloadData = questType === 'meta_learning'
-      ? {
-          steps: steps || [],
-          metadata: metadata || {},
-        }
-      : {
-          materials: materials || [],
-          metadata: {
-            totalMaterials: (materials || []).length,
-            categories: [...new Set((materials || []).map(m => m.category))],
-            lastUpdated: createdAt,
-          },
-        };
+    const payloadData =
+      questType === 'meta_learning'
+        ? {
+            steps: steps || [],
+            metadata: metadata || {},
+          }
+        : {
+            materials: materials || [],
+            metadata: {
+              totalMaterials: (materials || []).length,
+              categories: [...new Set((materials || []).map((m) => m.category))],
+              lastUpdated: createdAt,
+            },
+          };
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
       return await walletClient.createEntity({
@@ -224,9 +225,10 @@ export async function listLearnerQuests(options?: {
 }): Promise<LearnerQuest[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     // Build query with space ID filtering
-    let queryBuilder = publicClient.buildQuery()
+    let queryBuilder = publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('status', 'active'));
 
@@ -250,10 +252,7 @@ export async function listLearnerQuests(options?: {
       queryBuilder = queryBuilder.where(eq('questType', options.questType));
     }
 
-    const result = await queryBuilder
-      .withAttributes(true)
-      .withPayload(true)
-      .fetch();
+    const result = await queryBuilder.withAttributes(true).withPayload(true).fetch();
 
     console.log('[listLearnerQuests] Raw query result:', {
       entityCount: result?.entities?.length || 0,
@@ -280,15 +279,19 @@ export async function listLearnerQuests(options?: {
     const quests: LearnerQuest[] = result.entities
       .map((entity: any) => {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment' | 'meta_learning';
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as
+            | 'reading_list'
+            | 'language_assessment'
+            | 'meta_learning';
 
           const quest: LearnerQuest = {
             key: entity.key,
@@ -323,7 +326,9 @@ export async function listLearnerQuests(options?: {
     // Filter by spaceIds client-side if multiple requested
     let filteredQuests = quests;
     if (options?.spaceIds && options.spaceIds.length > 0) {
-      filteredQuests = quests.filter((quest: LearnerQuest) => options.spaceIds!.includes(quest.spaceId));
+      filteredQuests = quests.filter((quest: LearnerQuest) =>
+        options.spaceIds!.includes(quest.spaceId)
+      );
     }
 
     // Deduplicate by questId (keep most recent version of each quest)
@@ -350,7 +355,8 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
     // This keeps fs/path imports out of the library code
 
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('questId', questId))
       .where(eq('status', 'active'))
@@ -377,15 +383,19 @@ export async function getLearnerQuest(questId: string): Promise<LearnerQuest | n
     const quests: LearnerQuest[] = result.entities
       .map((entity: any) => {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           // Default to 'reading_list' for backward compatibility
-          const questType = (getAttr(entity, 'questType') || 'reading_list') as 'reading_list' | 'language_assessment' | 'meta_learning';
+          const questType = (getAttr(entity, 'questType') || 'reading_list') as
+            | 'reading_list'
+            | 'language_assessment'
+            | 'meta_learning';
 
           // For reading_list quests, payload contains materials
           // For language_assessment quests, payload contains the full LanguageAssessmentQuest structure
@@ -458,17 +468,19 @@ export async function markMaterialAsRead({
 
     const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
       return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify({
-          wallet: normalizedWallet,
-          questId,
-          materialId,
-          status: 'read',
-          readAt: now,
-          metadata: {
-            clickedAt: now,
-            sourceUrl,
-          },
-        })),
+        payload: enc.encode(
+          JSON.stringify({
+            wallet: normalizedWallet,
+            questId,
+            materialId,
+            status: 'read',
+            readAt: now,
+            metadata: {
+              clickedAt: now,
+              sourceUrl,
+            },
+          })
+        ),
         contentType: 'application/json',
         attributes: [
           { key: 'type', value: 'learner_quest_progress' },
@@ -526,7 +538,8 @@ export async function getLearnerQuestProgress({
   try {
     const publicClient = getPublicClient();
     const normalizedWallet = wallet.toLowerCase();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest_progress'))
       .where(eq('wallet', normalizedWallet))
       .where(eq('questId', questId))
@@ -553,11 +566,12 @@ export async function getLearnerQuestProgress({
     const allProgress = result.entities
       .map((entity: any) => {
         try {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           const payload = JSON.parse(decoded);
 
           return {
@@ -578,9 +592,7 @@ export async function getLearnerQuestProgress({
       .filter(Boolean) as LearnerQuestProgress[];
 
     // Sort by most recent first
-    allProgress.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    allProgress.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Deduplicate by materialId (soft-delete pattern)
     // Most recent entity per material determines current status
@@ -638,7 +650,8 @@ export async function updateLearnerQuest({
 
     // 2. Get full quest entity to parse payload
     const publicClient = getPublicClient();
-    const result = await publicClient.buildQuery()
+    const result = await publicClient
+      .buildQuery()
       .where(eq('type', 'learner_quest'))
       .where(eq('questId', questId))
       .where(eq('status', 'active'))
@@ -665,14 +678,17 @@ export async function updateLearnerQuest({
         const createdAt = getAttr(e, 'createdAt');
         return { ...e, createdAt };
       })
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0];
+      .sort(
+        (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )[0];
 
     // 3. Parse current payload
-    const decoded = entity.payload instanceof Uint8Array
-      ? new TextDecoder().decode(entity.payload)
-      : typeof entity.payload === 'string'
-      ? entity.payload
-      : JSON.stringify(entity.payload);
+    const decoded =
+      entity.payload instanceof Uint8Array
+        ? new TextDecoder().decode(entity.payload)
+        : typeof entity.payload === 'string'
+          ? entity.payload
+          : JSON.stringify(entity.payload);
     const currentPayload = JSON.parse(decoded);
 
     // 4. Merge updates
@@ -682,10 +698,14 @@ export async function updateLearnerQuest({
       metadata: {
         ...currentPayload.metadata,
         lastUpdated: new Date().toISOString(),
-        ...(updates.materials ? {
-          totalMaterials: updates.materials.length,
-          categories: [...new Set(updates.materials.map((m: LearnerQuestMaterial) => m.category))],
-        } : {}),
+        ...(updates.materials
+          ? {
+              totalMaterials: updates.materials.length,
+              categories: [
+                ...new Set(updates.materials.map((m: LearnerQuestMaterial) => m.category)),
+              ],
+            }
+          : {}),
       },
     };
 
@@ -711,4 +731,3 @@ export async function updateLearnerQuest({
     return null;
   }
 }
-

@@ -7,6 +7,7 @@ Now you'll apply active recall by creating questions for a topic you're learning
 ## Step 1: Choose a Topic
 
 What topic are you currently learning?
+
 - A subject from school/work
 - A skill you're developing
 - Content from another quest
@@ -39,6 +40,7 @@ Now answer each question without looking at your notes:
 ## Step 4: Review and Improve
 
 After answering, review your notes and:
+
 - Check what you got right
 - Identify what you missed
 - Note what you need to review more

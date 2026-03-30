@@ -15,4 +15,3 @@ export type NavigationMetric = {
   page: string;
   createdAt: string;
 };
-

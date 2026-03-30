@@ -10,6 +10,7 @@ npm run build:static
 ```
 
 This will:
+
 1. Fetch all core entities from Arkiv
 2. Process and index the data
 3. Generate static HTML pages
@@ -63,4 +64,3 @@ Or use an ENS domain that points to the IPFS CID.
 - No JavaScript required - pure HTML/CSS
 - Works on IPFS and ENS
 - Data is not committed to repo (generated at build time)
-

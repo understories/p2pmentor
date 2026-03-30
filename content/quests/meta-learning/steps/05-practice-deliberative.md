@@ -7,6 +7,7 @@ Now you'll apply what you learned about deliberative practice to design a practi
 ## Step 1: Choose a Skill
 
 What skill do you want to improve?
+
 - Coding (specific language/framework)
 - Language learning
 - Math/problem-solving
@@ -22,6 +23,7 @@ What skill do you want to improve?
 What are the components of this skill?
 
 Example for "JavaScript":
+
 - Variables and data types
 - Functions
 - Control flow

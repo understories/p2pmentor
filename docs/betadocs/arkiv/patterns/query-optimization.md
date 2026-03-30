@@ -19,13 +19,15 @@ These attributes are indexed and should be used in queries:
 
 ```typescript
 // ✅ Good: Type first (indexed)
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', wallet))
   .fetch();
 
 // ❌ Bad: Wallet first
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('wallet', wallet))
   .where(eq('type', 'user_profile'))
   .fetch();
@@ -35,15 +37,10 @@ const result = await publicClient.buildQuery()
 
 ```typescript
 // ✅ Good: Always use limit
-const result = await publicClient.buildQuery()
-  .where(eq('type', 'ask'))
-  .limit(100)
-  .fetch();
+const result = await publicClient.buildQuery().where(eq('type', 'ask')).limit(100).fetch();
 
 // ❌ Bad: No limit (unbounded)
-const result = await publicClient.buildQuery()
-  .where(eq('type', 'ask'))
-  .fetch();
+const result = await publicClient.buildQuery().where(eq('type', 'ask')).fetch();
 ```
 
 ### Normalize Wallet Addresses
@@ -51,13 +48,15 @@ const result = await publicClient.buildQuery()
 ```typescript
 // ✅ Good: Normalize to lowercase
 const wallet = userWallet.toLowerCase();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', wallet))
   .fetch();
 
 // ❌ Bad: Case-sensitive
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'user_profile'))
   .where(eq('wallet', userWallet))
   .fetch();
@@ -69,7 +68,8 @@ For complex filters, query broadly and filter client-side:
 
 ```typescript
 // 1. Query indexed attributes
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'session'))
   .where(eq('mentorWallet', wallet))
   .withAttributes(true)
@@ -79,8 +79,8 @@ const result = await publicClient.buildQuery()
 
 // 2. Filter client-side
 const activeSessions = result.entities
-  .map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .filter(s => s.status === 'scheduled' && new Date(s.sessionDate) >= new Date());
+  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .filter((s) => s.status === 'scheduled' && new Date(s.sessionDate) >= new Date());
 ```
 
 ## Pagination
@@ -90,18 +90,19 @@ For large result sets, use pagination:
 ```typescript
 async function getSessionsPaginated(wallet: string, page: number = 0, pageSize: number = 20) {
   const offset = page * pageSize;
-  
-  const result = await publicClient.buildQuery()
+
+  const result = await publicClient
+    .buildQuery()
     .where(eq('type', 'session'))
     .where(eq('mentorWallet', wallet))
     .withAttributes(true)
     .withPayload(true)
     .limit(pageSize)
     .fetch();
-  
+
   // Note: Arkiv doesn't support offset, so pagination is approximate
   // For exact pagination, use cursor-based approach
-  return result.entities.map(e => ({ ...e.attributes, ...JSON.parse(e.payload) }));
+  return result.entities.map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }));
 }
 ```
 
@@ -117,11 +118,11 @@ const CACHE_TTL = 60000; // 1 minute
 
 async function getProfileCached(wallet: string): Promise<Profile> {
   const now = Date.now();
-  
-  if (cachedProfile && (now - cacheTimestamp) < CACHE_TTL) {
+
+  if (cachedProfile && now - cacheTimestamp < CACHE_TTL) {
     return cachedProfile;
   }
-  
+
   cachedProfile = await getLatestProfile(wallet);
   cacheTimestamp = now;
   return cachedProfile;
@@ -133,16 +134,13 @@ async function getProfileCached(wallet: string): Promise<Profile> {
 Track query performance:
 
 ```typescript
-async function queryWithMetrics<T>(
-  queryFn: () => Promise<T>,
-  operation: string
-): Promise<T> {
+async function queryWithMetrics<T>(queryFn: () => Promise<T>, operation: string): Promise<T> {
   const startTime = Date.now();
-  
+
   try {
     const result = await queryFn();
     const durationMs = Date.now() - startTime;
-    
+
     // Store metric
     await createDxMetric({
       sample: {
@@ -154,11 +152,11 @@ async function queryWithMetrics<T>(
       },
       privateKey: getPrivateKey(),
     });
-    
+
     return result;
   } catch (error) {
     const durationMs = Date.now() - startTime;
-    
+
     await createDxMetric({
       sample: {
         source: 'arkiv',
@@ -170,7 +168,7 @@ async function queryWithMetrics<T>(
       },
       privateKey: getPrivateKey(),
     });
-    
+
     throw error;
   }
 }
@@ -183,4 +181,3 @@ async function queryWithMetrics<T>(
 3. **Normalize**: Normalize wallet addresses to lowercase
 4. **Client-Side Filtering**: Use for complex filters not supported by indexes
 5. **Monitor Performance**: Track query performance for optimization
-

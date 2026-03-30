@@ -1,19 +1,19 @@
 /**
  * Grant Revocation Helpers
- * 
+ *
  * Implements PAT-REVOKE-001 for review mode grants.
  * Provides convenience functions for revoking grants.
  */
 
-import { createRevocationMarker, isEntityRevoked } from "./revocation";
-import { getPrivateKey } from "@/lib/config";
-import { SPACE_ID } from "@/lib/config";
+import { createRevocationMarker, isEntityRevoked } from './revocation';
+import { getPrivateKey } from '@/lib/config';
+import { SPACE_ID } from '@/lib/config';
 
 /**
  * Revoke a review mode grant
- * 
+ *
  * Creates a revocation marker entity for the specified grant.
- * 
+ *
  * @param grantKey - Key of grant to revoke
  * @param revokedBy - Wallet address that is revoking (normalized to lowercase)
  * @param reason - Optional reason for revocation
@@ -48,7 +48,7 @@ export async function revokeReviewModeGrant({
 
 /**
  * Check if a review mode grant is revoked
- * 
+ *
  * @param grantKey - Key of grant to check
  * @param spaceId - Optional space ID (defaults to SPACE_ID)
  * @returns True if grant is revoked, false otherwise
@@ -66,4 +66,3 @@ export async function isReviewModeGrantRevoked({
     spaceId,
   });
 }
-

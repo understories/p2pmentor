@@ -8,9 +8,9 @@
  * not just those stored in localStorage.
  */
 
-import { eq } from "@arkiv-network/sdk/query"
-import { getPublicClient } from "./client"
-import { CURRENT_WALLET } from "@/lib/config"
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from './client';
+import { CURRENT_WALLET } from '@/lib/config';
 
 /**
  * Space ID metadata
@@ -23,7 +23,7 @@ export type SpaceIdMetadata = {
   mostRecentActivity: string; // ISO timestamp
   isP2pmentorSpace: boolean; // Created by our app's signing wallet
   hasActiveEntities: boolean; // Has non-expired entities
-}
+};
 
 /**
  * Get all unique space IDs with metadata from lite entities on Arkiv network
@@ -45,11 +45,13 @@ export async function getAllLiteSpaceIds(options?: {
     const filter = options?.filter || 'all';
     const minEntities = options?.minEntities || 0;
     const recentDays = options?.recentDays;
-    const recentCutoff = recentDays ? Date.now() - (recentDays * 24 * 60 * 60 * 1000) : null;
+    const recentCutoff = recentDays ? Date.now() - recentDays * 24 * 60 * 60 * 1000 : null;
 
     console.log('[getAllLiteSpaceIds] Starting query:', {
       filter,
-      currentWallet: currentWallet ? `${currentWallet.substring(0, 6)}...${currentWallet.substring(currentWallet.length - 4)}` : 'undefined',
+      currentWallet: currentWallet
+        ? `${currentWallet.substring(0, 6)}...${currentWallet.substring(currentWallet.length - 4)}`
+        : 'undefined',
       hasCurrentWallet: !!currentWallet,
       minEntities,
       recentDays,
@@ -57,19 +59,23 @@ export async function getAllLiteSpaceIds(options?: {
 
     // Warn if CURRENT_WALLET is undefined (filtering won't work correctly)
     if (!currentWallet && (filter === 'p2pmentor' || filter === 'network')) {
-      console.warn('[getAllLiteSpaceIds] CURRENT_WALLET is undefined - filtering by signer_wallet will not work correctly. All spaces will be treated as network spaces.');
+      console.warn(
+        '[getAllLiteSpaceIds] CURRENT_WALLET is undefined - filtering by signer_wallet will not work correctly. All spaces will be treated as network spaces.'
+      );
     }
 
     // Query all lite_ask and lite_offer entities without spaceId filter
     // We query both types to ensure we discover all space IDs
     const [asksResult, offersResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'lite_ask'))
         .withAttributes(true)
         .limit(1000) // High limit to get all entities
         .fetch()
         .catch(() => ({ entities: [] })),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'lite_offer'))
         .withAttributes(true)
         .limit(1000) // High limit to get all entities
@@ -87,13 +93,16 @@ export async function getAllLiteSpaceIds(options?: {
     };
 
     // Track metadata per space ID
-    const spaceIdMap = new Map<string, {
-      askCount: number;
-      offerCount: number;
-      mostRecentActivity: number; // timestamp
-      isP2pmentorSpace: boolean;
-      hasActiveEntities: boolean;
-    }>();
+    const spaceIdMap = new Map<
+      string,
+      {
+        askCount: number;
+        offerCount: number;
+        mostRecentActivity: number; // timestamp
+        isP2pmentorSpace: boolean;
+        hasActiveEntities: boolean;
+      }
+    >();
 
     // Process lite_ask entities
     if (asksResult?.entities && Array.isArray(asksResult.entities)) {
@@ -105,7 +114,7 @@ export async function getAllLiteSpaceIds(options?: {
         const createdAt = getAttr(attrs, 'createdAt');
         const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
         const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
-        const expiresAt = createdAtTime + (ttlSeconds * 1000);
+        const expiresAt = createdAtTime + ttlSeconds * 1000;
         const isActive = Date.now() < expiresAt;
 
         const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
@@ -146,7 +155,7 @@ export async function getAllLiteSpaceIds(options?: {
         const createdAt = getAttr(attrs, 'createdAt');
         const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
         const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
-        const expiresAt = createdAtTime + (ttlSeconds * 1000);
+        const expiresAt = createdAtTime + ttlSeconds * 1000;
         const isActive = Date.now() < expiresAt;
 
         const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
@@ -190,11 +199,11 @@ export async function getAllLiteSpaceIds(options?: {
 
     // Apply filters
     const beforeFilterCount = results.length;
-    const p2pmentorCountBefore = results.filter(r => r.isP2pmentorSpace).length;
-    const networkCountBefore = results.filter(r => !r.isP2pmentorSpace).length;
+    const p2pmentorCountBefore = results.filter((r) => r.isP2pmentorSpace).length;
+    const networkCountBefore = results.filter((r) => !r.isP2pmentorSpace).length;
 
     if (filter === 'p2pmentor') {
-      results = results.filter(r => r.isP2pmentorSpace);
+      results = results.filter((r) => r.isP2pmentorSpace);
       console.log('[getAllLiteSpaceIds] Applied p2pmentor filter:', {
         before: beforeFilterCount,
         after: results.length,
@@ -202,7 +211,7 @@ export async function getAllLiteSpaceIds(options?: {
         networkSpacesBefore: networkCountBefore,
       });
     } else if (filter === 'network') {
-      results = results.filter(r => !r.isP2pmentorSpace);
+      results = results.filter((r) => !r.isP2pmentorSpace);
       console.log('[getAllLiteSpaceIds] Applied network filter:', {
         before: beforeFilterCount,
         after: results.length,
@@ -218,11 +227,11 @@ export async function getAllLiteSpaceIds(options?: {
     }
 
     if (minEntities > 0) {
-      results = results.filter(r => r.totalEntities >= minEntities);
+      results = results.filter((r) => r.totalEntities >= minEntities);
     }
 
     if (recentCutoff) {
-      results = results.filter(r => new Date(r.mostRecentActivity).getTime() >= recentCutoff);
+      results = results.filter((r) => new Date(r.mostRecentActivity).getTime() >= recentCutoff);
     }
 
     // Sort by relevance: total entities (desc), then most recent activity (desc)
@@ -236,9 +245,9 @@ export async function getAllLiteSpaceIds(options?: {
     console.log('[getAllLiteSpaceIds] Returning results:', {
       filter,
       count: results.length,
-      spaceIds: results.map(r => r.spaceId),
-      p2pmentorCount: results.filter(r => r.isP2pmentorSpace).length,
-      networkCount: results.filter(r => !r.isP2pmentorSpace).length,
+      spaceIds: results.map((r) => r.spaceId),
+      p2pmentorCount: results.filter((r) => r.isP2pmentorSpace).length,
+      networkCount: results.filter((r) => !r.isP2pmentorSpace).length,
     });
 
     return results;
@@ -248,7 +257,7 @@ export async function getAllLiteSpaceIds(options?: {
     console.error('[getAllLiteSpaceIds] Unexpected error, returning empty array:', {
       message: error?.message,
       stack: error?.stack,
-      error: error?.toString()
+      error: error?.toString(),
     });
     return [];
   }
@@ -266,5 +275,5 @@ export async function getAllLiteSpaceIdsSimple(options?: {
   recentDays?: number;
 }): Promise<string[]> {
   const metadata = await getAllLiteSpaceIds(options);
-  return metadata.map(m => m.spaceId);
+  return metadata.map((m) => m.spaceId);
 }

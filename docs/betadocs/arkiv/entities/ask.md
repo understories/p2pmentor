@@ -1,6 +1,7 @@
 # Ask Entity Schema
 
 ## Entity Type
+
 `ask`
 
 ## Patterns Used
@@ -11,18 +12,18 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "ask" |
-| wallet | string | Yes | Attribute | Wallet address of asker (lowercase) |
-| skill | string | No | Attribute | Skill name (legacy, kept for backward compatibility) |
-| skill_id | string | No | Attribute | Skill entity key (preferred for beta) |
-| skill_label | string | No | Attribute | Skill display name (derived from Skill entity) |
-| spaceId | string | Yes | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| status | string | Yes | Attribute | Always "open" |
-| ttlSeconds | string | Yes | Attribute | TTL in seconds (default: 3600) |
-| message | string | Yes | Payload | Ask description |
+| Field Name  | Type   | Required | Location  | Description                                                                                                |
+| ----------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- |
+| type        | string | Yes      | Attribute | Always "ask"                                                                                               |
+| wallet      | string | Yes      | Attribute | Wallet address of asker (lowercase)                                                                        |
+| skill       | string | No       | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
+| skill_id    | string | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
+| skill_label | string | No       | Attribute | Skill display name (derived from Skill entity)                                                             |
+| spaceId     | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| createdAt   | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| status      | string | Yes      | Attribute | Always "open"                                                                                              |
+| ttlSeconds  | string | Yes      | Attribute | TTL in seconds (default: 3600)                                                                             |
+| message     | string | Yes      | Payload   | Ask description                                                                                            |
 
 Note: Either `skill` (legacy) or `skill_id` (beta) must be provided.
 
@@ -51,9 +52,9 @@ const result = await query
 
 // Client-side filtering based on createdAt + ttlSeconds
 const now = Date.now();
-const activeAsks = result.entities.filter(ask => {
+const activeAsks = result.entities.filter((ask) => {
   const created = new Date(ask.createdAt).getTime();
-  const expires = created + (ask.ttlSeconds * 1000);
+  const expires = created + ask.ttlSeconds * 1000;
   return expires > now;
 });
 ```
@@ -100,9 +101,8 @@ Default: 3600 seconds (1 hour). Can be customized via `expiresIn` parameter.
 ## Transaction Hash Tracking
 
 Separate `ask_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "ask_txhash"
 - `askKey`: Entity key of ask
 - `wallet`: Wallet address
 - `spaceId`: "local-dev"
-
-

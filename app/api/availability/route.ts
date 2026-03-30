@@ -1,11 +1,16 @@
 /**
  * Availability API route
- * 
+ *
  * Handles availability entity creation and retrieval.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createAvailability, listAvailabilityForWallet, deleteAvailability, type WeeklyAvailability } from '@/lib/arkiv/availability';
+import {
+  createAvailability,
+  listAvailabilityForWallet,
+  deleteAvailability,
+  type WeeklyAvailability,
+} from '@/lib/arkiv/availability';
 import { getPrivateKey, SPACE_ID } from '@/lib/config';
 import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import { verifyBetaAccess } from '@/lib/auth/betaAccess';
@@ -18,7 +23,10 @@ export async function POST(request: NextRequest) {
 
   if (!betaCheck.hasAccess) {
     return NextResponse.json(
-      { ok: false, error: betaCheck.error || 'Beta access required. Please enter invite code at /beta' },
+      {
+        ok: false,
+        error: betaCheck.error || 'Beta access required. Please enter invite code at /beta',
+      },
       { status: 403 }
     );
   }
@@ -35,15 +43,12 @@ export async function POST(request: NextRequest) {
 
     // timeBlocks can be either a string (legacy) or WeeklyAvailability object (structured)
     if (!timeBlocks || (typeof timeBlocks === 'string' && !timeBlocks.trim())) {
-      return NextResponse.json(
-        { ok: false, error: 'timeBlocks is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'timeBlocks is required' }, { status: 400 });
     }
 
     // Use SPACE_ID from config (beta-launch in production, local-dev in development)
     const targetSpaceId = spaceId || SPACE_ID;
-    
+
     try {
       const { key, txHash } = await createAvailability({
         wallet,
@@ -81,12 +86,12 @@ export async function POST(request: NextRequest) {
     } catch (error: any) {
       // Handle transaction receipt timeout gracefully
       if (isTransactionTimeoutError(error)) {
-        return NextResponse.json({ 
-          ok: true, 
+        return NextResponse.json({
+          ok: true,
           key: null,
           txHash: null,
           pending: true,
-          message: error.message || 'Transaction submitted, confirmation pending'
+          message: error.message || 'Transaction submitted, confirmation pending',
         });
       }
       throw error;
@@ -147,12 +152,12 @@ export async function DELETE(request: Request) {
     } catch (error: any) {
       // Handle transaction receipt timeout gracefully
       if (isTransactionTimeoutError(error)) {
-        return NextResponse.json({ 
-          ok: true, 
+        return NextResponse.json({
+          ok: true,
           key: null,
           txHash: null,
           pending: true,
-          message: error.message || 'Transaction submitted, confirmation pending'
+          message: error.message || 'Transaction submitted, confirmation pending',
         });
       }
       throw error;
@@ -165,4 +170,3 @@ export async function DELETE(request: Request) {
     );
   }
 }
-

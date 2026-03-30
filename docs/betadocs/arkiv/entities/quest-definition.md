@@ -1,11 +1,13 @@
 # Quest Definition Entity Schema
 
 ## Status
+
 - Canonical for p2pmentor: Yes
 - Mutability: Pattern A
 - Pattern dependencies: PAT-VERSION-001, PAT-QUERY-001, PAT-SPACE-001
 
 ## Entity Type
+
 `quest_definition`
 
 ## Patterns Used
@@ -16,28 +18,28 @@
 
 ## Field Table
 
-| Field Name | Type | Required | Location | Description |
-|------------|------|----------|----------|-------------|
-| type | string | Yes | Attribute | Always "quest_definition" |
-| questId | string | Yes | Attribute | Unique quest identifier (e.g., "arkiv_builder", "mandarin_starter") |
-| track | string | Yes | Attribute | Quest track (e.g., "arkiv", "mandarin", "spanish") |
-| version | string | Yes | Attribute | Quest version (e.g., "1", "2") |
-| language | string | No | Attribute | Language code (e.g., "zh", "es") - only for language learning quests |
-| spaceId | string | Yes | Attribute | Space ID (defaults to "global" for network-wide quests, or specific space for space-specific quests) |
-| status | string | Yes | Attribute | "active" | "archived" |
-| createdAt | string | Yes | Attribute | ISO timestamp |
-| creatorWallet | string | No | Attribute | Wallet address of quest creator (optional, for attribution) |
-| questId | string | Yes | Payload | Quest identifier (matches attribute) |
-| version | string | Yes | Payload | Quest version (matches attribute) |
-| track | string | Yes | Payload | Quest track (matches attribute) |
-| title | string | Yes | Payload | Quest title |
-| description | string | Yes | Payload | Quest description |
-| source | string | No | Payload | Attribution URL |
-| estimatedDuration | string | Yes | Payload | Estimated completion time (e.g., "60 minutes") |
-| difficulty | string | Yes | Payload | "beginner" | "intermediate" | "advanced" |
-| steps | QuestStepDefinition[] | Yes | Payload | Array of quest step definitions (with inline markdown content) |
-| rubrics | Record<string, QuizRubric> | No | Payload | Quiz rubrics referenced by stepId |
-| badge | BadgeConfig | No | Payload | Badge configuration for quest completion |
+| Field Name        | Type                       | Required | Location  | Description                                                                                          |
+| ----------------- | -------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------- | -------------- | ---------- |
+| type              | string                     | Yes      | Attribute | Always "quest_definition"                                                                            |
+| questId           | string                     | Yes      | Attribute | Unique quest identifier (e.g., "arkiv_builder", "mandarin_starter")                                  |
+| track             | string                     | Yes      | Attribute | Quest track (e.g., "arkiv", "mandarin", "spanish")                                                   |
+| version           | string                     | Yes      | Attribute | Quest version (e.g., "1", "2")                                                                       |
+| language          | string                     | No       | Attribute | Language code (e.g., "zh", "es") - only for language learning quests                                 |
+| spaceId           | string                     | Yes      | Attribute | Space ID (defaults to "global" for network-wide quests, or specific space for space-specific quests) |
+| status            | string                     | Yes      | Attribute | "active"                                                                                             | "archived"     |
+| createdAt         | string                     | Yes      | Attribute | ISO timestamp                                                                                        |
+| creatorWallet     | string                     | No       | Attribute | Wallet address of quest creator (optional, for attribution)                                          |
+| questId           | string                     | Yes      | Payload   | Quest identifier (matches attribute)                                                                 |
+| version           | string                     | Yes      | Payload   | Quest version (matches attribute)                                                                    |
+| track             | string                     | Yes      | Payload   | Quest track (matches attribute)                                                                      |
+| title             | string                     | Yes      | Payload   | Quest title                                                                                          |
+| description       | string                     | Yes      | Payload   | Quest description                                                                                    |
+| source            | string                     | No       | Payload   | Attribution URL                                                                                      |
+| estimatedDuration | string                     | Yes      | Payload   | Estimated completion time (e.g., "60 minutes")                                                       |
+| difficulty        | string                     | Yes      | Payload   | "beginner"                                                                                           | "intermediate" | "advanced" |
+| steps             | QuestStepDefinition[]      | Yes      | Payload   | Array of quest step definitions (with inline markdown content)                                       |
+| rubrics           | Record<string, QuizRubric> | No       | Payload   | Quiz rubrics referenced by stepId                                                                    |
+| badge             | BadgeConfig                | No       | Payload   | Badge configuration for quest completion                                                             |
 
 ## Versioning Strategy
 
@@ -46,15 +48,18 @@ Quest definitions use Pattern A (immutable versions). Each version creates a new
 **Entity Key Format:** `quest_definition:${track}:v${version}`
 
 **Example:**
+
 - Version 1: `quest_definition:arkiv:v1`
 - Version 2: `quest_definition:arkiv:v2`
 
 **Latest Version Selection:**
+
 - Query all versions for a questId
 - Sort by `createdAt` descending
 - Select first result as latest version
 
 **Rationale:**
+
 - Preserves historical quest definitions
 - Allows progress validation against specific versions
 - Enables quest evolution without breaking existing progress
@@ -88,10 +93,9 @@ const result = await query
   .fetch();
 
 // Sort by createdAt DESC, take first (latest version)
-const latestQuest = result.entities
-  .sort((a, b) => 
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )[0];
+const latestQuest = result.entities.sort(
+  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+)[0];
 ```
 
 Fetch quest by specific version:
@@ -147,11 +151,13 @@ Implementation: `lib/arkiv/questDefinition.ts` - `getLatestQuestDefinition()`, `
 ## Space Isolation
 
 **Network-Wide Quests (Default):**
+
 - Use `spaceId: 'global'` for quests available in all spaces
 - Most quests are network-wide (educational content, tutorials)
 - Progress entities use `spaceId` for isolation (user progress is space-specific)
 
 **Space-Specific Quests:**
+
 - Use specific `spaceId` for space-only quests
 - Example: Custom onboarding for a specific space
 - Query with `spaceId` filter to discover space-specific quests
@@ -159,12 +165,14 @@ Implementation: `lib/arkiv/questDefinition.ts` - `getLatestQuestDefinition()`, `
 ## Content Storage
 
 **Markdown Content:**
+
 - Step markdown content is stored inline in quest payload
 - Sync script (`scripts/sync-quest-entities.ts`) inlines markdown files into `quest.steps[].content`
 - Fully Arkiv-native: all quest content is verifiable on-chain
 - No external dependencies or URL breakage
 
 **Payload Structure:**
+
 ```json
 {
   "questId": "arkiv_builder",
@@ -191,6 +199,7 @@ Quest definition entities expire after 10 years (315360000 seconds). This is eff
 ## Transaction Hash Tracking
 
 Separate `quest_definition_txhash` entity (optional) tracks transaction hash:
+
 - `type`: "quest_definition_txhash"
 - `questKey`: Entity key of quest definition
 - `txHash`: Transaction hash
@@ -200,11 +209,13 @@ Separate `quest_definition_txhash` entity (optional) tracks transaction hash:
 ## Authoring Workflow
 
 1. **Authoring Phase (File-Based):**
+
    - Author edits `content/quests/<track>/quest.json`
    - Author edits `content/quests/<track>/steps/*.md` files
    - Changes committed to git
 
 2. **Publishing Phase (Entity Sync):**
+
    - CI/CD runs sync script on merge to main
    - Script: `scripts/sync-quest-entities.ts`
    - Reads quest files, inlines markdown content

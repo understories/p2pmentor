@@ -1,9 +1,9 @@
 /**
  * Transaction metadata helper
- * 
+ *
  * Fetches transaction receipt and block info from the blockchain.
  * Uses ephemeral in-memory cache (safe because tx data is immutable).
- * 
+ *
  * Cache strategy:
  * - Success/fail transactions: 24h+ (immutable after finality)
  * - Pending transactions: 30s (may change)
@@ -21,7 +21,7 @@ export interface TransactionMetadata {
 
 /**
  * Ephemeral in-memory cache for transaction metadata
- * 
+ *
  * Key: txHash
  * Value: { metadata, expiresAt }
  */
@@ -59,24 +59,18 @@ function getCachedTxMetadata(txHash: string): TransactionMetadata | null {
 /**
  * Cache transaction metadata
  */
-function cacheTxMetadata(
-  txHash: string,
-  metadata: TransactionMetadata,
-  durationMs: number
-): void {
+function cacheTxMetadata(txHash: string, metadata: TransactionMetadata, durationMs: number): void {
   const expiresAt = Date.now() + durationMs;
   txMetadataCache.set(txHash, { metadata, expiresAt });
 }
 
 /**
  * Get transaction metadata from blockchain
- * 
+ *
  * @param txHash - Transaction hash (0x... format)
  * @returns Transaction metadata or null if not found
  */
-export async function getTransactionMetadata(
-  txHash: string
-): Promise<TransactionMetadata | null> {
+export async function getTransactionMetadata(txHash: string): Promise<TransactionMetadata | null> {
   // Check cache first
   const cached = getCachedTxMetadata(txHash);
   if (cached) {
@@ -85,7 +79,7 @@ export async function getTransactionMetadata(
 
   try {
     const publicClient = getPublicClient();
-    
+
     // Get transaction receipt
     const receipt = await publicClient.getTransactionReceipt({
       hash: txHash as `0x${string}`,
@@ -99,7 +93,7 @@ export async function getTransactionMetadata(
         blockTimestamp: null,
         status: 'pending',
       };
-      
+
       // Cache pending transactions for 30s
       cacheTxMetadata(txHash, pending, CACHE_DURATION_PENDING);
       return pending;
@@ -141,7 +135,7 @@ export async function getTransactionMetadata(
         blockTimestamp: null,
         status: 'pending',
       };
-      
+
       // Cache pending for 30s
       cacheTxMetadata(txHash, pending, CACHE_DURATION_PENDING);
       return pending;
@@ -159,4 +153,3 @@ export async function getTransactionMetadata(
 export function getExplorerTxUrl(txHash: string): string {
   return `${ARKIV_EXPLORER_BASE_URL}/tx/${txHash}`;
 }
-

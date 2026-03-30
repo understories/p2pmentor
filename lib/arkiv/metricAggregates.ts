@@ -1,18 +1,18 @@
 /**
  * Metric Aggregates CRUD helpers
- * 
+ *
  * Stores pre-computed metric aggregates (percentiles, daily/weekly summaries) as Arkiv entities.
  * These are computed by Vercel Cron jobs and stored for fast dashboard loading.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Questions 2, 4, 11
  */
 
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient, getWalletClientFromPrivateKey } from "./client";
-import { handleTransactionWithTimeout } from "./transaction-utils";
-import { listDxMetrics } from "./dxMetrics";
-import { listClientPerfMetrics } from "./clientPerfMetric";
-import { SPACE_ID } from "@/lib/config";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient, getWalletClientFromPrivateKey } from './client';
+import { handleTransactionWithTimeout } from './transaction-utils';
+import { listDxMetrics } from './dxMetrics';
+import { listClientPerfMetrics } from './clientPerfMetric';
+import { SPACE_ID } from '@/lib/config';
 
 export type PercentileMetrics = {
   p50: number;
@@ -172,15 +172,17 @@ export async function listMetricAggregates({
 } = {}): Promise<DailyMetricAggregate[]> {
   try {
     const publicClient = getPublicClient();
-    
+
     const [result, txHashResult] = await Promise.all([
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'metric_aggregate'))
         .withAttributes(true)
         .withPayload(true)
         .limit(limit || 100)
         .fetch(),
-      publicClient.buildQuery()
+      publicClient
+        .buildQuery()
         .where(eq('type', 'metric_aggregate_txhash'))
         .withAttributes(true)
         .withPayload(true)
@@ -206,11 +208,12 @@ export async function listMetricAggregates({
         const aggregateKey = getAttr('aggregateKey');
         try {
           if (entity.payload) {
-            const decoded = entity.payload instanceof Uint8Array
-              ? new TextDecoder().decode(entity.payload)
-              : typeof entity.payload === 'string'
-              ? entity.payload
-              : JSON.stringify(entity.payload);
+            const decoded =
+              entity.payload instanceof Uint8Array
+                ? new TextDecoder().decode(entity.payload)
+                : typeof entity.payload === 'string'
+                  ? entity.payload
+                  : JSON.stringify(entity.payload);
             const payload = JSON.parse(decoded);
             if (payload.txHash && aggregateKey) {
               txHashMap[aggregateKey] = payload.txHash;
@@ -226,11 +229,12 @@ export async function listMetricAggregates({
       let payload: any = {};
       try {
         if (entity.payload) {
-          const decoded = entity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(entity.payload)
-            : typeof entity.payload === 'string'
-            ? entity.payload
-            : JSON.stringify(entity.payload);
+          const decoded =
+            entity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(entity.payload)
+              : typeof entity.payload === 'string'
+                ? entity.payload
+                : JSON.stringify(entity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -266,23 +270,23 @@ export async function listMetricAggregates({
 
     // Apply filters
     if (date) {
-      aggregates = aggregates.filter(a => a.date === date);
+      aggregates = aggregates.filter((a) => a.date === date);
     }
     if (period) {
-      aggregates = aggregates.filter(a => a.period === period);
+      aggregates = aggregates.filter((a) => a.period === period);
     }
     if (operation) {
-      aggregates = aggregates.filter(a => a.operation === operation);
+      aggregates = aggregates.filter((a) => a.operation === operation);
     }
     if (source) {
-      aggregates = aggregates.filter(a => a.source === source);
+      aggregates = aggregates.filter((a) => a.source === source);
     }
     if (route) {
-      aggregates = aggregates.filter(a => a.route === route);
+      aggregates = aggregates.filter((a) => a.route === route);
     }
 
-    return aggregates.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    return aggregates.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   } catch (error: any) {
     console.error('[listMetricAggregates] Error:', error);
@@ -293,7 +297,9 @@ export async function listMetricAggregates({
 /**
  * Compute daily aggregates from DX metrics
  */
-export async function computeDailyAggregates(date: string): Promise<Omit<DailyMetricAggregate, 'key' | 'txHash'>[]> {
+export async function computeDailyAggregates(
+  date: string
+): Promise<Omit<DailyMetricAggregate, 'key' | 'txHash'>[]> {
   // Get all metrics for the date
   const startOfDay = new Date(date);
   startOfDay.setHours(0, 0, 0, 0);
@@ -304,15 +310,15 @@ export async function computeDailyAggregates(date: string): Promise<Omit<DailyMe
   const metrics = await listDxMetrics({ since, limit: 1000 });
 
   // Filter to date range
-  const dayMetrics = metrics.filter(m => {
+  const dayMetrics = metrics.filter((m) => {
     const metricDate = new Date(m.createdAt);
     return metricDate >= startOfDay && metricDate <= endOfDay;
   });
 
   // Group by operation, source, route
   const groups = new Map<string, typeof dayMetrics>();
-  
-  dayMetrics.forEach(metric => {
+
+  dayMetrics.forEach((metric) => {
     const key = `${metric.operation || 'unknown'}:${metric.source || 'unknown'}:${metric.route || 'unknown'}`;
     if (!groups.has(key)) {
       groups.set(key, []);
@@ -324,13 +330,13 @@ export async function computeDailyAggregates(date: string): Promise<Omit<DailyMe
 
   groups.forEach((groupMetrics, key) => {
     const [operation, source, route] = key.split(':');
-    const durations = groupMetrics.map(m => m.durationMs);
+    const durations = groupMetrics.map((m) => m.durationMs);
     const percentiles = calculatePercentiles(durations);
-    
+
     const totalRequests = groupMetrics.length;
-    const successfulRequests = groupMetrics.filter(m => m.status === 'success').length;
+    const successfulRequests = groupMetrics.filter((m) => m.status === 'success').length;
     const failedRequests = totalRequests - successfulRequests;
-    const fallbackCount = groupMetrics.filter(m => m.usedFallback).length;
+    const fallbackCount = groupMetrics.filter((m) => m.usedFallback).length;
 
     aggregates.push({
       date,

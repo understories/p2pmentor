@@ -37,8 +37,9 @@ export function NavigationTracker() {
 
   useEffect(() => {
     // Only track in production or when explicitly enabled
-    const shouldTrack = process.env.NODE_ENV === 'production' ||
-                       process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
+    const shouldTrack =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
 
     if (!shouldTrack) {
       return;
@@ -85,8 +86,9 @@ export function NavigationTracker() {
 
   // Batch submit aggregated data every 30 seconds
   useEffect(() => {
-    const shouldTrack = process.env.NODE_ENV === 'production' ||
-                       process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
+    const shouldTrack =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NEXT_PUBLIC_ENABLE_NAV_TRACKING === 'true';
 
     if (!shouldTrack) {
       return;
@@ -94,10 +96,12 @@ export function NavigationTracker() {
 
     const interval = setInterval(() => {
       if (localAggregates.current.size > 0) {
-        const aggregates: NavigationAggregate[] = Array.from(localAggregates.current.entries()).map(([pattern, count]) => ({
-          pattern,
-          count,
-        }));
+        const aggregates: NavigationAggregate[] = Array.from(localAggregates.current.entries()).map(
+          ([pattern, count]) => ({
+            pattern,
+            count,
+          })
+        );
 
         // Submit to API (fire and forget - non-blocking)
         fetch('/api/navigation-metrics', {
@@ -122,10 +126,12 @@ export function NavigationTracker() {
     // Also submit on page unload (before user leaves)
     const handleBeforeUnload = () => {
       if (localAggregates.current.size > 0) {
-        const aggregates: NavigationAggregate[] = Array.from(localAggregates.current.entries()).map(([pattern, count]) => ({
-          pattern,
-          count,
-        }));
+        const aggregates: NavigationAggregate[] = Array.from(localAggregates.current.entries()).map(
+          ([pattern, count]) => ({
+            pattern,
+            count,
+          })
+        );
 
         // Use sendBeacon for reliable submission on page unload
         if (navigator.sendBeacon) {
@@ -134,7 +140,10 @@ export function NavigationTracker() {
             page: pathname || 'unknown',
             createdAt: new Date().toISOString(),
           });
-          navigator.sendBeacon('/api/navigation-metrics', new Blob([data], { type: 'application/json' }));
+          navigator.sendBeacon(
+            '/api/navigation-metrics',
+            new Blob([data], { type: 'application/json' })
+          );
         } else {
           // Fallback to fetch (may not complete on unload)
           fetch('/api/navigation-metrics', {
@@ -163,4 +172,3 @@ export function NavigationTracker() {
 
   return null; // This component doesn't render anything
 }
-

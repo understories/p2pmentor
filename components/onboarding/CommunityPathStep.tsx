@@ -1,6 +1,6 @@
 /**
  * Community Path Step Component
- * 
+ *
  * Allows user to follow a learning community (skill)
  */
 
@@ -100,26 +100,26 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
   };
 
   return (
-    <div className="space-y-8 animate-fade-in">
+    <div className="animate-fade-in space-y-8">
       <div className="text-center">
-        <div 
-          className="text-6xl mb-4"
+        <div
+          className="mb-4 text-6xl"
           style={{
             filter: 'drop-shadow(0 0 20px rgba(34, 197, 94, 0.6))',
           }}
         >
           🌲
         </div>
-        <h2 
-          className="text-4xl md:text-5xl font-bold mb-4 text-white dark:text-white drop-shadow-lg"
+        <h2
+          className="mb-4 text-4xl font-bold text-white drop-shadow-lg dark:text-white md:text-5xl"
           style={{
             textShadow: '0 0 20px rgba(34, 197, 94, 0.5), 0 0 40px rgba(34, 197, 94, 0.3)',
           }}
         >
           Join a Learning Community
         </h2>
-        <p 
-          className="text-gray-200 dark:text-gray-300 text-lg mb-8 drop-shadow-md"
+        <p
+          className="mb-8 text-lg text-gray-200 drop-shadow-md dark:text-gray-300"
           style={{
             textShadow: '0 0 10px rgba(0, 0, 0, 0.5)',
           }}
@@ -136,7 +136,7 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
             onChange={(e) => setSelectedSkill(e.target.value)}
             required
             autoFocus
-            className="w-full px-6 py-4 text-lg border-2 border-white/30 dark:border-white/20 rounded-xl bg-white/90 dark:bg-gray-900/90 backdrop-blur-md text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all shadow-lg"
+            className="w-full rounded-xl border-2 border-white/30 bg-white/90 px-6 py-4 text-lg text-gray-900 shadow-lg backdrop-blur-md transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500 dark:border-white/20 dark:bg-gray-900/90 dark:text-gray-100"
             disabled={isLoadingSkills || isSubmitting}
           >
             {isLoadingSkills ? (
@@ -161,14 +161,14 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
               `Creates: type='learning_follow' entity`,
               `Attributes: wallet='${wallet.toLowerCase().slice(0, 8)}...', skill_id='${selectedSkill.slice(0, 12)}...', mode='learning'`,
               `Payload: Full learning follow data`,
-              `TTL: 1 year (31536000 seconds)`
+              `TTL: 1 year (31536000 seconds)`,
             ]}
             label="Continue"
           >
             <button
               onClick={handleFollow}
               disabled={!selectedSkill || isSubmitting}
-              className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+              className="w-full rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span className="flex items-center justify-center gap-2">
@@ -184,7 +184,7 @@ export function CommunityPathStep({ wallet, onComplete, onError }: CommunityPath
           <button
             onClick={handleFollow}
             disabled={!selectedSkill || isSubmitting}
-            className="w-full px-6 py-4 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-xl transition-all duration-200 font-medium text-lg disabled:opacity-50 shadow-lg hover:shadow-xl"
+            className="w-full rounded-xl bg-green-600 px-6 py-4 text-lg font-medium text-white shadow-lg transition-all duration-200 hover:bg-green-700 hover:shadow-xl disabled:cursor-not-allowed disabled:bg-gray-400 disabled:opacity-50"
           >
             {isSubmitting ? (
               <span className="flex items-center justify-center gap-2">

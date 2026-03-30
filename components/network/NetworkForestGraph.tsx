@@ -1,6 +1,6 @@
 /**
  * Network Forest Graph Component
- * 
+ *
  * Experimental forest visualization of asks, offers, and skills.
  * Uses react-force-graph-2d for rendering.
  */
@@ -30,13 +30,13 @@ export default function NetworkForestGraph() {
 
   // useMemo must be called unconditionally
   const graphData = useMemo(
-    () => data ? { nodes: data.nodes, links: data.links } : { nodes: [], links: [] },
+    () => (data ? { nodes: data.nodes, links: data.links } : { nodes: [], links: [] }),
     [data]
   );
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, NetworkGraphNode>();
-    data?.nodes.forEach(node => map.set(node.id, node));
+    data?.nodes.forEach((node) => map.set(node.id, node));
     return map;
   }, [data]);
 
@@ -49,7 +49,8 @@ export default function NetworkForestGraph() {
   };
 
   const hoveredLinkKey = hoveredLink ? getLinkKey(hoveredLink) : null;
-  const isHoveredLink = (link: any) => hoveredLinkKey ? getLinkKey(link) === hoveredLinkKey : false;
+  const isHoveredLink = (link: any) =>
+    hoveredLinkKey ? getLinkKey(link) === hoveredLinkKey : false;
 
   useEffect(() => {
     let cancelled = false;
@@ -63,17 +64,19 @@ export default function NetworkForestGraph() {
         });
         const response = await fetch(`/api/network/graph?${params.toString()}`);
         const result = await response.json();
-        
+
         if (!response.ok || !result.ok) {
           throw new Error(result.error || 'Failed to load graph data');
         }
-        
+
         if (!cancelled) {
           setData({
             nodes: result.nodes || [],
             links: result.links || [],
           });
-          console.log(`[Forest Graph] Loaded ${result.nodes?.length || 0} nodes, ${result.links?.length || 0} links`);
+          console.log(
+            `[Forest Graph] Loaded ${result.nodes?.length || 0} nodes, ${result.links?.length || 0} links`
+          );
         }
       } catch (err) {
         if (!cancelled) {
@@ -99,10 +102,12 @@ export default function NetworkForestGraph() {
 
     if (!hoveredLink) {
       setHoverLabel(null);
-      return () => { cancelled = true; };
+      return () => {
+        cancelled = true;
+      };
     }
 
-    const normalizeId = (value: any) => typeof value === 'object' ? (value as any)?.id : value;
+    const normalizeId = (value: any) => (typeof value === 'object' ? (value as any)?.id : value);
     const sourceId = normalizeId(hoveredLink.source);
     const targetId = normalizeId(hoveredLink.target);
     const sourceNode = nodeMap.get(sourceId);
@@ -128,7 +133,7 @@ export default function NetworkForestGraph() {
     };
 
     const fetchProfiles = async () => {
-      const toFetch = wallets.filter(wallet => !(wallet in profileCache));
+      const toFetch = wallets.filter((wallet) => !(wallet in profileCache));
       if (toFetch.length > 0) {
         const fetchedEntries: Record<string, UserProfile | null> = {};
 
@@ -146,7 +151,7 @@ export default function NetworkForestGraph() {
         );
 
         if (!cancelled && Object.keys(fetchedEntries).length > 0) {
-          setProfileCache(prev => ({ ...prev, ...fetchedEntries }));
+          setProfileCache((prev) => ({ ...prev, ...fetchedEntries }));
         }
       }
 
@@ -165,10 +170,10 @@ export default function NetworkForestGraph() {
   // Render UI - all hooks have been called unconditionally above
   // Always render ForceGraph2D to maintain consistent hook order
   return (
-    <div className="w-full h-[calc(100vh-4rem)] bg-black dark:bg-gray-900 relative">
+    <div className="relative h-[calc(100vh-4rem)] w-full bg-black dark:bg-gray-900">
       <GraphQLIndicator />
-      <div className="absolute top-4 left-4 z-20 flex items-center gap-3 px-3 py-2 rounded-lg bg-gray-900/70 border border-emerald-700/40 text-sm text-emerald-100 backdrop-blur">
-        <label className="flex items-center gap-2 cursor-pointer select-none">
+      <div className="absolute left-4 top-4 z-20 flex items-center gap-3 rounded-lg border border-emerald-700/40 bg-gray-900/70 px-3 py-2 text-sm text-emerald-100 backdrop-blur">
+        <label className="flex cursor-pointer select-none items-center gap-2">
           <input
             type="checkbox"
             className="h-4 w-4 accent-emerald-400"
@@ -179,7 +184,7 @@ export default function NetworkForestGraph() {
         </label>
       </div>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/80 dark:bg-gray-900/80">
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 dark:bg-gray-900/80">
           <div className="text-center">
             <LoadingSpinner size="lg" className="mx-auto mb-4" />
             <p className="text-sm text-gray-400 dark:text-gray-500">Loading forest view…</p>
@@ -188,12 +193,14 @@ export default function NetworkForestGraph() {
       )}
 
       {error && !loading && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 bg-black/80 dark:bg-gray-900/80">
-          <div className="text-center max-w-md px-4">
-            <p className="text-sm text-red-400 dark:text-red-500 mb-4">
-              {error}
-            </p>
-            <BackButton href="/network" label="Back to network list" className="text-sm text-emerald-400 hover:text-emerald-300 underline border-0 bg-transparent p-0" />
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 dark:bg-gray-900/80">
+          <div className="max-w-md px-4 text-center">
+            <p className="mb-4 text-sm text-red-400 dark:text-red-500">{error}</p>
+            <BackButton
+              href="/network"
+              label="Back to network list"
+              className="border-0 bg-transparent p-0 text-sm text-emerald-400 underline hover:text-emerald-300"
+            />
           </div>
         </div>
       )}
@@ -223,7 +230,11 @@ export default function NetworkForestGraph() {
           }
           return isHoveredLink(link) ? 2.5 : 1.5;
         }}
-        nodeCanvasObject={(node: NetworkGraphNode & { x?: number; y?: number }, ctx, globalScale) => {
+        nodeCanvasObject={(
+          node: NetworkGraphNode & { x?: number; y?: number },
+          ctx,
+          globalScale
+        ) => {
           const label = node.label;
           const fontSize = Math.max(8, 12 / globalScale);
           const nodeSize = Math.max(4, 6 / globalScale);
@@ -260,7 +271,8 @@ export default function NetworkForestGraph() {
           ctx.stroke();
 
           // Draw label
-          if (globalScale > 0.5) { // Only show labels when zoomed in enough
+          if (globalScale > 0.5) {
+            // Only show labels when zoomed in enough
             ctx.font = `${fontSize}px system-ui, -apple-system, sans-serif`;
             ctx.fillStyle = '#e5f9ff';
             ctx.textAlign = 'left';
@@ -271,7 +283,9 @@ export default function NetworkForestGraph() {
           // Paid/free badge for offers
           if (node.type === 'offer' && (node as any).isPaid !== undefined) {
             const badge = (node as any).isPaid ? 'Paid' : 'Free';
-            const badgeColor = (node as any).isPaid ? 'rgba(248, 113, 113, 0.9)' : 'rgba(74, 222, 128, 0.9)';
+            const badgeColor = (node as any).isPaid
+              ? 'rgba(248, 113, 113, 0.9)'
+              : 'rgba(74, 222, 128, 0.9)';
             const textColor = '#0b1221';
             const badgeFont = `${Math.max(8, 11 / globalScale)}px system-ui, -apple-system, sans-serif`;
             ctx.font = badgeFont;
@@ -284,7 +298,12 @@ export default function NetworkForestGraph() {
 
             ctx.save();
             ctx.fillStyle = badgeColor;
-            ctx.fillRect(node.x! - boxWidth / 2, node.y! - offsetY - boxHeight, boxWidth, boxHeight);
+            ctx.fillRect(
+              node.x! - boxWidth / 2,
+              node.y! - offsetY - boxHeight,
+              boxWidth,
+              boxHeight
+            );
             ctx.fillStyle = textColor;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -313,4 +332,3 @@ export default function NetworkForestGraph() {
     </div>
   );
 }
-

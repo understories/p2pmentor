@@ -1,6 +1,6 @@
 /**
  * Test script to verify Jitsi generation for sessions
- * 
+ *
  * This script checks if Jitsi entities are being created correctly
  * when both parties confirm a session.
  */
@@ -27,7 +27,8 @@ async function testJitsiGeneration() {
 
     // Check if Jitsi entity exists directly
     const publicClient = getPublicClient();
-    const jitsiResult = await publicClient.buildQuery()
+    const jitsiResult = await publicClient
+      .buildQuery()
       .where(eq('type', 'session_jitsi'))
       .where(eq('sessionKey', session.key))
       .withAttributes(true)
@@ -46,15 +47,16 @@ async function testJitsiGeneration() {
         }
         return String(attrs[key] || '');
       };
-      
+
       let payload: any = {};
       try {
         if (jitsiEntity.payload) {
-          const decoded = jitsiEntity.payload instanceof Uint8Array
-            ? new TextDecoder().decode(jitsiEntity.payload)
-            : typeof jitsiEntity.payload === 'string'
-            ? jitsiEntity.payload
-            : JSON.stringify(jitsiEntity.payload);
+          const decoded =
+            jitsiEntity.payload instanceof Uint8Array
+              ? new TextDecoder().decode(jitsiEntity.payload)
+              : typeof jitsiEntity.payload === 'string'
+                ? jitsiEntity.payload
+                : JSON.stringify(jitsiEntity.payload);
           payload = JSON.parse(decoded);
         }
       } catch (e) {
@@ -74,17 +76,17 @@ async function testJitsiGeneration() {
   // Also check pending sessions that might have both confirmed
   const pendingSessions = await listSessions({ status: 'pending' });
   const bothConfirmedPending = pendingSessions.filter(
-    s => s.mentorConfirmed && s.learnerConfirmed
+    (s) => s.mentorConfirmed && s.learnerConfirmed
   );
-  
+
   if (bothConfirmedPending.length > 0) {
-    console.log(`\n⚠️  Found ${bothConfirmedPending.length} pending sessions with both parties confirmed:`);
-    bothConfirmedPending.forEach(s => {
+    console.log(
+      `\n⚠️  Found ${bothConfirmedPending.length} pending sessions with both parties confirmed:`
+    );
+    bothConfirmedPending.forEach((s) => {
       console.log(`  - Session ${s.key}: ${s.skill}`);
     });
   }
 }
 
 testJitsiGeneration().catch(console.error);
-
-

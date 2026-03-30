@@ -63,22 +63,22 @@ export function ConceptCard({ stepId, title, body, wallet, className = '' }: Con
 
   return (
     <div
-      className={`mb-4 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 ${className}`}
+      className={`mb-4 rounded-lg border-2 border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20 ${className}`}
     >
-      <div className="flex items-start justify-between mb-2">
+      <div className="mb-2 flex items-start justify-between">
         <h4 className="text-sm font-semibold text-blue-900 dark:text-blue-100">{title}</h4>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleCollapse}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
           >
             {isCollapsed ? 'Expand' : 'Collapse'}
           </button>
           <button
             type="button"
             onClick={handleDismiss}
-            className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+            className="text-xs text-blue-600 hover:underline dark:text-blue-400"
           >
             Dismiss
           </button>
@@ -86,11 +86,8 @@ export function ConceptCard({ stepId, title, body, wallet, className = '' }: Con
       </div>
 
       {!isCollapsed && (
-        <div className="text-sm text-blue-800 dark:text-blue-200 whitespace-pre-line">
-          {body}
-        </div>
+        <div className="whitespace-pre-line text-sm text-blue-800 dark:text-blue-200">{body}</div>
       )}
     </div>
   );
 }
-

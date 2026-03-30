@@ -1,8 +1,8 @@
 /**
  * Passkey Registration Complete API
- * 
+ *
  * Verifies WebAuthn registration response and stores credential metadata.
- * 
+ *
  * POST /api/passkey/register/complete
  * Body: { userId: string, response: PublicKeyCredential, challenge: string }
  */
@@ -23,9 +23,10 @@ export async function POST(request: Request) {
     }
 
     // Extract origin from request headers for production compatibility
-    const origin = request.headers.get('origin') || 
-                   request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
-                   undefined;
+    const origin =
+      request.headers.get('origin') ||
+      request.headers.get('referer')?.split('/').slice(0, 3).join('/') ||
+      undefined;
 
     const verification = await verifyRegistration(userId, response, challenge, origin);
 
@@ -41,7 +42,9 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ok: true,
       credentialID: verification.credentialID,
-      credentialPublicKey: verification.credentialPublicKey ? Array.from(verification.credentialPublicKey) : undefined,
+      credentialPublicKey: verification.credentialPublicKey
+        ? Array.from(verification.credentialPublicKey)
+        : undefined,
       counter: verification.counter,
       transports: verification.transports,
       message: 'Passkey registered successfully',
@@ -54,4 +57,3 @@ export async function POST(request: Request) {
     );
   }
 }
-

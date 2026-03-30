@@ -31,6 +31,7 @@ pnpm install
 ## What You're Getting
 
 The starter includes:
+
 - **Next.js** setup with TypeScript
 - **Arkiv SDK** already configured
 - **Example entity creation** code
@@ -50,6 +51,7 @@ You should see the Next.js dev server start. We'll configure it properly in the 
 ## Why Fork?
 
 Forking gives you:
+
 - Your own copy to experiment with
 - Ability to push changes and save your work
 - A starting point for your own Arkiv app

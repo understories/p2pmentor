@@ -1,6 +1,6 @@
 /**
  * Emoji Identity Seed Component
- * 
+ *
  * Reusable component for displaying user identity seeds (emoji avatars).
  * Used throughout the app to replace profile pictures with emoji seeds.
  */
@@ -34,11 +34,7 @@ export function EmojiIdentitySeed({
 
   return (
     <span
-      className={`
-        ${sizeClasses[size]}
-        ${showGlow ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : ''}
-        ${className}
-      `}
+      className={` ${sizeClasses[size]} ${showGlow ? 'drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : ''} ${className} `}
       role="img"
       aria-label="User identity seed"
     >
@@ -46,4 +42,3 @@ export function EmojiIdentitySeed({
     </span>
   );
 }
-

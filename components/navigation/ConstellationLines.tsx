@@ -1,6 +1,6 @@
 /**
  * Constellation Lines Component
- * 
+ *
  * Adds faint connecting lines between nav nodes to create "constellation" effect.
  * Phase 1 enhancement - subtle visual connection between navigation items.
  */
@@ -33,29 +33,35 @@ export function ConstellationLines({
   }
 
   const lines: Array<{ from: number; to: number; opacity: number }> = [];
-  
+
   // Connect adjacent items
   for (let i = 0; i < itemCount - 1; i++) {
-    const fromY = (i * itemHeight) + (itemHeight / 2);
-    const toY = ((i + 1) * itemHeight) + (itemHeight / 2);
-    
+    const fromY = i * itemHeight + itemHeight / 2;
+    const toY = (i + 1) * itemHeight + itemHeight / 2;
+
     // Higher opacity if connecting to active/hovered item
     const isConnectedToActive = activeIndex === i || activeIndex === i + 1;
     const isConnectedToHovered = hoveredIndex === i || hoveredIndex === i + 1;
     const opacity = isConnectedToActive ? 0.4 : isConnectedToHovered ? 0.3 : 0.15;
-    
+
     lines.push({ from: fromY, to: toY, opacity });
   }
 
   return (
     <svg
-      className="absolute left-0 top-0 w-full h-full pointer-events-none z-0"
+      className="pointer-events-none absolute left-0 top-0 z-0 h-full w-full"
       style={{ height: containerHeight }}
     >
       <defs>
         <linearGradient id="constellationGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={theme === 'dark' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)'} />
-          <stop offset="100%" stopColor={theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)'} />
+          <stop
+            offset="0%"
+            stopColor={theme === 'dark' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)'}
+          />
+          <stop
+            offset="100%"
+            stopColor={theme === 'dark' ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.1)'}
+          />
         </linearGradient>
       </defs>
       {lines.map((line, index) => (

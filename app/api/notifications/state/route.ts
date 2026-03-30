@@ -1,9 +1,9 @@
 /**
  * Notification State API route
- * 
+ *
  * Handles updating notification state (read/unread/archived).
  * Uses Pattern B (updateEntity) to update notification in place.
- * 
+ *
  * Replaces old /api/notifications/preferences route.
  */
 
@@ -13,7 +13,7 @@ import { getPrivateKey, SPACE_ID } from '@/lib/config';
 
 /**
  * PATCH /api/notifications/state
- * 
+ *
  * Body:
  * - wallet: User wallet address
  * - notificationId: Notification ID (derived from sourceEntityType + sourceEntityKey)
@@ -48,10 +48,7 @@ export async function PATCH(request: Request) {
 
     const privateKey = getPrivateKey();
     if (!privateKey) {
-      return NextResponse.json(
-        { ok: false, error: 'Private key not configured' },
-        { status: 500 }
-      );
+      return NextResponse.json({ ok: false, error: 'Private key not configured' }, { status: 500 });
     }
 
     console.log(`[PATCH /api/notifications/state] Updating notification state:`, {
@@ -97,4 +94,3 @@ export async function PATCH(request: Request) {
     );
   }
 }
-

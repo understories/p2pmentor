@@ -35,7 +35,7 @@ export default function DocsPage() {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  
+
   // Load expanded directories from localStorage on mount
   const getInitialExpandedDirs = (): Set<string> => {
     if (typeof window === 'undefined') {
@@ -52,9 +52,9 @@ export default function DocsPage() {
     }
     return new Set(['arkiv', 'arkiv/entity-overview']); // Default
   };
-  
+
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(getInitialExpandedDirs);
-  
+
   // Persist expanded directories to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && expandedDirs.size > 0) {
@@ -132,7 +132,7 @@ export default function DocsPage() {
       return next;
     });
   };
-  
+
   // Flatten all files into a single ordered list for navigation
   const flattenFiles = (files: DocFile[]): DocFile[] => {
     const result: DocFile[] = [];
@@ -149,16 +149,16 @@ export default function DocsPage() {
     traverse(files);
     return result;
   };
-  
+
   // Get previous and next pages
   const getNavigationPages = () => {
     if (!currentPath) return { prev: null, next: null };
-    
+
     const allFiles = flattenFiles(files);
-    const currentIndex = allFiles.findIndex(f => f.path === currentPath);
-    
+    const currentIndex = allFiles.findIndex((f) => f.path === currentPath);
+
     if (currentIndex === -1) return { prev: null, next: null };
-    
+
     return {
       prev: currentIndex > 0 ? allFiles[currentIndex - 1] : null,
       next: currentIndex < allFiles.length - 1 ? allFiles[currentIndex + 1] : null,
@@ -171,7 +171,7 @@ export default function DocsPage() {
     if (name === 'history-future') {
       return 'History & Future';
     }
-    return name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return name.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
 
   const renderFileTree = (files: DocFile[], level = 0, forTOC = false) => {
@@ -183,18 +183,18 @@ export default function DocsPage() {
               <>
                 {forTOC ? (
                   <>
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white mt-4 mb-2">
+                    <div className="mb-2 mt-4 text-sm font-semibold text-gray-900 dark:text-white">
                       {formatSectionName(file.name)}
                     </div>
                     {file.children && file.children.length > 0 && (
-                      <div className="ml-4 mb-2 space-y-1">
+                      <div className="mb-2 ml-4 space-y-1">
                         {file.children
-                          .filter(child => !child.isDirectory)
+                          .filter((child) => !child.isDirectory)
                           .map((child) => (
                             <Link
                               key={child.path}
                               href={`/docs/${child.path}`}
-                              className="block text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                              className="block text-sm text-blue-600 hover:underline dark:text-blue-400"
                             >
                               • {child.name.replace(/-/g, ' ')}
                             </Link>
@@ -202,13 +202,13 @@ export default function DocsPage() {
                       </div>
                     )}
                     {/* Only recursively render subdirectories, not files (files already rendered above) */}
-                    {file.children && file.children.length > 0 && (
+                    {file.children &&
+                      file.children.length > 0 &&
                       renderFileTree(
-                        file.children.filter(child => child.isDirectory),
+                        file.children.filter((child) => child.isDirectory),
                         level + 1,
                         forTOC
-                      )
-                    )}
+                      )}
                   </>
                 ) : (
                   <>
@@ -218,9 +218,11 @@ export default function DocsPage() {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => toggleDirectory(file.path)}
-                            className="flex-1 flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                            className="flex flex-1 items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800"
                           >
-                            <span className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}>
+                            <span
+                              className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}
+                            >
                               ▶
                             </span>
                             <Link
@@ -246,9 +248,11 @@ export default function DocsPage() {
                         <div className="flex items-center gap-1.5">
                           <button
                             onClick={() => toggleDirectory(file.path)}
-                            className="flex-1 flex items-center gap-1.5 px-2 py-1.5 text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase tracking-wider hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+                            className="flex flex-1 items-center gap-1.5 rounded px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500 transition-colors hover:bg-gray-100 dark:text-gray-500 dark:hover:bg-gray-800"
                           >
-                            <span className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}>
+                            <span
+                              className={`transition-transform ${expandedDirs.has(file.path) ? 'rotate-90' : ''}`}
+                            >
                               ▶
                             </span>
                             <span>{formatSectionName(file.name)}</span>
@@ -268,9 +272,9 @@ export default function DocsPage() {
               <Link
                 href={`/docs/${file.path}`}
                 onClick={() => setSidebarOpen(false)}
-                className={`block px-2 py-1.5 text-sm rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors ${
+                className={`block rounded px-2 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 ${
                   currentPath === file.path
-                    ? 'bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400 font-medium'
+                    ? 'bg-gray-100 font-medium text-blue-600 dark:bg-gray-800 dark:text-blue-400'
                     : 'text-gray-700 dark:text-gray-300'
                 }`}
               >
@@ -287,30 +291,56 @@ export default function DocsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="mb-2 text-4xl font-bold text-gray-900 dark:text-white">
             p2pmentor Beta Documentation
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 mb-8">
-            Planting the first beta seed of peer to peer mentorship. Teach, learn, and mentor without intermediaries. Own your data.
+          <p className="mb-8 text-lg text-gray-600 dark:text-gray-400">
+            Planting the first beta seed of peer to peer mentorship. Teach, learn, and mentor
+            without intermediaries. Own your data.
           </p>
         </div>
 
-        <div className="prose prose-lg dark:prose-invert max-w-none">
-          <h2 className="text-2xl font-bold mb-4">Table of Contents</h2>
+        <div className="prose prose-lg max-w-none dark:prose-invert">
+          <h2 className="mb-4 text-2xl font-bold">Table of Contents</h2>
           {renderFileTree(files, 0, true)}
         </div>
 
-        <div className="mt-12 p-6 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-          <h3 className="text-lg font-semibold mb-3">Getting Started</h3>
+        <div className="mt-12 rounded-lg border border-gray-200 bg-gray-50 p-6 dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="mb-3 text-lg font-semibold">Getting Started</h3>
           <ul className="space-y-2 text-sm">
             <li>
-              <strong>Builders:</strong> Start with <Link href="/docs/architecture/overview" className="text-blue-600 dark:text-blue-400 hover:underline">Architecture</Link> and <Link href="/docs/arkiv/overview" className="text-blue-600 dark:text-blue-400 hover:underline">Arkiv Integration</Link>
+              <strong>Builders:</strong> Start with{' '}
+              <Link
+                href="/docs/architecture/overview"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Architecture
+              </Link>{' '}
+              and{' '}
+              <Link
+                href="/docs/arkiv/overview"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Arkiv Integration
+              </Link>
             </li>
             <li>
-              <strong>Designers/PMs:</strong> Start with <Link href="/docs/user-flows/overview" className="text-blue-600 dark:text-blue-400 hover:underline">User Flows</Link>
+              <strong>Designers/PMs:</strong> Start with{' '}
+              <Link
+                href="/docs/user-flows/overview"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                User Flows
+              </Link>
             </li>
             <li>
-              <strong>Users:</strong> Start with <Link href="/docs/introduction/getting-started" className="text-blue-600 dark:text-blue-400 hover:underline">Getting Started</Link>
+              <strong>Users:</strong> Start with{' '}
+              <Link
+                href="/docs/introduction/getting-started"
+                className="text-blue-600 hover:underline dark:text-blue-400"
+              >
+                Getting Started
+              </Link>
             </li>
           </ul>
         </div>
@@ -330,7 +360,7 @@ export default function DocsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex min-h-screen items-center justify-center">
         <div className="text-gray-600 dark:text-gray-400">Loading documentation...</div>
       </div>
     );
@@ -339,19 +369,16 @@ export default function DocsPage() {
   return (
     <>
       <div className="flex min-h-screen">
-
         {/* Sidebar */}
         <aside
-          className={`
-            w-64 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-4 overflow-y-auto
-            fixed left-0 top-28 bottom-0 z-40 md:top-0
-            transition-transform duration-300 ease-in-out
-            md:translate-x-0 md:bg-gray-50 md:dark:bg-gray-950
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          `}
+          className={`fixed bottom-0 left-0 top-28 z-40 w-64 overflow-y-auto border-r border-gray-200 bg-white p-4 transition-transform duration-300 ease-in-out dark:border-gray-800 dark:bg-gray-900 md:top-0 md:translate-x-0 md:bg-gray-50 md:dark:bg-gray-950 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} `}
         >
           <div className="mb-4">
-            <Link href="/docs" className="text-lg font-bold text-gray-900 dark:text-white" onClick={() => setSidebarOpen(false)}>
+            <Link
+              href="/docs"
+              className="text-lg font-bold text-gray-900 dark:text-white"
+              onClick={() => setSidebarOpen(false)}
+            >
               p2pmentor Docs
             </Link>
           </div>
@@ -361,14 +388,14 @@ export default function DocsPage() {
         {/* Sidebar backdrop (mobile only) */}
         {sidebarOpen && (
           <div
-            className="md:hidden fixed inset-0 bg-black/50 z-30"
+            className="fixed inset-0 z-30 bg-black/50 md:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
 
         {/* Main content */}
-        <main className="flex-1 md:ml-64 overflow-x-hidden">
-          <article className="w-full max-w-4xl mx-auto px-4 md:px-8 pt-32 md:pt-8 pb-8 md:pb-12 overflow-x-hidden">
+        <main className="flex-1 overflow-x-hidden md:ml-64">
+          <article className="mx-auto w-full max-w-4xl overflow-x-hidden px-4 pb-8 pt-32 md:px-8 md:pb-12 md:pt-8">
             {/* Show table of contents for root /docs */}
             {!currentPath ? (
               renderTableOfContents()
@@ -378,44 +405,68 @@ export default function DocsPage() {
                 {(() => {
                   const nav = getNavigationPages();
                   return (
-                    <div className="md:mb-8 md:static fixed top-2 left-0 right-0 md:top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
+                    <div className="fixed left-0 right-0 top-2 z-40 border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900 md:static md:top-0 md:mb-8 md:border-b-0 md:bg-transparent md:dark:bg-transparent">
                       {/* Mobile menu button row - only show on mobile */}
-                      <div className="md:hidden w-full max-w-4xl mx-auto px-2 py-2 border-b border-gray-200 dark:border-gray-700">
+                      <div className="mx-auto w-full max-w-4xl border-b border-gray-200 px-2 py-2 dark:border-gray-700 md:hidden">
                         <button
                           onClick={() => setSidebarOpen(!sidebarOpen)}
-                          className="flex-shrink-0 p-2 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-lg"
+                          className="flex-shrink-0 rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-700 dark:bg-gray-900"
                           aria-label="Toggle navigation"
                         >
                           <svg
-                            className="w-5 h-5 text-gray-700 dark:text-gray-300"
+                            className="h-5 w-5 text-gray-700 dark:text-gray-300"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                           >
                             {sidebarOpen ? (
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
                             ) : (
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4 6h16M4 12h16M4 18h16"
+                              />
                             )}
                           </svg>
                         </button>
                       </div>
 
                       {/* Previous/Next navigation row */}
-                      <div className="w-full max-w-4xl mx-auto px-2 md:px-0 py-2 md:py-0 flex items-center gap-2 md:gap-4 md:pb-4 overflow-x-hidden">
+                      <div className="mx-auto flex w-full max-w-4xl items-center gap-2 overflow-x-hidden px-2 py-2 md:gap-4 md:px-0 md:py-0 md:pb-4">
                         {/* Previous link */}
                         {nav.prev ? (
                           <Link
                             href={`/docs/${nav.prev.path}`}
-                            className="group flex items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-0 flex-1"
+                            className="group flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400 md:gap-2 md:px-4 md:text-sm"
                           >
-                            <svg className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            <svg
+                              className="h-3 w-3 flex-shrink-0 md:h-4 md:w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M15 19l-7-7 7-7"
+                              />
                             </svg>
-                            <div className="flex flex-col min-w-0">
-                              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Previous</span>
-                              <span className="truncate font-medium text-xs md:text-sm">
-                                {nav.prev.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <div className="flex min-w-0 flex-col">
+                              <span className="text-[10px] text-gray-500 dark:text-gray-500 md:text-xs">
+                                Previous
+                              </span>
+                              <span className="truncate text-xs font-medium md:text-sm">
+                                {nav.prev.name
+                                  .replace(/-/g, ' ')
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
                               </span>
                             </div>
                           </Link>
@@ -427,16 +478,30 @@ export default function DocsPage() {
                         {nav.next && (
                           <Link
                             href={`/docs/${nav.next.path}`}
-                            className="group flex items-center gap-1.5 md:gap-2 px-2 md:px-4 py-2 text-xs md:text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors min-w-0 flex-1 justify-end"
+                            className="group flex min-w-0 flex-1 items-center justify-end gap-1.5 rounded-lg px-2 py-2 text-xs text-gray-600 transition-colors hover:bg-gray-50 hover:text-blue-600 dark:text-gray-400 dark:hover:bg-gray-800 dark:hover:text-blue-400 md:gap-2 md:px-4 md:text-sm"
                           >
-                            <div className="flex flex-col text-right min-w-0">
-                              <span className="text-[10px] md:text-xs text-gray-500 dark:text-gray-500">Next</span>
-                              <span className="truncate font-medium text-xs md:text-sm">
-                                {nav.next.name.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            <div className="flex min-w-0 flex-col text-right">
+                              <span className="text-[10px] text-gray-500 dark:text-gray-500 md:text-xs">
+                                Next
+                              </span>
+                              <span className="truncate text-xs font-medium md:text-sm">
+                                {nav.next.name
+                                  .replace(/-/g, ' ')
+                                  .replace(/\b\w/g, (l) => l.toUpperCase())}
                               </span>
                             </div>
-                            <svg className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                            <svg
+                              className="h-3 w-3 flex-shrink-0 md:h-4 md:w-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 5l7 7-7 7"
+                              />
                             </svg>
                           </Link>
                         )}
@@ -444,9 +509,9 @@ export default function DocsPage() {
                     </div>
                   );
                 })()}
-                
+
                 {/* Markdown content */}
-                <div className="prose prose-lg dark:prose-invert max-w-full prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 dark:prose-a:text-blue-400 prose-a:no-underline hover:prose-a:underline prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-pre:bg-gray-900 dark:prose-pre:bg-gray-950 prose-headings:scroll-mt-20 break-words overflow-wrap-anywhere">
+                <div className="overflow-wrap-anywhere prose prose-lg max-w-full break-words dark:prose-invert prose-headings:scroll-mt-20 prose-headings:font-bold prose-h1:text-4xl prose-h2:text-3xl prose-h3:text-2xl prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-code:rounded prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-pre:bg-gray-900 dark:prose-a:text-blue-400 dark:prose-code:bg-gray-800 dark:prose-pre:bg-gray-950">
                   <style jsx global>{`
                     .anchor-link {
                       text-decoration: none;
@@ -499,7 +564,10 @@ export default function DocsPage() {
                       .prose h3 {
                         font-size: 1.25rem !important;
                       }
-                      .prose p, .prose li, .prose td, .prose th {
+                      .prose p,
+                      .prose li,
+                      .prose td,
+                      .prose th {
                         word-break: break-word;
                         overflow-wrap: break-word;
                       }
@@ -510,54 +578,77 @@ export default function DocsPage() {
                     rehypePlugins={[
                       rehypeRaw, // Allow raw HTML (for img tags in markdown)
                       rehypeSlug,
-                      [rehypeAutolinkHeadings, {
-                        behavior: 'wrap',
-                        properties: {
-                          className: ['anchor-link'],
+                      [
+                        rehypeAutolinkHeadings,
+                        {
+                          behavior: 'wrap',
+                          properties: {
+                            className: ['anchor-link'],
+                          },
                         },
-                      }],
+                      ],
                     ]}
                     components={{
                       img: ({ node, src, alt, ...props }) => {
                         // Check if this is a diagram SVG (both conceptual and implementation diagrams)
-                        if (src && typeof src === 'string' && (
-                          src.includes('diagram.svg') || 
-                          src.includes('walletdiagram') || 
-                          src.includes('profilediagram') || 
-                          src.includes('sessiondiagram') ||
-                          src.includes('walletm1') ||
-                          src.includes('profilem1') ||
-                          src.includes('sessionm1')
-                        )) {
+                        if (
+                          src &&
+                          typeof src === 'string' &&
+                          (src.includes('diagram.svg') ||
+                            src.includes('walletdiagram') ||
+                            src.includes('profilediagram') ||
+                            src.includes('sessiondiagram') ||
+                            src.includes('walletm1') ||
+                            src.includes('profilem1') ||
+                            src.includes('sessionm1'))
+                        ) {
                           return <DiagramViewer src={src} alt={alt || ''} />;
                         }
                         // Regular images
-                        return <img src={typeof src === 'string' ? src : ''} alt={alt} {...props} className="max-w-full h-auto" />;
+                        return (
+                          <img
+                            src={typeof src === 'string' ? src : ''}
+                            alt={alt}
+                            {...props}
+                            className="h-auto max-w-full"
+                          />
+                        );
                       },
                       a: ({ node, href, children, ...props }) => {
                         // Transform relative markdown links to Next.js /docs routes
-                        if (href && !href.startsWith('http') && !href.startsWith('mailto:') && !href.startsWith('#')) {
+                        if (
+                          href &&
+                          !href.startsWith('http') &&
+                          !href.startsWith('mailto:') &&
+                          !href.startsWith('#')
+                        ) {
                           // Remove .md extension and handle relative paths
                           let docPath = href.replace(/\.md$/, '').replace(/\.md#/, '#');
-                          
+
                           // If link already starts with /docs/, use it as-is (just strip /docs/ prefix and use the path)
                           if (docPath.startsWith('/docs/')) {
                             const pathWithoutDocs = docPath.slice(6); // Remove '/docs/' prefix
                             const [path, anchor] = pathWithoutDocs.split('#');
-                            const hrefWithAnchor = anchor ? `/docs/${path}#${anchor}` : `/docs/${path}`;
+                            const hrefWithAnchor = anchor
+                              ? `/docs/${path}#${anchor}`
+                              : `/docs/${path}`;
                             return (
                               <Link href={hrefWithAnchor} {...props}>
                                 {children}
                               </Link>
                             );
                           }
-                          
+
                           // If link starts with / but not /docs/, treat as absolute path (shouldn't happen in docs, but handle gracefully)
                           if (docPath.startsWith('/') && !docPath.startsWith('/docs/')) {
                             // Use as-is for absolute paths outside /docs/
-                            return <a href={docPath} {...props}>{children}</a>;
+                            return (
+                              <a href={docPath} {...props}>
+                                {children}
+                              </a>
+                            );
                           }
-                          
+
                           // Handle relative paths
                           if (docPath.startsWith('../')) {
                             // Go up from current directory
@@ -565,7 +656,7 @@ export default function DocsPage() {
                             const relativeParts = docPath.split('/');
                             let upLevels = 0;
                             const newParts: string[] = [];
-                            
+
                             for (const part of relativeParts) {
                               if (part === '..') {
                                 upLevels++;
@@ -573,37 +664,54 @@ export default function DocsPage() {
                                 newParts.push(part);
                               }
                             }
-                            
+
                             // Remove upLevels from pathParts
-                            const baseParts = pathParts.slice(0, Math.max(0, pathParts.length - upLevels));
-                            docPath = baseParts.length > 0 ? [...baseParts, ...newParts].join('/') : newParts.join('/');
+                            const baseParts = pathParts.slice(
+                              0,
+                              Math.max(0, pathParts.length - upLevels)
+                            );
+                            docPath =
+                              baseParts.length > 0
+                                ? [...baseParts, ...newParts].join('/')
+                                : newParts.join('/');
                           } else if (docPath.startsWith('./')) {
                             // Same directory
                             const pathParts = currentPath ? currentPath.split('/') : [];
-                            docPath = [...pathParts.slice(0, -1), docPath.slice(2)].filter(p => p).join('/');
+                            docPath = [...pathParts.slice(0, -1), docPath.slice(2)]
+                              .filter((p) => p)
+                              .join('/');
                           } else {
                             // Relative to current directory
                             const pathParts = currentPath ? currentPath.split('/') : [];
                             const currentDir = pathParts.slice(0, -1).join('/');
                             docPath = currentDir ? `${currentDir}/${docPath}` : docPath;
                           }
-                          
+
                           // Clean up path (remove leading/trailing slashes, empty segments)
-                          docPath = docPath.split('/').filter(p => p).join('/');
-                          
+                          docPath = docPath
+                            .split('/')
+                            .filter((p) => p)
+                            .join('/');
+
                           // Handle anchor links
                           const [path, anchor] = docPath.split('#');
-                          const hrefWithAnchor = anchor ? `/docs/${path}#${anchor}` : `/docs/${path}`;
-                          
+                          const hrefWithAnchor = anchor
+                            ? `/docs/${path}#${anchor}`
+                            : `/docs/${path}`;
+
                           return (
                             <Link href={hrefWithAnchor} {...props}>
                               {children}
                             </Link>
                           );
                         }
-                        
+
                         // External links, anchors, or mailto - use regular <a> tag
-                        return <a href={href} {...props}>{children}</a>;
+                        return (
+                          <a href={href} {...props}>
+                            {children}
+                          </a>
+                        );
                       },
                     }}
                   >
@@ -613,8 +721,8 @@ export default function DocsPage() {
 
                 {/* Git history banner - always show at bottom if gitHistory exists */}
                 {gitHistory && (
-                  <div className="mt-12 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="mt-12 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
+                    <div className="flex flex-col gap-2 text-sm text-gray-600 dark:text-gray-400 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         {gitHistory.date ? (
                           <>
@@ -622,7 +730,8 @@ export default function DocsPage() {
                             {formatDate(gitHistory.date)}
                             {gitHistory.author && (
                               <>
-                                {' '}by <span className="font-medium">{gitHistory.author}</span>
+                                {' '}
+                                by <span className="font-medium">{gitHistory.author}</span>
                               </>
                             )}
                           </>
@@ -642,7 +751,7 @@ export default function DocsPage() {
                           href={`https://github.com/understories/p2pmentor/commit/${gitHistory.hash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 dark:text-blue-400 hover:underline"
+                          className="text-blue-600 hover:underline dark:text-blue-400"
                         >
                           View changes →
                         </a>

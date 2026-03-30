@@ -7,6 +7,7 @@ Deploying your app proves it works independently of your local machine. It's the
 ## Step 1: Prepare for Deployment
 
 1. **Commit your changes:**
+
    ```bash
    git add .
    git commit -m "My Arkiv app"
@@ -20,16 +21,19 @@ Deploying your app proves it works independently of your local machine. It's the
 ### Option A: Vercel CLI
 
 1. **Install Vercel CLI:**
+
    ```bash
    npm i -g vercel
    ```
 
 2. **Login:**
+
    ```bash
    vercel login
    ```
 
 3. **Deploy:**
+
    ```bash
    vercel
    ```
@@ -59,6 +63,7 @@ Deploying your app proves it works independently of your local machine. It's the
 ## The Walkaway Test, Part 2
 
 This deployment proves:
+
 - ✅ Your app works on different infrastructure
 - ✅ Your data persists independently
 - ✅ Multiple instances can read the same data
@@ -67,6 +72,7 @@ This deployment proves:
 ## Environment Variables in Production
 
 **Important:** Set environment variables in Vercel dashboard, not in code:
+
 - ✅ Use Vercel's environment variable UI
 - ✅ Different values for production vs preview
 - ✅ Never hardcode in source code
@@ -75,6 +81,7 @@ This deployment proves:
 ## Monitoring Your Deployment
 
 Vercel provides:
+
 - **Function logs** - See server-side execution
 - **Analytics** - Track usage
 - **Deployment history** - Roll back if needed
@@ -82,16 +89,19 @@ Vercel provides:
 ## Common Deployment Issues
 
 **"Environment variables not found"**
+
 - Check Vercel dashboard settings
 - Verify variable names match exactly
 - Redeploy after adding variables
 
 **"Build failed"**
+
 - Check build logs in Vercel
 - Verify all dependencies are in `package.json`
 - Ensure TypeScript compiles
 
 **"Runtime errors"**
+
 - Check function logs
 - Verify Arkiv connection
 - Test locally first
@@ -99,6 +109,7 @@ Vercel provides:
 ## What You've Accomplished
 
 You now have:
+
 - ✅ A working Arkiv app
 - ✅ Deployed to production
 - ✅ Data stored on-chain

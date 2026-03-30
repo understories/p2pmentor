@@ -1,9 +1,9 @@
 /**
  * Client Performance Tracker Component
- * 
+ *
  * Automatically collects and submits client-side performance metrics.
  * Privacy-preserving: no PII, only performance data.
- * 
+ *
  * Reference: refs/doc/beta_metrics_QUESTIONS.md Question 5
  */
 
@@ -11,16 +11,21 @@
 
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { collectClientPerfMetrics, observeWebVitals, type ClientPerfMetric } from '@/lib/metrics/clientPerf';
+import {
+  collectClientPerfMetrics,
+  observeWebVitals,
+  type ClientPerfMetric,
+} from '@/lib/metrics/clientPerf';
 
 export function ClientPerfTracker() {
   const pathname = usePathname();
 
   useEffect(() => {
     // Only track in production or when explicitly enabled
-    const shouldTrack = process.env.NODE_ENV === 'production' || 
-                       process.env.NEXT_PUBLIC_ENABLE_CLIENT_PERF === 'true';
-    
+    const shouldTrack =
+      process.env.NODE_ENV === 'production' ||
+      process.env.NEXT_PUBLIC_ENABLE_CLIENT_PERF === 'true';
+
     if (!shouldTrack) {
       return;
     }
@@ -35,7 +40,7 @@ export function ClientPerfTracker() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(metric),
-          }).catch(err => {
+          }).catch((err) => {
             // Silently fail - metrics are non-critical
             console.debug('[ClientPerf] Failed to submit metric:', err);
           });
@@ -50,7 +55,7 @@ export function ClientPerfTracker() {
     const webVitals: Partial<ClientPerfMetric> = {};
     const cleanup = observeWebVitals((vitalMetric) => {
       Object.assign(webVitals, vitalMetric);
-      
+
       // Submit when we have meaningful data (after 5 seconds)
       setTimeout(async () => {
         if (Object.keys(webVitals).length > 0) {

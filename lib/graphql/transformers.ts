@@ -1,6 +1,6 @@
 /**
  * Transformers: Arkiv Entities → GraphQL Types
- * 
+ *
  * Converts Arkiv entity structures to GraphQL response format.
  */
 
@@ -16,9 +16,7 @@ import type { AppFeedback } from '@/lib/arkiv/appFeedback';
  */
 export function transformAsk(ask: Ask): any {
   const createdAt = new Date(ask.createdAt).getTime();
-  const expiresAt = ask.ttlSeconds 
-    ? createdAt + (ask.ttlSeconds * 1000)
-    : null;
+  const expiresAt = ask.ttlSeconds ? createdAt + ask.ttlSeconds * 1000 : null;
 
   return {
     id: `ask:${ask.key}`,
@@ -39,9 +37,7 @@ export function transformAsk(ask: Ask): any {
  */
 export function transformOffer(offer: Offer): any {
   const createdAt = new Date(offer.createdAt).getTime();
-  const expiresAt = offer.ttlSeconds 
-    ? createdAt + (offer.ttlSeconds * 1000)
-    : null;
+  const expiresAt = offer.ttlSeconds ? createdAt + offer.ttlSeconds * 1000 : null;
 
   return {
     id: `offer:${offer.key}`,
@@ -65,12 +61,16 @@ export function transformOffer(offer: Offer): any {
  * Transform Arkiv Profile to GraphQL Profile
  */
 export function transformProfile(profile: UserProfile): any {
-  const skills = profile.skillsArray || 
-    (profile.skills ? profile.skills.split(',').map(s => s.trim()).filter(Boolean) : []);
-  
-  const createdAt = profile.createdAt 
-    ? new Date(profile.createdAt).getTime()
-    : null;
+  const skills =
+    profile.skillsArray ||
+    (profile.skills
+      ? profile.skills
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : []);
+
+  const createdAt = profile.createdAt ? new Date(profile.createdAt).getTime() : null;
 
   return {
     id: profile.wallet,
@@ -164,4 +164,3 @@ export function createSkillRef(skillName: string, asks: Ask[] = [], offers: Offe
     profiles: [], // Will be populated by resolver if needed
   };
 }
-

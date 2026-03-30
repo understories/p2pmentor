@@ -50,22 +50,22 @@ export function ArkivModeBanner() {
   };
 
   return (
-    <div className="bg-emerald-50 dark:bg-emerald-900/20 border-b border-emerald-200 dark:border-emerald-800 px-4 py-2 relative z-40">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
+    <div className="relative z-40 border-b border-emerald-200 bg-emerald-50 px-4 py-2 dark:border-emerald-800 dark:bg-emerald-900/20">
+      <div className="mx-auto flex max-w-7xl items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+            <span className="font-medium text-emerald-700 dark:text-emerald-300">
               Arkiv Builder Mode: Active
             </span>
             {queryCount > 0 && (
-              <span className="text-sm text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded">
+              <span className="rounded bg-emerald-100 px-2 py-0.5 text-sm text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400">
                 {queryCount} {queryCount === 1 ? 'query' : 'queries'}
               </span>
             )}
           </div>
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-800 dark:hover:text-emerald-200 transition-colors"
+            className="text-emerald-600 transition-colors hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-200"
             aria-label={collapsed ? 'Expand banner' : 'Collapse banner'}
           >
             {collapsed ? '▼' : '▲'}
@@ -74,11 +74,11 @@ export function ArkivModeBanner() {
         {/* Toggle removed from banner - now always in GlobalToggles for consistency */}
       </div>
       {!collapsed && (
-        <div className="max-w-7xl mx-auto mt-2 text-sm text-emerald-800 dark:text-emerald-200">
-          Hover over elements to see Arkiv queries and entity information. All data is stored on Arkiv blockchain.
+        <div className="mx-auto mt-2 max-w-7xl text-sm text-emerald-800 dark:text-emerald-200">
+          Hover over elements to see Arkiv queries and entity information. All data is stored on
+          Arkiv blockchain.
         </div>
       )}
     </div>
   );
 }
-

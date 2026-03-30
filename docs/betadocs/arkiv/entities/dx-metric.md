@@ -51,11 +51,12 @@ Stores performance metrics (server-side) as Arkiv entities for verifiable, on-ch
 ### Get Metrics by Operation
 
 ```typescript
-import { eq } from "@arkiv-network/sdk/query";
-import { getPublicClient } from "@/lib/arkiv/client";
+import { eq } from '@arkiv-network/sdk/query';
+import { getPublicClient } from '@/lib/arkiv/client';
 
 const publicClient = getPublicClient();
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'dx_metric'))
   .where(eq('operation', 'buildNetworkGraphData'))
   .withAttributes(true)
@@ -63,9 +64,9 @@ const result = await publicClient.buildQuery()
   .limit(100)
   .fetch();
 
-const metrics = result.entities.map(e => ({
+const metrics = result.entities.map((e) => ({
   ...e.attributes,
-  ...JSON.parse(e.payload)
+  ...JSON.parse(e.payload),
 }));
 ```
 
@@ -73,7 +74,8 @@ const metrics = result.entities.map(e => ({
 
 ```typescript
 // Get JSON-RPC metrics
-const arkivMetrics = await publicClient.buildQuery()
+const arkivMetrics = await publicClient
+  .buildQuery()
   .where(eq('type', 'dx_metric'))
   .where(eq('source', 'arkiv'))
   .where(eq('operation', 'buildNetworkGraphData'))
@@ -83,7 +85,8 @@ const arkivMetrics = await publicClient.buildQuery()
   .fetch();
 
 // Get GraphQL metrics
-const graphqlMetrics = await publicClient.buildQuery()
+const graphqlMetrics = await publicClient
+  .buildQuery()
   .where(eq('type', 'dx_metric'))
   .where(eq('source', 'graphql'))
   .where(eq('operation', 'buildNetworkGraphData'))
@@ -93,19 +96,22 @@ const graphqlMetrics = await publicClient.buildQuery()
   .fetch();
 
 // Calculate averages
-const arkivAvg = arkivMetrics.entities
-  .map(e => JSON.parse(e.payload).durationMs)
-  .reduce((sum, d) => sum + d, 0) / arkivMetrics.entities.length;
+const arkivAvg =
+  arkivMetrics.entities
+    .map((e) => JSON.parse(e.payload).durationMs)
+    .reduce((sum, d) => sum + d, 0) / arkivMetrics.entities.length;
 
-const graphqlAvg = graphqlMetrics.entities
-  .map(e => JSON.parse(e.payload).durationMs)
-  .reduce((sum, d) => sum + d, 0) / graphqlMetrics.entities.length;
+const graphqlAvg =
+  graphqlMetrics.entities
+    .map((e) => JSON.parse(e.payload).durationMs)
+    .reduce((sum, d) => sum + d, 0) / graphqlMetrics.entities.length;
 ```
 
 ### Get Metrics by Route
 
 ```typescript
-const result = await publicClient.buildQuery()
+const result = await publicClient
+  .buildQuery()
   .where(eq('type', 'dx_metric'))
   .where(eq('route', '/network'))
   .withAttributes(true)
@@ -117,8 +123,8 @@ const result = await publicClient.buildQuery()
 ## Creation
 
 ```typescript
-import { createDxMetric } from "@/lib/arkiv/dxMetrics";
-import { getPrivateKey } from "@/lib/config";
+import { createDxMetric } from '@/lib/arkiv/dxMetrics';
+import { getPrivateKey } from '@/lib/config';
 
 const { key, txHash } = await createDxMetric({
   sample: {
@@ -149,20 +155,20 @@ async function comparePerformance(operation: string) {
   // Get samples for both methods
   const arkivSamples = await getDxMetrics({ source: 'arkiv', operation, limit: 50 });
   const graphqlSamples = await getDxMetrics({ source: 'graphql', operation, limit: 50 });
-  
+
   // Calculate statistics
   const arkivStats = {
     avg: arkivSamples.reduce((sum, s) => sum + s.durationMs, 0) / arkivSamples.length,
-    min: Math.min(...arkivSamples.map(s => s.durationMs)),
-    max: Math.max(...arkivSamples.map(s => s.durationMs)),
+    min: Math.min(...arkivSamples.map((s) => s.durationMs)),
+    max: Math.max(...arkivSamples.map((s) => s.durationMs)),
   };
-  
+
   const graphqlStats = {
     avg: graphqlSamples.reduce((sum, s) => sum + s.durationMs, 0) / graphqlSamples.length,
-    min: Math.min(...graphqlSamples.map(s => s.durationMs)),
-    max: Math.max(...graphqlSamples.map(s => s.durationMs)),
+    min: Math.min(...graphqlSamples.map((s) => s.durationMs)),
+    max: Math.max(...graphqlSamples.map((s) => s.durationMs)),
   };
-  
+
   return { arkiv: arkivStats, graphql: graphqlStats };
 }
 ```
@@ -187,14 +193,14 @@ Track performance during query execution:
 ```typescript
 async function buildNetworkGraphData() {
   const startTime = Date.now();
-  
+
   try {
     // Execute query
     const data = await fetchNetworkOverview();
-    
+
     const durationMs = Date.now() - startTime;
     const payloadBytes = JSON.stringify(data).length;
-    
+
     // Store metric
     await createDxMetric({
       sample: {
@@ -209,11 +215,11 @@ async function buildNetworkGraphData() {
       },
       privateKey: getPrivateKey(),
     });
-    
+
     return data;
   } catch (error) {
     const durationMs = Date.now() - startTime;
-    
+
     // Store failure metric
     await createDxMetric({
       sample: {
@@ -227,9 +233,8 @@ async function buildNetworkGraphData() {
       },
       privateKey: getPrivateKey(),
     });
-    
+
     throw error;
   }
 }
 ```
-
