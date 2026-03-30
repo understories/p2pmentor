@@ -20,6 +20,7 @@ import { isTransactionTimeoutError } from '@/lib/arkiv/transaction-utils';
 import { loadQuestDefinitionByQuestId } from '@/lib/quests';
 import { getLatestQuestDefinition } from '@/lib/arkiv/questDefinition';
 import type { QuestDefinition, QuizRubric } from '@/lib/quests/questFormat';
+import { checkQuizTimeGate, computeMinSeconds, clearQuizStart } from '@/lib/quests/quizTimegate';
 
 // ---------------------------------------------------------------------------
 // Anti-gaming: server-side rate limiting & submission cooldown
@@ -208,6 +209,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Anti-gaming: server-side time gate
+    const minSeconds = computeMinSeconds(step.duration);
+    const timeGate = checkQuizTimeGate(wallet, questId, stepId, minSeconds);
+    if (!timeGate.allowed) {
+      const remaining = Math.ceil(timeGate.requiredSeconds - timeGate.elapsedSeconds);
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `Quiz submitted too quickly. Please spend at least ${Math.ceil(minSeconds / 60)} min reviewing before submitting. ${remaining}s remaining.`,
+          retryAfterMs: remaining * 1000,
+        },
+        { status: 429 }
+      );
+    }
+
     const privateKey = getPrivateKey();
 
     // Score the quiz against the server-loaded rubric
@@ -279,6 +295,8 @@ export async function POST(request: NextRequest) {
           privateKey,
           spaceId: SPACE_ID,
         });
+
+        clearQuizStart(wallet, questId, stepId);
 
         return NextResponse.json({
           ok: true,
