@@ -5,7 +5,7 @@
  * This helps track migration progress empirically.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   useGraphqlForNetwork,
   useGraphqlForMe,
@@ -13,12 +13,13 @@ import {
   useGraphqlForAsks,
   useGraphqlForOffers,
 } from '@/lib/graph/featureFlags';
+import { authenticateAdmin } from '@/lib/auth/adminAuth';
 
 // These are feature flag functions, not React hooks (despite the naming convention)
 // eslint-disable-next-line react-hooks/rules-of-hooks
-export async function GET() {
-  // TODO: Add authentication/authorization check
-  // For now, this is internal-only (not exposed in production without auth)
+export async function GET(request: NextRequest) {
+  const authError = authenticateAdmin(request);
+  if (authError) return authError;
 
   try {
     // Note: These are feature flag getter functions, not React hooks
