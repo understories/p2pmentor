@@ -24,13 +24,6 @@ import type { GardenSkill } from '@/lib/garden/types';
 
 export function FixedBackgroundGarden() {
   const pathname = usePathname();
-
-  // Hide garden on landing, beta, auth, onboarding, lite, and documentation pages
-  // Onboarding has its own GardenLayer that shows during the skills step
-  const hideGardenPaths = ['/', '/beta', '/auth', '/onboarding', '/lite'];
-  if (hideGardenPaths.includes(pathname) || pathname?.startsWith('/docs')) {
-    return null;
-  }
   const [allSystemSkills, setAllSystemSkills] = useState<GardenSkill[]>([]);
   const [userSkills, setUserSkills] = useState<GardenSkill[]>([]);
   const [learningSkillIds, setLearningSkillIds] = useState<string[]>([]);
@@ -130,6 +123,12 @@ export function FixedBackgroundGarden() {
 
     loadUserData();
   }, []);
+
+  // Hide garden on landing, beta, auth, onboarding, lite, and documentation pages
+  const hideGardenPaths = ['/', '/beta', '/auth', '/onboarding', '/lite'];
+  if (hideGardenPaths.includes(pathname) || pathname?.startsWith('/docs')) {
+    return null;
+  }
 
   // Don't render if no skills loaded yet
   if (deduplicatedSystemSkills.length === 0) {
