@@ -8,6 +8,7 @@ module.exports = {
     'node_modules/',
     '.next/',
     'extractions/',
+    'next-env.d.ts',
   ],
   rules: {
     // Downgrade to warning - many files use `any` for Arkiv entity patterns
