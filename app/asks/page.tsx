@@ -166,6 +166,7 @@ export default function AsksPage() {
     try {
       setLoading(true);
 
+      // eslint-disable-next-line react-hooks/rules-of-hooks -- not a hook, feature flag getter
       const useGraphQL = await useGraphqlForAsks();
 
       if (useGraphQL) {
