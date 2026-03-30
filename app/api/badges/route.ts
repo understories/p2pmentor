@@ -29,10 +29,7 @@ export async function GET(request: NextRequest) {
     const badgeType = searchParams.get('badgeType') as BadgeType | null;
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'wallet is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'wallet is required' }, { status: 400 });
     }
 
     if (badgeType) {
@@ -55,7 +52,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       badges,
       // Include entity info for all badges (for Arkiv builder mode)
-      badgesWithEntityInfo: badges.map(badge => ({
+      badgesWithEntityInfo: badges.map((badge) => ({
         badgeType: badge.badgeType,
         entityKey: badge.key,
         txHash: badge.txHash,
@@ -79,10 +76,7 @@ export async function POST(request: NextRequest) {
     const { action, wallet, questId, trackId, badgeType } = body;
 
     if (!wallet) {
-      return NextResponse.json(
-        { ok: false, error: 'wallet is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ ok: false, error: 'wallet is required' }, { status: 400 });
     }
 
     if (action === 'check-eligibility') {
@@ -106,25 +100,34 @@ export async function POST(request: NextRequest) {
     }
 
     if (action === 'issue') {
-      if (!badgeType || !questId || !body.evidenceRefs) {
+      if (!badgeType || !questId || !trackId) {
         return NextResponse.json(
-          { ok: false, error: 'badgeType, questId, and evidenceRefs are required' },
+          { ok: false, error: 'badgeType, questId, and trackId are required' },
           { status: 400 }
         );
       }
 
-      // Get private key for server-side signing
-      const privateKey = getPrivateKey();
+      // Re-verify eligibility server-side before issuing
+      const eligibility = await checkBadgeEligibility({ wallet, questId, trackId });
+      if (!eligibility.eligible) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: 'Badge eligibility check failed',
+            missingSteps: eligibility.missingSteps,
+          },
+          { status: 403 }
+        );
+      }
 
-      // questVersion from request body, or default to '1' for backward compatibility
-      const questVersion = body.questVersion || '1';
+      const privateKey = getPrivateKey();
 
       const result = await issueBadge({
         wallet,
         badgeType: badgeType as BadgeType,
         questId,
-        questVersion,
-        evidenceRefs: body.evidenceRefs,
+        questVersion: eligibility.questVersion || '1',
+        evidenceRefs: eligibility.evidenceRefs,
         privateKey,
       });
 
