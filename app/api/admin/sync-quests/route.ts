@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { authenticateAdmin } from '@/lib/auth/adminAuth';
 
 const execFileAsync = promisify(execFile);
 
@@ -22,13 +23,8 @@ const execFileAsync = promisify(execFile);
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication via session (same pattern as other admin routes)
-    const authHeader = request.headers.get('authorization');
-    const sessionAuth = request.cookies.get('admin_authenticated')?.value === 'true';
-
-    if (!sessionAuth && !authHeader) {
-      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
-    }
+    const authError = authenticateAdmin(request);
+    if (authError) return authError;
 
     const body = await request.json().catch(() => ({}));
     const trackId = body.trackId as string | undefined;
@@ -112,15 +108,11 @@ export async function POST(request: NextRequest) {
  *
  * Returns sync status and available quests.
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Check authentication
-    const sessionAuth =
-      typeof window === 'undefined'
-        ? false // Server-side check would need request object
-        : document.cookie.includes('admin_authenticated=true');
+    const authError = authenticateAdmin(request);
+    if (authError) return authError;
 
-    // For now, allow GET without auth (just info)
     return NextResponse.json({
       ok: true,
       message: 'Quest sync API',
