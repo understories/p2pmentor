@@ -379,9 +379,8 @@ export function SidebarNav({ allowOnExplorer = false, nested = false }: SidebarN
             };
 
             return (
-              <div className="group/nav pointer-events-auto relative">
+              <div key={item.href} className="group/nav pointer-events-auto relative">
                 <Link
-                  key={item.href}
                   href={item.href}
                   onClick={handleNavClick}
                   className={`relative flex w-full flex-row items-center gap-3 py-2.5 ${nested ? 'pl-2 pr-1' : 'pl-1 group-hover:pl-2 group-hover:pr-1'} pointer-events-auto rounded-lg transition-all duration-150 ease-out ${
