@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { join, resolve } from 'path';
+
+const DOCS_BASE = resolve(process.cwd(), 'docs', 'betadocs');
+
+function isSafePath(resolved: string): boolean {
+  return resolved.startsWith(DOCS_BASE + '/') || resolved === DOCS_BASE;
+}
 
 /**
  * Get markdown content for a documentation file
@@ -14,19 +20,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Sanitize path to prevent directory traversal
-    const sanitizedPath = filePath.replace(/\.\./g, '').replace(/^\//, '');
-    
-    // Try direct file path first
-    let fullPath = join(process.cwd(), 'docs', 'betadocs', `${sanitizedPath}.md`);
-    
+    const stripped = filePath.replace(/^\/+/, '');
+
+    // Resolve and verify the path stays inside DOCS_BASE
+    const fullPath = resolve(DOCS_BASE, `${stripped}.md`);
+    if (!isSafePath(fullPath)) {
+      return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+    }
+
     try {
       const content = await readFile(fullPath, 'utf-8');
       return NextResponse.json({ content });
     } catch (directError: any) {
-      // If direct file doesn't exist, try README.md in directory
       if (directError.code === 'ENOENT') {
-        const readmePath = join(process.cwd(), 'docs', 'betadocs', sanitizedPath, 'README.md');
+        const readmePath = resolve(DOCS_BASE, stripped, 'README.md');
+        if (!isSafePath(readmePath)) {
+          return NextResponse.json({ error: 'Invalid path' }, { status: 400 });
+        }
         try {
           const content = await readFile(readmePath, 'utf-8');
           return NextResponse.json({ content });
@@ -50,4 +60,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-
