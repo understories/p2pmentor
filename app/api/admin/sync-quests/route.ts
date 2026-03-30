@@ -1,23 +1,22 @@
 /**
  * Admin API: Sync Quest Entities
- * 
+ *
  * Syncs quest definitions from files to Arkiv entities.
  * Requires admin authentication.
- * 
+ *
  * POST /api/admin/sync-quests
  * Body: { trackId?: string } (optional - sync specific quest, otherwise syncs all)
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import { promisify } from 'util';
-import * as path from 'path';
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 /**
  * POST /api/admin/sync-quests
- * 
+ *
  * Triggers quest entity sync.
  * Body: { trackId?: string } (optional)
  */
@@ -26,35 +25,31 @@ export async function POST(request: NextRequest) {
     // Check authentication via session (same pattern as other admin routes)
     const authHeader = request.headers.get('authorization');
     const sessionAuth = request.cookies.get('admin_authenticated')?.value === 'true';
-    
+
     if (!sessionAuth && !authHeader) {
-      return NextResponse.json(
-        { ok: false, error: 'Authentication required' },
-        { status: 401 }
-      );
+      return NextResponse.json({ ok: false, error: 'Authentication required' }, { status: 401 });
     }
 
     const body = await request.json().catch(() => ({}));
-    const trackId = body.trackId; // Optional: specific quest to sync
+    const trackId = body.trackId as string | undefined;
+
+    if (trackId && !/^[a-zA-Z0-9_-]+$/.test(trackId)) {
+      return NextResponse.json({ ok: false, error: 'Invalid trackId format' }, { status: 400 });
+    }
 
     const projectRoot = process.cwd();
-    
-    // Build command
-    const command = trackId
-      ? `pnpm exec tsx scripts/sync-quest-entities.ts ${trackId}`
-      : `pnpm exec tsx scripts/sync-quest-entities.ts`;
+
+    const args = ['exec', 'tsx', 'scripts/sync-quest-entities.ts'];
+    if (trackId) args.push(trackId);
 
     console.log('[admin/sync-quests] Starting quest entity sync...');
-    console.log(`[admin/sync-quests] Command: ${command}`);
-    
-    // Run sync script
-    const { stdout, stderr } = await execAsync(command, {
+    console.log(`[admin/sync-quests] args: ${args.join(' ')}`);
+
+    const { stdout, stderr } = await execFileAsync('pnpm', args, {
       cwd: projectRoot,
-      maxBuffer: 10 * 1024 * 1024, // 10MB buffer for large output
-      timeout: 300000, // 5 minute timeout
-      env: {
-        ...process.env, // Preserve environment variables (ARKIV_PRIVATE_KEY, etc.)
-      },
+      maxBuffer: 10 * 1024 * 1024,
+      timeout: 300000,
+      env: { ...process.env },
     });
 
     // Parse output for summary
@@ -114,15 +109,16 @@ export async function POST(request: NextRequest) {
 
 /**
  * GET /api/admin/sync-quests
- * 
+ *
  * Returns sync status and available quests.
  */
 export async function GET() {
   try {
     // Check authentication
-    const sessionAuth = typeof window === 'undefined' 
-      ? false // Server-side check would need request object
-      : document.cookie.includes('admin_authenticated=true');
+    const sessionAuth =
+      typeof window === 'undefined'
+        ? false // Server-side check would need request object
+        : document.cookie.includes('admin_authenticated=true');
 
     // For now, allow GET without auth (just info)
     return NextResponse.json({
