@@ -333,7 +333,16 @@ export function QuestStepRenderer({
                 {Math.round(rubric.passingScore * 100)}% to pass.
               </p>
               <button
-                onClick={() => setQuizStarted(true)}
+                onClick={() => {
+                  setQuizStarted(true);
+                  if (wallet && questId) {
+                    fetch('/api/quests/quiz/start', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ wallet, questId, stepId: step.stepId }),
+                    }).catch(() => {});
+                  }
+                }}
                 className="rounded-lg bg-orange-600 px-4 py-2 font-medium text-white transition-colors hover:bg-orange-700"
               >
                 Start Quiz
