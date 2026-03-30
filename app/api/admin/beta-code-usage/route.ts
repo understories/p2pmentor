@@ -5,10 +5,11 @@
  * Shows all beta codes, their usage counts, limits, and status.
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { listAllBetaCodeUsage } from '@/lib/arkiv/betaCode';
 import { listBetaAccessByCode } from '@/lib/arkiv/betaAccess';
 import { SPACE_ID } from '@/lib/config';
+import { authenticateAdmin } from '@/lib/auth/adminAuth';
 
 /**
  * GET /api/admin/beta-code-usage
@@ -18,9 +19,9 @@ import { SPACE_ID } from '@/lib/config';
  *   - spaceId: Optional space ID to filter by (defaults to SPACE_ID from config)
  *   - spaceIds: Optional comma-separated list of space IDs (for multi-space queries)
  */
-export async function GET(request: Request) {
-  // TODO: Add authentication/authorization check
-  // For now, this is internal-only (not exposed in production without auth)
+export async function GET(request: NextRequest) {
+  const authError = authenticateAdmin(request);
+  if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
@@ -31,7 +32,10 @@ export async function GET(request: Request) {
     let spaceIds: string[] = [];
     if (spaceIdsParam) {
       // Multiple space IDs provided
-      spaceIds = spaceIdsParam.split(',').map(s => s.trim()).filter(Boolean);
+      spaceIds = spaceIdsParam
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
     } else if (spaceIdParam) {
       // Single space ID provided
       spaceIds = [spaceIdParam];
@@ -88,7 +92,7 @@ export async function GET(request: Request) {
         }
 
         // Deduplicate by wallet address (in case same wallet used code in multiple spaces)
-        const uniqueWallets = new Set(allAccessRecords.map(a => a.wallet.toLowerCase()));
+        const uniqueWallets = new Set(allAccessRecords.map((a) => a.wallet.toLowerCase()));
 
         return {
           ...code,
@@ -105,9 +109,13 @@ export async function GET(request: Request) {
     const totalCodes = codesWithAccess.length;
     const totalUsage = codesWithAccess.reduce((sum, code) => sum + (code.walletCount || 0), 0);
     const totalLimit = codesWithAccess.reduce((sum, code) => sum + code.limit, 0);
-    const totalWallets = new Set(codesWithAccess.flatMap(code => code.wallets)).size;
-    const codesAtLimit = codesWithAccess.filter(code => (code.walletCount || 0) >= code.limit).length;
-    const codesAvailable = codesWithAccess.filter(code => (code.walletCount || 0) < code.limit).length;
+    const totalWallets = new Set(codesWithAccess.flatMap((code) => code.wallets)).size;
+    const codesAtLimit = codesWithAccess.filter(
+      (code) => (code.walletCount || 0) >= code.limit
+    ).length;
+    const codesAvailable = codesWithAccess.filter(
+      (code) => (code.walletCount || 0) < code.limit
+    ).length;
 
     // Debug logging for admin dashboard (Arkiv-native debugging)
     console.log('[admin/beta-code-usage] Summary:', {
@@ -121,9 +129,11 @@ export async function GET(request: Request) {
     });
 
     // Log any codes with mismatched usageCount vs walletCount (potential sync issue)
-    codesWithAccess.forEach(code => {
+    codesWithAccess.forEach((code) => {
       if (code.usageCount !== code.walletCount) {
-        console.warn(`[admin/beta-code-usage] Mismatch for code "${code.code}": usageCount=${code.usageCount}, walletCount=${code.walletCount} (walletCount is source of truth)`);
+        console.warn(
+          `[admin/beta-code-usage] Mismatch for code "${code.code}": usageCount=${code.usageCount}, walletCount=${code.walletCount} (walletCount is source of truth)`
+        );
       }
     });
 
@@ -138,17 +148,19 @@ export async function GET(request: Request) {
         codesAvailable,
         utilizationRate: totalLimit > 0 ? (totalUsage / totalLimit) * 100 : 0,
       },
-      codes: codesWithAccess.map(code => ({
-        ...code,
-        // Override usageCount with walletCount for display (source of truth)
-        usageCount: code.walletCount || 0,
-      })).sort((a, b) => {
-        // Sort by usage count (walletCount) descending, then by code name
-        if (b.usageCount !== a.usageCount) {
-          return b.usageCount - a.usageCount;
-        }
-        return a.code.localeCompare(b.code);
-      }),
+      codes: codesWithAccess
+        .map((code) => ({
+          ...code,
+          // Override usageCount with walletCount for display (source of truth)
+          usageCount: code.walletCount || 0,
+        }))
+        .sort((a, b) => {
+          // Sort by usage count (walletCount) descending, then by code name
+          if (b.usageCount !== a.usageCount) {
+            return b.usageCount - a.usageCount;
+          }
+          return a.code.localeCompare(b.code);
+        }),
     });
   } catch (error: any) {
     console.error('[admin/beta-code-usage] Error:', error);
@@ -158,4 +170,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
