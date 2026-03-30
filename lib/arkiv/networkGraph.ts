@@ -42,7 +42,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
 
   // Filter asks/offers based on expiration unless explicitly including expired
   const now = Date.now();
-  let activeAsks = asks
+  const activeAsks = asks
     .filter((ask) => {
       const created = new Date(ask.createdAt).getTime();
       const expires = created + ask.ttlSeconds * 1000;
@@ -59,7 +59,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, limitAsks);
 
-  let activeOffers = offers
+  const activeOffers = offers
     .filter((offer) => {
       const created = new Date(offer.createdAt).getTime();
       const expires = created + offer.ttlSeconds * 1000;
@@ -320,6 +320,7 @@ async function buildNetworkGraphDataJsonRpc(params: NetworkGraphParams): Promise
 export async function buildNetworkGraphData(
   options?: NetworkGraphParams
 ): Promise<NetworkGraphData> {
+  // eslint-disable-next-line react-hooks/rules-of-hooks -- not a hook, feature flag getter
   if (!useGraphqlForNetwork()) {
     return buildNetworkGraphDataJsonRpc(options || {});
   }
