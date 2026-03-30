@@ -6,7 +6,7 @@
  * Reference: refs/docs/sprint2.md Section 2.3
  */
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import {
   getPerfSamples,
   getPerfSamplesFiltered,
@@ -20,6 +20,7 @@ import { getProfileByWallet, listUserProfiles } from '@/lib/arkiv/profile';
 import { fetchNetworkOverview } from '@/lib/graph/networkQueries';
 import { createDxMetric, listDxMetrics } from '@/lib/arkiv/dxMetrics';
 import { CURRENT_WALLET, getPrivateKey } from '@/lib/config';
+import { authenticateAdmin } from '@/lib/auth/adminAuth';
 
 /**
  * GET /api/admin/perf-samples
@@ -33,9 +34,9 @@ import { CURRENT_WALLET, getPrivateKey } from '@/lib/config';
  *
  * Returns: Array of performance samples
  */
-export async function GET(request: Request) {
-  // TODO: Add authentication/authorization check
-  // For now, this is internal-only (not exposed in production without auth)
+export async function GET(request: NextRequest) {
+  const authError = authenticateAdmin(request);
+  if (authError) return authError;
 
   const requestUrl = new URL(request.url);
   const { searchParams } = requestUrl;
@@ -998,8 +999,9 @@ export async function GET(request: Request) {
  *
  * Clears all performance samples
  */
-export async function DELETE(request: Request) {
-  // TODO: Add authentication/authorization check
+export async function DELETE(request: NextRequest) {
+  const authError = authenticateAdmin(request);
+  if (authError) return authError;
 
   try {
     clearPerfSamples();
