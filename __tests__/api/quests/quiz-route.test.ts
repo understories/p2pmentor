@@ -12,6 +12,9 @@ const {
   mockCreateProgress,
   mockCreateStepEvidence,
   mockCreateQuizResult,
+  mockCheckQuizTimeGate,
+  mockComputeMinSeconds,
+  mockClearQuizStart,
 } = vi.hoisted(() => ({
   mockVerifyBetaAccess: vi.fn(),
   mockLoadQuestByQuestId: vi.fn(),
@@ -19,6 +22,9 @@ const {
   mockCreateProgress: vi.fn(),
   mockCreateStepEvidence: vi.fn(),
   mockCreateQuizResult: vi.fn(),
+  mockCheckQuizTimeGate: vi.fn(),
+  mockComputeMinSeconds: vi.fn(),
+  mockClearQuizStart: vi.fn(),
 }));
 
 vi.mock('@/lib/auth/betaAccess', () => ({
@@ -53,6 +59,12 @@ vi.mock('@/lib/arkiv/quizResult', () => ({
 
 vi.mock('@/lib/arkiv/transaction-utils', () => ({
   isTransactionTimeoutError: () => false,
+}));
+
+vi.mock('@/lib/quests/quizTimegate', () => ({
+  checkQuizTimeGate: mockCheckQuizTimeGate,
+  computeMinSeconds: mockComputeMinSeconds,
+  clearQuizStart: mockClearQuizStart,
 }));
 
 // ---------------------------------------------------------------------------
@@ -170,6 +182,9 @@ beforeEach(async () => {
   mockCreateProgress.mockResolvedValue({ key: 'pk', txHash: '0x1' });
   mockCreateStepEvidence.mockReturnValue({ type: 'quiz_result' });
   mockCreateQuizResult.mockResolvedValue({ key: 'qk', txHash: '0x2' });
+  mockCheckQuizTimeGate.mockReturnValue({ allowed: true, elapsedSeconds: 60, requiredSeconds: 30 });
+  mockComputeMinSeconds.mockReturnValue(30);
+  mockClearQuizStart.mockReturnValue(undefined);
 });
 
 // ---- Fix 1: Server-side rubric -------------------------------------------
@@ -336,5 +351,63 @@ describe('anti-gaming: wallet+step cooldown', () => {
 
     const res2 = await POST(makeRequest(validBody(), ip));
     expect(res2.status).toBe(200);
+  });
+});
+
+describe('anti-gaming: server-side time gate', () => {
+  it('rejects quiz submitted too quickly after start', async () => {
+    mockCheckQuizTimeGate.mockReturnValue({
+      allowed: false,
+      elapsedSeconds: 5,
+      requiredSeconds: 30,
+    });
+    const ip = uniqueIP();
+
+    const res = await POST(makeRequest(validBody(), ip));
+    const data = await res.json();
+
+    expect(res.status).toBe(429);
+    expect(data.error).toMatch(/too quickly/);
+    expect(data.retryAfterMs).toBeGreaterThan(0);
+  });
+
+  it('allows quiz submission after enough time has elapsed', async () => {
+    mockCheckQuizTimeGate.mockReturnValue({
+      allowed: true,
+      elapsedSeconds: 60,
+      requiredSeconds: 30,
+    });
+    const ip = uniqueIP();
+
+    const res = await POST(makeRequest(validBody(), ip));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.ok).toBe(true);
+  });
+
+  it('passes through when no start time was recorded', async () => {
+    mockCheckQuizTimeGate.mockReturnValue({
+      allowed: true,
+      elapsedSeconds: 0,
+      requiredSeconds: 30,
+    });
+    const ip = uniqueIP();
+
+    const res = await POST(makeRequest(validBody(), ip));
+    const data = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(data.ok).toBe(true);
+  });
+
+  it('clears start time after successful submission', async () => {
+    const ip = uniqueIP();
+    const body = validBody();
+
+    const res = await POST(makeRequest(body, ip));
+    expect(res.status).toBe(200);
+
+    expect(mockClearQuizStart).toHaveBeenCalledWith(body.wallet, body.questId, body.stepId);
   });
 });
