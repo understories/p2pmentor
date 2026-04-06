@@ -39,7 +39,7 @@ export async function createLiteAsk({
   discordHandle,
   skill,
   description,
-  spaceId = 'nsfeb26',
+  spaceId = 'nsapril26',
   privateKey,
 }: {
   name: string;
@@ -76,7 +76,7 @@ export async function createLiteAsk({
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const finalSpaceId = spaceId || 'nsfeb26'; // Use provided spaceId or default to 'nsfeb26'
+  const finalSpaceId = spaceId || 'nsapril26'; // Use provided spaceId or default to 'nsapril26'
   const status = 'open';
   const createdAt = new Date().toISOString();
   const ttl = LITE_ASK_TTL_SECONDS;
@@ -174,7 +174,7 @@ export async function listLiteAsks(params?: {
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500;
-    const spaceId = params?.spaceId || 'nsfeb26'; // Default to 'nsfeb26' if not provided
+    const spaceId = params?.spaceId || 'nsapril26'; // Default to 'nsapril26' if not provided
     const queryBuilder = query
       .where(eq('type', 'lite_ask'))
       .where(eq('status', 'open'))
@@ -289,7 +289,7 @@ export async function listLiteAsks(params?: {
         discordHandle: getAttr('discordHandle') || '',
         skill: getAttr('skill') || '',
         description: payload.description || undefined,
-        spaceId: getAttr('spaceId') || 'nsfeb26',
+        spaceId: getAttr('spaceId') || 'nsapril26',
         createdAt: getAttr('createdAt') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'open',
         ttlSeconds: isNaN(ttlSeconds) ? LITE_ASK_TTL_SECONDS : ttlSeconds,
