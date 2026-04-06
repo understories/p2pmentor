@@ -26,8 +26,9 @@ interface Match {
 }
 
 export default function LitePage() {
-  const [spaceId, setSpaceId] = useState<string>('nsmarch26'); // Default spaceId
+  const [spaceId, setSpaceId] = useState<string>('nsapril26'); // Default spaceId
   const [availableSpaceIds, setAvailableSpaceIds] = useState<string[]>([
+    'nsapril26',
     'nsmarch26',
     'nsfeb26',
     'nsjan26',
@@ -596,8 +597,8 @@ export default function LitePage() {
       <div className="min-h-screen p-4 pb-24 text-gray-900 backdrop-blur-sm dark:text-gray-100 md:pb-4">
         <div className="mx-auto max-w-4xl">
           <PageHeader
-            title="Mentorship Matching: Ask & Offer Board"
-            description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
+            title="Mentorship Matching: April cohort"
+            description="We all have something to teach and something to learn. This board is for the April cohort. Meet your match(es) with this simple ask and offer board."
           />
           <LoadingSpinner text="Loading asks and offers..." className="py-12" />
         </div>
@@ -609,8 +610,8 @@ export default function LitePage() {
     <div className="min-h-screen p-4 pb-24 text-gray-900 backdrop-blur-sm dark:text-gray-100 md:pb-4">
       <div className="mx-auto max-w-4xl">
         <PageHeader
-          title="Mentorship Matching: Ask & Offer Board"
-          description="We all have something to teach and something to learn. Meet your match(es) with this simple ask and offer board."
+          title="Mentorship Matching: April cohort"
+          description="We all have something to teach and something to learn. This board is for the April cohort. Meet your match(es) with this simple ask and offer board."
         />
 
         {/* Space ID Selector */}
