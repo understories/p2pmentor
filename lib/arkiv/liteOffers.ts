@@ -41,7 +41,7 @@ export async function createLiteOffer({
   skill,
   description,
   cost,
-  spaceId = 'nsfeb26',
+  spaceId = 'nsapril26',
   privateKey,
 }: {
   name: string;
@@ -82,7 +82,7 @@ export async function createLiteOffer({
 
   const walletClient = getWalletClientFromPrivateKey(privateKey);
   const enc = new TextEncoder();
-  const finalSpaceId = spaceId || 'nsfeb26'; // Use provided spaceId or default to 'nsfeb26'
+  const finalSpaceId = spaceId || 'nsapril26'; // Use provided spaceId or default to 'nsapril26'
   const status = 'active';
   const createdAt = new Date().toISOString();
   const ttl = LITE_OFFER_TTL_SECONDS;
@@ -185,7 +185,7 @@ export async function listLiteOffers(params?: {
     const publicClient = getPublicClient();
     const query = publicClient.buildQuery();
     const limit = params?.limit ?? 500;
-    const spaceId = params?.spaceId || 'nsfeb26'; // Default to 'nsfeb26' if not provided
+    const spaceId = params?.spaceId || 'nsapril26'; // Default to 'nsapril26' if not provided
     const queryBuilder = query
       .where(eq('type', 'lite_offer'))
       .where(eq('status', 'active'))
@@ -301,7 +301,7 @@ export async function listLiteOffers(params?: {
         skill: getAttr('skill') || '',
         description: payload.description || undefined,
         cost: getAttr('cost') || payload.cost || undefined,
-        spaceId: getAttr('spaceId') || 'nsfeb26',
+        spaceId: getAttr('spaceId') || 'nsapril26',
         createdAt: getAttr('createdAt') || payload.createdAt || '',
         status: getAttr('status') || payload.status || 'active',
         ttlSeconds: isNaN(ttlSeconds) ? LITE_OFFER_TTL_SECONDS : ttlSeconds,
