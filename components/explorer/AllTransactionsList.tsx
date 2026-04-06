@@ -272,6 +272,7 @@ export function AllTransactionsList({
             <option value="beta-launch">Beta Launch</option>
             <option value="local-dev">Local Dev</option>
             <option value="local-dev-seed">Local Dev Seed</option>
+            <option value="nsapril26">nsapril26</option>
             <option value="nsmarch26">nsmarch26</option>
             <option value="nsfeb26">nsfeb26</option>
             <option value="nsjan26">nsjan26</option>
@@ -320,6 +321,7 @@ export function AllTransactionsList({
           <option value="beta-launch">Beta Launch</option>
           <option value="local-dev">Local Dev</option>
           <option value="local-dev-seed">Local Dev Seed</option>
+          <option value="nsapril26">nsapril26</option>
           <option value="nsmarch26">nsmarch26</option>
           <option value="nsfeb26">nsfeb26</option>
           <option value="nsjan26">nsjan26</option>
