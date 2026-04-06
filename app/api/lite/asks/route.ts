@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate spaceId
-    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsfeb26';
+    const finalSpaceId = spaceId && spaceId.trim() ? spaceId.trim() : 'nsapril26';
 
     try {
       const { key, txHash } = await createLiteAsk({
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const skill = searchParams.get('skill') || undefined;
-    const spaceId = searchParams.get('spaceId') || 'nsfeb26';
+    const spaceId = searchParams.get('spaceId') || 'nsapril26';
     const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!, 10) : undefined;
     const includeExpired = searchParams.get('includeExpired') === 'true';
 
