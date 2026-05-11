@@ -96,6 +96,22 @@ const FILE_ORDER: Record<string, Record<string, number>> = {
     'arkiv-app-primitives': 3,
     'arkiv-nextjs-starter': 4,
   },
+  // Operations section (subdirectory of arkiv)
+  'arkiv/operations': {
+    README: 1,
+    environments: 2,
+    'braga-migration': 3,
+    'wallet-architecture': 4,
+    'wallet-authentication-flow': 5,
+    'profile-creation-flow': 6,
+    'central-signer-phase0': 7,
+    'access-grants': 8,
+    'invite-code-system': 9,
+    'entity-update-rollout': 10,
+    'privacy-consent': 11,
+    'implementation-faq': 12,
+    'sdk-api-verification-guide': 13,
+  },
   // Modules section
   modules: {
     'arkiv-client': 1,
