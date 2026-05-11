@@ -37,7 +37,7 @@
    - All use environment variables
 
 5. **Network Configuration**: ✅ Safe
-   - Uses testnet (Kaolin) - clearly documented
+   - Uses testnet (Braga) - clearly documented
    - No mainnet addresses hardcoded
    - RPC URLs are public endpoints
 

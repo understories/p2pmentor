@@ -212,7 +212,7 @@ export default function UserIssuesPage() {
                 {issue.txHash && (
                   <div className="mt-2 text-xs">
                     <a
-                      href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${issue.txHash}`}
+                      href={`https://explorer.braga.hoodi.arkiv.network/tx/${issue.txHash}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-mono text-blue-600 hover:underline dark:text-blue-400"

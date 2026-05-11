@@ -33,7 +33,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 
 ### Test Environment
 
-- **Network:** Kaolin Testnet
+- **Network:** Braga Testnet
 - **Arkiv RPC:** Production indexer
 - **GraphQL Endpoint:** `/api/graphql` (Next.js API route)
 - **Sample Size:** 13 tests per method (n=13 for each)
@@ -125,7 +125,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Snapshot 1: Arkiv Baseline
 
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Braga Explorer](https://explorer.braga.hoodi.arkiv.network)
 - **Method:** Arkiv JSON-RPC
 - **Samples:** 13
 - **Status:** ✅ Created
@@ -133,7 +133,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Snapshot 2: GraphQL Test
 
 - **Date:** December 9, 2025
-- **Transaction Hash:** [View on Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- **Transaction Hash:** [View on Braga Explorer](https://explorer.braga.hoodi.arkiv.network)
 - **Method:** GraphQL Wrapper
 - **Samples:** 13
 - **Status:** ✅ Created
@@ -141,7 +141,7 @@ This document presents the empirical performance comparison between **Arkiv JSON
 ### Snapshot 3: Comparison
 
 - **Date:** December 9, 2025 (12:15 UTC)
-- **Transaction Hash:** [`0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23`](https://explorer.kaolin.hoodi.arkiv.network/tx/0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23)
+- **Transaction Hash:** [`0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23`](https://explorer.braga.hoodi.arkiv.network/tx/0xdd3c3883e8b9812829e2076ca79fee058757cb383eaf01dc29357385caa7fc23)
 - **Method:** Both
 - **Samples:** 26 (13 Arkiv + 13 GraphQL)
 - **Status:** ✅ Created and verified on-chain
@@ -232,7 +232,7 @@ All performance data in this report is:
 
 ### How to Verify
 
-1. Navigate to [Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+1. Navigate to [Braga Explorer](https://explorer.braga.hoodi.arkiv.network)
 2. Search for transaction hashes listed in snapshots
 3. Inspect `dx_metric` and `perf_snapshot` entities
 4. Compare with admin dashboard at `/admin`
@@ -313,7 +313,7 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 
 **Snapshot:**
 
-- Transaction Hash: [`0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b`](https://explorer.kaolin.hoodi.arkiv.network/tx/0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b)
+- Transaction Hash: [`0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b`](https://explorer.braga.hoodi.arkiv.network/tx/0xc9ea7c8441d3c250867f41544bf14e0ae6ce3c88641cb8180c77062ff53d1c8b)
 - Date: December 9, 2025 (13:01 UTC)
 - Method: Both (Arkiv baseline + GraphQL comparison)
 - Status: ✅ Created and verified on-chain
@@ -389,7 +389,7 @@ The GraphQL API wrapper provides **comparable performance** to direct Arkiv JSON
 **Environment:**
 
 - Server: `http://localhost:3000`
-- Network: Kaolin Testnet
+- Network: Braga Testnet
 - Arkiv RPC: Production indexer
 
 **Tests Executed:**

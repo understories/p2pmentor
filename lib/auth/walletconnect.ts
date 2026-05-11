@@ -12,7 +12,7 @@
 'use client';
 
 import { EthereumProvider } from '@walletconnect/ethereum-provider';
-import { kaolin } from '@arkiv-network/sdk/chains';
+import { braga } from '@arkiv-network/sdk/chains';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
@@ -53,24 +53,24 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       );
     }
 
-    // Initialize WalletConnect provider with Kaolin chain only
-    // Reuse kaolin config from SDK for consistency
+    // Initialize WalletConnect provider with Braga chain only
+    // Reuse braga config from SDK for consistency
     console.log('[WalletConnect] Initializing provider', {
       projectId: projectId ? `${projectId.substring(0, 8)}...` : 'missing',
-      chainId: kaolin.id,
-      chainName: kaolin.name,
-      rpcUrl: kaolin.rpcUrls.default.http[0],
+      chainId: braga.id,
+      chainName: braga.name,
+      rpcUrl: braga.rpcUrls.default.http[0],
     });
 
     // Include Ethereum mainnet (1) as a fallback chain so wallets can connect
-    // Kaolin is a custom chain not in WalletConnect registry, so wallets may not recognize it
-    // We'll add Kaolin after connection using wallet_addEthereumChain
+    // Braga is a custom chain not in WalletConnect registry, so wallets may not recognize it
+    // We'll add Braga after connection using wallet_addEthereumChain
     const provider = await EthereumProvider.init({
       projectId,
-      chains: [1, kaolin.id], // Ethereum mainnet (1) + Kaolin
+      chains: [1, braga.id], // Ethereum mainnet (1) + Braga
       rpcMap: {
         1: 'https://eth.llamarpc.com', // Public Ethereum RPC
-        [kaolin.id]: kaolin.rpcUrls.default.http[0],
+        [braga.id]: braga.rpcUrls.default.http[0],
       },
       showQrModal: true, // Use built-in QR modal for Phase 0
       metadata: {
@@ -120,15 +120,15 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       setWalletConnectProvider(null);
     });
 
-    // After connection, add Kaolin to wallet and switch to it
-    // This ensures wallets can add Kaolin even if they don't recognize it during connection
-    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Kaolin
+    // After connection, add Braga to wallet and switch to it
+    // This ensures wallets can add Braga even if they don't recognize it during connection
+    // We include Ethereum mainnet (1) in chains array so wallets can connect, then add Braga
     try {
       const chainId = await provider.request({ method: 'eth_chainId' });
-      const expectedChainId = `0x${kaolin.id.toString(16)}`;
+      const expectedChainId = `0x${braga.id.toString(16)}`;
 
       if (chainId !== expectedChainId) {
-        console.log('[WalletConnect] Not on Kaolin, attempting to add/switch to Kaolin');
+        console.log('[WalletConnect] Not on Braga, attempting to add/switch to Braga');
         const chainIdHex = expectedChainId;
 
         try {
@@ -137,38 +137,38 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chainIdHex }],
           });
-          console.log('[WalletConnect] Successfully switched to Kaolin');
+          console.log('[WalletConnect] Successfully switched to Braga');
         } catch (switchError: any) {
           // If switch fails (chain doesn't exist), try to add it
-          // This will prompt the wallet to add Kaolin network
-          console.log('[WalletConnect] Switch failed, attempting to add Kaolin chain to wallet');
+          // This will prompt the wallet to add Braga network
+          console.log('[WalletConnect] Switch failed, attempting to add Braga chain to wallet');
           try {
             await provider.request({
               method: 'wallet_addEthereumChain',
               params: [
                 {
                   chainId: chainIdHex,
-                  chainName: kaolin.name,
-                  nativeCurrency: kaolin.nativeCurrency,
-                  rpcUrls: kaolin.rpcUrls.default.http,
-                  blockExplorerUrls: kaolin.blockExplorers?.default?.url
-                    ? [kaolin.blockExplorers.default.url]
+                  chainName: braga.name,
+                  nativeCurrency: braga.nativeCurrency,
+                  rpcUrls: braga.rpcUrls.default.http,
+                  blockExplorerUrls: braga.blockExplorers?.default?.url
+                    ? [braga.blockExplorers.default.url]
                     : [],
                 },
               ],
             });
-            console.log('[WalletConnect] Successfully added Kaolin chain to wallet');
+            console.log('[WalletConnect] Successfully added Braga chain to wallet');
           } catch (addError: any) {
             // Non-critical - user may have rejected or wallet doesn't support adding chains
-            console.warn('[WalletConnect] Failed to add/switch to Kaolin (non-critical):', {
+            console.warn('[WalletConnect] Failed to add/switch to Braga (non-critical):', {
               switchError: switchError?.message || switchError,
               addError: addError?.message || addError,
             });
-            // Connection still succeeds, user can manually switch to Kaolin later
+            // Connection still succeeds, user can manually switch to Braga later
           }
         }
       } else {
-        console.log('[WalletConnect] Already on Kaolin chain');
+        console.log('[WalletConnect] Already on Braga chain');
       }
     } catch (chainError) {
       // Non-critical - continue even if chain check fails
@@ -210,7 +210,7 @@ export async function connectWalletConnect(): Promise<`0x${string}`> {
       error?.message?.includes('namespaces')
     ) {
       throw new Error(
-        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Kaolin testnet. Try using MetaMask instead.'
+        'WalletConnect session error. Please try again. If the issue persists, your wallet may not support the Braga testnet. Try using MetaMask instead.'
       );
     }
 

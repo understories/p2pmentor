@@ -10,7 +10,7 @@
 
 ### Data layer
 
-- Arkiv on Kaolin testnet as source of truth for all core entities
+- Arkiv on Braga testnet as source of truth for all core entities
 - Arkiv SDK (`@arkiv-network/sdk@^0.4.4`) used on both client and server
 
 ### Indexing and queries
@@ -42,7 +42,7 @@ See [Integrations](/docs/architecture/integrations) for detailed integration doc
 
 - **Framework**: Next.js 15+ (App Router)
 - **Language**: TypeScript
-- **Data Layer**: Arkiv Network (Kaolin testnet)
+- **Data Layer**: Arkiv Network (Braga testnet)
 - **Authentication**: MetaMask + WalletConnect + Ethereum Passkeys (WebAuthn)
 - **Video**: Jitsi
 - **Package Manager**: pnpm (preferred) or yarn

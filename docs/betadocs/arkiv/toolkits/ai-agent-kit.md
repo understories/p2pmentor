@@ -17,7 +17,7 @@ The Arkiv AI Agent Kit is a collection of prompts, scripts, and documentation de
 1. **Enforces Engineering Guidelines** via CI and precommit scripts
 2. **Provides LLM-readable prompts** covering all essential Arkiv patterns
 3. **Prevents common mistakes** through explicit anti-pattern callouts
-4. **Testnet-native** (Kaolin-focused) with clear operational guidance
+4. **Testnet-native** (Braga-focused) with clear operational guidance
 
 **What It Is Not:**
 
@@ -128,7 +128,7 @@ The README will include:
 
 ### Key Principles
 
-- **Testnet-native:** Everything targets Kaolin testnet (for now)
+- **Testnet-native:** Everything targets Braga testnet (for now)
 - **Indexer lag is normal:** Represent it as a state, not an error
 - **Immutable history:** Design state as interpretation over append-only facts
 - **Wallet normalization everywhere:** Always lowercase in writes and queries
@@ -169,7 +169,7 @@ All changes must pass:
 
 - Server signer wallet must be funded (or writes will fail/timeout)
 - Derive signer address: `ARKIV_PRIVATE_KEY=0x... node scripts/derive-signer-address.mjs`
-- CI uses local mode for determinism; humans can use Kaolin for ecosystem validation
+- CI uses local mode for determinism; humans can use Braga for ecosystem validation
 
 ### Related
 
@@ -223,10 +223,10 @@ The kit converts "good intentions" into "the repo won't accept bad changes" via:
 
 ## Testnet-Native Design
 
-Everything in this kit assumes **Kaolin testnet**:
+Everything in this kit assumes **Braga testnet**:
 
 - All examples use testnet addresses
-- Scripts support `ARKIV_TARGET=local` (CI) or `ARKIV_TARGET=kaolin` (humans)
+- Scripts support `ARKIV_TARGET=local` (CI) or `ARKIV_TARGET=braga` (humans)
 - README includes "Testnet Ops Reality" section
 - Mainnet guidance is intentionally non-operational (checklist, not instructions)
 

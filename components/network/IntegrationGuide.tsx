@@ -359,7 +359,7 @@ const data = await graphRequest(\`
             <li>
               • <strong>Same data source:</strong> Queries still hit{' '}
               <code className="rounded bg-gray-200 px-1 dark:bg-gray-700">
-                https://kaolin.hoodi.arkiv.network/rpc
+                https://braga.hoodi.arkiv.network/rpc
               </code>
             </li>
             <li>

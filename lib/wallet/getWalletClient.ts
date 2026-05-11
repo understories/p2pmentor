@@ -14,7 +14,7 @@ import { getWalletClientFromMetaMask } from '@/lib/arkiv/client';
 import { getWalletClientFromPasskey } from './getWalletClientFromPasskey';
 import { getWalletConnectProvider } from './walletconnectProvider';
 import { createWalletClient, custom } from '@arkiv-network/sdk';
-import { kaolin } from '@arkiv-network/sdk/chains';
+import { braga } from '@arkiv-network/sdk/chains';
 
 /**
  * Get wallet client from active wallet (auto-detects type)
@@ -23,7 +23,7 @@ import { kaolin } from '@arkiv-network/sdk/chains';
  * then returns the appropriate wallet client.
  *
  * @param walletAddress - Wallet address (0x...)
- * @returns Wallet client configured for Kaolin testnet
+ * @returns Wallet client configured for Braga testnet
  * @throws Error if wallet type cannot be determined or wallet not available
  *
  * @example
@@ -87,7 +87,7 @@ export async function getWalletClient(walletAddress: `0x${string}`) {
 
     // Create wallet client with WalletConnect provider (EIP-1193 compliant)
     return createWalletClient({
-      chain: kaolin,
+      chain: braga,
       transport: custom(provider),
       account: walletAddress,
     });

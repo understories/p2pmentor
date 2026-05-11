@@ -157,7 +157,7 @@ Provides a single entry point for Arkiv clients:
 
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation
-- Uses `@arkiv-network/sdk` with Kaolin testnet configuration
+- Uses `@arkiv-network/sdk` with Braga testnet configuration
 
 ## No Central Database
 

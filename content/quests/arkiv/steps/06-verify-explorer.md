@@ -9,7 +9,7 @@ The **Arkiv Explorer** is a public tool that lets anyone view entities and trans
 ## Finding Your Entity
 
 1. **Get your transaction hash** from when you created the entity
-2. **Open the Arkiv Explorer**: [https://explorer.kaolin.hoodi.arkiv.network](https://explorer.kaolin.hoodi.arkiv.network)
+2. **Open the Arkiv Explorer**: [https://explorer.braga.hoodi.arkiv.network](https://explorer.braga.hoodi.arkiv.network)
 3. **Search for your transaction hash** in the search bar
 4. **View your entity** - You should see:
    - Your entity key
@@ -30,7 +30,7 @@ This is what "trustless" means - you don't need to trust our servers because you
 ## Try It Now
 
 1. If you created an entity in the previous step, find its transaction hash
-2. Open the Kaolin Explorer
+2. Open the Braga Explorer
 3. Search for your transaction hash
 4. Verify that your entity appears with the correct data
 

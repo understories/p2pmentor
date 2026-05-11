@@ -33,7 +33,7 @@ These tooltips show users that every statistic is verifiable on-chain, not compu
 
 ## Visualizing Public Blockchain
 
-Every user-generated entity includes a "View on Arkiv" link that opens the Kaolin testnet explorer. This teaches users that:
+Every user-generated entity includes a "View on Arkiv" link that opens the Braga testnet explorer. This teaches users that:
 
 1. **Data is public**: All entities are viewable on the public blockchain explorer
 2. **Data is permanent**: Transaction hashes provide cryptographic proof of existence

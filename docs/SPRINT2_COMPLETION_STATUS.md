@@ -68,7 +68,7 @@
 3. **Final Verification** (Quick Win)
    - [ ] Verify all GraphQL queries work correctly in production
    - [ ] Create final performance snapshot
-   - [ ] Verify all data on-chain via Kaolin explorer
+   - [ ] Verify all data on-chain via Braga explorer
 
 ---
 

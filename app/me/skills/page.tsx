@@ -369,7 +369,7 @@ export default function SkillsPage() {
               <div className="mt-2 border-t border-green-300 pt-2 dark:border-green-700">
                 <p className="mb-1 text-xs text-green-600 dark:text-green-400">Transaction Hash:</p>
                 <a
-                  href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${lastTxHash}`}
+                  href={`https://explorer.braga.hoodi.arkiv.network/tx/${lastTxHash}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="break-all font-mono text-xs text-green-600 hover:underline dark:text-green-400"
@@ -378,7 +378,7 @@ export default function SkillsPage() {
                 </a>
                 <p className="mt-1 text-xs text-green-600 dark:text-green-400">
                   <a
-                    href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${lastTxHash}`}
+                    href={`https://explorer.braga.hoodi.arkiv.network/tx/${lastTxHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="hover:underline"
@@ -584,7 +584,7 @@ export default function SkillsPage() {
                           )}
                           {!arkivBuilderMode && skill.txHash && (
                             <a
-                              href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${skill.txHash}`}
+                              href={`https://explorer.braga.hoodi.arkiv.network/tx/${skill.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-emerald-600 hover:underline dark:text-emerald-400"
@@ -693,7 +693,7 @@ export default function SkillsPage() {
                               Skill Entity Transaction:
                             </p>
                             <a
-                              href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${skill.txHash}`}
+                              href={`https://explorer.braga.hoodi.arkiv.network/tx/${skill.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="break-all font-mono text-xs text-emerald-600 hover:underline dark:text-emerald-400"
@@ -759,7 +759,7 @@ export default function SkillsPage() {
             <li>
               All changes are permanent and viewable on the{' '}
               <a
-                href="https://explorer.kaolin.hoodi.arkiv.network"
+                href="https://explorer.braga.hoodi.arkiv.network"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="underline"

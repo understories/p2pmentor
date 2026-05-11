@@ -23,7 +23,7 @@ import { unlockPasskeyWallet } from '@/lib/auth/passkey-wallet';
  *
  * @param userId - User identifier
  * @param credentialID - Base64url-encoded credential ID from WebAuthn
- * @returns Wallet client configured for Kaolin testnet
+ * @returns Wallet client configured for Braga testnet
  * @throws Error if passkey wallet not found or unlock fails
  *
  * @example
@@ -55,7 +55,7 @@ export async function getWalletClientFromPasskey(userId: string, credentialID: s
 
   console.log('[getWalletClientFromPasskey] ✅ Arkiv wallet client created:', {
     address,
-    chain: walletClient.chain?.name || 'kaolin',
+    chain: walletClient.chain?.name || 'braga',
   });
 
   // Note: privateKeyHex is kept in memory only for the lifetime of this function call

@@ -1303,7 +1303,7 @@ export default function SessionsPage() {
                                   {session.paymentTxHash.slice(-8)}
                                 </code>
                                 <a
-                                  href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                  href={`https://explorer.braga.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-blue-600 hover:underline dark:text-blue-400"
@@ -1832,7 +1832,7 @@ export default function SessionsPage() {
                                           {session.paymentTxHash.slice(-8)}
                                         </code>
                                         <a
-                                          href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
+                                          href={`https://explorer.braga.hoodi.arkiv.network/tx/${session.paymentTxHash}`}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="text-xs text-blue-600 hover:underline dark:text-blue-400"

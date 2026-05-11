@@ -312,7 +312,7 @@ If you propose seed scripts, you must:
 
 **"insufficient funds":**
 - Cause: Signing wallet doesn't have enough funds for transaction fees
-- Solution: Fund the signing wallet on Kaolin testnet (use faucet)
+- Solution: Fund the signing wallet on Braga testnet (use faucet)
 
 **"SPACE_ID mismatch":**
 - Cause: Script trying to seed to wrong space

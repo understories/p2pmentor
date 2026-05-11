@@ -12,7 +12,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectWallet } from '@/lib/auth/metamask';
 import { connectWalletConnect } from '@/lib/auth/walletconnect';
-import { kaolin } from '@arkiv-network/sdk/chains';
+import { braga } from '@arkiv-network/sdk/chains';
 import { BackButton } from '@/components/BackButton';
 import { setWalletType } from '@/lib/wallet/getWalletClient';
 import {
@@ -660,7 +660,7 @@ export default function AuthPage() {
     }
   };
 
-  const handleAddKaolinNetwork = async () => {
+  const handleAddBragaNetwork = async () => {
     if (!window.ethereum) {
       setError('MetaMask not installed');
       return;
@@ -670,7 +670,7 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const chainIdHex = `0x${kaolin.id.toString(16)}`;
+      const chainIdHex = `0x${braga.id.toString(16)}`;
 
       // Always call wallet_addEthereumChain directly - MetaMask will handle:
       // - If network doesn't exist: Show add network prompt
@@ -681,10 +681,10 @@ export default function AuthPage() {
         params: [
           {
             chainId: chainIdHex,
-            chainName: kaolin.name,
-            nativeCurrency: kaolin.nativeCurrency,
-            rpcUrls: kaolin.rpcUrls.default.http,
-            blockExplorerUrls: [kaolin.blockExplorers.default.url],
+            chainName: braga.name,
+            nativeCurrency: braga.nativeCurrency,
+            rpcUrls: braga.rpcUrls.default.http,
+            blockExplorerUrls: [braga.blockExplorers.default.url],
           },
         ],
       });
@@ -716,7 +716,7 @@ export default function AuthPage() {
           !errorMessage.toLowerCase().includes('duplicate')
         ) {
           // Only show unexpected errors
-          setError(errorMessage || 'Failed to add Kaolin testnet');
+          setError(errorMessage || 'Failed to add Braga testnet');
         } else {
           // Network is already added or user cancelled - clear error
           setError('');
@@ -740,19 +740,19 @@ export default function AuthPage() {
           Choose your authentication method:
         </p>
 
-        {/* Add Kaolin Testnet Button */}
+        {/* Add Braga Testnet Button */}
         {mounted && window.ethereum && (
           <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
             <p className="mb-2 text-sm text-blue-800 dark:text-blue-300">
-              <strong>First time?</strong> Add Kaolin testnet to your wallet:
+              <strong>First time?</strong> Add Braga testnet to your wallet:
             </p>
             <button
-              onClick={handleAddKaolinNetwork}
+              onClick={handleAddBragaNetwork}
               disabled={addingNetwork}
               className="w-full rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
               title="Don't worry: you do not need any funds in your wallet to use our app. In fact, we recommend using a wallet without any funds as your profile wallet. Read more in the betadocs"
             >
-              {addingNetwork ? 'Adding Network...' : 'Add Kaolin Testnet to Wallet'}
+              {addingNetwork ? 'Adding Network...' : 'Add Braga Testnet to Wallet'}
             </button>
           </div>
         )}
@@ -994,12 +994,12 @@ export default function AuthPage() {
           <p className="mt-2 text-sm leading-relaxed text-yellow-700 dark:text-yellow-400">
             This is a beta environment on{' '}
             <a
-              href="https://kaolin.hoodi.arkiv.network"
+              href="https://braga.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
               className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"
             >
-              Kaolin testnet
+              Braga testnet
             </a>
             . You do not need any funds to use the application.{' '}
             <a
@@ -1016,7 +1016,7 @@ export default function AuthPage() {
             Blockchain data is immutable and transparent by design. All data inputted on this beta
             is viewable on the{' '}
             <a
-              href="https://explorer.kaolin.hoodi.arkiv.network"
+              href="https://explorer.braga.hoodi.arkiv.network"
               target="_blank"
               rel="noopener noreferrer"
               className="text-yellow-800 underline hover:text-yellow-900 dark:text-yellow-300 dark:hover:text-yellow-200"

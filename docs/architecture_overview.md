@@ -66,7 +66,7 @@ This document describes the architecture and structural decisions for p2pmentor 
 
 - **Framework**: Next.js 15+ (App Router)
 - **Language**: TypeScript
-- **Data Layer**: Arkiv Network (Kaolin testnet)
+- **Data Layer**: Arkiv Network (Braga testnet)
 - **Authentication**: MetaMask + Ethereum Passkeys
 - **Video**: Jitsi (with optional Livepeer/LiveKit)
 - **Package Manager**: pnpm (preferred) or yarn
@@ -77,7 +77,7 @@ This document describes the architecture and structural decisions for p2pmentor 
 
 - **Client-side**: Uses `@arkiv-network/sdk` with MetaMask wallet client
 - **Server-side**: Uses private key for server-side entity creation (API routes)
-- **Chain**: Kaolin testnet (Arkiv testnet)
+- **Chain**: Braga testnet (Arkiv testnet)
 - **Entities**: Immutable - updates create new entities
 
 ### 2. Authentication

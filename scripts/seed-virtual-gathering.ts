@@ -42,7 +42,7 @@ async function seedGathering() {
     console.log('Key:', key);
     console.log('Transaction Hash:', txHash);
     console.log('\nView on Arkiv:');
-    console.log(`https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`);
+    console.log(`https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`);
     console.log('\nView gathering:');
     console.log(`http://localhost:3000/communities/gatherings?community=beta_users`);
   } catch (error: any) {

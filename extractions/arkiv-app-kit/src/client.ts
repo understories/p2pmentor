@@ -2,14 +2,14 @@
  * Arkiv client construction
  * 
  * Provides public and wallet clients for Arkiv operations.
- * Supports both local node and Kaolin testnet via ARKIV_TARGET.
+ * Supports both local node and Braga testnet via ARKIV_TARGET.
  * 
  * Pattern: PAT-QUERY-001 (Indexer-Friendly Query Shapes)
  */
 
 import { createPublicClient, createWalletClient, http, custom } from "@arkiv-network/sdk";
 import { privateKeyToAccount } from "@arkiv-network/sdk/accounts";
-import { kaolin } from "@arkiv-network/sdk/chains";
+import { braga } from "@arkiv-network/sdk/chains";
 import { getArkivTarget, isLocalTarget } from './env';
 
 /**
@@ -23,8 +23,8 @@ function getRpcUrl(): string {
     return process.env.ARKIV_RPC_URL || 'http://localhost:8545';
   }
   
-  // Kaolin testnet (default)
-  return process.env.ARKIV_RPC_URL || 'https://kaolin.hoodi.arkiv.network/rpc';
+  // Braga testnet (default)
+  return process.env.ARKIV_RPC_URL || 'https://braga.hoodi.arkiv.network/rpc';
 }
 
 /**
@@ -43,7 +43,7 @@ function getRpcUrl(): string {
  */
 export function getPublicClient() {
   return createPublicClient({
-    chain: kaolin,
+    chain: braga,
     transport: http(getRpcUrl()),
   });
 }
@@ -65,7 +65,7 @@ export function getPublicClient() {
  */
 export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
   return createWalletClient({
-    chain: kaolin,
+    chain: braga,
     transport: http(getRpcUrl()),
     account: privateKeyToAccount(privateKey),
   });
@@ -93,7 +93,7 @@ export function getWalletClientFromMetaMask(account: `0x${string}`) {
   }
   
   return createWalletClient({
-    chain: kaolin,
+    chain: braga,
     transport: custom((window as any).ethereum),
     account,
   });

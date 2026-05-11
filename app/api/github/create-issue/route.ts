@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const issueTitle = `[${feedbackType || 'feedback'}] ${page}: ${message.substring(0, 100)}${message.length > 100 ? '...' : ''}`;
 
     // Construct Arkiv explorer link with entity key
-    const arkivExplorerUrl = `https://explorer.kaolin.hoodi.arkiv.network/entity/${feedbackKey}`;
+    const arkivExplorerUrl = `https://explorer.braga.hoodi.arkiv.network/entity/${feedbackKey}`;
 
     const issueBody = `## Feedback Details
 

@@ -21,7 +21,7 @@ p2pmentor uses your wallet address as your identity. You have three options:
 1. Install MetaMask browser extension if you don't have it
 2. Click "Connect Wallet" on the auth page
 3. Approve the connection in MetaMask
-4. If Kaolin testnet isn't added, you'll be prompted to add it automatically
+4. If Braga testnet isn't added, you'll be prompted to add it automatically
 
 **Option B: WalletConnect**
 

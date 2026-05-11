@@ -10,13 +10,13 @@ No custom RPC calls or non-documented SDK functions are assumed.
 
 # **1. Authentication and Network Setup**
 
-## **Scenario: Adding the Kaolin testnet to a wallet**
+## **Scenario: Adding the Braga testnet to a wallet**
 
 - **Given** I am on the main dashboard page
 - **And** I have MetaMask installed
 - **When** I click “Add Network to Wallet”
 - **Then** MetaMask should open a network-add prompt
-- **And** it must display the correct Kaolin testnet configuration
+- **And** it must display the correct Braga testnet configuration
 - **And** the network should appear in the wallet after approval
 
 ## **Scenario: Logging in with MetaMask**
@@ -54,7 +54,7 @@ No custom RPC calls or non-documented SDK functions are assumed.
   - contact links (optional)
   - skillsArray (may be empty)
 
-- **And** the entity must appear on the Kaolin Explorer
+- **And** the entity must appear on the Braga Explorer
 
 ## **Scenario: Viewing my profile**
 

@@ -18,7 +18,7 @@ The Arkiv Next.js Starter is a complete, minimal template that demonstrates how 
 2. **Write path** - Server-signed writes via Next.js API routes (Phase 0)
 3. **Optimistic UI** - Handling "submitted vs indexed" states gracefully
 4. **Error handling** - Timeout, rate limit, and network error classification
-5. **Testnet-native** - Kaolin testnet defaults with local node support for CI
+5. **Testnet-native** - Braga testnet defaults with local node support for CI
 
 **What It Is Not:**
 
@@ -111,7 +111,7 @@ sequenceDiagram
    # Edit .env and set:
    # - SPACE_ID (required, no fallback)
    # - ARKIV_PRIVATE_KEY (required for writes)
-   # - ARKIV_TARGET (optional: 'local' or 'kaolin', default: 'kaolin')
+   # - ARKIV_TARGET (optional: 'local' or 'braga', default: 'braga')
    ```
 
 3. **Run development server:**
@@ -166,11 +166,11 @@ This template uses **copy-in** for app-kit by default. To pull improvements:
 
 **Proof steps:**
 
-1. Fork this template and deploy to separate environment (both on Kaolin testnet)
-2. Use same `SPACE_ID` (testnet/devrel-scoped) and Kaolin RPC endpoint
+1. Fork this template and deploy to separate environment (both on Braga testnet)
+2. Use same `SPACE_ID` (testnet/devrel-scoped) and Braga RPC endpoint
 3. Query records created by first deployment
 4. Verify records are independently queryable (no shared DB connection)
-5. **Verify on explorer:** Click txHash link, confirm transaction visible on Kaolin explorer
+5. **Verify on explorer:** Click txHash link, confirm transaction visible on Braga explorer
 6. **Testnet validation:** Both deployments read same records from same testnet space
 
 ---

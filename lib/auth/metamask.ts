@@ -7,24 +7,24 @@
  */
 
 import { createPublicClient, createWalletClient, custom, http } from '@arkiv-network/sdk';
-import { kaolin } from '@arkiv-network/sdk/chains';
+import { braga } from '@arkiv-network/sdk/chains';
 import 'viem/window';
 import { connectWithSDK, isSDKAvailable } from './metamask-sdk';
 import { isMobileBrowser } from './mobile-detection';
 
 /**
- * Switch to Kaolin chain in MetaMask
+ * Switch to Braga chain in MetaMask
  *
  * If the chain doesn't exist in MetaMask, it will be added automatically.
  *
  * @throws Error if MetaMask is not installed
  */
-async function switchToKaolinChain() {
+async function switchToBragaChain() {
   if (!window.ethereum) {
     throw new Error('MetaMask not installed');
   }
 
-  const chainIdHex = `0x${kaolin.id.toString(16)}`;
+  const chainIdHex = `0x${braga.id.toString(16)}`;
 
   try {
     // Try to switch to the chain
@@ -40,10 +40,10 @@ async function switchToKaolinChain() {
         params: [
           {
             chainId: chainIdHex,
-            chainName: kaolin.name,
-            nativeCurrency: kaolin.nativeCurrency,
-            rpcUrls: kaolin.rpcUrls.default.http,
-            blockExplorerUrls: [kaolin.blockExplorers.default.url],
+            chainName: braga.name,
+            nativeCurrency: braga.nativeCurrency,
+            rpcUrls: braga.rpcUrls.default.http,
+            blockExplorerUrls: [braga.blockExplorers.default.url],
           },
         ],
       });
@@ -87,7 +87,7 @@ export async function disconnectWallet(): Promise<void> {
 /**
  * Connect to MetaMask and return the connected wallet address
  *
- * Automatically switches to Kaolin testnet chain.
+ * Automatically switches to Braga testnet chain.
  * Uses MetaMask SDK for mobile support, falls back to direct window.ethereum for desktop.
  * Forces account selection by revoking existing permissions first (if any),
  * then requesting permissions, which ensures the account selection dialog appears.
@@ -126,17 +126,17 @@ export async function connectWallet(): Promise<`0x${string}`> {
         address: `${address.substring(0, 6)}...${address.substring(address.length - 4)}`,
       });
 
-      // Switch to Kaolin chain after connection
+      // Switch to Braga chain after connection
       // Note: On mobile, chain switching happens in the MetaMask app
       if (window.ethereum) {
         try {
-          console.log('[MetaMask] Attempting to switch to Kaolin chain');
-          await switchToKaolinChain();
-          console.log('[MetaMask] Successfully switched to Kaolin chain');
+          console.log('[MetaMask] Attempting to switch to Braga chain');
+          await switchToBragaChain();
+          console.log('[MetaMask] Successfully switched to Braga chain');
         } catch (error) {
           // Chain switching is not critical - user can switch manually
           // On mobile, user may need to switch in MetaMask app
-          console.warn('[MetaMask] Failed to switch to Kaolin chain:', error);
+          console.warn('[MetaMask] Failed to switch to Braga chain:', error);
         }
       }
       return address;
@@ -175,10 +175,10 @@ export async function connectWallet(): Promise<`0x${string}`> {
 
   // First switch to the correct chain
   try {
-    await switchToKaolinChain();
+    await switchToBragaChain();
   } catch (error) {
     // Chain switching failure is not critical - continue with connection
-    console.warn('Failed to switch to Kaolin chain, continuing with connection:', error);
+    console.warn('Failed to switch to Braga chain, continuing with connection:', error);
   }
 
   // CRITICAL: Always force account selection on /auth page
@@ -307,12 +307,12 @@ export function createArkivClients(account?: `0x${string}`) {
   }
 
   const publicClient = createPublicClient({
-    chain: kaolin,
+    chain: braga,
     transport: http(),
   });
 
   const walletClient = createWalletClient({
-    chain: kaolin,
+    chain: braga,
     transport: custom(window.ethereum),
     account,
   });

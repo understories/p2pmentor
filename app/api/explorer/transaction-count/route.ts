@@ -2,7 +2,7 @@
  * Explorer Transaction Count Endpoint
  *
  * Returns total count of transactions (entities) written by the server wallet.
- * Queries Arkiv network directly to get the actual count matching Kaolin explorer.
+ * Queries Arkiv network directly to get the actual count matching Braga explorer.
  */
 
 import { NextRequest, NextResponse } from 'next/server';

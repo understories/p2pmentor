@@ -37,7 +37,7 @@ async function testBetaAccess() {
     console.log('✅ Created beta access entity:');
     console.log(`   Key: ${key}`);
     console.log(`   TxHash: ${txHash}`);
-    console.log(`   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${key}\n`);
+    console.log(`   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${key}\n`);
 
     // Wait a moment for entity to be queryable
     console.log('⏳ Waiting 3 seconds for entity to be queryable...\n');

@@ -558,7 +558,7 @@ export default function ProfilePage() {
                             </p>
                           </div>
                           <a
-                            href={`https://explorer.kaolin.hoodi.arkiv.network/entity/${dup.key}`}
+                            href={`https://explorer.braga.hoodi.arkiv.network/entity/${dup.key}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex-shrink-0 text-xs text-blue-600 hover:underline dark:text-blue-400"

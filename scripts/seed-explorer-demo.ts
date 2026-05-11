@@ -427,9 +427,9 @@ async function seedExplorerDemo() {
       console.log('💡 Tips for resolving errors:');
       console.log('   - "Transaction conflict": Wait 30-60 seconds and run the script again');
       console.log('   - "Rate limit": Wait a few minutes between runs');
-      console.log('   - "Insufficient funds": Fund the signing wallet on Kaolin testnet');
+      console.log('   - "Insufficient funds": Fund the signing wallet on Braga testnet');
       console.log(
-        '   - Check Arkiv explorer for pending transactions: https://explorer.kaolin.hoodi.arkiv.network\n'
+        '   - Check Arkiv explorer for pending transactions: https://explorer.braga.hoodi.arkiv.network\n'
       );
     }
 

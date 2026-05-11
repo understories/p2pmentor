@@ -65,7 +65,7 @@ export function HowItWorks() {
             <div className="border-t border-gray-200 px-5 pb-4 pt-4 text-gray-600 dark:border-gray-700 dark:text-gray-400">
               <p>
                 All data comes from Arkiv, a blockchain-native storage system. Each entity has a
-                transaction hash that can be verified on the Kaolin blockchain explorer. The data
+                transaction hash that can be verified on the Braga blockchain explorer. The data
                 doesn't depend on a private p2pmentor database as the source of truth.
               </p>
             </div>
@@ -91,7 +91,7 @@ export function HowItWorks() {
             <div className="border-t border-gray-200 px-5 pb-4 pt-4 text-gray-600 dark:border-gray-700 dark:text-gray-400">
               <p>
                 Each entity includes a transaction hash and block number. Click the "View on Arkiv"
-                link to view the transaction on the Kaolin blockchain explorer. You can verify that
+                link to view the transaction on the Braga blockchain explorer. You can verify that
                 the data matches what's stored on-chain.
               </p>
             </div>

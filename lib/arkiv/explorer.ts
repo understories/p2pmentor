@@ -5,7 +5,7 @@
  * All entities should have "View on Arkiv" links to teach users about blockchain.
  */
 
-export const ARKIV_EXPLORER_BASE_URL = 'https://explorer.kaolin.hoodi.arkiv.network';
+export const ARKIV_EXPLORER_BASE_URL = 'https://explorer.braga.hoodi.arkiv.network';
 
 /**
  * Generate link to view transaction on Arkiv Explorer

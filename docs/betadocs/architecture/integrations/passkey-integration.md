@@ -2,7 +2,7 @@
 
 For architectural rationale, see [Serverless and Trustless](/docs/philosophy/serverless-and-trustless).
 
-Custom passkey-based authentication layer for beta while waiting for Kaolin to support EIP-7951 natively.
+Custom passkey-based authentication layer for beta while waiting for Braga to support EIP-7951 natively.
 
 **Mental model:**
 
@@ -11,7 +11,7 @@ Custom passkey-based authentication layer for beta while waiting for Kaolin to s
 
 ## Current Implementation (Beta)
 
-This is an interim solution until Arkiv's Kaolin testnet supports EIP-7951 (Fusaka upgrade), which enables native P-256 signature verification on-chain.
+This is an interim solution until Arkiv's Braga testnet supports EIP-7951 (Fusaka upgrade), which enables native P-256 signature verification on-chain.
 
 **How it works (today):**
 
@@ -50,7 +50,7 @@ We're upgrading to make passkey identities as stable as MetaMask identities:
 
 ## Future: EIP-7951 / Fusaka
 
-When Arkiv's Kaolin testnet supports EIP-7951 (Fusaka upgrade), passkey signatures (P-256 / secp256r1) can be verified directly on-chain.
+When Arkiv's Braga testnet supports EIP-7951 (Fusaka upgrade), passkey signatures (P-256 / secp256r1) can be verified directly on-chain.
 
 This enables passkeys to become first-class cryptographic signers for blockchain actions, removing the need for a server-held signing key.
 

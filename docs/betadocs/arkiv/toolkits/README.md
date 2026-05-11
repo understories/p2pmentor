@@ -21,7 +21,7 @@ Drop-in LLM context for building Arkiv integrations correctly from day one. Prov
 - Enforces Engineering Guidelines via CI and precommit scripts
 - Provides LLM-readable prompts covering all essential Arkiv patterns
 - Prevents common mistakes through explicit anti-pattern callouts
-- Testnet-native (Kaolin-focused) with clear operational guidance
+- Testnet-native (Braga-focused) with clear operational guidance
 
 ### [Arkiv App Kit](./arkiv-app-primitives.md)
 
@@ -34,7 +34,7 @@ Composable building blocks for Arkiv integrations. Provides the "boring but esse
 - Fail-closed configuration (environment variables throw errors if missing)
 - Pattern-aligned code (follows established patterns from Arkiv Patterns Catalog)
 - Type-safe (full TypeScript with strict mode)
-- Testnet-native (Kaolin-focused with local node support for CI)
+- Testnet-native (Braga-focused with local node support for CI)
 - Composable design (primitives, not a framework)
 
 ### [Arkiv Next.js Starter](./arkiv-nextjs-starter.md)
@@ -48,7 +48,7 @@ Complete starter template for building Arkiv applications with Next.js. Demonstr
 - Next.js App Router with server-signed writes (Phase 0)
 - Optimistic UI with indexer lag handling
 - Complete error handling (timeouts, rate limits, network errors)
-- Testnet-native (Kaolin-focused with local node support for CI)
+- Testnet-native (Braga-focused with local node support for CI)
 - Uses Arkiv App Kit for all Arkiv operations
 
 ---

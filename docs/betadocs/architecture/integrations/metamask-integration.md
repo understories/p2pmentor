@@ -29,7 +29,7 @@ This document details our MetaMask wallet integration implementation, covering d
 4. **MetaMask Connection** (`lib/auth/metamask.ts`)
 
    - Unified connection API
-   - Chain switching (Kaolin testnet)
+   - Chain switching (Braga testnet)
    - Error handling and user feedback
 
 5. **Auth Page** (`app/auth/page.tsx`)
@@ -46,7 +46,7 @@ On desktop browsers with MetaMask extension installed:
 1. User clicks "Connect Wallet"
 2. `connectWallet()` detects `window.ethereum`
 3. Requests account access via `eth_requestAccounts`
-4. Switches to Kaolin testnet
+4. Switches to Braga testnet
 5. Stores wallet address in localStorage
 6. Redirects based on onboarding level
 

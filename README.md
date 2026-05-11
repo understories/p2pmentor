@@ -105,7 +105,7 @@ A full version of a mentorship platform.
 
    **Getting an Arkiv Private Key and Testnet Tokens:**
 
-   p2pmentor uses the Arkiv network (Kaolin testnet) for data storage. You'll need a private key to interact with the network.
+   p2pmentor uses the Arkiv network (Braga testnet) for data storage. You'll need a private key to interact with the network.
 
    1. **Create your Arkiv account and get your private key:**
 
@@ -116,19 +116,19 @@ A full version of a mentorship platform.
 
       **⚠️ Security Warning:** Never share your private key or commit it to version control. The account you create is for **Arkiv Testnet/sandbox use only**. Never use it on any Mainnet.
 
-   2. **Add Kaolin testnet to MetaMask (optional, for testing):**
+   2. **Add Braga testnet to MetaMask (optional, for testing):**
 
-      - Network Name: `Kaolin DB-Chain`
-      - RPC URL: `https://kaolin.hoodi.arkiv.network/rpc`
-      - Chain ID: `60138453025`
-      - Currency Symbol: `ETH`
-      - Block Explorer: [Kaolin Explorer](https://explorer.kaolin.hoodi.arkiv.network)
+      - Network Name: `Braga DB-Chain`
+      - RPC URL: `https://braga.hoodi.arkiv.network/rpc`
+      - Chain ID: `60138453102`
+      - Currency Symbol: `GLM`
+      - Block Explorer: [Braga Explorer](https://explorer.braga.hoodi.arkiv.network)
 
       Or use the [Add Network to Wallet](https://arkiv.network/dev) link from the Arkiv dev portal.
 
    3. **Get testnet tokens:**
 
-      Visit the [Arkiv Dev Portal](https://arkiv.network/dev) and use the "Get Test Tokens" feature (faucet) to receive testnet tokens for your wallet address. The faucet provides all the tokens you need to pay for gas when creating entities; no additional ETH required.
+      Visit the [Braga faucet](https://braga.hoodi.arkiv.network/faucet/) to receive test GLM for your wallet address. Braga uses GLM as the native gas token.
 
    4. **Set your private key in `.env.local`:**
       ```bash

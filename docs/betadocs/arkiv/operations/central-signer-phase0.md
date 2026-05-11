@@ -6,14 +6,14 @@
 
 ## Overview
 
-During beta on Kaolin testnet, p2pmentor uses a **central signer model** where all server-side entity creation and updates are signed by a single Arkiv signing wallet (configured via `ARKIV_PRIVATE_KEY` environment variable).
+During beta on Braga testnet, p2pmentor uses a **central signer model** where all server-side entity creation and updates are signed by a single Arkiv signing wallet (configured via `ARKIV_PRIVATE_KEY` environment variable).
 
 ## How It Works
 
 ### Signing Wallet
 
 - **Location:** Server-side private key (`ARKIV_PRIVATE_KEY` environment variable)
-- **Network:** Kaolin testnet with testnet funds
+- **Network:** Braga testnet with testnet funds
 - **Access:** Controlled by the application server
 - **Usage:** Signs all server-side entity creation and update transactions
 

@@ -99,7 +99,7 @@ async function seedSpanishA1Quest() {
     console.log(`   Transaction Hash: ${result.txHash}`);
     console.log(`   Space ID: ${targetSpaceId}`);
     console.log(
-      `\n   View on Arkiv: https://explorer.kaolin.hoodi.arkiv.network/entity/${result.key}`
+      `\n   View on Arkiv: https://explorer.braga.hoodi.arkiv.network/entity/${result.key}`
     );
   } else {
     console.error('❌ Failed to create quest');

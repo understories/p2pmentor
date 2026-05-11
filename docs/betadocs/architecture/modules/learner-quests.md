@@ -232,7 +232,7 @@ The initial quest, "Web3Privacy Foundations," is a reading list quest incorporat
     "issued": true,
     "certificateId": "cert_spanish_a1_0x1234_20250116",
     "issuedAt": "2025-01-16T10:45:00.000Z",
-    "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
+    "verificationUrl": "https://explorer.braga.hoodi.arkiv.network/entity/..."
   },
   "metadata": {
     "attemptNumber": 1,
@@ -473,7 +473,7 @@ Complete assessment and create result entity.
       "certification": {
         "issued": true,
         "certificateId": "cert_spanish_a1_0x1234_20250116",
-        "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
+        "verificationUrl": "https://explorer.braga.hoodi.arkiv.network/entity/..."
       }
     }
   }
@@ -552,7 +552,7 @@ Fetch assessment result for a user.
     "certification": {
       "issued": true,
       "certificateId": "cert_spanish_a1_0x1234_20250116",
-      "verificationUrl": "https://explorer.kaolin.hoodi.arkiv.network/entity/..."
+      "verificationUrl": "https://explorer.braga.hoodi.arkiv.network/entity/..."
     },
     "sections": [...]
   }

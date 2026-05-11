@@ -174,7 +174,7 @@ export function SkillCluster({
                     </Link>
                     {match.ask.txHash && (
                       <a
-                        href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${match.ask.txHash}`}
+                        href={`https://explorer.braga.hoodi.arkiv.network/tx/${match.ask.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-auto text-xs opacity-60 transition-opacity hover:opacity-100"
@@ -199,7 +199,7 @@ export function SkillCluster({
                     </Link>
                     {match.offer.txHash && (
                       <a
-                        href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${match.offer.txHash}`}
+                        href={`https://explorer.braga.hoodi.arkiv.network/tx/${match.offer.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-auto text-xs opacity-60 transition-opacity hover:opacity-100"
@@ -295,7 +295,7 @@ export function SkillCluster({
                     <span className="text-xs opacity-50">• {formatDate(ask.createdAt)}</span>
                     {ask.txHash && (
                       <a
-                        href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${ask.txHash}`}
+                        href={`https://explorer.braga.hoodi.arkiv.network/tx/${ask.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-auto text-xs opacity-60 transition-opacity hover:opacity-100"
@@ -400,7 +400,7 @@ export function SkillCluster({
                     <span className="text-xs opacity-50">• {formatDate(offer.createdAt)}</span>
                     {offer.txHash && (
                       <a
-                        href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${offer.txHash}`}
+                        href={`https://explorer.braga.hoodi.arkiv.network/tx/${offer.txHash}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="ml-auto text-xs opacity-60 transition-opacity hover:opacity-100"

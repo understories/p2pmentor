@@ -12,7 +12,7 @@ Before implementing entity updates in production, we need to verify that the Ark
 
 - **Package:** `@arkiv-network/sdk`
 - **Version:** `^0.4.4`
-- **Network:** Kaolin testnet
+- **Network:** Braga testnet
 
 ## Verification Results
 

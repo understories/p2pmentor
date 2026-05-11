@@ -68,7 +68,7 @@ Ideas for your next Arkiv app:
 ## Resources
 
 - **Arkiv Documentation**: [https://docs.arkiv.network](https://docs.arkiv.network)
-- **Explorer**: [https://explorer.kaolin.hoodi.arkiv.network](https://explorer.kaolin.hoodi.arkiv.network)
+- **Explorer**: [https://explorer.braga.hoodi.arkiv.network](https://explorer.braga.hoodi.arkiv.network)
 - **SDK Reference**: Check the `@arkiv-network/sdk` package docs
 - **Pattern Catalog**: See engineering guidelines for best practices
 

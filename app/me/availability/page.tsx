@@ -356,7 +356,7 @@ export default function AvailabilityPage() {
                       <div className="ml-4 flex items-center gap-2">
                         {!arkivBuilderMode && availability.txHash && (
                           <a
-                            href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${availability.txHash}`}
+                            href={`https://explorer.braga.hoodi.arkiv.network/tx/${availability.txHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-xs text-blue-600 hover:underline dark:text-blue-400"
@@ -638,7 +638,7 @@ export default function AvailabilityPage() {
                         <div className="ml-4 flex items-center gap-2">
                           {!arkivBuilderMode && availability.txHash && (
                             <a
-                              href={`https://explorer.kaolin.hoodi.arkiv.network/tx/${availability.txHash}`}
+                              href={`https://explorer.braga.hoodi.arkiv.network/tx/${availability.txHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-xs text-blue-600 hover:underline dark:text-blue-400"

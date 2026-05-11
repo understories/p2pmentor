@@ -10,13 +10,13 @@ When you create a profile, post an ask or offer, or schedule a session on p2pmen
 
 - **You control your data** - it's not locked in a company's database
 - **Your data persists** - even if p2pmentor disappears, your data remains on Arkiv
-- **It's verifiable** - anyone can verify your data exists using the [Arkiv Explorer](http://explorer.kaolin.hoodi.arkiv.network/)
+- **It's verifiable** - anyone can verify your data exists using the [Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)
 
 ### Transparency and Trust
 
 All data on Arkiv is **public and verifiable**. You can:
 
-- View your own data on the [Arkiv Explorer](http://explorer.kaolin.hoodi.arkiv.network/)
+- View your own data on the [Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)
 - See how p2pmentor uses your data in our [p2pmentor Explorer](/explorer)
 - Verify that what you see in the app matches what's on the blockchain
 
@@ -76,7 +76,7 @@ All entities include a `spaceId` attribute, which enables:
 
 ## Explore Your Data
 
-- **[Arkiv Explorer](http://explorer.kaolin.hoodi.arkiv.network/)** - View all data on the Arkiv blockchain
+- **[Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)** - View all data on the Arkiv blockchain
 - **[p2pmentor Explorer](/explorer)** - See how p2pmentor structures and uses Arkiv data
 
 ## Learn More

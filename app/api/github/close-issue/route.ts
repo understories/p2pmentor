@@ -45,7 +45,7 @@ export async function PATCH(request: NextRequest) {
 
     // Build Arkiv explorer link if resolution key is provided
     const arkivExplorerLink = resolutionKey
-      ? `https://explorer.kaolin.hoodi.arkiv.network/entity/${resolutionKey}`
+      ? `https://explorer.braga.hoodi.arkiv.network/entity/${resolutionKey}`
       : null;
 
     console.log('[api/github/close-issue] Resolution key:', resolutionKey);
@@ -64,7 +64,7 @@ This issue has been marked as resolved using Arkiv's immutable entity update pat
     if (arkivExplorerLink) {
       commentBody += `\n\n**Resolution Entity:**\n[View resolution entity on Arkiv Explorer](${arkivExplorerLink})`;
       if (txHash) {
-        const txExplorerUrl = `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`;
+        const txExplorerUrl = `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`;
         commentBody += `\n\n**Transaction:** [${txHash.slice(0, 10)}...${txHash.slice(-8)}](${txExplorerUrl})`;
       }
     }

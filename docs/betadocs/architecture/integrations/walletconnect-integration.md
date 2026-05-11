@@ -13,7 +13,7 @@ WalletConnect integration provides an additional wallet connection method for p2
    - Initializes WalletConnect EthereumProvider
    - Handles QR code display (desktop) and deep linking (mobile)
    - Registers lifecycle listeners for session management
-   - Non-critical chain switching to Kaolin testnet
+   - Non-critical chain switching to Braga testnet
 
 2. **Provider Singleton** (`lib/wallet/walletconnectProvider.ts`)
 
@@ -38,7 +38,7 @@ WalletConnect integration provides an additional wallet connection method for p2
 ### Connection Flow
 
 1. User clicks "Connect with WalletConnect"
-2. `connectWalletConnect()` initializes EthereumProvider with Kaolin chain
+2. `connectWalletConnect()` initializes EthereumProvider with Braga chain
 3. Provider shows QR code (desktop) or triggers deep link (mobile)
 4. User scans QR or approves connection in wallet app
 5. Provider returns connected wallet address
@@ -50,9 +50,9 @@ WalletConnect integration provides an additional wallet connection method for p2
 ```typescript
 const provider = await EthereumProvider.init({
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID,
-  chains: [kaolin.id],
+  chains: [braga.id],
   rpcMap: {
-    [kaolin.id]: kaolin.rpcUrls.default.http[0],
+    [braga.id]: braga.rpcUrls.default.http[0],
   },
   showQrModal: true,
   metadata: {
@@ -99,7 +99,7 @@ If `walletType === 'walletconnect'`:
 Chain switching is non-critical (same as MetaMask):
 
 1. After connection, check `eth_chainId`
-2. If mismatch with Kaolin, attempt `wallet_switchEthereumChain`
+2. If mismatch with Braga, attempt `wallet_switchEthereumChain`
 3. If switch fails, show non-blocking prompt
 4. Do not attempt `wallet_addEthereumChain` in Phase 0
 

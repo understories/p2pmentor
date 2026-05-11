@@ -620,7 +620,7 @@ Every metric entity includes a `txHash` field. You can:
 
 1. Query the entity from Arkiv
 2. Get the transaction hash
-3. Verify it on the Kaolin explorer
+3. Verify it on the Braga explorer
 4. Confirm the data matches what we claim
 
 ### 4.3 Data Expiration

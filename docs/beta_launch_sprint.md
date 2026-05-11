@@ -291,7 +291,7 @@ In every Arkiv operation:
 * Upon log in, show banner:
   *“Do not use a wallet containing real funds. This is a beta environment.”*
 * For text input fields, show banner:
-  *"Blockchain data is immutable. All data inputted is viewable forever on the [Arkiv explorer](https://explorer.kaolin.hoodi.arkiv.network)."*
+  *"Blockchain data is immutable. All data inputted is viewable forever on the [Arkiv explorer](https://explorer.braga.hoodi.arkiv.network)."*
 
 ---
 
@@ -483,6 +483,6 @@ See `.env.example` for the complete list. At minimum for local development:
 
 ## Notes
 
-- This app uses Arkiv testnet (Kaolin chain)
+- This app uses Arkiv testnet (Braga chain)
 - Never use wallets with real funds in this beta environment
-- All data written to Arkiv is immutable and viewable on the [Kaolin testnet explorer](https://explorer.kaolin.hoodi.arkiv.network)
+- All data written to Arkiv is immutable and viewable on the [Braga testnet explorer](https://explorer.braga.hoodi.arkiv.network)

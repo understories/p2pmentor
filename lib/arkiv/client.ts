@@ -13,7 +13,7 @@
 
 import { createPublicClient, createWalletClient, http, custom } from '@arkiv-network/sdk';
 import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
-import { kaolin } from '@arkiv-network/sdk/chains';
+import { braga } from '@arkiv-network/sdk/chains';
 
 /**
  * Get public client for read operations
@@ -21,7 +21,7 @@ import { kaolin } from '@arkiv-network/sdk/chains';
  */
 export function getPublicClient() {
   return createPublicClient({
-    chain: kaolin,
+    chain: braga,
     transport: http(),
   });
 }
@@ -30,11 +30,11 @@ export function getPublicClient() {
  * Get wallet client from private key (server-side use)
  *
  * @param privateKey - Private key in format 0x...
- * @returns Wallet client configured for Kaolin testnet
+ * @returns Wallet client configured for Braga testnet
  */
 export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
   return createWalletClient({
-    chain: kaolin,
+    chain: braga,
     transport: http(),
     account: privateKeyToAccount(privateKey),
   });
@@ -46,7 +46,7 @@ export function getWalletClientFromPrivateKey(privateKey: `0x${string}`) {
  * This should only be called in browser context with MetaMask available.
  *
  * @param account - Wallet address from MetaMask
- * @returns Wallet client configured for Kaolin testnet
+ * @returns Wallet client configured for Braga testnet
  * @throws Error if called outside browser or MetaMask not available
  *
  * Reference: refs/mentor-graph/src/arkiv/client.ts
@@ -57,7 +57,7 @@ export function getWalletClientFromMetaMask(account: `0x${string}`) {
   }
 
   return createWalletClient({
-    chain: kaolin,
+    chain: braga,
     transport: custom(window.ethereum),
     account,
   });

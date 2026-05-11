@@ -301,12 +301,12 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Check for Kaolin/transaction errors that might indicate concurrent confirmation
+        // Check for Braga/transaction errors that might indicate concurrent confirmation
         if (
           errorMessage.includes('replacement transaction') ||
           errorMessage.includes('underpriced') ||
           errorMessage.includes('nonce') ||
-          errorMessage.toLowerCase().includes('kaolin') ||
+          errorMessage.toLowerCase().includes('braga') ||
           errorMessage.includes('Transaction is still processing')
         ) {
           // This could be a concurrent confirmation - check if confirmation actually exists

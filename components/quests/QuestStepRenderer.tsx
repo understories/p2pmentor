@@ -392,7 +392,7 @@ export function QuestStepRenderer({
               <ViewOnArkivLink
                 entityKey={entityKey}
                 txHash={txHash}
-                label="View on Kaolin Explorer"
+                label="View on Braga Explorer"
                 className="text-sm"
               />
             </div>
@@ -449,7 +449,7 @@ export function QuestStepRenderer({
                 ``,
                 `Returns: { key, txHash, status: 'submitted' }`,
                 `→ Entity key and transaction hash for verification`,
-                `→ View on Kaolin Explorer: ${entityKey ? `https://explorer.kaolin.hoodi.arkiv.network/entity/${entityKey}` : 'Available after submission'}`,
+                `→ View on Braga Explorer: ${entityKey ? `https://explorer.braga.hoodi.arkiv.network/entity/${entityKey}` : 'Available after submission'}`,
               ]}
               label={
                 isLoading

@@ -385,7 +385,7 @@ export async function POST(request: Request) {
         timestamp,
         operation,
         method,
-        explorer: `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHash}`,
+        explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${txHash}`,
       },
     });
   } catch (error: any) {
@@ -427,7 +427,7 @@ export async function POST(request: Request) {
             timestamp: new Date().toISOString(),
             operation: op,
             method: meth,
-            explorer: `https://explorer.kaolin.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
+            explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${txHashMatch[0]}`,
             pending: true,
           },
           message: 'Snapshot transaction submitted. It will appear once confirmed.',

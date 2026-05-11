@@ -111,7 +111,7 @@ const query = publicClient.buildQuery()
   .limit(1)
   .fetch();`,
             manualTests: [
-              'Wallet connection on Kaolin testnet',
+              'Wallet connection on Braga testnet',
               'Profile entity creation with all fields',
               'Profile entity query by wallet address',
               'Entity visible on Arkiv Explorer',
@@ -194,7 +194,7 @@ const query = publicClient.buildQuery()
           },
           {
             id: 'add-network',
-            title: 'Add Kaolin Testnet',
+            title: 'Add Braga Testnet',
             status: 'pass',
             codeVerified: true,
             hasArkivQuery: false,
@@ -204,7 +204,7 @@ const query = publicClient.buildQuery()
             manualTests: [
               'Click "Add Network to Wallet"',
               'MetaMask prompt appears',
-              'Network details match Kaolin testnet config',
+              'Network details match Braga testnet config',
               'Network appears in wallet after approval',
             ],
           },

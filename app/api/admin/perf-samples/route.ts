@@ -611,9 +611,9 @@ export async function GET(request: NextRequest) {
             source: e.source,
             operation: e.operation,
             txHash: e.txHash,
-            explorer: `https://explorer.kaolin.hoodi.arkiv.network/tx/${e.txHash}`,
+            explorer: `https://explorer.braga.hoodi.arkiv.network/tx/${e.txHash}`,
           })),
-          note: 'Check Kaolin explorer to verify on-chain. In-memory samples also available at /api/admin/perf-samples',
+          note: 'Check Braga explorer to verify on-chain. In-memory samples also available at /api/admin/perf-samples',
         });
       } catch (error: any) {
         console.error('[seed-perf] Error generating samples:', error);
