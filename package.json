@@ -28,7 +28,7 @@
     "serve:static": "cd static-app/public && python3 -m http.server 8080"
   },
   "dependencies": {
-    "@arkiv-network/sdk": "0.6.0",
+    "@arkiv-network/sdk": "0.6.7",
     "@metamask/sdk": "^0.34.0",
     "@simplewebauthn/server": "^9.0.0",
     "@walletconnect/ethereum-provider": "^2.21.8",
@@ -47,6 +47,7 @@
     "viem": "^2.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@simplewebauthn/typescript-types": "^8.3.4",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/dom": "^10.4.0",
@@ -67,7 +68,6 @@
     "postcss": "^8.5.6",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
-    "@playwright/test": "^1.51.1",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",
