@@ -1,145 +1,160 @@
-# Plan: Braga → Tiramisu Migration (SDK 0.6.7 → 0.8.x)
+# Plan: Braga → Tiramisu Migration (SDK 0.6.7 → 0.8.1)
 
-Status: **DRAFT for review**. No code has changed yet.
-Goal: get production working again on the current Arkiv testnet with the **smallest safe diff**. Modernizing the code comes later, as a separate follow-up.
+Status: **v2, for review**. No application code has changed yet.
 
----
+Goal: get prod running again on Arkiv's current testnet, built the way current Arkiv projects are built.
 
-## 1. What changed upstream
+**What changed from v1:** v1 proposed a compatibility shim so that no call sites would change. Research into the official Arkiv sources and 12 recent Tiramisu projects (§8) showed that this is the wrong trade:
 
-| Item | Today (Braga, SDK 0.6.7) | Current (Tiramisu, SDK 0.8.1) |
-| --- | --- | --- |
-| Chain export | `braga` | `tiramisu` (`braga` and `kaolin` were removed from `@arkiv-network/sdk/chains`) |
-| Chain id | 60138453102 | **7738577** |
-| RPC | `https://braga.hoodi.arkiv.network/rpc` | `https://rpc.tiramisu.db-chain.testnet.arkiv.network` (wss on the same host) |
-| Explorer | `https://explorer.braga.hoodi.arkiv.network` | `https://tiramisu.explorer.arkiv.network` (not confirmed; see §6). **The SDK chain object has no `blockExplorers` entry.** |
-| Faucet | `braga.hoodi.arkiv.network/faucet` | `https://hub.arkiv.network/faucet` (needs a wallet sign-in) |
-| Native currency | GLM | GLM |
-| Arkiv system address | `0x…61726b6976` | `0x4400000000000000000000000000000000000044` |
+- Braga data cannot be carried over, so we start on an empty chain anyway.
+- Tiramisu **rejects** our camelCase attribute names, so every attribute name has to change at its call site regardless.
 
-**Why prod is down:** Braga is no longer the supported network, and SDK 0.6.7 cannot talk to Tiramisu. The JSON-RPC schema (`arkiv_query`, the entity shape, the attribute encoding) and the system address both changed. This means **a chain-config swap alone will not work**; we have to move to SDK 0.8.x.
-
-### Breaking SDK API changes that affect this repo
-
-I diffed the published 0.6.7 and 0.8.1 packages.
-
-| 0.6.7 API we use | 0.8.x replacement | Usage in this repo |
-| --- | --- | --- |
-| `client.buildQuery().where(eq()).withAttributes().withPayload().limit().fetch()` | `client.select({ attributes: true, payload: true }).where(eq()).limit().fetch()` | about 178 call sites, 58 files |
-| `attributes: [{ key, value }]` on write | `attributes: { name: value }` (typed values: `str`, `i32`, `u64`, `dec`, …) | about 125 sites, 49 files |
-| `entity.attributes` read as `[{ key, value }]` (`.find(a => a.key === …)`) | `Record<string, { type, value }>` | about 165 lookups, 56 files |
-| `expiresIn: <seconds>` | `expires: ExpirationTime.fromSeconds(n)` (or `fromDays`, `permanent()`, …) | 98 sites, 42 files |
-| `updateEntity({ entityKey, payload, attributes, expiresIn })` (full replace) | `patchEntity({ entityKey, payload, set, unset })`; expiry is separate via `extendEntity` | 8 sites, 5 files, plus `entity-utils.ts` |
-| `privateKeyToAccount` from `@arkiv-network/sdk/accounts` | `viem/accounts` (the subpath was removed) | 6 sites |
-| `http`, `custom` re-exported from the SDK root | import from `viem` (now a **peer dependency**) | 4 files |
-| `.limit(n)` with no cap | **max 200** per page; `fetch()` throws above that | `.limit(1000)` ×10, `.limit(500)` ×3, `.limit(5000)` ×1 |
-| `eq(key, string \| number)` | `eq(name, ValueInput)`; a bare `number` becomes `i32` and must match the stored type | 480 sites; all string values today |
-
-### New protocol limits that our data hits
-
-These are enforced client-side, so `createEntity` throws.
-
-- **String attribute values: max 128 bytes.** Free-text attributes will go over this: `bio` (profile.ts), `description` and `title` (learnerQuest.ts, languageQuest.ts), `reason` (revocation.ts, reviewModeGrant.ts), `videoJoinUrl`, `issueUrl`, `meta_learning_json`.
-- **Max 32 attributes per entity.** Profiles add one `skill_${idx}` attribute per skill, so a large skill list can exceed this.
-- Attribute names: at most 32 chars, `^[A-Za-z][A-Za-z0-9._-]*$`, with reserved words (`key`, `str`, `and`, …) not allowed. **All 173 names in use pass this.**
-- Payload: max 128 KiB.
-- Integers over 2^31 must be typed `u64`. Today every attribute value is a string, so this is a non-issue for the minimal path.
-
-### Data
-
-Tiramisu is a **fresh chain**, so none of the Braga entities exist there. That covers profiles, skills, quests, beta codes, sessions and notifications. After the deploy, prod is **empty** until we reseed. Users will need to re-onboard unless we run a one-off export and import (see §4, step 7).
+On-chain schema decisions are cheap now and expensive later, because changing the schema later means migrating data again. **So v2 settles the on-chain schema now, natively, and defers only code-structure improvements.**
 
 ---
 
-## 2. Strategy: a compatibility adapter, not a 60-file rewrite
+## 1. Facts this plan rests on
 
-About 1,000 call sites depend on the 0.6.7 query, attribute and expiry shapes. Rewriting all of them is the "state of the art" end state, but it is a large, risky diff for an outage fix.
-
-**Minimal path:** upgrade the SDK and put a thin **compat layer** inside `lib/arkiv/client.ts`. The three factory functions that every module already uses (`getPublicClient`, `getWalletClientFromPrivateKey`, `getWalletClientFromMetaMask`) return clients that keep the 0.6.7 surface this app uses, implemented on top of 0.8.x. **Callers do not change.**
-
-`lib/arkiv/compat.ts` (new, about 200 lines plus tests):
-
-1. **`buildQuery()` shim.** It returns a builder with `where`, `withAttributes`, `withPayload`, `limit`, `fetch` (plus `ownedBy` and `orderBy` as no-ops). The builder maps to `select({ key: true, owner: true, attributes, payload, contentType, expiresAt, createdAt })`.
-   - `limit > 200` is handled by paging with the cursor until the requested count.
-   - `fetch()` returns `{ entities }`. Each entity has `attributes` converted back to `[{ key, value }]`, with the value as `String(v.value)`. `payload` stays a `Uint8Array`.
-2. **`createEntity({ payload, contentType, attributes: [], expiresIn })`**
-   - Converts the attribute array to an object of `str()` values, with an explicit typed passthrough if a value is already tagged.
-   - Converts `expiresIn` to `ExpirationTime.fromSeconds(expiresIn)`.
-   - **Over-length string values (more than 128 bytes) are truncated** to a UTF-8-safe 128 bytes, with a `console.warn`. The full text already lives in the JSON payload, so attribute copies are only used for filtering and display fallbacks. This needs confirming per entity in review.
-   - **More than 32 attributes:** keep the first 32 (`type`, `wallet` and `spaceId` are always first) and warn.
-3. **`updateEntity({ entityKey, payload, contentType, attributes, expiresIn })`.** Keeps the old full-replace semantics: `getEntity` for the current attribute names, then `patchEntity({ set: newAttrs, unset: oldNames − newNames, payload, contentType })`. If `expiresIn` is given, follow with `extendEntity`. Same limits handling as `createEntity`.
-4. **`getEntity` shim.** Returns the same legacy entity shape as `fetch()`.
-
-`eq` from `@arkiv-network/sdk/query` keeps working unchanged, because we only pass strings and the shim writes every attribute as `str`. The `and` import in `notificationPreferences.ts` is unused and also still exists.
+| Item                     | Value                                                                                                                                       | Source                                              |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| Braga                    | **Retired 2026-08-12.** Its endpoints are down, its state does not migrate, and no bridge exists.                                           | Arkiv skills migration guide; SDK 0.8.0 CHANGELOG   |
+| Chain                    | `tiramisu` from `@arkiv-network/sdk/chains`: id **7738577** (`0x7614d1`), GLM                                                               | SDK 0.8.1 source                                    |
+| RPC                      | `https://rpc.tiramisu.db-chain.testnet.arkiv.network` (wss on the same host)                                                                | SDK 0.8.1 source                                    |
+| Explorer                 | **`https://tiramisu.explorer.arkiv.network`**, with paths `/tx/<hash>`, `/entity/<key>`, `/address/<addr>`. The SDK chain object has **no** `blockExplorers`, so we add it ourselves. | Arkiv-Network/skills #27 (closed by PR #53); 8 of 12 projects |
+| Faucet                   | `https://hub.arkiv.network/faucet` (wallet sign-in + CAPTCHA)                                                                               | skills `arkiv-first-write`                          |
+| Access keys              | `https://hub.arkiv.network/api-keys`. Sent as an `X-API-KEY` header, **server-side only**. Without one, RPC is anonymous and rate-limited (`429 ANON_COST_LIMITED`). | skills `arkiv-app-integration`                      |
+| SDK                      | `@arkiv-network/sdk@0.8.1` (npm `latest`) with `viem` as a peer dependency (≥ 2.56 in practice)                                              | npm; skills pin `^0.8.1`                            |
+| Attribute names          | `[a-z][a-z0-9_]*`, at most 32 bytes, no reserved words (`key`, `str`, `and`, …). **Tiramisu rejects uppercase** even though the SDK allows it. | skills `arkiv-data-modeling`; SDK issue #128        |
+| Limits                   | `str` ≤ 128 bytes (**never truncate**), ≤ 30 user attributes on create, payload ≤ 128 KiB, query page ≤ 200                                  | skills `arkiv/references/limits.md`                 |
+| `updateEntity`           | Removed. Use `patchEntity({ set, unset, payload })`. Expiry, owner and flags are not patchable.                                             | SDK CHANGELOG                                       |
+| Query operators          | `ne`, `exists` and `hasType` are **rejected by the node**. There is no server-side ordering (newest-created comes first).                   | skills `arkiv-query`                                |
 
 ---
 
-## 3. Minimal code changes (the PR diff)
+## 2. Your three questions, decided
 
-| # | File(s) | Change |
-| --- | --- | --- |
-| 1 | `package.json`, `pnpm-lock.yaml` | `@arkiv-network/sdk` `0.6.7` → `0.8.1` (pinned). Pin `viem` to a version that satisfies the SDK's peer range. |
-| 2 | **new** `lib/arkiv/chain.ts` | `export const arkivChain = { ...tiramisu, blockExplorers: { default: { name: 'Arkiv Explorer', url: ARKIV_EXPLORER_BASE_URL } } }`. The wallet add-chain code reads `.blockExplorers.default.url`, which is `undefined` on the SDK's `tiramisu` object. This becomes the one source of truth for the chain. |
-| 3 | `lib/arkiv/client.ts` | Import `http` and `custom` from `viem`, `privateKeyToAccount` from `viem/accounts`, and use `arkivChain`. Wrap the clients with the compat layer. |
-| 4 | **new** `lib/arkiv/compat.ts` + `__tests__/lib/arkiv/compat.test.ts` | The adapter from §2, with unit tests for attribute conversion, truncation, the expiry mapping, limit paging and the update→patch diff. |
-| 5 | `lib/auth/metamask.ts`, `lib/auth/walletconnect.ts`, `lib/wallet/getWalletClient.ts`, `app/auth/page.tsx` | Replace `braga` with `arkivChain`. Wallets built here use `createWalletClient` directly, so wrap them with the same compat helper. Also fix the `'braga'` fallback label in `getWalletClientFromPasskey.ts`. |
-| 6 | `lib/config.ts`, `lib/arkiv/signer-metadata.ts`, `lib/arkiv/betaAccess.ts`, `lib/arkiv/reviewModeGrant.ts` | Change the `privateKeyToAccount` import from `@arkiv-network/sdk/accounts` to `viem/accounts`. |
-| 7 | `lib/arkiv/explorer.ts` | Set `ARKIV_EXPLORER_BASE_URL` to the Tiramisu explorer and verify its URL paths (`/tx/…`, `/entity/…`). |
-| 8 | about 35 files with inline `https://explorer.braga.hoodi.arkiv.network` | Replace each inline URL with the `ARKIV_EXPLORER_BASE_URL` / `getArkivExplorer*Url` helpers. A mechanical `sed` covers it, and the next network change becomes a one-line edit. |
-| 9 | `__tests__/lib/arkiv/network-config.test.ts` | Expect chain id `7738577`, the Tiramisu explorer and GLM. |
-| 10 | `app/auth/page.tsx:997`, `components/network/IntegrationGuide.tsx`, `content/quests/arkiv/steps/06,11`, `components/BetaBanner.tsx` and the other copy in the Braga commit `791c91b` | Update user-facing network name, faucet and explorer copy. |
-
-**Out of scope for the outage PR.** These are flagged, and none of them blocks prod:
-
-- `scripts/*` (dev-only). They use `getWalletClientFromPrivateKey`, so most work through the shim automatically. The few that construct clients directly (`verify-sdk-update-api.ts`, `test-jitsi-direct.ts`) get a follow-up.
-- `extractions/*` (separate packages on SDK `^0.1.0`).
-- `app/admin/m1-exam/page.tsx` display strings. These are code samples shown in the UI, not executed; refresh them with the docs.
-- `subgraph/`. It is feature-flagged (`USE_SUBGRAPH_FOR_NETWORK`), and its manifest indexes the old system address and event signatures, so it needs a rewrite against the new `ENTITY_EVENTS_ABI`. **Keep the flag off.**
+1. **Long text → store it in the JSON payload. Never truncate.** This is official guidance ("put long descriptions and unqueried data in the payload; never silently truncate") and every surveyed project does it. Attributes keep only short scalars that queries filter on. Inputs that will become attributes are validated, and rejected if too long, at the form or API boundary.
+   - Concretely, these come **out of attributes**: `bio`, `description`, `title`, `reason`, `video_join_url`, `issue_url`, `meta_learning_json`, `skills` (the CSV) and `skill_<n>`.
+   - Most already exist in the payload, and readers already prefer the payload (`profile.ts:659`, `virtualGathering.ts:363`, `githubIssueLink.ts:189`).
+   - **Exception:** the learner-quest and language-quest `title` and `description` exist **only** as attributes today (`learnerQuest.ts:173`, `languageQuest.ts:290`, read at `learnerQuest.ts:299`). These must be added to the payload, and their readers switched to read from it.
+   - Profiles currently write one attribute per skill (`skill_0…skill_n`), which can exceed the attribute cap. Skills move to the payload. A skill → profile lookup should use the existing `skill` entities and `learning_follow` relations rather than per-index attributes.
+2. **Braga data → fresh start, reseed.** Braga is retired, so there is nothing to export. Users re-onboard, and we reseed the curated content (skills, quests, beta codes). Tell beta users in the banner and onboarding copy.
+3. **Explorer → `https://tiramisu.explorer.arkiv.network`** for `/tx/`, `/entity/` and `/address/`, defined in one constant.
+   - Watch SDK PR #120: it may make `tiramisu.scanner.arkiv.network` the default. Because every link goes through one constant, switching later is a one-line change.
 
 ---
 
-## 4. Rollout steps
+## 3. Target on-chain schema (applies to every entity type)
 
-1. Implement steps 1–10 on `claude/arkiv-docs-testnet-update-b1ro43`. Run `pnpm typecheck && pnpm lint && pnpm test && pnpm build`.
-2. **Smoke-test against live Tiramisu** with a funded throwaway key:
-   - Create a profile with a bio longer than 128 bytes.
-   - Run the query, update, and `limit(1000)` paging paths.
-   - Check that explorer links resolve.
-   - Do the MetaMask add-chain flow.
-   - Do the passkey and WalletConnect sign-in flows.
-3. **Fund the prod signer.** Get GLM for the `ARKIV_PRIVATE_KEY` address (the server-side signer) from `hub.arkiv.network/faucet`. Note that the faucet requires a wallet sign-in.
-4. No Vercel env var changes are needed for the chain. RPC and chain come from the SDK; `BETA_SPACE_ID` and `ARKIV_PRIVATE_KEY` stay the same.
-5. Deploy a preview on Vercel and run Playwright e2e against it.
-6. Promote to prod.
-7. **Reseed:** run `seed-skills.ts`, the quest seeds (`seed-hsk1-quest`, `seed-spanish-a1-quest`, `seed-learner-quest`, `seed-meta-learning-quest`) and beta codes. **Decision needed:** whether to also export Braga data, if Braga is still readable, and replay it into Tiramisu. That is a separate script, and it is not required to get prod up.
-8. Update the docs (§5).
+Settled now, because changing it later means migrating data again:
+
+| Rule                      | Spec                                                                                                                                                                                               |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Namespace                 | Every entity gets `project: 'p2pmentor'` and `type: '<entity_type>'`, and every query filters on both. `space_id` stays for environment and cohort isolation.                                       |
+| Version                   | `schema_version: i32(1)` on every entity (as in sitelog, muniment and arkiv-triggers). Readers ignore versions they don't know.                                                                    |
+| Names                     | Lowercase `snake_case`. A mechanical rename covers about 100 of the 173 names (`spaceId`→`space_id`, `sessionKey`→`session_key`, …). Five pairs already exist in both spellings (`spaceId`/`space_id`, `createdAt`/`created_at`, `skillId`/`skill_id`, `entityKey`/`entity_key`, `issuedAt`/`issued_at`); each pair merges into one name. |
+| Types                     | Timestamps are `u64` milliseconds (`created_at`, `updated_at`, `expires_at`, …; any ISO copies stay in the payload). Wallets are `addr`. References to other entities are `key()`. Flags are `bool`. Everything else is `str`. |
+| Payload                   | `jsonToPayload(obj)`, `contentType: 'application/json'`. Holds all text, arrays and nested data. Nothing secret or personal goes in, because payloads are public.                                    |
+| Trust                     | Reads of server-signed types (beta codes, grants, revocations, admin notifications, quest definitions) are scoped with `.createdBy(SERVER_SIGNER)`. Matching attribute values alone is not trust, since anyone can copy them. |
+| Expiry                    | `ExpirationTime.fromDays(n)` chosen per entity type (§5); **no `permanent()`**. Long-lived types are renewed by a cron job (step 11).                                                                |
+| Flags (set at create, cannot change later) | `readonly` for append-only records: `revocation`, `assessment_result`, `tx_event`, `onboarding_event`, `app_feedback`, `review_mode_grant`, `beta_code_usage`, `quest_completion`. Everything else is mutable. |
 
 ---
 
-## 5. Docs updates
+## 4. Changes in the PR to get prod running ("PR 1")
 
-- **New** `docs/betadocs/arkiv/operations/tiramisu-migration.md`, mirroring `braga-migration.md`: network table, SDK changes, the compat layer, data reset and troubleshooting. Register it in `app/api/docs/list/route.ts`.
+Mechanical steps are done by script and checked with `tsc`, the unit tests and a grep audit. The hand-written parts are small helpers.
+
+| #   | Area                                                   | Change                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --- | ------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `package.json`, lockfile                               | Pin `@arkiv-network/sdk@0.8.1` and `viem@^2.57`.                                                                                                                                                                                                                                                                                                                                                                                             |
+| 2   | **new** `lib/arkiv/chain.ts`                           | `arkivChain = { ...tiramisu, blockExplorers: { default: { name: 'Arkiv Explorer', url: ARKIV_EXPLORER_BASE_URL } } }`. This is the only chain definition in the app.                                                                                                                                                                                                                                                                         |
+| 3   | `lib/arkiv/client.ts`                                  | Import `http` and `custom` from `viem`, and `privateKeyToAccount` from `viem/accounts`. On the server, the transport sends `X-API-KEY` from a new `ARKIV_API_KEY` env var (server-only, never `NEXT_PUBLIC_`). Set `cacheTime: 0`, `fetchOptions: { cache: 'no-store' }`, and an explicit `timeout` and `retryCount` (works around SDK issue #126, a 429 retry hang).                                                                          |
+| 4   | **new** `lib/arkiv/schema.ts`                          | `PROJECT`, `SCHEMA_VERSION`, `ENTITY_TYPES`, per-type lifetime and flags (the §5 table), and a `baseAttributes(type)` helper. The `attr` helpers (`u64Now()`, `walletAttr()`, `ref()`) and a `validateAttrInputs()` that throws on more than 128 bytes or more than 30 attributes. **It never truncates.**                                                                                                                                       |
+| 5   | **new** `lib/arkiv/read.ts`                            | `getAttr(entity, name)` / `getAttrString()` for the typed `Record` attributes, and `parsePayload(entity)`. `queryAll(builder, max)` pages at most 200 at a time, pinned to `atBlock` of the first page, and replaces `.limit(1000/500/5000)`. There is no server-side ordering, so it also sorts client-side by `created_at`. These replace about 165 hand-rolled `.attributes.find(a => a.key === …)` lookups and about 130 `TextDecoder` blocks. |
+| 6   | Writes (43 files in `lib/arkiv`, plus `lib/auth/passkey-recovery.ts`) | Codemod:<br>• `attributes: [{key, value}]` → `attributes: { ...baseAttributes(type), name: value }`<br>• `payload: new TextEncoder().encode(JSON.stringify(x))` → `jsonToPayload(x)`<br>• `expiresIn: n` → `expires: LIFETIME[type]`<br>• add `flags` for readonly types<br>Dynamic `attributes.push(...)` builders are converted by hand (about 15 sites).                                                                                     |
+| 7   | Updates (8 sites: `entity-utils.ts`, `profile.ts`, `authIdentity.ts`, `adminNotification.ts`, `notifications.ts`) | `updateEntity` → `patchEntity({ entityKey, set, unset, payload })`. Lifetime extension moves to `extendEntity` with `atBlock(current.expiresAt + n)`, because `fromDays` counts from now (SDK issue #122). Patches are last-writer-wins: keep the existing "read, then write" deterministic pattern.                                                                                                                                             |
+| 8   | Queries (about 178 sites)                              | Codemod:<br>• `buildQuery()…withAttributes(true).withPayload(true)` → `select({ key: true, attributes: true, payload: true, … })`, selecting only what each caller reads<br>• rename the field names inside `eq('…')`<br>• add the `project` filter<br>• `.createdBy()` for server-signed types<br>• `.limit(>200)` → `queryAll`                                                                                                                  |
+| 9   | Reserved `key` attribute bug                           | 11 lookups such as `.where(eq('key', key))` (`sessions.ts:1022`, `offers.ts:612`, `appFeedback.ts:497`, …) query an attribute named `key`, which never existed and is now a reserved word. Replace them with `getEntity(key)`.                                                                                                                                                                                                                    |
+| 10  | Wallets (`lib/auth/metamask.ts`, `walletconnect.ts`, `lib/wallet/getWalletClient*.ts`, `app/auth/page.tsx`) | Use `arkivChain`. Switch to `0x7614d1`, and on error 4902 call `wallet_addEthereumChain` with chain name "Arkiv Tiramisu Testnet" and the explorer URL. Re-check account and chain before each write (official browser-wallet guidance).                                                                                                                                                                                                         |
+| 11  | Explorer links (about 46 inline URLs in about 35 files) | Use `getArkivExplorerTxUrl`, `getArkivExplorerEntityUrl` and a new `getArkivExplorerAddressUrl` from `lib/arkiv/explorer.ts`. Fix the hard-coded wallet in `app/explorer/page.tsx:176` so it is derived from the signer.                                                                                                                                                                                                                          |
+| 12  | `lib/config.ts`, `signer-metadata.ts`, `betaAccess.ts`, `reviewModeGrant.ts` | Import `privateKeyToAccount` from `viem/accounts`. Expose `SERVER_SIGNER_ADDRESS` for `createdBy` scoping.                                                                                                                                                                                                                                                                                                                                          |
+| 13  | Seeds (`scripts/seed-skills.ts`, `seed-*-quest.ts`, beta codes) | Move them to the new schema, so prod can be reseeded on day one. Quest `title` and `description` go in the payload.                                                                                                                                                                                                                                                                                                                         |
+| 14  | Tests                                                  | Update `network-config.test.ts` (7738577, the Tiramisu explorer, GLM). Add `schema.test.ts` (name grammar, limits that throw, base attributes) and `read.test.ts` (attribute access, paging). Add a grep guard test that fails on `buildQuery`, `updateEntity`, `expiresIn`, `braga` or camelCase `eq('…')` in `lib/` and `app/`.                                                                                                                  |
+| 15  | Copy                                                   | Update the network name, faucet and explorer text in UI copy (`app/auth/page.tsx`, `BetaBanner.tsx`, `IntegrationGuide.tsx`, `content/quests/arkiv/steps/06,11`), and add the "fresh start" notice to the beta banner.                                                                                                                                                                                                                          |
+
+**Deliberately kept the same in PR 1:**
+
+- Server signer vs. user wallets: same as today.
+- Browser-side reads stay anonymous.
+- `space_id` semantics.
+- `scripts/` debug tools beyond the seeds. These are dev-only; a grep guard lists them.
+- `extractions/*`.
+
+---
+
+## 5. Lifetime and flags per entity type (starting values, for review)
+
+| Lifetime                         | Types                                                                                                  | Renewal                                    |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| 365 days                         | `user_profile`, `skill`, `learner_quest` / quest definitions, `auth_identity`, `beta_code`             | Cron extends when less than 60 days remain |
+| 180 days                         | `ask`, `offer`, `availability`, `session`, `learning_follow`, `garden_note`, `virtual_gathering`, `notification_preference` | Renewed on use                             |
+| 90 days                          | `notification`, `admin_notification`, `app_feedback`, `perf_*`, `onboarding_event`                     | None                                       |
+| 365 days, `readonly`             | `assessment_result`, `quest_completion`, `revocation`, `tx_event`                                      | Cron                                       |
+| Product-defined (7 days, 1 hour, …) | `review_mode_grant`, `lite_ask` / `lite_offer`, `jitsi` / session-link entities                     | None                                       |
+
+The current code uses 10-year and 1-year `expiresIn` values. Official guidance is that lifetimes are a product decision and `permanent()` is not a durability promise. Profile and skill durability comes from the renewal cron, not from a large number.
+
+---
+
+## 6. Rollout
+
+1. Implement PR 1 on this branch. Run `pnpm typecheck && pnpm lint && pnpm test && pnpm build` and the grep guard.
+2. **Ops (needs you or an admin):**
+   - Create a Hub access key at `hub.arkiv.network/api-keys` and add it to Vercel as `ARKIV_API_KEY` (server-only).
+   - Fund the server signer (`ARKIV_PRIVATE_KEY` address) with GLM. The faucet needs a wallet sign-in and a CAPTCHA, so fund a personal wallet there and transfer the GLM to the signer.
+3. **Live smoke test on a Vercel preview:**
+   - Create a profile with a long bio.
+   - Run the ask/offer flows, start a session, and patch a notification.
+   - Run the paging path.
+   - Check that explorer links open.
+   - Sign in with MetaMask (add-chain flow), WalletConnect and passkey.
+   - Run the Playwright e2e tests.
+4. Reseed prod: skills, quests, beta codes. Promote the preview to prod.
+5. Docs (§7).
+
+## 7. Docs
+
+- **New** `docs/betadocs/arkiv/operations/tiramisu-migration.md`, mirroring `braga-migration.md`: the facts table, the schema rules from §3, the lifetime table from §5, the access key setup, the fresh-start notice and troubleshooting (429, unfunded signer, uppercase names). Register it in `app/api/docs/list/route.ts`.
 - Mark `braga-migration.md` as historical.
-- Find and replace the Braga chain id, RPC, explorer and faucet across `README.md`, `docs/ENGINEERING_GUIDELINES.md`, `docs/betadocs/**` (`environments.md`, `wallet-architecture.md`, `wallet-authentication-flow.md`, the `integrations/*` pages, `arkiv-client.md`, `sdk-api-verification-guide.md`) and `SECURITY_AUDIT.md`. These are the same files the Braga commit `791c91b` touched.
-- Update `sdk-api-verification-guide.md` and `arkiv-client.md` to describe the 0.8 API (`select`, typed attributes, `patchEntity`, `ExpirationTime`, `executeBatch`, `watchEntityEvents`), and note that app code currently reaches it through the compat layer.
+- **Rewrite** `sdk-api-verification-guide.md` and `modules/arkiv-client.md` for the 0.8 API: `select`, typed attributes, `patchEntity`, `ExpirationTime`, flags and `executeBatch`.
+- Replace Braga values across `README.md`, `docs/ENGINEERING_GUIDELINES.md`, `docs/betadocs/**` and `SECURITY_AUDIT.md`.
+- Add a short `docs/betadocs/arkiv/data-model.md` listing each entity type with its attributes, payload fields, lifetime and flags. This becomes the single source of truth, and it backs the schema test.
+- Point the `/admin/m1-exam` code samples at the new API.
 
----
+## 8. Research basis
 
-## 6. Open questions and verification gaps
+- **Official:** Arkiv-Network/skills (entry skill `skills/arkiv`, verified 2026-10-08 for SDK ≥0.8.1 <0.9 on Tiramisu), arkiv-sdk-js 0.8.1 source and CHANGELOG, and the global-tour-stop-pre-devcon rules.
+- **Community (Aug–Oct 2026, all on Tiramisu with SDK 0.8.x):** SantiagoDevRel/arkiv-chunking, arkiv-images and postgres-to-entity; ibnweb3/witness; northstar-trustrail/lapse; ttimesai-star/sitelog; TheWeirdDee/muniment; jashwanth0712/tanka; soumyacodes007/arkiv-triggers; Shreyas578/Chetavani; marcos-golem/tiramisu-chat; SlayerAnsh/hackathon-duckdb-indexer.
+- **Consensus adopted here:**
+  - SDK `tiramisu` import plus an explorer constant
+  - `project` + `type` namespace
+  - an `i32` schema version
+  - typed `u64`, `addr` and `key` attributes
+  - long text in the payload
+  - per-type `fromDays` lifetimes with renewal, not `permanent()`
+  - `readonly` for append-only records
+  - trust scoped by `createdBy`
+  - field-level `select` with paging pinned to one block
+  - switch-then-add chain in the wallet
+- **Not verifiable from this environment:** `*.arkiv.network` is blocked by network policy, so all live checks happen in rollout step 3.
 
-1. **I could not reach `docs.arkiv.network` or any `*.arkiv.network` RPC** from this environment (its network policy blocks those hosts). The network values above come from the SDK 0.8.1 package source and public READMEs. They need a live check in step 4.2.
-2. **Explorer host.** Community repos use `tiramisu.explorer.arkiv.network`. An open issue (Arkiv-Network/skills #27) says the docs list `indexer.tiramisu.db-chain.testnet.arkiv.network` instead. Confirm the host and the URL path format.
-3. **Is Braga still up, or already down?** This decides whether a data export (step 4.7) is possible.
-4. **Truncating long attributes:** is this acceptable, or should the attribute just be omitted? Before shipping, confirm that every truncated field (`bio`, `description`, `title`, `reason`, URLs, `meta_learning_json`) is also in the payload and is read from there.
-5. **Maximum entity lifetime.** We create 10-year entities (`expiresIn: 315360000`). Confirm Tiramisu accepts this, or switch to `ExpirationTime.permanent()`.
-6. **Entity keys.** They are generated differently now, so any keys hard-coded in config or seed files (e.g. the wallet in `app/explorer/page.tsx:176`) must be regenerated after the reseed.
+## 9. After prod is green ("PR 2" and later)
 
----
-
-## 7. Follow-up ("state of the art", after prod is green)
-
-- Migrate modules off the compat layer, module by module, to native `select()`, typed attributes (`u64` timestamps, `bool` flags) and `patchEntity`/`executeBatch`. Delete `compat.ts` when nothing uses it.
-- Use `watchEntityEvents` for notifications instead of polling.
-- Rebuild the subgraph against the new event ABI, or drop it.
-- Upgrade `extractions/*` to 0.8.x and Tiramisu.
-- Add a CI smoke test that runs a read-only query against the live testnet, so the next network rotation shows up before users notice it.
+- Move browser-side reads behind bounded Next.js API routes. This lets the access key cover them and avoids anonymous 429s; 18+ client pages query Arkiv directly today.
+- Add a renewal cron at `/api/cron/extend-lifetimes`, extending in batches with `executeBatch`.
+- Use `executeBatch` + `predictEntityKeys` for multi-entity writes (session + notification, quest + steps).
+- Use `watchEntityEvents` as a refresh signal for notifications; it only triggers a re-query.
+- Remove `subgraph/` and the `USE_SUBGRAPH_FOR_NETWORK` flag. Its manifest targets the retired system address. If an index is needed, follow the official `eth_getLogs` replay pattern.
+- Upgrade `extractions/*` to 0.8.1 / Tiramisu, and update the remaining `scripts/`.
+- Add a CI smoke job that runs one read-only query against Tiramisu, so the next network rotation is caught early.
