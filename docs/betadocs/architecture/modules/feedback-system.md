@@ -131,18 +131,14 @@ To get complete feedback state:
 ```typescript
 // Query feedback, resolutions, and responses in parallel
 const [feedbackResult, resolutionResult, responseResult] = await Promise.all([
-  arkivSelect('app_feedback')
-    .fetch(),
-  arkivSelect('app_feedback_resolution')
-    .fetch(),
-  arkivSelect('admin_response')
-    .fetch(),
+  arkivSelect('app_feedback').fetch(),
+  arkivSelect('app_feedback_resolution').fetch(),
+  arkivSelect('admin_response').fetch(),
 ]);
 
 // Build maps for efficient lookup
 const resolutionMap: Record<string, { resolvedAt: string; resolvedBy: string }> = {};
 resolutionResult.entities.forEach((entity) => {
-  const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
       const attr = attrs.find((a: any) => a.key === key);
@@ -160,7 +156,6 @@ resolutionResult.entities.forEach((entity) => {
 
 const responseMap: Record<string, { responseAt: string }> = {};
 responseResult.entities.forEach((entity) => {
-  const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
       const attr = attrs.find((a: any) => a.key === key);
@@ -177,7 +172,6 @@ responseResult.entities.forEach((entity) => {
 
 // Combine feedback with resolution and response data
 const feedbacks = feedbackResult.entities.map((entity) => {
-  const attrs = entity.attributes || {};
   const getAttr = (key: string): string => {
     if (Array.isArray(attrs)) {
       const attr = attrs.find((a: any) => a.key === key);
@@ -225,11 +219,11 @@ const { key, txHash } = await resolveAppFeedback({
 
 ```typescript
 // ✅ Correct: Normalize when storing
-attributes: [
-  { wallet: wallet.toLowerCase() },
-  { resolved_by: resolvedByWallet.toLowerCase() },
+attributes: {
+  wallet: wallet.toLowerCase(),
+  resolved_by: resolvedByWallet.toLowerCase(),
   // ...
-];
+};
 
 // ✅ Correct: Normalize when querying
 if (wallet) {
@@ -263,12 +257,9 @@ export async function listAppFeedback({
     arkivSelect('app_feedback')
       .limit(limit || 100)
       .fetch(),
-    arkivSelect('app_feedback_txhash')
-      .fetch(),
-    arkivSelect('app_feedback_resolution')
-      .fetch(),
-    arkivSelect('admin_response')
-      .fetch(),
+    arkivSelect('app_feedback_txhash').fetch(),
+    arkivSelect('app_feedback_resolution').fetch(),
+    arkivSelect('admin_response').fetch(),
   ]);
 
   // Build maps for efficient lookup
@@ -332,10 +323,7 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
   const publicClient = getPublicClient();
 
   // Query feedback by key
-  const result = await arkivSelect('app_feedback')
-    .where(eqAttr('key', key))
-    .limit(1)
-    .fetch();
+  const result = await arkivSelect('app_feedback').where(eqAttr('key', key)).limit(1).fetch();
 
   if (!result || !result.entities || result.entities.length === 0) {
     return null;
@@ -343,18 +331,9 @@ export async function getAppFeedbackByKey(key: string): Promise<AppFeedback | nu
 
   // Fetch txHash, resolution, and response in parallel
   const [txHashResult, resolutionResult, responseResult] = await Promise.all([
-    arkivSelect('app_feedback_txhash')
-      .where(eqAttr('feedback_key', key))
-      .limit(1)
-      .fetch(),
-    arkivSelect('app_feedback_resolution')
-      .where(eqAttr('feedback_key', key))
-      .limit(1)
-      .fetch(),
-    arkivSelect('admin_response')
-      .where(eqAttr('feedback_key', key))
-      .limit(1)
-      .fetch(),
+    arkivSelect('app_feedback_txhash').where(eqAttr('feedback_key', key)).limit(1).fetch(),
+    arkivSelect('app_feedback_resolution').where(eqAttr('feedback_key', key)).limit(1).fetch(),
+    arkivSelect('admin_response').where(eqAttr('feedback_key', key)).limit(1).fetch(),
   ]);
 
   // Build complete feedback object
@@ -430,15 +409,15 @@ export async function createAppFeedback({
       })
     ),
     contentType: 'application/json',
-    attributes: [
-      { type: 'app_feedback' },
-      { wallet: wallet.toLowerCase() }, // Normalize!
-      { page: page },
-      { feedback_type: feedbackType }, // 'feedback' or 'issue'
-      { space_id: spaceId },
-      { created_at: createdAt },
+    attributes: {
+      type: 'app_feedback',
+      wallet: wallet.toLowerCase(), // Normalize!
+      page: page,
+      feedback_type: feedbackType, // 'feedback' or 'issue'
+      space_id: spaceId,
+      created_at: createdAt,
       ...(rating ? [{ rating: String(rating) }] : []),
-    ],
+    },
     expiresIn,
   });
 
@@ -446,12 +425,12 @@ export async function createAppFeedback({
   await walletClient.createEntity({
     payload: enc.encode(JSON.stringify({ txHash })),
     contentType: 'application/json',
-    attributes: [
-      { type: 'app_feedback_txhash' },
-      { feedback_key: entityKey },
-      { wallet: wallet.toLowerCase() }, // Normalize!
-      { space_id: spaceId },
-    ],
+    attributes: {
+      type: 'app_feedback_txhash',
+      feedback_key: entityKey,
+      wallet: wallet.toLowerCase(), // Normalize!
+      space_id: spaceId,
+    },
     expiresIn,
   });
 
@@ -531,13 +510,13 @@ export async function resolveAppFeedback({
         })
       ),
       contentType: 'application/json',
-      attributes: [
-        { type: 'app_feedback_resolution' },
-        { feedback_key: feedbackKey },
-        { resolved_by: resolvedByWallet.toLowerCase() }, // Normalize!
-        { space_id: spaceId },
-        { created_at: resolvedAt },
-      ],
+      attributes: {
+        type: 'app_feedback_resolution',
+        feedback_key: feedbackKey,
+        resolved_by: resolvedByWallet.toLowerCase(), // Normalize!
+        space_id: spaceId,
+        created_at: resolvedAt,
+      },
       expiresIn,
     });
   });
@@ -545,14 +524,11 @@ export async function resolveAppFeedback({
   // Get feedback to find the user wallet
   try {
     const publicClient = getPublicClient();
-    const result = await arkivSelect('app_feedback')
-      .limit(1000)
-      .fetch();
+    const result = await fetchAll(arkivSelect('app_feedback'), 1000);
 
     if (result?.entities && Array.isArray(result.entities)) {
       const feedbackEntity = result.entities.find((e: any) => e.key === feedbackKey);
       if (feedbackEntity) {
-        const attrs = feedbackEntity.attributes || {};
         const getAttr = (key: string): string => {
           if (Array.isArray(attrs)) {
             const attr = attrs.find((a: any) => a.key === key);
@@ -659,17 +635,17 @@ export async function createFeedback({
       })
     ),
     contentType: 'application/json',
-    attributes: [
-      { type: 'session_feedback' },
-      { session_key: sessionKey },
-      { mentor_wallet: mentorWallet.toLowerCase() }, // Normalize!
-      { learner_wallet: learnerWallet.toLowerCase() }, // Normalize!
-      { feedback_from: feedbackFrom.toLowerCase() }, // Normalize!
-      { feedback_to: feedbackTo.toLowerCase() }, // Normalize!
-      { space_id: spaceId },
-      { created_at: createdAt },
+    attributes: {
+      type: 'session_feedback',
+      session_key: sessionKey,
+      mentor_wallet: mentorWallet.toLowerCase(), // Normalize!
+      learner_wallet: learnerWallet.toLowerCase(), // Normalize!
+      feedback_from: feedbackFrom.toLowerCase(), // Normalize!
+      feedback_to: feedbackTo.toLowerCase(), // Normalize!
+      space_id: spaceId,
+      created_at: createdAt,
       ...(rating ? [{ rating: String(rating) }] : []),
-    ],
+    },
     expiresIn: 31536000, // 1 year
   });
 
@@ -686,13 +662,13 @@ Use for fields that need to be queried:
 - `type`: Entity type ('app_feedback', 'app_feedback_resolution', 'admin_response', 'session_feedback')
 - `wallet`: User wallet (normalized to lowercase)
 - `page`: Page where feedback was given
-- `feedbackType`: 'feedback' or 'issue'
+- `feedback_type`: 'feedback' or 'issue'
 - `rating`: Rating (1-5) as string attribute
-- `feedbackKey`: Reference to app_feedback entity (for resolutions/responses)
-- `sessionKey`: Reference to session entity (for session feedback)
-- `resolvedBy`: Admin wallet that resolved (normalized to lowercase)
-- `spaceId`: Space ID
-- `createdAt`: ISO timestamp
+- `feedback_key`: Reference to app_feedback entity (for resolutions/responses)
+- `session_key`: Reference to session entity (for session feedback)
+- `resolved_by`: Admin wallet that resolved (normalized to lowercase)
+- `space_id`: Space ID
+- `created_at`: `u64` epoch milliseconds
 
 ### Payload (Content)
 
@@ -701,8 +677,8 @@ Use for user-facing content:
 - `message`: Feedback message text
 - `rating`: Rating as number (also in attributes for querying)
 - `notes`: Session feedback notes
-- `technicalDxFeedback`: Technical DX feedback
-- `resolvedAt`: Resolution timestamp
+- `technical_dx_feedback`: Technical DX feedback
+- `resolved_at`: Resolution timestamp
 
 ## Expected and Found Issues
 

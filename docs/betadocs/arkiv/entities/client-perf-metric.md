@@ -5,15 +5,15 @@
 Stores client-side performance metrics (Web Vitals) as Arkiv entities. Privacy-preserving: no PII, only performance data. Enables on-chain verification of performance claims.
 
 **Entity Type:** `client_perf_metric`  
-**TTL:** 90 days (7776000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'client_perf_metric'` (required)
 - `page`: Page path where metric was collected (e.g., `/network`) (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -49,30 +49,27 @@ Stores client-side performance metrics (Web Vitals) as Arkiv entities. Privacy-p
 ### Get Metrics for Page
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('client_perf_metric')
   .where(eqAttr('page', '/network'))
   .limit(100)
   .fetch();
 
 const metrics = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
 ### Get Recent Metrics
 
 ```typescript
-const result = await arkivSelect('client_perf_metric')
-  .limit(50)
-  .fetch();
+const result = await arkivSelect('client_perf_metric').limit(50).fetch();
 
 const recent = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
@@ -114,7 +111,7 @@ const { key, txHash } = await createClientPerfMetric({
 
 ## Transaction Hash Tracking
 
-- `client_perf_metric_txhash`: Transaction hash tracking, linked via `metricKey` attribute
+- `client_perf_metric_txhash`: Transaction hash tracking, linked via `metric_key` attribute
 
 ## Privacy Considerations
 

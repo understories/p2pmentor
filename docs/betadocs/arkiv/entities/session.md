@@ -13,21 +13,21 @@
 ## Patterns Used
 
 - [PAT-SESSION-001: Session State Machine](../flows/session-state-machine.md) - Status computed from supporting entities, not stored attribute
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, mentorWallet, learnerWallet, spaceId)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, mentorWallet, learnerWallet, space_id)
 - [PAT-REF-001: Relationship References That Survive Updates](../patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 
 ## Field Table
 
 | Field Name      | Type    | Required | Location  | Description                                                                                                |
 | --------------- | ------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ----------- | ------------- | ----------- | ----------- |
 | type            | string  | Yes      | Attribute | Always "session"                                                                                           |
-| mentor_wallet   | string  | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
-| learner_wallet  | string  | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
+| mentor_wallet   | addr    | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
+| learner_wallet  | addr    | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
 | skill           | string  | Yes      | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
 | skill_id        | string  | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
 | space_id        | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| created_at      | string  | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_at      | u64     | Yes      | Attribute | Epoch ms                                                                                              |
 | session_date    | string  | Yes      | Attribute | ISO timestamp when session is scheduled                                                                    |
 | status          | string  | Yes      | Attribute | "pending"                                                                                                  | "scheduled" | "in-progress" | "completed" | "cancelled" |
 | requires_payment | string  | No       | Attribute | "true" if paid session                                                                                     |
@@ -67,9 +67,9 @@ For the detailed session state machine diagram, see [Session State Machine](../f
 
 6. **Supporting Entities**:
 
-   - `session_confirmation`: Links to session via `sessionKey`, contains `confirmedBy` (mentorWallet or learnerWallet)
-   - `session_rejection`: Links to session via `sessionKey`, contains `rejectedBy` (mentorWallet or learnerWallet)
-   - `session_jitsi`: Links to session via `sessionKey`, contains `videoJoinUrl` in payload
+   - `session_confirmation`: Links to session via `session_key`, contains `confirmed_by` (mentor_wallet or learner_wallet)
+   - `session_rejection`: Links to session via `session_key`, contains `rejected_by` (mentor_wallet or learner_wallet)
+   - `session_jitsi`: Links to session via `session_key`, contains `videoJoinUrl` in payload
    - `session_txhash`: Tracks transaction hash for session creation (separate entity)
 
 7. **Status Computation Logic** (from `listSessions`):
@@ -107,7 +107,7 @@ For the detailed session state machine diagram, see [Session State Machine](../f
 10. **Payment Flow** (not shown in diagram):
     - `session_payment_submission`: Created when learner submits payment txHash
     - `session_payment_validation`: Created when mentor validates payment
-    - These are separate entities linked via `sessionKey`
+    - These are separate entities linked via `session_key`
 
 ## Files Referenced
 
@@ -128,7 +128,7 @@ Session state is computed from session entity plus confirmation/rejection entiti
 ### Transition to "scheduled": "confirmed"
 
 - Triggered by: Both mentor and learner must confirm
-- Mechanism: Create `session_confirmation` entity with `sessionKey` and `confirmedBy` (mentorWallet or learnerWallet)
+- Mechanism: Create `session_confirmation` entity with `session_key` and `confirmed_by` (mentor_wallet or learner_wallet)
 - Status computed: If both `session_confirmation` entities exist, status is "scheduled"
 - Jitsi URL generated: When both parties confirm, `session_jitsi` entity created with room name and join URL
 
@@ -145,7 +145,7 @@ Session state is computed from session entity plus confirmation/rejection entiti
 ### Transition to "cancelled": "declined"
 
 - Triggered by: Mentor or learner rejects/declines
-- Mechanism: Create `session_rejection` entity with `sessionKey` and `rejectedBy` (mentorWallet or learnerWallet)
+- Mechanism: Create `session_rejection` entity with `session_key` and `rejected_by` (mentor_wallet or learner_wallet)
 - Status computed: If `session_rejection` entity exists, status is "cancelled"
 
 ## Supporting Entities
@@ -153,47 +153,47 @@ Session state is computed from session entity plus confirmation/rejection entiti
 ### session_confirmation
 
 - `type`: "session_confirmation"
-- `sessionKey`: Session entity key
-- `confirmedBy`: Wallet address of confirmer (mentorWallet or learnerWallet)
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `session_key`: Session entity key
+- `confirmed_by`: Wallet address of confirmer (mentor_wallet or learner_wallet)
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 ### session_rejection
 
 - `type`: "session_rejection"
-- `sessionKey`: Session entity key
-- `rejectedBy`: Wallet address of rejector (mentorWallet or learnerWallet)
-- `reason`: Optional rejection reason
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `session_key`: Session entity key
+- `rejected_by`: Wallet address of rejector (mentor_wallet or learner_wallet)
+- `mentor_wallet`, `learner_wallet`: Session participants
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 ### session_jitsi
 
 - `type`: "session_jitsi"
-- `sessionKey`: Session entity key
-- `roomName`: Jitsi room name (matches session ID)
-- `joinUrl`: Jitsi join URL
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `session_key`: Session entity key
+- `mentor_wallet`, `learner_wallet`: Session participants
+- Room name and join URL are stored in the payload
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 ### session_payment_submission
 
 - `type`: "session_payment_submission"
-- `sessionKey`: Session entity key
-- `paymentTxHash`: Transaction hash of payment
-- `submittedBy`: Learner wallet address
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `session_key`: Session entity key
+- `payment_tx_hash`: Transaction hash of payment
+- `submitted_by`: Learner wallet address
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 ### session_payment_validation
 
 - `type`: "session_payment_validation"
-- `sessionKey`: Session entity key
-- `paymentTxHash`: Transaction hash being validated
-- `validatedBy`: Mentor wallet address
+- `session_key`: Session entity key
+- `payment_tx_hash`: Transaction hash being validated
+- `validated_by`: Mentor wallet address
 - `validated`: "true" | "false"
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 ## Query Pattern
 
@@ -206,8 +206,7 @@ const result = await arkivSelect('session')
   .fetch();
 
 // Also query as learner
-const learnerResult = await query
-  .where(eqAttr('type', 'session'))
+const learnerResult = await arkivSelect('session')
   .where(eqAttr('learner_wallet', wallet.toLowerCase()))
   .limit(100)
   .fetch();
@@ -216,14 +215,12 @@ const learnerResult = await query
 Fetch confirmations/rejections for session:
 
 ```typescript
-const confirmations = await query
-  .where(eqAttr('type', 'session_confirmation'))
+const confirmations = await arkivSelect('session_confirmation')
   .where(eqAttr('session_key', sessionKey))
   .limit(10)
   .fetch();
 
-const rejections = await query
-  .where(eqAttr('type', 'session_rejection'))
+const rejections = await arkivSelect('session_rejection')
   .where(eqAttr('session_key', sessionKey))
   .limit(10)
   .fetch();
@@ -240,7 +237,8 @@ const sessionStartTime = new Date(sessionDate).getTime();
 const sessionDurationMs = durationMinutes * 60 * 1000;
 const bufferMs = 60 * 60 * 1000; // 1 hour
 const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
-const expiresInSeconds = Math.floor((expirationTime - now) / 1000);
+const lifetimeSeconds = Math.floor((expirationTime - now) / 1000);
+// Passed to createArkivEntity({ type: 'session', ..., lifetimeSeconds })
 ```
 
 ## Transaction Hash Tracking
@@ -248,7 +246,7 @@ const expiresInSeconds = Math.floor((expirationTime - now) / 1000);
 Separate `session_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "session_txhash"
-- `sessionKey`: Entity key of session
-- `mentorWallet`: Mentor wallet address
-- `learnerWallet`: Learner wallet address
-- `spaceId`: "local-dev"
+- `session_key`: Entity key of session
+- `mentor_wallet`: Mentor wallet address
+- `learner_wallet`: Learner wallet address
+- `space_id`: "local-dev"

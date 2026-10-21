@@ -13,9 +13,9 @@
 ## Patterns Used
 
 - [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Badges use stable entity keys (Pattern B)
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, badgeType, questId, spaceId)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, badgeType, questId, space_id)
 - [PAT-IDENTITY-001: Wallet Normalization](../patterns/wallet-normalization.md) - Wallet addresses normalized to lowercase
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 - [PAT-REF-001: Relationship References That Survive Updates](../patterns/reference-integrity.md) - Badges reference quest_step_progress entities via evidenceRefs
 
 ## Field Table
@@ -23,11 +23,11 @@
 | Field Name   | Type               | Required | Location  | Description                                                                                                |
 | ------------ | ------------------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------------------ | ----------------- | --------------------- | ---------------------- | ---------- |
 | type         | string             | Yes      | Attribute | Always "proof_of_skill_badge"                                                                              |
-| wallet       | string             | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
+| wallet       | addr               | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
 | badge_type   | string             | Yes      | Attribute | Badge type: "arkiv_builder"                                                                                | "mandarin_starter" | "spanish_starter" | "cryptography_basics" | "privacy_fundamentals" | "ai_intro" |
 | quest_id     | string             | Yes      | Attribute | Quest identifier this badge was earned for (e.g., "arkiv_builder")                                         |
 | space_id     | string             | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| issued_at    | string             | Yes      | Attribute | ISO timestamp when badge was issued                                                                        |
+| issued_at    | u64                | Yes      | Attribute | Epoch ms when badge was issued                                                                        |
 | evidenceRefs | Array<EvidenceRef> | Yes      | Payload   | Array of evidence references to quest_step_progress entities                                               |
 | questVersion | string             | Yes      | Payload   | Quest version this badge was earned on (e.g., "1")                                                         |
 | version      | string             | Yes      | Payload   | Badge schema version (currently "1")                                                                       |
@@ -128,13 +128,13 @@ Implementation: `lib/arkiv/badge.ts` - `checkBadgeEligibility()`
 
 ## Entity Relationships
 
-- Links to `quest_definition` entities via `questId` attribute (string reference)
+- Links to `quest_definition` entities via `quest_id` attribute (string reference)
 - Links to `quest_step_progress` entities via `evidenceRefs` array (stores entity keys)
 - Links to `user_profile` entities via `wallet` attribute (wallet address)
 
 ## Quest Version Tracking
 
-Badges store `questVersion` in payload to reference the specific quest version they were earned on. This ensures:
+Badges store `quest_version` in payload to reference the specific quest version they were earned on. This ensures:
 
 - Badge validity even if quest definition changes
 - Progress validation against the correct quest version
@@ -142,32 +142,32 @@ Badges store `questVersion` in payload to reference the specific quest version t
 
 **Version Chain:**
 
-- Badge → `questId` + `questVersion` (in payload)
+- Badge → `quest_id` + `quest_version` (in payload)
 - Badge → `evidenceRefs` → `quest_step_progress` entities
-- `quest_step_progress` → `questId` + `questVersion` (in payload)
+- `quest_step_progress` → `quest_id` + `quest_version` (in payload)
 
 ## Badge Revocation
 
 Badge revocation is not currently implemented. If needed, use marker entity pattern:
 
 - Create `badge_revocation` entity
-- Reference badge via `badgeKey` attribute
+- Reference badge via `badge_key` attribute
 - Queries check for revocation markers before displaying badges
 
 ## Expiration
 
-Badge entities expire after 1 year (31536000 seconds). This is effectively permanent for user achievements.
+Badge entities expire after 365 days (`badge` lifetime in `lib/arkiv/schema.ts`), renewed rather than made permanent.
 
 ## Transaction Hash Tracking
 
 Separate `proof_of_skill_badge_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "proof_of_skill_badge_txhash"
-- `badgeKey`: Entity key of badge
+- `badge_key`: Entity key of badge
 - `txHash`: Transaction hash
 - `wallet`: Wallet address (normalized lowercase)
-- `spaceId`: Space ID (matches badge entity)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (matches badge entity)
+- `created_at`: `u64` epoch milliseconds
 
 ## Badge Types
 

@@ -81,6 +81,8 @@ describe('lifetimes and flags', () => {
 
   it('marks append-only types readonly', () => {
     expect(flagsFor('revocation')).toEqual({ readonly: true });
+    expect(flagsFor('ask_txhash')).toEqual({ readonly: true });
+    expect(flagsFor('beta_access_revocation')).toEqual({ readonly: true });
     expect(flagsFor('user_profile')).toBeUndefined();
   });
 });

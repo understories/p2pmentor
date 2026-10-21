@@ -5,16 +5,16 @@
 Tracks onboarding progress events (e.g., `network_explored`, `onboarding_started`, `onboarding_completed`). Used to determine onboarding level without creating a dedicated onboarding entity. Enables progressive onboarding experiences.
 
 **Entity Type:** `onboarding_event`  
-**TTL:** 1 year (31536000 seconds)  
-**Immutability:** Immutable - updates create new entities
+**TTL:** 90 days (`onboarding_event` lifetime in `lib/arkiv/schema.ts`)  
+**Immutability:** Immutable - updates create new entities. Created with the `readonly` flag, so it can never be patched
 
 ## Attributes
 
 - `type`: `'onboarding_event'` (required)
 - `wallet`: Wallet address (required, lowercase)
-- `eventType`: Event type (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `event_type`: Event type (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -46,17 +46,16 @@ type OnboardingEventType =
 ### Get All Events for Wallet
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('onboarding_event')
   .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
 const events = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 ```
 
@@ -113,7 +112,7 @@ const { key, txHash } = await createOnboardingEvent({
 
 ## Transaction Hash Tracking
 
-- `onboarding_event_txhash`: Transaction hash tracking, linked via `eventKey` attribute
+- `onboarding_event_txhash`: Transaction hash tracking, linked via `event_key` attribute
 
 ## Example Use Cases
 

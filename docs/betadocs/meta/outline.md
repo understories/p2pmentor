@@ -127,7 +127,7 @@ Own your data.
   - Tailwind-based UI components
   - Opinionated but minimal design system tuned to dark forest / garden aesthetics
 - Data layer
-  - Arkiv on Braga testnet as source of truth for all core entities
+  - Arkiv on the Tiramisu testnet as source of truth for all core entities
   - Arkiv SDK (`@arkiv-network/sdk@^0.4.4`) used on both client and server
 - Indexing and queries
   - GraphQL API wrapper (`/api/graphql`) that wraps Arkiv JSON-RPC indexer
@@ -183,7 +183,7 @@ Own your data.
   - Invite-only, small cohort
   - Focus on people we can support directly
 - Wallet connection
-  - MetaMask connection flow with Braga testnet detection
+  - MetaMask connection flow with Tiramisu testnet detection
   - Wallet address stored in session/cookies for state management
 - Passkey authentication
   - WebAuthn-based passkey login implemented
@@ -299,7 +299,7 @@ Own your data.
   - Linked via `askKey`, `offerKey`, `sessionKey` attributes
   - Pattern subject to simplification in future iterations
 - Session state
-  - `session_confirmation`: one per party, linked via `sessionKey` attribute
+  - `session_confirmation`: one per party, linked via `session_key` attribute
   - `session_rejection`: cancellations, linked via `sessionKey`
   - `session_jitsi`: room info (name, joinUrl), linked via `sessionKey`
   - `session_payment_submission`: payment txHash from learner
@@ -332,7 +332,7 @@ Own your data.
 - Location: `lib/arkiv/client.ts`
 - Purpose
   - Provide a single entry point for Arkiv clients
-  - Hide chain configuration and boilerplate (Braga testnet)
+  - Hide chain configuration and boilerplate (Tiramisu testnet)
 - Features
   - `getPublicClient()`: read-only operations, no authentication
   - `getWalletClientFromPrivateKey()`: server-side entity creation
@@ -340,7 +340,7 @@ Own your data.
 - Design choices
   - Small surface area, minimal abstraction
   - Based on mentor-graph reference implementation, adjusted for p2pmentor
-  - Uses `@arkiv-network/sdk` with Braga chain configuration
+  - Uses `@arkiv-network/sdk` with the Tiramisu chain configuration (`arkivChain`)
 
 ### 7.2 GraphQL API and client
 

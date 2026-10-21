@@ -1,5 +1,18 @@
 # Arkiv Data Model
 
+## Schema rules (all entity types)
+
+Since the move to the Tiramisu testnet and SDK 0.8 (see [Tiramisu Migration](../operations/tiramisu-migration.md)), every entity follows the same on-chain rules, enforced by `lib/arkiv/schema.ts` and the write helpers in `lib/arkiv/write.ts`:
+
+- **Namespace:** every entity carries `project: 'p2pmentor'`, `type` and `schema_version: i32(1)`. `entityAttributes(type, record)` adds them; `arkivSelect(type)` filters on them.
+- **Names:** lowercase `snake_case` only (`space_id`, `created_at`, `mentor_wallet`, ...). Tiramisu rejects uppercase attribute names.
+- **Types:** wallet-like names (`wallet`, `*_wallet`, `*_by`) are `addr`; `*_at` names are `u64` epoch milliseconds (read back as ISO strings by `getAttr`); everything else is `str`.
+- **Limits:** a string attribute is at most 128 bytes and an entity has at most 30 attributes. Writes throw on longer values; long text lives in the JSON payload.
+- **Lifetimes:** chosen per type (`lifetimeFor(type, seconds?)`): 365 days for identity and curated content, 180 days for activity (and the default), 90 days for operational records. Product-specific lifetimes (ask/offer TTLs, sessions, gatherings) are passed explicitly.
+- **Flags:** append-only types (revocations, assessment results, tx events, onboarding events, app feedback, review grants, beta code usage, quest completions) are created `readonly`.
+
+The lists below name each type's attributes (queryable) and payload fields (JSON).
+
 ## Core entity types
 
 ### user_profile
@@ -7,8 +20,8 @@
 **Attributes:**
 
 - `type`: 'user_profile'
-- `wallet`: Wallet address (lowercase)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `wallet`: Wallet address (`addr`)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
 
 **Payload:**
 
@@ -46,7 +59,8 @@
 
 **Notes:**
 
-- Updates use Pattern B (updateEntity with stable entity_key)
+- Updates use Pattern B (`replaceArkivEntity` / `patchEntity` with stable entity_key)
+- Skills, bio and other long text live in the payload, not in attributes
 - Same entity_key is reused for all updates, preserving identity
 - Full transaction history is preserved on-chain
 - See [Editable Entities](/docs/arkiv/overview/editable-entities) for details
@@ -56,12 +70,12 @@
 **Attributes:**
 
 - `type`: 'ask'
-- `wallet`: Wallet address (lowercase)
+- `wallet`: Wallet address (`addr`)
 - `skill`: Skill name
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 - `status`: 'open'
-- `ttlSeconds`: TTL in seconds (default: 3600)
+- `ttl_seconds`: TTL in seconds (default: 604800)
 
 **Payload:**
 
@@ -74,19 +88,19 @@
 
 **Supporting entity:**
 
-- `ask_txhash`: Transaction hash tracking, linked via `askKey` attribute
+- `ask_txhash`: Transaction hash tracking, linked via `ask_key` attribute
 
 ### offer
 
 **Attributes:**
 
 - `type`: 'offer'
-- `wallet`: Wallet address (lowercase)
+- `wallet`: Wallet address (`addr`)
 - `skill`: Skill name
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 - `status`: 'active'
-- `ttlSeconds`: TTL in seconds (default: 7200)
+- `ttl_seconds`: TTL in seconds (default: 7200)
 
 **Payload:**
 
@@ -97,25 +111,25 @@
 
 - `skill_id`: Skill entity key (preferred over `skill` attribute)
 - `skill_label`: Skill display name (derived, readonly)
-- `availabilityKey`: Reference to Availability entity key (optional)
-- `isPaid`: 'true' | 'false' (free vs paid offer)
+- `availability_key`: Reference to Availability entity key (optional)
+- `is_paid`: 'true' | 'false' (free vs paid offer)
 - `cost`: Cost amount (required if paid)
-- `paymentAddress`: Payment receiving address (required if paid)
+- `payment_address`: Payment receiving address (required if paid)
 
 **Supporting entity:**
 
-- `offer_txhash`: Transaction hash tracking, linked via `offerKey` attribute
+- `offer_txhash`: Transaction hash tracking, linked via `offer_key` attribute
 
 ### session
 
 **Attributes:**
 
 - `type`: 'session'
-- `mentorWallet`: Mentor wallet address (lowercase)
-- `learnerWallet`: Learner wallet address (lowercase)
+- `mentor_wallet`: Mentor wallet address (`addr`)
+- `learner_wallet`: Learner wallet address (`addr`)
 - `skill`: Skill name
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 
 **Payload:**
 
@@ -128,12 +142,12 @@
 
 **Supporting entities:**
 
-- `session_txhash`: Transaction hash tracking, linked via `sessionKey`
-- `session_confirmation`: Confirmation from mentor or learner, linked via `sessionKey`
-- `session_rejection`: Rejection/cancellation, linked via `sessionKey`
-- `session_jitsi`: Jitsi room info (name, joinUrl), linked via `sessionKey`
-- `session_payment_submission`: Payment txHash from learner, linked via `sessionKey`
-- `session_payment_validation`: Payment validation from mentor, linked via `sessionKey`
+- `session_txhash`: Transaction hash tracking, linked via `session_key`
+- `session_confirmation`: Confirmation from mentor or learner, linked via `session_key`
+- `session_rejection`: Rejection/cancellation, linked via `session_key`
+- `session_jitsi`: Jitsi room info (name, joinUrl), linked via `session_key`
+- `session_payment_submission`: Payment txHash from learner, linked via `session_key`
+- `session_payment_validation`: Payment validation from mentor, linked via `session_key`
 
 **Additional fields (beta):**
 
@@ -164,8 +178,8 @@
 - `name_canonical`: Display name (e.g., "Spanish")
 - `slug`: Normalized key (e.g., "spanish")
 - `status`: 'active' | 'archived'
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 - `created_by_profile`: Wallet address of creator (optional)
 
 **Payload:**
@@ -176,18 +190,18 @@
 
 - First-class entity for beta
 - Profiles reference skills via `skill_ids` array (entity keys)
-- Expires after 1 year (31536000 seconds)
+- Expires after 365 days (`skill` lifetime)
 
 ### availability
 
 **Attributes:**
 
 - `type`: 'availability'
-- `wallet`: Wallet address (lowercase)
+- `wallet`: Wallet address (`addr`)
 - `timezone`: IANA timezone (e.g., "America/New_York")
-- `availabilityVersion`: '1.0' (structured) | 'legacy' (text)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `availability_version`: '1.0' (structured) | 'legacy' (text)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 
 **Payload:**
 
@@ -198,7 +212,7 @@
 **Notes:**
 
 - Supports structured (v1.0) and legacy text formats
-- Expires after 30 days (2592000 seconds)
+- Expires after 180 days (`availability` lifetime)
 - Deletion via `availability_deletion` marker entity
 
 ### session_feedback
@@ -206,13 +220,13 @@
 **Attributes:**
 
 - `type`: 'session_feedback'
-- `sessionKey`: Session entity key
-- `mentorWallet`: Mentor wallet address
-- `learnerWallet`: Learner wallet address
-- `feedbackFrom`: Wallet of person giving feedback
-- `feedbackTo`: Wallet of person receiving feedback
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `session_key`: Session entity key
+- `mentor_wallet`: Mentor wallet address
+- `learner_wallet`: Learner wallet address
+- `feedback_from`: Wallet of person giving feedback
+- `feedback_to`: Wallet of person receiving feedback
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 - `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
@@ -224,7 +238,7 @@
 
 **Notes:**
 
-- Expires after 1 year (31536000 seconds)
+- Expires after 180 days (default lifetime)
 - Validation: Only session participants can give feedback
 
 ### app_feedback
@@ -234,9 +248,9 @@
 - `type`: 'app_feedback'
 - `wallet`: Feedback author wallet
 - `page`: Page where feedback was given
-- `feedbackType`: 'feedback' | 'issue'
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `feedback_type`: 'feedback' | 'issue'
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 - `rating`: Rating 1-5 (optional, stored as string)
 
 **Payload:**
@@ -247,17 +261,17 @@
 
 **Notes:**
 
-- Expires after 1 year (31536000 seconds)
+- Expires after 90 days (`app_feedback` lifetime); created `readonly`
 
 ### virtual_gathering
 
 **Attributes:**
 
 - `type`: 'virtual_gathering'
-- `organizerWallet`: Organizer wallet address
+- `organizer_wallet`: Organizer wallet address
 - `community`: Community identifier (e.g., skill slug)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 
 **Payload:**
 
@@ -280,8 +294,8 @@
 - `source`: 'arkiv' | 'graphql'
 - `operation`: Operation name
 - `route`: API route (optional)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)
+- `created_at`: `u64` epoch milliseconds
 
 **Payload:**
 
@@ -295,7 +309,7 @@
 **Notes:**
 
 - Performance metrics stored on-chain for verifiability
-- Expires after 1 year (31536000 seconds)
+- Expires after 180 days (default lifetime)
 
 ### Other Supporting Entities
 
@@ -321,9 +335,12 @@
 
 ## Query patterns
 
-All queries use Arkiv SDK query builder:
+All queries start from `arkivSelect(type)` (`lib/arkiv/read.ts`), which wraps the SDK 0.8 `select()` builder and adds the `project` filter. Use `eqAttr` (`lib/arkiv/schema.ts`) so predicates are typed the same way as writes, and `fetchAll(builder, max)` for more than 200 results:
 
 ```typescript
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, getAttr, parsePayload } from '@/lib/arkiv/read';
+
 const result = await arkivSelect('user_profile')
   .where(eqAttr('wallet', walletAddress))
   .limit(100)

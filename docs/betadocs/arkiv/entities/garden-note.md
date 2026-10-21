@@ -5,18 +5,18 @@
 Public Garden Bulletin - short, playful messages pinned to the shared "garden wall". Public by design, on-chain, educational (shows data publishing, not DMs).
 
 **Entity Type:** `garden_note`  
-**TTL:** 1 year (31536000 seconds) or no TTL for permanent  
+**TTL:** 180 days (`garden_note` lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'garden_note'` (required)
-- `authorWallet`: Wallet address of author (required, lowercase)
-- `targetWallet`: Target wallet (optional, for "note to a specific profile")
+- `author_wallet`: Wallet address of author (required, lowercase)
+- `target_wallet`: Target wallet (optional, for "note to a specific profile")
 - `channel`: Channel identifier (default: `'public_garden_board'`) (required)
 - `visibility`: Visibility level (default: `'public'`) (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -58,10 +58,9 @@ Public Garden Bulletin - short, playful messages pinned to the shared "garden wa
 ### Get All Public Notes
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('garden_note')
   .where(eqAttr('channel', 'public_garden_board'))
   .where(eqAttr('visibility', 'public'))
@@ -69,7 +68,7 @@ const result = await arkivSelect('garden_note')
   .fetch();
 
 const notes = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((n) => n.moderationState !== 'hidden_by_moderator')
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
@@ -86,26 +85,22 @@ const result = await arkivSelect('garden_note')
 ### Get Notes by Tag
 
 ```typescript
-const result = await arkivSelect('garden_note')
-  .limit(1000)
-  .fetch();
+const result = await fetchAll(arkivSelect('garden_note'), 1000);
 
 // Filter client-side by tag
 const notesWithTag = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((n) => n.tags && n.tags.includes('#gratitude'));
 ```
 
 ### Get Threaded Replies
 
 ```typescript
-const result = await arkivSelect('garden_note')
-  .limit(1000)
-  .fetch();
+const result = await fetchAll(arkivSelect('garden_note'), 1000);
 
 // Filter client-side for replies
 const replies = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((n) => n.replyToNoteId === parentNoteId);
 ```
 
@@ -130,7 +125,7 @@ const { key, txHash } = await createGardenNote({
 
 ## Transaction Hash Tracking
 
-- `garden_note_txhash`: Transaction hash tracking, linked via `gardenNoteKey` attribute
+- `garden_note_txhash`: Transaction hash tracking, linked via `garden_note_key` attribute
 
 ## Moderation
 
@@ -189,8 +184,8 @@ await createGardenNote({
 
 - **Public by Design**: All notes are public on-chain
 - **Educational**: Shows users they're publishing data, not sending DMs
-- **Threading**: Supports threaded conversations via `replyToNoteId`
-- **Moderation**: Supports moderation via `moderationState`
+- **Threading**: Supports threaded conversations via `reply_to_note_id`
+- **Moderation**: Supports moderation via `moderation_state`
 - **Tags**: Free-form tags for categorization
 - **Daily Limit**: 10 notes per profile per day (enforced client-side)
 
@@ -199,4 +194,4 @@ await createGardenNote({
 - **Public Data**: All notes are public on-chain
 - **Wallet Visibility**: Author and target wallets are visible
 - **No Encryption**: Messages are stored in plain text
-- **Permanent**: Notes persist on-chain (1 year TTL or permanent)
+- **Lifetime**: Notes persist on-chain for 180 days (`garden_note` lifetime; no `permanent()`)

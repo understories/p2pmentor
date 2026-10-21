@@ -41,16 +41,17 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 
 ## Arkiv Primitives Used
 
-- `updateEntity({ entityKey, payload, attributes, expiresIn })` - Updates existing entity
-- `createEntity({ payload, attributes, expiresIn })` - Creates new entity
+- `patchEntity({ entityKey, set, unset, payload })` (via `replaceArkivEntity()`) - Updates an existing entity. Expiry, owner and flags are not patchable.
+- `createEntity({ payload, contentType, attributes, expires, flags })` (via `createArkivEntity()`) - Creates a new entity
+- `entityAttributes()`, `lifetimeFor()`, `flagsFor()` (`lib/arkiv/schema.ts`) - Namespace, typing, lifetime and flags
 - `handleTransactionWithTimeout()` - Handles transaction timeouts gracefully
 - `addSignerMetadata()` - Adds signer metadata to attributes
 
 ## Canonical Algorithm
 
 1. **Check for key:** If `key` parameter is provided, use update path
-2. **Update path:** Call `updateEntity()` with provided key
-3. **Create path:** If no key or update fails, call `createEntity()`
+2. **Update path:** Call `replaceArkivEntity()` (Arkiv 0.8 `patchEntity`) with provided key
+3. **Create path:** If no key, call `createArkivEntity()`
 4. **Add signer metadata:** Automatically add signer metadata to attributes
 5. **Handle timeout:** Use `handleTransactionWithTimeout()` for graceful timeout handling
 6. **Return consistent format:** Return `{ key: entityKey, txHash }` for both paths
@@ -66,22 +67,20 @@ The `arkivUpsertEntity()` helper provides a single canonical path for create-or-
 **Code examples:**
 
 ```typescript
-// Canonical upsert helper
+// Canonical upsert helper (lib/arkiv/entity-utils.ts)
 export async function arkivUpsertEntity({
   type,
   key,
   attributes,
   payload,
-  contentType = 'application/json',
-  expiresIn,
+  lifetimeSeconds,
   privateKey,
 }: {
   type: string;
   key?: string;
-  attributes: Array<{ key: string; value: string }>;
-  payload: Uint8Array;
-  contentType?: 'application/json';
-  expiresIn?: number;
+  attributes: AttrRecord; // snake_case names, plain values
+  payload: unknown; // JSON-serializable
+  lifetimeSeconds?: number; // create only; defaults to the type lifetime
   privateKey: `0x${string}`;
 }): Promise<{ key: string; txHash: string }> {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
@@ -89,51 +88,44 @@ export async function arkivUpsertEntity({
   // Add signer metadata to attributes
   const attributesWithSigner = addSignerMetadata(attributes, privateKey);
 
-  if (key) {
-    // Update existing entity
-    const finalExpiresIn = expiresIn ?? 15768000; // 6 months default
-    const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.updateEntity({
-        entityKey: key as `0x${string}`,
-        payload,
+  const result = await handleTransactionWithTimeout(async () => {
+    if (key) {
+      // Update existing entity: patchEntity with set + unset (full replace)
+      return await replaceArkivEntity(walletClient, {
+        entityKey: key,
+        type,
         attributes: attributesWithSigner,
-        contentType,
-        expiresIn: finalExpiresIn,
-      });
-    });
-    return { key: result.entityKey, txHash: result.txHash };
-  } else {
-    // Create new entity
-    const finalExpiresIn = expiresIn ?? 15768000; // 6 months default
-    const result = await handleTransactionWithTimeout(async () => {
-      return await walletClient.createEntity({
         payload,
-        contentType,
-        attributes: attributesWithSigner,
-        expiresIn: finalExpiresIn,
       });
+    }
+    // Create new entity: namespace, schema_version, typed attributes,
+    // lifetimeFor(type) and flagsFor(type) are applied by createArkivEntity
+    return await createArkivEntity(walletClient, {
+      type,
+      attributes: attributesWithSigner,
+      payload,
+      lifetimeSeconds,
     });
-    return { key: result.entityKey, txHash: result.txHash };
-  }
+  });
+
+  return { key: result.entityKey, txHash: result.txHash };
 }
 
 // Usage: Update existing entity
 const result = await arkivUpsertEntity({
   type: 'user_profile',
   key: existingProfile.key, // Update existing
-  attributes,
-  payload: enc.encode(JSON.stringify(payload)),
-  expiresIn: 31536000, // 1 year
+  attributes: { wallet, space_id: SPACE_ID, username },
+  payload, // plain object; encoded with jsonToPayload
   privateKey,
 });
 
 // Usage: Create new entity
 const result = await arkivUpsertEntity({
   type: 'user_profile',
-  // No key parameter = create new
-  attributes,
-  payload: enc.encode(JSON.stringify(payload)),
-  expiresIn: 31536000,
+  // No key parameter = create new (lifetime: 365 days for user_profile)
+  attributes: { wallet, space_id: SPACE_ID, username },
+  payload,
   privateKey,
 });
 ```

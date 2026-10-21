@@ -13,7 +13,7 @@
 | slug               | string | Yes      | Attribute | Normalized key (e.g., "spanish")                                                                           |
 | status             | string | Yes      | Attribute | "active"                                                                                                   | "archived" |
 | space_id           | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| created_at         | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_at         | u64    | Yes      | Attribute | Epoch ms                                                                                              |
 | created_by_profile | string | No       | Attribute | Wallet address of creator (null for curated)                                                               |
 | description        | string | No       | Payload   | Skill description                                                                                          |
 
@@ -74,13 +74,13 @@ Implementation: `lib/arkiv/skill.ts` - `normalizeSkillSlug()`
 
 ## Expiration
 
-Skill entities expire after 1 year (31536000 seconds). This is effectively permanent for beta.
+Skill entities expire after 365 days (`skill` lifetime in `lib/arkiv/schema.ts`). Curated skills are reseeded or renewed rather than made permanent.
 
 ## Transaction Hash Tracking
 
 Separate `skill_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "skill_txhash"
-- `skillKey`: Entity key of skill
+- `skill_key`: Entity key of skill
 - `slug`: Skill slug
-- `spaceId`: "local-dev"
+- `space_id`: "local-dev"

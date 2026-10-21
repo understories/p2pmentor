@@ -30,10 +30,10 @@ async function getLatestProfile(wallet: string) {
     .limit(100)
     .fetch();
 
-  // Sort by createdAt descending, get first
+  // No server-side ordering: sort by created_at descending, get first
   const profiles = result.entities
-    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
   return profiles[0] || null;
 }
@@ -77,8 +77,8 @@ async function getProfileHistory(wallet: string) {
     .fetch();
 
   return result.entities
-    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
 ```
 
@@ -90,9 +90,9 @@ When multiple updates occur simultaneously:
 
 ```typescript
 // Multiple updates create multiple entities
-// Latest by createdAt wins
+// Latest by created_at wins
 const latest = profiles.sort(
-  (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
 )[0];
 ```
 
@@ -118,7 +118,7 @@ async function updateProfileWithLock(
 
 ## Best Practices
 
-1. **Always Sort**: Sort by `createdAt` descending to get latest
+1. **Always Sort**: Sort by `created_at` descending on the client to get latest (the node has no ordering)
 2. **Limit Queries**: Use `.limit()` to avoid unbounded queries
 3. **Version Tracking**: Track entity key as "version" if needed
 4. **History Access**: Preserve ability to access version history

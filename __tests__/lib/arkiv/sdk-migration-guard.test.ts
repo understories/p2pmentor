@@ -30,10 +30,12 @@ const FILES = DIRS.flatMap(sourceFiles).map((rel) => ({
   code: readFileSync(join(ROOT, rel), 'utf8'),
 }));
 
-const FORBIDDEN: Array<[string, RegExp]> = [
+// [label, pattern, optional path prefix the check is limited to]
+const FORBIDDEN: Array<[string, RegExp, string?]> = [
   ['buildQuery() (use arkivSelect/select)', /\.buildQuery\(/],
   ['updateEntity (use patchEntity / replaceArkivEntity)', /\.updateEntity\(/],
-  ['expiresIn (use lifetimeFor / ExpirationTime)', /\bexpiresIn:\s/],
+  // Only SDK writes: app API request bodies may still carry an `expiresIn` field
+  ['expiresIn in Arkiv writes (use lifetimeFor / ExpirationTime)', /\bexpiresIn:\s/, 'lib/'],
   ['withAttributes/withPayload (use select fields)', /\.with(Attributes|Payload)\(/],
   ['@arkiv-network/sdk/accounts (use viem/accounts)', /@arkiv-network\/sdk\/accounts/],
   ['braga chain import', /\bbraga\b.*from '@arkiv-network\/sdk\/chains'/],
@@ -43,9 +45,11 @@ const FORBIDDEN: Array<[string, RegExp]> = [
 ];
 
 describe('Arkiv SDK 0.8 migration guard', () => {
-  for (const [label, pattern] of FORBIDDEN) {
+  for (const [label, pattern, prefix] of FORBIDDEN) {
     it(`no ${label}`, () => {
-      const hits = FILES.filter(({ code }) => pattern.test(code)).map(({ rel }) => rel);
+      const hits = FILES.filter(
+        ({ rel, code }) => (!prefix || rel.startsWith(prefix)) && pattern.test(code)
+      ).map(({ rel }) => rel);
       expect(hits).toEqual([]);
     });
   }

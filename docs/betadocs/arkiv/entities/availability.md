@@ -7,17 +7,17 @@
 ## Patterns Used
 
 - [PAT-DELETE-001: Deletion Patterns](../patterns/deletion-patterns.md) - Deletion via marker entities (availability_deletion)
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, space_id)
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 
 ## Field Table
 
 | Field Name          | Type   | Required | Location  | Description                                                                                                |
 | ------------------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | --------------- |
 | type                | string | Yes      | Attribute | Always "availability"                                                                                      |
-| wallet              | string | Yes      | Attribute | Wallet address (lowercase)                                                                                 |
+| wallet              | addr   | Yes      | Attribute | Wallet address (lowercase)                                                                                 |
 | space_id            | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| created_at          | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_at          | u64    | Yes      | Attribute | Epoch ms                                                                                              |
 | timezone            | string | Yes      | Attribute | IANA timezone (e.g., "America/New_York")                                                                   |
 | availability_version | string | Yes      | Attribute | "1.0" (structured)                                                                                         | "legacy" (text) |
 | timeBlocks          | string | Yes      | Payload   | JSON string (WeeklyAvailability) or legacy text                                                            |
@@ -80,7 +80,7 @@ Stored as plain text string in `timeBlocks` payload:
 - Less precise, cannot validate specific time slots
 - Still supported for backward compatibility
 
-Implementation: `lib/arkiv/availability.ts` - `createAvailability()` detects format and sets `availabilityVersion` attribute accordingly.
+Implementation: `lib/arkiv/availability.ts` - `createAvailability()` detects format and sets `availability_version` attribute accordingly.
 
 ## Query Pattern
 
@@ -98,7 +98,7 @@ const deletions = await arkivSelect('availability_deletion')
   .limit(100)
   .fetch();
 
-const deletedKeys = new Set(deletions.entities.map((e) => e.attributes.availabilityKey));
+const deletedKeys = new Set(deletions.entities.map((e) => getAttr(e, 'availability_key')));
 const activeAvailability = result.entities.filter((e) => !deletedKeys.has(e.key));
 ```
 
@@ -108,34 +108,34 @@ Implementation: `lib/arkiv/availability.ts` - `listAvailabilityForWallet()` hand
 
 Arkiv entities are immutable. To delete availability:
 
-1. Create `availability_deletion` entity with `availabilityKey` reference
+1. Create `availability_deletion` entity with `availability_key` reference
 2. Query filters out deleted availability by checking for deletion markers
 3. Original availability entity remains on-chain (not actually deleted)
 
 Deletion entity:
 
 - `type`: "availability_deletion"
-- `availabilityKey`: Entity key of availability being deleted
+- `availability_key`: Entity key of availability being deleted
 - `wallet`: Wallet address
-- `spaceId`: "local-dev"
-- `createdAt`: ISO timestamp
+- `space_id`: "local-dev"
+- `created_at`: `u64` epoch milliseconds
 
 Implementation: `lib/arkiv/availability.ts` - `deleteAvailability()` creates deletion marker.
 
 ## Expiration
 
-Availability entities expire after 30 days (2592000 seconds). This matches mentor-graph pattern.
+Availability entities expire after 180 days (`availability` lifetime in `lib/arkiv/schema.ts`).
 
 ## Entity Relationships
 
 - Links to Profile entity via `wallet` attribute
-- Links to Offer entities via `availabilityKey` attribute (optional reference)
+- Links to Offer entities via `availability_key` attribute (optional reference)
 
 ## Transaction Hash Tracking
 
 Separate `availability_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "availability_txhash"
-- `availabilityKey`: Entity key of availability
+- `availability_key`: Entity key of availability
 - `wallet`: Wallet address
-- `spaceId`: "local-dev"
+- `space_id`: "local-dev"

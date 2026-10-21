@@ -5,15 +5,15 @@
 Links app feedback entities to GitHub issues. Stores GitHub issue number and URL for tracking. Enables bidirectional linking between user feedback and GitHub issue tracking.
 
 **Entity Type:** `github_issue_link`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'github_issue_link'` (required)
-- `feedbackKey`: Reference to `app_feedback` entity key (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `feedback_key`: Reference to `app_feedback` entity key (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -39,43 +39,38 @@ Links app feedback entities to GitHub issues. Stores GitHub issue number and URL
 ### Get Issue Link for Feedback
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('github_issue_link')
   .where(eqAttr('feedback_key', feedbackKey))
   .limit(1)
   .fetch();
 
 const link = result.entities[0]
-  ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
+  ? { ...attrsToRecord(result.entities[0]), ...parsePayload(result.entities[0]) }
   : null;
 ```
 
 ### Get All Issue Links
 
 ```typescript
-const result = await arkivSelect('github_issue_link')
-  .limit(100)
-  .fetch();
+const result = await arkivSelect('github_issue_link').limit(100).fetch();
 
 const links = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
 ### Get Links by Repository
 
 ```typescript
-const result = await arkivSelect('github_issue_link')
-  .limit(1000)
-  .fetch();
+const result = await fetchAll(arkivSelect('github_issue_link'), 1000);
 
 // Filter client-side by repository
 const repoLinks = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((l) => l.repository === 'understories/p2pmentor');
 ```
 
@@ -97,7 +92,7 @@ const { key, txHash } = await createGitHubIssueLink({
 
 ## Transaction Hash Tracking
 
-- `github_issue_link_txhash`: Transaction hash tracking, linked via `linkKey` attribute
+- `github_issue_link_txhash`: Transaction hash tracking, linked via `link_key` attribute
 
 ## Workflow
 

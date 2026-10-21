@@ -116,21 +116,22 @@ const current = profiles.sort((a, b) => new Date(b.createdAt) - new Date(a.creat
 
 ```typescript
 // First profile creation
-const profile = await createEntity({
+const { entityKey } = await createArkivEntity(walletClient, {
   type: 'user_profile',
-  wallet: '0x123...',
-  displayName: 'Alice',
-  // ... entity_key: 'abc123'
-});
+  attributes: { wallet: '0x123...' },
+  payload: { displayName: 'Alice' },
+}); // entityKey: '0xabc123...'
 
-// Profile update reuses SAME entity_key
-const updated = await updateEntity({
-  entity_key: 'abc123', // Same key!
-  displayName: 'Alice Updated',
+// Profile update reuses SAME entity key (patchEntity with set/unset)
+const updated = await replaceArkivEntity(walletClient, {
+  entityKey, // Same key!
+  type: 'user_profile',
+  attributes: { wallet: '0x123...' },
+  payload: { displayName: 'Alice Updated' },
 });
 
 // To get current profile:
-const current = await query({ entity_key: 'abc123' }); // Always current
+const current = await getEntityByKey(entityKey); // Always current
 ```
 
 **Characteristics:**
@@ -154,8 +155,8 @@ const current = await query({ entity_key: 'abc123' }); // Always current
 
 Arkiv supports **both patterns**:
 
-1. **Create new entity**: `walletClient.createEntity()` - always creates a new `entity_key`
-2. **Update existing entity**: `walletClient.updateEntity()` - reuses existing `entity_key`
+1. **Create new entity**: `walletClient.createEntity()` (via `createArkivEntity()`) - always creates a new `entity_key`
+2. **Update existing entity**: `walletClient.patchEntity()` (via `replaceArkivEntity()`) - reuses existing `entity_key`. Expiry, owner and creation flags cannot be patched, and entities created `readonly` cannot be patched at all.
 
 Both operations:
 

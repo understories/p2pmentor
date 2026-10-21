@@ -751,7 +751,6 @@ export async function listEntities(): Promise<Entity[]> {
 
     return result.entities.map((entity: any) => {
       // ✅ Safe attribute access
-      const attrs = entity.attributes || {};
       const getAttr = (key: string): string => {
         if (Array.isArray(attrs)) {
           const attr = attrs.find((a: any) => a.key === key);

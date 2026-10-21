@@ -14,10 +14,11 @@ import { handleTransactionWithTimeout } from '@/lib/arkiv/transaction-utils';
 async function createEntityWithTimeout(data: EntityData) {
   return await handleTransactionWithTimeout(
     async () => {
-      return await walletClient.createEntity({
-        payload: enc.encode(JSON.stringify(data.payload)),
-        attributes: data.attributes,
-        expiresIn: data.expiresIn,
+      return await createArkivEntity(walletClient, {
+        type: data.type,
+        attributes: data.attributes, // snake_case names
+        payload: data.payload, // JSON; encoded with jsonToPayload
+        lifetimeSeconds: data.lifetimeSeconds, // optional; defaults to the type lifetime
       });
     },
     {
@@ -74,10 +75,11 @@ async function waitForReceipt(
 ```typescript
 async function createEntityGracefully(data: EntityData) {
   try {
-    const result = await walletClient.createEntity({
-      payload: enc.encode(JSON.stringify(data.payload)),
-      attributes: data.attributes,
-      expiresIn: data.expiresIn,
+    const result = await createArkivEntity(walletClient, {
+      type: data.type,
+      attributes: data.attributes, // snake_case names
+      payload: data.payload, // JSON; encoded with jsonToPayload
+      lifetimeSeconds: data.lifetimeSeconds, // optional; defaults to the type lifetime
     });
 
     // Try to wait for receipt, but don't fail if timeout
@@ -110,10 +112,11 @@ async function createEntityWithRetry(
     try {
       return await handleTransactionWithTimeout(
         async () => {
-          return await walletClient.createEntity({
-            payload: enc.encode(JSON.stringify(data.payload)),
-            attributes: data.attributes,
-            expiresIn: data.expiresIn,
+          return await createArkivEntity(walletClient, {
+            type: data.type,
+            attributes: data.attributes, // snake_case names
+            payload: data.payload, // JSON; encoded with jsonToPayload
+            lifetimeSeconds: data.lifetimeSeconds, // optional; defaults to the type lifetime
           });
         },
         {
@@ -159,13 +162,13 @@ async function createProfileWithTimeout(profileData: ProfileData): Promise<Profi
     // Create with timeout and retry
     const result = await createEntityWithRetry(
       {
+        type: 'user_profile',
         payload: profileData,
         attributes: {
-          type: 'user_profile',
           wallet: profileData.wallet.toLowerCase(),
-          spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+          space_id: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
         },
-        expiresIn: undefined, // No expiration
+        // No lifetimeSeconds: uses the user_profile lifetime (365 days)
       },
       2
     ); // 2 retries

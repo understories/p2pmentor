@@ -43,7 +43,7 @@ Network retries, user double-clicks, or race conditions can cause duplicate writ
 ## Arkiv Primitives Used
 
 - Deterministic `entity_key` derivation from stable identifiers
-- Query before create: `buildQuery().where(eq(...)).fetch()` to check existence
+- Query before create: `arkivSelect(type).where(eqAttr(...)).fetch()` to check existence
 - Upsert pattern: `arkivUpsertEntity()` with key parameter
 - Idempotency keys: Stored in payload for duplicate detection
 
@@ -112,7 +112,7 @@ const existing = await queryByAttributes({
 
 // Check payload for idempotency key
 for (const entity of existing.entities) {
-  const payload = JSON.parse(new TextDecoder().decode(entity.payload));
+  const payload = parsePayload(entity);
   if (payload.idempotencyKey === idempotencyKey) {
     return { key: entity.key, txHash: entity.txHash }; // Return existing
   }

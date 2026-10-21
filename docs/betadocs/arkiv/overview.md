@@ -10,13 +10,13 @@ When you create a profile, post an ask or offer, or schedule a session on p2pmen
 
 - **You control your data** - it's not locked in a company's database
 - **Your data persists** - even if p2pmentor disappears, your data remains on Arkiv
-- **It's verifiable** - anyone can verify your data exists using the [Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)
+- **It's verifiable** - anyone can verify your data exists using the [Arkiv Explorer](https://tiramisu.explorer.arkiv.network)
 
 ### Transparency and Trust
 
 All data on Arkiv is **public and verifiable**. You can:
 
-- View your own data on the [Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)
+- View your own data on the [Arkiv Explorer](https://tiramisu.explorer.arkiv.network)
 - See how p2pmentor uses your data in our [p2pmentor Explorer](/explorer)
 - Verify that what you see in the app matches what's on the blockchain
 
@@ -43,7 +43,7 @@ All data in p2pmentor is stored as **entities** on Arkiv. Each entity consists o
 
 Arkiv transactions are **immutable** - once created, they cannot be modified. However, application data can be updated:
 
-1. Use `updateEntity()` to create a new transaction that updates an existing entity
+1. Use `replaceArkivEntity()` (Arkiv 0.8 `patchEntity`) to create a new transaction that updates an existing entity
 2. All transaction history is preserved on-chain (complete audit trail)
 3. The application displays the latest canonical state derived from transactions
 
@@ -76,7 +76,7 @@ All entities include a `spaceId` attribute, which enables:
 
 ## Explore Your Data
 
-- **[Arkiv Explorer](http://explorer.braga.hoodi.arkiv.network/)** - View all data on the Arkiv blockchain
+- **[Arkiv Explorer](https://tiramisu.explorer.arkiv.network)** - View all data on the Arkiv blockchain
 - **[p2pmentor Explorer](/explorer)** - See how p2pmentor structures and uses Arkiv data
 
 ## Learn More

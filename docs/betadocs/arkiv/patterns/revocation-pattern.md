@@ -41,8 +41,8 @@ Arkiv has no built-in revocation. To revoke grants, consent, invites, or any cap
 
 ## Arkiv Primitives Used
 
-- Marker entity creation: `createEntity()` for revocation markers
-- Query for revocation: `buildQuery().where(eq('type', '{type}_revocation')).where(eq('entityKey', originalKey)).fetch()`
+- Marker entity creation: `createArkivEntity()` for revocation markers (created `readonly`, so they cannot be patched)
+- Query for revocation: `arkivSelect('{type}_revocation').createdBy(SERVER_SIGNER_ADDRESS).where(eqAttr('entity_key', originalKey)).fetch()`
 - Indexer lag handling: Poll for revocation marker visibility (see PAT-INDEXER-001)
 
 ## Canonical Algorithm
@@ -87,18 +87,17 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
     spaceId: SPACE_ID,
   };
 
-  const { key, txHash } = await createEntity({
+  // Revocations are append-only: created with the `readonly` flag
+  const { entityKey: key, txHash } = await createArkivEntity(walletClient, {
     type: 'review_mode_grant_revocation',
-    attributes: [
-      { type: 'review_mode_grant_revocation' },
-      { entity_key: grantKey },
-      { revoked_at: revocationMarker.revokedAt },
-      { revoked_by: revocationMarker.revokedBy },
-      { space_id: SPACE_ID },
-    ],
-    payload: enc.encode(JSON.stringify(revocationMarker)),
-    expiresIn: 15768000, // 6 months (same as grant)
-    privateKey,
+    attributes: {
+      entity_key: grantKey,
+      revoked_at: revocationMarker.revokedAt,
+      revoked_by: revocationMarker.revokedBy,
+      space_id: SPACE_ID,
+    },
+    payload: revocationMarker,
+    lifetimeSeconds: 180 * 24 * 60 * 60, // same lifetime as the grant
   });
 
   return { key, txHash };
@@ -106,7 +105,9 @@ async function revokeGrant(grantKey: string, revokedBy: string) {
 
 // Query pattern: Check for revocation before granting access
 async function isGrantRevoked(grantKey: string): Promise<boolean> {
+  // Trust only revocations signed by the server signer
   const result = await arkivSelect('review_mode_grant_revocation')
+    .createdBy(SERVER_SIGNER_ADDRESS)
     .where(eqAttr('entity_key', grantKey))
     .where(eqAttr('space_id', SPACE_ID))
     .limit(1)

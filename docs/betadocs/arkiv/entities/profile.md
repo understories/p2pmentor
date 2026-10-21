@@ -13,21 +13,21 @@
 ## Patterns Used
 
 - [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Profile updates use stable entity keys
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, spaceId)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, space_id)
 - [PAT-IDENTITY-001: Wallet Normalization](../patterns/wallet-normalization.md) - Wallet addresses normalized to lowercase
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 
 ## Field Table
 
 | Field Name            | Type                                                           | Required | Location  | Description                                                                                                |
 | --------------------- | -------------------------------------------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | -------------- | ---------- | -------- |
 | type                  | string                                                         | Yes      | Attribute | Always "user_profile"                                                                                      |
-| wallet                | string                                                         | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
+| wallet                | addr                                                           | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
 | display_name          | string                                                         | Yes      | Attribute | User's display name                                                                                        |
 | username              | string                                                         | No       | Attribute | Unique username (optional, client-side uniqueness check only)                                              |
 | timezone              | string                                                         | Yes      | Attribute | IANA timezone (e.g., "America/New_York")                                                                   |
 | space_id              | string                                                         | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| created_at            | string                                                         | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_at            | u64                                                            | Yes      | Attribute | Epoch ms                                                                                              |
 | identity_seed         | string                                                         | No       | Attribute | Emoji Identity Seed (EIS) for UI                                                                           |
 | bio                   | string                                                         | No       | Attribute | Legacy bio field                                                                                           |
 | skills                | string                                                         | No       | Attribute | Legacy comma-separated skills string                                                                       |
@@ -72,7 +72,7 @@
 Profile updates use stable entity keys. Arkiv transactions are immutable, but application data is mutable at the state level. To update a profile:
 
 1. Fetch existing profile entity using `getProfileByWallet()`
-2. Update the entity using `updateEntity()` with the same entity key
+2. Update the entity with `replaceArkivEntity()` (Arkiv 0.8 `patchEntity` with `set`/`unset`) using the same entity key
 3. All transaction history is preserved on-chain (immutable ledger)
 
 Implementation: `lib/arkiv/profile.ts` - `createUserProfile()` uses `arkivUpsertEntity()` which updates existing entities when a profile already exists. `getProfileByWallet()` returns the canonical entity for migrated wallets.
@@ -117,12 +117,12 @@ Note: This is a limitation for beta. Future enhancement could add uniqueness con
 
 - Links to Skill entities via `skill_ids` array (preferred) or `skillsArray` (legacy)
 - Links to Availability entities via wallet address (separate query)
-- Links to Session entities via `mentorWallet` or `learnerWallet` attributes
-- Links to Feedback entities via `feedbackTo` attribute
+- Links to Session entities via `mentor_wallet` or `learner_wallet` attributes
+- Links to Feedback entities via `feedback_to` attribute
 
 ## Expiration
 
-Profile entities expire after 1 year (31536000 seconds). This is effectively permanent for beta.
+Profile entities expire after 365 days (`user_profile` lifetime in `lib/arkiv/schema.ts`). Updates (patches) do not extend expiry; renewal with `extendEntity` is a planned follow-up.
 
 ## Transaction Hash Tracking
 
@@ -131,4 +131,4 @@ Separate `user_profile_txhash` entity (optional) tracks transaction hash:
 - `type`: "user_profile_txhash"
 - `profileKey`: Entity key of profile
 - `wallet`: Wallet address
-- `spaceId`: "local-dev"
+- `space_id`: "local-dev"

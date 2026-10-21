@@ -158,7 +158,7 @@ export async function createSkill({
   description,
   created_by_profile,
   privateKey,
-  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }: {
   name_canonical: string;
   // ...
@@ -253,10 +253,10 @@ let activeAsks = asks.filter((ask) => {
 const ttl = Math.floor(ttlRaw); // Ensure integer
 const result = await walletClient.createEntity({
   // ...
-  attributes: [
-    { ttl_seconds: String(ttl) }, // For client-side filtering
+  attributes: {
+    ttl_seconds: String(ttl), // For client-side filtering
     // ...
-  ],
+  },
   expiresIn: ttl, // For Arkiv-level cleanup
 });
 ```

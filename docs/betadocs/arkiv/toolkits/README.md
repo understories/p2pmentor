@@ -1,5 +1,7 @@
 # Arkiv Toolkits
 
+> **Not yet migrated:** the packages under `extractions/` still target the retired Braga testnet and `@arkiv-network/sdk` 0.6, and are excluded from the root type-check. Their Braga references below describe that code as it stands. The app itself runs on the Tiramisu testnet with SDK 0.8; see [Tiramisu Migration](../operations/tiramisu-migration.md).
+
 **Authority:** If anything here conflicts with `arkiv/patterns/`, patterns are canonical.
 
 > **⚠️ These are accelerators. They may lag behind current patterns. Patterns are canonical.**

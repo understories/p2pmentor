@@ -44,8 +44,8 @@ Blockchain writes have latency (seconds to minutes). The UI should update optimi
 
 ## Arkiv Primitives Used
 
-- Transaction submission: `createEntity()` or `updateEntity()` returns `txHash`
-- Query reconciliation: `buildQuery().where(eq(...)).fetch()` checks indexer
+- Transaction submission: `createArkivEntity()` or `replaceArkivEntity()` returns `txHash`
+- Query reconciliation: `arkivSelect(type).where(eqAttr(...)).fetch()` checks indexer
 - Transaction timeouts: `handleTransactionWithTimeout()` handles pending states
 - Event-driven sync: Custom events for immediate UI updates across components
 
@@ -117,9 +117,10 @@ const markAsRead = async (notificationId: string) => {
 
 // Transaction with timeout handling
 const { entityKey, txHash } = await handleTransactionWithTimeout(async () => {
-  return await walletClient.createEntity({
-    attributes: [...],
-    payload: enc.encode(JSON.stringify({...})),
+  return await createArkivEntity(walletClient, {
+    type: 'notification_preference',
+    attributes: {...}, // snake_case names
+    payload: {...},
   });
 });
 

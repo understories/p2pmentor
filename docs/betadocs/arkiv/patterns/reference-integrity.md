@@ -87,26 +87,24 @@ const profile = await arkivUpsertEntity({
 });
 
 // Reference profile by stable entity_key
-const feedback = await createEntity({
+const feedback = await createArkivEntity(walletClient, {
   type: 'feedback',
-  attributes: [
-    { profile_key: profile.key }, // Stable reference
-    { wallet: wallet }, // Also store wallet for querying
-  ],
+  attributes: {
+    profile_key: profile.key, // Stable reference
+    wallet: wallet, // Also store wallet for querying
+  },
   payload,
-  privateKey,
 });
 
 // Pattern A: Reference by stable identifier (wallet)
-const session = await createEntity({
+const session = await createArkivEntity(walletClient, {
   type: 'session',
-  attributes: [
-    { mentor_wallet: mentorWallet }, // Stable reference
-    { learner_wallet: learnerWallet }, // Stable reference
+  attributes: {
+    mentor_wallet: mentorWallet, // Stable reference
+    learner_wallet: learnerWallet, // Stable reference
     // Don't reference profile entity_key (may change with Pattern A)
-  ],
+  },
   payload,
-  privateKey,
 });
 
 // Query current profile by wallet (stable identifier)
@@ -114,19 +112,20 @@ const currentProfile = await getProfileByWallet(mentorWallet);
 
 // Backlink pattern: Bidirectional references
 const session = await createSession({...});
-const confirmation = await createEntity({
+const confirmation = await createArkivEntity(walletClient, {
   type: 'session_confirmation',
-  attributes: [
-    { session_key: session.key }, // Forward reference
-    { confirmed_by: wallet }, // Stable identifier
-  ],
+  attributes: {
+    session_key: session.key, // Forward reference
+    confirmed_by: wallet, // Stable identifier
+  },
   payload,
-  privateKey,
 });
 
 // Query from either direction
-const confirmations = await query({ type: 'session_confirmation', sessionKey: session.key });
-const sessions = await query({ type: 'session', mentorWallet: wallet });
+const confirmations = await arkivSelect('session_confirmation')
+  .where(eqAttr('session_key', session.key))
+  .fetch();
+const sessions = await arkivSelect('session').where(eqAttr('mentor_wallet', wallet)).fetch();
 ```
 
 ## Debug Recipe

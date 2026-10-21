@@ -6,7 +6,7 @@
 
 ## Overview
 
-Large result sets need pagination. Arkiv doesn't support offset-based pagination, so use cursor-based pagination (e.g., `createdAt` timestamp) or client-side pagination after fetching all results.
+Large result sets need pagination. Arkiv doesn't support offset-based pagination. The node returns at most **200 entities per page**; a fetched page has `hasNextPage()` / `next()` for cursor paging. In p2pmentor, `fetchAll(builder, max)` (`lib/arkiv/read.ts`) pages for you, pinned to a single block. There is no server-side ordering (newest-created comes first), so sort on the client.
 
 ## When to Use
 
@@ -19,7 +19,7 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 **Strategies:**
 
 1. **Cursor-based pagination:** Use `createdAt` timestamp or `entity_key` as cursor
-2. **Client-side pagination:** Fetch all results with `.limit()`, paginate in UI
+2. **Client-side pagination:** Fetch all results with `fetchAll(builder, max)`, paginate in UI
 3. **Defensive limits:** Always use `.limit()` to bound queries
 
 ## Invariants
@@ -40,7 +40,7 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 
 ## Arkiv Primitives Used
 
-- Query limits: `.limit(n)` to bound result sets
+- Query limits: `.limit(n)` (max 200) to bound a page; `fetchAll(builder, max)` for more
 - Attribute filtering: Filter by `createdAt` or other sortable attributes for cursors
 - Client-side filtering: Filter results after fetching for complex pagination
 
@@ -48,14 +48,14 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 
 **Strategy 1: Cursor-based pagination**
 
-1. Query with `.limit(pageSize)` and filter by cursor (e.g., `createdAt > cursor`)
+1. Query with `.limit(pageSize)` (max 200) pinned with `.atBlock(block)`, then follow `page.next()` while `page.hasNextPage()`
 2. Sort results by cursor attribute (ascending or descending)
 3. Use last item's cursor value for next page
 4. Continue until no more results
 
 **Strategy 2: Client-side pagination**
 
-1. Query with defensive `.limit(maxResults)` (e.g., 500)
+1. Query with a defensive maximum: `fetchAll(builder, 500)` (`.limit()` above 200 is rejected by the node)
 2. Fetch all results matching filters
 3. Paginate in UI (slice array by page)
 4. Show page controls in UI
@@ -70,39 +70,30 @@ Large result sets need pagination. Arkiv doesn't support offset-based pagination
 
 **Primary implementation:** ✅ Verified in repo
 
-- `lib/arkiv/profile.ts` - `listUserProfiles()` uses `.limit(100)` or `.limit(500)` for builder mode
-- `lib/arkiv/asks.ts` - `listAsks()` uses `.limit(500)` with optional `limit` parameter
-- `lib/arkiv/offers.ts` - `listOffers()` uses `.limit(500)` with optional `limit` parameter
-- `lib/arkiv/sessions.ts` - `listSessions()` uses `.limit(500)` for sessions
+- `lib/arkiv/read.ts` - `fetchAll(builder, max)` pages through the 200-per-page node limit, pinned to one block
+- `lib/arkiv/profile.ts` - `listUserProfiles()` uses `fetchAll(queryBuilder, limit)`
+- `lib/arkiv/asks.ts` - `listAsks()` uses `fetchAll(queryBuilder, limit)` with optional `limit` parameter
+- `lib/arkiv/offers.ts` - `listOffers()` uses `fetchAll` with optional `limit` parameter
+- `lib/arkiv/sessions.ts` - `listSessions()` uses `fetchAll` for sessions
 - All query functions use defensive limits
 
 **Code examples:**
 
 ```typescript
-// Strategy 1: Cursor-based pagination (not yet implemented, but pattern)
-async function listAsksPaginated(cursor?: string, pageSize: number = 20) {
-  const queryBuilder = arkivSelect('ask')
+// Strategy 1: Cursor-based pagination (SDK 0.8 pages)
+// The node returns at most 200 entities per page. A fetched page exposes
+// hasNextPage() / next(); pin the query to one block so pages stay consistent.
+async function listAsksPaged(pageSize: number = 20) {
+  const block = await getPublicClient().getBlockNumber();
+  const page = await arkivSelect('ask')
     .where(eqAttr('status', 'open'))
-    .where(eqAttr('space_id', SPACE_ID));
+    .where(eqAttr('space_id', SPACE_ID))
+    .atBlock(block)
+    .limit(pageSize) // max 200
+    .fetch();
 
-  if (cursor) {
-    // Filter by createdAt > cursor for next page
-    queryBuilder.where(eqAttr('created_at', cursor)); // Note: Arkiv may need different syntax
-  }
-
-  const result = await queryBuilder.limit(pageSize).fetch();
-
-  // Sort by createdAt descending (newest first)
-  const sorted = result.entities.sort((a, b) => {
-    const aTime = getAttr(a, 'createdAt');
-    const bTime = getAttr(b, 'createdAt');
-    return bTime.localeCompare(aTime);
-  });
-
-  // Use last item's createdAt as next cursor
-  const nextCursor = sorted.length > 0 ? getAttr(sorted[sorted.length - 1], 'createdAt') : null;
-
-  return { items: sorted, nextCursor };
+  // No server-side ordering (newest-created first); sort on the client if needed
+  return { items: page.entities, next: page.hasNextPage() ? () => page.next() : null };
 }
 
 // Strategy 2: Client-side pagination (current pattern)
@@ -112,12 +103,11 @@ async function listAsks(params?: { limit?: number }) {
     .where(eqAttr('status', 'open'))
     .where(eqAttr('space_id', SPACE_ID));
 
-  const result = await queryBuilder
-    .limit(limit) // Always use limit
-    .fetch();
+  // fetchAll pages through the 200-per-page limit, pinned to one block
+  const { entities } = await fetchAll(queryBuilder, limit);
 
   // Return all results, paginate in UI
-  return result.entities.map(/* ... */);
+  return entities.map(/* ... */);
 }
 
 // Strategy 3: Defensive limits (always use)

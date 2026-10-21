@@ -41,7 +41,7 @@ Wallet addresses must be normalized to lowercase for storage and query operation
 ## Arkiv Primitives Used
 
 - Entity attributes: `wallet` attribute stores normalized address
-- Query filters: `where(eq('wallet', normalizedWallet))` uses normalized form
+- Query filters: `where(eqAttr('wallet', normalizedWallet))` uses normalized form
 - Indexed attributes: `wallet` is indexed, normalization ensures consistent indexing
 
 ## Canonical Algorithm
@@ -65,10 +65,10 @@ Wallet addresses must be normalized to lowercase for storage and query operation
 
 ```typescript
 // Entity creation
-attributes: [
-  { wallet: wallet.toLowerCase() },
+attributes: {
+  wallet: wallet.toLowerCase(),
   // ...
-];
+};
 
 // Querying
 const normalizedWallet = wallet.toLowerCase();

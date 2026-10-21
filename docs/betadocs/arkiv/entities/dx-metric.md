@@ -5,7 +5,7 @@
 Stores performance metrics (server-side) as Arkiv entities for verifiable, on-chain tracking. Enables demonstration of real performance differences between JSON-RPC and GraphQL query methods.
 
 **Entity Type:** `dx_metric`  
-**TTL:** 90 days (7776000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
@@ -14,8 +14,8 @@ Stores performance metrics (server-side) as Arkiv entities for verifiable, on-ch
 - `source`: `'arkiv'` | `'graphql'` (required)
 - `operation`: Operation name (e.g., `'buildNetworkGraphData'`) (required)
 - `route`: API route (optional, e.g., `/network`)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -51,18 +51,17 @@ Stores performance metrics (server-side) as Arkiv entities for verifiable, on-ch
 ### Get Metrics by Operation
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('dx_metric')
   .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(100)
   .fetch();
 
 const metrics = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
@@ -86,12 +85,12 @@ const graphqlMetrics = await arkivSelect('dx_metric')
 // Calculate averages
 const arkivAvg =
   arkivMetrics.entities
-    .map((e) => JSON.parse(e.payload).durationMs)
+    .map((e) => parsePayload(e).durationMs)
     .reduce((sum, d) => sum + d, 0) / arkivMetrics.entities.length;
 
 const graphqlAvg =
   graphqlMetrics.entities
-    .map((e) => JSON.parse(e.payload).durationMs)
+    .map((e) => parsePayload(e).durationMs)
     .reduce((sum, d) => sum + d, 0) / graphqlMetrics.entities.length;
 ```
 
@@ -128,7 +127,7 @@ const { key, txHash } = await createDxMetric({
 
 ## Transaction Hash Tracking
 
-- `dx_metric_txhash`: Transaction hash tracking, linked via `metricKey` attribute
+- `dx_metric_txhash`: Transaction hash tracking, linked via `metric_key` attribute
 
 ## Performance Comparison
 

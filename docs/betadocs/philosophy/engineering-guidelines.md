@@ -99,7 +99,7 @@ Engineering principles for p2pmentor development ensuring code quality, transpar
 
 **Query Patterns:**
 
-- Use standard `buildQuery().where(eq(...))` pattern
+- Use standard `arkivSelect(type).where(eqAttr(...))` pattern
 - Validate result structure before processing
 - Create parallel `*_txhash` entities for reliable querying
 

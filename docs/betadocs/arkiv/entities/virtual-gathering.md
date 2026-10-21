@@ -5,16 +5,16 @@
 Community virtual gatherings (public meetings). Anyone can suggest a gathering, anyone can RSVP. Jitsi video meeting is generated immediately upon creation (no confirmation needed).
 
 **Entity Type:** `virtual_gathering`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** Product-specific: the gathering lifetime is computed from the session date and passed as `lifetimeSeconds`  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'virtual_gathering'` (required)
-- `organizerWallet`: Organizer wallet address (required, lowercase)
+- `organizer_wallet`: Organizer wallet address (required, lowercase)
 - `community`: Community identifier (e.g., skill slug) (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -52,16 +52,15 @@ Community virtual gatherings (public meetings). Anyone can suggest a gathering, 
 ### Get All Gatherings
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('virtual_gathering')
   .limit(100)
   .fetch();
 
 const gatherings = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((g) => new Date(g.sessionDate) >= new Date()) // Future only
   .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 ```
@@ -127,10 +126,8 @@ const session = await createSession({
 
 ```typescript
 async function getRSVPCount(gatheringKey: string): Promise<number> {
-  const result = await arkivSelect('session')
-    .where(eqAttr('gathering_key', gatheringKey))
-    .limit(1000)
-    .fetch();
+  const result = await fetchAll(arkivSelect('session')
+    .where(eqAttr('gathering_key', gatheringKey)), 1000);
 
   return result.entities.length;
 }
@@ -138,7 +135,7 @@ async function getRSVPCount(gatheringKey: string): Promise<number> {
 
 ## Transaction Hash Tracking
 
-- `virtual_gathering_txhash`: Transaction hash tracking, linked via `gatheringKey` attribute
+- `virtual_gathering_txhash`: Transaction hash tracking, linked via `gathering_key` attribute
 
 ## Jitsi Integration
 
@@ -190,7 +187,7 @@ async function getUpcomingGatherings(community?: string) {
   const result = await query.fetch();
 
   return result.entities
-    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+    .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
     .filter((g) => new Date(g.sessionDate) >= new Date())
     .sort((a, b) => new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime());
 }
@@ -198,7 +195,7 @@ async function getUpcomingGatherings(community?: string) {
 
 ## Related Entities
 
-- `session`: RSVPs to gatherings (via `gatheringKey`)
+- `session`: RSVPs to gatherings (via `gathering_key`)
 - `skill`: Community skills
 - `learning_follow`: Skill follows for community discovery
 

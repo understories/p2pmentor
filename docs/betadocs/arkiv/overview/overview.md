@@ -31,7 +31,7 @@ All data in p2pmentor is stored as **entities** on Arkiv. An entity consists of:
 
 Arkiv transactions are **immutable**. Once created, they cannot be modified. Application data is mutable at the state level. To change application state:
 
-1. Use `updateEntity()` to create a new transaction that updates an existing entity with a stable entity key
+1. Use `replaceArkivEntity()` (Arkiv 0.8 `patchEntity`) to create a new transaction that updates an existing entity with a stable entity key
 2. All transaction history is preserved on-chain (immutable ledger)
 3. The application displays the latest canonical state derived from transactions
 
@@ -84,13 +84,12 @@ This enables multi-tenant or environment-specific data isolation. API routes use
 
 ## Query Patterns
 
-All queries use the Arkiv SDK query builder:
+All queries start from `arkivSelect(type)`, which wraps the SDK 0.8 `select()` builder and filters on `project = 'p2pmentor'`:
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from './client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('user_profile')
   .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
@@ -99,10 +98,11 @@ const result = await arkivSelect('user_profile')
 
 **Key Patterns:**
 
-- Always filter by `type` first (indexed)
+- Always filter by `type` first (indexed); `arkivSelect(type)` does this
+- Use `eqAttr` so predicates are typed like the written attributes (`addr`, `u64`, `str`)
 - Normalize wallet addresses to lowercase
-- Use `.limit()` defensively to avoid unbounded queries
-- Sort client-side for latest version selection
+- Use `.limit()` defensively (max 200 per page); use `fetchAll(builder, max)` for more
+- Sort client-side for latest version selection (the node has no ordering)
 
 ## Design Patterns
 
@@ -111,22 +111,22 @@ const result = await arkivSelect('user_profile')
 Separate `*_txhash` entities track transaction hashes for reliable querying:
 
 - `ask_txhash`, `offer_txhash`, `session_txhash`, etc.
-- Linked via entity key reference (e.g., `askKey`, `sessionKey`)
+- Linked via entity key reference (e.g., `ask_key`, `session_key`)
 - Same expiration as main entity
 
 ### TTL and Expiration
 
 Ephemeral entities use TTL (Time To Live):
 
-- **Asks**: 3600 seconds (1 hour) default
-- **Offers**: 7200 seconds (2 hours) default
-- **Availability**: 2592000 seconds (30 days)
+- **Asks**: 604800 seconds (1 week) default
+- **Offers**: 604800 seconds (1 week) default
+- **Availability**: 180 days (`availability` lifetime)
 - **Sessions**: Calculated as `sessionDate + duration + 1 hour buffer`
 
 **Implementation:**
 
-- Client-side filtering: `createdAt + ttlSeconds < now`
-- Arkiv-level expiration: `expiresIn` parameter for network cleanup
+- Client-side filtering: `created_at + ttl_seconds < now`
+- Arkiv-level expiration: `expires: ExpirationTime.fromSeconds(...)` (set by `lifetimeFor(type, seconds)`) for network cleanup
 
 ### Deletion Pattern
 
@@ -153,7 +153,7 @@ Provides a single entry point for Arkiv clients:
 
 - Small surface area, minimal abstraction
 - Based on mentor-graph reference implementation
-- Uses `@arkiv-network/sdk` with Braga testnet configuration
+- Uses `@arkiv-network/sdk` 0.8 with the Tiramisu testnet (`arkivChain` in `lib/arkiv/chain.ts`)
 
 ## No Central Database
 

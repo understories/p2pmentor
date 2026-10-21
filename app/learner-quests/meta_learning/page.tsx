@@ -160,7 +160,8 @@ export default function MetaLearningQuestPage() {
       // For other steps, we need to reference the target from step 1
       let targetKey = 'default';
       if (stepId === 'choose_target') {
-        targetKey = (data.title || 'default').toLowerCase().replace(/\s+/g, '_');
+        // Derived identifier (queried as an attribute): keep it short; the full title stays in the payload
+        targetKey = (data.title || 'default').toLowerCase().replace(/\s+/g, '_').slice(0, 64);
       } else {
         // Get target from step 1 artifacts
         if (progress?.targets && progress.targets.length > 0) {

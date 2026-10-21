@@ -13,8 +13,8 @@
 ## Patterns Used
 
 - [PAT-VERSION-001: Entity Versioning](../patterns/entity-versioning.md) - Each quest version creates a new entity (immutable versions)
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, questId, track, version, spaceId)
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation (defaults to 'global' for network-wide quests)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, questId, track, version, space_id)
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation (defaults to 'global' for network-wide quests)
 
 ## Field Table
 
@@ -27,8 +27,8 @@
 | language          | string                     | No       | Attribute | Language code (e.g., "zh", "es") - only for language learning quests                                 |
 | space_id          | string                     | Yes      | Attribute | Space ID (defaults to "global" for network-wide quests, or specific space for space-specific quests) |
 | status            | string                     | Yes      | Attribute | "active"                                                                                             | "archived"     |
-| created_at        | string                     | Yes      | Attribute | ISO timestamp                                                                                        |
-| creator_wallet    | string                     | No       | Attribute | Wallet address of quest creator (optional, for attribution)                                          |
+| created_at        | u64                        | Yes      | Attribute | Epoch ms                                                                                        |
+| creator_wallet    | addr                       | No       | Attribute | Wallet address of quest creator (optional, for attribution)                                          |
 | questId           | string                     | Yes      | Payload   | Quest identifier (matches attribute)                                                                 |
 | version           | string                     | Yes      | Payload   | Quest version (matches attribute)                                                                    |
 | track             | string                     | Yes      | Payload   | Quest track (matches attribute)                                                                      |
@@ -55,7 +55,7 @@ Quest definitions use Pattern A (immutable versions). Each version creates a new
 **Latest Version Selection:**
 
 - Query all versions for a questId
-- Sort by `createdAt` descending
+- Sort by `created_at` descending
 - Select first result as latest version
 
 **Rationale:**
@@ -132,23 +132,23 @@ Implementation: `lib/arkiv/questDefinition.ts` - `getLatestQuestDefinition()`, `
 
 ## Entity Relationships
 
-- Links to `quest_step_progress` entities via `questId` attribute (progress stores questId string)
-- Links to `proof_of_skill_badge` entities via `questId` attribute (badges store questId string and questVersion)
+- Links to `quest_step_progress` entities via `quest_id` attribute (progress stores questId string)
+- Links to `proof_of_skill_badge` entities via `quest_id` attribute (badges store questId string and questVersion)
 - Quest steps are stored in payload (not separate entities)
 
 ## Space Isolation
 
 **Network-Wide Quests (Default):**
 
-- Use `spaceId: 'global'` for quests available in all spaces
+- Use `space_id: 'global'` for quests available in all spaces
 - Most quests are network-wide (educational content, tutorials)
-- Progress entities use `spaceId` for isolation (user progress is space-specific)
+- Progress entities use `space_id` for isolation (user progress is space-specific)
 
 **Space-Specific Quests:**
 
-- Use specific `spaceId` for space-only quests
+- Use specific `space_id` for space-only quests
 - Example: Custom onboarding for a specific space
-- Query with `spaceId` filter to discover space-specific quests
+- Query with `space_id` filter to discover space-specific quests
 
 ## Content Storage
 
@@ -182,17 +182,17 @@ Implementation: `lib/arkiv/questDefinition.ts` - `getLatestQuestDefinition()`, `
 
 ## Expiration
 
-Quest definition entities expire after 10 years (315360000 seconds). This is effectively permanent for curated educational content.
+Quest definition entities expire after 365 days (`quest_definition` lifetime in `lib/arkiv/schema.ts`). Curated content is reseeded or renewed rather than made permanent.
 
 ## Transaction Hash Tracking
 
 Separate `quest_definition_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "quest_definition_txhash"
-- `questKey`: Entity key of quest definition
+- `quest_key`: Entity key of quest definition
 - `txHash`: Transaction hash
-- `spaceId`: Space ID (matches quest definition)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (matches quest definition)
+- `created_at`: `u64` epoch milliseconds
 
 ## Authoring Workflow
 

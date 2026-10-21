@@ -20,8 +20,8 @@ type: 'notification'
 | `sourceEntityType` | string | Yes      | Type of source entity: `'session'`, `'ask'`, `'offer'`, `'user_profile'`, `'admin_response'`, `'app_feedback'`                                                       |
 | `sourceEntityKey`  | string | Yes      | Key of the source entity that triggered this notification                                                                                                            |
 | `status`           | string | Yes      | `'active'` or `'archived'` (for soft delete)                                                                                                                         |
-| `spaceId`          | string | Yes      | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)                                                           |
-| `createdAt`        | string | Yes      | ISO timestamp when notification was created                                                                                                                          |
+| `space_id`          | string | Yes      | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development)                                                           |
+| `created_at`        | string | Yes      | ISO timestamp when notification was created                                                                                                                          |
 
 ## Payload
 
@@ -42,7 +42,7 @@ The payload is a JSON object with the following structure:
 
 - **`notification_txhash`**: Stores transaction hash for reliable querying
 
-  - Attributes: `type: 'notification_txhash'`, `notificationKey`, `wallet`, `spaceId`
+  - Attributes: `type: 'notification_txhash'`, `notificationKey`, `wallet`, `space_id`
   - Payload: `{ txHash: string }`
 
 - **`notification_preference`**: Stores read/unread/archived state
@@ -138,7 +138,7 @@ await createNotification({
 Created when a user submits feedback or reports an issue:
 
 ```typescript
-import { privateKeyToAccount } from '@arkiv-network/sdk/accounts';
+import { privateKeyToAccount } from 'viem/accounts';
 
 const adminWallet = privateKeyToAccount(getPrivateKey()).address.toLowerCase();
 
@@ -226,7 +226,7 @@ See [Notification Preferences](/docs/arkiv/entities/notification-preferences) fo
 
 ## TTL (Time To Live)
 
-Notifications use a 1-year TTL (31536000 seconds) for beta. This effectively makes them permanent for the beta period.
+Notifications use a 90-day lifetime (`notification` in `lib/arkiv/schema.ts`).
 
 ## Best Practices
 

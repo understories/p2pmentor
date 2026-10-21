@@ -5,7 +5,7 @@
 Tracks which skills (topics) a user is following for learning communities. Enables users to follow skills they're interested in learning or teaching, supporting community features.
 
 **Entity Type:** `learning_follow`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (`learning_follow` lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities (soft delete via `active` flag)
 
 ## Attributes
@@ -14,8 +14,8 @@ Tracks which skills (topics) a user is following for learning communities. Enabl
 - `profile_wallet`: Wallet address (reference to Profile.wallet) (required, lowercase)
 - `skill_id`: Skill entity key (reference to Skill.key) (required)
 - `active`: Boolean flag for soft delete (required, default: `true`)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -41,10 +41,9 @@ Tracks which skills (topics) a user is following for learning communities. Enabl
 ### Get All Follows for Profile
 
 ```typescript
-import { eq, and } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('learning_follow')
   .where(eqAttr('profile_wallet', walletAddress.toLowerCase()))
   .where(eqAttr('active', 'true'))
@@ -52,8 +51,8 @@ const result = await arkivSelect('learning_follow')
   .fetch();
 
 const follows = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
@@ -67,27 +66,25 @@ const result = await arkivSelect('learning_follow')
   .fetch();
 
 const followers = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
 ### Get Follows by Mode
 
 ```typescript
-const result = await arkivSelect('learning_follow')
+const result = await fetchAll(arkivSelect('learning_follow')
   .where(eqAttr('profile_wallet', walletAddress.toLowerCase()))
-  .where(eqAttr('active', 'true'))
-  .limit(1000)
-  .fetch();
+  .where(eqAttr('active', 'true')), 1000);
 
 // Filter client-side by mode
 const learningFollows = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((f) => f.mode === 'learning' || f.mode === 'both');
 
 const teachingFollows = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((f) => f.mode === 'teaching' || f.mode === 'both');
 ```
 
@@ -129,7 +126,7 @@ if (existing && existing.active) {
 
 ## Transaction Hash Tracking
 
-- `learning_follow_txhash`: Transaction hash tracking, linked via `followKey` attribute
+- `learning_follow_txhash`: Transaction hash tracking, linked via `follow_key` attribute
 
 ## Example Use Cases
 

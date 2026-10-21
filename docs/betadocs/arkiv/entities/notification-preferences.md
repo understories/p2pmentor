@@ -5,19 +5,19 @@
 Stores user notification preferences and read/unread state as Arkiv entities. Allows users to customize their notification experience while staying Arkiv-native. Tracks read/unread state for individual notifications.
 
 **Entity Type:** `notification_preference`
-**TTL:** 1 year (31536000 seconds)
-**Update Pattern:** Pattern B (updateEntity with stable entity_key)
+**TTL:** 180 days (`notification_preference` lifetime in `lib/arkiv/schema.ts`)
+**Update Pattern:** Pattern B (`replaceArkivEntity` / `patchEntity` with stable entity_key)
 **Immutability:** Transactions are immutable, but entity state is mutable via updates
 
 ## Attributes
 
 - `type`: `'notification_preference'` (required)
 - `wallet`: Wallet address (required, lowercase)
-- `notificationId`: Notification ID (e.g., `"meeting_request_sessionKey123"`) (required)
-- `notificationType`: Notification type (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
-- `updatedAt`: ISO timestamp (required)
+- `notification_id`: Notification ID (e.g., `"meeting_request_sessionKey123"`) (required)
+- `notification_type`: Notification type (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
+- `updated_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -59,32 +59,29 @@ type NotificationPreferenceType =
 ### Get Preferences for Wallet
 
 ```typescript
-import { eq, and } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('notification_preference')
   .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
   .fetch();
 
 const preferences = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
 ### Get Unread Notifications
 
 ```typescript
-const result = await arkivSelect('notification_preference')
-  .where(eqAttr('wallet', walletAddress.toLowerCase()))
-  .limit(1000)
-  .fetch();
+const result = await fetchAll(arkivSelect('notification_preference')
+  .where(eqAttr('wallet', walletAddress.toLowerCase())), 1000);
 
 // Filter client-side
 const unread = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((p) => !p.read && !p.archived);
 ```
 
@@ -99,7 +96,7 @@ const result = await arkivSelect('notification_preference')
 
 // Get latest version
 const preference = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0];
 ```
 
@@ -208,10 +205,10 @@ async function getUnreadCount(wallet: string) {
 
 ## Notes
 
-- **Update Pattern**: Uses Pattern B (updateEntity with stable entity_key)
+- **Update Pattern**: Uses Pattern B (`replaceArkivEntity` / `patchEntity` with stable entity_key)
 - **Stable Identity**: Entity key is stable per (wallet, notificationId) tuple
 - **Direct Key Updates**: Store preference entity keys client-side (localStorage) and pass `preferenceKey` parameter for direct updates, bypassing query-first pattern and eliminating race conditions
-- **Full Replacement**: `updateEntity()` replaces all attributes and payload (fetch-merge-write pattern required)
+- **Full Replacement**: `replaceArkivEntity()` patches with `set` + `unset` so the result replaces all attributes and payload (fetch-merge-write pattern required). Patches do not change expiry, owner or flags.
 - **Soft Delete**: Archived notifications are hidden but not deleted
 - **Read State**: Tracks read/unread state per notification
 - **Transaction History**: All updates create new immutable transactions, preserving full audit trail

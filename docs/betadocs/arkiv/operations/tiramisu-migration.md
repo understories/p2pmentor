@@ -28,27 +28,27 @@ The SDK's `tiramisu` object has no `blockExplorers` entry, so `lib/arkiv/chain.t
 
 ## Environment
 
-| Variable                           | Where       | Purpose                                                                                                                                                           |
-| ---------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ARKIV_PRIVATE_KEY`                | server      | Server signing wallet. Fund it with Tiramisu GLM.                                                                                                                 |
+| Variable                           | Where       | Purpose                                                                                                                                                               |
+| ---------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ARKIV_PRIVATE_KEY`                | server      | Server signing wallet. Fund it with Tiramisu GLM.                                                                                                                     |
 | `ARKIV_API_KEY`                    | server only | Hub access key, sent as an `X-API-KEY` header on server-side RPC calls. Without it, RPC is anonymous and rate-limited (`429`). **Never expose it as `NEXT_PUBLIC_`.** |
-| `NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS` | public      | Lowercase address of the server signer. Lets browser-side reads trust only server-signed entities, and is linked from `/explorer`.                                 |
+| `NEXT_PUBLIC_ARKIV_SIGNER_ADDRESS` | public      | Lowercase address of the server signer. Lets browser-side reads trust only server-signed entities, and is linked from `/explorer`.                                    |
 
 **Funding the server signer.** The faucet needs a wallet sign-in and a CAPTCHA. Request GLM to a browser wallet, then transfer it to the signer address.
 
 ## SDK 0.6.7 → 0.8.1 changes
 
-| 0.6.7                                                   | 0.8.1                                                                                        | p2pmentor helper                                         |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `buildQuery().where(eq()).withAttributes().withPayload()` | `select({ ...fields }).where(eq())`                                                          | `arkivSelect(type)` in `lib/arkiv/read.ts`               |
-| `.limit(n)`, unbounded                                  | max 200 per page; cursor paging                                                              | `fetchAll(builder, max)` (pinned to one block)           |
-| `attributes: [{ key, value }]`                          | `attributes: { name: typedValue }` (`str`, `i32`, `u64`, `addr`, …)                          | `entityAttributes(type, record)` in `lib/arkiv/schema.ts` |
-| `entity.attributes.find(a => a.key === …)`              | `entity.attributes[name] = { type, value }`                                                  | `getAttr(entity, name)`, `attrsToRecord(entity)`         |
-| `expiresIn: seconds`                                    | `expires: ExpirationTime.fromSeconds(…)`                                                     | `lifetimeFor(type, seconds?)`                            |
-| `updateEntity` (full replace)                           | `patchEntity({ set, unset, payload })`; expiry/owner/flags not patchable                     | `replaceArkivEntity(…)` in `lib/arkiv/write.ts`          |
-| —                                                       | creation flags (`readonly`, `permissionlessExtension`), set at create                        | `flagsFor(type)`                                         |
-| `privateKeyToAccount` from `sdk/accounts`               | `viem/accounts` (viem is a peer dependency)                                                  | —                                                        |
-| `http`, `custom` from the SDK root                      | from `viem`                                                                                  | —                                                        |
+| 0.6.7                                                     | 0.8.1                                                                    | p2pmentor helper                                          |
+| --------------------------------------------------------- | ------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `buildQuery().where(eq()).withAttributes().withPayload()` | `select({ ...fields }).where(eq())`                                      | `arkivSelect(type)` in `lib/arkiv/read.ts`                |
+| `.limit(n)`, unbounded                                    | max 200 per page; cursor paging                                          | `fetchAll(builder, max)` (pinned to one block)            |
+| `attributes: [{ key, value }]`                            | `attributes: { name: typedValue }` (`str`, `i32`, `u64`, `addr`, …)      | `entityAttributes(type, record)` in `lib/arkiv/schema.ts` |
+| `entity.attributes.find(a => a.key === …)`                | `entity.attributes[name] = { type, value }`                              | `getAttr(entity, name)`, `attrsToRecord(entity)`          |
+| `expiresIn: seconds`                                      | `expires: ExpirationTime.fromSeconds(…)`                                 | `lifetimeFor(type, seconds?)`                             |
+| `updateEntity` (full replace)                             | `patchEntity({ set, unset, payload })`; expiry/owner/flags not patchable | `replaceArkivEntity(…)` in `lib/arkiv/write.ts`           |
+| —                                                         | creation flags (`readonly`, `permissionlessExtension`), set at create    | `flagsFor(type)`                                          |
+| `privateKeyToAccount` from `sdk/accounts`                 | `viem/accounts` (viem is a peer dependency)                              | —                                                         |
+| `http`, `custom` from the SDK root                        | from `viem`                                                              | —                                                         |
 
 All writes go through `createArkivEntity` / `replaceArkivEntity` (or `arkivUpsertEntity`). All queries start from `arkivSelect`, which filters on `project = 'p2pmentor'`.
 
@@ -83,15 +83,15 @@ Patches do not extend expiry. Long-lived entities rely on renewal, which is a fo
 
 ## Troubleshooting
 
-| Symptom                                                    | Cause / fix                                                                                                             |
-| ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `Execution error without revert data` / insufficient funds | The signing wallet has no Tiramisu GLM. Fund it via the Hub faucet.                                                     |
-| HTTP `429` / `ANON_COST_LIMITED`                           | No access key. Set `ARKIV_API_KEY` on the server.                                                                       |
-| `Invalid attribute name "…"`                               | A camelCase or invalid name. Use snake_case.                                                                            |
-| `Attribute "…" is N bytes; max is 128`                     | Long text in an attribute. Move it to the payload.                                                                      |
-| Query returns nothing after a schema change                | Write and query must use the same attribute name and type. Always use `entityAttributes` and `eqAttr`.                  |
-| `limit N exceeds the node maximum of 200`                  | Use `fetchAll(builder, N)`.                                                                                             |
-| MetaMask is on the wrong network                           | Use "Add Arkiv Tiramisu Testnet to Wallet" on `/auth`, or chain id `0x7614d1`.                                           |
+| Symptom                                                    | Cause / fix                                                                                            |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `Execution error without revert data` / insufficient funds | The signing wallet has no Tiramisu GLM. Fund it via the Hub faucet.                                    |
+| HTTP `429` / `ANON_COST_LIMITED`                           | No access key. Set `ARKIV_API_KEY` on the server.                                                      |
+| `Invalid attribute name "…"`                               | A camelCase or invalid name. Use snake_case.                                                           |
+| `Attribute "…" is N bytes; max is 128`                     | Long text in an attribute. Move it to the payload.                                                     |
+| Query returns nothing after a schema change                | Write and query must use the same attribute name and type. Always use `entityAttributes` and `eqAttr`. |
+| `limit N exceeds the node maximum of 200`                  | Use `fetchAll(builder, N)`.                                                                            |
+| MetaMask is on the wrong network                           | Use "Add Arkiv Tiramisu Testnet to Wallet" on `/auth`, or chain id `0x7614d1`.                         |
 
 ## Not migrated (follow-ups)
 

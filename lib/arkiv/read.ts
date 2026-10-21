@@ -86,12 +86,14 @@ export async function fetchAll<T>(
 }
 
 /**
- * Get an entity by key, or null if it does not exist (or has expired).
+ * Get an entity by key, or null if it does not exist, has expired, or the key is malformed.
  */
 export async function getEntityByKey(
   key: string,
   client: PublicClient = getPublicClient()
 ): Promise<ArkivEntity | null> {
+  // Entity keys are 32-byte hex; anything else cannot exist
+  if (!/^0x[0-9a-fA-F]{64}$/.test(key)) return null;
   try {
     return (await client.getEntity(key as Hex)) as ArkivEntity;
   } catch (error) {
@@ -128,7 +130,9 @@ export function getAttr(entity: { attributes?: unknown } | null | undefined, nam
 /**
  * Read all attributes as a plain name -> string record.
  */
-export function attrsToRecord(entity: { attributes?: unknown } | null | undefined): Record<string, string> {
+export function attrsToRecord(
+  entity: { attributes?: unknown } | null | undefined
+): Record<string, string> {
   const attrs = (entity?.attributes || {}) as Record<string, { type: string; value: unknown }>;
   const out: Record<string, string> = {};
   for (const [name, attr] of Object.entries(attrs)) {
@@ -147,12 +151,11 @@ export function parsePayload<T = any>(
   const payload = entity?.payload;
   if (!payload) return fallback;
   try {
-    const text =
-      ArrayBuffer.isView(payload)
-        ? new TextDecoder().decode(payload as Uint8Array)
-        : typeof payload === 'string'
-          ? payload
-          : JSON.stringify(payload);
+    const text = ArrayBuffer.isView(payload)
+      ? new TextDecoder().decode(payload as Uint8Array)
+      : typeof payload === 'string'
+        ? payload
+        : JSON.stringify(payload);
     return text ? (JSON.parse(text) as T) : fallback;
   } catch {
     return fallback;

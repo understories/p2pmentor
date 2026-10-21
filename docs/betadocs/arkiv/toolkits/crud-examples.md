@@ -25,7 +25,7 @@ const { key, txHash } = await createProfile({
     [skill2.key]: 3,
   },
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -45,7 +45,7 @@ if (profile) {
 ```typescript
 import { updateProfile } from '@/lib/arkiv/profile';
 
-// Updates create new entity
+// Updates patch the same entity (replaceArkivEntity / patchEntity)
 const updated = await updateProfile(walletAddress, {
   displayName: 'Alice Updated',
   bioShort: 'Updated bio',
@@ -74,9 +74,9 @@ const { key, txHash } = await createAsk({
   wallet: walletAddress,
   skill_id: spanishSkill.key,
   message: 'Looking for a Spanish conversation partner',
-  expiresIn: 3600, // 1 hour
+  expiresIn: 3600, // seconds; becomes the entity lifetime (lifetimeFor)
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -131,9 +131,9 @@ const { key, txHash } = await createOffer({
     ],
   },
   isPaid: false,
-  expiresIn: 7200, // 2 hours
+  expiresIn: 7200, // seconds; becomes the entity lifetime (lifetimeFor)
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -181,7 +181,7 @@ const { key, txHash } = await createSession({
   notes: 'First Spanish conversation session',
   requiresPayment: false,
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -247,7 +247,7 @@ const { key, txHash } = await createFeedback({
   notes: 'Great session! Very helpful.',
   technicalDxFeedback: 'The video quality was excellent',
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -293,7 +293,7 @@ const { key, txHash } = await createAvailability({
     ],
   },
   privateKey: walletClient.account.privateKey,
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 
@@ -331,7 +331,7 @@ const { key, txHash } = await createSkill({
   status: 'active',
   created_by_profile: walletAddress,
   privateKey: getPrivateKey(),
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 });
 ```
 

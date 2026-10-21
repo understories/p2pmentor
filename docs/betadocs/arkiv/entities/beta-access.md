@@ -5,7 +5,7 @@
 Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of which wallets were granted access via which beta codes. Used for access control and audit purposes.
 
 **Entity Type:** `beta_access`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
@@ -13,8 +13,8 @@ Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of
 - `type`: `'beta_access'` (required)
 - `wallet`: Wallet address granted access (required, lowercase)
 - `code`: Beta code used (required, lowercase, trimmed)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required, stored as `grantedAt` in payload)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required, stored as `grantedAt` in payload)
 
 ## Payload
 
@@ -37,10 +37,9 @@ Tracks wallet-to-beta-code binding on Arkiv. Creates an immutable audit trail of
 ### Check if Wallet Has Access
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('beta_access')
   .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(1)
@@ -59,8 +58,8 @@ const result = await arkivSelect('beta_access')
   .fetch();
 
 const grants = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
@@ -75,7 +74,7 @@ const result = await arkivSelect('beta_access')
   .fetch();
 
 const grant = result.entities[0]
-  ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
+  ? { ...attrsToRecord(result.entities[0]), ...parsePayload(result.entities[0]) }
   : null;
 ```
 
@@ -95,7 +94,7 @@ const { key, txHash } = await createBetaAccess({
 
 ## Transaction Hash Tracking
 
-- `beta_access_txhash`: Transaction hash tracking, linked via `accessKey` attribute
+- `beta_access_txhash`: Transaction hash tracking, linked via `access_key` attribute
 
 ## Related Entities
 

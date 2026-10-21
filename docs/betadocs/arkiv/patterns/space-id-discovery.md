@@ -47,15 +47,15 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 
 ## Arkiv Primitives Used
 
-- Entity queries without `spaceId` filter: `where(eq('type', 'entity_type'))`
-- Attribute extraction: `spaceId` from entity attributes
+- Entity queries without `space_id` filter: `arkivSelect('entity_type')`. Note that `arkivSelect` always filters on `project = 'p2pmentor'`, so discovery covers p2pmentor-namespaced entities only
+- Attribute extraction: `space_id` via `getAttr(entity, 'space_id')`
 - Signer metadata: `signer_wallet` attribute to identify creator
-- Query limits: `limit(1000)` to fetch all entities (adjust as needed)
+- Query limits: `fetchAll(builder, 1000)` to fetch up to 1000 entities (the node returns at most 200 per page; `fetchAll` pages, pinned to one block)
 
 ## Canonical Algorithm
 
 1. Query all entities of target type(s) without `spaceId` filter (query both `lite_ask` and `lite_offer` in parallel)
-2. Extract `spaceId` attribute from each entity
+2. Extract the `space_id` attribute from each entity
 3. Track metadata per space ID:
    - Count asks and offers separately
    - Track most recent activity timestamp
@@ -73,24 +73,13 @@ Discover all unique `spaceId` values used across the Arkiv network by querying e
 ```typescript
 // Query all entities of both types without spaceId filter
 const [asksResult, offersResult] = await Promise.all([
-  arkivSelect('lite_ask')
-    .limit(1000)
-    .fetch()
+  fetchAll(arkivSelect('lite_ask'), 1000)
     .catch(() => ({ entities: [] })),
-  arkivSelect('lite_offer')
-    .limit(1000)
-    .fetch()
+  fetchAll(arkivSelect('lite_offer'), 1000)
     .catch(() => ({ entities: [] })),
 ]);
 
-// Helper to extract attribute value
-const getAttr = (attrs: any, key: string): string => {
-  if (Array.isArray(attrs)) {
-    const attr = attrs.find((a: any) => a.key === key);
-    return String(attr?.value || '');
-  }
-  return String(attrs[key] || '');
-};
+// getAttr(entity, name) from '@/lib/arkiv/read' reads typed attributes
 
 // Track metadata per space ID
 const spaceIdMap = new Map<
@@ -108,17 +97,16 @@ const spaceIdMap = new Map<
 [asksResult, offersResult].forEach((result, typeIndex) => {
   if (result?.entities && Array.isArray(result.entities)) {
     result.entities.forEach((entity: any) => {
-      const attrs = entity.attributes || {};
-      const spaceId = getAttr(attrs, 'spaceId')?.trim();
+      const spaceId = getAttr(entity, 'space_id')?.trim();
       if (!spaceId) return;
 
-      const createdAt = getAttr(attrs, 'createdAt');
+      const createdAt = getAttr(entity, 'created_at');
       const createdAtTime = createdAt ? new Date(createdAt).getTime() : 0;
-      const ttlSeconds = parseInt(getAttr(attrs, 'ttlSeconds') || '2592000', 10);
+      const ttlSeconds = parseInt(getAttr(entity, 'ttl_seconds') || '2592000', 10);
       const expiresAt = createdAtTime + ttlSeconds * 1000;
       const isActive = Date.now() < expiresAt;
 
-      const signerWallet = getAttr(attrs, 'signer_wallet')?.toLowerCase();
+      const signerWallet = getAttr(entity, 'signer_wallet')?.toLowerCase();
       const isP2pmentor = !!(CURRENT_WALLET && signerWallet === CURRENT_WALLET.toLowerCase());
 
       if (!spaceIdMap.has(spaceId)) {
@@ -199,29 +187,19 @@ results.sort((a, b) => {
 ```typescript
 // Query both entity types in parallel without spaceId filter (discovery mode)
 const [asksResult, offersResult] = await Promise.all([
-  arkivSelect('lite_ask')
-    .limit(1000)
-    .fetch()
+  fetchAll(arkivSelect('lite_ask'), 1000)
     .catch(() => ({ entities: [] })),
-  arkivSelect('lite_offer')
-    .limit(1000)
-    .fetch()
+  fetchAll(arkivSelect('lite_offer'), 1000)
     .catch(() => ({ entities: [] })),
 ]);
 
 // Extract spaceId and metadata from attributes
-const getAttr = (attrs: any, key: string): string => {
-  if (Array.isArray(attrs)) {
-    const attr = attrs.find((a: any) => a.key === key);
-    return String(attr?.value || '');
-  }
-  return String(attrs[key] || '');
-};
+// getAttr(entity, name) from '@/lib/arkiv/read' reads typed attributes
 
-const spaceId = getAttr(entity.attributes, 'spaceId')?.trim();
-const signerWallet = getAttr(entity.attributes, 'signer_wallet')?.toLowerCase();
-const createdAt = getAttr(entity.attributes, 'createdAt');
-const ttlSeconds = parseInt(getAttr(entity.attributes, 'ttlSeconds') || '2592000', 10);
+const spaceId = getAttr(entity, 'space_id')?.trim();
+const signerWallet = getAttr(entity, 'signer_wallet')?.toLowerCase();
+const createdAt = getAttr(entity, 'created_at');
+const ttlSeconds = parseInt(getAttr(entity, 'ttl_seconds') || '2592000', 10);
 ```
 
 ## Debug Recipe
@@ -229,7 +207,7 @@ const ttlSeconds = parseInt(getAttr(entity.attributes, 'ttlSeconds') || '2592000
 - Verify query omits `spaceId` filter (check query builder)
 - Verify both entity types are queried (`lite_ask` and `lite_offer`)
 - Check entity count: ensure query limit is high enough (currently 1000 per type)
-- Verify attribute extraction: `spaceId` must be in entity attributes
+- Verify attribute extraction: `space_id` must be in entity attributes
 - Test signer filtering: verify `signer_wallet` comparison with `CURRENT_WALLET` works
 - Check TTL calculation: verify active entity detection uses correct TTL
 - Verify metadata aggregation: askCount, offerCount, totalEntities should be correct

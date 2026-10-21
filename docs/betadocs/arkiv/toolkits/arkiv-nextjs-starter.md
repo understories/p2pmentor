@@ -1,5 +1,7 @@
 # Arkiv Next.js Starter
 
+> **Not yet migrated:** the packages under `extractions/` still target the retired Braga testnet and `@arkiv-network/sdk` 0.6, and are excluded from the root type-check. Their Braga references below describe that code as it stands. The app itself runs on the Tiramisu testnet with SDK 0.8; see [Tiramisu Migration](../operations/tiramisu-migration.md).
+
 **Purpose:** Starter template for building Arkiv applications with Next.js.
 
 **Status:** Available in `extractions/arkiv-nextjs-starter/` (will be published as standalone repo)

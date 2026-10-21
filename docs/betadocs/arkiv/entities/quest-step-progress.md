@@ -13,9 +13,9 @@
 ## Patterns Used
 
 - [PAT-UPDATE-001: Stable Entity Key Updates](../patterns/stable-entity-key-updates.md) - Progress uses stable entity keys (Pattern B)
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, questId, stepId, spaceId)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, questId, stepId, space_id)
 - [PAT-IDENTITY-001: Wallet Normalization](../patterns/wallet-normalization.md) - Wallet addresses normalized to lowercase
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 - [PAT-OPTIMISTIC-001: Optimistic UI + Reconciliation](../patterns/optimistic-ui-reconciliation.md) - UI updates optimistically, reconciles with indexer
 - [PAT-INDEXER-001: Read-Your-Writes Under Indexer Lag](../patterns/indexer-lag-handling.md) - Handles submitted → indexed state transitions
 
@@ -24,12 +24,12 @@
 | Field Name   | Type              | Required | Location  | Description                                                                                                |
 | ------------ | ----------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------ | ------ | -------- | --------- | -------- |
 | type         | string            | Yes      | Attribute | Always "quest_step_progress"                                                                               |
-| wallet       | string            | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
+| wallet       | addr              | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
 | quest_id     | string            | Yes      | Attribute | Quest identifier (e.g., "arkiv_builder")                                                                   |
 | step_id      | string            | Yes      | Attribute | Step identifier (e.g., "intro", "first_entity")                                                            |
 | step_type    | string            | Yes      | Attribute | Step type: "READ"                                                                                          | "DO"                           | "QUIZ" | "SUBMIT" | "SESSION" | "VERIFY" |
 | space_id     | string            | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| created_at   | string            | Yes      | Attribute | ISO timestamp                                                                                              |
+| created_at   | u64               | Yes      | Attribute | Epoch ms                                                                                              |
 | evidence     | QuestStepEvidence | Yes      | Payload   | Evidence record for step completion                                                                        |
 | questVersion | string            | No       | Payload   | Quest version this progress is for (defaults to "1")                                                       |
 | status       | string            | No       | Payload   | Progress status: "submitted"                                                                               | "indexed" (for reconciliation) |
@@ -73,12 +73,12 @@ interface QuestStepEvidence {
 
 | Step Type | Evidence Type       | Required Fields                                                            | Optional Fields                           |
 | --------- | ------------------- | -------------------------------------------------------------------------- | ----------------------------------------- |
-| READ      | `completion`        | `stepId`, `completedAt`, `evidenceType`                                    | `questVersion`                            |
-| DO        | `entity_created`    | `stepId`, `completedAt`, `evidenceType`, `entityKey`                       | `txHash`, `questVersion`                  |
-| QUIZ      | `quiz_result`       | `stepId`, `completedAt`, `evidenceType`, `score`, `rubricVersion`          | `maxScore`, `questionIds`, `questVersion` |
-| SUBMIT    | `submission`        | `stepId`, `completedAt`, `evidenceType`, `submittedValue`, `submittedType` | `questVersion`                            |
-| SESSION   | `session_completed` | `stepId`, `completedAt`, `evidenceType`, `sessionEntityKey`                | `sessionDurationMinutes`, `questVersion`  |
-| VERIFY    | `query_proof`       | `stepId`, `completedAt`, `evidenceType`, `queryFingerprint`                | `resultKeys`, `questVersion`              |
+| READ      | `completion`        | `stepId`, `completedAt`, `evidenceType`                                    | `quest_version`                            |
+| DO        | `entity_created`    | `stepId`, `completedAt`, `evidenceType`, `entity_key`                       | `txHash`, `quest_version`                  |
+| QUIZ      | `quiz_result`       | `stepId`, `completedAt`, `evidenceType`, `score`, `rubricVersion`          | `maxScore`, `questionIds`, `quest_version` |
+| SUBMIT    | `submission`        | `stepId`, `completedAt`, `evidenceType`, `submittedValue`, `submittedType` | `quest_version`                            |
+| SESSION   | `session_completed` | `stepId`, `completedAt`, `evidenceType`, `sessionEntityKey`                | `sessionDurationMinutes`, `quest_version`  |
+| VERIFY    | `query_proof`       | `stepId`, `completedAt`, `evidenceType`, `queryFingerprint`                | `resultKeys`, `quest_version`              |
 
 ## Update Handling
 
@@ -147,7 +147,7 @@ Progress entities track indexer state via status field in payload:
 
 ## Entity Relationships
 
-- Links to `quest_definition` entities via `questId` attribute (string reference)
+- Links to `quest_definition` entities via `quest_id` attribute (string reference)
 - Links to `proof_of_skill_badge` entities via evidence references (badges store progress entity keys)
 - For DO steps: Links to created entities via `evidence.entityKey`
 - For SESSION steps: Links to `session` entities via `evidence.sessionEntityKey`
@@ -155,18 +155,18 @@ Progress entities track indexer state via status field in payload:
 
 ## Expiration
 
-Progress entities expire after 1 year (31536000 seconds). This is effectively permanent for user progress tracking.
+Progress entities expire after the `quest_step_progress` lifetime from `lib/arkiv/schema.ts` (180-day default) unless a `ttl_seconds` override is passed. Arkiv has no durable `permanent()`; long-lived records are meant to be renewed.
 
 ## Transaction Hash Tracking
 
 Separate `quest_step_progress_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "quest_step_progress_txhash"
-- `progressKey`: Entity key of progress entity
+- `progress_key`: Entity key of progress entity
 - `txHash`: Transaction hash
 - `wallet`: Wallet address (normalized lowercase)
-- `spaceId`: Space ID (matches progress entity)
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID (matches progress entity)
+- `created_at`: `u64` epoch milliseconds
 
 ## Step Type Details
 
@@ -179,7 +179,7 @@ Separate `quest_step_progress_txhash` entity (optional) tracks transaction hash:
 ### DO Steps
 
 - **Evidence Type:** `entity_created`
-- **Evidence:** `entityKey` (required), `txHash` (optional)
+- **Evidence:** `entity_key` (required), `txHash` (optional)
 - **Use Case:** User creates an Arkiv entity as part of learning
 
 ### QUIZ Steps

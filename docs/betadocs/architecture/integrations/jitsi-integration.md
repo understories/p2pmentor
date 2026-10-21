@@ -70,14 +70,14 @@ if (mentorConfirmed && learnerConfirmed) {
       videoJoinUrl: jitsiInfo.videoJoinUrl,
       generatedAt: createdAt,
     },
-    attributes: [
-      { type: 'session_jitsi' },
-      { session_key: sessionKey },
-      { mentor_wallet: mentorWallet.toLowerCase() },
-      { learner_wallet: learnerWallet.toLowerCase() },
-      { space_id: spaceId },
-      { created_at: createdAt },
-    ],
+    attributes: {
+      type: 'session_jitsi',
+      session_key: sessionKey,
+      mentor_wallet: mentorWallet.toLowerCase(),
+      learner_wallet: learnerWallet.toLowerCase(),
+      space_id: spaceId,
+      created_at: createdAt,
+    },
     expiresIn: sessionExpiration, // Matches session expiration
   });
 }

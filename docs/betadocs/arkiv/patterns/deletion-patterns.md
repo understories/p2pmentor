@@ -12,10 +12,10 @@ Create a separate entity type that marks another entity as deleted:
 // Deletion marker entity
 {
   type: 'entity_type_deletion',
-  entityKey: 'original_entity_key',  // Reference to deleted entity
-  deletedBy: 'wallet_address',        // Who deleted it
-  deletedAt: '2024-01-15T10:30:00Z',  // When deleted
-  spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  entity_key: 'original_entity_key',  // Reference to deleted entity
+  deleted_by: 'wallet_address',       // Who deleted it (addr)
+  deleted_at: 1705314600000,          // When deleted (u64 epoch ms)
+  space_id: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }
 ```
 
@@ -26,24 +26,17 @@ Create a separate entity type that marks another entity as deleted:
 ```typescript
 async function deleteEntity(entityKey: string, wallet: string) {
   const walletClient = getWalletClientFromPrivateKey(privateKey);
-  const enc = new TextEncoder();
   const deletedAt = new Date().toISOString();
 
-  await walletClient.createEntity({
-    payload: enc.encode(
-      JSON.stringify({
-        entityKey,
-        deletedBy: wallet,
-        deletedAt,
-      })
-    ),
+  await createArkivEntity(walletClient, {
+    type: 'entity_type_deletion',
     attributes: {
-      type: 'entity_type_deletion',
-      entityKey,
-      deletedBy: wallet.toLowerCase(),
-      spaceId: 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+      entity_key: entityKey,
+      deleted_by: wallet.toLowerCase(),
+      space_id: SPACE_ID,
     },
-    expiresIn: 31536000, // 1 year
+    payload: { entityKey, deletedBy: wallet, deletedAt },
+    // lifetime: type default from lib/arkiv/schema.ts
   });
 }
 ```
@@ -53,15 +46,13 @@ async function deleteEntity(entityKey: string, wallet: string) {
 ```typescript
 async function getActiveEntities() {
   // 1. Get all entities
-  const entities = await arkivSelect('entity_type')
-    .fetch();
+  const entities = await fetchAll(arkivSelect('entity_type'), 1000);
 
   // 2. Get all deletion markers
-  const deletions = await arkivSelect('entity_type_deletion')
-    .fetch();
+  const deletions = await fetchAll(arkivSelect('entity_type_deletion'), 1000);
 
   // 3. Filter out deleted entities
-  const deletedKeys = new Set(deletions.entities.map((e) => e.attributes.entityKey));
+  const deletedKeys = new Set(deletions.entities.map((e) => getAttr(e, 'entity_key')));
 
   return entities.entities.filter((e) => !deletedKeys.has(e.key));
 }

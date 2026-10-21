@@ -6,11 +6,12 @@ Efficient querying is critical for good performance. This document covers best p
 
 ## Indexed Attributes
 
-These attributes are indexed and should be used in queries:
+These attributes are indexed and should be used in queries. Write and query them through `entityAttributes` / `eqAttr` (`lib/arkiv/schema.ts`) so the attribute type (`str`, `addr`, `u64`) matches on both sides:
 
-- `type`: Entity type (always use first)
+- `project`: Always `'p2pmentor'` (added by `arkivSelect`)
+- `type`: Entity type (always use first; `arkivSelect(type)` adds it)
 - `wallet`: Wallet address (normalized to lowercase)
-- `spaceId`: Space identifier
+- `space_id`: Space identifier
 - Custom indexed attributes (varies by entity type)
 
 ## Query Patterns
@@ -18,23 +19,20 @@ These attributes are indexed and should be used in queries:
 ### Always Filter by Type First
 
 ```typescript
-// ✅ Good: Type first (indexed)
-const result = await arkivSelect('user_profile')
-  .where(eqAttr('wallet', wallet))
-  .fetch();
+// ✅ Good: start from arkivSelect(type) (project + type filters, selected fields)
+const result = await arkivSelect('user_profile').where(eqAttr('wallet', wallet)).fetch();
 
-// ❌ Bad: Wallet first
+// ❌ Bad: raw SDK builder without the project/type namespace and with untyped eq()
 const result = await publicClient
-  .buildQuery()
-  .where(eqAttr('wallet', wallet))
-  .where(eqAttr('type', 'user_profile'))
+  .select({ key: true, attributes: true, payload: true })
+  .where(eq('wallet', wallet))
   .fetch();
 ```
 
 ### Use Limit Defensively
 
 ```typescript
-// ✅ Good: Always use limit
+// ✅ Good: Always use limit (max 200 per page; use fetchAll(builder, max) for more)
 const result = await arkivSelect('ask').limit(100).fetch();
 
 // ❌ Bad: No limit (unbounded)
@@ -46,19 +44,15 @@ const result = await arkivSelect('ask').fetch();
 ```typescript
 // ✅ Good: Normalize to lowercase
 const wallet = userWallet.toLowerCase();
-const result = await arkivSelect('user_profile')
-  .where(eqAttr('wallet', wallet))
-  .fetch();
+const result = await arkivSelect('user_profile').where(eqAttr('wallet', wallet)).fetch();
 
 // ❌ Bad: Case-sensitive
-const result = await arkivSelect('user_profile')
-  .where(eqAttr('wallet', userWallet))
-  .fetch();
+const result = await arkivSelect('user_profile').where(eqAttr('wallet', userWallet)).fetch();
 ```
 
 ## Client-Side Filtering
 
-For complex filters, query broadly and filter client-side:
+For complex filters, query broadly and filter client-side. The node rejects `ne`, `exists` and `hasType`, and has no server-side ordering (newest-created first), so negative filters and sorting always happen on the client:
 
 ```typescript
 // 1. Query indexed attributes
@@ -69,7 +63,7 @@ const result = await arkivSelect('session')
 
 // 2. Filter client-side
 const activeSessions = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((s) => s.status === 'scheduled' && new Date(s.sessionDate) >= new Date());
 ```
 
@@ -86,9 +80,9 @@ async function getSessionsPaginated(wallet: string, page: number = 0, pageSize: 
     .limit(pageSize)
     .fetch();
 
-  // Note: Arkiv doesn't support offset, so pagination is approximate
-  // For exact pagination, use cursor-based approach
-  return result.entities.map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }));
+  // Note: Arkiv doesn't support offset. For exact pagination use the page cursor
+  // (page.hasNextPage() / page.next()), or fetchAll(builder, max) and slice
+  return result.entities.map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }));
 }
 ```
 

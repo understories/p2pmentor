@@ -5,7 +5,7 @@
 Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, and fallback rates. Computed daily via Vercel Cron for efficient querying of historical performance data.
 
 **Entity Type:** `metric_aggregate`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
@@ -16,8 +16,8 @@ Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, a
 - `source`: `'arkiv'` | `'graphql'` (required)
 - `route`: API route (optional)
 - `period`: `'daily'` | `'weekly'` (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -60,10 +60,9 @@ Pre-computed daily aggregates with percentiles (p50/p90/p95/p99), error rates, a
 ### Get Aggregates by Date
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('metric_aggregate')
   .where(eqAttr('date', '2024-01-15'))
   .where(eqAttr('period', 'daily'))
@@ -71,8 +70,8 @@ const result = await arkivSelect('metric_aggregate')
   .fetch();
 
 const aggregates = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
@@ -88,7 +87,7 @@ const result = await arkivSelect('metric_aggregate')
 
 // Sort by date
 const sorted = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => a.date.localeCompare(b.date));
 ```
 
@@ -102,7 +101,7 @@ const result = await arkivSelect('metric_aggregate')
 
 // Filter and sort by date
 const recent = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((a) => {
     const date = new Date(a.date);
     const weekAgo = new Date();
@@ -197,7 +196,7 @@ async function computeDailyAggregate(date: string, operation: string, source: st
 
 ## Transaction Hash Tracking
 
-- `metric_aggregate_txhash`: Transaction hash tracking, linked via `aggregateKey` attribute
+- `metric_aggregate_txhash`: Transaction hash tracking, linked via `aggregate_key` attribute
 
 ## Related Entities
 

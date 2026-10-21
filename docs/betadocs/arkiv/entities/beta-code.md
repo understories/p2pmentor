@@ -5,15 +5,15 @@
 Tracks beta code usage on Arkiv to enforce limits. Each beta code has a usage limit (e.g., 50 uses). When a code is used, the usage count is incremented. This entity is updated (new entity created) each time usage count changes.
 
 **Entity Type:** `beta_code_usage`  
-**TTL:** 1 year (31536000 seconds)  
-**Immutability:** Immutable - updates create new entities (usage count increments)
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
+**Immutability:** Immutable - updates create new entities (usage count increments). Created with the `readonly` flag, so it can never be patched
 
 ## Attributes
 
 - `type`: `'beta_code_usage'` (required)
 - `code`: Beta code string (required, lowercase, trimmed)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -40,10 +40,9 @@ Tracks beta code usage on Arkiv to enforce limits. Each beta code has a usage li
 ### Get Beta Code Usage
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const normalizedCode = code.toLowerCase().trim();
 
 const result = await arkivSelect('beta_code_usage')
@@ -53,7 +52,7 @@ const result = await arkivSelect('beta_code_usage')
 
 // Get latest version (highest usageCount or most recent createdAt)
 const latest = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => {
     // Sort by usageCount descending, then createdAt descending
     if (a.usageCount !== b.usageCount) {
@@ -86,7 +85,7 @@ const { key, txHash } = await trackBetaCodeUsage(
 
 ## Transaction Hash Tracking
 
-- `beta_code_usage_txhash`: Transaction hash tracking, linked via `betaCodeKey` attribute
+- `beta_code_usage_txhash`: Transaction hash tracking, linked via `beta_code_key` attribute
 
 **Note:** Entity type is `beta_code_usage`, not `beta_code`.
 

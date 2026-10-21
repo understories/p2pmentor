@@ -86,7 +86,7 @@ If you're building on Arkiv and need testnet funds for your own signing wallet:
 
 Arkiv provides a faucet for Braga testnet funds:
 
-**Faucet URL**: [https://braga.hoodi.arkiv.network/faucet](https://braga.hoodi.arkiv.network/faucet)
+**Faucet URL**: [https://hub.arkiv.network/faucet](https://hub.arkiv.network/faucet)
 
 Use the faucet to:
 
@@ -132,7 +132,7 @@ Even during beta with server-signed transactions, all data is **fully verifiable
 
 ### Arkiv Explorer
 
-All entities and transactions are viewable on the [Arkiv Explorer](https://explorer.braga.hoodi.arkiv.network):
+All entities and transactions are viewable on the [Arkiv Explorer](https://tiramisu.explorer.arkiv.network):
 
 - **Entity Keys**: View raw entity data
 - **Transaction Hashes**: Verify transaction details
@@ -169,12 +169,12 @@ All entities and transactions are viewable on the [Arkiv Explorer](https://explo
 ```typescript
 // Profile wallet used in attributes
 const entity = {
-  attributes: [
-    { type: 'user_profile' },
-    { wallet: profileWallet.toLowerCase() }, // Profile wallet
-    { space_id: 'local-dev' }, // Default in library functions; API routes use SPACE_ID from config
-    { created_at: new Date().toISOString() },
-  ],
+  attributes: {
+    type: 'user_profile',
+    wallet: profileWallet.toLowerCase(), // Profile wallet
+    space_id: 'local-dev', // Default in library functions; API routes use SPACE_ID from config
+    created_at: new Date().toISOString(),
+  },
   payload: {
     displayName: 'Alice',
     // ... user data
@@ -201,7 +201,7 @@ const query = arkivSelect('user_profile')
 - **Current State**: Server signs all transactions (beta architecture)
 - **Future State**: Users sign their own transactions (mainnet)
 - **Verifiability**: All data viewable and verifiable on Arkiv Explorer
-- **For Builders**: Use [Braga faucet](https://braga.hoodi.arkiv.network/faucet) for testnet funds
+- **For Builders**: Use [Braga faucet](https://hub.arkiv.network/faucet) for testnet funds
 
 ## See Also
 
@@ -209,4 +209,4 @@ const query = arkivSelect('user_profile')
 - [Environments](/docs/arkiv/operations/environments) - Using different signing wallets for separate data environments
 - [Data Model](/docs/arkiv/entities/data-model) - Entity schemas
 - [Client Wrapper](/docs/arkiv/overview/overview#client-wrapper) - Wallet client implementation
-- [Arkiv Explorer](https://explorer.braga.hoodi.arkiv.network) - View your data on-chain
+- [Arkiv Explorer](https://tiramisu.explorer.arkiv.network) - View your data on-chain

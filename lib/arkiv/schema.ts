@@ -21,7 +21,14 @@
  * Entity lifetimes and creation flags are chosen per entity type (`lifetimeFor`, `flagsFor`).
  */
 
-import { addr, i32, str, u64, type AttributeInputs, type ArkivValue } from '@arkiv-network/sdk/attr';
+import {
+  addr,
+  i32,
+  str,
+  u64,
+  type AttributeInputs,
+  type ArkivValue,
+} from '@arkiv-network/sdk/attr';
 import { eq } from '@arkiv-network/sdk/query';
 import { ExpirationTime } from '@arkiv-network/sdk';
 import type { CreationFlags, Expiry } from '@arkiv-network/sdk/entity';
@@ -177,7 +184,9 @@ const LIFETIME_SECONDS: Record<string, number> = {
   quest_definition: 365 * DAY,
   beta_code: 365 * DAY,
   badge: 365 * DAY,
+  proof_of_skill_badge: 365 * DAY,
   assessment_result: 365 * DAY,
+  learner_quest_assessment_result: 365 * DAY,
   quest_completion: 365 * DAY,
   revocation: 365 * DAY,
   tx_event: 365 * DAY,
@@ -209,6 +218,12 @@ const DEFAULT_LIFETIME_SECONDS = 180 * DAY;
 const READONLY_TYPES = new Set<string>([
   'revocation',
   'assessment_result',
+  'learner_quest_assessment_result',
+  'quest_completion_skill_link',
+  'quest_telemetry',
+  'quest_step_progress',
+  'learner_quest_progress',
+  'meta_learning_artifact',
   'tx_event',
   'onboarding_event',
   'app_feedback',
@@ -236,6 +251,12 @@ export function lifetimeFor(type: string, seconds?: number | null): Expiry {
   return ExpirationTime.fromSeconds(s);
 }
 
+/**
+ * Creation flags for a type. `*_revocation` markers and `*_txhash` records
+ * (append-only links from an entity to its transaction) are always readonly.
+ */
 export function flagsFor(type: string): CreationFlags | undefined {
-  return READONLY_TYPES.has(type) ? { readonly: true } : undefined;
+  const readonly =
+    READONLY_TYPES.has(type) || type.endsWith('_txhash') || type.endsWith('_revocation');
+  return readonly ? { readonly: true } : undefined;
 }

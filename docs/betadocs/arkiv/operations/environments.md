@@ -28,11 +28,11 @@ All server-side entity creation uses the signing wallet:
 // Example: Creating a profile
 const walletClient = getWalletClientFromPrivateKey(privateKey);
 await walletClient.createEntity({
-  attributes: [
-    { type: 'user_profile' },
-    { wallet: userWallet }, // User's profile wallet
+  attributes: {
+    type: 'user_profile',
+    wallet: userWallet, // User's profile wallet
     // ...
-  ],
+  },
   // ...
 });
 ```
@@ -443,7 +443,7 @@ Each signing wallet must have funds on the Arkiv network:
 
 View entities by signing wallet on Arkiv Explorer:
 
-1. Navigate to [Arkiv Explorer](https://explorer.braga.hoodi.arkiv.network)
+1. Navigate to [Arkiv Explorer](https://tiramisu.explorer.arkiv.network)
 2. Search by transaction hash or entity key
 3. View which wallet signed each transaction
 4. Verify entities are signed by the expected wallet

@@ -5,7 +5,7 @@
 Stores aggregated performance snapshots as Arkiv entities for historical tracking. Enables comparison of performance over time as query methods evolve. Captures comprehensive performance data at a point in time.
 
 **Entity Type:** `perf_snapshot`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
@@ -13,8 +13,8 @@ Stores aggregated performance snapshots as Arkiv entities for historical trackin
 - `type`: `'perf_snapshot'` (required)
 - `operation`: Operation name (e.g., `'buildNetworkGraphData'`) (required)
 - `method`: `'arkiv'` | `'graphql'` | `'both'` (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -72,17 +72,16 @@ Stores aggregated performance snapshots as Arkiv entities for historical trackin
 ### Get All Snapshots
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('perf_snapshot')
   .where(eqAttr('operation', 'buildNetworkGraphData'))
   .limit(20)
   .fetch();
 
 const snapshots = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 ```
 
@@ -95,7 +94,7 @@ const result = await arkivSelect('perf_snapshot')
   .fetch();
 
 const latest = result.entities[0]
-  ? { ...result.entities[0].attributes, ...JSON.parse(result.entities[0].payload) }
+  ? { ...attrsToRecord(result.entities[0]), ...parsePayload(result.entities[0]) }
   : null;
 ```
 
@@ -191,7 +190,7 @@ if (check.shouldCreateSnapshot) {
 
 ## Transaction Hash Tracking
 
-- `perf_snapshot_txhash`: Transaction hash tracking, linked via `snapshotKey` attribute
+- `perf_snapshot_txhash`: Transaction hash tracking, linked via `snapshot_key` attribute
 
 ## Related Entities
 

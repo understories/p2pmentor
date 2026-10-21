@@ -41,13 +41,13 @@ Indexer lag means writes may not be immediately queryable. This pattern handles 
 ## Arkiv Primitives Used
 
 - Transaction confirmation: `txHash` indicates transaction confirmed
-- Query polling: `buildQuery().where(eq(...)).fetch()` checks indexer visibility
+- Query polling: `arkivSelect(type).where(eqAttr(...)).fetch()` checks indexer visibility
 - Exponential backoff: Increasing delays between retries
 - Stale-while-revalidate: Show optimistic state, refresh when indexed
 
 ## Canonical Algorithm
 
-1. **Submit transaction:** Get `txHash` from `createEntity()` or `updateEntity()`
+1. **Submit transaction:** Get `txHash` from `createArkivEntity()` or `replaceArkivEntity()`
 2. **Transaction confirmed:** `txHash` indicates transaction on blockchain
 3. **Poll for indexer visibility:** Query for entity with exponential backoff
 4. **Retry with backoff:** Wait `retryDelay * 2^attempt` between retries

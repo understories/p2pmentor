@@ -5,16 +5,16 @@
 Privacy-preserving retention and cohort analysis. Uses one-way hashed wallets for internal calculations. Stores only aggregated results (no per-wallet history). Computed weekly via Vercel Cron.
 
 **Entity Type:** `retention_cohort`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'retention_cohort'` (required)
-- `cohortDate`: Date string (YYYY-MM-DD format) (required)
+- `cohort_date`: Date string (YYYY-MM-DD format) (required)
 - `period`: `'daily'` | `'weekly'` | `'monthly'` (required)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -65,17 +65,16 @@ function hashWalletForRetention(wallet: string): string {
 ### Get Cohorts
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('retention_cohort')
   .where(eqAttr('period', 'weekly'))
   .limit(20)
   .fetch();
 
 const cohorts = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => b.cohortDate.localeCompare(a.cohortDate));
 ```
 
@@ -159,7 +158,7 @@ async function computeWeeklyCohort(cohortDate: string) {
 
 ## Transaction Hash Tracking
 
-- `retention_cohort_txhash`: Transaction hash tracking, linked via `cohortKey` attribute
+- `retention_cohort_txhash`: Transaction hash tracking, linked via `cohort_key` attribute
 
 ## Related Entities
 

@@ -5,17 +5,18 @@
 Admin responses to user app feedback. Allows administrators to respond to user feedback and issues, creating a communication channel between users and builders.
 
 **Entity Type:** `admin_response`  
-**TTL:** 1 year (31536000 seconds)  
+**TTL:** 180 days (default lifetime for types not listed in `lib/arkiv/schema.ts`)  
 **Immutability:** Immutable - updates create new entities
 
 ## Attributes
 
 - `type`: `'admin_response'` (required)
-- `feedbackKey`: Reference to `app_feedback` entity key (required)
-- `wallet`: Wallet address of user who gave feedback (required, lowercase)
-- `adminWallet`: Wallet address of admin responding (required, lowercase)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `feedback_key`: Reference to `app_feedback` entity key (required)
+- `wallet`: Wallet address of user who gave feedback (required, `addr`)
+- `admin_wallet`: Wallet address of admin responding (required, `addr`)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
+- Plus `project`, `schema_version` (added by `entityAttributes`)
 
 ## Payload
 
@@ -28,29 +29,28 @@ Admin responses to user app feedback. Allows administrators to respond to user f
 
 ## Key Fields
 
-- **feedbackKey**: Links to the original `app_feedback` entity
+- **feedback_key**: Links to the original `app_feedback` entity
 - **wallet**: User wallet who submitted the feedback
 - **message**: Admin's response text (required, non-empty)
-- **adminWallet**: Admin wallet address responding
-- **createdAt**: When the response was created
+- **admin_wallet**: Admin wallet address responding
+- **created_at**: When the response was created
 
 ## Query Patterns
 
 ### Get All Responses for Feedback
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('admin_response')
   .where(eqAttr('feedback_key', feedbackKey))
   .limit(10)
   .fetch();
 
-// Sort by createdAt descending to get most recent first
+// No server-side ordering: sort by created_at descending on the client
 const responses = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
 
@@ -83,12 +83,12 @@ const { key, txHash } = await createAdminResponse({
 
 ## Transaction Hash Tracking
 
-- `admin_response_txhash`: Transaction hash tracking, linked via `responseKey` attribute
+- `admin_response_txhash`: Transaction hash tracking, linked via `response_key` attribute
 
 ## Notes
 
 - **One-to-many**: Multiple admin responses can exist for a single feedback
-- **Latest response**: Query and sort by `createdAt` descending to get most recent
+- **Latest response**: Query and sort by `created_at` descending on the client (the node has no ordering)
 - **Validation**: Message must be non-empty
 - **Notifications**: Admin responses trigger notifications to users when created
 - **Transaction Timeouts**: Uses `handleTransactionWithTimeout` for graceful timeout handling

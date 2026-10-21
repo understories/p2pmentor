@@ -15,10 +15,11 @@ async function createEntityWithTimeout(data: EntityData) {
   try {
     return await handleTransactionWithTimeout(
       async () => {
-        return await walletClient.createEntity({
-          payload: enc.encode(JSON.stringify(data.payload)),
-          attributes: data.attributes,
-          expiresIn: data.expiresIn,
+        return await createArkivEntity(walletClient, {
+          type: data.type,
+          attributes: data.attributes, // snake_case names
+          payload: data.payload, // JSON; encoded with jsonToPayload
+          lifetimeSeconds: data.lifetimeSeconds, // optional; defaults to the type lifetime
         });
       },
       {

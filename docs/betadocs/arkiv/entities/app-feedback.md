@@ -5,18 +5,18 @@
 User feedback about the application itself (for builders/admin). Separate from session feedback (peer-to-peer). Allows users to report issues, provide general feedback, and rate their experience.
 
 **Entity Type:** `app_feedback`  
-**TTL:** 1 year (31536000 seconds)  
-**Immutability:** Immutable - updates create new entities
+**TTL:** 90 days (`app_feedback` lifetime in `lib/arkiv/schema.ts`)  
+**Immutability:** Immutable - updates create new entities. Created with the `readonly` flag, so it can never be patched
 
 ## Attributes
 
 - `type`: `'app_feedback'` (required)
 - `wallet`: Wallet address of feedback author (required, lowercase)
 - `page`: Page where feedback was given (e.g., `/network`, `/me`) (required)
-- `feedbackType`: `'feedback'` | `'issue'` (required)
+- `feedback_type`: `'feedback'` | `'issue'` (required)
 - `rating`: Rating 1-5 (optional, stored as string)
-- `spaceId`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
-- `createdAt`: ISO timestamp (required)
+- `space_id`: Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) (required)
+- `created_at`: `u64` epoch milliseconds (required)
 
 ## Payload
 
@@ -48,10 +48,9 @@ User feedback about the application itself (for builders/admin). Separate from s
 ### Get All Feedback
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('app_feedback')
   .limit(100)
   .fetch();
@@ -95,7 +94,7 @@ const result = await arkivSelect('app_feedback')
 
 // Filter client-side
 const feedbacks = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((f) => new Date(f.createdAt) >= new Date(since))
   .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 ```
@@ -147,7 +146,7 @@ const isResolved = resolutionResult.entities.length > 0;
 
 ## Transaction Hash Tracking
 
-- `app_feedback_txhash`: Transaction hash tracking, linked via `feedbackKey` attribute
+- `app_feedback_txhash`: Transaction hash tracking, linked via `feedback_key` attribute
 
 ## Related Entities
 

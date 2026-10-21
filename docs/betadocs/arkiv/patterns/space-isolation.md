@@ -6,13 +6,13 @@
 
 ## Overview
 
-`spaceId` provides data isolation between environments (test/beta/prod). Every write must include the correct `spaceId` from configuration; every read must scope by `spaceId` to prevent cross-environment data leaks. This pattern ensures "works on my machine" bugs don't leak data across environments.
+`spaceId` (stored as the `space_id` attribute) provides data isolation between environments (test/beta/prod). Every write must include the correct `spaceId` from configuration; every read must scope by `spaceId` to prevent cross-environment data leaks. This pattern ensures "works on my machine" bugs don't leak data across environments.
 
 ## When to Use
 
 **Always apply this pattern when:**
 
-- Creating entities (include `spaceId` attribute)
+- Creating entities (include `space_id` attribute)
 - Querying entities (filter by `spaceId`)
 - Setting up different environments (dev, staging, prod)
 - Creating seed or test data (use separate `spaceId`)
@@ -28,7 +28,7 @@
 - Every write includes correct `spaceId` (from config, not hardcoded)
 - Every read scopes by `spaceId` (no cross-space mixing)
 - Test/beta/prod data is completely isolated
-- `spaceId` is an indexed attribute for efficient queries
+- `space_id` is an indexed attribute for efficient queries
 - Configuration uses `SPACE_ID` from `lib/config.ts`, never hardcoded values
 
 ## Threat Model / Failure Modes
@@ -41,9 +41,9 @@
 
 ## Arkiv Primitives Used
 
-- Entity attributes: `spaceId` attribute on every entity
-- Indexed attributes: `spaceId` is indexed for efficient filtering
-- Query filters: `where(eq('spaceId', spaceId))` for scoping
+- Entity attributes: `space_id` attribute on every entity (alongside `project` and `type`)
+- Indexed attributes: `space_id` is indexed for efficient filtering
+- Query filters: `where(eqAttr('space_id', spaceId))` for scoping
 - Configuration: `SPACE_ID` from `lib/config.ts` provides default
 
 ## Canonical Algorithm
@@ -82,10 +82,10 @@ export async function createEntity({
 }) {
   const finalSpaceId = spaceId || SPACE_ID; // Always fallback to config
   // ...
-  attributes: [
-    { space_id: finalSpaceId },
+  attributes: {
+    space_id: finalSpaceId,
     // ...
-  ],
+  },
 }
 
 // Querying
@@ -101,13 +101,13 @@ if (spaceId) {
 if (spaceIds && spaceIds.length > 0) {
   // Query all, filter client-side (Arkiv doesn't support OR)
   const result = await queryBuilder.limit(limit).fetch();
-  return result.entities.filter(e => spaceIds.includes(e.spaceId));
+  return result.entities.filter(e => spaceIds.includes(getAttr(e, 'space_id')));
 }
 ```
 
 ## Debug Recipe
 
-- Check entity attributes: verify `spaceId` matches expected environment
+- Check entity attributes: verify `space_id` matches expected environment
 - Verify configuration: check `SPACE_ID` value matches environment
 - Query with spaceId: verify queries filter by correct `spaceId`
 - Check for leaks: query without `spaceId` filter to detect cross-space data
@@ -116,7 +116,7 @@ if (spaceIds && spaceIds.length > 0) {
 ## Anti-Patterns
 
 - ❌ Hardcoding `spaceId = 'local-dev'` (breaks in production)
-- ❌ Missing `spaceId` in entity attributes (data leaks across environments)
+- ❌ Missing `space_id` in entity attributes (data leaks across environments)
 - ❌ Queries without `spaceId` filter (returns wrong environment data)
 - ❌ Using different `spaceId` sources in different parts of app (configuration drift)
 - ❌ Assuming `spaceId` is optional (always include, always filter)
@@ -126,11 +126,11 @@ if (spaceIds && spaceIds.length > 0) {
 - **Isolation:** Complete data isolation between environments
 - **Configuration:** Requires consistent use of `SPACE_ID` from config
 - **Builder mode:** Requires client-side filtering for multiple `spaceIds`
-- **Performance:** Indexed `spaceId` attribute enables efficient filtering
+- **Performance:** Indexed `space_id` attribute enables efficient filtering
 
 ## Related Patterns
 
 - [Environments](../environments.md) - Complete environment setup guide
-- [Query Optimization](./query-optimization.md) - `spaceId` is an indexed attribute
+- [Query Optimization](./query-optimization.md) - `space_id` is an indexed attribute
 - [PAT-IDENTITY-001: Wallet Normalization](./wallet-normalization.md) - Both use normalized attributes
 - [PAT-WRITE-AUTHZ-001: Server-Signed Writes](../arkiv-patterns-catalog.md#pat-write-authz-001-server-signed-writes-phase-0) - Signing wallet vs `spaceId` isolation

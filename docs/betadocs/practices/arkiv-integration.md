@@ -12,7 +12,7 @@ Encapsulate Arkiv operations behind clearly named functions. Keep entity schemas
 
 - Filter by `type` and by wallet or skill attributes
 - Limit and pagination set defensively to avoid unbounded queries
-- Use `withAttributes(true)` and `withPayload(true)` explicitly
+- Start queries from `arkivSelect(type)`, which selects exactly the fields the app reads (`key`, `attributes`, `payload`, …) and adds the `project` filter
 
 ## Entity design
 

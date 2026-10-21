@@ -9,10 +9,9 @@ Complete query examples for common use cases.
 ### Get Entity by Type and Wallet
 
 ```typescript
-import { eq } from '@arkiv-network/sdk/query';
-import { getPublicClient } from '@/lib/arkiv/client';
+import { eqAttr } from '@/lib/arkiv/schema';
+import { arkivSelect, attrsToRecord, fetchAll, getEntityByKey, parsePayload } from '@/lib/arkiv/read';
 
-const publicClient = getPublicClient();
 const result = await arkivSelect('user_profile')
   .where(eqAttr('wallet', walletAddress.toLowerCase()))
   .limit(100)
@@ -20,8 +19,8 @@ const result = await arkivSelect('user_profile')
 
 // Get latest version
 const profiles = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-  .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
+  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
 const latestProfile = profiles[0];
 ```
@@ -29,13 +28,11 @@ const latestProfile = profiles[0];
 ### Get Entities by Type
 
 ```typescript
-const result = await arkivSelect('ask')
-  .limit(50)
-  .fetch();
+const result = await arkivSelect('ask').limit(50).fetch();
 
 const asks = result.entities.map((e) => ({
-  ...e.attributes,
-  ...JSON.parse(e.payload),
+  ...attrsToRecord(e),
+  ...parsePayload(e),
 }));
 ```
 
@@ -44,18 +41,15 @@ const asks = result.entities.map((e) => ({
 ### Get Active Asks
 
 ```typescript
-const result = await arkivSelect('ask')
-  .where(eqAttr('status', 'open'))
-  .limit(100)
-  .fetch();
+const result = await arkivSelect('ask').where(eqAttr('status', 'open')).limit(100).fetch();
 
 // Filter expired asks client-side
 const now = Date.now();
 const activeAsks = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((ask) => {
-    const createdAt = new Date(ask.createdAt).getTime();
-    const ttlSeconds = ask.ttlSeconds || 3600;
+    const createdAt = new Date(ask.created_at).getTime(); // getAttr/attrsToRecord return ISO
+    const ttlSeconds = Number(ask.ttl_seconds) || 604800;
     return createdAt + ttlSeconds * 1000 > now;
   });
 ```
@@ -70,7 +64,7 @@ const result = await arkivSelect('session')
 
 // Filter by status client-side
 const scheduledSessions = result.entities
-  .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
+  .map((e) => ({ ...attrsToRecord(e), ...parsePayload(e) }))
   .filter((session) => {
     // Compute status from session state
     const status = computeSessionStatus(session);
@@ -88,18 +82,15 @@ const profile = await getProfileByWallet(walletAddress);
 
 // 2. Get skills
 if (profile.skill_ids && profile.skill_ids.length > 0) {
-  const skillResults = await Promise.all(
-    profile.skill_ids.map((skillId) =>
-      arkivSelect('skill')
-        .where(eqAttr('key', skillId))
-        .limit(1)
-        .fetch()
-    )
+  // Look entities up by key with getEntityByKey: `key` is a reserved name,
+  // so there is no `key` attribute to filter on
+  const skillEntities = await Promise.all(
+    profile.skill_ids.map((skillId) => getEntityByKey(skillId))
   );
 
-  const skills = skillResults
-    .flatMap((r) => r.entities)
-    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }));
+  const skills = skillEntities
+    .filter((e) => e !== null)
+    .map((e) => ({ key: e.key, ...attrsToRecord(e), ...parsePayload(e) }));
 
   profile.skills = skills;
 }
@@ -127,30 +118,27 @@ const sessionsWithFeedback = await Promise.all(
 
 ### Cursor-Based Pagination
 
+The node returns at most 200 entities per page. A fetched page has `hasNextPage()` and `next()`; pin the query to one block so pages stay consistent.
+
 ```typescript
-async function getAsksPaginated(
-  cursor?: string,
-  limit: number = 20
-): Promise<{ asks: Ask[]; nextCursor?: string }> {
-  const result = await arkivSelect('ask')
+async function getAsksPaginated(limit: number = 20) {
+  const block = await getPublicClient().getBlockNumber();
+  const page = await arkivSelect('ask')
     .where(eqAttr('status', 'open'))
-    .limit(limit + 1) // Fetch one extra to check for next page
+    .atBlock(block)
+    .limit(limit) // max 200
     .fetch();
 
-  const asks = result.entities
-    .map((e) => ({ ...e.attributes, ...JSON.parse(e.payload) }))
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-  const hasNext = asks.length > limit;
-  const pageAsks = hasNext ? asks.slice(0, limit) : asks;
-  const nextCursor = hasNext ? pageAsks[pageAsks.length - 1].key : undefined;
+  const asks = page.entities.map((e) => ({ key: e.key, ...attrsToRecord(e), ...parsePayload(e) }));
 
   return {
-    asks: pageAsks,
-    nextCursor,
+    asks, // newest-created first (node order); sort client-side if needed
+    next: page.hasNextPage() ? () => page.next() : undefined,
   };
 }
 ```
+
+To read everything up to a maximum, use `fetchAll(builder, max)` from `lib/arkiv/read.ts`, which does this paging for you.
 
 ## Aggregation Queries
 
@@ -158,12 +146,10 @@ async function getAsksPaginated(
 
 ```typescript
 async function countAsks(): Promise<number> {
-  const result = await arkivSelect('ask')
-    .where(eqAttr('status', 'open'))
-    .limit(1000) // Max limit
-    .fetch();
+  // .limit() is capped at 200 per page; fetchAll pages up to the max
+  const { entities } = await fetchAll(arkivSelect('ask').where(eqAttr('status', 'open')), 1000);
 
-  return result.entities.length;
+  return entities.length;
 }
 ```
 
@@ -197,15 +183,16 @@ async function getTransactionHash(entityKey: string, entityType: string): Promis
   }
 
   const txHashEntity = result.entities[0];
-  const payload = JSON.parse(txHashEntity.payload);
+  const payload = parsePayload(txHashEntity);
   return payload.txHash || null;
 }
 ```
 
 ## Best Practices
 
-1. **Always Filter by Type**: Use `type` filter first (indexed)
-2. **Use Limits**: Always use `.limit()` to avoid unbounded queries
-3. **Client-Side Filtering**: Use for complex filters not supported by indexes
-4. **Sort Client-Side**: Sort results client-side after fetching
-5. **Handle Empty Results**: Always check for empty results
+1. **Always Filter by Type**: Start from `arkivSelect(type)` (adds `project` and `type` filters)
+2. **Use Limits**: Always use `.limit()` (max 200 per page); use `fetchAll(builder, max)` for more
+3. **Typed Predicates**: Use `eqAttr` with snake_case names so values are typed like the written attributes
+4. **Client-Side Filtering**: Use for complex filters not supported by indexes (`ne`, `exists` and `hasType` are rejected by the node)
+5. **Sort Client-Side**: The node has no ordering; sort results client-side after fetching
+6. **Handle Empty Results**: Always check for empty results

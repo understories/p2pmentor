@@ -167,16 +167,16 @@ const { key, txHash } = await createUserProfile({
 
 ```typescript
 // ✅ Correct: Normalize when storing
-attributes: [
-  { wallet: wallet.toLowerCase() },
+attributes: {
+  wallet: wallet.toLowerCase(),
   // ...
-];
+};
 
 // ✅ Correct: Normalize when querying
 queryBuilder = queryBuilder.where(eqAttr('wallet', wallet.toLowerCase()));
 
 // ❌ Wrong: Mixed case storage/querying
-attributes: [{ wallet: wallet }]; // May be mixed case
+attributes: { wallet: wallet }; // May be mixed case
 queryBuilder.where(eqAttr('wallet', wallet)); // May not match!
 ```
 
@@ -246,7 +246,7 @@ export async function listUserProfiles(params?: {
 ```typescript
 export async function listUserProfilesForWallet(wallet: string): Promise<UserProfile[]> {
   const publicClient = getPublicClient();
-    const result = await arkivSelect('user_profile')
+  const result = await arkivSelect('user_profile')
     .where(eqAttr('wallet', wallet.toLowerCase())) // Normalize!
     .limit(100)
     .fetch();
@@ -271,7 +271,7 @@ export async function createUserProfile({
   timezone,
   // ... other fields
   privateKey,
-  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config // Default in library functions; API routes use SPACE_ID from config
+  spaceId = 'local-dev', // Default in library functions; API routes use SPACE_ID from config
 }: {
   wallet: string;
   displayName: string;
@@ -375,29 +375,29 @@ Use for fields that need to be queried:
 
 - `type`: 'user_profile'
 - `wallet`: User wallet (normalized to lowercase)
-- `displayName`: Display name
+- `display_name`: Display name
 - `timezone`: User timezone
 - `username`: Username (if unique constraint needed)
 - `seniority`: Seniority level
 - `skills`: Legacy comma-separated string
 - `skill_0`, `skill_1`, etc.: Individual skills for querying
-- `spaceId`: Space ID
-- `createdAt`: ISO timestamp
+- `space_id`: Space ID
+- `created_at`: `u64` epoch milliseconds
 
 ### Payload (Content)
 
 Use for complex or large data:
 
-- `bioShort`, `bioLong`: Bio content
-- `skillsArray`: Skills array (preferred over attributes)
+- `bio_short`, `bioLong`: Bio content
+- `skills_array`: Skills array (preferred over attributes)
 - `skill_ids`: Skill entity keys (Arkiv-native)
-- `skillExpertise`: Expertise levels map
-- `contactLinks`: Social links object
+- `skill_expertise`: Expertise levels map
+- `contact_links`: Social links object
 - `languages`: Languages array
-- `domainsOfInterest`: Domains array
-- `mentorRoles`, `learnerRoles`: Role arrays
-- `sessionsCompleted`, `avgRating`, etc.: Metrics
-- `peerTestimonials`, `trustEdges`: Complex objects
+- `domains_of_interest`: Domains array
+- `mentor_roles`, `learnerRoles`: Role arrays
+- `sessions_completed`, `avgRating`, etc.: Metrics
+- `peer_testimonials`, `trustEdges`: Complex objects
 
 ## Profile Updates
 

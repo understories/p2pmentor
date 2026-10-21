@@ -38,7 +38,7 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 
 ## Arkiv Primitives Used
 
-- `updateEntity({ entityKey, payload, attributes, expiresIn })`
+- `patchEntity({ entityKey, set, unset, payload })` via `replaceArkivEntity()` (expiry, owner and flags are not patchable)
 - Deterministic `entity_key` derivation (e.g., `deriveProfileKey(wallet)`)
 - Migration markers for per-wallet migration status
 
@@ -46,8 +46,8 @@ Frequently updated entities (profiles, preferences, notifications) need stable i
 
 1. Derive stable `entity_key` from identifier (e.g., `wallet`)
 2. Query for existing entity by `entity_key`
-3. If exists: call `updateEntity()` with same `entity_key`
-4. If not exists: call `createEntity()` (first time)
+3. If exists: call `replaceArkivEntity()` with same `entity_key`
+4. If not exists: call `createArkivEntity()` (first time)
 5. All subsequent updates reuse the same `entity_key`
 
 ## Implementation Hooks
