@@ -198,8 +198,8 @@ export async function createAdminNotification({
     },
     payload: { txHash },
   }).catch((err: any) => {
-      console.warn('[createAdminNotification] Failed to create txHash entity (non-critical):', err);
-    });
+    console.warn('[createAdminNotification] Failed to create txHash entity (non-critical):', err);
+  });
 
   return { key: actualKey, txHash };
 }

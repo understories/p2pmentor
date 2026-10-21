@@ -127,11 +127,10 @@ export async function issueBadge({
       },
       payload: { txHash, badgeKey: entityKey },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err) => {
-        // Non-blocking - log but don't fail
-        console.warn('[issueBadge] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      // Non-blocking - log but don't fail
+      console.warn('[issueBadge] Failed to create txhash entity:', err);
+    });
 
     return {
       key: entityKey,

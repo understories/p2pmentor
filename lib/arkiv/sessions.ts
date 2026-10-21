@@ -81,7 +81,7 @@ export async function createSession({
   questTitle,
   requesterWallet,
   privateKey,
-  ttlSeconds, // Optional: TTL in seconds (default: 6 months)
+  ttlSeconds, // Optional: TTL in seconds (default: session type lifetime)
 }: {
   mentorWallet: string;
   learnerWallet: string;
@@ -97,7 +97,7 @@ export async function createSession({
   questTitle?: string; // Optional: quest title for display
   requesterWallet?: string; // Wallet of the requester (will be auto-confirmed)
   privateKey: `0x${string}`;
-  ttlSeconds?: number; // Optional: TTL in seconds (default: 6 months = 15768000 seconds)
+  ttlSeconds?: number; // Optional: TTL in seconds (default: session type lifetime, 180 days)
 }): Promise<{ key: string; txHash: string }> {
   // Normalize wallet addresses to lowercase for consistency
   const normalizedMentorWallet = mentorWallet.toLowerCase();
@@ -136,23 +136,17 @@ export async function createSession({
     // Note: paymentTxHash is NOT included here - it will be submitted later after mentor confirms
   };
 
-  // Calculate expiration: Use provided ttlSeconds or default to 6 months
-  // Default: 6 months = 15768000 seconds (6 * 30.4 days * 24 hours * 3600 seconds)
-  const DEFAULT_SESSION_TTL_SECONDS = 15768000; // 6 months
-
-  let expiresInSecondsInt: number;
+  // Lifetime: use provided ttlSeconds (from UI advanced options), otherwise the
+  // 'session' type default from schema.ts (180 days)
+  let lifetimeSecondsInt: number | undefined;
 
   if (ttlSeconds !== undefined && ttlSeconds !== null) {
-    // Use provided TTL (from UI advanced options)
-    expiresInSecondsInt = Math.floor(Math.max(1, ttlSeconds));
-  } else {
-    // Default: 6 months
-    expiresInSecondsInt = DEFAULT_SESSION_TTL_SECONDS;
-  }
+    lifetimeSecondsInt = Math.floor(Math.max(1, ttlSeconds));
 
-  // CRITICAL: Final validation - lifetime must be a positive integer
-  if (!Number.isInteger(expiresInSecondsInt) || expiresInSecondsInt <= 0) {
-    throw new Error(`Invalid lifetime: ${expiresInSecondsInt}. Must be a positive integer.`);
+    // CRITICAL: Final validation - lifetime must be a positive integer
+    if (!Number.isInteger(lifetimeSecondsInt) || lifetimeSecondsInt <= 0) {
+      throw new Error(`Invalid lifetime: ${lifetimeSecondsInt}. Must be a positive integer.`);
+    }
   }
 
   // CRITICAL: Validate sessionDate is valid (still needed for sessionDate attribute)
@@ -205,7 +199,7 @@ export async function createSession({
       type: 'session',
       attributes: attributesWithSigner,
       payload,
-      lifetimeSeconds: expiresInSecondsInt,
+      lifetimeSeconds: lifetimeSecondsInt,
     });
     entityKey = result.entityKey;
     txHash = result.txHash;
@@ -259,7 +253,7 @@ export async function createSession({
         space_id: spaceId,
       },
       payload: { txHash },
-      lifetimeSeconds: expiresInSecondsInt,
+      lifetimeSeconds: lifetimeSecondsInt,
     });
   } catch (error: any) {
     // If txHash entity creation fails but we have the main entity, log and continue
@@ -295,7 +289,7 @@ export async function createSession({
             created_at: confirmationCreatedAt,
           },
           payload: { confirmedAt: confirmationCreatedAt },
-          lifetimeSeconds: expiresInSecondsInt,
+          lifetimeSeconds: lifetimeSecondsInt,
         });
 
         console.log(
@@ -1310,8 +1304,8 @@ export async function confirmSession({
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
       // Calculate lifetime and ensure it's always an integer
-      const expiresInSecondsRaw = (expirationTime - now) / 1000;
-      const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
+      const lifetimeSecondsRaw = (expirationTime - now) / 1000;
+      const calculatedExpiration = Math.max(1, Math.floor(lifetimeSecondsRaw));
       // Final safety check: ensure it's definitely an integer
       sessionExpiration = Number.isInteger(calculatedExpiration)
         ? calculatedExpiration
@@ -1809,8 +1803,8 @@ export async function rejectSession({
       const expirationTime = sessionStartTime + sessionDurationMs + bufferMs;
       const now = Date.now();
       // Calculate lifetime and ensure it's always an integer
-      const expiresInSecondsRaw = (expirationTime - now) / 1000;
-      const calculatedExpiration = Math.max(1, Math.floor(expiresInSecondsRaw));
+      const lifetimeSecondsRaw = (expirationTime - now) / 1000;
+      const calculatedExpiration = Math.max(1, Math.floor(lifetimeSecondsRaw));
       // Final safety check: ensure it's definitely an integer
       sessionExpiration = Number.isInteger(calculatedExpiration)
         ? calculatedExpiration

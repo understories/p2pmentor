@@ -16,10 +16,10 @@
 | ------------------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | --------------- |
 | type                | string | Yes      | Attribute | Always "availability"                                                                                      |
 | wallet              | string | Yes      | Attribute | Wallet address (lowercase)                                                                                 |
-| spaceId             | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt           | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| space_id            | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at          | string | Yes      | Attribute | ISO timestamp                                                                                              |
 | timezone            | string | Yes      | Attribute | IANA timezone (e.g., "America/New_York")                                                                   |
-| availabilityVersion | string | Yes      | Attribute | "1.0" (structured)                                                                                         | "legacy" (text) |
+| availability_version | string | Yes      | Attribute | "1.0" (structured)                                                                                         | "legacy" (text) |
 | timeBlocks          | string | Yes      | Payload   | JSON string (WeeklyAvailability) or legacy text                                                            |
 | timezone            | string | Yes      | Payload   | IANA timezone                                                                                              |
 | createdAt           | string | Yes      | Payload   | ISO timestamp                                                                                              |

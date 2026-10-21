@@ -22,16 +22,16 @@
 | Field Name      | Type    | Required | Location  | Description                                                                                                |
 | --------------- | ------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ----------- | ------------- | ----------- | ----------- |
 | type            | string  | Yes      | Attribute | Always "session"                                                                                           |
-| mentorWallet    | string  | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
-| learnerWallet   | string  | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
+| mentor_wallet   | string  | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
+| learner_wallet  | string  | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
 | skill           | string  | Yes      | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
 | skill_id        | string  | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
-| spaceId         | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt       | string  | Yes      | Attribute | ISO timestamp                                                                                              |
-| sessionDate     | string  | Yes      | Attribute | ISO timestamp when session is scheduled                                                                    |
+| space_id        | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at      | string  | Yes      | Attribute | ISO timestamp                                                                                              |
+| session_date    | string  | Yes      | Attribute | ISO timestamp when session is scheduled                                                                    |
 | status          | string  | Yes      | Attribute | "pending"                                                                                                  | "scheduled" | "in-progress" | "completed" | "cancelled" |
-| requiresPayment | string  | No       | Attribute | "true" if paid session                                                                                     |
-| paymentAddress  | string  | No       | Attribute | Payment receiving address (if paid)                                                                        |
+| requires_payment | string  | No       | Attribute | "true" if paid session                                                                                     |
+| payment_address | string  | No       | Attribute | Payment receiving address (if paid)                                                                        |
 | cost            | string  | No       | Attribute | Cost amount (if paid)                                                                                      |
 | sessionDate     | string  | Yes      | Payload   | ISO timestamp when session is scheduled                                                                    |
 | duration        | number  | No       | Payload   | Duration in minutes (default: 60)                                                                          |

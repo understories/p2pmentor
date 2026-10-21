@@ -15,13 +15,13 @@
 | Field Name          | Type   | Required | Location  | Description                                                                                                |
 | ------------------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | type                | string | Yes      | Attribute | Always "session_feedback"                                                                                  |
-| sessionKey          | string | Yes      | Attribute | Session entity key                                                                                         |
-| mentorWallet        | string | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
-| learnerWallet       | string | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
-| feedbackFrom        | string | Yes      | Attribute | Wallet address of person giving feedback                                                                   |
-| feedbackTo          | string | Yes      | Attribute | Wallet address of person receiving feedback                                                                |
-| spaceId             | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt           | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| session_key         | string | Yes      | Attribute | Session entity key                                                                                         |
+| mentor_wallet       | string | Yes      | Attribute | Mentor wallet address (lowercase)                                                                          |
+| learner_wallet      | string | Yes      | Attribute | Learner wallet address (lowercase)                                                                         |
+| feedback_from       | string | Yes      | Attribute | Wallet address of person giving feedback                                                                   |
+| feedback_to         | string | Yes      | Attribute | Wallet address of person receiving feedback                                                                |
+| space_id            | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at          | string | Yes      | Attribute | ISO timestamp                                                                                              |
 | rating              | string | No       | Attribute | Rating 1-5 (stored as string)                                                                              |
 | rating              | number | No       | Payload   | Rating 1-5                                                                                                 |
 | notes               | string | No       | Payload   | Qualitative feedback text                                                                                  |

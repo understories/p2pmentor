@@ -54,7 +54,10 @@ function errorTxHash(error: any): string | undefined {
  */
 export function isRateLimitError(error: any): boolean {
   const errorMessage = errorText(error).toLowerCase();
-  const errorCodes = typeof error === 'string' ? [] : errorChain(error).map((e) => e?.code ?? e?.status ?? e?.statusCode);
+  const errorCodes =
+    typeof error === 'string'
+      ? []
+      : errorChain(error).map((e) => e?.code ?? e?.status ?? e?.statusCode);
 
   return (
     errorCodes.includes(429) ||

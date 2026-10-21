@@ -157,11 +157,10 @@ export async function createQuestStepProgress({
       },
       payload: { txHash, progressKey: returnedEntityKey },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err) => {
-        // Non-blocking - log but don't fail
-        console.warn('[createQuestStepProgress] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      // Non-blocking - log but don't fail
+      console.warn('[createQuestStepProgress] Failed to create txhash entity:', err);
+    });
 
     // Return "submitted" status - caller handles indexer lag
     return {

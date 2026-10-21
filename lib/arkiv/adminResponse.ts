@@ -82,9 +82,9 @@ export async function createAdminResponse({
     },
     payload: { txHash },
   }).catch((err: any) => {
-      console.warn('[createAdminResponse] Failed to create txHash entity:', err);
-      // Don't throw - txHash entity is optional metadata
-    });
+    console.warn('[createAdminResponse] Failed to create txHash entity:', err);
+    // Don't throw - txHash entity is optional metadata
+  });
 
   // Create notification for the user
   try {

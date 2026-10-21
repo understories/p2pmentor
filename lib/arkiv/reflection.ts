@@ -107,10 +107,9 @@ export async function createQuestReflection({
       },
       payload: { txHash, reflectionKey: returnedEntityKey },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err) => {
-        console.warn('[createQuestReflection] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      console.warn('[createQuestReflection] Failed to create txhash entity:', err);
+    });
 
     return { key: returnedEntityKey, txHash };
   } catch (error: any) {

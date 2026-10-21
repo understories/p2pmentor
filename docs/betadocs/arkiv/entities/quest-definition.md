@@ -21,14 +21,14 @@
 | Field Name        | Type                       | Required | Location  | Description                                                                                          |
 | ----------------- | -------------------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------- | -------------- | ---------- |
 | type              | string                     | Yes      | Attribute | Always "quest_definition"                                                                            |
-| questId           | string                     | Yes      | Attribute | Unique quest identifier (e.g., "arkiv_builder", "mandarin_starter")                                  |
+| quest_id          | string                     | Yes      | Attribute | Unique quest identifier (e.g., "arkiv_builder", "mandarin_starter")                                  |
 | track             | string                     | Yes      | Attribute | Quest track (e.g., "arkiv", "mandarin", "spanish")                                                   |
 | version           | string                     | Yes      | Attribute | Quest version (e.g., "1", "2")                                                                       |
 | language          | string                     | No       | Attribute | Language code (e.g., "zh", "es") - only for language learning quests                                 |
-| spaceId           | string                     | Yes      | Attribute | Space ID (defaults to "global" for network-wide quests, or specific space for space-specific quests) |
+| space_id          | string                     | Yes      | Attribute | Space ID (defaults to "global" for network-wide quests, or specific space for space-specific quests) |
 | status            | string                     | Yes      | Attribute | "active"                                                                                             | "archived"     |
-| createdAt         | string                     | Yes      | Attribute | ISO timestamp                                                                                        |
-| creatorWallet     | string                     | No       | Attribute | Wallet address of quest creator (optional, for attribution)                                          |
+| created_at        | string                     | Yes      | Attribute | ISO timestamp                                                                                        |
+| creator_wallet    | string                     | No       | Attribute | Wallet address of quest creator (optional, for attribution)                                          |
 | questId           | string                     | Yes      | Payload   | Quest identifier (matches attribute)                                                                 |
 | version           | string                     | Yes      | Payload   | Quest version (matches attribute)                                                                    |
 | track             | string                     | Yes      | Payload   | Quest track (matches attribute)                                                                      |

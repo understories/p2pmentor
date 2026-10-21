@@ -12,8 +12,8 @@
 | name_canonical     | string | Yes      | Attribute | Display name (e.g., "Spanish")                                                                             |
 | slug               | string | Yes      | Attribute | Normalized key (e.g., "spanish")                                                                           |
 | status             | string | Yes      | Attribute | "active"                                                                                                   | "archived" |
-| spaceId            | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt          | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| space_id           | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at         | string | Yes      | Attribute | ISO timestamp                                                                                              |
 | created_by_profile | string | No       | Attribute | Wallet address of creator (null for curated)                                                               |
 | description        | string | No       | Payload   | Skill description                                                                                          |
 

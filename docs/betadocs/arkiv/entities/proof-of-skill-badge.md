@@ -24,10 +24,10 @@
 | ------------ | ------------------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------------------ | ----------------- | --------------------- | ---------------------- | ---------- |
 | type         | string             | Yes      | Attribute | Always "proof_of_skill_badge"                                                                              |
 | wallet       | string             | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
-| badgeType    | string             | Yes      | Attribute | Badge type: "arkiv_builder"                                                                                | "mandarin_starter" | "spanish_starter" | "cryptography_basics" | "privacy_fundamentals" | "ai_intro" |
-| questId      | string             | Yes      | Attribute | Quest identifier this badge was earned for (e.g., "arkiv_builder")                                         |
-| spaceId      | string             | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| issuedAt     | string             | Yes      | Attribute | ISO timestamp when badge was issued                                                                        |
+| badge_type   | string             | Yes      | Attribute | Badge type: "arkiv_builder"                                                                                | "mandarin_starter" | "spanish_starter" | "cryptography_basics" | "privacy_fundamentals" | "ai_intro" |
+| quest_id     | string             | Yes      | Attribute | Quest identifier this badge was earned for (e.g., "arkiv_builder")                                         |
+| space_id     | string             | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| issued_at    | string             | Yes      | Attribute | ISO timestamp when badge was issued                                                                        |
 | evidenceRefs | Array<EvidenceRef> | Yes      | Payload   | Array of evidence references to quest_step_progress entities                                               |
 | questVersion | string             | Yes      | Payload   | Quest version this badge was earned on (e.g., "1")                                                         |
 | version      | string             | Yes      | Payload   | Badge schema version (currently "1")                                                                       |

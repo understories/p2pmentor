@@ -25,11 +25,11 @@
 | ------------ | ----------------- | -------- | --------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------ | ------ | -------- | --------- | -------- |
 | type         | string            | Yes      | Attribute | Always "quest_step_progress"                                                                               |
 | wallet       | string            | Yes      | Attribute | Wallet address (lowercase, primary identifier)                                                             |
-| questId      | string            | Yes      | Attribute | Quest identifier (e.g., "arkiv_builder")                                                                   |
-| stepId       | string            | Yes      | Attribute | Step identifier (e.g., "intro", "first_entity")                                                            |
-| stepType     | string            | Yes      | Attribute | Step type: "READ"                                                                                          | "DO"                           | "QUIZ" | "SUBMIT" | "SESSION" | "VERIFY" |
-| spaceId      | string            | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt    | string            | Yes      | Attribute | ISO timestamp                                                                                              |
+| quest_id     | string            | Yes      | Attribute | Quest identifier (e.g., "arkiv_builder")                                                                   |
+| step_id      | string            | Yes      | Attribute | Step identifier (e.g., "intro", "first_entity")                                                            |
+| step_type    | string            | Yes      | Attribute | Step type: "READ"                                                                                          | "DO"                           | "QUIZ" | "SUBMIT" | "SESSION" | "VERIFY" |
+| space_id     | string            | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at   | string            | Yes      | Attribute | ISO timestamp                                                                                              |
 | evidence     | QuestStepEvidence | Yes      | Payload   | Evidence record for step completion                                                                        |
 | questVersion | string            | No       | Payload   | Quest version this progress is for (defaults to "1")                                                       |
 | status       | string            | No       | Payload   | Progress status: "submitted"                                                                               | "indexed" (for reconciliation) |

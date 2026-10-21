@@ -99,7 +99,9 @@ async function verifySDKUpdateAPI() {
       console.log('     payload?: Uint8Array,');
       console.log('     contentType?: string,');
       console.log('   })');
-      console.log('   App code: replaceArkivEntity(walletClient, { entityKey, type, attributes, payload })');
+      console.log(
+        '   App code: replaceArkivEntity(walletClient, { entityKey, type, attributes, payload })'
+      );
       console.log('\n✅ SDK Update API is available and working!');
       return true;
     } catch (error: any) {

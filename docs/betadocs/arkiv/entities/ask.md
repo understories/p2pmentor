@@ -6,23 +6,23 @@
 
 ## Patterns Used
 
-- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, skill_id, spaceId)
+- [PAT-QUERY-001: Indexer-Friendly Query Shapes](../patterns/query-optimization.md) - Queries use indexed attributes (type, wallet, skill_id, space_id)
 - [PAT-REF-001: Relationship References That Survive Updates](../patterns/reference-integrity.md) - References to Skill entities via skill_id attribute
-- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - spaceId attribute for data isolation
+- [PAT-SPACE-001: Space ID as Environment Boundary](../patterns/space-isolation.md) - space_id attribute for data isolation
 
 ## Field Table
 
 | Field Name  | Type   | Required | Location  | Description                                                                                                |
 | ----------- | ------ | -------- | --------- | ---------------------------------------------------------------------------------------------------------- |
 | type        | string | Yes      | Attribute | Always "ask"                                                                                               |
-| wallet      | string | Yes      | Attribute | Wallet address of asker (lowercase)                                                                        |
+| wallet      | addr   | Yes      | Attribute | Wallet address of asker (lowercase)                                                                        |
 | skill       | string | No       | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
 | skill_id    | string | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
 | skill_label | string | No       | Attribute | Skill display name (derived from Skill entity)                                                             |
-| spaceId     | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt   | string | Yes      | Attribute | ISO timestamp                                                                                              |
+| space_id    | string | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at  | string | Yes      | Attribute | ISO timestamp                                                                                              |
 | status      | string | Yes      | Attribute | Always "open"                                                                                              |
-| ttlSeconds  | string | Yes      | Attribute | TTL in seconds (default: 3600)                                                                             |
+| ttl_seconds | string | Yes      | Attribute | TTL in seconds (default: 3600)                                                                             |
 | message     | string | Yes      | Payload   | Ask description                                                                                            |
 
 Note: Either `skill` (legacy) or `skill_id` (beta) must be provided.
@@ -32,11 +32,11 @@ Note: Either `skill` (legacy) or `skill_id` (beta) must be provided.
 TTL uses a dual approach: client-side filtering for application logic, and Arkiv-level expiration for cleanup.
 
 1. **Default TTL**: 3600 seconds (1 hour)
-2. **Custom TTL**: Can be specified via `expiresIn` parameter (must be integer, BigInt requirement)
-3. **Client-Side Filtering**: Application filters expired asks by checking `createdAt + ttlSeconds < now` (allows `includeExpired` option)
-4. **Arkiv-Level Expiration**: `expiresIn` parameter tells Arkiv when to remove entity from network (hard deletion for cleanup)
+2. **Custom TTL**: Can be specified via the `createAsk()` `expiresIn` parameter (seconds, floored to an integer)
+3. **Client-Side Filtering**: Application filters expired asks by checking `created_at + ttl_seconds < now` (allows `includeExpired` option)
+4. **Arkiv-Level Expiration**: the entity's `expires` (`ExpirationTime`) tells Arkiv when to remove the entity from the network (hard deletion for cleanup)
 
-Implementation: `lib/arkiv/asks.ts` - `createAsk()` stores `ttlSeconds` in attributes for client-side filtering and passes `expiresIn: ttl` to Arkiv for network cleanup.
+Implementation: `lib/arkiv/asks.ts` - `createAsk()` stores `ttl_seconds` in attributes for client-side filtering and passes `lifetimeSeconds: ttl` to `createArkivEntity()`, which sets `expires: lifetimeFor('ask', ttl)` for network cleanup.
 
 Query pattern (client-side filtering):
 
@@ -46,11 +46,11 @@ const result = await arkivSelect('ask')
   .limit(100)
   .fetch();
 
-// Client-side filtering based on createdAt + ttlSeconds
+// Client-side filtering based on created_at + ttl_seconds
 const now = Date.now();
-const activeAsks = result.entities.filter((ask) => {
-  const created = new Date(ask.createdAt).getTime();
-  const expires = created + ask.ttlSeconds * 1000;
+const activeAsks = result.entities.filter((entity) => {
+  const created = new Date(getAttr(entity, 'created_at')).getTime();
+  const expires = created + Number(getAttr(entity, 'ttl_seconds')) * 1000;
   return expires > now;
 });
 ```
@@ -80,17 +80,17 @@ Implementation: `lib/arkiv/asks.ts` - `listAsks()`, `listAsksForWallet()`
 ## Entity Relationships
 
 - Links to Skill entity via `skill_id` attribute (preferred) or `skill` attribute (legacy)
-- Links to Session entities via `learnerWallet` attribute (learner's wallet matches ask wallet)
+- Links to Session entities via `learner_wallet` attribute (learner's wallet matches ask wallet)
 
 ## Expiration
 
-Default: 3600 seconds (1 hour). Can be customized via `expiresIn` parameter.
+Default: 3600 seconds (1 hour). Can be customized via the `createAsk()` `expiresIn` parameter, which becomes the entity lifetime (`lifetimeFor('ask', seconds)`).
 
 ## Transaction Hash Tracking
 
 Separate `ask_txhash` entity (optional) tracks transaction hash:
 
 - `type`: "ask_txhash"
-- `askKey`: Entity key of ask
+- `ask_key`: Entity key of ask
 - `wallet`: Wallet address
-- `spaceId`: "local-dev"
+- `space_id`: "local-dev"

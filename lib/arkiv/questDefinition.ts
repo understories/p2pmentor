@@ -117,11 +117,10 @@ export async function createQuestDefinition({
       },
       payload: { txHash, questKey: entityKey },
       lifetimeSeconds: lifetimeSecondsFor('quest_definition'), // matches quest entity
-    })
-      .catch((err) => {
-        // Non-blocking - log but don't fail
-        console.warn('[createQuestDefinition] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      // Non-blocking - log but don't fail
+      console.warn('[createQuestDefinition] Failed to create txhash entity:', err);
+    });
 
     return { key: entityKey, txHash };
   } catch (error: any) {

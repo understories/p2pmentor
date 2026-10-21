@@ -198,35 +198,35 @@ export async function resolveAppFeedback({
     const feedbackEntity = await getEntityByKey(feedbackKey, publicClient);
 
     if (
-        feedbackEntity &&
-        readAttr(feedbackEntity, 'type') === 'app_feedback' &&
-        readAttr(feedbackEntity, 'project') === PROJECT
-      ) {
-        const getAttr = (key: string): string => readAttr(feedbackEntity, key);
-        const userWallet = getAttr('wallet');
+      feedbackEntity &&
+      readAttr(feedbackEntity, 'type') === 'app_feedback' &&
+      readAttr(feedbackEntity, 'project') === PROJECT
+    ) {
+      const getAttr = (key: string): string => readAttr(feedbackEntity, key);
+      const userWallet = getAttr('wallet');
 
-        if (userWallet) {
-          const { createNotification } = await import('./notifications');
-          await createNotification({
-            wallet: userWallet.toLowerCase(),
-            notificationType: 'issue_resolved',
-            sourceEntityType: 'app_feedback',
-            sourceEntityKey: feedbackKey,
-            title: 'Issue Resolved',
-            message: 'Your reported issue has been resolved',
-            link: '/notifications',
-            metadata: {
-              feedbackKey,
-              resolutionKey: entityKey,
-              resolvedBy: resolvedByWallet.toLowerCase(),
-            },
-            privateKey,
-            spaceId,
-          }).catch((err: any) => {
-            console.warn('[resolveAppFeedback] Failed to create notification:', err);
-          });
-        }
+      if (userWallet) {
+        const { createNotification } = await import('./notifications');
+        await createNotification({
+          wallet: userWallet.toLowerCase(),
+          notificationType: 'issue_resolved',
+          sourceEntityType: 'app_feedback',
+          sourceEntityKey: feedbackKey,
+          title: 'Issue Resolved',
+          message: 'Your reported issue has been resolved',
+          link: '/notifications',
+          metadata: {
+            feedbackKey,
+            resolutionKey: entityKey,
+            resolvedBy: resolvedByWallet.toLowerCase(),
+          },
+          privateKey,
+          spaceId,
+        }).catch((err: any) => {
+          console.warn('[resolveAppFeedback] Failed to create notification:', err);
+        });
       }
+    }
   } catch (err: any) {
     // Notification creation failure shouldn't block resolution
     console.warn('[resolveAppFeedback] Error creating notification:', err);

@@ -4,7 +4,6 @@
 
 import { listSessions } from '../lib/arkiv/sessions';
 import { getPublicClient } from '../lib/arkiv/client';
-import { eqAttr } from '@/lib/arkiv/schema';
 import { arkivSelect, getAttr as readAttr } from '@/lib/arkiv/read';
 
 async function debugJitsiMatching() {

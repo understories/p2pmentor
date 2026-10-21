@@ -79,8 +79,8 @@ export async function createOnboardingEvent({
     },
     payload: { txHash },
   }).catch((error: any) => {
-      console.warn('[createOnboardingEvent] Failed to create txhash entity:', error);
-    });
+    console.warn('[createOnboardingEvent] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }
@@ -137,8 +137,8 @@ export async function createOnboardingEventClient({
     },
     payload: { txHash },
   }).catch((error: any) => {
-      console.warn('[createOnboardingEventClient] Failed to create txhash entity:', error);
-    });
+    console.warn('[createOnboardingEventClient] Failed to create txhash entity:', error);
+  });
 
   return { key: entityKey, txHash };
 }

@@ -9,7 +9,6 @@ import { JITSI_BASE_URL } from '../lib/config';
 import { getPublicClient } from '../lib/arkiv/client';
 import { getWalletClientFromPrivateKey } from '../lib/arkiv/client';
 import { getPrivateKey } from '../lib/config';
-import { eqAttr } from '@/lib/arkiv/schema';
 import { arkivSelect, getAttr as readAttr, getEntityByKey } from '@/lib/arkiv/read';
 import { createArkivEntity } from '../lib/arkiv/write';
 

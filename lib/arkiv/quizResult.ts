@@ -132,10 +132,9 @@ export async function createQuizResult({
       },
       payload: { txHash, resultKey: entityKey },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err) => {
-        console.warn('[createQuizResult] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      console.warn('[createQuizResult] Failed to create txhash entity:', err);
+    });
 
     return { key: entityKey, txHash };
   } catch (error: any) {
@@ -212,8 +211,7 @@ export async function getQuizResults({
           percentage: payload.percentage || 0,
           passed: passedAttr === 'true' || passedAttr === '1',
           progressEntityKey: payload.progressEntityKey || '',
-          completedAt:
-            payload.completedAt || createdAtAttr || '',
+          completedAt: payload.completedAt || createdAtAttr || '',
           spaceId: finalSpaceId,
           txHash: undefined, // Would need to query txhash entity to get this
         };

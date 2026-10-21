@@ -109,10 +109,9 @@ export async function createQuestCompletionSkillLink({
       },
       payload: { txHash, linkKey: entityKey },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err) => {
-        console.warn('[createQuestCompletionSkillLink] Failed to create txhash entity:', err);
-      });
+    }).catch((err) => {
+      console.warn('[createQuestCompletionSkillLink] Failed to create txhash entity:', err);
+    });
 
     return { key: entityKey, txHash };
   } catch (error: any) {

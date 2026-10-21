@@ -115,10 +115,9 @@ export async function logTelemetryEvent({
       },
       payload: { txHash },
       lifetimeSeconds: ttlSeconds,
-    })
-      .catch((err: any) => {
-        console.warn('[logTelemetryEvent] txHash entity failed (non-blocking):', err?.message);
-      });
+    }).catch((err: any) => {
+      console.warn('[logTelemetryEvent] txHash entity failed (non-blocking):', err?.message);
+    });
 
     return { key: entityKey, txHash };
   } catch (error: any) {

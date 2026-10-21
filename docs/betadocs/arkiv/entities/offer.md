@@ -19,14 +19,14 @@
 | skill              | string  | No       | Attribute | Skill name (legacy, kept for backward compatibility)                                                       |
 | skill_id           | string  | No       | Attribute | Skill entity key (preferred for beta)                                                                      |
 | skill_label        | string  | No       | Attribute | Skill display name (derived from Skill entity)                                                             |
-| spaceId            | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
-| createdAt          | string  | Yes      | Attribute | ISO timestamp                                                                                              |
+| space_id           | string  | Yes      | Attribute | Space ID (from `SPACE_ID` config, defaults to `'beta-launch'` in production, `'local-dev'` in development) |
+| created_at         | string  | Yes      | Attribute | ISO timestamp                                                                                              |
 | status             | string  | Yes      | Attribute | Always "active"                                                                                            |
-| ttlSeconds         | string  | Yes      | Attribute | TTL in seconds (default: 7200)                                                                             |
-| isPaid             | string  | Yes      | Attribute | "true"                                                                                                     | "false" |
+| ttl_seconds        | string  | Yes      | Attribute | TTL in seconds (default: 7200)                                                                             |
+| is_paid            | string  | Yes      | Attribute | "true"                                                                                                     | "false" |
 | cost               | string  | No       | Attribute | Cost amount (required if isPaid is "true")                                                                 |
-| paymentAddress     | string  | No       | Attribute | Payment receiving address (required if isPaid is "true")                                                   |
-| availabilityKey    | string  | No       | Attribute | Reference to Availability entity key                                                                       |
+| payment_address    | string  | No       | Attribute | Payment receiving address (required if isPaid is "true")                                                   |
+| availability_key   | string  | No       | Attribute | Reference to Availability entity key                                                                       |
 | message            | string  | Yes      | Payload   | Offer description                                                                                          |
 | availabilityWindow | string  | No       | Payload   | Availability description (text or WeeklyAvailability JSON)                                                 |
 | isPaid             | boolean | Yes      | Payload   | Free/paid flag                                                                                             |

@@ -20,7 +20,9 @@ import { SERVER_SIGNER_ADDRESS, SPACE_ID } from '../config';
  * Learner quest definitions are only written with the server key (admin seed scripts and
  * /api/learner-quests/create), so reads are scoped to the server signer when it is known.
  */
-export function learnerQuestSelect(publicClient: ReturnType<typeof getPublicClient> = getPublicClient()) {
+export function learnerQuestSelect(
+  publicClient: ReturnType<typeof getPublicClient> = getPublicClient()
+) {
   const q = arkivSelect('learner_quest', publicClient);
   return SERVER_SIGNER_ADDRESS ? q.createdBy(SERVER_SIGNER_ADDRESS) : q;
 }
